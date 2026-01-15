@@ -4,7 +4,10 @@
   // Load images
   const modules = import.meta.glob(
     "../assets/images/*.{png,jpg,jpeg,webp,svg}",
-    { eager: true }
+    {
+      eager: true,
+      query: { w: 400, format: "webp", quality: 10 },
+    }
   );
   const imageUrls = Object.values(modules).map((mod) => mod.default);
   const hasImages = imageUrls.length > 0;

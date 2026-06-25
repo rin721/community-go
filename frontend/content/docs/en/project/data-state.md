@@ -9,15 +9,15 @@ navigation:
 
 # API and Local State
 
-The current app is driven by mock APIs and browser-local state. Code should still preserve future backend contracts and avoid spreading temporary display shapes as if they were API models.
+The current app connects to the backend public Community API through `useAoiApi()`. Mock APIs and browser-local state are development, offline-experience, and fallback boundaries. Code should follow shared DTOs and backend route contracts instead of spreading temporary display shapes as API models.
 
 ## API Access
 
-All API access goes through `useAoiApi()` and remains compatible with `useAoiApiTelemetry()` diagnostics. New mock routes should reuse DTOs from `shared/` whenever possible.
+All API access goes through `useAoiApi()` and remains compatible with `useAoiApiTelemetry()` diagnostics. With `NUXT_PUBLIC_API_MOCK=false`, the app consumes the `result` envelope from `backend/internal/modules/community`; new mock routes should reuse DTOs from `shared/` whenever possible.
 
 ## Shared DTOs
 
-Future Go backend request, response, and entity shapes belong in shared types. Pages can map data for display, but should not invent backend-like objects in place.
+Backend request, response, and entity shapes belong in shared types and should stay close to the contract exposed by `backend/internal/transport/http/contracts.go`. Pages can map data for display, but should not invent backend-like objects in place.
 
 ## Local State
 

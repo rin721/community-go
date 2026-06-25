@@ -250,7 +250,10 @@ func NewCommunityModule(core Core, infra Infrastructure) CommunityModule {
 	if infra.Database != nil {
 		repo = communityrepository.New(adapters.NewDatabase(infra.Database))
 	}
-	service := communityservice.New(repo, communityservice.Config{BasePath: "/api/v1/public/community"})
+	service := communityservice.New(repo, communityservice.Config{
+		BasePath: "/api/v1/public/community",
+		NewID:    core.IDGenerator.NextIDString,
+	})
 	return CommunityModule{
 		Service: service,
 		Handler: communityhandler.New(service, core.Logger),

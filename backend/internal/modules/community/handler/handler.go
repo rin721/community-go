@@ -60,6 +60,27 @@ func (h *Handler) VideoDanmaku(c ports.HTTPContext) {
 	writeOK(c, payload, err, h.writeError)
 }
 
+func (h *Handler) VideoComments(c ports.HTTPContext) {
+	limit, ok := parseIntQuery(c, "limit", 48)
+	if !ok {
+		return
+	}
+	payload, err := h.service.GetVideoComments(c.RequestContext(), c.Param("idOrSlug"), model.VideoCommentFilter{
+		Limit: limit,
+		Sort:  queryValue(c, "sort"),
+	})
+	writeOK(c, payload, err, h.writeError)
+}
+
+func (h *Handler) CreateVideoComment(c ports.HTTPContext) {
+	var req model.CreateVideoCommentRequest
+	if !bind(c, &req) {
+		return
+	}
+	comment, err := h.service.CreateVideoComment(c.RequestContext(), c.Param("idOrSlug"), req)
+	writeOK(c, comment, err, h.writeError)
+}
+
 func (h *Handler) Search(c ports.HTTPContext) {
 	limit, ok := parseIntQuery(c, "limit", 24)
 	if !ok {
@@ -112,6 +133,14 @@ func parseIntQuery(c ports.HTTPContext, name string, fallback int) (int, bool) {
 		return 0, false
 	}
 	return value, true
+}
+
+func bind(c ports.HTTPContext, dest any) bool {
+	if err := c.BindJSON(dest); err != nil {
+		result.BadRequest(c, result.MessageKeyInvalidRequest)
+		return false
+	}
+	return true
 }
 
 func writeOK(c ports.HTTPContext, data any, err error, writeError func(ports.HTTPContext, error)) {

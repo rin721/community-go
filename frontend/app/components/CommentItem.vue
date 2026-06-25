@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import type { LocalComment } from "~/types/comments"
+import type { CommentView } from "~/types/comments"
 
 const props = defineProps<{
-  comment: LocalComment
+  comment: CommentView
 }>()
 
 const emit = defineEmits<{
@@ -14,7 +14,14 @@ const editing = ref(false)
 const draft = ref(props.comment.body)
 
 const canSave = computed(() => draft.value.trim().length > 0 && draft.value.length <= 500)
+const canManage = computed(() => props.comment.editable)
 const isEdited = computed(() => props.comment.updatedAt !== props.comment.createdAt)
+
+watch(() => props.comment.body, (value) => {
+  if (!editing.value) {
+    draft.value = value
+  }
+})
 
 function formatTime(value: string) {
   return new Date(value).toLocaleString("zh-CN", {
@@ -24,6 +31,10 @@ function formatTime(value: string) {
 }
 
 function startEdit() {
+  if (!canManage.value) {
+    return
+  }
+
   draft.value = props.comment.body
   editing.value = true
 }
@@ -34,7 +45,7 @@ function cancelEdit() {
 }
 
 function saveEdit() {
-  if (!canSave.value) {
+  if (!canSave.value || !canManage.value) {
     return
   }
 
@@ -56,7 +67,7 @@ function saveEdit() {
           <span>{{ formatTime(comment.createdAt) }}</span>
           <small v-if="isEdited">已编辑</small>
         </div>
-        <AoiActionBar class="comment-item__actions" size="sm" align="end">
+        <AoiActionBar v-if="canManage" class="comment-item__actions" size="sm" align="end">
           <AoiButton v-if="!editing" size="sm" icon="pencil" @click="startEdit">
             编辑
           </AoiButton>

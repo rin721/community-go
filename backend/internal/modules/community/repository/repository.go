@@ -165,6 +165,37 @@ func (r *repository) ListDanmaku(ctx context.Context, videoID string) ([]model.V
 	return items, err
 }
 
+func (r *repository) ListVideoComments(ctx context.Context, videoID string, filter model.VideoCommentFilter) ([]model.VideoComment, error) {
+	order := "created_at DESC, id DESC"
+	if filter.Sort == model.CommentSortOldest {
+		order = "created_at ASC, id ASC"
+	}
+	opts := []database.QueryOption{
+		database.Where("video_id = ? AND status = ?", videoID, model.CommentStatusVisible),
+		alive(),
+		database.Order(order),
+	}
+	if filter.Limit > 0 {
+		opts = append(opts, database.Limit(filter.Limit))
+	}
+	var comments []model.VideoComment
+	err := r.db.Find(ctx, &comments, opts...)
+	return comments, err
+}
+
+func (r *repository) CountVideoComments(ctx context.Context, videoID string) (int, error) {
+	count, err := r.db.Count(ctx, &model.VideoComment{}, database.Where("video_id = ? AND status = ?", videoID, model.CommentStatusVisible), alive())
+	return int(count), err
+}
+
+func (r *repository) CreateVideoComment(ctx context.Context, comment model.VideoComment) error {
+	if err := r.db.Create(ctx, &comment); err != nil {
+		return err
+	}
+	_, err := r.db.Exec(ctx, "UPDATE community_videos SET comment_count = comment_count + 1, updated_at = ? WHERE id = ?", comment.UpdatedAt, comment.VideoID)
+	return err
+}
+
 func (r *repository) videoIDsForCategory(ctx context.Context, category string) ([]string, error) {
 	categorySlugs, err := r.categorySelfAndChildren(ctx, category)
 	if err != nil {

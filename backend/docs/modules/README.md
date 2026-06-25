@@ -9,7 +9,7 @@
 | `iam.md` | 账号、组织、用户、角色、权限、会话、API Token、MFA、通知 outbox 和审计相关说明。 |
 | `system.md` | 菜单、系统配置、API catalog、操作记录、媒体、版本、参数、字典、探针和维护任务说明。 |
 | `announcements.md` | 公告模块端到端示例，覆盖后台管理和公开只读入口。 |
-| `community.md` | 视频社区公开只读模块，覆盖 Nuxt 前端首页、分类、视频、弹幕、搜索和创作者资料数据。 |
+| `community.md` | 视频社区公开模块，覆盖 Nuxt 前端首页、分类、视频、弹幕、评论、搜索和创作者资料数据。 |
 | `permission-matrix.md` | 后台页面、API contract 和权限点的对应关系。 |
 
 ## 维护规则

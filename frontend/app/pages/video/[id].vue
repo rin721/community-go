@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import type { CommentSortMode } from "~/types/comments"
+import type { CommentSortMode, CommentView, LocalComment } from "~/types/comments"
 import type { AoiDanmakuMapper, AoiDanmakuMode } from "~/types/danmaku"
 import type { PlayerPlaybackRate } from "~/types/player"
-import type { VideoDanmakuItem } from "~/types/api"
+import type { VideoComment, VideoDanmakuItem } from "~/types/api"
 
 const route = useRoute()
 const api = useAoiApi()
@@ -15,21 +15,30 @@ const { t } = useI18n()
 const id = computed(() => String(route.params.id || ""))
 const commentSortMode = ref<CommentSortMode>("newest")
 const localDanmakuEnabled = ref(true)
+const commentSubmitting = ref(false)
 const selectedSourceId = ref("")
 
 const { data: watchPayload, error, pending, refresh } = useAsyncData(() => `video-watch-${id.value}`, async () => {
   const video = await api.getVideoDetail(id.value)
-  const [creator, danmakuPayload] = await Promise.all([
+  const [creator, danmakuPayload, commentPayload] = await Promise.all([
     api.getCreatorProfile(video.uploader.handle).catch(() => null),
     api.getVideoDanmaku(video.id).catch(() => ({
       items: [],
       nextCursor: null,
       totalCount: 0,
       videoId: video.id
+    })),
+    api.getVideoComments(video.id, { limit: 48, sort: commentSortMode.value }).catch(() => ({
+      items: [],
+      nextCursor: null,
+      sort: commentSortMode.value,
+      totalCount: video.commentCount,
+      videoId: video.id
     }))
   ])
 
   return {
+    commentPayload,
     creator,
     danmakuItems: danmakuPayload.items,
     video
@@ -40,6 +49,7 @@ const { data: watchPayload, error, pending, refresh } = useAsyncData(() => `vide
 
 const video = computed(() => watchPayload.value?.video || null)
 const creator = computed(() => watchPayload.value?.creator || null)
+const serverCommentPayload = computed(() => watchPayload.value?.commentPayload || null)
 const mockDanmakuItems = computed(() => watchPayload.value?.danmakuItems || [])
 const mergedDanmakuItems = computed(() => {
   if (!video.value) {
@@ -56,9 +66,21 @@ const isLiked = computed(() => video.value ? library.isLiked(video.value.id) : f
 const isWatchLater = computed(() => video.value ? library.isWatchLater(video.value.id) : false)
 const localLikeCount = computed(() => video.value ? video.value.likeCount + (isLiked.value ? 1 : 0) : 0)
 const localCommentCount = computed(() => video.value ? comments.commentCountForVideo(video.value.id) : 0)
-const displayCommentCount = computed(() => video.value ? video.value.commentCount + localCommentCount.value : 0)
+const serverCommentCount = computed(() => serverCommentPayload.value?.totalCount || 0)
+const displayCommentCount = computed(() => serverCommentCount.value + localCommentCount.value)
 const displayDanmakuCount = computed(() => mergedDanmakuItems.value.length)
-const visibleComments = computed(() => video.value ? comments.commentsForVideo(video.value.id, commentSortMode.value) : [])
+const serverCommentViews = computed<CommentView[]>(() => (serverCommentPayload.value?.items || []).map(toCommunityCommentView))
+const localCommentViews = computed<CommentView[]>(() => video.value
+  ? comments.commentsForVideo(video.value.id, commentSortMode.value).map(toLocalCommentView)
+  : [])
+const visibleComments = computed(() => sortCommentViews([
+  ...serverCommentViews.value,
+  ...localCommentViews.value
+], commentSortMode.value))
+const commentThreadDescription = computed(() => t("player.communityCommentDescription", {
+  count: visibleComments.value.length,
+  total: displayCommentCount.value
+}))
 const initialProgressSeconds = computed(() => {
   if (!video.value || settings.disableWatchHistory) {
     return 0
@@ -125,9 +147,22 @@ function submitDanmaku(payload: {
   }
 }
 
-function submitComment(body: string) {
-  if (video.value) {
+async function submitComment(body: string) {
+  if (!video.value || commentSubmitting.value) {
+    return
+  }
+
+  commentSubmitting.value = true
+  try {
+    const comment = await api.createVideoComment(video.value.id, {
+      authorName: comments.authorName,
+      body
+    })
+    appendServerComment(comment)
+  } catch {
     comments.submitComment(video.value.id, body)
+  } finally {
+    commentSubmitting.value = false
   }
 }
 
@@ -141,6 +176,50 @@ function deleteComment(commentId: string) {
   if (video.value) {
     comments.deleteComment(video.value.id, commentId)
   }
+}
+
+function appendServerComment(comment: VideoComment) {
+  if (!watchPayload.value) {
+    return
+  }
+
+  const payload = watchPayload.value.commentPayload
+  const items = [comment, ...payload.items.filter((item) => item.id !== comment.id)]
+
+  watchPayload.value = {
+    ...watchPayload.value,
+    commentPayload: {
+      ...payload,
+      items,
+      totalCount: Math.max(payload.totalCount + 1, items.length)
+    }
+  }
+}
+
+function toCommunityCommentView(comment: VideoComment): CommentView {
+  return {
+    ...comment,
+    editable: false,
+    source: "community"
+  }
+}
+
+function toLocalCommentView(comment: LocalComment): CommentView {
+  return {
+    ...comment,
+    editable: true,
+    source: "local",
+    status: "visible"
+  }
+}
+
+function sortCommentViews(items: CommentView[], sort: CommentSortMode) {
+  return [...items].sort((a, b) => {
+    const aTime = new Date(a.createdAt).getTime()
+    const bTime = new Date(b.createdAt).getTime()
+
+    return sort === "oldest" ? aTime - bTime : bTime - aTime
+  })
 }
 
 useHead(() => ({
@@ -244,7 +323,7 @@ useHead(() => ({
             :tags="videoTags"
             :tags-label="t('player.tags')"
             :actions-label="t('player.localActions')"
-            :comments-label="t('player.localComments')"
+            :comments-label="t('player.communityComments')"
           >
             <template #meta>
               <VideoMeta :video="video" link-uploader />
@@ -277,13 +356,21 @@ useHead(() => ({
             <template #comments>
               <CommentComposer
                 v-model:author-name="commentAuthorName"
-                :disabled="!comments.hydrated"
+                :disabled="!comments.hydrated || commentSubmitting"
+                :hint="t('player.communityCommentComposerHint')"
+                :submit-label="t('player.communityCommentSubmit')"
+                :submitting="commentSubmitting"
                 @submit="submitComment"
               />
               <CommentThread
                 v-model:sort-mode="commentSortMode"
                 :comments="visibleComments"
-                :hydrated="comments.hydrated"
+                :description="commentThreadDescription"
+                :empty-description="t('player.communityCommentEmptyDescription')"
+                :empty-title="t('player.communityCommentEmptyTitle')"
+                :hydrated="Boolean(video)"
+                :sort-label="t('player.communityCommentSort')"
+                :title="t('player.communityComments')"
                 @delete="deleteComment"
                 @edit="editComment"
               />

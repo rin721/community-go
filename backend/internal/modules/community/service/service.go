@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -22,19 +23,24 @@ type Service interface {
 	GetCreatorProfile(context.Context, string) (model.CreatorProfile, error)
 	GetHomePayload(context.Context) (model.HomePayload, error)
 	GetVideoDanmaku(context.Context, string) (model.VideoDanmakuPayload, error)
+	GetVideoComments(context.Context, string, model.VideoCommentFilter) (model.VideoCommentPayload, error)
 	GetVideoDetail(context.Context, string) (model.VideoDetail, error)
 	ListCategories(context.Context) ([]model.CategoryTreeNode, error)
 	ListVideos(context.Context, model.VideoFilter) (model.PageResult[model.VideoSummary], error)
 	Search(context.Context, string, int) (model.SearchPayload, error)
 	FollowingFeed(context.Context) (model.FollowingFeedPayload, error)
+	CreateVideoComment(context.Context, string, model.CreateVideoCommentRequest) (model.VideoComment, error)
 }
 
 // Repository 是社区服务需要的最小持久化端口。
 type Repository interface {
 	FindCreatorByHandle(context.Context, string) (*model.Creator, error)
 	FindVideoByIDOrSlug(context.Context, string) (*model.Video, error)
+	CountVideoComments(context.Context, string) (int, error)
+	CreateVideoComment(context.Context, model.VideoComment) error
 	ListCategories(context.Context) ([]model.Category, error)
 	ListCategorySlugs(context.Context, string) ([]string, error)
+	ListVideoComments(context.Context, string, model.VideoCommentFilter) ([]model.VideoComment, error)
 	ListCreators(context.Context, int) ([]model.Creator, error)
 	ListDanmaku(context.Context, string) ([]model.VideoDanmakuItem, error)
 	ListSources(context.Context, string) ([]model.VideoSourceOption, error)
@@ -44,6 +50,7 @@ type Repository interface {
 
 type Config struct {
 	BasePath string
+	NewID    func() string
 	Now      func() time.Time
 }
 
@@ -55,6 +62,9 @@ type service struct {
 func New(repo Repository, cfg Config) Service {
 	if cfg.Now == nil {
 		cfg.Now = func() time.Time { return time.Now().UTC() }
+	}
+	if cfg.NewID == nil {
+		cfg.NewID = func() string { return strconv.FormatInt(time.Now().UTC().UnixNano(), 10) }
 	}
 	if strings.TrimSpace(cfg.BasePath) == "" {
 		cfg.BasePath = "/api/v1/public/community"
@@ -74,6 +84,7 @@ func (s *service) CommunityStatus(context.Context) model.APIStatus {
 			"/categories",
 			"/videos",
 			"/videos/:idOrSlug",
+			"/videos/:idOrSlug/comments",
 			"/videos/:idOrSlug/danmaku",
 			"/search",
 			"/users/:handle",
@@ -180,6 +191,62 @@ func (s *service) GetVideoDanmaku(ctx context.Context, idOrSlug string) (model.V
 		TotalCount: len(items),
 		VideoID:    video.ID,
 	}, nil
+}
+
+func (s *service) GetVideoComments(ctx context.Context, idOrSlug string, filter model.VideoCommentFilter) (model.VideoCommentPayload, error) {
+	if s.repo == nil {
+		return model.VideoCommentPayload{}, ErrStorageUnavailable
+	}
+	video, err := s.repo.FindVideoByIDOrSlug(ctx, strings.TrimSpace(idOrSlug))
+	if err != nil {
+		return model.VideoCommentPayload{}, mapStorageError(err)
+	}
+	filter = normalizeVideoCommentFilter(filter)
+	items, err := s.repo.ListVideoComments(ctx, video.ID, filter)
+	if err != nil {
+		return model.VideoCommentPayload{}, mapStorageError(err)
+	}
+	sortVideoComments(items, filter.Sort)
+	totalCount, err := s.repo.CountVideoComments(ctx, video.ID)
+	if err != nil {
+		return model.VideoCommentPayload{}, mapStorageError(err)
+	}
+	return model.VideoCommentPayload{
+		Items:      items,
+		NextCursor: nil,
+		Sort:       filter.Sort,
+		TotalCount: totalCount,
+		VideoID:    video.ID,
+	}, nil
+}
+
+func (s *service) CreateVideoComment(ctx context.Context, idOrSlug string, req model.CreateVideoCommentRequest) (model.VideoComment, error) {
+	if s.repo == nil {
+		return model.VideoComment{}, ErrStorageUnavailable
+	}
+	video, err := s.repo.FindVideoByIDOrSlug(ctx, strings.TrimSpace(idOrSlug))
+	if err != nil {
+		return model.VideoComment{}, mapStorageError(err)
+	}
+	authorName := normalizeCommentAuthor(req.AuthorName)
+	body := normalizeCommentBody(req.Body)
+	if authorName == "" || body == "" {
+		return model.VideoComment{}, ErrInvalidInput
+	}
+	now := s.now()
+	comment := model.VideoComment{
+		ID:         s.newCommentID(),
+		VideoID:    video.ID,
+		Body:       body,
+		AuthorName: authorName,
+		Status:     model.CommentStatusVisible,
+		CreatedAt:  now,
+		UpdatedAt:  now,
+	}
+	if err := s.repo.CreateVideoComment(ctx, comment); err != nil {
+		return model.VideoComment{}, mapStorageError(err)
+	}
+	return comment, nil
 }
 
 func (s *service) GetCreatorProfile(ctx context.Context, handle string) (model.CreatorProfile, error) {
@@ -403,6 +470,23 @@ func sortCategoryTree(nodes []model.CategoryTreeNode) {
 	}
 }
 
+func sortVideoComments(items []model.VideoComment, sortMode string) {
+	sort.SliceStable(items, func(i, j int) bool {
+		left := items[i]
+		right := items[j]
+		if left.CreatedAt.Equal(right.CreatedAt) {
+			if sortMode == model.CommentSortOldest {
+				return left.ID < right.ID
+			}
+			return left.ID > right.ID
+		}
+		if sortMode == model.CommentSortOldest {
+			return left.CreatedAt.Before(right.CreatedAt)
+		}
+		return left.CreatedAt.After(right.CreatedAt)
+	})
+}
+
 func categoriesForVideoByTitle(video model.Video, categories []model.Category) []model.Category {
 	out := make([]model.Category, 0)
 	title := normalize(video.Title + " " + deref(video.Description))
@@ -452,6 +536,31 @@ func normalizeVideoFilter(filter model.VideoFilter) model.VideoFilter {
 	filter.Query = strings.TrimSpace(filter.Query)
 	filter.Limit = normalizeLimit(filter.Limit, 24)
 	return filter
+}
+
+func normalizeVideoCommentFilter(filter model.VideoCommentFilter) model.VideoCommentFilter {
+	filter.Sort = strings.TrimSpace(filter.Sort)
+	if filter.Sort != model.CommentSortOldest {
+		filter.Sort = model.CommentSortNewest
+	}
+	filter.Limit = normalizeLimit(filter.Limit, 48)
+	return filter
+}
+
+func normalizeCommentAuthor(value string) string {
+	value = strings.TrimSpace(value)
+	if len([]rune(value)) > 24 {
+		value = string([]rune(value)[:24])
+	}
+	return value
+}
+
+func normalizeCommentBody(value string) string {
+	value = strings.TrimSpace(value)
+	if len([]rune(value)) > 500 {
+		value = string([]rune(value)[:500])
+	}
+	return value
 }
 
 func normalizeLimit(value int, fallback int) int {
@@ -510,4 +619,15 @@ func communityAnnouncement(now func() time.Time) *model.Announcement {
 
 func (s *service) now() time.Time {
 	return s.cfg.Now().UTC()
+}
+
+func (s *service) newCommentID() string {
+	raw := strings.TrimSpace(s.cfg.NewID())
+	if raw == "" {
+		raw = strconv.FormatInt(s.now().UnixNano(), 10)
+	}
+	if strings.HasPrefix(raw, "comment-") {
+		return raw
+	}
+	return "comment-" + raw
 }

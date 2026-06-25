@@ -6394,6 +6394,217 @@
       "tags":
         - "Community"
       "x-scope": "platform"
+  "/api/v1/public/community/videos/{idOrSlug}/comments":
+    "get":
+      "operationId": "community.videos.comments.list"
+      "parameters":
+        -
+          "in": "path"
+          "name": "idOrSlug"
+          "required": true
+          "schema":
+            "type": "string"
+        -
+          "in": "query"
+          "name": "sort"
+          "required": false
+          "schema":
+            "type": "string"
+        -
+          "in": "query"
+          "name": "limit"
+          "required": false
+          "schema":
+            "format": "int32"
+            "type": "integer"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "properties":
+                  "code":
+                    "format": "int32"
+                    "type": "integer"
+                  "data":
+                    "properties":
+                      "items":
+                        "items":
+                          "properties":
+                            "authorName":
+                              "type": "string"
+                            "body":
+                              "type": "string"
+                            "createdAt":
+                              "format": "date-time"
+                              "type": "string"
+                            "id":
+                              "type": "string"
+                            "status":
+                              "type": "string"
+                            "updatedAt":
+                              "format": "date-time"
+                              "type": "string"
+                            "videoId":
+                              "type": "string"
+                          "type": "object"
+                        "type": "array"
+                      "nextCursor":
+                        "type": "string"
+                      "sort":
+                        "type": "string"
+                      "totalCount":
+                        "format": "int32"
+                        "type": "integer"
+                      "videoId":
+                        "type": "string"
+                    "type": "object"
+                  "message":
+                    "type": "string"
+                  "messageArgs":
+                    "additionalProperties": true
+                    "type": "object"
+                  "messageKey":
+                    "type": "string"
+                  "serverTime":
+                    "format": "int64"
+                    "type": "integer"
+                  "traceId":
+                    "type": "string"
+                "type": "object"
+          "description": "OK"
+        "400":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Bad request"
+        "401":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Unauthorized"
+        "403":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Forbidden"
+        "404":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Not found"
+        "500":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Internal server error"
+      "security": []
+      "summary": "查询社区视频评论"
+      "tags":
+        - "Community"
+      "x-scope": "platform"
+    "post":
+      "operationId": "community.videos.comments.create"
+      "parameters":
+        -
+          "in": "path"
+          "name": "idOrSlug"
+          "required": true
+          "schema":
+            "type": "string"
+      "requestBody":
+        "content":
+          "application/json":
+            "schema":
+              "properties":
+                "authorName":
+                  "type": "string"
+                "body":
+                  "type": "string"
+              "type": "object"
+        "required": true
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "properties":
+                  "code":
+                    "format": "int32"
+                    "type": "integer"
+                  "data":
+                    "properties":
+                      "authorName":
+                        "type": "string"
+                      "body":
+                        "type": "string"
+                      "createdAt":
+                        "format": "date-time"
+                        "type": "string"
+                      "id":
+                        "type": "string"
+                      "status":
+                        "type": "string"
+                      "updatedAt":
+                        "format": "date-time"
+                        "type": "string"
+                      "videoId":
+                        "type": "string"
+                    "type": "object"
+                  "message":
+                    "type": "string"
+                  "messageArgs":
+                    "additionalProperties": true
+                    "type": "object"
+                  "messageKey":
+                    "type": "string"
+                  "serverTime":
+                    "format": "int64"
+                    "type": "integer"
+                  "traceId":
+                    "type": "string"
+                "type": "object"
+          "description": "OK"
+        "400":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Bad request"
+        "401":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Unauthorized"
+        "403":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Forbidden"
+        "404":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Not found"
+        "500":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Internal server error"
+      "security": []
+      "summary": "发布社区视频评论"
+      "tags":
+        - "Community"
+      "x-scope": "platform"
   "/api/v1/public/community/videos/{idOrSlug}/danmaku":
     "get":
       "operationId": "community.videos.danmaku"

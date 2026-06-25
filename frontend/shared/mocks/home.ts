@@ -6,9 +6,13 @@ import type {
   FollowingFeedPayload,
   HomePayload,
   SearchPayload,
+  CreateVideoCommentRequest,
   VideoDanmakuItem,
   VideoDanmakuMode,
   VideoDanmakuPayload,
+  VideoComment,
+  VideoCommentPayload,
+  VideoCommentSortMode,
   UserSummary,
   VideoDetail,
   VideoSummary
@@ -454,6 +458,40 @@ const mockDanmakuSamples: Array<{
   { body: "移动端也要稳", offset: 31 }
 ]
 
+const mockVideoComments: Record<string, VideoComment[]> = {
+  "video-aoi-alpha": [
+    {
+      id: "comment-aoi-alpha-1",
+      videoId: "video-aoi-alpha",
+      body: "后端社区模块接上以后，页面里的信息密度终于不只是 mock 了。",
+      authorName: "Frontend Memo",
+      status: "visible",
+      createdAt: "2026-06-03T10:05:00.000Z",
+      updatedAt: "2026-06-03T10:05:00.000Z"
+    },
+    {
+      id: "comment-aoi-alpha-2",
+      videoId: "video-aoi-alpha",
+      body: "黑白几何底色加一点青粉状态色，确实更接近 kirakira 那种清爽锋利感。",
+      authorName: "Design Note",
+      status: "visible",
+      createdAt: "2026-06-03T10:07:00.000Z",
+      updatedAt: "2026-06-03T10:07:00.000Z"
+    }
+  ],
+  "video-go-api": [
+    {
+      id: "comment-go-api-1",
+      videoId: "video-go-api",
+      body: "route contract 生成 OpenAPI 后，前端接口字段终于有稳定来源。",
+      authorName: "Aoi Viewer",
+      status: "visible",
+      createdAt: "2026-05-28T10:05:00.000Z",
+      updatedAt: "2026-05-28T10:05:00.000Z"
+    }
+  ]
+}
+
 export function getMockVideoDanmaku(idOrSlug: string): VideoDanmakuPayload | null {
   const video = mockVideos.find((item) => item.id === idOrSlug || item.slug === idOrSlug)
 
@@ -478,6 +516,66 @@ export function getMockVideoDanmaku(idOrSlug: string): VideoDanmakuPayload | nul
     totalCount: items.length,
     videoId: video.id
   }
+}
+
+export function getMockVideoComments(idOrSlug: string, params: {
+  limit?: number
+  sort?: VideoCommentSortMode
+} = {}): VideoCommentPayload | null {
+  const video = mockVideos.find((item) => item.id === idOrSlug || item.slug === idOrSlug)
+
+  if (!video) {
+    return null
+  }
+
+  const sort = params.sort === "oldest" ? "oldest" : "newest"
+  const items = [...(mockVideoComments[video.id] || [])]
+    .sort((a, b) => {
+      const aTime = Date.parse(a.createdAt)
+      const bTime = Date.parse(b.createdAt)
+
+      return sort === "oldest" ? aTime - bTime : bTime - aTime
+    })
+  const limit = params.limit && params.limit > 0 ? Math.min(params.limit, 100) : items.length
+
+  return {
+    items: items.slice(0, limit),
+    nextCursor: null,
+    sort,
+    totalCount: items.length,
+    videoId: video.id
+  }
+}
+
+export function createMockVideoComment(idOrSlug: string, payload: CreateVideoCommentRequest): VideoComment | null {
+  const video = mockVideos.find((item) => item.id === idOrSlug || item.slug === idOrSlug)
+
+  if (!video) {
+    return null
+  }
+
+  const authorName = payload.authorName.trim().slice(0, 24)
+  const body = payload.body.trim().slice(0, 500)
+
+  if (!authorName || !body) {
+    return null
+  }
+
+  const now = new Date().toISOString()
+  const comment: VideoComment = {
+    id: `comment-${video.id}-${Date.now().toString(36)}`,
+    videoId: video.id,
+    body,
+    authorName,
+    status: "visible",
+    createdAt: now,
+    updatedAt: now
+  }
+
+  mockVideoComments[video.id] = [comment, ...(mockVideoComments[video.id] || [])]
+  video.commentCount = (video.commentCount || 0) + 1
+
+  return comment
 }
 
 function matchesVideo(video: VideoSummary, normalizedQuery: string) {

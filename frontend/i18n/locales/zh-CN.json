@@ -982,7 +982,14 @@
     "descriptionTitle": "简介",
     "tags": "标签",
     "localActions": "本地互动操作",
-    "localComments": "本地评论区"
+    "localComments": "本地评论区",
+    "communityComments": "社区讨论",
+    "communityCommentComposerHint": "评论会优先提交到社区 API；接口不可用时保存在当前浏览器。",
+    "communityCommentSubmit": "发布评论",
+    "communityCommentDescription": "已加载 {count} 条，社区共 {total} 条",
+    "communityCommentEmptyTitle": "还没有社区评论",
+    "communityCommentEmptyDescription": "写下第一条讨论，接口不可用时会保存在当前浏览器。",
+    "communityCommentSort": "评论排序"
   },
   "lightbox": {
     "close": "关闭",

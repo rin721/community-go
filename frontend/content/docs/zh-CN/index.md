@@ -13,7 +13,7 @@ navigation:
 
 ## 快速入口
 
-- [项目概览](/docs/project/overview) 说明应用目标、技术栈和当前 mock-first 边界。
+- [项目概览](/docs/project/overview) 说明应用目标、技术栈和当前社区 API / mock 边界。
 - [仓库边界](/docs/project/repository) 说明哪些目录可以承载长期代码，哪些目录属于生成产物。
 - [组件总览](/docs/components/overview) 说明 Aoi wrapper 的使用原则和分类。
 - [Actions 组件](/docs/components/actions) 展示按钮、链接和命令型导航。
@@ -24,7 +24,7 @@ navigation:
 所有语言版本保持相同 slug。默认语言是 `zh-CN`，项目的 i18n 策略是 `no_prefix`，所以切换语言时路径保持不变，页面内容随当前 locale 查询对应 Markdown collection。
 
 ::docs-callout{title="静态优先" intent="info" icon="sparkles"}
-`/docs` 使用 Nuxt Content 渲染 Markdown，并通过 route rules 预渲染为静态页面。它不新增 mock API，也不改变未来生产后端边界。
+`/docs` 使用 Nuxt Content 渲染 Markdown，并通过 route rules 预渲染为静态页面。它不新增 mock API，也不改变后端社区生产契约边界。
 ::
 
 ## 编写方式

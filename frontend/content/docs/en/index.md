@@ -13,7 +13,7 @@ This is the long-lived documentation entry for `aoi-web`. The project system pag
 
 ## Fast Paths
 
-- [Project overview](/docs/project/overview) explains the app goals, stack, and mock-first boundary.
+- [Project overview](/docs/project/overview) explains the app goals, stack, and current Community API / mock boundary.
 - [Repository boundaries](/docs/project/repository) explains where long-lived code belongs and which folders are generated.
 - [Component overview](/docs/components/overview) explains the wrapper rules and categories.
 - [Actions components](/docs/components/actions) covers buttons, links, and command navigation.
@@ -24,7 +24,7 @@ This is the long-lived documentation entry for `aoi-web`. The project system pag
 All locales keep the same slugs. The default locale is `zh-CN`, and the app uses the i18n `no_prefix` strategy, so switching language keeps the route stable while the page queries a different Markdown collection.
 
 ::docs-callout{title="Static first" intent="info" icon="sparkles"}
-`/docs` is rendered from Markdown by Nuxt Content and prerendered through route rules. It does not add mock APIs or change the future production backend boundary.
+`/docs` is rendered from Markdown by Nuxt Content and prerendered through route rules. It does not add mock APIs or change the backend Community production contract boundary.
 ::
 
 ## Authoring Model

@@ -982,7 +982,14 @@
     "descriptionTitle": "概要",
     "tags": "タグ",
     "localActions": "ローカル操作",
-    "localComments": "ローカルコメント"
+    "localComments": "ローカルコメント",
+    "communityComments": "コミュニティ討論",
+    "communityCommentComposerHint": "コメントはまず Community API に送信されます。利用できない場合はこのブラウザに保存されます。",
+    "communityCommentSubmit": "コメントを投稿",
+    "communityCommentDescription": "{count} 件を読み込み済み、コミュニティ合計 {total} 件",
+    "communityCommentEmptyTitle": "コミュニティコメントはまだありません",
+    "communityCommentEmptyDescription": "最初の討論を書き込みましょう。API が利用できない場合はこのブラウザに保存されます。",
+    "communityCommentSort": "コメントの並び替え"
   },
   "lightbox": {
     "close": "閉じる",

@@ -1,6 +1,6 @@
 ---
 title: プロジェクト概要
-description: aoi-web はローカル mock API とブラウザ状態を中心にした frontend-first の Nuxt 4 動画コミュニティアプリです。
+description: aoi-web はバックエンド Community API に接続し、ローカル mock とブラウザ状態の fallback を持つ frontend-first の Nuxt 4 動画コミュニティアプリです。
 order: 10
 category: project
 navigation:
@@ -9,7 +9,7 @@ navigation:
 
 # プロジェクト概要
 
-`aoi-web` は動画コミュニティ向けの frontend-first Nuxt 4 アプリです。クリエイターページ、投稿、再生、弾幕、検索、設定を扱います。現在はローカル mock API とブラウザ状態を中心にしつつ、将来の Go バックエンドに向けた DTO 契約を残しています。
+`aoi-web` は動画コミュニティ向けの frontend-first Nuxt 4 アプリです。クリエイターページ、投稿、再生、弾幕、検索、設定を扱います。現在は `backend/internal/modules/community` の Go Community API に接続しつつ、ローカル mock API とブラウザ状態を開発・fallback 境界として残しています。
 
 ## 技術スタック
 
@@ -22,7 +22,7 @@ navigation:
 
 ## プロダクト境界
 
-現時点では本番バックエンドを実装しません。`server/api/mock/` は将来 API 契約に近いフロントエンド体験を作るための場所であり、サーバー側プロダクト機能を育てる場所ではありません。
+本番データ能力は `backend/internal/modules/community` が公開する契約を正とします。`server/api/mock/` はフロントエンド開発用 mock に限定し、バックエンド本番能力や権限、モデレーション、永続化ロジックの代替にしません。
 
 長期的なプロダクト、アーキテクチャ、UI、API、インタラクション制約は集約リポジトリ直下の `AGENTS.md` に置きます。一時的な調査、プロトタイプ、段階計画を分散したルールファイルとして残し続けないようにします。
 

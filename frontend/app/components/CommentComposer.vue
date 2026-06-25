@@ -2,12 +2,18 @@
 const props = withDefaults(defineProps<{
   authorName: string
   disabled?: boolean
+  hint?: string
   maxAuthorLength?: number
   maxBodyLength?: number
+  submitLabel?: string
+  submitting?: boolean
 }>(), {
   disabled: false,
+  hint: "本地评论只保存在当前浏览器。",
   maxAuthorLength: 24,
-  maxBodyLength: 500
+  maxBodyLength: 500,
+  submitLabel: "发布评论",
+  submitting: false
 })
 
 const emit = defineEmits<{
@@ -27,6 +33,7 @@ const bodyLength = computed(() => body.value.length)
 const isBodyTooLong = computed(() => bodyLength.value > props.maxBodyLength)
 const canSubmit = computed(() => {
   return !props.disabled
+    && !props.submitting
     && localAuthorName.value.trim().length > 0
     && trimmedBody.value.length > 0
     && !isBodyTooLong.value
@@ -56,7 +63,7 @@ function submitComment() {
         v-model="localAuthorName"
         appearance="outlined"
         label="显示名称"
-        :disabled="disabled"
+        :disabled="disabled || submitting"
         :max-length="maxAuthorLength"
       />
       <AoiTextField
@@ -64,7 +71,7 @@ function submitComment() {
         appearance="outlined"
         label="写下你的想法"
         placeholder="保持友善，也欢迎补充观看笔记。"
-        :disabled="disabled"
+        :disabled="disabled || submitting"
         :max-length="maxBodyLength"
         :supporting-text="`${bodyLength}/${maxBodyLength}`"
         :error-text="isBodyTooLong ? '评论内容过长' : undefined"
@@ -75,14 +82,14 @@ function submitComment() {
 
     <AoiActionBar class="comment-composer__actions" align="between">
       <span class="comment-composer__hint">
-        本地评论只保存在当前浏览器。
+        {{ hint }}
       </span>
       <AoiButton tone="accent" variant="filled"
         type="submit"
         icon="send"
         :disabled="!canSubmit"
       >
-        发布评论
+        {{ submitLabel }}
       </AoiButton>
     </AoiActionBar>
   </AoiSurface>

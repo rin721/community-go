@@ -1,13 +1,25 @@
 <script setup lang="ts">
-import type { CommentSortMode, LocalComment } from "~/types/comments"
+import type { CommentSortMode, CommentView, LocalComment } from "~/types/comments"
+
+type ThreadComment = CommentView | LocalComment
 
 const props = withDefaults(defineProps<{
-  comments: LocalComment[]
+  comments: ThreadComment[]
+  description?: string
+  emptyDescription?: string
+  emptyTitle?: string
   hydrated?: boolean
+  sortLabel?: string
   sortMode?: CommentSortMode
+  title?: string
 }>(), {
+  description: undefined,
+  emptyDescription: "写下第一条讨论，刷新页面后也会保存在当前浏览器。",
+  emptyTitle: "还没有评论",
   hydrated: false,
-  sortMode: "newest"
+  sortLabel: "排序",
+  sortMode: "newest",
+  title: "讨论区"
 })
 
 const emit = defineEmits<{
@@ -25,14 +37,30 @@ const sortOptions = [
   { label: "最新优先", value: "newest" },
   { label: "最早优先", value: "oldest" }
 ]
+
+const commentItems = computed(() => props.comments.map(toCommentView))
+const sectionDescription = computed(() => props.description || `${props.comments.length} 条评论`)
+
+function toCommentView(comment: ThreadComment): CommentView {
+  if ("source" in comment && "editable" in comment && "status" in comment) {
+    return comment
+  }
+
+  return {
+    ...comment,
+    editable: true,
+    source: "local",
+    status: "visible"
+  }
+}
 </script>
 
 <template>
   <section class="comment-thread" aria-labelledby="comment-thread-title">
     <AoiSection
       as="div"
-      title="讨论区"
-      :description="`${comments.length} 条本地评论`"
+      :title="title"
+      :description="sectionDescription"
       title-id="comment-thread-title"
       :reveal="false"
     >
@@ -40,7 +68,7 @@ const sortOptions = [
         <AoiSelect
           v-model="sortValue"
           class="comment-thread__sort"
-          label="排序"
+          :label="sortLabel"
           appearance="outlined"
           :options="sortOptions"
           :disabled="!hydrated || comments.length < 2"
@@ -51,13 +79,13 @@ const sortOptions = [
     <PageState
       v-if="hydrated && comments.length === 0"
       icon="message-circle"
-      title="还没有本地评论"
-      description="写下第一条讨论，刷新页面后也会保存在当前浏览器。"
+      :title="emptyTitle"
+      :description="emptyDescription"
     />
 
     <AoiContentGrid v-else-if="hydrated" min-width="100%" gap="compact" :mobile-columns="1">
       <AoiReveal
-        v-for="(comment, index) in comments"
+        v-for="(comment, index) in commentItems"
         :key="comment.id"
         class="comment-thread__item"
         :index="index"

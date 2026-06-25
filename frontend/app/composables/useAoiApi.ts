@@ -3,12 +3,16 @@ import type {
   ApiResultEnvelope,
   ApiStatus,
   CategoryTreeNode,
+  CreateVideoCommentRequest,
   CreatorProfile,
   ErrorResponse,
   FollowingFeedPayload,
   HomePayload,
   PageResult,
   SearchPayload,
+  VideoComment,
+  VideoCommentPayload,
+  VideoCommentSortMode,
   VideoDanmakuPayload,
   VideoDetail,
   VideoSummary
@@ -16,6 +20,8 @@ import type {
 import { findCategoryInTree } from "~~/shared/utils/categories"
 
 type RequestOptions = {
+  body?: unknown
+  method?: "GET" | "POST"
   query?: Record<string, unknown>
 }
 
@@ -28,6 +34,8 @@ export function useAoiApi() {
     try {
       const response = await $fetch<unknown>(endpoint, {
         baseURL: baseURL.value,
+        body: options.body as BodyInit | Record<string, unknown> | null | undefined,
+        method: options.method,
         query: options.query
       })
 
@@ -88,6 +96,22 @@ export function useAoiApi() {
     return await request<VideoDanmakuPayload>(`/videos/${encodeURIComponent(idOrSlug)}/danmaku`)
   }
 
+  async function getVideoComments(idOrSlug: string, params: {
+    limit?: number
+    sort?: VideoCommentSortMode
+  } = {}): Promise<VideoCommentPayload> {
+    return await request<VideoCommentPayload>(`/videos/${encodeURIComponent(idOrSlug)}/comments`, {
+      query: params
+    })
+  }
+
+  async function createVideoComment(idOrSlug: string, body: CreateVideoCommentRequest): Promise<VideoComment> {
+    return await request<VideoComment>(`/videos/${encodeURIComponent(idOrSlug)}/comments`, {
+      body,
+      method: "POST"
+    })
+  }
+
   async function getCreatorProfile(handle: string): Promise<CreatorProfile> {
     return await request<CreatorProfile>(`/users/${encodeURIComponent(handle)}`)
   }
@@ -108,7 +132,9 @@ export function useAoiApi() {
     getCreatorProfile,
     getFollowingFeed,
     getHomePayload,
+    createVideoComment,
     getVideoDanmaku,
+    getVideoComments,
     getVideoDetail,
     listCategories,
     listVideos,

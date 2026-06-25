@@ -1,4 +1,6 @@
-export type CommentSortMode = "newest" | "oldest"
+import type { VideoComment, VideoCommentSortMode } from "~/types/api"
+
+export type CommentSortMode = VideoCommentSortMode
 
 export interface LocalComment {
   id: string
@@ -7,4 +9,9 @@ export interface LocalComment {
   authorName: string
   createdAt: string
   updatedAt: string
+}
+
+export interface CommentView extends VideoComment {
+  editable: boolean
+  source: "community" | "local"
 }

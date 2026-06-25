@@ -77,11 +77,53 @@ func TestServiceSearchAggregatesVideosCreatorsAndCategories(t *testing.T) {
 	}
 }
 
+func TestServiceVideoCommentsCreatesAndListsPersistedComments(t *testing.T) {
+	repo := newFakeRepository()
+	svc := New(repo, Config{
+		NewID: func() string { return "unit-comment" },
+		Now:   fixedNow,
+	})
+
+	comment, err := svc.CreateVideoComment(context.Background(), "aoi-alpha", model.CreateVideoCommentRequest{
+		AuthorName: "  Aoi Viewer  ",
+		Body:       "  这条评论来自后端社区模块。  ",
+	})
+	if err != nil {
+		t.Fatalf("CreateVideoComment() error = %v", err)
+	}
+	if comment.ID != "comment-unit-comment" || comment.VideoID != "video-aoi-alpha" {
+		t.Fatalf("unexpected created comment: %#v", comment)
+	}
+	if comment.AuthorName != "Aoi Viewer" || comment.Body != "这条评论来自后端社区模块。" {
+		t.Fatalf("expected normalized comment, got %#v", comment)
+	}
+
+	payload, err := svc.GetVideoComments(context.Background(), "aoi-alpha", model.VideoCommentFilter{Sort: model.CommentSortNewest})
+	if err != nil {
+		t.Fatalf("GetVideoComments() error = %v", err)
+	}
+	if payload.VideoID != "video-aoi-alpha" || payload.TotalCount != 2 {
+		t.Fatalf("unexpected comment payload: %#v", payload)
+	}
+	if payload.Items[0].ID != comment.ID {
+		t.Fatalf("expected newest comment first, got %#v", payload.Items)
+	}
+}
+
+func TestServiceCreateVideoCommentRejectsEmptyInput(t *testing.T) {
+	svc := New(newFakeRepository(), Config{Now: fixedNow})
+
+	if _, err := svc.CreateVideoComment(context.Background(), "aoi-alpha", model.CreateVideoCommentRequest{AuthorName: "Aoi Viewer"}); err != ErrInvalidInput {
+		t.Fatalf("expected ErrInvalidInput, got %v", err)
+	}
+}
+
 type fakeRepository struct {
 	categories    []model.Category
 	creators      []model.Creator
 	videos        []model.Video
 	categorySlugs map[string][]string
+	comments      map[string][]model.VideoComment
 	danmaku       map[string][]model.VideoDanmakuItem
 	sources       map[string][]model.VideoSourceOption
 	tags          map[string][]string
@@ -108,6 +150,11 @@ func newFakeRepository() *fakeRepository {
 		categorySlugs: map[string][]string{
 			"video-aoi-alpha": {"design"},
 			"video-go-api":    {"design"},
+		},
+		comments: map[string][]model.VideoComment{
+			"video-aoi-alpha": {
+				{ID: "comment-seed", VideoID: "video-aoi-alpha", Body: "已有评论", AuthorName: "Design Note", Status: model.CommentStatusVisible, CreatedAt: fixedNow().Add(-time.Minute), UpdatedAt: fixedNow().Add(-time.Minute)},
+			},
 		},
 		danmaku: map[string][]model.VideoDanmakuItem{
 			"video-aoi-alpha": {{ID: "d1", VideoID: "video-aoi-alpha", Body: "清晰", TimeSeconds: 2, Mode: model.DanmakuModeScroll, Color: "#ffffff", AuthorName: "viewer", CreatedAt: fixedNow()}},
@@ -159,6 +206,29 @@ func (r *fakeRepository) ListCreators(_ context.Context, limit int) ([]model.Cre
 
 func (r *fakeRepository) ListDanmaku(_ context.Context, videoID string) ([]model.VideoDanmakuItem, error) {
 	return append([]model.VideoDanmakuItem(nil), r.danmaku[videoID]...), nil
+}
+
+func (r *fakeRepository) ListVideoComments(_ context.Context, videoID string, filter model.VideoCommentFilter) ([]model.VideoComment, error) {
+	items := append([]model.VideoComment(nil), r.comments[videoID]...)
+	if filter.Limit > 0 && len(items) > filter.Limit {
+		return items[:filter.Limit], nil
+	}
+	return items, nil
+}
+
+func (r *fakeRepository) CountVideoComments(_ context.Context, videoID string) (int, error) {
+	return len(r.comments[videoID]), nil
+}
+
+func (r *fakeRepository) CreateVideoComment(_ context.Context, comment model.VideoComment) error {
+	r.comments[comment.VideoID] = append(r.comments[comment.VideoID], comment)
+	for index := range r.videos {
+		if r.videos[index].ID == comment.VideoID {
+			r.videos[index].CommentCount++
+			break
+		}
+	}
+	return nil
 }
 
 func (r *fakeRepository) ListSources(_ context.Context, videoID string) ([]model.VideoSourceOption, error) {

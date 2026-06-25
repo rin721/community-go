@@ -10,6 +10,10 @@ const (
 	DanmakuModeScroll = "scroll"
 	DanmakuModeTop    = "top"
 	DanmakuModeBottom = "bottom"
+
+	CommentStatusVisible = "visible"
+	CommentSortNewest    = "newest"
+	CommentSortOldest    = "oldest"
 )
 
 // UserSummary 是社区公开接口中展示创作者的最小视图。
@@ -123,6 +127,25 @@ type VideoDanmakuItem struct {
 
 func (VideoDanmakuItem) TableName() string { return "community_video_danmaku" }
 
+// VideoComment 保存视频社区公开讨论区评论。
+type VideoComment struct {
+	ID         string     `gorm:"column:id;primaryKey;size:96" json:"id"`
+	VideoID    string     `gorm:"column:video_id;size:96;not null;index" json:"videoId"`
+	Body       string     `gorm:"column:body;size:500;not null" json:"body"`
+	AuthorName string     `gorm:"column:author_name;size:120;not null" json:"authorName"`
+	Status     string     `gorm:"column:status;size:32;not null;default:visible" json:"status"`
+	CreatedAt  time.Time  `gorm:"column:created_at;not null" json:"createdAt"`
+	UpdatedAt  time.Time  `gorm:"column:updated_at;not null" json:"updatedAt"`
+	DeletedAt  *time.Time `gorm:"column:deleted_at" json:"-"`
+}
+
+func (VideoComment) TableName() string { return "community_video_comments" }
+
+type CreateVideoCommentRequest struct {
+	AuthorName string `json:"authorName"`
+	Body       string `json:"body"`
+}
+
 type Announcement struct {
 	ID       string     `json:"id"`
 	Title    string     `json:"title"`
@@ -199,6 +222,14 @@ type VideoDanmakuPayload struct {
 	VideoID    string             `json:"videoId"`
 }
 
+type VideoCommentPayload struct {
+	Items      []VideoComment `json:"items"`
+	NextCursor *string        `json:"nextCursor"`
+	Sort       string         `json:"sort"`
+	TotalCount int            `json:"totalCount"`
+	VideoID    string         `json:"videoId"`
+}
+
 type APIStatus struct {
 	Mode        string    `json:"mode"`
 	BasePath    string    `json:"basePath"`
@@ -212,4 +243,9 @@ type VideoFilter struct {
 	Cursor   string
 	Limit    int
 	Query    string
+}
+
+type VideoCommentFilter struct {
+	Limit int
+	Sort  string
 }

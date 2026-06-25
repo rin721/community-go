@@ -1,6 +1,6 @@
 ---
 title: Project Overview
-description: aoi-web is a frontend-first Nuxt 4 video community app built around local mock APIs and browser state.
+description: aoi-web is a frontend-first Nuxt 4 video community app connected to the backend Community API with local mock and browser-state fallbacks.
 order: 10
 category: project
 navigation:
@@ -9,7 +9,7 @@ navigation:
 
 # Project Overview
 
-`aoi-web` is a frontend-first Nuxt 4 application for a video community: creator pages, uploads, playback, danmaku, search, and settings. The current stage uses local mock APIs and browser state while preserving DTO contracts for a future Go backend.
+`aoi-web` is a frontend-first Nuxt 4 application for a video community: creator pages, uploads, playback, danmaku, search, and settings. The current stage connects to the Go Community API in `backend/internal/modules/community`, while local mock APIs and browser state remain development and fallback boundaries.
 
 ## Stack
 
@@ -22,7 +22,7 @@ navigation:
 
 ## Product Boundary
 
-The app does not implement a production backend today. `server/api/mock/` exists to make frontend flows behave close to future API contracts, not to grow server-side product behavior.
+Production data capabilities come from the public contract exposed by `backend/internal/modules/community`. `server/api/mock/` is only a frontend development mock; it must not replace backend production capabilities or hide permission, moderation, or persistence logic.
 
 Long-term product, architecture, UI, API, and interaction constraints belong in the aggregate repository root `AGENTS.md`. Temporary research, prototypes, or phase plans should not become scattered rule files again.
 

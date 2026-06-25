@@ -13,7 +13,7 @@ navigation:
 
 ## 入口
 
-- [プロジェクト概要](/docs/project/overview) はアプリの目的、技術スタック、mock-first の境界を説明します。
+- [プロジェクト概要](/docs/project/overview) はアプリの目的、技術スタック、現在の Community API / mock 境界を説明します。
 - [リポジトリ境界](/docs/project/repository) は長期コードを置く場所と生成物の扱いを説明します。
 - [コンポーネント概要](/docs/components/overview) は wrapper の原則と分類を説明します。
 - [Actions](/docs/components/actions) はボタン、リンク、コマンド型ナビゲーションを扱います。
@@ -24,7 +24,7 @@ navigation:
 すべての言語で同じ slug を使います。デフォルト言語は `zh-CN` で、i18n は `no_prefix` 戦略です。言語を切り替えても URL は変わらず、現在の locale に対応する Markdown collection を問い合わせます。
 
 ::docs-callout{title="静的レンダリング優先" intent="info" icon="sparkles"}
-`/docs` は Nuxt Content で Markdown から描画し、route rules でプリレンダリングします。mock API を追加せず、将来の本番バックエンド境界も変えません。
+`/docs` は Nuxt Content で Markdown から描画し、route rules でプリレンダリングします。mock API を追加せず、バックエンド Community の本番契約境界も変えません。
 ::
 
 ## 執筆モデル

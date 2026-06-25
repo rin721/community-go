@@ -9,15 +9,15 @@ navigation:
 
 # API とローカル状態
 
-現在のアプリは mock API とブラウザローカル状態で動きます。それでも将来バックエンドの契約を保ち、一時的な表示用形状を API モデルのように広げないことが重要です。
+現在のアプリは `useAoiApi()` を通してバックエンドの公開 Community API に接続します。mock API とブラウザローカル状態は開発、オフライン体験、fallback の境界です。一時的な表示用形状を API モデルのように広げず、共有 DTO とバックエンド route contract を正にします。
 
 ## API アクセス
 
-すべての API アクセスは `useAoiApi()` を通し、`useAoiApiTelemetry()` の診断と互換にします。新しい mock route は可能な限り `shared/` の DTO を再利用します。
+すべての API アクセスは `useAoiApi()` を通し、`useAoiApiTelemetry()` の診断と互換にします。`NUXT_PUBLIC_API_MOCK=false` では `backend/internal/modules/community` が返す `result` envelope を消費します。新しい mock route は可能な限り `shared/` の DTO を再利用します。
 
 ## 共有 DTO
 
-将来の Go バックエンドの request、response、entity 形状は共有型に置きます。ページは表示用に mapping できますが、バックエンド風のオブジェクトをその場で作らないようにします。
+バックエンドの request、response、entity 形状は共有型に置き、`backend/internal/transport/http/contracts.go` が公開する契約に近づけます。ページは表示用に mapping できますが、バックエンド風のオブジェクトをその場で作らないようにします。
 
 ## ローカル状態
 

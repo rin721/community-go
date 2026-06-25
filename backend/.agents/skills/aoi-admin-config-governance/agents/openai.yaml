@@ -1,0 +1,4 @@
+interface:
+  display_name: "Aoi Config Governance"
+  short_description: "配置字段、环境变量、示例配置、文档与系统快照同步流程"
+  default_prompt: "Use $aoi-admin-config-governance to add or change a runtime configuration field while keeping examples, docs, i18n, tests, and system config metadata aligned."

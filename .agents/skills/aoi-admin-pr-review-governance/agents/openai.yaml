@@ -1,0 +1,4 @@
+interface:
+  display_name: "Aoi Admin PR Review"
+  short_description: "当前仓库PR审查风险分级变更验证与合并前收口流程指南"
+  default_prompt: "Use $aoi-admin-pr-review-governance to review repository changes, identify risks, verify scope, and prepare merge-ready feedback."

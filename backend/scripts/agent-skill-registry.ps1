@@ -1,0 +1,27 @@
+function Get-RepositorySkillNames {
+    @(
+        "aoi-admin-platform-maintenance",
+        "aoi-admin-open-source-readiness",
+        "aoi-admin-docs-governance",
+        "aoi-admin-build-ci-governance",
+        "aoi-admin-config-governance",
+        "aoi-admin-dev-onboarding",
+        "aoi-admin-setup-flow-governance",
+        "aoi-admin-module-development",
+        "aoi-admin-iam-governance",
+        "aoi-admin-system-ops-governance",
+        "aoi-admin-api-contract-sync",
+        "aoi-admin-plugin-removal",
+        "aoi-admin-webui-i18n",
+        "aoi-admin-release-readiness",
+        "aoi-admin-runtime-cli-governance",
+        "aoi-admin-error-result-governance",
+        "aoi-admin-data-migration-governance",
+        "aoi-admin-task-planning",
+        "aoi-admin-pr-review-governance",
+        "aoi-admin-visual-qa-governance",
+        "aoi-admin-observability-ops",
+        "aoi-admin-security-dependency-governance",
+        "git-conventional-commit"
+    )
+}

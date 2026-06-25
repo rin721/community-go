@@ -1,0 +1,4 @@
+interface:
+  display_name: "Aoi Admin Module Development"
+  short_description: "当前仓库模块化业务开发权限前后端闭环完整验收流程指南"
+  default_prompt: "Use $aoi-admin-module-development to add or extend a business module in this repository."

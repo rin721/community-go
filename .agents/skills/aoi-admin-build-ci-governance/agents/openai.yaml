@@ -1,0 +1,4 @@
+interface:
+  display_name: "Aoi Admin Build CI Governance"
+  short_description: "构建、CI、脚本、Docker 与质量门禁治理流程"
+  default_prompt: "Use $aoi-admin-build-ci-governance to update CI, build scripts, repository checks, or quality gates in this repository."

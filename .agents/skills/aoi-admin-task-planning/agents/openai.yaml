@@ -1,0 +1,4 @@
+interface:
+  display_name: "Aoi Admin Task Planning"
+  short_description: "当前仓库阶段任务计划验收证据进度追踪与交接治理长期流程指南"
+  default_prompt: "Use $aoi-admin-task-planning to create or update staged task plans, progress tracking, and acceptance evidence for this repository."

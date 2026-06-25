@@ -1,0 +1,4 @@
+interface:
+  display_name: "Aoi Admin Platform Maintenance"
+  short_description: "当前仓库平台化重构维护验收与发布检查长期工作流指南"
+  default_prompt: "Use $aoi-admin-platform-maintenance to audit and evolve this repository toward the open console platform architecture."

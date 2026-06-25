@@ -1,0 +1,4 @@
+interface:
+  display_name: "Aoi Admin Release Readiness"
+  short_description: "当前仓库发布前验证部署证据风险标准化收口长期流程指南"
+  default_prompt: "Use $aoi-admin-release-readiness to prepare release evidence, run gates, and identify deployment blockers for this repository."

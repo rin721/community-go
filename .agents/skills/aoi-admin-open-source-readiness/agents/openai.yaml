@@ -1,0 +1,4 @@
+interface:
+  display_name: "Aoi Admin Open Source Readiness"
+  short_description: "开源复用、品牌例外、文档入口与最终验收证据治理流程"
+  default_prompt: "Use $aoi-admin-open-source-readiness to audit open-source reuse readiness and acceptance evidence in this repository."

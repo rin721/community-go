@@ -1,0 +1,331 @@
+{
+  "meta": {
+    "name": "soft-modular-product-ui",
+    "version": "1.0.0",
+    "language": "zh-CN",
+    "description": "柔和、明亮、轻量、模块化的产品界面设计变量。"
+  },
+  "color": {
+    "brand": {
+      "primary": {
+        "name": "color.brand.primary",
+        "value": "#f06e8e",
+        "role": "主强调色",
+        "usage": "用于主 CTA、导航选中、标签选中、图标重点、徽标和少量装饰。",
+        "confidence": "high",
+        "modifiable": true,
+        "fallback": "#e85f82"
+      },
+      "primarySoft": {
+        "name": "color.brand.primary.soft",
+        "value": "color-mix(in oklab, #f06e8e, #ffffff 80%)",
+        "role": "柔和强调底色",
+        "usage": "用于轻量背景、选中底、提示条内的低饱和色块。",
+        "confidence": "high",
+        "modifiable": true,
+        "fallback": "#f9cbd6"
+      },
+      "primaryMuted": {
+        "name": "color.brand.primary.muted",
+        "value": "color-mix(in oklab, #f06e8e, #ffffff 60%)",
+        "role": "强调色弱化态",
+        "usage": "用于 disabled、浅色徽标和淡化插画线条。",
+        "confidence": "high",
+        "modifiable": true,
+        "fallback": "#f6b5c5"
+      },
+      "secondary": {
+        "name": "color.brand.secondary",
+        "value": "#4581e1",
+        "role": "辅助强调色",
+        "usage": "用于次级链接、信息态和小面积图表。",
+        "confidence": "medium",
+        "modifiable": true,
+        "fallback": "#3f76d0"
+      }
+    },
+    "surface": {
+      "default": {
+        "name": "color.surface.default",
+        "value": "#ffffff",
+        "role": "默认页面底色",
+        "usage": "用于主背景和大多数内容区域。",
+        "confidence": "high",
+        "modifiable": true,
+        "fallback": "#ffffff"
+      },
+      "muted": {
+        "name": "color.surface.muted",
+        "value": "#fafafa",
+        "role": "浅灰表面",
+        "usage": "用于页面底、嵌入区、输入框弱背景。",
+        "confidence": "high",
+        "modifiable": true,
+        "fallback": "#f7f7f7"
+      },
+      "subtle": {
+        "name": "color.surface.subtle",
+        "value": "#f5f5f5",
+        "role": "次级浅表面",
+        "usage": "用于分组背景、轻量 hover 和列表分隔。",
+        "confidence": "high",
+        "modifiable": true,
+        "fallback": "#f3f4f6"
+      },
+      "translucent": {
+        "name": "color.surface.translucent",
+        "value": "rgba(255, 255, 255, 0.75)",
+        "role": "半透明浮层",
+        "usage": "用于导航栏、提示条、抽屉、浮动面板。",
+        "confidence": "high",
+        "modifiable": true,
+        "fallback": "rgba(255, 255, 255, 0.9)"
+      }
+    },
+    "text": {
+      "primary": {
+        "name": "color.text.primary",
+        "value": "#212121",
+        "role": "主文本",
+        "usage": "用于标题、正文和高优先级信息。",
+        "confidence": "high",
+        "modifiable": false,
+        "fallback": "#111111"
+      },
+      "secondary": {
+        "name": "color.text.secondary",
+        "value": "#616161",
+        "role": "次文本",
+        "usage": "用于元信息、说明、次级导航。",
+        "confidence": "high",
+        "modifiable": true,
+        "fallback": "#5f6368"
+      },
+      "tertiary": {
+        "name": "color.text.tertiary",
+        "value": "#757575",
+        "role": "弱文本",
+        "usage": "用于 placeholder、时间、计数和低优先级提示。",
+        "confidence": "high",
+        "modifiable": true,
+        "fallback": "#737373"
+      },
+      "inverse": {
+        "name": "color.text.inverse",
+        "value": "#ffffff",
+        "role": "反白文本",
+        "usage": "用于深色或强调色背景上的文字。",
+        "confidence": "high",
+        "modifiable": false,
+        "fallback": "#ffffff"
+      }
+    },
+    "border": {
+      "subtle": {
+        "name": "color.border.subtle",
+        "value": "#eeeeee",
+        "role": "轻分隔线",
+        "usage": "用于导航下边线、卡片分隔、表单边界。",
+        "confidence": "high",
+        "modifiable": true,
+        "fallback": "#e5e7eb"
+      },
+      "strong": {
+        "name": "color.border.strong",
+        "value": "#e0e0e0",
+        "role": "强分隔线",
+        "usage": "用于需要明确边界的输入框和浮层。",
+        "confidence": "medium",
+        "modifiable": true,
+        "fallback": "#d1d5db"
+      }
+    },
+    "state": {
+      "success": {
+        "name": "color.state.success",
+        "value": "#46a12f",
+        "role": "成功色",
+        "usage": "用于成功提示、完成状态、正向数据。",
+        "confidence": "medium",
+        "modifiable": true,
+        "fallback": "#2f9e44"
+      },
+      "warning": {
+        "name": "color.state.warning",
+        "value": "#f98d00",
+        "role": "警告色",
+        "usage": "用于非阻塞警告、等待状态和强调提醒。",
+        "confidence": "medium",
+        "modifiable": true,
+        "fallback": "#f59f00"
+      },
+      "danger": {
+        "name": "color.state.danger",
+        "value": "#dd1818",
+        "role": "错误色",
+        "usage": "用于错误、删除、失败和表单校验。",
+        "confidence": "medium",
+        "modifiable": true,
+        "fallback": "#d92d20"
+      },
+      "info": {
+        "name": "color.state.info",
+        "value": "#4581e1",
+        "role": "信息色",
+        "usage": "用于信息提示、链接和非主操作。",
+        "confidence": "medium",
+        "modifiable": true,
+        "fallback": "#2563eb"
+      }
+    }
+  },
+  "typography": {
+    "fontFamily": {
+      "sans": {
+        "name": "typography.font.sans",
+        "value": "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+        "role": "默认无衬线字体",
+        "usage": "用于所有 UI 文本，优先选择多语种可读性好的系统字体。",
+        "confidence": "high",
+        "modifiable": true,
+        "fallback": "system-ui, sans-serif"
+      },
+      "display": {
+        "name": "typography.font.display",
+        "value": "ui-sans-serif, system-ui, sans-serif",
+        "role": "展示字体",
+        "usage": "用于 H1、hero 数字和少量视觉强调。",
+        "confidence": "medium",
+        "modifiable": true,
+        "fallback": "system-ui, sans-serif"
+      }
+    },
+    "fontSize": {
+      "xs": {"name": "typography.size.xs", "value": "12px", "role": "辅助文本", "usage": "元信息、标签、微文案。", "confidence": "high", "modifiable": true, "fallback": "12px"},
+      "sm": {"name": "typography.size.sm", "value": "14px", "role": "默认正文", "usage": "正文、导航、表单。", "confidence": "high", "modifiable": true, "fallback": "14px"},
+      "md": {"name": "typography.size.md", "value": "16px", "role": "强调正文", "usage": "卡片标题、次级标题。", "confidence": "high", "modifiable": true, "fallback": "16px"},
+      "lg": {"name": "typography.size.lg", "value": "20px", "role": "小标题", "usage": "section title、卡片组标题。", "confidence": "high", "modifiable": true, "fallback": "20px"},
+      "xl": {"name": "typography.size.xl", "value": "24px", "role": "页面标题", "usage": "页面内主标题。", "confidence": "medium", "modifiable": true, "fallback": "24px"},
+      "2xl": {"name": "typography.size.2xl", "value": "30px", "role": "紧凑 hero 标题", "usage": "移动端 hero 或中等标题。", "confidence": "medium", "modifiable": true, "fallback": "32px"},
+      "4xl": {"name": "typography.size.4xl", "value": "48px", "role": "桌面 hero 标题", "usage": "首屏标题、品牌型展示文字。", "confidence": "medium", "modifiable": true, "fallback": "48px"},
+      "6xl": {"name": "typography.size.6xl", "value": "72px", "role": "大型展示文字", "usage": "只用于宽屏第一视觉。", "confidence": "medium", "modifiable": true, "fallback": "64px"}
+    },
+    "lineHeight": {
+      "tight": {"name": "typography.lineHeight.tight", "value": "1.2", "role": "标题行高", "usage": "H1-H3。", "confidence": "high", "modifiable": true, "fallback": "1.25"},
+      "normal": {"name": "typography.lineHeight.normal", "value": "1.4", "role": "默认行高", "usage": "正文、导航、表单。", "confidence": "high", "modifiable": true, "fallback": "1.5"},
+      "relaxed": {"name": "typography.lineHeight.relaxed", "value": "1.65", "role": "长文本行高", "usage": "说明文、详情段落。", "confidence": "medium", "modifiable": true, "fallback": "1.6"}
+    },
+    "fontWeight": {
+      "regular": {"name": "typography.weight.regular", "value": "400", "role": "常规字重", "usage": "正文。", "confidence": "high", "modifiable": true, "fallback": "400"},
+      "medium": {"name": "typography.weight.medium", "value": "500", "role": "中强调", "usage": "导航、元信息重点。", "confidence": "high", "modifiable": true, "fallback": "500"},
+      "semibold": {"name": "typography.weight.semibold", "value": "600", "role": "标题强调", "usage": "标题、CTA。", "confidence": "high", "modifiable": true, "fallback": "600"},
+      "bold": {"name": "typography.weight.bold", "value": "700", "role": "强标题", "usage": "section heading、重要数字。", "confidence": "medium", "modifiable": true, "fallback": "700"}
+    }
+  },
+  "spacing": {
+    "scale": {
+      "0": {"name": "spacing.0", "value": "0px", "role": "无间距", "usage": "重置。", "confidence": "high", "modifiable": false, "fallback": "0px"},
+      "1": {"name": "spacing.1", "value": "4px", "role": "极小间距", "usage": "图标与数字。", "confidence": "high", "modifiable": true, "fallback": "4px"},
+      "2": {"name": "spacing.2", "value": "8px", "role": "小间距", "usage": "图标与文字、组件内部 gap。", "confidence": "high", "modifiable": true, "fallback": "8px"},
+      "3": {"name": "spacing.3", "value": "12px", "role": "紧凑间距", "usage": "卡片内元素。", "confidence": "high", "modifiable": true, "fallback": "12px"},
+      "4": {"name": "spacing.4", "value": "16px", "role": "基础间距", "usage": "面板 padding、移动端 gutter。", "confidence": "high", "modifiable": true, "fallback": "16px"},
+      "6": {"name": "spacing.6", "value": "24px", "role": "模块内间距", "usage": "卡片组和表单。", "confidence": "high", "modifiable": true, "fallback": "24px"},
+      "8": {"name": "spacing.8", "value": "32px", "role": "模块间距", "usage": "section 内部组距。", "confidence": "high", "modifiable": true, "fallback": "32px"},
+      "12": {"name": "spacing.12", "value": "48px", "role": "小 section 间距", "usage": "移动端 section。", "confidence": "high", "modifiable": true, "fallback": "48px"},
+      "16": {"name": "spacing.16", "value": "64px", "role": "中 section 间距", "usage": "桌面标准 section。", "confidence": "medium", "modifiable": true, "fallback": "64px"},
+      "20": {"name": "spacing.20", "value": "80px", "role": "大 section 间距", "usage": "重点分区。", "confidence": "medium", "modifiable": true, "fallback": "80px"},
+      "24": {"name": "spacing.24", "value": "96px", "role": "宽屏 section 间距", "usage": "hero 到下一段。", "confidence": "medium", "modifiable": true, "fallback": "96px"}
+    },
+    "section": {
+      "sm": {"name": "spacing.section.sm", "value": "48px", "role": "紧凑 section", "usage": "移动端或密集页面。", "confidence": "high", "modifiable": true, "fallback": "48px"},
+      "md": {"name": "spacing.section.md", "value": "72px", "role": "默认 section", "usage": "常规页面。", "confidence": "medium", "modifiable": true, "fallback": "72px"},
+      "lg": {"name": "spacing.section.lg", "value": "96px", "role": "宽松 section", "usage": "首屏和重点 CTA。", "confidence": "medium", "modifiable": true, "fallback": "96px"}
+    }
+  },
+  "radius": {
+    "button": {
+      "icon": {"name": "radius.button.icon", "value": "999px", "role": "圆形图标按钮", "usage": "工具栏按钮和图标操作。", "confidence": "high", "modifiable": true, "fallback": "999px"},
+      "pill": {"name": "radius.button.pill", "value": "999px", "role": "胶囊按钮", "usage": "主 CTA、标签、筛选。", "confidence": "high", "modifiable": true, "fallback": "999px"}
+    },
+    "card": {
+      "default": {"name": "radius.card.default", "value": "6px", "role": "默认卡片圆角", "usage": "媒体卡片、信息条和轻量面板。", "confidence": "high", "modifiable": true, "fallback": "8px"},
+      "soft": {"name": "radius.card.soft", "value": "12px", "role": "柔和卡片圆角", "usage": "企业页、产品页的大卡片。", "confidence": "medium", "modifiable": true, "fallback": "12px"}
+    },
+    "input": {
+      "default": {"name": "radius.input.default", "value": "6px", "role": "输入框圆角", "usage": "文本框、选择器、搜索框。", "confidence": "high", "modifiable": true, "fallback": "6px"}
+    }
+  },
+  "shadow": {
+    "navigation": {
+      "glow": {"name": "shadow.navigation.glow", "value": "0 0 24px rgba(240, 110, 142, 0.24)", "role": "导航柔光", "usage": "固定导航、移动底栏和顶部栏。", "confidence": "high", "modifiable": true, "fallback": "0 0 20px rgba(0, 0, 0, 0.08)"}
+    },
+    "card": {
+      "subtle": {"name": "shadow.card.subtle", "value": "0 2px 6px rgba(120, 90, 100, 0.18), 0 0 4px rgba(120, 90, 100, 0.08)", "role": "轻卡片阴影", "usage": "信息条、浮层和少量重点卡片。", "confidence": "high", "modifiable": true, "fallback": "0 2px 8px rgba(0, 0, 0, 0.08)"},
+      "hover": {"name": "shadow.card.hover", "value": "0 8px 24px rgba(120, 90, 100, 0.16)", "role": "卡片悬停阴影", "usage": "桌面 hover 时短暂增强。", "confidence": "medium", "modifiable": true, "fallback": "0 8px 24px rgba(0, 0, 0, 0.1)"}
+    },
+    "none": {
+      "name": "shadow.none",
+      "value": "none",
+      "role": "无阴影",
+      "usage": "大多数静态内容和媒体卡片默认态。",
+      "confidence": "high",
+      "modifiable": false,
+      "fallback": "none"
+    }
+  },
+  "border": {
+    "width": {
+      "hairline": {"name": "border.width.hairline", "value": "1px", "role": "细边框", "usage": "分隔线、输入框、轻量卡片。", "confidence": "high", "modifiable": false, "fallback": "1px"}
+    },
+    "style": {
+      "solid": {"name": "border.style.solid", "value": "solid", "role": "实线边框", "usage": "标准边框。", "confidence": "high", "modifiable": false, "fallback": "solid"}
+    }
+  },
+  "motion": {
+    "duration": {
+      "instant": {"name": "motion.duration.instant", "value": "100ms", "role": "即时反馈", "usage": "颜色变化、图标填充。", "confidence": "high", "modifiable": true, "fallback": "100ms"},
+      "fast": {"name": "motion.duration.fast", "value": "180ms", "role": "快速动效", "usage": "hover、pressed、focus。", "confidence": "high", "modifiable": true, "fallback": "180ms"},
+      "normal": {"name": "motion.duration.normal", "value": "250ms", "role": "默认动效", "usage": "菜单、卡片、轻位移。", "confidence": "high", "modifiable": true, "fallback": "250ms"},
+      "slow": {"name": "motion.duration.slow", "value": "420ms", "role": "强调转场", "usage": "抽屉、页面局部切换。", "confidence": "medium", "modifiable": true, "fallback": "400ms"}
+    },
+    "easing": {
+      "standard": {"name": "motion.easing.standard", "value": "cubic-bezier(0.19, 1, 0.22, 1)", "role": "柔和出场曲线", "usage": "多数 UI transition。", "confidence": "high", "modifiable": true, "fallback": "ease-out"},
+      "emphasized": {"name": "motion.easing.emphasized", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "role": "强调曲线", "usage": "抽屉、浮层。", "confidence": "medium", "modifiable": true, "fallback": "ease-out"}
+    }
+  },
+  "breakpoint": {
+    "mobile": {"name": "breakpoint.mobile", "value": "480px", "role": "移动端上限", "usage": "单列或双列紧凑布局。", "confidence": "high", "modifiable": true, "fallback": "480px"},
+    "tablet": {"name": "breakpoint.tablet", "value": "768px", "role": "平板断点", "usage": "导航与网格切换。", "confidence": "high", "modifiable": true, "fallback": "768px"},
+    "desktop": {"name": "breakpoint.desktop", "value": "1024px", "role": "桌面断点", "usage": "桌面导航和 3-4 列网格。", "confidence": "high", "modifiable": true, "fallback": "1024px"},
+    "wide": {"name": "breakpoint.wide", "value": "1280px", "role": "宽屏断点", "usage": "宽屏 hero 和最大容器。", "confidence": "medium", "modifiable": true, "fallback": "1280px"}
+  },
+  "zIndex": {
+    "base": {"name": "zIndex.base", "value": "0", "role": "基础层", "usage": "普通内容。", "confidence": "high", "modifiable": false, "fallback": "0"},
+    "sticky": {"name": "zIndex.sticky", "value": "20", "role": "固定导航", "usage": "顶部栏、底部栏、侧栏。", "confidence": "high", "modifiable": true, "fallback": "20"},
+    "overlay": {"name": "zIndex.overlay", "value": "40", "role": "遮罩层", "usage": "抽屉背景、非阻塞浮层。", "confidence": "medium", "modifiable": true, "fallback": "40"},
+    "modal": {"name": "zIndex.modal", "value": "60", "role": "模态层", "usage": "Modal、confirm、command palette。", "confidence": "medium", "modifiable": true, "fallback": "60"},
+    "toast": {"name": "zIndex.toast", "value": "80", "role": "通知层", "usage": "Toast、全局进度。", "confidence": "medium", "modifiable": true, "fallback": "80"}
+  },
+  "opacity": {
+    "disabled": {"name": "opacity.disabled", "value": "0.45", "role": "禁用透明度", "usage": "禁用按钮、禁用输入。", "confidence": "high", "modifiable": true, "fallback": "0.5"},
+    "muted": {"name": "opacity.muted", "value": "0.68", "role": "弱化透明度", "usage": "次级图标和说明。", "confidence": "high", "modifiable": true, "fallback": "0.7"},
+    "overlay": {"name": "opacity.overlay", "value": "0.32", "role": "遮罩透明度", "usage": "抽屉或 modal 背景。", "confidence": "medium", "modifiable": true, "fallback": "0.35"}
+  },
+  "blur": {
+    "surface": {"name": "blur.surface", "value": "12px", "role": "半透明表面模糊", "usage": "导航、浮层、提示条。", "confidence": "medium", "modifiable": true, "fallback": "8px"},
+    "none": {"name": "blur.none", "value": "0px", "role": "无模糊", "usage": "默认内容层。", "confidence": "high", "modifiable": false, "fallback": "0px"}
+  },
+  "container": {
+    "content": {"name": "container.content", "value": "1096px", "role": "内容最大宽度", "usage": "主页、列表页、产品页主体。", "confidence": "high", "modifiable": true, "fallback": "1120px"},
+    "narrow": {"name": "container.narrow", "value": "760px", "role": "窄文本容器", "usage": "表单、说明、FAQ。", "confidence": "medium", "modifiable": true, "fallback": "760px"},
+    "wide": {"name": "container.wide", "value": "1224px", "role": "宽屏视觉容器", "usage": "hero 横幅和大展示区。", "confidence": "medium", "modifiable": true, "fallback": "1200px"},
+    "sidebar": {"name": "container.sidebar", "value": "56px", "role": "桌面侧栏宽度", "usage": "固定图标导航。", "confidence": "high", "modifiable": true, "fallback": "56px"},
+    "mobileBar": {"name": "container.mobileBar", "value": "56px", "role": "移动导航高度", "usage": "移动顶部栏和底部栏。", "confidence": "high", "modifiable": true, "fallback": "56px"}
+  },
+  "grid": {
+    "desktopColumns": {"name": "grid.desktop.columns", "value": "4", "role": "桌面卡片列数", "usage": "媒体或产品卡片网格。", "confidence": "high", "modifiable": true, "fallback": "3"},
+    "tabletColumns": {"name": "grid.tablet.columns", "value": "3", "role": "平板卡片列数", "usage": "中等视口卡片网格。", "confidence": "medium", "modifiable": true, "fallback": "2"},
+    "mobileColumns": {"name": "grid.mobile.columns", "value": "2", "role": "移动卡片列数", "usage": "紧凑内容卡片；表单和长文本改为 1 列。", "confidence": "high", "modifiable": true, "fallback": "1"},
+    "gap": {"name": "grid.gap", "value": "16px", "role": "网格间距", "usage": "卡片、特性列表、价格方案。", "confidence": "high", "modifiable": true, "fallback": "16px"}
+  }
+}

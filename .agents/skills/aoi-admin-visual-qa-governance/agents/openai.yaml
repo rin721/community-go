@@ -1,0 +1,4 @@
+interface:
+  display_name: "Aoi Admin Visual QA"
+  short_description: "当前仓库视觉QA截图可访问性与页面证据治理流程指南"
+  default_prompt: "Use $aoi-admin-visual-qa-governance to run or update visual QA, screenshots, accessibility checks, and UI evidence for this repository."

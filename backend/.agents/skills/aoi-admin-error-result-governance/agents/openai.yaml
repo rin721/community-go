@@ -1,0 +1,4 @@
+interface:
+  display_name: "Aoi Admin Error Result Governance"
+  short_description: "错误结果契约API响应字段校验前端请求与状态返回治理流程"
+  default_prompt: "Use $aoi-admin-error-result-governance to change backend responses, errors, ApiError handling, or state propagation in this repository."

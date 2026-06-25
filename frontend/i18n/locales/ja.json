@@ -1,0 +1,1009 @@
+{
+  "app": {
+    "name": "Aoi"
+  },
+  "components": {
+    "colorPalette": {
+      "alpha": "透明度",
+      "field": "カラーフィールド",
+      "hex": "HEX",
+      "hue": "色相",
+      "mode": "カラーモード",
+      "reset": "リセット"
+    }
+  },
+  "nav": {
+    "home": "ホーム",
+    "categories": "カテゴリ",
+    "following": "フォロー",
+    "search": "検索",
+    "history": "履歴",
+    "collections": "コレクション",
+    "docs": "ドキュメント",
+    "upload": "投稿",
+    "settings": "設定",
+    "login": "ログイン"
+  },
+  "home": {
+    "subtitle": "クリエイター向けの澄んだ高速な動画コミュニティフロントエンド。Nuxt 4 と mock データで将来の Go API を先取りします。",
+    "latest": "最新",
+    "gridView": "グリッド表示",
+    "listView": "リスト表示",
+    "categoryTabsAria": "コンテンツカテゴリ"
+  },
+  "category": {
+    "childrenTitle": "サブカテゴリ",
+    "childrenDescription": "より細かい分類で閲覧します。親カテゴリは配下の内容をまとめて表示します。"
+  },
+  "docs": {
+    "eyebrow": "Aoi Docs",
+    "title": "プロジェクトシステムとコンポーネントライブラリ",
+    "description": "Nuxt の構成、リポジトリ境界、すべての Aoi wrapper API を静的 Markdown でまとめます。",
+    "actions": {
+      "project": "プロジェクトシステム",
+      "components": "コンポーネント"
+    },
+    "stats": {
+      "pages": "ページ",
+      "components": "コンポーネント",
+      "locales": "言語"
+    },
+    "nav": {
+      "open": "目次",
+      "label": "ドキュメント目次",
+      "close": "閉じる"
+    },
+    "search": {
+      "label": "ドキュメント検索",
+      "placeholder": "タイトル、説明、セクションを検索"
+    },
+    "notFound": {
+      "title": "ドキュメントが見つかりません",
+      "description": "現在のドキュメントセットにはこのページがありません。",
+      "action": "ドキュメントへ戻る"
+    },
+    "pager": {
+      "label": "ドキュメントの前後移動",
+      "previous": "前へ",
+      "next": "次へ"
+    },
+    "toc": {
+      "label": "このページ"
+    }
+  },
+  "settings": {
+    "shell": {
+      "title": "設定",
+      "description": "Aoi の外観、好み、ローカルデータ、診断を調整します。",
+      "searchLabel": "設定を検索",
+      "searchPlaceholder": "テーマ、背景、プレイヤー...",
+      "emptyText": "一致する設定項目はありません。",
+      "groups": {
+        "app": "アプリ設定",
+        "project": "プロジェクト"
+      },
+      "depth": {
+        "label": "設定の表示深度",
+        "basic": {
+          "label": "基本",
+          "description": "よく使う設定"
+        },
+        "all": {
+          "label": "すべて",
+          "description": "高度な項目を含む"
+        }
+      }
+    },
+    "resetPage": {
+      "action": "このページをリセット",
+      "cancel": "キャンセル",
+      "confirm": "リセット",
+      "appearance": {
+        "title": "外観設定をリセット",
+        "description": "現在の active ビルド設定に合わせて、外観、パレット、背景パラメーター、サイズ単位を復元し、ブラウザーに保存された背景画像を消去します。"
+      },
+      "preference": {
+        "title": "環境設定をリセット",
+        "description": "現在の active ビルド設定に合わせて、データモード、閲覧、ルート進行、表示モーション、スクロール、プライバシー、集中設定を復元します。"
+      },
+      "language": {
+        "title": "言語設定をリセット",
+        "description": "現在の active ビルド設定に合わせてインターフェイス言語を復元し、すぐに適用します。"
+      }
+    },
+    "derivation": {
+      "presetTitle": "アプリ全体の派生プリセット",
+      "presetDescription": "soft、balanced、vivid で全派生グループを同期します。どれかを手動調整すると custom になります。",
+      "themeTitle": "テーマと意味色の強度",
+      "themeDescription": "アクセントから補助色、面、状態、ナビゲーション、Material 操作部、影へ派生する強さを調整します。",
+      "specTitle": "仕様強度",
+      "specDescription": "文字、余白、角丸、操作部、コンテンツ幅、メディアグリッド、設定レイアウトが基準単位から派生する幅を調整します。",
+      "valueDescription": "現在 {value}%。{description}",
+      "presets": {
+        "soft": {
+          "label": "Soft",
+          "description": "控えめで柔らかく、色・レイアウト・モーションの主張を下げます。"
+        },
+        "balanced": {
+          "label": "Balanced",
+          "description": "既存の Aoi の視覚と操作リズムを保つ既定強度です。"
+        },
+        "vivid": {
+          "label": "Vivid",
+          "description": "より鮮明で階層感があり、色・仕様・動的フィードバックを強めます。"
+        },
+        "custom": {
+          "label": "Custom",
+          "description": "各派生グループを手動調整した結果を保持します。"
+        }
+      },
+      "controls": {
+        "auxiliaryPalette": {
+          "title": "補助色パレット",
+          "label": "補助色の強度",
+          "description": "secondary、sakura、sun など、アクセント由来の補助色に影響します。"
+        },
+        "surfaceTint": {
+          "title": "面の色付け",
+          "label": "面の色付け強度",
+          "description": "ページ背景、カード、境界線、文字階層にアクセント色が入る量に影響します。"
+        },
+        "stateLayer": {
+          "title": "状態レイヤー",
+          "label": "状態レイヤー強度",
+          "description": "hover、pressed、selected、focus の色と透明度に影響します。"
+        },
+        "navigationColor": {
+          "title": "ナビゲーション色",
+          "label": "ナビゲーション色の強度",
+          "description": "サイドバー、モバイルナビ、選択項目背景のアクセント反応に影響します。"
+        },
+        "materialColor": {
+          "title": "Material 操作部",
+          "label": "Material 色強度",
+          "description": "Material Web の primary、secondary、surface などの token に影響します。"
+        },
+        "shadowDepth": {
+          "title": "影の深さ",
+          "label": "影の強度",
+          "description": "影の透明度と階層の深さに影響します。"
+        },
+        "typography": {
+          "title": "文字スケール",
+          "label": "文字派生強度",
+          "description": "見出し、本文、小さい文字が基準文字サイズから広がる、または縮む幅に影響します。"
+        },
+        "spacing": {
+          "title": "余白リズム",
+          "label": "余白派生強度",
+          "description": "ページ余白、グリッド間隔、コンパクトな間隔が基準余白から派生する幅に影響します。"
+        },
+        "radius": {
+          "title": "角丸階層",
+          "label": "角丸派生強度",
+          "description": "カード、パネル、操作部、選択項目の角丸差に影響します。"
+        },
+        "controls": {
+          "title": "操作部仕様",
+          "label": "操作部派生強度",
+          "description": "ボタン、入力欄、アイコンボタン、ナビゲーション操作のサイズに影響します。"
+        },
+        "contentWidth": {
+          "title": "コンテンツ幅",
+          "label": "コンテンツ幅強度",
+          "description": "通常幅と広幅のコンテナが基準幅から広がる、または縮む量に影響します。"
+        },
+        "mediaGrid": {
+          "title": "メディアグリッド",
+          "label": "メディアグリッド強度",
+          "description": "動画カード列幅とメディア一覧の密度に影響します。"
+        },
+        "settingsLayout": {
+          "title": "設定レイアウト",
+          "label": "設定レイアウト強度",
+          "description": "設定カードと操作列の幅リズムに影響します。"
+        },
+        "revealMotion": {
+          "title": "表示モーション",
+          "label": "表示モーション強度",
+          "description": "reveal アニメーションの距離、時間、ずらし、最大遅延に影響します。"
+        },
+        "routeProgress": {
+          "title": "ルート進行",
+          "label": "ルート進行強度",
+          "description": "上部進行バーの高さ、初期値、速度、自動進行リズムに影響します。"
+        },
+        "smoothScroll": {
+          "title": "スムーズスクロール",
+          "label": "スムーズスクロール強度",
+          "description": "全体のスムーズスクロール時間に影響します。"
+        },
+        "scrollSnap": {
+          "title": "スクロール吸着",
+          "label": "スクロール吸着強度",
+          "description": "スクロールシーンがアンカーへ吸着する強さに影響します。"
+        },
+        "scrollHijack": {
+          "title": "スクロール引き継ぎ",
+          "label": "スクロール引き継ぎ強度",
+          "description": "スクロールシーンがホイール入力を引き継ぐしきい値に影響します。"
+        },
+        "rubberBand": {
+          "title": "ラバーバンド",
+          "label": "ラバーバンド強度",
+          "description": "端での跳ね返り距離と減衰感に影響します。"
+        },
+        "danmaku": {
+          "title": "弾幕の表示と動き",
+          "label": "弾幕派生強度",
+          "description": "弾幕の文字サイズ、透明度、速度、表示領域に影響します。"
+        }
+      }
+    },
+    "appearance": {
+      "form": {
+        "title": "形態",
+        "description": "Aoi 全体の密度、サイズ、角丸、コントラスト、ナビゲーションの強調を調整します。",
+        "densityTitle": "密度",
+        "densityDescription": "ページ余白と設定項目の間隔を調整します。",
+        "sizeTitle": "サイズ",
+        "sizeDescription": "基本文字サイズ、コントロール高、ナビゲーションアイコンの比率を調整します。",
+        "shapeTitle": "角丸",
+        "shapeDescription": "操作部、選択項目、コンテンツ面の角丸を階層的に調整します。",
+        "contrastTitle": "コントラスト",
+        "contrastDescription": "テキスト、境界線、選択状態の視認性を高めます。",
+        "colorfulNavTitle": "カラーナビゲーション",
+        "colorfulNavDescription": "現在のアクセントカラーでサイドバーとモバイルナビを軽く色付けします。"
+      },
+      "specUnits": {
+        "title": "主なサイズ単位",
+        "description": "余白、操作部、ナビゲーション、グリッド、角丸を派生する元の寸法をまとめて管理します。",
+        "jump": "主単位を調整",
+        "reset": "単位をリセット",
+        "widthMode": {
+          "px": "px",
+          "percent": "%"
+        },
+        "baseFont": {
+          "title": "基本文字サイズ",
+          "description": "本文と見出しの比率に反映されます。",
+          "label": "基本文字サイズ"
+        },
+        "space": {
+          "title": "余白単位",
+          "description": "ページ余白、パネル間隔、コンパクトなギャップに反映されます。",
+          "label": "基本余白"
+        },
+        "radius": {
+          "title": "角丸単位",
+          "description": "面、カード、操作部、選択肢の角丸に反映されます。",
+          "label": "基本角丸"
+        },
+        "controlHeight": {
+          "title": "操作部の高さ",
+          "description": "ボタン、入力欄、アイコンボタン、ナビゲーション操作に反映されます。",
+          "label": "基本操作部高さ"
+        },
+        "contentMaxWidth": {
+          "title": "コンテンツ幅",
+          "description": "通常ページの幅を流動的な割合または固定ピクセル上限で設定します。",
+          "label": "コンテンツ幅"
+        },
+        "contentWideMaxWidth": {
+          "title": "ワイド幅",
+          "description": "設定やワークスペース系ページの幅を流動的な割合または固定ピクセル上限で設定します。",
+          "label": "ワイド幅"
+        },
+        "railWidth": {
+          "title": "デスクトップレール",
+          "description": "固定サイドナビゲーションの幅を設定します。",
+          "label": "レール幅"
+        },
+        "mobileNavHeight": {
+          "title": "モバイルナビ",
+          "description": "モバイルのヘッダー、下部ナビ、ページ余白に反映されます。",
+          "label": "モバイルナビ高さ"
+        },
+        "videoGridMinCardWidth": {
+          "title": "動画グリッドカード",
+          "description": "デスクトップグリッドのカード列の最小幅を設定します。",
+          "label": "動画カード最小幅"
+        },
+        "settingsCardMinWidth": {
+          "title": "設定カード",
+          "description": "設定カードと操作列の最小幅を設定します。",
+          "label": "設定カード最小幅"
+        }
+      },
+      "palette": {
+        "title": "アクセントカラー",
+        "description": "プリセットの色板を選ぶか、カスタムカラーに切り替えます。",
+        "customTitle": "カラーパレット",
+        "persona": {
+          "customTitle": "カスタム",
+          "customSubtitle": "Make It Yours",
+          "customCaption": "カスタム",
+          "backgroundTitle": "背景",
+          "backgroundSubtitle": "背景に合わせる",
+          "backgroundCaption": "背景",
+          "backgroundDescription": "背景画像は現在のブラウザーにのみ保存され、アップロードされません。",
+          "backgroundUpload": "ファイルを選択",
+          "backgroundClear": "クリア",
+          "backgroundEmpty": "背景はまだアップロードされていません",
+          "backgroundDefault": "既定のグラデーション背景を使用中",
+          "backgroundOpacity": "背景の強さ",
+          "backgroundBlur": "背景ぼかし",
+          "backgroundDim": "オーバーレイの強さ"
+        },
+        "derivation": {
+          "title": "派生強度",
+          "description": "淡いアクセント token ごとの柔らかさと鮮やかさを調整します。",
+          "preview": "現在の派生アクセント階調プレビュー",
+          "reset": "派生をリセット",
+          "toneDescription": "現在 {value}%。低いほど柔らかく、高いほど鮮やかです。",
+          "tones": {
+            "accent10": {
+              "title": "Accent 10",
+              "label": "Accent 10 強度",
+              "affected": "影響する可能性：淡い状態背景、ナビゲーションの選択背景、タグ/通知/空状態の淡い面、Material primary container、進捗トラック。"
+            },
+            "accent20": {
+              "title": "Accent 20",
+              "label": "Accent 20 強度",
+              "affected": "影響する可能性：カスタムカラーパレットのスライダートラック、Material secondary container、About と Experimental ページの淡いグラデーション。"
+            },
+            "accent40": {
+              "title": "Accent 40",
+              "label": "Accent 40 強度",
+              "affected": "影響する可能性：ダークモードの active 色、ダーク時の focus/hover/pressed/境界状態、ダークナビ選択、カード/アップロード/スケルトンの強調色。"
+            },
+            "accent50": {
+              "title": "Accent 50",
+              "label": "Accent 50 強度",
+              "affected": "影響する可能性：進捗バーの active 色、ページ端のヒントグラデーション、ブランド/認証/プロフィール装飾グラデーション、リッチテキスト引用線、スケルトンの accent。"
+            }
+          }
+        },
+        "cards": {
+          "editAria": "{title} カードを編集",
+          "dialogTitle": "アクセントカラーカードを編集",
+          "titleLabel": "カードタイトル",
+          "subtitleLabel": "カードサブタイトル",
+          "descriptionLabel": "カード説明",
+          "imagePathLabel": "public 背景画像",
+          "imagePathPlaceholder": "/theme-card-backgrounds/example.webp",
+          "assetsTitle": "public 画像アセット",
+          "parent": "上へ",
+          "refresh": "更新",
+          "upload": "画像をアップロード",
+          "clearImage": "画像をクリア",
+          "emptyAssets": "このフォルダーに使える画像はありません。",
+          "cancel": "キャンセル",
+          "save": "ビルド設定に保存",
+          "confirmTitle": "アクセントカラーカード設定を書き込みますか？",
+          "confirmDescription": "この変更を現在の active build profile に書き込みます。ブラウザーのローカル設定や original バックアップは変更しません。",
+          "before": "変更前",
+          "after": "変更後",
+          "confirmSave": "書き込む",
+          "saved": "アクセントカラーカードを現在の active build profile に保存しました。",
+          "errors": {
+            "imageOnly": "画像ファイルを選んでください。",
+            "loadAssets": "public 画像アセットを読み込めません。",
+            "profile": "現在のビルド profile を読み込めません。",
+            "save": "現在のビルド profile に書き込めません。後でもう一度試してください。",
+            "upload": "画像を public アセットにアップロードできません。"
+          },
+          "noChanges": "書き込むカード変更はありません。",
+          "retry": "再試行"
+        }
+      },
+      "density": {
+        "comfortable": {
+          "label": "Comfortable",
+          "description": "余白多め"
+        },
+        "compact": {
+          "label": "コンパクト",
+          "description": "高密度"
+        }
+      },
+      "size": {
+        "small": {
+          "label": "Small",
+          "description": "小さめ"
+        },
+        "default": {
+          "label": "Default",
+          "description": "標準"
+        },
+        "large": {
+          "label": "Large",
+          "description": "大きめ"
+        }
+      },
+      "shape": {
+        "square": {
+          "label": "直角",
+          "description": "2px 角"
+        },
+        "soft": {
+          "label": "柔らか",
+          "description": "Aoi 標準"
+        },
+        "pill": {
+          "label": "丸角",
+          "description": "操作部はピル型、面は構造を保持"
+        }
+      },
+      "contrast": {
+        "normal": {
+          "label": "Normal",
+          "description": "標準階層"
+        },
+        "high": {
+          "label": "高コントラスト",
+          "description": "視認性強化"
+        }
+      }
+    },
+    "preference": {
+      "routeProgress": {
+        "title": "ルート進捗バー",
+        "description": "Nuxt の組み込み読み込みライフサイクルを保ちながら、NProgress でページ遷移のフィードバックを表示します。",
+        "enabledTitle": "ルート進捗を有効化",
+        "enabledDescription": "ページ移動中に上部の細い進捗バーを表示します。",
+        "trickleTitle": "自動進行",
+        "trickleDescription": "次のページの読み込み中に NProgress を少しずつ進めます。",
+        "spinnerTitle": "Spinner を表示",
+        "spinnerDescription": "右上に NProgress 標準の回転インジケーターを表示します。",
+        "easingTitle": "イージング",
+        "easingDescription": "進捗バーの遷移に使うカーブを選びます。",
+        "easingLabel": "進捗イージング",
+        "easing": {
+          "linear": "Linear",
+          "ease": "Ease",
+          "easeIn": "Ease in",
+          "easeOut": "Ease out",
+          "easeInOut": "Ease in-out"
+        },
+        "minimumTitle": "初期進捗",
+        "minimumLabel": "初期進捗",
+        "delayTitle": "表示遅延",
+        "delayLabel": "表示遅延",
+        "speedTitle": "アニメーション速度",
+        "speedLabel": "アニメーション速度",
+        "trickleSpeedTitle": "自動進行間隔",
+        "trickleSpeedLabel": "自動進行間隔",
+        "heightTitle": "バーの高さ",
+        "heightLabel": "バーの高さ"
+      },
+      "reveal": {
+        "title": "ポップイン反応",
+        "description": "コンテンツパネル、カード、リストが表示領域に入るときの動きを調整します。",
+        "enabledTitle": "ポップイン反応を有効化",
+        "enabledDescription": "オフにすると、対象コンテンツはアニメーションせずすぐに表示されます。",
+        "effectTitle": "効果",
+        "effectDescription": "各モジュールの効果を保つか、全体で同じ効果に統一します。",
+        "effectLabel": "ポップイン効果",
+        "effect": {
+          "contextual": "コンテキスト",
+          "pop": "ポップ",
+          "rise": "ライズ",
+          "fade": "フェード",
+          "slideLeft": "左スライド",
+          "slideRight": "右スライド"
+        },
+        "replayTitle": "再生方式",
+        "replayDescription": "スクロールで再び表示領域に入ったときに動きを再生するかを制御します。",
+        "replay": {
+          "repeat": {
+            "label": "繰り返し",
+            "description": "再表示時に再生"
+          },
+          "once": {
+            "label": "一度だけ",
+            "description": "初回表示後は維持"
+          }
+        },
+        "durationTitle": "継続時間",
+        "durationLabel": "継続時間",
+        "distanceTitle": "移動距離",
+        "distanceLabel": "移動距離",
+        "staggerTitle": "リスト間隔",
+        "staggerLabel": "間隔",
+        "maxDelayTitle": "最大遅延",
+        "maxDelayLabel": "最大遅延"
+      },
+      "scroll": {
+        "title": "スクロール体験",
+        "description": "全体の慣性スクロール、磁石のような吸着、明示的なスクロールシーン、端の減衰を調整します。",
+        "scrollbar": {
+          "strategyTitle": "ページスクロールバー",
+          "strategyDescription": "ページがスクロールバー分の余白を確保するかを選び、Windows でのレイアウトずれを防ぎます。",
+          "strategy": {
+            "auto": {
+              "label": "システム既定",
+              "description": "ブラウザに従う"
+            },
+            "stable": {
+              "label": "安定余白",
+              "description": "右側を確保"
+            },
+            "stableBothEdges": {
+              "label": "両側安定",
+              "description": "中央を維持"
+            },
+            "hidden": {
+              "label": "非表示",
+              "description": "スクロール維持"
+            }
+          }
+        },
+        "smooth": {
+          "enabledTitle": "慣性スムーズスクロール",
+          "enabledDescription": "Lenis でホイール操作のページスクロールをなめらかにし、タッチ端末ではネイティブ慣性を保ちます。",
+          "durationTitle": "スクロール時間",
+          "durationLabel": "スクロール時間",
+          "dampingTitle": "減衰",
+          "dampingLabel": "減衰"
+        },
+        "snap": {
+          "enabledTitle": "スクロール吸着 / マグネット",
+          "enabledDescription": "Aoi のスクロール領域やシーンを近くの項目やセクションに停泊させます。",
+          "modeTitle": "吸着モード",
+          "modeDescription": "柔らかい近接吸着、またはより強い強制吸着を選びます。",
+          "mode": {
+            "proximity": {
+              "label": "近接",
+              "description": "近づいた時に停泊"
+            },
+            "mandatory": {
+              "label": "強制",
+              "description": "常に目標へ固定"
+            }
+          },
+          "strengthTitle": "マグネット強度",
+          "strengthLabel": "マグネット強度"
+        },
+        "hijack": {
+          "enabledTitle": "スクロールシーン制御",
+          "enabledDescription": "明示的な Aoi スクロールシーンで大きなホイール操作やキー操作を捕捉し、セクション単位で移動します。",
+          "modeTitle": "シーン戦略",
+          "modeDescription": "現在のセクションを基準にするか、移動前に最も近いセクションを再計算します。",
+          "mode": {
+            "section": {
+              "label": "セクション",
+              "description": "現在位置を使用"
+            },
+            "nearest": {
+              "label": "最寄り",
+              "description": "位置を再確認"
+            }
+          },
+          "thresholdTitle": "ホイール閾値",
+          "thresholdLabel": "ホイール閾値"
+        },
+        "rubberBand": {
+          "enabledTitle": "端の減衰 / ラバーバンド",
+          "enabledDescription": "ページやスクロール領域の端で控えめなラバーバンド反応を表示します。",
+          "strengthTitle": "減衰強度",
+          "strengthLabel": "減衰強度",
+          "maxOffsetTitle": "最大変位",
+          "maxOffsetLabel": "最大変位"
+        }
+      }
+    },
+    "about": {
+      "developerUnlock": {
+        "hint": "Aoi マークを 4 回クリックすると開発者モードを有効化できます。",
+        "remaining": "あと {count} 回クリックすると開発者モードに入ります。",
+        "enabled": "開発者モードが有効になりました。設定に開発者ページが追加されています。",
+        "logoLabel": "Aoi のプロダクトマーク、4 回クリックすると開発者モードを有効化"
+      }
+    },
+    "developer": {
+      "title": "開発者",
+      "description": "ビルド時の既定アプリ設定を生成し、ローカル開発環境で管理対象のソース設定へ書き込みます。",
+      "locked": {
+        "title": "開発者モードはロックされています",
+        "description": "About ページで隠し Aoi マークの操作を使うと、開発者モードを有効化できます。",
+        "action": "About へ"
+      },
+      "status": {
+        "title": "ビルド既定設定",
+        "description": "このページはアクティブな既定設定だけを書き込みます。元のバックアップ設定は変更しません。",
+        "runtimeMode": "実行モード",
+        "development": "ローカル開発",
+        "production": "本番ビルド",
+        "activePath": "アクティブ設定",
+        "originalPath": "元のバックアップ",
+        "generatedSize": "生成サイズ",
+        "updatedAt": "最終書き込み：{time}"
+      },
+      "generated": {
+        "title": "生成プレビュー",
+        "description": "現在のアプリ設定から TypeScript 設定を生成します。開発者モード、背景ファイル、ローカルコンテンツデータは含みません。"
+      },
+      "source": {
+        "title": "ソース設定操作",
+        "description": "書き込みはアクティブな既定設定を上書きします。復元は元のバックアップから再生成します。",
+        "devNote": "書き込み API はローカル dev サーバーでのみ利用でき、固定 allowlist の設定オブジェクトだけを受け付けます。",
+        "productionNote": "現在はローカル dev サーバーではないため、ソース書き込みと復元は無効です。"
+      },
+      "actions": {
+        "refresh": "更新",
+        "copy": "コピー",
+        "download": "ダウンロード",
+        "write": "ソース設定へ書き込み",
+        "restore": "元の既定へ復元",
+        "disable": "開発者モードを無効化"
+      },
+      "messages": {
+        "refreshed": "現在のアプリ設定からプレビューを再生成しました。",
+        "copied": "TypeScript 設定をコピーしました。",
+        "downloaded": "TypeScript 設定をダウンロードしました。",
+        "written": "アクティブなビルド既定設定を書き込みました。",
+        "restored": "元のバックアップからアクティブ設定を復元しました。"
+      },
+      "errors": {
+        "copy": "コピーに失敗しました。プレビュー本文を直接選択してください。",
+        "download": "ダウンロードに失敗しました。コピーを試してください。",
+        "write": "書き込みに失敗しました。ローカル dev サーバーで実行しているか確認してください。",
+        "restore": "復元に失敗しました。ローカル dev サーバーで実行しているか確認してください。"
+      },
+      "profiles": {
+        "buildTitle": "ビルドプリセット profiles",
+        "runtimeTitle": "実行時設定 profiles",
+        "fieldPicker": "フィールド選択",
+        "diffPreview": "差分プレビュー",
+        "confirmBeforeApply": "profile の書き込みや適用前には差分プレビューと確認が必要です。",
+        "buildDescription": "ビルドプリセットは profile ごとに 1 つの JSON と対応する original バックアップを持ちます。",
+        "runtimeDescription": "実行時 profile は現在のブラウザだけに保存され、インポートとエクスポートができます。",
+        "backgroundReferenceNote": "背景は参照情報だけを保存し、画像バイトは保存しません。",
+        "actions": {
+          "create": "新規作成",
+          "copy": "コピー",
+          "rename": "名前変更",
+          "delete": "削除",
+          "setActive": "active に設定",
+          "writeCurrent": "現在の設定を書き込み",
+          "restoreOriginal": "original を復元",
+          "apply": "プレビューして適用",
+          "updateFromCurrent": "現在の設定から更新",
+          "import": "インポート",
+          "export": "エクスポート",
+          "selectAll": "すべて選択",
+          "clear": "クリア"
+        }
+      },
+      "assets": {
+        "title": "公共アセット",
+        "description": "ローカル dev サーバーから、ビルド成果物に入る public、app/assets、i18n/locales のファイルを管理します。",
+        "unavailable": {
+          "title": "公共アセット管理はローカル dev のみ利用できます",
+          "description": "本番ビルドと preview ではソースファイル書き込み API を公開しません。pnpm dev でこのパネルを使用してください。"
+        },
+        "rootLabel": "アセットルート",
+        "searchLabel": "現在のディレクトリを検索",
+        "viewModeLabel": "アセット表示モード",
+        "sortLabel": "並び替え",
+        "breadcrumbLabel": "アセットパス",
+        "itemCount": "{count} 件",
+        "empty": "このディレクトリに表示できるアセットはありません。",
+        "emptySearch": "現在の検索に一致するアセットはありません。",
+        "lastUpdated": "最終更新 / 書き込み：{time}",
+        "noSelection": "ファイルまたはディレクトリを選択してください。",
+        "previewUnavailable": "このファイル形式はインラインプレビューに対応していません。ダウンロードまたは置換してください。",
+        "previewDirectory": "ディレクトリはダブルクリックで開けます。ファイルのプレビューはここに表示されます。",
+        "workspace": {
+          "label": "アセットワークスペース",
+          "browser": "閲覧",
+          "preview": "プレビュー",
+          "editor": "テキスト編集"
+        },
+        "explorer": {
+          "title": "エクスプローラー",
+          "loading": "読み込み中",
+          "expand": "ディレクトリを展開",
+          "collapse": "ディレクトリを折りたたむ"
+        },
+        "views": {
+          "list": "リスト表示",
+          "grid": "グリッド表示"
+        },
+        "sort": {
+          "nameAsc": "名前 A-Z",
+          "nameDesc": "名前 Z-A",
+          "modifiedDesc": "更新日時が新しい順",
+          "modifiedAsc": "更新日時が古い順",
+          "sizeDesc": "サイズが大きい順",
+          "sizeAsc": "サイズが小さい順",
+          "kindAsc": "種類"
+        },
+        "detail": {
+          "title": "詳細"
+        },
+        "preview": {
+          "title": "プレビュー"
+        },
+        "kinds": {
+          "directory": "ディレクトリ",
+          "file": "ファイル"
+        },
+        "stats": {
+          "root": "ルート",
+          "path": "パス",
+          "items": "項目数",
+          "type": "種類",
+          "size": "サイズ",
+          "mode": "権限",
+          "modified": "更新日時"
+        },
+        "table": {
+          "name": "名前",
+          "type": "種類",
+          "size": "サイズ",
+          "mode": "権限",
+          "modified": "更新日時",
+          "actions": "操作"
+        },
+        "actions": {
+          "refresh": "更新",
+          "newFile": "新規ファイル",
+          "newDirectory": "新規フォルダ",
+          "upload": "アップロード",
+          "open": "開く",
+          "download": "ダウンロード",
+          "more": "その他",
+          "rename": "名前変更",
+          "copy": "コピー",
+          "move": "移動",
+          "chmod": "chmod",
+          "delete": "削除",
+          "copyPublicUrl": "公開 URL をコピー",
+          "loadText": "テキストを読み込み",
+          "saveText": "テキストを保存",
+          "create": "作成",
+          "cancel": "キャンセル",
+          "overwriteUpload": "上書きアップロード"
+        },
+        "dialogs": {
+          "createFileTitle": "ファイルを作成",
+          "createFileDescription": "現在のディレクトリに空のテキストファイルを作成します。",
+          "createDirectoryTitle": "フォルダを作成",
+          "createDirectoryDescription": "現在のディレクトリにフォルダを作成します。",
+          "renameTitle": "アセット名を変更",
+          "renameDescription": "{name} の名前を変更します。",
+          "copyTitle": "アセットをコピー",
+          "copyDescription": "{name} を相対パスの宛先へコピーします。宛先がディレクトリの場合、元の名前を保持します。",
+          "moveTitle": "アセットを移動",
+          "moveDescription": "{name} を相対パスの宛先へ移動します。ソースのディレクトリ構造が変わります。",
+          "chmodTitle": "権限を変更",
+          "chmodDescription": "{name} に 644、755、7777 など 3 桁または 4 桁の 8 進 mode を設定します。",
+          "deleteTitle": "アセットを削除",
+          "deleteDescription": "{name} を削除します。ディレクトリは再帰的に削除され、ゴミ箱には移動しません。",
+          "nameLabel": "名前",
+          "destinationLabel": "宛先の相対パス",
+          "modeLabel": "権限 mode",
+          "overwriteLabel": "既存の宛先を上書きする",
+          "uploadOverwriteTitle": "既存ファイルを上書きしますか？",
+          "uploadOverwriteDescription": "アップロード先に同名ファイルがあります。確認するとそれらを上書きします。"
+        },
+        "editor": {
+          "title": "テキスト編集",
+          "placeholder": "テキストを読み込むとここで編集できます。",
+          "unavailable": "1 MiB 以下のテキストアセットだけインライン編集できます。"
+        },
+        "messages": {
+          "refreshed": "公共アセットを更新しました。",
+          "textLoaded": "テキスト内容を読み込みました。",
+          "textSaved": "テキスト内容を保存しました。",
+          "chmodded": "アセット権限を更新しました。",
+          "copied": "アセットをコピーしました。",
+          "createdDirectory": "フォルダを作成しました。",
+          "createdFile": "ファイルを作成しました。",
+          "deleted": "アセットを削除しました。",
+          "moved": "アセットを移動しました。",
+          "renamed": "アセット名を変更しました。",
+          "uploaded": "{count} 個のファイルをアップロードしました。",
+          "publicUrlCopied": "公開 URL をコピーしました。"
+        },
+        "errors": {
+          "action": "公共アセット操作に失敗しました",
+          "upload": "アップロードに失敗しました",
+          "copyUrl": "公開 URL をコピーできませんでした。"
+        }
+      }
+    },
+    "components": {
+      "title": "コンポーネント",
+      "eyebrow": "Developer components",
+      "description": "開発者モードで Aoi コンポーネント、業務コンポーネント、ページ内の操作状態をまとめて確認します。",
+      "catalogDescription": "コンポーネント実験台、コントロール状態、業務コンポーネント例。",
+      "loadingTitle": "開発者モードを確認中",
+      "loadingDescription": "ローカル設定の復元後、コンポーネント実験台へアクセスできるか判定します。",
+      "keywords": "components showcase developer aoi controls lab demo コンポーネント 実験台"
+    },
+    "experimental": {
+      "title": "実験",
+      "description": "正式なプロダクト導線へ入れる前に、再利用できる UI 機能を試します。",
+      "lightbox": {
+        "title": "ライトボックスギャラリー",
+        "description": "画像、動画コントロール、サムネイル、キーボード操作、タッチジェスチャーを備えた Aoi の再利用ライトボックスを確認します。",
+        "items": {
+          "sunflower": {
+            "title": "ひまわり UI スタディ",
+            "description": "ズーム、ドラッグ、キャプション、サムネイルのフォーカス確認に使う暖色の画像プレースホルダーです。",
+            "alt": "ひまわり色の抽象画像"
+          },
+          "sakura": {
+            "title": "桜色アクセントフレーム",
+            "description": "暗いライトボックス面で柔らかな色のバランスを確認する画像項目です。",
+            "alt": "桜色の抽象画像"
+          },
+          "video": {
+            "title": "ローカル動画プレビュー",
+            "description": "同梱サンプル動画で再生、シーク、音量、ミュート、全画面コントロールを確認します。",
+            "alt": "ローカルサンプル動画"
+          },
+          "night": {
+            "title": "夜間コントラスト確認",
+            "description": "キャプションのコントラストと reduced-motion の挙動を確認する暗色の画像プレースホルダーです。",
+            "alt": "暗色の抽象画像"
+          }
+        }
+      },
+      "scrollDemo": {
+        "title": "スクロールシステムデモ",
+        "description": "スムーズスクロール、磁気吸着、スクロール制御、端の減衰をまとめて確認する小さなシーンです。",
+        "ariaLabel": "スクロールシステムのデモ",
+        "items": {
+          "smooth": {
+            "title": "慣性ページモーション",
+            "description": "スムーズスクロールを有効にすると、ホイール入力は全体の Lenis ランタイムでなめらかに収束します。"
+          },
+          "snap": {
+            "title": "磁気セクション",
+            "description": "各パネルが吸着対象になり、読みやすい位置へシーンが停泊します。"
+          },
+          "hijack": {
+            "title": "明示的なシーン制御",
+            "description": "スクロールシーン制御を有効にすると、大きなホイール操作やキー操作でパネルを一つずつ移動します。"
+          }
+        }
+      },
+      "richText": {
+        "title": "リッチテキストエディター",
+        "description": "Markdown を主なテキスト出力にしつつ、完全な Tiptap JSON をリッチ表現の補助契約として保持します。",
+        "editorLabel": "リッチテキスト下書き",
+        "placeholder": "クリエイター向けメモ、公開計画、書式付き説明を書いてください...",
+        "supportingText": "Markdown を主な交換形式にし、Markdown で表せないスタイルは JSON に保持します。",
+        "sample": "# Aoi リッチテキスト下書き\n\n**Markdown** ショートカット、またはツールバーで内容を整えられます。\n\n- Markdown 出力を読みやすく保つ\n- 色、表、配置などの詳細は JSON に保持する\n- 安全でないリンクや画像 URL を拒否する\n\n> このパネルは独立した実験で、投稿下書きやコメントはまだ変更しません。",
+        "preview": {
+          "title": "出力プレビュー",
+          "ariaLabel": "リッチテキスト出力形式",
+          "markdown": "Markdown",
+          "text": "テキスト",
+          "json": "JSON",
+          "meta": "{chars} 文字 · {words} 語"
+        }
+      }
+    }
+  },
+  "player": {
+    "ariaLabel": "{title} プレイヤー",
+    "contextDanmaku": "弾幕",
+    "contextDisplay": "表示モード",
+    "contextHelp": "ヘルプ",
+    "contextMedia": "画面 / 字幕",
+    "contextMenu": "プレイヤー右クリックメニュー",
+    "contextPlayback": "再生操作",
+    "controls": "プレイヤー操作",
+    "copyCurrentTime": "現在の時間をコピー",
+    "exitFullscreen": "全画面を終了",
+    "exitWebFullscreen": "Web全画面を終了",
+    "fullscreen": "全画面",
+    "hideDanmaku": "弾幕を非表示",
+    "hidePanel": "弾幕リストを閉じる",
+    "loading": "動画を読み込み中",
+    "mute": "ミュート",
+    "pause": "動画を一時停止",
+    "play": "動画を再生",
+    "rate": "再生速度",
+    "subtitle": "字幕",
+    "subtitleUnavailable": "字幕はありません",
+    "retry": "再試行",
+    "showDanmaku": "弾幕を表示",
+    "showPanel": "弾幕リストを開く",
+    "source": "動画ソース",
+    "sourceDefault": "自動",
+    "sourceUnavailable": "ソースなし",
+    "playerSettings": "プレイヤー設定",
+    "playerSettingsUnavailable": "追加のプレイヤー設定はまだありません",
+    "keyboardShortcuts": "キーボードショートカット",
+    "shortcutCompose": "弾幕入力にフォーカス",
+    "shortcutDanmaku": "弾幕の切り替え",
+    "shortcutFullscreen": "ブラウザ全画面",
+    "shortcutPlayPause": "再生 / 一時停止",
+    "shortcutSeek": "5秒移動",
+    "shortcutWebFullscreen": "Web全画面",
+    "theater": "シアターモード",
+    "unmute": "ミュート解除",
+    "volume": "音量",
+    "webFullscreen": "Web全画面",
+    "danmaku": "弾幕",
+    "danmakuColor": "弾幕の色",
+    "danmakuColorPick": "{color} を選択",
+    "danmakuContent": "内容",
+    "danmakuCount": "{count} 件",
+    "danmakuEmpty": "表示できる弾幕はありません。",
+    "danmakuList": "弾幕リスト",
+    "danmakuListAria": "弾幕リスト",
+    "danmakuListCount": "{count} 件の同期弾幕",
+    "danmakuMode": "弾幕モード",
+    "danmakuOff": "弾幕オフ",
+    "danmakuOn": "弾幕オン",
+    "danmakuPlaceholder": "この瞬間に弾幕を送る",
+    "danmakuScroll": "スクロール",
+    "danmakuSend": "送信",
+    "danmakuSentAt": "送信日",
+    "danmakuSettings": "弾幕設定",
+    "danmakuSort": "弾幕の並び替え",
+    "danmakuTime": "時間",
+    "danmakuTop": "上部",
+    "danmakuBottom": "下部",
+    "danmakuUnavailable": "弾幕は利用できません",
+    "errors": {
+      "dash": "DASH ストリームを読み込めませんでした。",
+      "hls": "HLS ストリームを読み込めませんでした。",
+      "load": "動画を読み込めませんでした。",
+      "noSource": "再生できる動画ソースがありません。",
+      "sourceInit": "動画ソースの初期化に失敗しました。",
+      "unsupportedFormat": "現在のブラウザではこの動画形式に対応していません。",
+      "unsupportedHls": "現在のブラウザでは HLS 再生に対応していません。"
+    },
+    "rateShort": "速度",
+    "upNext": "次に再生",
+    "relatedVideos": "関連動画",
+    "notFoundTitle": "動画が見つかりません",
+    "notFoundDescription": "{id} に一致する動画はありません。",
+    "backHome": "ホームへ戻る",
+    "loadInterruptedTitle": "動画の読み込みが中断されました",
+    "loadInterruptedDescription": "動画データを取得できませんでした。",
+    "like": "いいね",
+    "unlike": "いいねを取り消す",
+    "favorite": "お気に入り",
+    "unfavorite": "お気に入りを解除",
+    "favorited": "お気に入り済み",
+    "watchLater": "あとで見る",
+    "removeWatchLater": "あとで見るから削除",
+    "watchLaterAdded": "あとで見るに追加済み",
+    "report": "通報",
+    "descriptionTitle": "概要",
+    "tags": "タグ",
+    "localActions": "ローカル操作",
+    "localComments": "ローカルコメント"
+  },
+  "lightbox": {
+    "close": "閉じる",
+    "counter": "{current} / {total}",
+    "empty": "プレビューできるメディアがありません。",
+    "first": "最初の項目",
+    "fullscreen": "全画面",
+    "imageError": "画像を読み込めませんでした。",
+    "last": "最後の項目",
+    "loading": "メディアを読み込み中",
+    "media": "ギャラリーメディア",
+    "mute": "ミュート",
+    "next": "次の項目",
+    "pause": "一時停止",
+    "play": "再生",
+    "previous": "前の項目",
+    "resetZoom": "ズームをリセット",
+    "unmute": "ミュート解除",
+    "videoError": "動画を読み込めませんでした。",
+    "volume": "音量",
+    "zoomIn": "拡大",
+    "zoomOut": "縮小"
+  }
+}

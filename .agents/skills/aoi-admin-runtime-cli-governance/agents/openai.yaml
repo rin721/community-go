@@ -1,0 +1,4 @@
+interface:
+  display_name: "Aoi Admin Runtime CLI Governance"
+  short_description: "CLI运行时生命周期托管服务启动探针烟测与进程控制治理流程"
+  default_prompt: "Use $aoi-admin-runtime-cli-governance to change CLI runtime, server lifecycle, managed services, probes, or smoke flows in this repository."

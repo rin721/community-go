@@ -1,0 +1,4 @@
+interface:
+  display_name: "Aoi Admin WebUI i18n"
+  short_description: "当前仓库React前端页面国际化视觉状态验收流程指南"
+  default_prompt: "Use $aoi-admin-webui-i18n to update React WebUI routes, UI states, API calls, and locale resources in this repository."

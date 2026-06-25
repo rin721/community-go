@@ -1,0 +1,4 @@
+interface:
+  display_name: "Aoi Admin IAM Governance"
+  short_description: "当前仓库IAM认证权限审计菜单会话通知治理流程指南"
+  default_prompt: "Use $aoi-admin-iam-governance to change IAM authentication, authorization, menus, audits, sessions, or permission flows."

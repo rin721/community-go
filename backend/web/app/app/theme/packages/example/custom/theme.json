@@ -1,0 +1,292 @@
+{
+  "manifest": {
+    "author": "Console Platform Maintainers",
+    "description": "Copy this source theme package to design a custom product skin.",
+    "id": "example/custom",
+    "name": "Example Custom",
+    "source": "example",
+    "version": "1.0.0"
+  },
+  "tokens": {
+    "tailwind": {
+      "--color-console-muted": "var(--console-color-surface-muted)",
+      "--color-console-primary": "var(--console-color-brand-primary)",
+      "--color-console-secondary": "var(--console-color-brand-secondary)",
+      "--color-console-surface": "var(--console-color-surface-default)",
+      "--color-console-text": "var(--console-color-text-primary)"
+    },
+    "variables": {
+      "light": {
+        "--console-breakpoint-compact": "520px",
+        "--console-breakpoint-desktop": "860px",
+        "--console-chart-border": "var(--console-palette-neutral-200)",
+        "--console-chart-danger": "var(--console-palette-coral-600)",
+        "--console-chart-primary": "var(--console-palette-teal-600)",
+        "--console-chart-secondary": "var(--console-palette-indigo-500)",
+        "--console-chart-success": "var(--console-palette-green-600)",
+        "--console-chart-surface": "var(--console-palette-neutral-0)",
+        "--console-chart-text-primary": "var(--console-palette-neutral-900)",
+        "--console-chart-text-secondary": "var(--console-palette-neutral-600)",
+        "--console-chart-track": "var(--console-palette-neutral-100)",
+        "--console-chart-warning": "var(--console-palette-amber-700)",
+        "--console-color-border-strong": "var(--console-palette-neutral-300)",
+        "--console-color-border-subtle": "var(--console-palette-neutral-200)",
+        "--console-color-brand-gradient-strong": "linear-gradient(135deg, rgba(18, 116, 107, 0.12), rgba(79, 92, 196, 0.10))",
+        "--console-color-brand-gradient-subtle": "linear-gradient(135deg, rgba(18, 116, 107, 0.08), rgba(244, 105, 84, 0.08))",
+        "--console-color-brand-primary": "var(--console-palette-teal-600)",
+        "--console-color-brand-primary-hover": "var(--console-palette-teal-700)",
+        "--console-color-brand-primary-soft": "color-mix(in oklab, var(--console-color-brand-primary), white 86%)",
+        "--console-color-brand-secondary": "var(--console-palette-coral-600)",
+        "--console-color-code-surface": "var(--console-palette-neutral-900)",
+        "--console-color-code-text": "var(--console-palette-neutral-50)",
+        "--console-color-focus-ring": "color-mix(in oklab, var(--console-color-brand-primary), white 38%)",
+        "--console-color-overlay-backdrop": "rgba(21, 42, 45, 0.34)",
+        "--console-color-page-end": "var(--console-palette-neutral-50)",
+        "--console-color-page-start": "var(--console-palette-neutral-0)",
+        "--console-color-state-danger": "var(--console-palette-coral-600)",
+        "--console-color-state-info": "var(--console-palette-indigo-500)",
+        "--console-color-state-success": "var(--console-palette-green-600)",
+        "--console-color-state-warning": "var(--console-palette-amber-700)",
+        "--console-color-surface-alpha": "rgba(255, 255, 255, 0.80)",
+        "--console-color-surface-default": "var(--console-palette-neutral-0)",
+        "--console-color-surface-inverse": "var(--console-palette-neutral-900)",
+        "--console-color-surface-muted": "var(--console-palette-neutral-50)",
+        "--console-color-surface-subtle": "var(--console-palette-neutral-100)",
+        "--console-color-surface-translucent": "rgba(255, 255, 255, 0.88)",
+        "--console-color-text-inverse": "var(--console-palette-neutral-0)",
+        "--console-color-text-primary": "var(--console-palette-neutral-900)",
+        "--console-color-text-secondary": "var(--console-palette-neutral-600)",
+        "--console-color-text-tertiary": "var(--console-palette-neutral-500)",
+        "--console-container-content": "1080px",
+        "--console-container-narrow": "720px",
+        "--console-container-wide": "1200px",
+        "--console-density-scale": "0.96",
+        "--console-duration-fast": "160ms",
+        "--console-duration-normal": "230ms",
+        "--console-duration-slow": "340ms",
+        "--console-easing-standard": "cubic-bezier(0.2, 0.8, 0.2, 1)",
+        "--console-font-mono": "\"SFMono-Regular\", Consolas, \"Liberation Mono\", Menlo, ui-monospace, monospace",
+        "--console-font-sans": "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+        "--console-font-size-lg": "1.22rem",
+        "--console-font-size-sm": "0.88rem",
+        "--console-font-size-xs": "0.76rem",
+        "--console-palette-amber-700": "#b86f00",
+        "--console-palette-coral-600": "#d95d4a",
+        "--console-palette-green-600": "#2f8a56",
+        "--console-palette-indigo-500": "#4f5cc4",
+        "--console-palette-neutral-0": "#ffffff",
+        "--console-palette-neutral-100": "#eef3f1",
+        "--console-palette-neutral-200": "#dbe6e2",
+        "--console-palette-neutral-300": "#c8d6d1",
+        "--console-palette-neutral-50": "#f7faf8",
+        "--console-palette-neutral-500": "#74817c",
+        "--console-palette-neutral-600": "#56635f",
+        "--console-palette-neutral-900": "#1f2826",
+        "--console-palette-teal-600": "#12746b",
+        "--console-palette-teal-700": "#0d5f58",
+        "--console-radius-card": "6px",
+        "--console-radius-control": "5px",
+        "--console-radius-pill": "999px",
+        "--console-radius-soft": "10px",
+        "--console-shadow-card": "0 1px 6px rgba(24, 50, 47, 0.07)",
+        "--console-shadow-card-hover": "0 8px 22px rgba(24, 50, 47, 0.12)",
+        "--console-shadow-overlay": "0 18px 46px rgba(21, 42, 45, 0.16)",
+        "--console-shadow-sticky-edge": "-12px 0 18px -18px color-mix(in oklab, var(--console-color-text-primary), transparent 44%)",
+        "--console-size-touch-target": "44px",
+        "--console-space-1": "4px",
+        "--console-space-12": "48px",
+        "--console-space-16": "64px",
+        "--console-space-2": "8px",
+        "--console-space-3": "12px",
+        "--console-space-4": "16px",
+        "--console-space-5": "20px",
+        "--console-space-6": "24px",
+        "--console-space-8": "32px",
+        "--console-syntax-surface": "var(--console-color-code-surface)",
+        "--console-syntax-text": "var(--console-color-code-text)",
+        "--console-z-index-base": "1",
+        "--console-z-index-header": "20",
+        "--console-z-index-overlay": "60",
+        "--console-z-index-popover": "80",
+        "--console-z-index-raised": "2",
+        "--console-z-index-sidebar": "25",
+        "--console-z-index-sticky": "30",
+        "--console-z-index-surface": "61"
+      },
+      "dark": {
+        "--console-chart-border": "var(--console-palette-neutral-200)",
+        "--console-chart-danger": "var(--console-palette-coral-600)",
+        "--console-chart-primary": "var(--console-palette-teal-600)",
+        "--console-chart-secondary": "var(--console-palette-indigo-500)",
+        "--console-chart-success": "var(--console-palette-green-600)",
+        "--console-chart-surface": "var(--console-palette-neutral-0)",
+        "--console-chart-text-primary": "var(--console-palette-neutral-900)",
+        "--console-chart-text-secondary": "var(--console-palette-neutral-600)",
+        "--console-chart-track": "var(--console-palette-neutral-100)",
+        "--console-chart-warning": "var(--console-palette-amber-700)",
+        "--console-color-brand-gradient-strong": "linear-gradient(135deg, rgba(86, 204, 194, 0.15), rgba(255, 141, 120, 0.12))",
+        "--console-color-brand-gradient-subtle": "linear-gradient(135deg, rgba(86, 204, 194, 0.10), rgba(255, 141, 120, 0.08))",
+        "--console-color-brand-primary-soft": "color-mix(in oklab, var(--console-color-brand-primary), black 74%)",
+        "--console-color-code-surface": "var(--console-palette-neutral-100)",
+        "--console-color-code-text": "var(--console-palette-neutral-900)",
+        "--console-color-focus-ring": "color-mix(in oklab, var(--console-color-brand-primary), black 18%)",
+        "--console-color-overlay-backdrop": "rgba(0, 0, 0, 0.50)",
+        "--console-color-page-end": "var(--console-palette-neutral-50)",
+        "--console-color-page-start": "var(--console-palette-neutral-0)",
+        "--console-color-surface-alpha": "rgba(33, 43, 42, 0.82)",
+        "--console-color-surface-inverse": "var(--console-palette-neutral-50)",
+        "--console-color-surface-translucent": "rgba(27, 35, 34, 0.88)",
+        "--console-color-text-inverse": "var(--console-palette-neutral-50)",
+        "--console-palette-amber-700": "#e0a550",
+        "--console-palette-coral-600": "#ff8d78",
+        "--console-palette-green-600": "#69c98b",
+        "--console-palette-indigo-500": "#95a0ff",
+        "--console-palette-neutral-0": "#212b2a",
+        "--console-palette-neutral-100": "#293634",
+        "--console-palette-neutral-200": "#344641",
+        "--console-palette-neutral-300": "#47605a",
+        "--console-palette-neutral-50": "#17201f",
+        "--console-palette-neutral-500": "#9badA7",
+        "--console-palette-neutral-600": "#c1cec9",
+        "--console-palette-neutral-900": "#f4f8f6",
+        "--console-palette-teal-600": "#56ccc2",
+        "--console-palette-teal-700": "#40b5ab",
+        "--console-shadow-card": "0 2px 10px rgba(0, 0, 0, 0.22)",
+        "--console-shadow-card-hover": "0 14px 32px rgba(0, 0, 0, 0.32)",
+        "--console-shadow-overlay": "0 22px 56px rgba(0, 0, 0, 0.42)",
+        "--console-shadow-sticky-edge": "-12px 0 18px -18px color-mix(in oklab, var(--console-color-text-primary), transparent 56%)",
+        "--console-syntax-surface": "var(--console-color-code-surface)",
+        "--console-syntax-text": "var(--console-color-code-text)"
+      }
+    },
+    "chartPalette": {
+      "light": {
+        "border": "#dbe6e2",
+        "danger": "#d95d4a",
+        "primary": "#12746b",
+        "secondary": "#4f5cc4",
+        "success": "#2f8a56",
+        "surface": "#ffffff",
+        "textPrimary": "#1f2826",
+        "textSecondary": "#56635f",
+        "track": "#eef3f1",
+        "warning": "#b86f00"
+      },
+      "dark": {
+        "border": "#344641",
+        "danger": "#ff8d78",
+        "primary": "#56ccc2",
+        "secondary": "#95a0ff",
+        "success": "#69c98b",
+        "surface": "#212b2a",
+        "textPrimary": "#f4f8f6",
+        "textSecondary": "#c1cec9",
+        "track": "#293634",
+        "warning": "#e0a550"
+      }
+    },
+    "themeSettingsDefaults": {
+      "accentColor": "#d95d4a",
+      "mode": "light",
+      "motionIntensity": "standard",
+      "primaryColor": "#12746b",
+      "radiusScale": 6,
+      "shadowLevel": "soft",
+      "spacingScale": 0.96,
+      "surfaceColor": "#ffffff",
+      "textColor": "#1f2826",
+      "typographyScale": 1
+    },
+    "coverage": [
+      "palette",
+      "semantic colors",
+      "state colors",
+      "chart colors",
+      "syntax colors",
+      "typography",
+      "spacing",
+      "density",
+      "radius",
+      "border",
+      "shadow",
+      "motion",
+      "container",
+      "breakpoint labels",
+      "z-index",
+      "overlay",
+      "focus",
+      "touch target"
+    ]
+  },
+  "assets": {
+    "fonts": [],
+    "icons": [],
+    "images": []
+  },
+  "recipes": {
+    "admin-shell": {
+      "description": "A tighter console shell intended for dense product operations.",
+      "label": "Admin shell",
+      "tokens": [
+        "--console-container-wide",
+        "--console-z-index-sidebar",
+        "--console-color-surface-default"
+      ]
+    },
+    "skin-background": {
+      "description": "Muted teal/coral page skin for copied product themes.",
+      "label": "Skin background",
+      "tokens": [
+        "--console-color-brand-gradient-subtle",
+        "--console-color-overlay-backdrop",
+        "--console-color-surface-translucent"
+      ]
+    }
+  },
+  "templates": {
+    "adminLayout": {
+      "description": "Example wrapper around the admin console shell.",
+      "label": "Admin layout"
+    },
+    "adminSidebarNav": {
+      "description": "Example grouped platform navigation.",
+      "label": "Admin sidebar navigation"
+    },
+    "authTemplate": {
+      "description": "Example authentication surface recipe.",
+      "label": "Auth template"
+    },
+    "dashboardTemplate": {
+      "description": "Example metric and chart dashboard recipe.",
+      "label": "Dashboard template"
+    },
+    "detailPageTemplate": {
+      "description": "Example admin detail page recipe.",
+      "label": "Detail page template"
+    },
+    "errorTemplate": {
+      "description": "Example error and recovery surface recipe.",
+      "label": "Error template"
+    },
+    "listPageTemplate": {
+      "description": "Example toolbar, filters, table, and pagination recipe.",
+      "label": "List page template"
+    },
+    "loadingTemplate": {
+      "description": "Example hydration and skeleton loading recipe.",
+      "label": "Loading template"
+    },
+    "publicLayout": {
+      "description": "Example public site shell.",
+      "label": "Public layout"
+    },
+    "settingsTemplate": {
+      "description": "Example settings page recipe.",
+      "label": "Settings template"
+    },
+    "setupLayout": {
+      "description": "Example first-install setup shell.",
+      "label": "Setup layout"
+    }
+  }
+}

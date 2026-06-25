@@ -1,0 +1,49 @@
+{
+  "name": "aoi-web",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "preview": "nuxt preview",
+    "typecheck": "nuxt typecheck"
+  },
+  "dependencies": {
+    "@material/web": "^2.4.1",
+    "@nuxt/content": "^3.14.0",
+    "@nuxt/icon": "^2.2.3",
+    "@nuxtjs/i18n": "^10.4.0",
+    "@pinia/nuxt": "^0.11.3",
+    "@tiptap/core": "^3.26.0",
+    "@tiptap/extension-highlight": "^3.26.0",
+    "@tiptap/extension-image": "^3.26.0",
+    "@tiptap/extension-link": "^3.26.0",
+    "@tiptap/extension-list": "^3.26.0",
+    "@tiptap/extension-table": "^3.26.0",
+    "@tiptap/extension-text-align": "^3.26.0",
+    "@tiptap/extension-text-style": "^3.26.0",
+    "@tiptap/extension-underline": "^3.26.0",
+    "@tiptap/extensions": "^3.26.0",
+    "@tiptap/markdown": "^3.26.0",
+    "@tiptap/pm": "^3.26.0",
+    "@tiptap/starter-kit": "^3.26.0",
+    "@tiptap/vue-3": "^3.26.0",
+    "better-sqlite3": "^12.10.0",
+    "cropperjs": "1.6.2",
+    "dashjs": "^5.2.0",
+    "hls.js": "^1.6.16",
+    "lenis": "^1.3.23",
+    "nprogress": "^0.2.0",
+    "nuxt": "^4.4.7",
+    "pinia": "^3.0.4",
+    "vue": "^3.5.25"
+  },
+  "devDependencies": {
+    "@iconify-json/lucide": "^1.2.111",
+    "@types/node": "^25.9.1",
+    "@types/nprogress": "^0.2.3",
+    "typescript": "^5.9.3",
+    "vue-tsc": "^3.1.8"
+  },
+  "packageManager": "pnpm@10.22.0"
+}

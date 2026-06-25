@@ -1,0 +1,4 @@
+interface:
+  display_name: "Aoi Admin Docs Governance"
+  short_description: "当前仓库README文档Agent规则同步治理流程指南"
+  default_prompt: "Use $aoi-admin-docs-governance to update README, AGENTS, docs, and known-gap records from code facts."

@@ -1,0 +1,1009 @@
+{
+  "app": {
+    "name": "Aoi"
+  },
+  "components": {
+    "colorPalette": {
+      "alpha": "透明度",
+      "field": "颜色面板",
+      "hex": "HEX",
+      "hue": "色相",
+      "mode": "颜色模式",
+      "reset": "重置"
+    }
+  },
+  "nav": {
+    "home": "首页",
+    "categories": "分类",
+    "following": "关注",
+    "search": "搜索",
+    "history": "历史",
+    "collections": "收藏",
+    "docs": "文档",
+    "upload": "投稿",
+    "settings": "设置",
+    "login": "登录"
+  },
+  "home": {
+    "subtitle": "清透、快速、面向创作者的视频社区前端。当前为 Nuxt 4 前端设计原型，使用 mock 数据预演未来 Go API。",
+    "latest": "最新",
+    "gridView": "网格视图",
+    "listView": "列表视图",
+    "categoryTabsAria": "内容分类"
+  },
+  "category": {
+    "childrenTitle": "子分类",
+    "childrenDescription": "继续细分浏览，父级分类会聚合下方所有内容。"
+  },
+  "docs": {
+    "eyebrow": "Aoi Docs",
+    "title": "项目系统与组件库文档",
+    "description": "以静态 Markdown 记录 Nuxt 架构、仓库边界和全部 Aoi wrapper 组件 API。",
+    "actions": {
+      "project": "项目系统",
+      "components": "组件库"
+    },
+    "stats": {
+      "pages": "页面",
+      "components": "组件",
+      "locales": "语言"
+    },
+    "nav": {
+      "open": "目录",
+      "label": "文档目录",
+      "close": "关闭"
+    },
+    "search": {
+      "label": "搜索文档",
+      "placeholder": "搜索标题、说明或小节"
+    },
+    "notFound": {
+      "title": "文档不存在",
+      "description": "当前文档集中没有这个页面。",
+      "action": "返回文档"
+    },
+    "pager": {
+      "label": "文档翻页",
+      "previous": "上一篇",
+      "next": "下一篇"
+    },
+    "toc": {
+      "label": "本页目录"
+    }
+  },
+  "settings": {
+    "shell": {
+      "title": "设置",
+      "description": "调整 Aoi 的外观、偏好、本地数据和开发诊断。",
+      "searchLabel": "搜索设置",
+      "searchPlaceholder": "主题、背景、播放器...",
+      "emptyText": "没有匹配的设置项。",
+      "groups": {
+        "app": "应用设置",
+        "project": "项目"
+      },
+      "depth": {
+        "label": "设置展示深度",
+        "basic": {
+          "label": "基础",
+          "description": "常用设置"
+        },
+        "all": {
+          "label": "全部",
+          "description": "含高级项"
+        }
+      }
+    },
+    "resetPage": {
+      "action": "重置本页",
+      "cancel": "取消",
+      "confirm": "确认重置",
+      "appearance": {
+        "title": "重置外观设置",
+        "description": "将按当前 active 构建配置恢复外观、色板、背景参数和规格单位，并清除当前浏览器保存的背景图片。"
+      },
+      "preference": {
+        "title": "重置偏好设置",
+        "description": "将按当前 active 构建配置恢复流量、浏览、路由进度、入场动效、滚动、隐私和专注设置。"
+      },
+      "language": {
+        "title": "重置语言设置",
+        "description": "将按当前 active 构建配置恢复界面语言，并立即应用。"
+      }
+    },
+    "derivation": {
+      "presetTitle": "全应用派生档位",
+      "presetDescription": "用 soft、balanced 或 vivid 同步控制所有派生组；手动细调任一组后会切换为 custom。",
+      "themeTitle": "主题与语义色强度",
+      "themeDescription": "控制主题色向辅助色、表面、状态、导航、Material 控件和阴影的派生力度。",
+      "specTitle": "规格强度",
+      "specDescription": "控制字体、间距、圆角、控件、内容宽度、媒体网格和设置布局从基础单位派生的幅度。",
+      "valueDescription": "当前 {value}%。{description}",
+      "presets": {
+        "soft": {
+          "label": "Soft",
+          "description": "更克制、轻柔，降低色彩、空间和动效的外放感。"
+        },
+        "balanced": {
+          "label": "Balanced",
+          "description": "使用默认强度，保持现有 Aoi 视觉和交互节奏。"
+        },
+        "vivid": {
+          "label": "Vivid",
+          "description": "更鲜明、更有层次，增强色彩、规格和动态反馈。"
+        },
+        "custom": {
+          "label": "Custom",
+          "description": "保留每个派生组的手动细调结果。"
+        }
+      },
+      "controls": {
+        "auxiliaryPalette": {
+          "title": "辅助色谱",
+          "label": "辅助色强度",
+          "description": "影响 secondary、sakura、sun 等由主题色派生的辅助色。"
+        },
+        "surfaceTint": {
+          "title": "表面染色",
+          "label": "表面染色强度",
+          "description": "影响页面背景、卡片、边界和文字层次中主题色的渗入程度。"
+        },
+        "stateLayer": {
+          "title": "状态层",
+          "label": "状态层强度",
+          "description": "影响 hover、pressed、selected 和 focus 状态的颜色与透明度。"
+        },
+        "navigationColor": {
+          "title": "导航染色",
+          "label": "导航色强度",
+          "description": "影响侧栏、移动导航和选中项背景的主题色呼应。"
+        },
+        "materialColor": {
+          "title": "Material 控件",
+          "label": "Material 色彩强度",
+          "description": "影响 Material Web primary、secondary、surface 等 token。"
+        },
+        "shadowDepth": {
+          "title": "阴影深度",
+          "label": "阴影强度",
+          "description": "影响阴影透明度和层级深度。"
+        },
+        "typography": {
+          "title": "字体比例",
+          "label": "字体派生强度",
+          "description": "影响标题、正文和小字从基础字号扩张或收敛的幅度。"
+        },
+        "spacing": {
+          "title": "间距节奏",
+          "label": "间距派生强度",
+          "description": "影响页面留白、网格间距和紧凑间隔从基础间距派生的幅度。"
+        },
+        "radius": {
+          "title": "圆角层级",
+          "label": "圆角派生强度",
+          "description": "影响卡片、面板、控件和选择项圆角之间的层次差异。"
+        },
+        "controls": {
+          "title": "控件规格",
+          "label": "控件派生强度",
+          "description": "影响按钮、输入框、图标按钮和导航操作尺寸。"
+        },
+        "contentWidth": {
+          "title": "内容宽度",
+          "label": "内容宽度强度",
+          "description": "影响普通与宽内容容器相对基础宽度的扩张或收敛。"
+        },
+        "mediaGrid": {
+          "title": "媒体网格",
+          "label": "媒体网格强度",
+          "description": "影响视频卡片网格列宽和媒体列表密度。"
+        },
+        "settingsLayout": {
+          "title": "设置布局",
+          "label": "设置布局强度",
+          "description": "影响设置卡片和控制列的宽度节奏。"
+        },
+        "revealMotion": {
+          "title": "入场动效",
+          "label": "入场动效强度",
+          "description": "影响 reveal 动画的距离、时长、错峰和最大延迟。"
+        },
+        "routeProgress": {
+          "title": "路由进度",
+          "label": "路由进度强度",
+          "description": "影响顶部进度条高度、初始值、速度和自动递增节奏。"
+        },
+        "smoothScroll": {
+          "title": "平滑滚动",
+          "label": "平滑滚动强度",
+          "description": "影响全局平滑滚动时长。"
+        },
+        "scrollSnap": {
+          "title": "滚动吸附",
+          "label": "滚动吸附强度",
+          "description": "影响滚动场景吸附到锚点的力度。"
+        },
+        "scrollHijack": {
+          "title": "滚动接管",
+          "label": "滚动接管强度",
+          "description": "影响滚动场景接管滚轮输入的触发阈值。"
+        },
+        "rubberBand": {
+          "title": "橡皮筋",
+          "label": "橡皮筋强度",
+          "description": "影响边界回弹距离和阻尼感。"
+        },
+        "danmaku": {
+          "title": "弹幕视觉与运动",
+          "label": "弹幕派生强度",
+          "description": "影响弹幕字号、透明度、速度和可见区域。"
+        }
+      }
+    },
+    "appearance": {
+      "form": {
+        "title": "形态",
+        "description": "统一调整全站密度、尺寸、圆角、对比度和导航强调。",
+        "densityTitle": "密度",
+        "densityDescription": "控制页面留白和设置项间距。",
+        "sizeTitle": "尺寸",
+        "sizeDescription": "调整基础字号、控件高度和导航图标比例。",
+        "shapeTitle": "圆角",
+        "shapeDescription": "分层控制控件、选项和内容容器的圆角。",
+        "contrastTitle": "对比度",
+        "contrastDescription": "提高文本、边框和选中状态的辨识度。",
+        "colorfulNavTitle": "彩色导航栏",
+        "colorfulNavDescription": "使用当前主题色轻微染色侧栏和移动导航背景。"
+      },
+      "specUnits": {
+        "title": "主规格尺寸单位",
+        "description": "统一管理派生间距、控件、导航、网格和圆角的源尺寸。",
+        "jump": "调整主规格单位",
+        "reset": "重置单位",
+        "widthMode": {
+          "px": "像素",
+          "percent": "百分比"
+        },
+        "baseFont": {
+          "title": "基础字号",
+          "description": "派生正文和标题比例。",
+          "label": "基础字号"
+        },
+        "space": {
+          "title": "间距单位",
+          "description": "派生页面留白、面板节奏和紧凑间距。",
+          "label": "基础间距"
+        },
+        "radius": {
+          "title": "圆角单位",
+          "description": "派生容器、卡片、控件和选项圆角。",
+          "label": "基础圆角"
+        },
+        "controlHeight": {
+          "title": "控件高度",
+          "description": "派生按钮、输入框、图标按钮和导航操作尺寸。",
+          "label": "基础控件高度"
+        },
+        "contentMaxWidth": {
+          "title": "内容宽度",
+          "description": "用流式百分比或固定像素上限控制普通页面宽度。",
+          "label": "内容宽度"
+        },
+        "contentWideMaxWidth": {
+          "title": "宽内容宽度",
+          "description": "用流式百分比或固定像素上限控制设置、工作台类页面宽度。",
+          "label": "宽内容宽度"
+        },
+        "railWidth": {
+          "title": "桌面侧栏",
+          "description": "控制固定桌面侧边导航宽度。",
+          "label": "桌面侧栏宽度"
+        },
+        "mobileNavHeight": {
+          "title": "移动导航",
+          "description": "控制移动端顶部、底部导航和页面安全留白。",
+          "label": "移动导航高度"
+        },
+        "videoGridMinCardWidth": {
+          "title": "视频网格卡片",
+          "description": "控制桌面网格卡片列的最小宽度。",
+          "label": "视频卡片最小宽度"
+        },
+        "settingsCardMinWidth": {
+          "title": "设置卡片",
+          "description": "控制设置卡片和控制列的最小宽度。",
+          "label": "设置卡片最小宽度"
+        }
+      },
+      "palette": {
+        "title": "个性色",
+        "description": "选择一套色板，或切到自定义色。",
+        "customTitle": "调色板",
+        "persona": {
+          "customTitle": "自定义",
+          "customSubtitle": "Make It Yours",
+          "customCaption": "自定义",
+          "backgroundTitle": "背景",
+          "backgroundSubtitle": "跟随背景",
+          "backgroundCaption": "背景",
+          "backgroundDescription": "背景图只保存在当前浏览器，不会上传。",
+          "backgroundUpload": "选择文件",
+          "backgroundClear": "清除",
+          "backgroundEmpty": "尚未上传背景",
+          "backgroundDefault": "当前使用默认渐变背景",
+          "backgroundOpacity": "背景强度",
+          "backgroundBlur": "背景模糊",
+          "backgroundDim": "遮罩强度"
+        },
+        "derivation": {
+          "title": "派生强度",
+          "description": "分别控制主题色浅阶 token 的柔和或鲜明程度。",
+          "preview": "当前主题色派生阶级预览",
+          "reset": "重置派生",
+          "toneDescription": "当前 {value}%。低一些更柔和，高一些更鲜明。",
+          "tones": {
+            "accent10": {
+              "title": "Accent 10",
+              "label": "Accent 10 强度",
+              "affected": "可能影响：浅色状态背景、导航选中背景、标签/提示/空状态浅底、Material primary container、进度轨道。"
+            },
+            "accent20": {
+              "title": "Accent 20",
+              "label": "Accent 20 强度",
+              "affected": "可能影响：自定义调色板滑杆轨道、Material secondary container、关于页和实验页浅色渐变。"
+            },
+            "accent40": {
+              "title": "Accent 40",
+              "label": "Accent 40 强度",
+              "affected": "可能影响：深色模式 active 色、深色焦点/hover/pressed/边框状态、深色导航选中、部分卡片/上传/骨架屏强调色。"
+            },
+            "accent50": {
+              "title": "Accent 50",
+              "label": "Accent 50 强度",
+              "affected": "可能影响：进度条 active 色、页面边缘提示渐变、品牌/认证/用户页装饰渐变、富文本引用边线、骨架屏 accent。"
+            }
+          }
+        },
+        "cards": {
+          "editAria": "编辑 {title} 卡片",
+          "dialogTitle": "编辑个性色卡片",
+          "titleLabel": "卡片标题",
+          "subtitleLabel": "卡片副标题",
+          "descriptionLabel": "卡片描述",
+          "imagePathLabel": "public 背景图片",
+          "imagePathPlaceholder": "/theme-card-backgrounds/example.webp",
+          "assetsTitle": "public 图片资源",
+          "parent": "上一级",
+          "refresh": "刷新",
+          "upload": "上传图片",
+          "clearImage": "清除图片",
+          "emptyAssets": "当前目录没有可用图片。",
+          "cancel": "取消",
+          "save": "保存到构建配置",
+          "confirmTitle": "写入个性色卡片配置？",
+          "confirmDescription": "将把这组变更写入当前 active build profile。不会写入浏览器本地设置，也不会修改 original 备份。",
+          "before": "变更前",
+          "after": "变更后",
+          "confirmSave": "确认写入",
+          "saved": "个性色卡片已写入当前 active build profile。",
+          "errors": {
+            "imageOnly": "请选择图片文件。",
+            "loadAssets": "无法读取 public 图片资源。",
+            "profile": "无法读取当前构建 profile。",
+            "save": "无法写入当前构建 profile，请稍后重试。",
+            "upload": "无法上传图片到 public 资源。"
+          },
+          "noChanges": "没有需要写入的卡片变更。",
+          "retry": "重试"
+        }
+      },
+      "density": {
+        "comfortable": {
+          "label": "Comfortable",
+          "description": "舒适留白"
+        },
+        "compact": {
+          "label": "紧凑密度",
+          "description": "更高信息密度"
+        }
+      },
+      "size": {
+        "small": {
+          "label": "Small",
+          "description": "小尺寸"
+        },
+        "default": {
+          "label": "Default",
+          "description": "默认比例"
+        },
+        "large": {
+          "label": "Large",
+          "description": "大尺寸"
+        }
+      },
+      "shape": {
+        "square": {
+          "label": "直角",
+          "description": "2px 边角"
+        },
+        "soft": {
+          "label": "柔和",
+          "description": "Aoi 默认"
+        },
+        "pill": {
+          "label": "圆角",
+          "description": "控件胶囊，容器保形"
+        }
+      },
+      "contrast": {
+        "normal": {
+          "label": "Normal",
+          "description": "标准层级"
+        },
+        "high": {
+          "label": "高对比度",
+          "description": "强化辨识"
+        }
+      }
+    },
+    "preference": {
+      "routeProgress": {
+        "title": "路由进度条",
+        "description": "使用 NProgress 提供页面跳转反馈，同时保留 Nuxt 内置加载生命周期。",
+        "enabledTitle": "启用路由进度",
+        "enabledDescription": "页面导航期间显示顶部细进度条。",
+        "trickleTitle": "自动递增",
+        "trickleDescription": "页面仍在加载时，让 NProgress 缓慢推进进度。",
+        "spinnerTitle": "显示 Spinner",
+        "spinnerDescription": "在右上角显示 NProgress 自带的旋转指示器。",
+        "easingTitle": "缓动曲线",
+        "easingDescription": "选择进度条过渡动画使用的曲线。",
+        "easingLabel": "进度缓动",
+        "easing": {
+          "linear": "线性",
+          "ease": "默认缓动",
+          "easeIn": "缓入",
+          "easeOut": "缓出",
+          "easeInOut": "缓入缓出"
+        },
+        "minimumTitle": "初始进度",
+        "minimumLabel": "初始进度",
+        "delayTitle": "显示延迟",
+        "delayLabel": "显示延迟",
+        "speedTitle": "动画速度",
+        "speedLabel": "动画速度",
+        "trickleSpeedTitle": "递增间隔",
+        "trickleSpeedLabel": "递增间隔",
+        "heightTitle": "进度条高度",
+        "heightLabel": "进度条高度"
+      },
+      "reveal": {
+        "title": "弹入响应",
+        "description": "调节内容面板、卡片和列表进入视口时的弹入节奏。",
+        "enabledTitle": "启用弹入响应",
+        "enabledDescription": "关闭后，所有弹入内容会立即可见，不再执行入场动画。",
+        "effectTitle": "效果策略",
+        "effectDescription": "选择保留模块自身效果，或用统一效果覆盖全站弹入。",
+        "effectLabel": "弹入效果",
+        "effect": {
+          "contextual": "跟随场景",
+          "pop": "弹入",
+          "rise": "上浮",
+          "fade": "淡入",
+          "slideLeft": "左滑",
+          "slideRight": "右滑"
+        },
+        "replayTitle": "触发方式",
+        "replayDescription": "控制内容滚出后再次进入视口时是否重新播放。",
+        "replay": {
+          "repeat": {
+            "label": "重复",
+            "description": "再次进入时重播"
+          },
+          "once": {
+            "label": "一次",
+            "description": "首次进入后保持可见"
+          }
+        },
+        "durationTitle": "持续时间",
+        "durationLabel": "持续时间",
+        "distanceTitle": "位移距离",
+        "distanceLabel": "位移距离",
+        "staggerTitle": "列表错峰",
+        "staggerLabel": "错峰",
+        "maxDelayTitle": "最大延迟",
+        "maxDelayLabel": "最大延迟"
+      },
+      "scroll": {
+        "title": "滚动体验",
+        "description": "控制全站阻尼平滑滚动、磁吸吸附、显式滚动场景劫持和边缘阻尼。",
+        "scrollbar": {
+          "strategyTitle": "页面滚动条",
+          "strategyDescription": "选择页面滚动条是否预留空间，避免 Windows 实体滚动条出现时挤压布局。",
+          "strategy": {
+            "auto": {
+              "label": "系统默认",
+              "description": "遵循浏览器"
+            },
+            "stable": {
+              "label": "稳定槽位",
+              "description": "预留右侧"
+            },
+            "stableBothEdges": {
+              "label": "双侧稳定",
+              "description": "保持居中"
+            },
+            "hidden": {
+              "label": "隐藏滚动条",
+              "description": "保留滚动"
+            }
+          }
+        },
+        "smooth": {
+          "enabledTitle": "阻尼平滑滚动",
+          "enabledDescription": "使用 Lenis 柔化滚轮触发的页面滚动，同时保留触控设备的原生惯性。",
+          "durationTitle": "滚动时长",
+          "durationLabel": "滚动时长",
+          "dampingTitle": "阻尼",
+          "dampingLabel": "阻尼"
+        },
+        "snap": {
+          "enabledTitle": "滚动吸附 / 磁吸",
+          "enabledDescription": "允许 Aoi 滚动区域和滚动场景停靠到附近项目或段落。",
+          "modeTitle": "吸附模式",
+          "modeDescription": "选择较柔和的邻近吸附，或更强制的逐项吸附。",
+          "mode": {
+            "proximity": {
+              "label": "邻近",
+              "description": "靠近时停靠"
+            },
+            "mandatory": {
+              "label": "强制",
+              "description": "始终锁定目标"
+            }
+          },
+          "strengthTitle": "磁吸强度",
+          "strengthLabel": "磁吸强度"
+        },
+        "hijack": {
+          "enabledTitle": "滚动场景劫持",
+          "enabledDescription": "让显式 Aoi 滚动场景捕获较大的滚轮或键盘步进，并按段落切换。",
+          "modeTitle": "场景策略",
+          "modeDescription": "选择跟随当前段落，或在移动前重新计算最近段落。",
+          "mode": {
+            "section": {
+              "label": "段落",
+              "description": "使用当前段落"
+            },
+            "nearest": {
+              "label": "最近",
+              "description": "重新定位"
+            }
+          },
+          "thresholdTitle": "滚轮阈值",
+          "thresholdLabel": "滚轮阈值"
+        },
+        "rubberBand": {
+          "enabledTitle": "边缘阻尼 / 橡皮筋",
+          "enabledDescription": "在页面和滚动区域边缘显示轻微的橡皮筋反馈。",
+          "strengthTitle": "阻尼强度",
+          "strengthLabel": "阻尼强度",
+          "maxOffsetTitle": "最大位移",
+          "maxOffsetLabel": "最大位移"
+        }
+      }
+    },
+    "about": {
+      "developerUnlock": {
+        "hint": "连续点击 Aoi 标识 4 次可开启开发者模式。",
+        "remaining": "再点击 {count} 次进入开发者模式。",
+        "enabled": "开发者模式已开启，设置导航中已新增开发者页面。",
+        "logoLabel": "Aoi 产品标识，连续点击四次开启开发者模式"
+      }
+    },
+    "developer": {
+      "title": "开发者",
+      "description": "生成构建前默认应用设置，并在本地开发环境写入受控源配置。",
+      "locked": {
+        "title": "开发者模式未开启",
+        "description": "前往关于页，用隐藏的 Aoi 标识交互开启开发者模式后即可访问这里。",
+        "action": "前往关于"
+      },
+      "status": {
+        "title": "构建默认配置",
+        "description": "当前页面只会写入活动默认配置，原始备份配置不会被修改。",
+        "runtimeMode": "运行模式",
+        "development": "本地开发",
+        "production": "生产构建",
+        "activePath": "活动配置",
+        "originalPath": "原始备份",
+        "generatedSize": "生成大小",
+        "updatedAt": "上次写入：{time}"
+      },
+      "generated": {
+        "title": "生成预览",
+        "description": "从当前应用设置生成 TypeScript 配置；不包含开发者模式、背景文件和本地内容数据。"
+      },
+      "source": {
+        "title": "源配置操作",
+        "description": "写入会覆盖活动默认配置；恢复会从原始备份重新生成活动配置。",
+        "devNote": "写入接口仅在本地 dev 服务可用，并且只接受固定 allowlist 设置对象。",
+        "productionNote": "当前不是本地 dev 服务，源文件写入和恢复已禁用。"
+      },
+      "actions": {
+        "refresh": "刷新",
+        "copy": "复制",
+        "download": "下载",
+        "write": "写入源配置",
+        "restore": "恢复原始默认",
+        "disable": "关闭开发者模式"
+      },
+      "messages": {
+        "refreshed": "已按当前应用设置重新生成预览。",
+        "copied": "已复制 TypeScript 配置。",
+        "downloaded": "已下载 TypeScript 配置。",
+        "written": "已写入活动构建默认配置。",
+        "restored": "已从原始备份恢复活动配置。"
+      },
+      "errors": {
+        "copy": "复制失败，请直接选择预览内容。",
+        "download": "下载失败，请改用复制。",
+        "write": "写入失败，请确认当前运行的是本地 dev 服务。",
+        "restore": "恢复失败，请确认当前运行的是本地 dev 服务。"
+      },
+      "profiles": {
+        "buildTitle": "构建预设 profiles",
+        "runtimeTitle": "运行时档案 profiles",
+        "fieldPicker": "字段选择器",
+        "diffPreview": "差异预览",
+        "confirmBeforeApply": "应用或写入 profile 前必须预览差异并确认。",
+        "buildDescription": "构建预设一档一 JSON，并保留对应 original 备份。",
+        "runtimeDescription": "运行时档案仅保存在浏览器本地，可导入导出。",
+        "backgroundReferenceNote": "背景只保存引用信息，不保存图片字节。",
+        "actions": {
+          "create": "新建",
+          "copy": "复制",
+          "rename": "重命名",
+          "delete": "删除",
+          "setActive": "设为 active",
+          "writeCurrent": "从当前设置写入",
+          "restoreOriginal": "恢复 original",
+          "apply": "预览后应用",
+          "updateFromCurrent": "从当前设置更新",
+          "import": "导入",
+          "export": "导出",
+          "selectAll": "全选",
+          "clear": "清空"
+        }
+      },
+      "assets": {
+        "title": "公共资产",
+        "description": "在本地开发服务中管理会进入构建产物的 public、app/assets 和 i18n/locales 文件。",
+        "unavailable": {
+          "title": "公共资产管理仅在本地 dev 服务可用",
+          "description": "生产构建和 preview 不开放源文件写入 API；请在 pnpm dev 下使用该面板。"
+        },
+        "rootLabel": "资产根目录",
+        "searchLabel": "搜索当前目录",
+        "viewModeLabel": "资产视图模式",
+        "sortLabel": "排序",
+        "breadcrumbLabel": "资产路径",
+        "itemCount": "{count} 项",
+        "empty": "当前目录没有可显示的资产。",
+        "emptySearch": "当前搜索没有匹配的资产。",
+        "lastUpdated": "最近刷新/写入：{time}",
+        "noSelection": "请选择一个文件或目录。",
+        "previewUnavailable": "该文件类型不支持内联预览，可下载或替换。",
+        "previewDirectory": "目录可双击打开；文件会在这里显示预览。",
+        "workspace": {
+          "label": "资产工作区",
+          "browser": "浏览",
+          "preview": "预览",
+          "editor": "文本编辑"
+        },
+        "explorer": {
+          "title": "资源管理器",
+          "loading": "读取中",
+          "expand": "展开目录",
+          "collapse": "收起目录"
+        },
+        "views": {
+          "list": "列表视图",
+          "grid": "网格视图"
+        },
+        "sort": {
+          "nameAsc": "名称 A-Z",
+          "nameDesc": "名称 Z-A",
+          "modifiedDesc": "最近修改优先",
+          "modifiedAsc": "最早修改优先",
+          "sizeDesc": "大文件优先",
+          "sizeAsc": "小文件优先",
+          "kindAsc": "类型"
+        },
+        "detail": {
+          "title": "详情"
+        },
+        "preview": {
+          "title": "预览"
+        },
+        "kinds": {
+          "directory": "目录",
+          "file": "文件"
+        },
+        "stats": {
+          "root": "根目录",
+          "path": "路径",
+          "items": "项目数",
+          "type": "类型",
+          "size": "大小",
+          "mode": "权限",
+          "modified": "修改时间"
+        },
+        "table": {
+          "name": "名称",
+          "type": "类型",
+          "size": "大小",
+          "mode": "权限",
+          "modified": "修改时间",
+          "actions": "操作"
+        },
+        "actions": {
+          "refresh": "刷新",
+          "newFile": "新建文件",
+          "newDirectory": "新建文件夹",
+          "upload": "上传",
+          "open": "打开",
+          "download": "下载",
+          "more": "更多",
+          "rename": "重命名",
+          "copy": "复制",
+          "move": "移动",
+          "chmod": "chmod",
+          "delete": "删除",
+          "copyPublicUrl": "复制公开 URL",
+          "loadText": "读取文本",
+          "saveText": "保存文本",
+          "create": "创建",
+          "cancel": "取消",
+          "overwriteUpload": "覆盖上传"
+        },
+        "dialogs": {
+          "createFileTitle": "新建文件",
+          "createFileDescription": "在当前目录创建一个空文本文件。",
+          "createDirectoryTitle": "新建文件夹",
+          "createDirectoryDescription": "在当前目录创建一个文件夹。",
+          "renameTitle": "重命名资产",
+          "renameDescription": "将 {name} 改为新的名称。",
+          "copyTitle": "复制资产",
+          "copyDescription": "复制 {name} 到目标相对路径；如果目标是目录，会保留原文件名。",
+          "moveTitle": "移动资产",
+          "moveDescription": "移动 {name} 到目标相对路径；该操作会改变源码目录结构。",
+          "chmodTitle": "修改权限",
+          "chmodDescription": "为 {name} 设置 3 或 4 位八进制权限，例如 644、755 或 7777。",
+          "deleteTitle": "删除资产",
+          "deleteDescription": "删除 {name}。目录会递归删除，且不会进入回收站。",
+          "nameLabel": "名称",
+          "destinationLabel": "目标相对路径",
+          "modeLabel": "权限 mode",
+          "overwriteLabel": "允许覆盖已有目标",
+          "uploadOverwriteTitle": "覆盖已有文件？",
+          "uploadOverwriteDescription": "上传目标中已有同名文件。确认后会覆盖这些文件。"
+        },
+        "editor": {
+          "title": "文本编辑",
+          "placeholder": "读取文本后可在这里编辑。",
+          "unavailable": "只有 1 MiB 以内的文本资产可在线编辑。"
+        },
+        "messages": {
+          "refreshed": "公共资产已刷新。",
+          "textLoaded": "文本内容已读取。",
+          "textSaved": "文本内容已保存。",
+          "chmodded": "资产权限已更新。",
+          "copied": "资产已复制。",
+          "createdDirectory": "文件夹已创建。",
+          "createdFile": "文件已创建。",
+          "deleted": "资产已删除。",
+          "moved": "资产已移动。",
+          "renamed": "资产已重命名。",
+          "uploaded": "已上传 {count} 个文件。",
+          "publicUrlCopied": "公开 URL 已复制。"
+        },
+        "errors": {
+          "action": "公共资产操作失败",
+          "upload": "上传失败",
+          "copyUrl": "复制公开 URL 失败。"
+        }
+      }
+    },
+    "components": {
+      "title": "组件",
+      "eyebrow": "Developer components",
+      "description": "按开发者模式集中展示 Aoi 组件、业务组件和页面内交互状态。",
+      "catalogDescription": "组件实验台、控件状态和业务组件示例。",
+      "loadingTitle": "正在读取开发者模式",
+      "loadingDescription": "本地设置恢复后会继续判断是否允许访问组件实验台。",
+      "keywords": "组件 components showcase developer aoi 控件 实验台 demo"
+    },
+    "experimental": {
+      "title": "实验",
+      "description": "在进入正式业务流前，先试用可复用的界面能力。",
+      "lightbox": {
+        "title": "灯箱画廊",
+        "description": "预览 Aoi 可复用灯箱：图片、视频控件、缩略图、键盘导航与触控手势都在这里验证。",
+        "items": {
+          "sunflower": {
+            "title": "向日葵界面稿",
+            "description": "用于检查缩放、拖拽、说明文字和缩略图焦点的暖色图片占位。",
+            "alt": "向日葵色调的抽象图片"
+          },
+          "sakura": {
+            "title": "樱色强调画面",
+            "description": "用于测试深色灯箱表面里的柔和色彩平衡。",
+            "alt": "樱色调的抽象图片"
+          },
+          "video": {
+            "title": "本地视频预览",
+            "description": "使用仓库自带示例视频验证播放、进度、音量、静音和全屏控制。",
+            "alt": "本地示例视频"
+          },
+          "night": {
+            "title": "夜间对比测试",
+            "description": "用于检查说明文字对比度和 reduced-motion 行为的深色图片占位。",
+            "alt": "深色抽象图片"
+          }
+        }
+      },
+      "scrollDemo": {
+        "title": "滚动系统演示",
+        "description": "用于一起检查平滑滚动、磁吸吸附、滚动劫持和边缘阻尼的紧凑场景。",
+        "ariaLabel": "滚动系统演示",
+        "items": {
+          "smooth": {
+            "title": "惯性页面运动",
+            "description": "启用平滑滚动后，滚轮输入会通过全站 Lenis 运行时缓入到位。"
+          },
+          "snap": {
+            "title": "磁吸段落",
+            "description": "每个面板都是吸附目标，场景会停靠在更适合阅读的位置。"
+          },
+          "hijack": {
+            "title": "显式场景控制",
+            "description": "启用滚动场景劫持后，大幅滚轮和键盘步进会一次移动一个面板。"
+          }
+        }
+      },
+      "richText": {
+        "title": "富文本编辑器",
+        "description": "以 Markdown 作为主文本输出，同时保留完整 Tiptap JSON 作为富文本兜底契约。",
+        "editorLabel": "富文本草稿",
+        "placeholder": "写一段创作者说明、发布计划或带格式简介...",
+        "supportingText": "Markdown 用于主要交换；JSON 保留 Markdown 无法表达的样式。",
+        "sample": "# Aoi 富文本草稿\n\n可以使用 **Markdown** 快捷输入，也可以通过工具栏整理内容。\n\n- 保持 Markdown 输出可读\n- 用 JSON 保留颜色、表格、对齐等富文本细节\n- 拒绝不安全链接和图片地址\n\n> 这个面板只是独立实验，不会改动投稿草稿或评论。",
+        "preview": {
+          "title": "输出预览",
+          "ariaLabel": "富文本输出格式",
+          "markdown": "Markdown",
+          "text": "纯文本",
+          "json": "JSON",
+          "meta": "{chars} 字符 · {words} 词"
+        }
+      }
+    }
+  },
+  "player": {
+    "ariaLabel": "{title} 播放器",
+    "contextDanmaku": "弹幕",
+    "contextDisplay": "显示模式",
+    "contextHelp": "帮助",
+    "contextMedia": "画面 / 字幕",
+    "contextMenu": "播放器右键菜单",
+    "contextPlayback": "播放控制",
+    "controls": "播放器控制",
+    "copyCurrentTime": "复制当前时间",
+    "exitFullscreen": "退出全屏",
+    "exitWebFullscreen": "退出网页全屏",
+    "fullscreen": "全屏",
+    "hideDanmaku": "隐藏弹幕",
+    "hidePanel": "收起弹幕列表",
+    "loading": "正在加载视频",
+    "mute": "静音",
+    "pause": "暂停视频",
+    "play": "播放视频",
+    "rate": "倍速",
+    "subtitle": "字幕",
+    "subtitleUnavailable": "暂无字幕",
+    "retry": "重试",
+    "showDanmaku": "显示弹幕",
+    "showPanel": "展开弹幕列表",
+    "source": "视频源",
+    "sourceDefault": "自动",
+    "sourceUnavailable": "无可用源",
+    "playerSettings": "播放器设置",
+    "playerSettingsUnavailable": "暂无更多播放器设置",
+    "keyboardShortcuts": "快捷键说明",
+    "shortcutCompose": "聚焦弹幕输入",
+    "shortcutDanmaku": "弹幕开关",
+    "shortcutFullscreen": "浏览器全屏",
+    "shortcutPlayPause": "播放 / 暂停",
+    "shortcutSeek": "前进 / 后退 5 秒",
+    "shortcutWebFullscreen": "网页全屏",
+    "theater": "剧场模式",
+    "unmute": "取消静音",
+    "volume": "音量",
+    "webFullscreen": "网页全屏",
+    "danmaku": "弹幕",
+    "danmakuColor": "弹幕颜色",
+    "danmakuColorPick": "选择颜色 {color}",
+    "danmakuContent": "内容",
+    "danmakuCount": "{count} 条",
+    "danmakuEmpty": "暂无可显示弹幕",
+    "danmakuList": "弹幕列表",
+    "danmakuListAria": "弹幕列表",
+    "danmakuListCount": "{count} 条同步弹幕",
+    "danmakuMode": "弹幕模式",
+    "danmakuOff": "弹幕已关",
+    "danmakuOn": "弹幕已开",
+    "danmakuPlaceholder": "发个友善的弹幕见证当下",
+    "danmakuScroll": "滚动",
+    "danmakuSend": "发送",
+    "danmakuSentAt": "发送日期",
+    "danmakuSettings": "弹幕设置",
+    "danmakuSort": "切换弹幕排序",
+    "danmakuTime": "时间",
+    "danmakuTop": "顶部",
+    "danmakuBottom": "底部",
+    "danmakuUnavailable": "弹幕不可用",
+    "errors": {
+      "dash": "DASH 视频流加载失败。",
+      "hls": "HLS 视频流加载失败。",
+      "load": "视频加载失败。",
+      "noSource": "没有可播放的视频源。",
+      "sourceInit": "视频源初始化失败。",
+      "unsupportedFormat": "当前浏览器不支持这个视频格式。",
+      "unsupportedHls": "当前浏览器不支持 HLS 播放。"
+    },
+    "rateShort": "倍速",
+    "upNext": "接下来播放",
+    "relatedVideos": "相关推荐",
+    "notFoundTitle": "视频不存在",
+    "notFoundDescription": "没有找到 {id} 对应的视频。",
+    "backHome": "返回首页",
+    "loadInterruptedTitle": "视频加载中断",
+    "loadInterruptedDescription": "没有拿到视频数据。",
+    "like": "点赞",
+    "unlike": "取消点赞",
+    "favorite": "收藏",
+    "unfavorite": "取消收藏",
+    "favorited": "已收藏",
+    "watchLater": "稍后看",
+    "removeWatchLater": "移出稍后看",
+    "watchLaterAdded": "已加入稍后看",
+    "report": "稿件举报",
+    "descriptionTitle": "简介",
+    "tags": "标签",
+    "localActions": "本地互动操作",
+    "localComments": "本地评论区"
+  },
+  "lightbox": {
+    "close": "关闭",
+    "counter": "{current} / {total}",
+    "empty": "没有可预览的媒体。",
+    "first": "第一项",
+    "fullscreen": "全屏",
+    "imageError": "图片加载失败。",
+    "last": "最后一项",
+    "loading": "正在加载媒体",
+    "media": "画廊媒体",
+    "mute": "静音",
+    "next": "下一项",
+    "pause": "暂停",
+    "play": "播放",
+    "previous": "上一项",
+    "resetZoom": "重置缩放",
+    "unmute": "取消静音",
+    "videoError": "视频加载失败。",
+    "volume": "音量",
+    "zoomIn": "放大",
+    "zoomOut": "缩小"
+  }
+}

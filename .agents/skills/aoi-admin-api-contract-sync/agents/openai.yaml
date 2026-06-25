@@ -1,0 +1,4 @@
+interface:
+  display_name: "Aoi Admin API Contract Sync"
+  short_description: "当前仓库HTTP契约OpenAPI权限同步与验收流程指南"
+  default_prompt: "Use $aoi-admin-api-contract-sync to change an HTTP API while keeping contracts, OpenAPI, permissions, and docs synchronized."

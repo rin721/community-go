@@ -1,0 +1,4 @@
+interface:
+  display_name: "Aoi Admin Dev Onboarding"
+  short_description: "当前仓库新开发者本地启动演示数据与入门烟测治理指南"
+  default_prompt: "Use $aoi-admin-dev-onboarding to verify or improve local developer onboarding, setup, demo data, and smoke checks for this repository."

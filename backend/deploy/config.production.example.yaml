@@ -1,0 +1,225 @@
+# Production example. Runtime secrets must be supplied by environment variables
+# or a secret manager. This file intentionally uses only canonical capability
+# entries: database, cache, and storage.
+
+server:
+  host: 0.0.0.0
+  port: ${APP_SERVER_PORT:9999}
+  mode: release
+  read_timeout: ${APP_SERVER_READ_TIMEOUT:10}
+  write_timeout: ${APP_SERVER_WRITE_TIMEOUT:10}
+  idle_timeout: ${APP_SERVER_IDLE_TIMEOUT:30}
+
+webui:
+  enabled: ${APP_WEBUI_ENABLED:true}
+  mount_path: ${APP_WEBUI_MOUNT_PATH:/}
+  dist_dir: ${APP_WEBUI_DIST_DIR:./web/app/build/client}
+  public_base_url: ${APP_WEBUI_PUBLIC_BASE_URL:/}
+
+rpc:
+  enabled: ${APP_RPC_ENABLED:false}
+  host: ${APP_RPC_HOST:127.0.0.1}
+  port: ${APP_RPC_PORT:10099}
+  read_timeout: ${APP_RPC_READ_TIMEOUT:10}
+  write_timeout: ${APP_RPC_WRITE_TIMEOUT:10}
+  idle_timeout: ${APP_RPC_IDLE_TIMEOUT:30}
+
+database:
+  driver: ${APP_DB_DRIVER:postgres}
+  sqlite:
+    path: ${APP_DB_SQLITE_PATH:/app/data/app.db}
+  mysql:
+    host: ${APP_DB_MYSQL_HOST:127.0.0.1}
+    port: ${APP_DB_MYSQL_PORT:3306}
+    username: ${APP_DB_MYSQL_USERNAME:console_platform}
+    password: ${APP_DB_MYSQL_PASSWORD:}
+    database: ${APP_DB_MYSQL_DATABASE:console_platform}
+    charset: ${APP_DB_MYSQL_CHARSET:utf8mb4}
+  postgres:
+    host: ${APP_DB_POSTGRES_HOST}
+    port: ${APP_DB_POSTGRES_PORT:5432}
+    username: ${APP_DB_POSTGRES_USERNAME}
+    password: ${APP_DB_POSTGRES_PASSWORD}
+    database: ${APP_DB_POSTGRES_DATABASE}
+    sslMode: ${APP_DB_POSTGRES_SSL_MODE:disable}
+  pool:
+    maxOpenConns: ${APP_DB_POOL_MAX_OPEN_CONNS:20}
+    maxIdleConns: ${APP_DB_POOL_MAX_IDLE_CONNS:10}
+
+cache:
+  driver: ${APP_CACHE_DRIVER:local}
+  local:
+    maxCost: ${APP_CACHE_LOCAL_MAX_COST:67108864}
+    numCounters: ${APP_CACHE_LOCAL_NUM_COUNTERS:1000000}
+    bufferItems: ${APP_CACHE_LOCAL_BUFFER_ITEMS:64}
+    defaultTtlSeconds: ${APP_CACHE_LOCAL_DEFAULT_TTL_SECONDS:0}
+  redis:
+    addr: ${APP_CACHE_REDIS_ADDR:127.0.0.1:6379}
+    username: ${APP_CACHE_REDIS_USERNAME:}
+    password: ${APP_CACHE_REDIS_PASSWORD:}
+    db: ${APP_CACHE_REDIS_DB:0}
+    poolSize: ${APP_CACHE_REDIS_POOL_SIZE:20}
+    minIdleConns: ${APP_CACHE_REDIS_MIN_IDLE_CONNS:5}
+    maxRetries: ${APP_CACHE_REDIS_MAX_RETRIES:3}
+    dialTimeout: ${APP_CACHE_REDIS_DIAL_TIMEOUT:5}
+    readTimeout: ${APP_CACHE_REDIS_READ_TIMEOUT:3}
+    writeTimeout: ${APP_CACHE_REDIS_WRITE_TIMEOUT:3}
+
+logger:
+  level: ${APP_LOG_LEVEL:info}
+  format: ${APP_LOG_FORMAT:json}
+  console_format: ${APP_LOG_CONSOLE_FORMAT:json}
+  file_format: ${APP_LOG_FILE_FORMAT:json}
+  output: ${APP_LOG_OUTPUT:stdout}
+  file_path: ${APP_LOG_FILE_PATH:/app/logs/console-platform.log}
+  max_size: ${APP_LOG_MAX_SIZE:100}
+  max_backups: ${APP_LOG_MAX_BACKUPS:7}
+  max_age: ${APP_LOG_MAX_AGE:30}
+
+i18n:
+  defaultLocale: ${APP_I18N_DEFAULT_LOCALE:zh-CN}
+  fallbackLocale: ${APP_I18N_FALLBACK_LOCALE:zh-CN}
+  supportedLocales:
+    - zh-CN
+    - en-US
+  resources:
+    ui: ${APP_I18N_RESOURCES_UI:./configs/locales/ui}
+    api: ${APP_I18N_RESOURCES_API:./configs/locales/api}
+    validation: ${APP_I18N_RESOURCES_VALIDATION:./configs/locales/validation}
+    system: ${APP_I18N_RESOURCES_SYSTEM:./configs/locales/system}
+
+brand:
+  productName: ${APP_BRAND_PRODUCT_NAME:Console Platform}
+  productCode: ${APP_BRAND_PRODUCT_CODE:console-platform}
+  versionName: ${APP_BRAND_VERSION_NAME:Community}
+
+executor:
+  enabled: ${APP_EXECUTOR_ENABLED:true}
+  pools:
+    - name: background
+      size: 16
+      expiry: 30
+      non_blocking: true
+
+storage:
+  driver: ${APP_STORAGE_DRIVER:local}
+  local:
+    fsType: ${APP_STORAGE_LOCAL_FS_TYPE:basepath}
+    basePath: ${APP_STORAGE_LOCAL_BASE_PATH:/app/data/uploads}
+    publicUrl: ${APP_STORAGE_LOCAL_PUBLIC_URL:/uploads}
+    enableWatch: ${APP_STORAGE_LOCAL_ENABLE_WATCH:false}
+    watchBufferSize: ${APP_STORAGE_LOCAL_WATCH_BUFFER_SIZE:100}
+  s3:
+    endpoint: ${APP_STORAGE_S3_ENDPOINT:https://s3.example.com}
+    region: ${APP_STORAGE_S3_REGION:us-east-1}
+    bucket: ${APP_STORAGE_S3_BUCKET:console-platform}
+    accessKeyId: ${APP_STORAGE_S3_ACCESS_KEY_ID:example}
+    secretAccessKey: ${APP_STORAGE_S3_SECRET_ACCESS_KEY:example}
+    usePathStyle: ${APP_STORAGE_S3_USE_PATH_STYLE:true}
+    publicBaseUrl: ${APP_STORAGE_S3_PUBLIC_BASE_URL:}
+  minio:
+    endpoint: ${APP_STORAGE_MINIO_ENDPOINT:http://127.0.0.1:9000}
+    region: ${APP_STORAGE_MINIO_REGION:us-east-1}
+    bucket: ${APP_STORAGE_MINIO_BUCKET:console-platform}
+    accessKeyId: ${APP_STORAGE_MINIO_ACCESS_KEY_ID:example}
+    secretAccessKey: ${APP_STORAGE_MINIO_SECRET_ACCESS_KEY:example}
+    usePathStyle: ${APP_STORAGE_MINIO_USE_PATH_STYLE:true}
+    publicBaseUrl: ${APP_STORAGE_MINIO_PUBLIC_BASE_URL:}
+
+system:
+  seed_defaults_on_start: ${APP_SYSTEM_SEED_DEFAULTS_ON_START:true}
+  maintenance_cleanup_interval_seconds: ${APP_SYSTEM_MAINTENANCE_CLEANUP_INTERVAL_SECONDS:60}
+  maintenance_cleanup_batch_size: ${APP_SYSTEM_MAINTENANCE_CLEANUP_BATCH_SIZE:100}
+
+cors:
+  enabled: ${APP_CORS_ENABLED:true}
+  allow_origins:
+    - ${APP_CORS_ALLOW_ORIGINS:https://admin.example.invalid}
+  allow_methods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    - PATCH
+    - OPTIONS
+  allow_headers:
+    - Origin
+    - Content-Type
+    - X-Request-ID
+    - Authorization
+  expose_headers:
+    - X-Request-ID
+  allow_credentials: ${APP_CORS_ALLOW_CREDENTIALS:false}
+  max_age: ${APP_CORS_MAX_AGE:3600}
+
+auth:
+  enabled: ${APP_AUTH_ENABLED:true}
+  registration_mode: ${APP_AUTH_REGISTRATION_MODE:disabled}
+  issuer: ${APP_AUTH_ISSUER:console-platform}
+  audience:
+    - console-platform-api
+  signing_key: ${APP_AUTH_SIGNING_KEY}
+  access_token_ttl_seconds: ${APP_AUTH_ACCESS_TOKEN_TTL_SECONDS:900}
+  refresh_token_ttl_seconds: ${APP_AUTH_REFRESH_TOKEN_TTL_SECONDS:604800}
+  refresh_token_pepper: ${APP_AUTH_REFRESH_TOKEN_PEPPER}
+  cookie:
+    name_prefix: ${APP_AUTH_COOKIE_NAME_PREFIX:console}
+    domain: ${APP_AUTH_COOKIE_DOMAIN:}
+    path: ${APP_AUTH_COOKIE_PATH:/}
+    same_site: ${APP_AUTH_COOKIE_SAME_SITE:lax}
+    secure: ${APP_AUTH_COOKIE_SECURE:true}
+  csrf:
+    enabled: ${APP_AUTH_CSRF_ENABLED:true}
+    cookie_name: ${APP_AUTH_CSRF_COOKIE_NAME:console_csrf}
+    header_name: ${APP_AUTH_CSRF_HEADER_NAME:X-CSRF-Token}
+  session:
+    single_per_product_platform: ${APP_AUTH_SESSION_SINGLE_PER_PRODUCT_PLATFORM:true}
+    product_header: ${APP_AUTH_SESSION_PRODUCT_HEADER:X-Product-Code}
+    client_type_header: ${APP_AUTH_SESSION_CLIENT_TYPE_HEADER:X-Client-Type}
+    default_client_type: ${APP_AUTH_SESSION_DEFAULT_CLIENT_TYPE:pc_web}
+    mobile_user_agent_hints:
+      - mobile
+      - android
+      - iphone
+      - ipad
+  cache:
+    enabled: ${APP_AUTH_CACHE_ENABLED:true}
+    user_ttl_seconds: ${APP_AUTH_CACHE_USER_TTL_SECONDS:120}
+    org_ttl_seconds: ${APP_AUTH_CACHE_ORG_TTL_SECONDS:120}
+    role_ttl_seconds: ${APP_AUTH_CACHE_ROLE_TTL_SECONDS:120}
+    permission_ttl_seconds: ${APP_AUTH_CACHE_PERMISSION_TTL_SECONDS:300}
+  mfa_issuer: ${APP_AUTH_MFA_ISSUER:console-platform}
+  mfa_secret_key: ${APP_AUTH_MFA_SECRET_KEY}
+  login_max_failures: ${APP_AUTH_LOGIN_MAX_FAILURES:5}
+  login_lock_minutes: ${APP_AUTH_LOGIN_LOCK_MINUTES:15}
+  login_captcha_enabled: ${APP_AUTH_LOGIN_CAPTCHA_ENABLED:false}
+  captcha_ttl_seconds: ${APP_AUTH_CAPTCHA_TTL_SECONDS:120}
+  invitation_ttl_seconds: ${APP_AUTH_INVITATION_TTL_SECONDS:86400}
+  email_verification_ttl_seconds: ${APP_AUTH_EMAIL_VERIFICATION_TTL_SECONDS:86400}
+  password_reset_ttl_seconds: ${APP_AUTH_PASSWORD_RESET_TTL_SECONDS:1800}
+  notification_driver: ${APP_AUTH_NOTIFICATION_DRIVER:smtp}
+  notification_retry_interval_seconds: ${APP_AUTH_NOTIFICATION_RETRY_INTERVAL_SECONDS:60}
+  notification_retry_batch_size: ${APP_AUTH_NOTIFICATION_RETRY_BATCH_SIZE:20}
+  notification_retry_max_attempts: ${APP_AUTH_NOTIFICATION_RETRY_MAX_ATTEMPTS:5}
+  smtp:
+    host: ${APP_AUTH_SMTP_HOST}
+    port: ${APP_AUTH_SMTP_PORT:587}
+    username: ${APP_AUTH_SMTP_USERNAME:}
+    password: ${APP_AUTH_SMTP_PASSWORD:}
+    from: ${APP_AUTH_SMTP_FROM}
+    from_name: ${APP_AUTH_SMTP_FROM_NAME:${APP_BRAND_PRODUCT_NAME:Console Platform}}
+    security: ${APP_AUTH_SMTP_SECURITY:starttls}
+  password_policy:
+    min_length: ${APP_AUTH_PASSWORD_MIN_LENGTH:10}
+    require_lower: ${APP_AUTH_PASSWORD_REQUIRE_LOWER:true}
+    require_upper: ${APP_AUTH_PASSWORD_REQUIRE_UPPER:true}
+    require_number: ${APP_AUTH_PASSWORD_REQUIRE_NUMBER:true}
+    require_symbol: ${APP_AUTH_PASSWORD_REQUIRE_SYMBOL:false}
+  casbin_reload_interval_seconds: ${APP_AUTH_CASBIN_RELOAD_INTERVAL_SECONDS:300}
+
+migration:
+  auto_apply: ${APP_MIGRATION_AUTO_APPLY:false}
+  dir: ${APP_MIGRATION_DIR:./internal/migrations}
+
+env_override:
+  disabled_paths: []

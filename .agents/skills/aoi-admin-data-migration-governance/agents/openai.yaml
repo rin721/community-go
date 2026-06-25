@@ -1,0 +1,4 @@
+interface:
+  display_name: "Aoi Admin Data Migration Governance"
+  short_description: "数据库迁移GORM模型仓储边界示例与演示数据治理流程"
+  default_prompt: "Use $aoi-admin-data-migration-governance to change migrations, GORM models, repositories, seed data, or demo data in this repository."

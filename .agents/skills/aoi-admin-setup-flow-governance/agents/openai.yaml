@@ -1,0 +1,4 @@
+interface:
+  display_name: "Aoi Admin Setup Flow Governance"
+  short_description: "统一初始化中心、Setup API、CLI 与向导闭环治理流程"
+  default_prompt: "Use $aoi-admin-setup-flow-governance to change or audit the first-run setup flow in this repository."

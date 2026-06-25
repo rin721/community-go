@@ -1,0 +1,4 @@
+interface:
+  display_name: "Aoi Admin System Ops Governance"
+  short_description: "系统配置、审计、媒体、版本、通知与后台运维治理流程"
+  default_prompt: "Use $aoi-admin-system-ops-governance to change or audit system administration and operations workflows in this repository."

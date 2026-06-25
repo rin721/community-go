@@ -1,0 +1,4 @@
+interface:
+  display_name: "Aoi Admin Observability Ops"
+  short_description: "当前仓库可观测性运行探针日志审计与发布后观察证据治理流程指南"
+  default_prompt: "Use $aoi-admin-observability-ops to audit probes, logs, audit trails, runtime smoke, and operational evidence for this repository."

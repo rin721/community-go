@@ -1,0 +1,4 @@
+interface:
+  display_name: "Aoi Admin Security Dependency Governance"
+  short_description: "安全扫描、依赖、密钥、供应链与漏洞配置治理完整流程"
+  default_prompt: "Use $aoi-admin-security-dependency-governance to review security, dependency, secret, or vulnerability-scan changes in this repository."

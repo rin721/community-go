@@ -1,0 +1,454 @@
+name: Remote Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_env:
+        description: Deployment environment. Production requires GitHub Environment approval.
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+        default: staging
+      confirm:
+        description: Type "deploy-staging" or "deploy-production" to confirm this run.
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: remote-deploy-${{ inputs.deploy_env }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to remote host
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: ${{ inputs.deploy_env }}
+
+    env:
+      SELECTED_DEPLOY_ENV: ${{ inputs.deploy_env }}
+
+      DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+      DEPLOY_PORT: ${{ vars.DEPLOY_PORT }}
+      DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+      DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+      DEPLOY_REPO: ${{ vars.DEPLOY_REPO }}
+      DEPLOY_REF: ${{ vars.DEPLOY_REF }}
+      DEPLOY_IMAGE: ${{ vars.DEPLOY_IMAGE }}
+      DEPLOY_BUILD: ${{ vars.DEPLOY_BUILD }}
+      DEPLOY_PULL: ${{ vars.DEPLOY_PULL }}
+      APP_PORT: ${{ vars.APP_PORT }}
+      DEPLOY_CONTAINER_NAME: ${{ vars.DEPLOY_CONTAINER_NAME }}
+      REGISTRY_HOST: ${{ vars.REGISTRY_HOST }}
+      WEBUI_ENABLED: ${{ vars.WEBUI_ENABLED }}
+      WEBUI_MOUNT_PATH: ${{ vars.WEBUI_MOUNT_PATH }}
+      WEBUI_DIST_DIR: ${{ vars.WEBUI_DIST_DIR }}
+      WEBUI_PUBLIC_BASE_URL: ${{ vars.WEBUI_PUBLIC_BASE_URL }}
+      WEBUI_API_BASE_URL: ${{ vars.WEBUI_API_BASE_URL }}
+      WEBUI_CHECK: ${{ vars.WEBUI_CHECK }}
+      WEBUI_CHECK_PATH: ${{ vars.WEBUI_CHECK_PATH }}
+      BRAND_PRODUCT_NAME: ${{ vars.BRAND_PRODUCT_NAME }}
+      BRAND_PRODUCT_CODE: ${{ vars.BRAND_PRODUCT_CODE }}
+      BRAND_VERSION_NAME: ${{ vars.BRAND_VERSION_NAME }}
+
+      DB_DRIVER: ${{ vars.DB_DRIVER }}
+      DB_SQLITE_PATH: ${{ vars.DB_SQLITE_PATH }}
+      DB_MYSQL_HOST: ${{ vars.DB_MYSQL_HOST }}
+      DB_MYSQL_PORT: ${{ vars.DB_MYSQL_PORT }}
+      DB_MYSQL_USERNAME: ${{ vars.DB_MYSQL_USERNAME }}
+      DB_MYSQL_DATABASE: ${{ vars.DB_MYSQL_DATABASE }}
+      DB_MYSQL_CHARSET: ${{ vars.DB_MYSQL_CHARSET }}
+      DB_POSTGRES_HOST: ${{ vars.DB_POSTGRES_HOST }}
+      DB_POSTGRES_PORT: ${{ vars.DB_POSTGRES_PORT }}
+      DB_POSTGRES_USERNAME: ${{ vars.DB_POSTGRES_USERNAME }}
+      DB_POSTGRES_DATABASE: ${{ vars.DB_POSTGRES_DATABASE }}
+      DB_POSTGRES_SSL_MODE: ${{ vars.DB_POSTGRES_SSL_MODE }}
+      DB_POOL_MAX_OPEN_CONNS: ${{ vars.DB_POOL_MAX_OPEN_CONNS }}
+      DB_POOL_MAX_IDLE_CONNS: ${{ vars.DB_POOL_MAX_IDLE_CONNS }}
+      CACHE_DRIVER: ${{ vars.CACHE_DRIVER }}
+      CACHE_LOCAL_MAX_COST: ${{ vars.CACHE_LOCAL_MAX_COST }}
+      CACHE_LOCAL_NUM_COUNTERS: ${{ vars.CACHE_LOCAL_NUM_COUNTERS }}
+      CACHE_LOCAL_BUFFER_ITEMS: ${{ vars.CACHE_LOCAL_BUFFER_ITEMS }}
+      CACHE_LOCAL_DEFAULT_TTL_SECONDS: ${{ vars.CACHE_LOCAL_DEFAULT_TTL_SECONDS }}
+      CACHE_REDIS_ADDR: ${{ vars.CACHE_REDIS_ADDR }}
+      CACHE_REDIS_USERNAME: ${{ vars.CACHE_REDIS_USERNAME }}
+      CACHE_REDIS_DB: ${{ vars.CACHE_REDIS_DB }}
+      CACHE_REDIS_POOL_SIZE: ${{ vars.CACHE_REDIS_POOL_SIZE }}
+      CACHE_REDIS_MIN_IDLE_CONNS: ${{ vars.CACHE_REDIS_MIN_IDLE_CONNS }}
+      CACHE_REDIS_MAX_RETRIES: ${{ vars.CACHE_REDIS_MAX_RETRIES }}
+      CACHE_REDIS_DIAL_TIMEOUT: ${{ vars.CACHE_REDIS_DIAL_TIMEOUT }}
+      CACHE_REDIS_READ_TIMEOUT: ${{ vars.CACHE_REDIS_READ_TIMEOUT }}
+      CACHE_REDIS_WRITE_TIMEOUT: ${{ vars.CACHE_REDIS_WRITE_TIMEOUT }}
+      SERVER_MODE: ${{ vars.SERVER_MODE }}
+      SERVER_READ_TIMEOUT: ${{ vars.SERVER_READ_TIMEOUT }}
+      SERVER_WRITE_TIMEOUT: ${{ vars.SERVER_WRITE_TIMEOUT }}
+      LOG_LEVEL: ${{ vars.LOG_LEVEL }}
+      LOG_FORMAT: ${{ vars.LOG_FORMAT }}
+      LOG_OUTPUT: ${{ vars.LOG_OUTPUT }}
+      I18N_DEFAULT_LOCALE: ${{ vars.I18N_DEFAULT_LOCALE }}
+      I18N_FALLBACK_LOCALE: ${{ vars.I18N_FALLBACK_LOCALE }}
+      I18N_SUPPORTED_LOCALES: ${{ vars.I18N_SUPPORTED_LOCALES }}
+      STORAGE_DRIVER: ${{ vars.STORAGE_DRIVER }}
+      STORAGE_LOCAL_FS_TYPE: ${{ vars.STORAGE_LOCAL_FS_TYPE }}
+      STORAGE_LOCAL_BASE_PATH: ${{ vars.STORAGE_LOCAL_BASE_PATH }}
+      STORAGE_LOCAL_PUBLIC_URL: ${{ vars.STORAGE_LOCAL_PUBLIC_URL }}
+      STORAGE_LOCAL_ENABLE_WATCH: ${{ vars.STORAGE_LOCAL_ENABLE_WATCH }}
+      STORAGE_LOCAL_WATCH_BUFFER_SIZE: ${{ vars.STORAGE_LOCAL_WATCH_BUFFER_SIZE }}
+      AUTH_ENABLED: ${{ vars.AUTH_ENABLED }}
+      AUTH_REGISTRATION_MODE: ${{ vars.AUTH_REGISTRATION_MODE }}
+      AUTH_ISSUER: ${{ vars.AUTH_ISSUER }}
+      AUTH_AUDIENCE: ${{ vars.AUTH_AUDIENCE }}
+      AUTH_ACCESS_TOKEN_TTL_SECONDS: ${{ vars.AUTH_ACCESS_TOKEN_TTL_SECONDS }}
+      AUTH_REFRESH_TOKEN_TTL_SECONDS: ${{ vars.AUTH_REFRESH_TOKEN_TTL_SECONDS }}
+      AUTH_MFA_ISSUER: ${{ vars.AUTH_MFA_ISSUER }}
+      AUTH_LOGIN_MAX_FAILURES: ${{ vars.AUTH_LOGIN_MAX_FAILURES }}
+      AUTH_LOGIN_LOCK_MINUTES: ${{ vars.AUTH_LOGIN_LOCK_MINUTES }}
+      AUTH_LOGIN_CAPTCHA_ENABLED: ${{ vars.AUTH_LOGIN_CAPTCHA_ENABLED }}
+      AUTH_CAPTCHA_TTL_SECONDS: ${{ vars.AUTH_CAPTCHA_TTL_SECONDS }}
+      AUTH_INVITATION_TTL_SECONDS: ${{ vars.AUTH_INVITATION_TTL_SECONDS }}
+      AUTH_EMAIL_VERIFICATION_TTL_SECONDS: ${{ vars.AUTH_EMAIL_VERIFICATION_TTL_SECONDS }}
+      AUTH_PASSWORD_RESET_TTL_SECONDS: ${{ vars.AUTH_PASSWORD_RESET_TTL_SECONDS }}
+      AUTH_NOTIFICATION_DRIVER: ${{ vars.AUTH_NOTIFICATION_DRIVER }}
+      AUTH_SMTP_HOST: ${{ vars.AUTH_SMTP_HOST }}
+      AUTH_SMTP_PORT: ${{ vars.AUTH_SMTP_PORT }}
+      AUTH_SMTP_USERNAME: ${{ vars.AUTH_SMTP_USERNAME }}
+      AUTH_SMTP_FROM: ${{ vars.AUTH_SMTP_FROM }}
+      AUTH_SMTP_FROM_NAME: ${{ vars.AUTH_SMTP_FROM_NAME }}
+      AUTH_SMTP_SECURITY: ${{ vars.AUTH_SMTP_SECURITY }}
+      AUTH_PASSWORD_MIN_LENGTH: ${{ vars.AUTH_PASSWORD_MIN_LENGTH }}
+      AUTH_PASSWORD_REQUIRE_LOWER: ${{ vars.AUTH_PASSWORD_REQUIRE_LOWER }}
+      AUTH_PASSWORD_REQUIRE_UPPER: ${{ vars.AUTH_PASSWORD_REQUIRE_UPPER }}
+      AUTH_PASSWORD_REQUIRE_NUMBER: ${{ vars.AUTH_PASSWORD_REQUIRE_NUMBER }}
+      AUTH_PASSWORD_REQUIRE_SYMBOL: ${{ vars.AUTH_PASSWORD_REQUIRE_SYMBOL }}
+      AUTH_CASBIN_RELOAD_INTERVAL_SECONDS: ${{ vars.AUTH_CASBIN_RELOAD_INTERVAL_SECONDS }}
+      CORS_ENABLED: ${{ vars.CORS_ENABLED }}
+      CORS_ALLOW_ORIGINS: ${{ vars.CORS_ALLOW_ORIGINS }}
+      CORS_ALLOW_METHODS: ${{ vars.CORS_ALLOW_METHODS }}
+      CORS_ALLOW_HEADERS: ${{ vars.CORS_ALLOW_HEADERS }}
+      CORS_EXPOSE_HEADERS: ${{ vars.CORS_EXPOSE_HEADERS }}
+      CORS_ALLOW_CREDENTIALS: ${{ vars.CORS_ALLOW_CREDENTIALS }}
+      CORS_MAX_AGE: ${{ vars.CORS_MAX_AGE }}
+
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      DEPLOY_SSH_KNOWN_HOSTS: ${{ secrets.DEPLOY_SSH_KNOWN_HOSTS }}
+      GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+      GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+      DB_MYSQL_PASSWORD: ${{ secrets.DB_MYSQL_PASSWORD }}
+      DB_POSTGRES_PASSWORD: ${{ secrets.DB_POSTGRES_PASSWORD }}
+      CACHE_REDIS_PASSWORD: ${{ secrets.CACHE_REDIS_PASSWORD }}
+      AUTH_SIGNING_KEY: ${{ secrets.AUTH_SIGNING_KEY }}
+      AUTH_REFRESH_TOKEN_PEPPER: ${{ secrets.AUTH_REFRESH_TOKEN_PEPPER }}
+      AUTH_MFA_SECRET_KEY: ${{ secrets.AUTH_MFA_SECRET_KEY }}
+      AUTH_SMTP_PASSWORD: ${{ secrets.AUTH_SMTP_PASSWORD }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Confirm manual deployment
+        env:
+          CONFIRM_INPUT: ${{ inputs.confirm }}
+        run: |
+          set -euo pipefail
+          expected_confirm="deploy-${SELECTED_DEPLOY_ENV}"
+          if [ "${CONFIRM_INPUT}" != "${expected_confirm}" ]; then
+            echo "::error::Type ${expected_confirm} in the confirm input to run this workflow."
+            exit 1
+          fi
+
+      - name: Validate deployment inputs
+        run: |
+          set -euo pipefail
+
+          normalize_yn() {
+            local key="${1}"
+            local value="${2}"
+            case "${value}" in
+              y|n) ;;
+              yes|true|1) value="y" ;;
+              no|false|0) value="n" ;;
+              *)
+                echo "::error::${key} must be y or n."
+                exit 1
+                ;;
+            esac
+            printf '%s' "${value}"
+          }
+
+          require_value() {
+            local key="${1}"
+            local value="${2:-}"
+            if [ -z "${value}" ]; then
+              echo "::error::Missing required ${key}."
+              exit 1
+            fi
+          }
+
+          reject_newline() {
+            local key="${1}"
+            local value="${2:-}"
+            if [[ "${value}" == *$'\n'* || "${value}" == *$'\r'* ]]; then
+              echo "::error::${key} cannot contain newlines."
+              exit 1
+            fi
+          }
+
+          require_value DEPLOY_HOST "${DEPLOY_HOST}"
+          require_value DEPLOY_USER "${DEPLOY_USER}"
+          require_value DEPLOY_SSH_KEY "${DEPLOY_SSH_KEY}"
+
+          deploy_port="${DEPLOY_PORT:-22}"
+          deploy_path="${DEPLOY_PATH:-/opt/console-platform}"
+          deploy_build="$(normalize_yn DEPLOY_BUILD "${DEPLOY_BUILD:-y}")"
+          deploy_pull="$(normalize_yn DEPLOY_PULL "${DEPLOY_PULL:-n}")"
+          app_port="${APP_PORT:-9999}"
+
+          if [ "${deploy_build}" = "y" ] && [ "${deploy_pull}" = "y" ]; then
+            echo "::error::DEPLOY_BUILD and DEPLOY_PULL cannot both be y."
+            exit 1
+          fi
+
+          case "${SELECTED_DEPLOY_ENV}" in
+            staging|production) ;;
+            *)
+              echo "::error::deploy_env must be staging or production."
+              exit 1
+              ;;
+          esac
+
+          [[ "${DEPLOY_HOST}" =~ ^[A-Za-z0-9._-]+$ ]] || { echo "::error::Invalid DEPLOY_HOST."; exit 1; }
+          [[ "${deploy_port}" =~ ^[0-9]+$ ]] || { echo "::error::Invalid DEPLOY_PORT."; exit 1; }
+          [[ "${DEPLOY_USER}" =~ ^[A-Za-z0-9._-]+$ ]] || { echo "::error::Invalid DEPLOY_USER."; exit 1; }
+          [[ "${deploy_path}" =~ ^/[A-Za-z0-9._/-]+$ ]] || { echo "::error::Invalid DEPLOY_PATH."; exit 1; }
+          [[ "${app_port}" =~ ^[0-9]+$ ]] || { echo "::error::Invalid APP_PORT."; exit 1; }
+
+          for key in \
+            DEPLOY_REPO DEPLOY_REF DEPLOY_IMAGE DEPLOY_CONTAINER_NAME REGISTRY_HOST \
+            WEBUI_ENABLED WEBUI_MOUNT_PATH WEBUI_DIST_DIR WEBUI_PUBLIC_BASE_URL WEBUI_API_BASE_URL \
+            WEBUI_CHECK WEBUI_CHECK_PATH \
+            BRAND_PRODUCT_NAME BRAND_PRODUCT_CODE BRAND_VERSION_NAME \
+            DB_DRIVER DB_SQLITE_PATH DB_MYSQL_HOST DB_MYSQL_PORT DB_MYSQL_USERNAME DB_MYSQL_PASSWORD DB_MYSQL_DATABASE DB_MYSQL_CHARSET \
+            DB_POSTGRES_HOST DB_POSTGRES_PORT DB_POSTGRES_USERNAME DB_POSTGRES_PASSWORD DB_POSTGRES_DATABASE DB_POSTGRES_SSL_MODE \
+            DB_POOL_MAX_OPEN_CONNS DB_POOL_MAX_IDLE_CONNS \
+            CACHE_DRIVER CACHE_LOCAL_MAX_COST CACHE_LOCAL_NUM_COUNTERS CACHE_LOCAL_BUFFER_ITEMS CACHE_LOCAL_DEFAULT_TTL_SECONDS \
+            CACHE_REDIS_ADDR CACHE_REDIS_USERNAME CACHE_REDIS_PASSWORD CACHE_REDIS_DB CACHE_REDIS_POOL_SIZE \
+            CACHE_REDIS_MIN_IDLE_CONNS CACHE_REDIS_MAX_RETRIES CACHE_REDIS_DIAL_TIMEOUT CACHE_REDIS_READ_TIMEOUT CACHE_REDIS_WRITE_TIMEOUT \
+            SERVER_MODE SERVER_READ_TIMEOUT SERVER_WRITE_TIMEOUT \
+            LOG_LEVEL LOG_FORMAT LOG_OUTPUT I18N_DEFAULT_LOCALE I18N_FALLBACK_LOCALE I18N_SUPPORTED_LOCALES \
+            STORAGE_DRIVER STORAGE_LOCAL_FS_TYPE STORAGE_LOCAL_BASE_PATH STORAGE_LOCAL_PUBLIC_URL STORAGE_LOCAL_ENABLE_WATCH STORAGE_LOCAL_WATCH_BUFFER_SIZE \
+            AUTH_ENABLED AUTH_REGISTRATION_MODE AUTH_ISSUER AUTH_AUDIENCE AUTH_SIGNING_KEY AUTH_ACCESS_TOKEN_TTL_SECONDS AUTH_REFRESH_TOKEN_TTL_SECONDS \
+            AUTH_REFRESH_TOKEN_PEPPER AUTH_MFA_ISSUER AUTH_MFA_SECRET_KEY AUTH_LOGIN_MAX_FAILURES AUTH_LOGIN_LOCK_MINUTES AUTH_LOGIN_CAPTCHA_ENABLED \
+            AUTH_CAPTCHA_TTL_SECONDS AUTH_INVITATION_TTL_SECONDS AUTH_EMAIL_VERIFICATION_TTL_SECONDS AUTH_PASSWORD_RESET_TTL_SECONDS \
+            AUTH_NOTIFICATION_DRIVER AUTH_SMTP_HOST AUTH_SMTP_PORT AUTH_SMTP_USERNAME AUTH_SMTP_PASSWORD AUTH_SMTP_FROM AUTH_SMTP_FROM_NAME AUTH_SMTP_SECURITY \
+            AUTH_PASSWORD_MIN_LENGTH AUTH_PASSWORD_REQUIRE_LOWER AUTH_PASSWORD_REQUIRE_UPPER AUTH_PASSWORD_REQUIRE_NUMBER AUTH_PASSWORD_REQUIRE_SYMBOL AUTH_CASBIN_RELOAD_INTERVAL_SECONDS \
+            CORS_ENABLED CORS_ALLOW_ORIGINS CORS_ALLOW_METHODS \
+            CORS_ALLOW_HEADERS CORS_EXPOSE_HEADERS CORS_ALLOW_CREDENTIALS CORS_MAX_AGE GHCR_USERNAME GHCR_TOKEN
+          do
+            reject_newline "${key}" "${!key:-}"
+          done
+
+      - name: Configure SSH
+        run: |
+          set -euo pipefail
+          install -m 700 -d "${HOME}/.ssh"
+          printf '%s\n' "${DEPLOY_SSH_KEY}" > "${HOME}/.ssh/deploy_key"
+          chmod 600 "${HOME}/.ssh/deploy_key"
+
+          deploy_port="${DEPLOY_PORT:-22}"
+          if [ -n "${DEPLOY_SSH_KNOWN_HOSTS}" ]; then
+            printf '%s\n' "${DEPLOY_SSH_KNOWN_HOSTS}" > "${HOME}/.ssh/known_hosts"
+          else
+            ssh-keyscan -p "${deploy_port}" "${DEPLOY_HOST}" > "${HOME}/.ssh/known_hosts" 2>/dev/null
+          fi
+          chmod 600 "${HOME}/.ssh/known_hosts"
+          echo "DEPLOY_SSH_KEY_PATH=${HOME}/.ssh/deploy_key" >> "${GITHUB_ENV}"
+
+      - name: Deploy with explicit flags
+        run: |
+          set -euo pipefail
+
+          mask_secret() {
+            local value="${1:-}"
+            if [ -n "${value}" ]; then
+              printf '::add-mask::%s\n' "${value}"
+            fi
+          }
+
+          normalize_yn() {
+            local value="${1}"
+            case "${value}" in
+              y|n) ;;
+              yes|true|1) value="y" ;;
+              no|false|0) value="n" ;;
+              *)
+                echo "::error::expected y or n."
+                exit 1
+                ;;
+            esac
+            printf '%s' "${value}"
+          }
+
+          add_arg() {
+            local flag="${1}"
+            local value="${2:-}"
+            if [ -n "${value}" ]; then
+              args+=("${flag}" "${value}")
+            fi
+          }
+
+          sq() {
+            local value="${1}"
+            value=${value//\'/\'\\\'\'}
+            printf "'%s'" "${value}"
+          }
+
+          mask_secret "${GHCR_TOKEN:-}"
+          mask_secret "${DB_MYSQL_PASSWORD:-}"
+          mask_secret "${DB_POSTGRES_PASSWORD:-}"
+          mask_secret "${CACHE_REDIS_PASSWORD:-}"
+          mask_secret "${AUTH_SIGNING_KEY:-}"
+          mask_secret "${AUTH_REFRESH_TOKEN_PEPPER:-}"
+          mask_secret "${AUTH_MFA_SECRET_KEY:-}"
+          mask_secret "${AUTH_SMTP_PASSWORD:-}"
+
+          deploy_port="${DEPLOY_PORT:-22}"
+          deploy_repo="${DEPLOY_REPO:-}"
+          if [ -z "${deploy_repo}" ]; then
+            echo "::error::DEPLOY_REPO repository URL is required."
+            exit 1
+          fi
+          deploy_ref="${DEPLOY_REF:-${GITHUB_SHA}}"
+          deploy_path="${DEPLOY_PATH:-/opt/console-platform}"
+          deploy_image="${DEPLOY_IMAGE:-console-platform:local}"
+          deploy_build="$(normalize_yn "${DEPLOY_BUILD:-y}")"
+          deploy_pull="$(normalize_yn "${DEPLOY_PULL:-n}")"
+          app_port="${APP_PORT:-9999}"
+          deploy_container_name="${DEPLOY_CONTAINER_NAME:-console-platform}"
+          registry_host="${REGISTRY_HOST:-ghcr.io}"
+
+          args=(
+            --docker y
+            --env "${SELECTED_DEPLOY_ENV}"
+            --repo "${deploy_repo}"
+            --ref "${deploy_ref}"
+            --path "${deploy_path}"
+            --image "${deploy_image}"
+            --build "${deploy_build}"
+            --pull "${deploy_pull}"
+            --port "${app_port}"
+            --container-name "${deploy_container_name}"
+            --registry-host "${registry_host}"
+            --confirm
+          )
+
+          add_arg --registry-username "${GHCR_USERNAME:-}"
+          add_arg --registry-token "${GHCR_TOKEN:-}"
+          add_arg --webui-enabled "${WEBUI_ENABLED:-}"
+          add_arg --webui-mount-path "${WEBUI_MOUNT_PATH:-}"
+          add_arg --webui-dist-dir "${WEBUI_DIST_DIR:-}"
+          add_arg --webui-public-base-url "${WEBUI_PUBLIC_BASE_URL:-}"
+          add_arg --webui-api-base-url "${WEBUI_API_BASE_URL:-}"
+          add_arg --webui-check "${WEBUI_CHECK:-}"
+          add_arg --webui-check-path "${WEBUI_CHECK_PATH:-}"
+          add_arg --brand-product-name "${BRAND_PRODUCT_NAME:-}"
+          add_arg --brand-product-code "${BRAND_PRODUCT_CODE:-}"
+          add_arg --brand-version-name "${BRAND_VERSION_NAME:-}"
+          add_arg --db-driver "${DB_DRIVER:-}"
+          add_arg --db-sqlite-path "${DB_SQLITE_PATH:-}"
+          add_arg --db-mysql-host "${DB_MYSQL_HOST:-}"
+          add_arg --db-mysql-port "${DB_MYSQL_PORT:-}"
+          add_arg --db-mysql-username "${DB_MYSQL_USERNAME:-}"
+          add_arg --db-mysql-password "${DB_MYSQL_PASSWORD:-}"
+          add_arg --db-mysql-database "${DB_MYSQL_DATABASE:-}"
+          add_arg --db-mysql-charset "${DB_MYSQL_CHARSET:-}"
+          add_arg --db-postgres-host "${DB_POSTGRES_HOST:-}"
+          add_arg --db-postgres-port "${DB_POSTGRES_PORT:-}"
+          add_arg --db-postgres-username "${DB_POSTGRES_USERNAME:-}"
+          add_arg --db-postgres-password "${DB_POSTGRES_PASSWORD:-}"
+          add_arg --db-postgres-database "${DB_POSTGRES_DATABASE:-}"
+          add_arg --db-postgres-ssl-mode "${DB_POSTGRES_SSL_MODE:-}"
+          add_arg --db-pool-max-open-conns "${DB_POOL_MAX_OPEN_CONNS:-}"
+          add_arg --db-pool-max-idle-conns "${DB_POOL_MAX_IDLE_CONNS:-}"
+          add_arg --cache-driver "${CACHE_DRIVER:-}"
+          add_arg --cache-local-max-cost "${CACHE_LOCAL_MAX_COST:-}"
+          add_arg --cache-local-num-counters "${CACHE_LOCAL_NUM_COUNTERS:-}"
+          add_arg --cache-local-buffer-items "${CACHE_LOCAL_BUFFER_ITEMS:-}"
+          add_arg --cache-local-default-ttl-seconds "${CACHE_LOCAL_DEFAULT_TTL_SECONDS:-}"
+          add_arg --cache-redis-addr "${CACHE_REDIS_ADDR:-}"
+          add_arg --cache-redis-username "${CACHE_REDIS_USERNAME:-}"
+          add_arg --cache-redis-password "${CACHE_REDIS_PASSWORD:-}"
+          add_arg --cache-redis-db "${CACHE_REDIS_DB:-}"
+          add_arg --cache-redis-pool-size "${CACHE_REDIS_POOL_SIZE:-}"
+          add_arg --cache-redis-min-idle-conns "${CACHE_REDIS_MIN_IDLE_CONNS:-}"
+          add_arg --cache-redis-max-retries "${CACHE_REDIS_MAX_RETRIES:-}"
+          add_arg --cache-redis-dial-timeout "${CACHE_REDIS_DIAL_TIMEOUT:-}"
+          add_arg --cache-redis-read-timeout "${CACHE_REDIS_READ_TIMEOUT:-}"
+          add_arg --cache-redis-write-timeout "${CACHE_REDIS_WRITE_TIMEOUT:-}"
+          add_arg --server-mode "${SERVER_MODE:-}"
+          add_arg --server-read-timeout "${SERVER_READ_TIMEOUT:-}"
+          add_arg --server-write-timeout "${SERVER_WRITE_TIMEOUT:-}"
+          add_arg --log-level "${LOG_LEVEL:-}"
+          add_arg --log-format "${LOG_FORMAT:-}"
+          add_arg --log-output "${LOG_OUTPUT:-}"
+          add_arg --i18n-default-locale "${I18N_DEFAULT_LOCALE:-}"
+          add_arg --i18n-fallback-locale "${I18N_FALLBACK_LOCALE:-}"
+          add_arg --i18n-supported-locales "${I18N_SUPPORTED_LOCALES:-}"
+          add_arg --storage-driver "${STORAGE_DRIVER:-}"
+          add_arg --storage-local-fs-type "${STORAGE_LOCAL_FS_TYPE:-}"
+          add_arg --storage-local-base-path "${STORAGE_LOCAL_BASE_PATH:-}"
+          add_arg --storage-local-public-url "${STORAGE_LOCAL_PUBLIC_URL:-}"
+          add_arg --storage-local-enable-watch "${STORAGE_LOCAL_ENABLE_WATCH:-}"
+          add_arg --storage-local-watch-buffer-size "${STORAGE_LOCAL_WATCH_BUFFER_SIZE:-}"
+          add_arg --auth-enabled "${AUTH_ENABLED:-}"
+          add_arg --auth-registration-mode "${AUTH_REGISTRATION_MODE:-}"
+          add_arg --auth-issuer "${AUTH_ISSUER:-}"
+          add_arg --auth-audience "${AUTH_AUDIENCE:-}"
+          add_arg --auth-signing-key "${AUTH_SIGNING_KEY:-}"
+          add_arg --auth-access-token-ttl-seconds "${AUTH_ACCESS_TOKEN_TTL_SECONDS:-}"
+          add_arg --auth-refresh-token-ttl-seconds "${AUTH_REFRESH_TOKEN_TTL_SECONDS:-}"
+          add_arg --auth-refresh-token-pepper "${AUTH_REFRESH_TOKEN_PEPPER:-}"
+          add_arg --auth-mfa-issuer "${AUTH_MFA_ISSUER:-}"
+          add_arg --auth-mfa-secret-key "${AUTH_MFA_SECRET_KEY:-}"
+          add_arg --auth-login-max-failures "${AUTH_LOGIN_MAX_FAILURES:-}"
+          add_arg --auth-login-lock-minutes "${AUTH_LOGIN_LOCK_MINUTES:-}"
+          add_arg --auth-login-captcha-enabled "${AUTH_LOGIN_CAPTCHA_ENABLED:-}"
+          add_arg --auth-captcha-ttl-seconds "${AUTH_CAPTCHA_TTL_SECONDS:-}"
+          add_arg --auth-invitation-ttl-seconds "${AUTH_INVITATION_TTL_SECONDS:-}"
+          add_arg --auth-email-verification-ttl-seconds "${AUTH_EMAIL_VERIFICATION_TTL_SECONDS:-}"
+          add_arg --auth-password-reset-ttl-seconds "${AUTH_PASSWORD_RESET_TTL_SECONDS:-}"
+          add_arg --auth-notification-driver "${AUTH_NOTIFICATION_DRIVER:-}"
+          add_arg --auth-smtp-host "${AUTH_SMTP_HOST:-}"
+          add_arg --auth-smtp-port "${AUTH_SMTP_PORT:-}"
+          add_arg --auth-smtp-username "${AUTH_SMTP_USERNAME:-}"
+          add_arg --auth-smtp-password "${AUTH_SMTP_PASSWORD:-}"
+          add_arg --auth-smtp-from "${AUTH_SMTP_FROM:-}"
+          add_arg --auth-smtp-from-name "${AUTH_SMTP_FROM_NAME:-}"
+          add_arg --auth-smtp-security "${AUTH_SMTP_SECURITY:-}"
+          add_arg --auth-password-min-length "${AUTH_PASSWORD_MIN_LENGTH:-}"
+          add_arg --auth-password-require-lower "${AUTH_PASSWORD_REQUIRE_LOWER:-}"
+          add_arg --auth-password-require-upper "${AUTH_PASSWORD_REQUIRE_UPPER:-}"
+          add_arg --auth-password-require-number "${AUTH_PASSWORD_REQUIRE_NUMBER:-}"
+          add_arg --auth-password-require-symbol "${AUTH_PASSWORD_REQUIRE_SYMBOL:-}"
+          add_arg --auth-casbin-reload-interval-seconds "${AUTH_CASBIN_RELOAD_INTERVAL_SECONDS:-}"
+          add_arg --cors-enabled "${CORS_ENABLED:-}"
+          add_arg --cors-allow-origins "${CORS_ALLOW_ORIGINS:-}"
+          add_arg --cors-allow-methods "${CORS_ALLOW_METHODS:-}"
+          add_arg --cors-allow-headers "${CORS_ALLOW_HEADERS:-}"
+          add_arg --cors-expose-headers "${CORS_EXPOSE_HEADERS:-}"
+          add_arg --cors-allow-credentials "${CORS_ALLOW_CREDENTIALS:-}"
+          add_arg --cors-max-age "${CORS_MAX_AGE:-}"
+
+          remote_command="bash -s --"
+          for arg in "${args[@]}"; do
+            remote_command="${remote_command} $(sq "${arg}")"
+          done
+
+          ssh_opts=(-i "${DEPLOY_SSH_KEY_PATH}" -p "${deploy_port}" -o BatchMode=yes -o StrictHostKeyChecking=yes)
+          target="${DEPLOY_USER}@${DEPLOY_HOST}"
+
+          ssh "${ssh_opts[@]}" "${target}" "${remote_command}" < script/install.sh

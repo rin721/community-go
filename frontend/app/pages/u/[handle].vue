@@ -2,8 +2,9 @@
 const route = useRoute()
 const api = useAoiApi()
 const following = useFollowingStore()
-const { t } = useI18n()
+const { locale, t } = useI18n()
 const handle = computed(() => String(route.params.handle || ""))
+const displayHandle = computed(() => handle.value ? `@${handle.value}` : "@")
 
 const { data: creator, error, pending, refresh } = useAsyncData(
   () => `creator-${handle.value}`,
@@ -13,24 +14,39 @@ const { data: creator, error, pending, refresh } = useAsyncData(
   }
 )
 
+const dateLocale = computed(() => {
+  if (locale.value === "ja") {
+    return "ja-JP"
+  }
+  if (locale.value === "en") {
+    return "en-US"
+  }
+  return "zh-CN"
+})
 const joinedDate = computed(() => {
   if (!creator.value) {
     return ""
   }
 
-  return new Intl.DateTimeFormat("zh-CN", {
+  const date = new Date(creator.value.joinedAt)
+  if (Number.isNaN(date.getTime())) {
+    return t("creator.unknownJoined")
+  }
+
+  return new Intl.DateTimeFormat(dateLocale.value, {
     month: "long",
     year: "numeric"
-  }).format(new Date(creator.value.joinedAt))
+  }).format(date)
 })
 const isFollowing = computed(() => creator.value ? following.isFollowing(creator.value.id) : false)
 const isFollowPending = computed(() => creator.value ? following.isPending(creator.value.id) : false)
 const displayedFollowerCount = computed(() => creator.value ? following.followerCountFor(creator.value) : 0)
+const creatorDescription = computed(() => creator.value?.bio || t("creator.emptyBio"))
 const creatorStats = computed(() => creator.value
   ? [
-      { label: t("creator.stats.followers"), value: formatCount(displayedFollowerCount.value) },
-      { label: t("creator.stats.videos"), value: creator.value.videoCount },
-      { label: t("creator.stats.joined"), value: joinedDate.value }
+      { icon: "users-round", label: t("creator.stats.followers"), value: formatCount(displayedFollowerCount.value) },
+      { icon: "video", label: t("creator.stats.videos"), value: formatCount(creator.value.videoCount) },
+      { icon: "calendar-days", label: t("creator.stats.joined"), value: joinedDate.value }
     ]
   : [])
 const categoryTags = computed(() => creator.value?.categories.map((category) => ({
@@ -38,13 +54,18 @@ const categoryTags = computed(() => creator.value?.categories.map((category) => 
   to: `/category/${category.slug}`,
   value: category.id
 })) || [])
+const followButtonAria = computed(() => creator.value
+  ? t(isFollowing.value ? "creator.unfollowAria" : "creator.followAria", { name: creator.value.displayName })
+  : t("creator.follow"))
+const searchTarget = computed(() => creator.value
+  ? `/search?q=${encodeURIComponent(creator.value.displayName)}`
+  : "/search")
 
 function formatCount(value: number) {
-  if (value >= 1000) {
-    return `${(value / 1000).toFixed(1)}k`
-  }
-
-  return String(value)
+  return new Intl.NumberFormat(dateLocale.value, {
+    maximumFractionDigits: 1,
+    notation: value >= 1000 ? "compact" : "standard"
+  }).format(value)
 }
 
 async function toggleFollow() {
@@ -54,63 +75,92 @@ async function toggleFollow() {
 }
 
 useHead(() => ({
-  title: creator.value ? `${creator.value.displayName} - Aoi` : "Creator - Aoi"
+  title: creator.value ? `${creator.value.displayName} - Aoi` : `${t("creator.headTitle")} - Aoi`
 }))
 </script>
 
 <template>
-  <div class="aoi-page">
+  <div class="aoi-page creator-page">
+    <section
+      v-if="pending"
+      class="creator-loading"
+      :aria-label="t('creator.loadingTitle')"
+      aria-live="polite"
+    >
+      <span class="creator-loading__sr">
+        {{ t("creator.loadingTitle") }}. {{ t("creator.loadingDescription") }}
+      </span>
+      <div class="creator-loading__avatar" aria-hidden="true" />
+      <div class="creator-loading__copy">
+        <span class="creator-loading__line creator-loading__line--title" />
+        <span class="creator-loading__line" />
+        <span class="creator-loading__line creator-loading__line--short" />
+      </div>
+    </section>
+
     <PageState
-      v-if="!pending && error"
+      v-else-if="error"
       icon="user-x"
-      title="创作者不存在"
-      :description="`没有找到 @${route.params.handle} 对应的创作者。`"
+      :title="t('creator.errorTitle')"
+      :description="t('creator.errorDescription', { handle: displayHandle })"
       action-icon="search"
-      action-label="去搜索"
+      :action-label="t('creator.searchAction')"
       @action="navigateTo('/search')"
     />
 
-    <article v-else-if="!pending && creator" class="creator-profile">
+    <article v-else-if="creator" class="creator-profile">
       <section v-aoi-reveal="'rise'" class="creator-profile__hero">
-        <div class="creator-profile__avatar" aria-hidden="true">
-          {{ creator.displayName.slice(0, 1).toUpperCase() }}
+        <div class="creator-profile__identity">
+          <div class="creator-profile__avatar" aria-hidden="true">
+            {{ creator.displayName.slice(0, 1).toUpperCase() }}
+          </div>
+          <span class="creator-profile__handle">@{{ creator.handle }}</span>
         </div>
 
-        <PageHeader
-          :eyebrow="`@${creator.handle}`"
-          :title="creator.displayName"
-          :description="creator.bio || '这个创作者还没有填写简介。'"
-        >
-          <template #actions>
-            <AoiButton tone="accent"
-              :variant="isFollowing ? 'tonal' : 'filled'"
-              :icon="isFollowing ? 'user-check' : 'bell-plus'"
-              :aria-label="isFollowing ? t('creator.unfollow') : t('creator.follow')"
-              :disabled="!following.hydrated || isFollowPending"
-              :loading="isFollowPending"
-              @click="toggleFollow"
-            >
-              {{ isFollowPending ? t("creator.followSyncing") : isFollowing ? t("creator.following") : t("creator.follow") }}
-            </AoiButton>
-            <AoiButton tone="accent" variant="outlined" icon="search" :to="`/search?q=${encodeURIComponent(creator.displayName)}`">
-              搜索作品
-            </AoiButton>
-          </template>
-        </PageHeader>
+        <div class="creator-profile__content">
+          <PageHeader
+            :eyebrow="t('creator.profileEyebrow')"
+            :title="creator.displayName"
+            :description="creatorDescription"
+          >
+            <template #actions>
+              <AoiButton
+                tone="accent"
+                :variant="isFollowing ? 'tonal' : 'filled'"
+                :icon="isFollowing ? 'user-check' : 'bell-plus'"
+                :aria-label="followButtonAria"
+                :disabled="!following.hydrated || isFollowPending"
+                :loading="isFollowPending"
+                @click="toggleFollow"
+              >
+                {{ isFollowPending ? t("creator.followSyncing") : isFollowing ? t("creator.following") : t("creator.follow") }}
+              </AoiButton>
+              <AoiButton tone="accent" variant="outlined" icon="search" :to="searchTarget">
+                {{ t("creator.searchWorks") }}
+              </AoiButton>
+            </template>
+          </PageHeader>
+
+          <p class="creator-profile__source">
+            <AoiIcon name="database" :size="14" decorative />
+            {{ t("creator.sourceNote") }}
+          </p>
+        </div>
 
         <div class="creator-profile__mobile-actions">
-          <AoiButton tone="accent"
+          <AoiButton
+            tone="accent"
             :variant="isFollowing ? 'tonal' : 'filled'"
             :icon="isFollowing ? 'user-check' : 'bell-plus'"
-            :aria-label="isFollowing ? t('creator.unfollow') : t('creator.follow')"
+            :aria-label="followButtonAria"
             :disabled="!following.hydrated || isFollowPending"
             :loading="isFollowPending"
             @click="toggleFollow"
           >
             {{ isFollowPending ? t("creator.followSyncing") : isFollowing ? t("creator.following") : t("creator.follow") }}
           </AoiButton>
-          <AoiButton tone="accent" variant="outlined" icon="search" :to="`/search?q=${encodeURIComponent(creator.displayName)}`">
-            搜索作品
+          <AoiButton tone="accent" variant="outlined" icon="search" :to="searchTarget">
+            {{ t("creator.searchWorks") }}
           </AoiButton>
         </div>
 
@@ -120,50 +170,126 @@ useHead(() => ({
       <AoiTagList
         v-if="creator.categories.length"
         :items="categoryTags"
-        aria-label="常见分区"
+        :aria-label="t('creator.categoriesAria')"
         reveal="fade"
+        tone="accent"
       />
 
-      <AoiSection title="最新投稿" title-id="creator-videos-title">
+      <AoiSection :title="t('creator.latestTitle')" title-id="creator-videos-title">
         <VideoGrid v-if="creator.latest.items.length" :videos="creator.latest.items" />
         <PageState
           v-else
           icon="video"
-          title="暂无投稿"
-          description="这个创作者还没有可展示的视频。"
+          :title="t('creator.emptyVideosTitle')"
+          :description="t('creator.emptyVideosDescription')"
         />
       </AoiSection>
     </article>
 
     <PageState
-      v-else-if="!pending"
+      v-else
       icon="user"
-      title="创作者加载中断"
-      description="没有拿到创作者资料。"
+      :title="t('creator.noContentTitle')"
+      :description="t('creator.noContentDescription')"
       action-icon="refresh-cw"
-      action-label="重试"
+      :action-label="t('creator.retry')"
       @action="refresh()"
     />
   </div>
 </template>
 
 <style scoped>
+.creator-page,
 .creator-profile,
 .creator-profile__hero {
   display: grid;
   gap: 16px;
 }
 
+.creator-loading,
 .creator-profile__hero {
-  grid-template-columns: 88px minmax(0, 1fr);
-  align-items: start;
-  border: 1px solid var(--aoi-border);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--aoi-state-border-active);
   border-radius: var(--aoi-radius-sm);
   background:
-    linear-gradient(135deg, rgba(34, 184, 207, 0.08), transparent 38%),
-    var(--aoi-surface);
+    linear-gradient(135deg, color-mix(in srgb, var(--aoi-accent-10) 72%, transparent), transparent 42%),
+    linear-gradient(180deg, color-mix(in srgb, var(--aoi-surface-solid) 86%, transparent), var(--aoi-surface));
   box-shadow: var(--aoi-shadow-sm);
   padding: 18px;
+}
+
+.creator-loading::before,
+.creator-profile__hero::before {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(90deg, var(--aoi-accent-50), var(--aoi-sakura-50), var(--aoi-accent-40));
+  content: "";
+}
+
+.creator-loading {
+  grid-template-columns: 88px minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+}
+
+.creator-loading__sr {
+  position: absolute;
+  overflow: hidden;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.creator-loading__avatar,
+.creator-loading__line {
+  background: linear-gradient(110deg, var(--aoi-accent-10), var(--aoi-surface-muted), var(--aoi-accent-10));
+  background-size: 200% 100%;
+  animation: creator-loading-shimmer 1.2s var(--aoi-ease-out) infinite;
+}
+
+.creator-loading__avatar {
+  width: 88px;
+  height: 88px;
+  border-radius: var(--aoi-radius-sm);
+}
+
+.creator-loading__copy {
+  display: grid;
+  min-width: 0;
+  gap: 10px;
+}
+
+.creator-loading__line {
+  display: block;
+  width: min(100%, 560px);
+  height: 10px;
+  border-radius: var(--aoi-radius-round);
+}
+
+.creator-loading__line--title {
+  width: min(62%, 280px);
+  height: 18px;
+}
+
+.creator-loading__line--short {
+  width: min(42%, 220px);
+}
+
+.creator-profile__hero {
+  grid-template-columns: 96px minmax(0, 1fr);
+  align-items: start;
+}
+
+.creator-profile__identity {
+  display: grid;
+  min-width: 0;
+  gap: 10px;
+  justify-items: center;
 }
 
 .creator-profile__avatar {
@@ -171,14 +297,51 @@ useHead(() => ({
   width: 88px;
   height: 88px;
   place-items: center;
+  border: 1px solid color-mix(in srgb, var(--aoi-accent-50) 44%, transparent);
   border-radius: var(--aoi-radius-sm);
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.26), transparent),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.28), transparent),
     linear-gradient(135deg, var(--aoi-accent-50), var(--aoi-sakura-50));
   box-shadow: var(--aoi-shadow-sm);
   color: white;
   font-size: 30px;
   font-weight: 900;
+}
+
+.creator-profile__handle,
+.creator-profile__source {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.creator-profile__handle {
+  color: var(--aoi-accent-60);
+  font-size: 12px;
+  font-weight: 850;
+  text-align: center;
+}
+
+.creator-profile__content {
+  display: grid;
+  min-width: 0;
+  gap: 10px;
+}
+
+.creator-profile__source {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid color-mix(in srgb, var(--aoi-state-border-active) 58%, transparent);
+  border-radius: var(--aoi-radius-round);
+  background: color-mix(in srgb, var(--aoi-surface-solid) 76%, transparent);
+  color: var(--aoi-text-muted);
+  font-size: 12px;
+  font-weight: 760;
+  line-height: 1.5;
+  margin: -8px 0 0;
+  padding: 6px 10px;
 }
 
 .creator-profile__stats {
@@ -190,19 +353,57 @@ useHead(() => ({
 }
 
 @media (max-width: 700px) {
+  .creator-loading,
   .creator-profile__hero {
     grid-template-columns: 1fr;
   }
 
+  .creator-loading__avatar,
+  .creator-profile__avatar {
+    width: 72px;
+    height: 72px;
+  }
+
+  .creator-profile__identity {
+    justify-items: start;
+  }
+
+  .creator-profile__handle {
+    text-align: start;
+  }
+
   .creator-profile__stats {
     grid-column: auto;
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .creator-profile__mobile-actions {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
+  }
+}
+
+@media (max-width: 420px) {
+  .creator-profile__stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .creator-loading__avatar,
+  .creator-loading__line {
+    animation: none;
+  }
+}
+
+@keyframes creator-loading-shimmer {
+  from {
+    background-position: 120% 0;
+  }
+
+  to {
+    background-position: -80% 0;
   }
 }
 </style>

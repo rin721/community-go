@@ -12,7 +12,7 @@ description: "Repository-specific workflow for adding or extending business modu
 1. 阅读 `AGENTS.md`、`docs/extension/module-blueprint.md`、`docs/modules/permission-matrix.md` 和目标模块 README。
 2. 用 `rg` 查现有模块模式，优先复用 IAM、System、Announcements 的目录和命名习惯。
 3. 确认需求属于业务模块，而不是 `pkg` 工具库、全局 `types` 或传输层临时逻辑。
-4. 不恢复插件系统；扩展必须通过显式模块装配完成。
+4. 扩展必须通过显式模块装配完成。
 
 ## 后端闭环
 
@@ -55,5 +55,5 @@ git diff --check
 
 - 不把业务 DTO 放进全局 `types`。
 - 不把业务逻辑塞进 `handler`、`pkg` 或前端工具函数。
-- 不新增插件运行时、插件协议、插件配置块或插件管理页面。
+- 模块不得自建并行业务运行时、独立协议、独立配置块或独立管理入口；共享能力先沉淀到平台 contract 或基础设施。
 - 不只改前端模拟生产能力；生产能力必须有后端 API、权限、持久化和审计依据。

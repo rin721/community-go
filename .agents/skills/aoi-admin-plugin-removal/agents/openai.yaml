@@ -1,4 +1,4 @@
 interface:
-  display_name: "Aoi Admin Plugin Removal"
-  short_description: "当前仓库插件系统移除模块化迁移防回潮专项治理与验收流程指南"
-  default_prompt: "Use $aoi-admin-plugin-removal to remove plugin leftovers and migrate extension points to modules."
+  display_name: "Aoi Admin Extension Boundary"
+  short_description: "当前仓库模块化扩展边界治理、规则检查与验收流程指南"
+  default_prompt: "Use $aoi-admin-plugin-removal to govern extension boundaries and keep business capabilities aligned with internal modules."

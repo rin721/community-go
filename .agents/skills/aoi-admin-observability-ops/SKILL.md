@@ -16,7 +16,7 @@ description: "Repository-specific workflow for observability, health/readiness p
 ## 边界规则
 
 - `/health` 表示进程存活；`/ready` 表示依赖就绪。变更语义时必须同步测试矩阵、发布证据模板和 runtime smoke。
-- 探针、运行 smoke 和发布证据不得恢复旧插件协议、旧入口或旧品牌默认值。
+- 探针、运行 smoke 和发布证据必须验证当前协议入口、运行入口和品牌默认值。
 - 日志和审计记录不能吞掉错误；业务错误、状态和结果必须继续返回上层处理。
 - 审计字段中的产品码、平台、组织、用户、请求 ID 和 trace ID 必须来自配置、route contract、请求上下文或服务层输入，不得写死。
 - 本地烟测使用 `tmp/ai/**` 或显式临时目录，不写入默认 `data/`、本地配置或密钥文件。

@@ -5,8 +5,8 @@
 ## 适用范围
 
 - 本规则适用于根目录、`backend/`、`frontend/`、`.agents/skills`、脚本、文档、示例、测试、构建、部署和运行态资料。
-- 根目录 `AGENTS.md` 是本聚合仓库唯一项目级 Agent Rules 入口；子目录中的历史规则、工具提示或上游源码自带文件只能作为来源材料，不得覆盖、削弱或绕开本文件。
-- 后端规则来自 `backend/AGENTS.md`，在本仓库中作为默认主规则生效；路径、命令和验证必须按当前聚合目录重新定位到 `backend/...`。
+- 根目录 `AGENTS.md` 是本聚合仓库唯一项目级 Agent Rules 入口；子目录中的补充说明、工具提示或上游源码自带文件只能作为来源材料，不得覆盖、削弱或绕开本文件。
+- 后端规则由本文件的后端章节和根目录 `.agents/skills` 共同约束；路径、命令和验证必须按当前聚合目录定位到 `backend/...`。
 - 前端专项规则只在任务触碰 `frontend/**`、`backend/web/app/**`、前端构建/视觉/i18n/API client/组件体系，或用户明确要求开发前端时生效。
 - 若任务要求与本规则冲突，必须先指出冲突并确认处理方式。
 
@@ -14,17 +14,17 @@
 
 - `backend/` 是可运行、可扩展、可二次开发的开源后台管理 / 控制台平台底座。
 - `backend/` 主平台统一承载账号、权限、组织租户、配置、审计日志、API catalog、媒体、版本、系统管理、初始化和基础运营能力。
-- `frontend/` 是 Nuxt 4 前端优先的视频社区应用，覆盖首页发现、分类浏览、搜索、关注动态、视频播放、用户页、历史/收藏、上传草稿和设置中心。
+- `frontend/` 是 Nuxt 4 前端优先的视频社区应用，覆盖首页发现、分类浏览、搜索、关注动态、视频播放、用户页、观看记录/收藏、上传草稿和设置中心。
 - 未来业务扩展优先通过 `backend/internal/modules` 新增模块，并通过后端 contract、前端 API client、页面、i18n、测试和文档同步落地。
 - 不得在任一前端凭空实现后端尚未暴露的生产能力；mock、fixture 和本地状态必须清楚标记为前端体验或开发辅助。
 
 ## 强制规则
 
-- 不保留旧产物、旧入口、旧字段、旧示例、旧文档、旧逻辑、旧兼容层、停用设计或临时过渡方案。
-- 发现废弃设计后，必须迁移到当前设计并删除旧实现，不允许新旧双轨并存。
+- 交付面只保留当前架构需要的产物、入口、字段、示例、文档、逻辑和运行路径。
+- 发现与当前设计不一致的实现后，必须收敛到当前设计并清理关联实现，不允许双轨并存。
 - CLI、WebUI、runtime、配置加载和初始化流程不得各自维护重复逻辑；共享行为必须收敛到统一实现。
 - 修改代码前必须分析现状、调用链、依赖关系和影响边界；不得基于猜测修改代码。
-- 修改后必须清理代码、配置、文档、示例、测试、构建脚本和运行手册中的相关旧引用。
+- 修改后必须同步更新代码、配置、文档、示例、测试、构建脚本和运行手册中的相关引用。
 - 修改后必须运行与变更范围匹配的构建、测试或静态检查；无法运行时必须说明原因和风险。
 - 大规模重构、发布候选或拆分 PR 前必须运行工作树收敛检查，确认没有本地配置、根级运行态目录、生成目录或测试报告混入交付面。
 
@@ -35,7 +35,7 @@
 - 根目录 README、项目 Logo 和仓库叙事可以保留项目代号；该例外不适用于运行时代码、配置默认值、API、日志、错误信息、前端生产文案或模块命名。
 - 后端新增或修改配置项时，必须同步 `backend/internal/config`、配置默认值、`backend/configs/*.example.yaml`、`backend/configs/examples/*.example.yaml`、`backend/deploy/config.production.example.yaml`、后端 system locale、相关文档和测试。
 - `backend` 的 `brand.productCode` 是主平台默认产品码来源；产品线、客户端类型、平台类型、组织上下文和缓存 key 维度必须通过配置、请求上下文或 contract 传递。
-- 稳定协议值、HTTP 方法、数据库列名、迁移历史回填值、枚举类型、错误码、编译期 contract 标识和包内私有常量可以保留在代码中，但不得承载可运营、可部署、可品牌化或可按产品线变化的策略。
+- 稳定协议值、HTTP 方法、数据库列名、迁移回填值、枚举类型、错误码、编译期 contract 标识和包内私有常量可以保留在代码中，但不得承载可运营、可部署、可品牌化或可按产品线变化的策略。
 
 ## 后端架构边界
 
@@ -76,7 +76,7 @@
 - React 后台 API 统一通过 `backend/web/app/app/lib/api` 的 endpoint 表和 API client，不要散落新的 `/api/v1` 字符串。
 - 首次安装向导必须位于 `/setup/*`，安装步骤、字段、驱动、选项、测试能力和完成状态必须来自后端 setup schema 与 status API。
 - 用户可见文案必须维护在 locale 资源中，不要在页面、组件、store、配置、表单 schema、表格列或 SEO helper 中硬编码展示文本。
-- 前后端 canonical locale 统一为 `zh-CN`、`en-US`；API client 直接透传当前 locale 到 `X-Locale`。只能在 locale 入口保留浏览器语言或旧本地值归一化，不得恢复 `en` 资源目录、后端 locale 或 API 传递双轨。
+- 前后端 canonical locale 统一为 `zh-CN`、`en-US`；API client 直接透传当前 locale 到 `X-Locale`。locale 入口负责把浏览器语言、本地存储值和外部输入归一化到 canonical locale，资源目录、后端 locale 和 API 传递保持单线。
 - 可见 UI 变更必须保持响应式、可访问焦点、键盘操作、触控尺寸、文本对比度和 `prefers-reduced-motion` 支持。
 
 ## Nuxt 前端规则
@@ -118,13 +118,14 @@
 
 - 文档应描述当前行为，而不是未来愿望。未来能力或缺失能力写入合适的 backlog、known gaps 或任务计划文档。
 - 文档、注释、README 和长期规则以中文为主；保留具体命令、文件路径和已验证事实。
+- 文档、规则、skill 和说明统一采用当前架构态表达；约束边界时直接写当前允许的入口、模块路径、配置来源、数据来源和验证命令，不用淘汰对象清单或回潮提示作为长期描述。
 - 如果终端输出出现乱码，先用 UTF-8 或原始字节检查文件，再重写文档。
 - 所有关键代码实现应具备 README 或说明文档，方便未来开发者快速理解和使用。
 - `frontend/` 的长期前端规则统一维护在本文件；前端目录内只保留与运行态实现直接相关的页面、组件、样式、状态、API 与测试资料。
 
 ## Skill 与 Agent 配置
 
-- 根目录 `.agents/skills` 是本聚合仓库的主 skill 入口，已合并后端维护、构建 CI、文档治理、模块开发、API 契约、WebUI/i18n、视觉 QA、提交规范和通用前端/设计技能。
+- 根目录 `.agents/skills` 是本聚合仓库的主 skill 入口，覆盖后端维护、构建 CI、文档治理、模块开发、API 契约、WebUI/i18n、视觉 QA、提交规范和通用前端/设计技能。
 - `backend/.agents/skills` 是导入后端源码自带的上游副本；在本聚合仓库执行任务时优先使用根目录 `.agents/skills`。
 - README/AGENTS/docs/skill 元数据治理使用 `.agents/skills/aoi-admin-docs-governance`；阶段任务计划、进度追踪、验收证据索引和 PR 拆分计划使用 `.agents/skills/aoi-admin-task-planning`。
 - 后端平台化重构、最终验收审计、模块化扩展、扩展边界治理、README/AGENTS/docs 同步或发布前 readiness 任务，优先使用 `.agents/skills/aoi-admin-platform-maintenance`。
@@ -192,7 +193,7 @@ git diff --check
 - 自动提交前必须只暂存本次任务相关文件，不得使用未经审查的 `git add .`；若存在无关用户改动、验证失败、密钥/本地配置/运行态数据混入、合并冲突或用户要求不提交，必须停止自动提交并说明原因。
 - 提交信息必须遵循 Conventional Commits：`<type>(<scope>): <subject>`。允许的 `type` 包括 `feat`、`fix`、`refactor`、`docs`、`test`、`build`、`chore`、`style`；`subject` 使用英文祈使句，不以句号结尾。
 - 涉及入口、模块路径、二进制名、Docker、CI、发布包、部署脚本或品牌默认值时，必须运行 `backend/scripts/check-entry-brand-convergence.ps1`。
-- 涉及插件删除边界、模块扩展路线、受控配置示例、前端后台入口或生产交付面 API 路径时，必须运行 `backend/scripts/check-plugin-removal.ps1`。
+- 涉及模块扩展边界、受控配置示例、前端后台入口或生产交付面 API 路径时，必须运行 `backend/scripts/check-plugin-removal.ps1`。
 - 涉及 service、repository、infrastructure、`pkg`、CLI 运行态、清理逻辑或错误/结果返回规则时，必须运行 `backend/scripts/check-error-result-boundaries.ps1`，确认没有新增无说明的吞错或忽略状态。
 - 当前机器无法运行 Docker 或 Bash 时，不得宣称容器构建和容器烟测已完成；必须在目标环境或 CI 使用后端 smoke 脚本或 CI 补证。
 

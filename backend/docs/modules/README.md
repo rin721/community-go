@@ -16,7 +16,7 @@
 
 - 模块文档必须对应 `internal/modules/*`、HTTP contract、前端页面和权限矩阵的真实行为。
 - 新增模块时同步模块 README、`docs/extension`、权限矩阵、OpenAPI、前端 i18n 和测试。
-- 不把插件系统作为扩展方式写回模块文档。
+- 模块文档只描述 `internal/modules`、应用装配、route contract、前端 API client、页面、i18n、测试和文档同步链路。
 
 ## 常用验证
 

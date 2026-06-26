@@ -102,7 +102,7 @@ Storage 不可用时，列表和外链导入仍可工作；普通上传、断点
 - 响应体缺少期望关键字；
 - DNS、连接、TLS、TTFB 或总耗时探测失败。
 
-目标数据写入 `system_traffic_probe_targets`，每次探测结果写入 `system_traffic_probe_results`，同一目标只保留最近 500 条结果。异常事件写入 `system_traffic_hijack_events`，按 `targetId + reason + evidenceHash` 聚合 open/update/resolved 状态。探针 runner 返回的 `EvidenceJSON` 必须是合法 JSON；校验失败会返回错误，并且不会写入本次结果、目标状态或劫持事件。探针适配器内部证据序列化失败时会返回兼容的 `{}` 并写入 warn 日志，避免把编码异常静默隐藏。单次探测后的旧结果裁剪失败不阻断本次结果写入，但会写入 warn 日志并包含 `target_id` 和底层错误；后台维护任务会继续按目标补偿执行旧结果裁剪，失败会返回调度器记录。告警通道为目标级配置：`event` 写站内事件，`debug` 写后端日志，`email` 复用 SMTP sender；邮件不可用不会阻塞探针，只更新通知状态。
+目标数据写入 `system_traffic_probe_targets`，每次探测结果写入 `system_traffic_probe_results`，同一目标只保留最近 500 条结果。异常事件写入 `system_traffic_hijack_events`，按 `targetId + reason + evidenceHash` 聚合 open/update/resolved 状态。探针 runner 返回的 `EvidenceJSON` 必须是合法 JSON；校验失败会返回错误，并且不会写入本次结果、目标状态或劫持事件。探针适配器内部证据序列化失败时会返回 `{}` 并写入 warn 日志，避免把编码异常静默隐藏。单次探测后的结果保留窗口维护失败不阻断本次结果写入，但会写入 warn 日志并包含 `target_id` 和底层错误；后台维护任务会继续按目标补偿维护结果保留窗口，失败会返回调度器记录。告警通道为目标级配置：`event` 写站内事件，`debug` 写后端日志，`email` 复用 SMTP sender；邮件不可用不会阻塞探针，只更新通知状态。
 
 后台入口为 `/admin/traffic-hijack`，工作台 `/admin` 同步展示概览卡片。实时展示使用 `GET /api/v1/system/traffic-hijack/stream` 的 `text/event-stream`，前端因认证需要通过带 Bearer header 的 fetch stream 消费 SSE；断开后按 30 秒轮询 overview/results/events。SSE 写入失败表示客户端连接或传输已不可用，handler 会记录 warn 并结束当前 stream，不继续 flush 失效事件。
 

@@ -20,7 +20,7 @@ description: "Repository-specific workflow for CLI, runtime, lifecycle, managed 
 - `internal/app` 负责启动、停止、reload、依赖注入和资源关闭；业务模块不直接创建数据库、缓存、logger、HTTP server 或进程控制器。
 - CLI handler 只做参数解析、输出适配和错误呈现；运行规则、状态持久化和业务用例留在 service 或应用装配层。
 - 托管服务状态文件是 CLI 判断后台 server 状态的事实来源，状态写入失败必须返回调用方；原始操作失败且状态落盘失败时使用 `errors.Join` 保留双重错误。
-- 健康检查、ready 探针和 smoke 脚本必须验证当前真实入口与静态托管路径，不得恢复旧入口、插件协议或旧品牌默认值。
+- 健康检查、ready 探针和 smoke 脚本必须验证当前真实入口、静态托管路径、模块化扩展边界和品牌默认值。
 - best-effort 清理只能用于不影响业务正确性的临时文件或一次性信号，并在代码或 README 中说明影响边界。
 
 ## 常见任务

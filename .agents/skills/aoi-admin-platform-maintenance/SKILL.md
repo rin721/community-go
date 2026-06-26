@@ -1,6 +1,6 @@
 ---
 name: aoi-admin-platform-maintenance
-description: "Repository-specific maintenance workflow for the aoi-admin / open console platform repository. Use when Codex works in this repo on architecture refactors, plugin-system removal, module additions, Go backend or React WebUI changes, i18n/config/API contracts, README/AGENTS/docs sync, release/readiness gates, validation, or open-source platform acceptance. Enforces code-first analysis, layered boundaries, module-first extension, Chinese-first documentation, and scope-matched verification."
+description: "Repository-specific maintenance workflow for the aoi-admin / open console platform repository. Use when Codex works in this repo on architecture refactors, extension-boundary governance, module additions, Go backend or React WebUI changes, i18n/config/API contracts, README/AGENTS/docs sync, release/readiness gates, validation, or open-source platform acceptance. Enforces code-first analysis, layered boundaries, module-first extension, Chinese-first documentation, and scope-matched verification."
 ---
 
 # Aoi Admin Platform Maintenance
@@ -13,17 +13,17 @@ description: "Repository-specific maintenance workflow for the aoi-admin / open 
 2. 用 `git status --branch --short` 确认工作树；不要覆盖用户改动。
 3. 以真实代码、配置、路由、脚本、测试和运行结果为事实来源，文档只作辅助证据。
 4. 先用 `rg` / `rg --files` 查入口、引用和残留，再决定修改范围。
-5. 保留根 README 中受控的 Aoi 项目代号语境；运行时配置、API、日志、错误、前端生产文案和部署默认值不得重新硬编码旧品牌、旧入口或旧脚手架命名。
+5. 保留根 README 中受控的 Aoi 项目代号语境；运行时配置、API、日志、错误、前端生产文案和部署默认值必须使用当前品牌、入口和脚手架命名来源。
 
 ## 架构边界
 
 - `cmd/console` 是当前 Go 进程入口，命令层保持轻薄。
 - `internal/app` 负责应用生命周期、装配、启动、停止、重载和基础设施注入。
-- `internal/modules` 是业务扩展位置；新增业务能力走模块化开发，不恢复插件系统。
+- `internal/modules` 是业务扩展位置；新增业务能力走模块化开发。
 - 模块内 `model` 承载领域数据，`service` 承载用例和本地接口，`handler` 做传输适配，`repository` / `infrastructure` 隔离 ORM、缓存、外部协议等实现。
 - `pkg` 只放可复用基础能力，不能依赖 `internal/app` 或 `internal/modules`。
 - `types` 只放平台级生命周期、跨层契约、认证上下文、通用错误和结果辅助；业务 DTO 和模块私有类型留在模块内。
-- `web/app` 是当前 React 一体化前端；公开页、`/setup` 和 `/admin` 都在这里维护，不恢复旧前端生产入口。
+- `web/app` 是当前 React 一体化前端；公开页、`/setup` 和 `/admin` 都在这里维护。
 
 ## 修改流程
 
@@ -31,7 +31,7 @@ description: "Repository-specific maintenance workflow for the aoi-admin / open 
 2. 给出最小但完整的修复方案；不要一次性做无边界重构。
 3. 修改代码前说明将编辑哪些文件和原因。
 4. 代码与文档同步修改；README、AGENTS、i18n、OpenAPI、测试矩阵和发布文档必须跟随真实行为。
-5. 删除旧实现时同步清理代码、配置、文档、示例、测试、脚本和运行手册中的旧引用。
+5. 调整实现时同步更新代码、配置、文档、示例、测试、脚本和运行手册中的相关引用。
 6. 按风险运行验证；失败时说明原因、影响范围和下一步。
 7. 任务结束且有文件变更时，使用 `$git-conventional-commit` 收尾，除非用户明确要求不要提交。
 
@@ -51,19 +51,16 @@ description: "Repository-specific maintenance workflow for the aoi-admin / open 
 - 可见 UI 变更要检查桌面和移动端布局、空/加载/错误状态、权限禁用态、焦点和键盘操作。
 - 不要凭空实现后端未暴露的生产能力；页面能力必须对应后端 API、权限、配置、持久化和审计边界。
 
-## 插件移除防回潮
+## 模块化扩展边界
 
-插件系统已经移除。遇到扩展、权限、菜单、路由、配置、文档或发布脚本变更时，确认没有恢复：
+遇到扩展、权限、菜单、路由、配置、文档或发布脚本变更时，确认交付面只描述当前模块化路径：
 
-- `internal/plugin`
-- `pkg/plugin`
-- `pkg/pluginapi`
-- `_examples/remote-plugins`
-- `docs/api/plugin-protocol`
-- `/api/v1/plugins`
-- `/plugin-api`
-- 前端插件路由或插件 API client
-- 配置示例中的 `plugins:` 块
+- `internal/modules`
+- `internal/app/initapp`
+- `internal/transport/http/contracts.go`
+- 后端 API catalog 与权限同步
+- 前端 API client、页面、i18n 和测试
+- 受控配置示例、部署示例和发布脚本中的当前配置项
 
 推荐验证：
 

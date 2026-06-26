@@ -13,7 +13,7 @@ description: "Repository-specific workflow for IAM authentication and authorizat
 2. 若修改 HTTP API、权限码、请求/响应 DTO 或前端 API client，同时使用 `$aoi-admin-api-contract-sync`。
 3. 若修改配置、SMTP、会话策略、Token TTL、MFA 策略或缓存策略，同时使用 `$aoi-admin-config-governance`。
 4. 若修改 `web/app` 可见流程、路由守卫、后台页面或 i18n，同时使用 `$aoi-admin-webui-i18n`。
-5. 用 `rg` 查调用链，不要根据页面或旧文档猜测 IAM 能力。
+5. 用 `rg` 查调用链，不要根据页面或未验证文档猜测 IAM 能力。
 
 ## 边界规则
 

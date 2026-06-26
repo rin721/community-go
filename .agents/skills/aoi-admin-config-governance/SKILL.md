@@ -50,7 +50,7 @@ description: "Repository-specific workflow for changing configuration in this ao
 ## 规则
 
 - 可变策略、品牌、部署差异、TTL、批量、调度、认证安全和资源路径进入配置，不写死在 service、handler、store 或页面中。
-- 稳定协议值、HTTP 方法、数据库列名、迁移历史值和编译期 contract 标识可以留在代码里。
+- 稳定协议值、HTTP 方法、数据库列名、迁移回填值和编译期 contract 标识可以留在代码里。
 - 指针型可选配置必须有值方法、默认值、校验和深拷贝测试。
 - 数值配置必须校验边界；无业务依据时至少拒绝非正数。
 - 配置 API 不负责吞掉无效输入；底层解析错误向上返回，由 manager/service/handler 统一映射。

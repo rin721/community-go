@@ -634,7 +634,7 @@ class OrderResponse(BaseModel):
 class OrderResponse(BaseModel):
     id: str
     total: Decimal
-    status: str  # Deprecated — use order_status
+    status: str  # Prefer order_status for new payloads
     order_status: str  # New name
 
     @model_validator(mode="after")

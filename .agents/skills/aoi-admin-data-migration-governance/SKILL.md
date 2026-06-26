@@ -16,7 +16,7 @@ description: "Repository-specific workflow for database migrations, GORM models,
 
 ## 迁移规则
 
-- 共享迁移一旦进入版本库即 append-only，不重写历史迁移。
+- 共享迁移一旦进入版本库即 append-only，不重写既有迁移。
 - 新迁移文件命名保持时间戳顺序，SQL 兼容当前支持的数据库驱动；无法跨库统一时在文档中说明边界。
 - 迁移必须与 GORM model、repository 查询、索引需求、唯一约束和软删除语义一致。
 - 回填数据不得写入私有品牌、私有组织或不可复用默认值；产品、品牌和部署差异通过配置或 system 参数表达。

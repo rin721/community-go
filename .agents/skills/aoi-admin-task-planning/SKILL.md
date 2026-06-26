@@ -11,7 +11,7 @@ description: "Repository-specific workflow for staged task plans, refactor roadm
 
 1. 阅读 `AGENTS.md`、`docs/README.md`、`docs/maintenance/README.md`、`docs/maintenance/refactor-roadmap-2026-06-23.md`、`docs/maintenance/pr-split-plan-2026-06-23.md` 和 `docs/maintenance/final-acceptance-gap-audit-2026-06-23.md`。
 2. 用 `git status --branch --short`、`rg` 和目标目录 README 确认当前代码事实、已有审计记录和未提交变更。
-3. 如果计划涉及插件移除、发布、WebUI、API、配置、IAM、错误契约或数据迁移，同时使用对应仓库专项 skill。
+3. 如果计划涉及扩展边界、发布、WebUI、API、配置、IAM、错误契约或数据迁移，同时使用对应仓库专项 skill。
 
 ## 计划原则
 

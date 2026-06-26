@@ -308,6 +308,7 @@ func registerCommunityRoutes(v1 ports.HTTPRouter, deps RouterDeps) []RouteContra
 		routeSpecFor("community.videos.interaction-state", deps.CommunityHandler.VideoInteractionState),
 		routeSpecFor("community.videos.interactions.set", deps.CommunityHandler.SetVideoInteraction),
 		routeSpecFor("community.videos.interactions.unset", deps.CommunityHandler.UnsetVideoInteraction),
+		routeSpecFor("community.videos.history.record", deps.CommunityHandler.RecordHistory),
 		routeSpecFor("community.videos.reports.create", deps.CommunityHandler.CreateVideoReport),
 		routeSpecFor("community.notifications.list", deps.CommunityHandler.Notifications),
 		routeSpecFor("community.notifications.read", deps.CommunityHandler.MarkNotificationsRead),
@@ -318,6 +319,8 @@ func registerCommunityRoutes(v1 ports.HTTPRouter, deps RouterDeps) []RouteContra
 		routeSpecFor("community.creators.unfollow", deps.CommunityHandler.UnfollowCreator),
 		routeSpecFor("community.feed.following", deps.CommunityHandler.Following),
 		routeSpecFor("community.library", deps.CommunityHandler.Library),
+		routeSpecFor("community.history.list", deps.CommunityHandler.History),
+		routeSpecFor("community.history.clear", deps.CommunityHandler.ClearHistory),
 	}
 	registerRouteSpecs(public, appconstants.APIPath("public", "community"), specs)
 	return routeContractsFromSpecs(specs)

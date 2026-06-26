@@ -1,8 +1,9 @@
-import type { AoiApiErrorPayload, VideoInteractionKind, VideoInteractionState, VideoLibraryPayload, VideoSummary } from "~/types/api"
+import type { AoiApiErrorPayload, VideoHistoryPayload, VideoInteractionKind, VideoInteractionState, VideoLibraryPayload, VideoSummary } from "~/types/api"
 import type { HistoryEntry, LibraryVideoSnapshot } from "~/types/library"
 
 const STORAGE_KEY = "aoi.library.v1"
 const CLIENT_ID_STORAGE_KEY = "aoi.community.clientId.v1"
+const HISTORY_SYNC_DELAY_MS = 1200
 
 interface PersistedLibraryState {
   favoriteVideos: Record<string, LibraryVideoSnapshot>
@@ -114,6 +115,7 @@ export const useLibraryStore = defineStore("library", () => {
   const pendingVideoIds = ref<Record<string, boolean>>({})
   const syncError = ref<string | null>(null)
   const watchLaterVideos = ref<Record<string, LibraryVideoSnapshot>>({})
+  const historySyncTimers = new Map<string, number>()
 
   const favoriteList = computed(() => Object.values(favoriteVideos.value))
   const historyVideos = computed(() => history.value.map((entry) => entry.video))
@@ -204,15 +206,18 @@ export const useLibraryStore = defineStore("library", () => {
       },
       ...current
     ]
+    queueHistorySync(video.id, 0)
   }
 
   function updateHistoryProgress(videoId: string, progressSeconds: number) {
+    let updated = false
     history.value = history.value.map((entry) => {
       if (entry.video.id !== videoId) {
         return entry
       }
 
       const normalizedProgress = normalizeProgress(entry.video, progressSeconds)
+      updated = true
 
       return {
         ...entry,
@@ -220,10 +225,54 @@ export const useLibraryStore = defineStore("library", () => {
         progressSeconds: normalizedProgress ?? entry.progressSeconds
       }
     })
+    if (updated) {
+      queueHistorySync(videoId, HISTORY_SYNC_DELAY_MS)
+    }
   }
 
   function historyProgressForVideo(videoId: string) {
     return history.value.find((entry) => entry.video.id === videoId)?.progressSeconds || 0
+  }
+
+  function queueHistorySync(videoId: string, delay: number) {
+    if (!import.meta.client || !hydrated.value) {
+      return
+    }
+    const existingTimer = historySyncTimers.get(videoId)
+    if (existingTimer) {
+      window.clearTimeout(existingTimer)
+    }
+    const timer = window.setTimeout(() => {
+      historySyncTimers.delete(videoId)
+      void syncHistoryEntry(videoId)
+    }, Math.max(0, delay))
+    historySyncTimers.set(videoId, timer)
+  }
+
+  async function syncHistoryEntry(videoId: string) {
+    if (!hydrated.value) {
+      return null
+    }
+    const entry = history.value.find((item) => item.video.id === videoId)
+    if (!entry) {
+      return null
+    }
+
+    const api = useAoiApi()
+
+    try {
+      const item = await api.recordVideoHistory(entry.video.id, {
+        clientId: ensureClientId(),
+        progressSeconds: entry.progressSeconds
+      })
+      backendReady.value = true
+      syncError.value = null
+      return item
+    } catch (error) {
+      backendReady.value = false
+      syncError.value = errorMessage(error)
+      return null
+    }
   }
 
   function applyBackendLibrary(payload: VideoLibraryPayload) {
@@ -241,6 +290,26 @@ export const useLibraryStore = defineStore("library", () => {
     syncError.value = null
     favoriteVideos.value = Object.fromEntries(payload.favorites.items.map((video) => [video.id, snapshotVideo(video)]))
     watchLaterVideos.value = Object.fromEntries(payload.watchLater.items.map((video) => [video.id, snapshotVideo(video)]))
+  }
+
+  function applyBackendHistory(payload: VideoHistoryPayload) {
+    if (!payload.clientId) {
+      return
+    }
+
+    const normalizedClientId = normalizeClientId(payload.clientId)
+    if (normalizedClientId) {
+      clientId.value = normalizedClientId
+      persistClientId()
+    }
+
+    backendReady.value = true
+    syncError.value = null
+    history.value = payload.items.items.map((item) => ({
+      lastViewedAt: item.lastViewedAt,
+      progressSeconds: normalizeProgress(item.video, item.progressSeconds) ?? 0,
+      video: snapshotVideo(item.video)
+    }))
   }
 
   function applyInteractionState(video: CountableVideoSummary, state: VideoInteractionState) {
@@ -271,6 +340,33 @@ export const useLibraryStore = defineStore("library", () => {
     try {
       const payload = await api.getVideoLibrary(ensureClientId())
       applyBackendLibrary(payload)
+      return payload
+    } catch (error) {
+      backendReady.value = false
+      syncError.value = errorMessage(error)
+      return null
+    }
+  }
+
+  async function syncHistoryWithBackend(limit = 48) {
+    if (!hydrated.value) {
+      return null
+    }
+
+    const api = useAoiApi()
+
+    try {
+      let payload = await api.getVideoHistory(ensureClientId(), limit)
+      if (payload.items.items.length === 0 && history.value.length > 0) {
+        await Promise.all(
+          history.value.slice(0, limit).map((entry) => api.recordVideoHistory(entry.video.id, {
+            clientId: ensureClientId(),
+            progressSeconds: entry.progressSeconds
+          }))
+        )
+        payload = await api.getVideoHistory(ensureClientId(), limit)
+      }
+      applyBackendHistory(payload)
       return payload
     } catch (error) {
       backendReady.value = false
@@ -413,8 +509,29 @@ export const useLibraryStore = defineStore("library", () => {
     }
   }
 
-  function clearHistory() {
+  async function clearHistory() {
+    if (import.meta.client) {
+      for (const timer of historySyncTimers.values()) {
+        window.clearTimeout(timer)
+      }
+    }
+    historySyncTimers.clear()
+
     history.value = []
+    if (!hydrated.value) {
+      return
+    }
+
+    const api = useAoiApi()
+
+    try {
+      await api.clearVideoHistory({ clientId: ensureClientId() })
+      backendReady.value = true
+      syncError.value = null
+    } catch (error) {
+      backendReady.value = false
+      syncError.value = errorMessage(error)
+    }
   }
 
   async function clearFavorites() {
@@ -468,6 +585,7 @@ export const useLibraryStore = defineStore("library", () => {
   }
 
   return {
+    applyBackendHistory,
     applyBackendLibrary,
     backendReady,
     clearFavorites,
@@ -493,6 +611,7 @@ export const useLibraryStore = defineStore("library", () => {
     resetLibrary,
     restore,
     syncError,
+    syncHistoryWithBackend,
     syncVideoInteractions,
     syncWithBackend,
     toggleFavorite,

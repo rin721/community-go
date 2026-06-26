@@ -36,6 +36,7 @@ type Service interface {
 	Search(context.Context, string, int) (model.SearchPayload, error)
 	FollowingFeed(context.Context, model.CreatorFollowRequest) (model.FollowingFeedPayload, error)
 	VideoLibrary(context.Context, model.VideoInteractionRequest) (model.VideoLibraryPayload, error)
+	VideoHistory(context.Context, model.VideoHistoryFilter) (model.VideoHistoryPayload, error)
 	CommunityNotifications(context.Context, model.CommunityNotificationFilter) (model.CommunityNotificationPayload, error)
 	MarkCommunityNotificationsRead(context.Context, model.CommunityNotificationRequest) (model.CommunityNotificationPayload, error)
 	ListCommunityDynamics(context.Context, model.CommunityDynamicFilter) (model.CommunityDynamicPayload, error)
@@ -46,6 +47,8 @@ type Service interface {
 	UnfollowCreator(context.Context, string, model.CreatorFollowRequest) (model.CreatorFollowState, error)
 	SetVideoInteraction(context.Context, string, string, model.VideoInteractionRequest) (model.VideoInteractionState, error)
 	UnsetVideoInteraction(context.Context, string, string, model.VideoInteractionRequest) (model.VideoInteractionState, error)
+	RecordVideoHistory(context.Context, string, model.VideoHistoryRequest) (model.VideoHistoryItem, error)
+	ClearVideoHistory(context.Context, model.VideoHistoryClearRequest) (model.VideoHistoryPayload, error)
 	CreateVideoComment(context.Context, string, model.CreateVideoCommentRequest) (model.VideoComment, error)
 	CreateVideoDanmaku(context.Context, string, model.CreateVideoDanmakuRequest) (model.VideoDanmakuItem, error)
 	CreateVideoReport(context.Context, string, model.CreateVideoReportRequest) (model.CommunityReportReceipt, error)
@@ -66,10 +69,12 @@ type Repository interface {
 	CreateCommunitySubmission(context.Context, model.CommunitySubmission) error
 	FollowCreator(context.Context, model.CreatorFollow) error
 	SetVideoInteraction(context.Context, model.VideoInteraction) error
+	SetVideoHistory(context.Context, model.VideoHistory) error
 	ListCategories(context.Context) ([]model.Category, error)
 	ListCategorySlugs(context.Context, string) ([]string, error)
 	ListCreatorFollows(context.Context, string, int) ([]model.CreatorFollow, error)
 	ListVideoInteractions(context.Context, model.VideoInteractionFilter) ([]model.VideoInteraction, error)
+	ListVideoHistory(context.Context, model.VideoHistoryFilter) ([]model.VideoHistory, error)
 	ListCommunityNotifications(context.Context, model.CommunityNotificationFilter) ([]model.CommunityNotification, error)
 	ListCommunityDynamics(context.Context, model.CommunityDynamicFilter) ([]model.CommunityDynamic, error)
 	ListCommunitySubmissions(context.Context, model.CommunitySubmissionFilter) ([]model.CommunitySubmission, error)
@@ -83,6 +88,7 @@ type Repository interface {
 	MarkCommunityNotificationsRead(context.Context, string, time.Time) error
 	UnfollowCreator(context.Context, string, string, time.Time) error
 	UnsetVideoInteraction(context.Context, string, string, string, time.Time) error
+	ClearVideoHistory(context.Context, string, time.Time) error
 }
 
 type Config struct {
@@ -125,6 +131,7 @@ func (s *service) CommunityStatus(context.Context) model.APIStatus {
 			"/videos/:idOrSlug",
 			"/videos/:idOrSlug/interaction-state",
 			"/videos/:idOrSlug/interactions/:kind",
+			"/videos/:idOrSlug/history",
 			"/videos/:idOrSlug/comments",
 			"/videos/:idOrSlug/danmaku",
 			"/videos/:idOrSlug/reports",
@@ -136,6 +143,8 @@ func (s *service) CommunityStatus(context.Context) model.APIStatus {
 			"/users/:handle/follow",
 			"/feed/following",
 			"/library",
+			"/history",
+			"/history/clear",
 		},
 	}
 }
@@ -700,6 +709,75 @@ func (s *service) VideoLibrary(ctx context.Context, req model.VideoInteractionRe
 	}, nil
 }
 
+func (s *service) VideoHistory(ctx context.Context, filter model.VideoHistoryFilter) (model.VideoHistoryPayload, error) {
+	if s.repo == nil {
+		return model.VideoHistoryPayload{}, ErrStorageUnavailable
+	}
+	clientID, err := normalizeCommunityClientID(filter.ClientID)
+	if err != nil {
+		return model.VideoHistoryPayload{}, err
+	}
+	filter.ClientID = clientID
+	filter.Limit = normalizeLimit(filter.Limit, 48)
+	histories, err := s.repo.ListVideoHistory(ctx, filter)
+	if err != nil {
+		return model.VideoHistoryPayload{}, mapStorageError(err)
+	}
+	items, err := s.videoHistoryItems(ctx, histories)
+	if err != nil {
+		return model.VideoHistoryPayload{}, err
+	}
+	return videoHistoryPayload(clientID, items), nil
+}
+
+func (s *service) RecordVideoHistory(ctx context.Context, idOrSlug string, req model.VideoHistoryRequest) (model.VideoHistoryItem, error) {
+	if s.repo == nil {
+		return model.VideoHistoryItem{}, ErrStorageUnavailable
+	}
+	clientID, err := normalizeCommunityClientID(req.ClientID)
+	if err != nil {
+		return model.VideoHistoryItem{}, err
+	}
+	video, err := s.repo.FindVideoByIDOrSlug(ctx, strings.TrimSpace(idOrSlug))
+	if err != nil {
+		return model.VideoHistoryItem{}, mapStorageError(err)
+	}
+	now := s.now()
+	history := model.VideoHistory{
+		ClientID:        clientID,
+		VideoID:         video.ID,
+		ProgressSeconds: normalizeHistoryProgress(req.ProgressSeconds, video.DurationSeconds),
+		LastViewedAt:    now,
+		CreatedAt:       now,
+		UpdatedAt:       now,
+	}
+	if err := s.repo.SetVideoHistory(ctx, history); err != nil {
+		return model.VideoHistoryItem{}, mapStorageError(err)
+	}
+	items, err := s.videoHistoryItems(ctx, []model.VideoHistory{history})
+	if err != nil {
+		return model.VideoHistoryItem{}, err
+	}
+	if len(items) == 0 {
+		return model.VideoHistoryItem{}, ErrNotFound
+	}
+	return items[0], nil
+}
+
+func (s *service) ClearVideoHistory(ctx context.Context, req model.VideoHistoryClearRequest) (model.VideoHistoryPayload, error) {
+	if s.repo == nil {
+		return model.VideoHistoryPayload{}, ErrStorageUnavailable
+	}
+	clientID, err := normalizeCommunityClientID(req.ClientID)
+	if err != nil {
+		return model.VideoHistoryPayload{}, err
+	}
+	if err := s.repo.ClearVideoHistory(ctx, clientID, s.now()); err != nil {
+		return model.VideoHistoryPayload{}, mapStorageError(err)
+	}
+	return videoHistoryPayload(clientID, []model.VideoHistoryItem{}), nil
+}
+
 func (s *service) CommunityNotifications(ctx context.Context, filter model.CommunityNotificationFilter) (model.CommunityNotificationPayload, error) {
 	if s.repo == nil {
 		return model.CommunityNotificationPayload{}, ErrStorageUnavailable
@@ -1191,6 +1269,46 @@ func (s *service) videoSummariesForInteractions(ctx context.Context, interaction
 	return s.decorateVideos(ctx, ordered)
 }
 
+func (s *service) videoHistoryItems(ctx context.Context, histories []model.VideoHistory) ([]model.VideoHistoryItem, error) {
+	if len(histories) == 0 {
+		return []model.VideoHistoryItem{}, nil
+	}
+	ids := make([]string, 0, len(histories))
+	for _, history := range histories {
+		ids = append(ids, history.VideoID)
+	}
+	videos, err := s.repo.ListVideosByIDs(ctx, ids)
+	if err != nil {
+		return nil, mapStorageError(err)
+	}
+	videoByID := make(map[string]model.Video, len(videos))
+	for _, video := range videos {
+		videoByID[video.ID] = video
+	}
+	ordered := make([]model.Video, 0, len(histories))
+	orderedHistories := make([]model.VideoHistory, 0, len(histories))
+	for _, history := range histories {
+		if video, ok := videoByID[history.VideoID]; ok {
+			ordered = append(ordered, video)
+			orderedHistories = append(orderedHistories, history)
+		}
+	}
+	summaries, err := s.decorateVideos(ctx, ordered)
+	if err != nil {
+		return nil, err
+	}
+	items := make([]model.VideoHistoryItem, 0, len(summaries))
+	for index, summary := range summaries {
+		history := orderedHistories[index]
+		items = append(items, model.VideoHistoryItem{
+			Video:           summary,
+			ProgressSeconds: normalizeHistoryProgress(history.ProgressSeconds, summary.DurationSeconds),
+			LastViewedAt:    history.LastViewedAt,
+		})
+	}
+	return items, nil
+}
+
 func (s *service) listVideoSummaries(ctx context.Context, filter model.VideoFilter) ([]model.VideoSummary, error) {
 	if s.repo == nil {
 		return nil, ErrStorageUnavailable
@@ -1520,6 +1638,17 @@ func creatorLink(creator model.Creator) string {
 	return "/"
 }
 
+func videoHistoryPayload(clientID string, items []model.VideoHistoryItem) model.VideoHistoryPayload {
+	message := "观看历史来自后端 community_video_history 表；接入登录后可迁移为用户播放记录。"
+	return model.VideoHistoryPayload{
+		Authenticated: false,
+		ClientID:      &clientID,
+		HistoryCount:  len(items),
+		Message:       &message,
+		Items:         model.PageResult[model.VideoHistoryItem]{Items: items},
+	}
+}
+
 func notificationPayload(clientID string, notifications []model.CommunityNotification) model.CommunityNotificationPayload {
 	items := make([]model.CommunityNotificationItem, 0, len(notifications))
 	unreadCount := 0
@@ -1596,6 +1725,19 @@ func normalizeDanmakuTime(value int, durationSeconds int) int {
 	}
 	if value > maxSecond {
 		return maxSecond
+	}
+	return value
+}
+
+func normalizeHistoryProgress(value int, durationSeconds int) int {
+	if value < 0 {
+		return 0
+	}
+	if durationSeconds < 0 {
+		durationSeconds = 0
+	}
+	if value > durationSeconds {
+		return durationSeconds
 	}
 	return value
 }

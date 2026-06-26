@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"sort"
 	"testing"
 	"time"
 
@@ -407,10 +408,60 @@ func TestServiceVideoLibraryCollectsFavoriteAndWatchLater(t *testing.T) {
 	}
 }
 
+func TestServiceVideoHistoryPersistsListsAndClearsProgress(t *testing.T) {
+	repo := newFakeRepository()
+	now := fixedNow()
+	svc := New(repo, Config{Now: func() time.Time { return now }})
+	req := model.VideoHistoryRequest{ClientID: " browser-client-1 ", ProgressSeconds: 999}
+
+	item, err := svc.RecordVideoHistory(context.Background(), "aoi-alpha", req)
+	if err != nil {
+		t.Fatalf("RecordVideoHistory() error = %v", err)
+	}
+	if item.Video.ID != "video-aoi-alpha" || item.ProgressSeconds != 300 || !item.LastViewedAt.Equal(now) {
+		t.Fatalf("expected normalized first history item, got %#v", item)
+	}
+
+	now = now.Add(time.Minute)
+	if _, err := svc.RecordVideoHistory(context.Background(), "go-api-ready", model.VideoHistoryRequest{
+		ClientID:        "browser-client-1",
+		ProgressSeconds: 20,
+	}); err != nil {
+		t.Fatalf("RecordVideoHistory(second) error = %v", err)
+	}
+
+	payload, err := svc.VideoHistory(context.Background(), model.VideoHistoryFilter{ClientID: " browser-client-1 ", Limit: 10})
+	if err != nil {
+		t.Fatalf("VideoHistory() error = %v", err)
+	}
+	if payload.ClientID == nil || *payload.ClientID != "browser-client-1" || payload.HistoryCount != 2 {
+		t.Fatalf("expected normalized history payload, got %#v", payload)
+	}
+	if payload.Items.Items[0].Video.ID != "video-go-api" || payload.Items.Items[1].Video.ID != "video-aoi-alpha" {
+		t.Fatalf("expected latest viewed video first, got %#v", payload.Items.Items)
+	}
+
+	cleared, err := svc.ClearVideoHistory(context.Background(), model.VideoHistoryClearRequest{ClientID: "browser-client-1"})
+	if err != nil {
+		t.Fatalf("ClearVideoHistory() error = %v", err)
+	}
+	if cleared.HistoryCount != 0 || len(cleared.Items.Items) != 0 {
+		t.Fatalf("expected empty history after clear, got %#v", cleared)
+	}
+}
+
 func TestServiceVideoInteractionRejectsMissingClientID(t *testing.T) {
 	svc := New(newFakeRepository(), Config{Now: fixedNow})
 
 	if _, err := svc.SetVideoInteraction(context.Background(), "aoi-alpha", model.VideoInteractionKindFavorite, model.VideoInteractionRequest{}); err != ErrInvalidInput {
+		t.Fatalf("expected ErrInvalidInput, got %v", err)
+	}
+}
+
+func TestServiceVideoHistoryRejectsMissingClientID(t *testing.T) {
+	svc := New(newFakeRepository(), Config{Now: fixedNow})
+
+	if _, err := svc.RecordVideoHistory(context.Background(), "aoi-alpha", model.VideoHistoryRequest{}); err != ErrInvalidInput {
 		t.Fatalf("expected ErrInvalidInput, got %v", err)
 	}
 }
@@ -552,6 +603,7 @@ type fakeRepository struct {
 	danmaku       map[string][]model.VideoDanmakuItem
 	dynamics      []model.CommunityDynamic
 	follows       map[string][]model.CreatorFollow
+	histories     map[string][]model.VideoHistory
 	interactions  map[string][]model.VideoInteraction
 	notifications []model.CommunityNotification
 	reports       []model.CommunityReport
@@ -595,6 +647,7 @@ func newFakeRepository() *fakeRepository {
 			{ID: "dynamic-lab", CreatorID: "user-lab", VideoID: "video-go-api", AuthorName: "Aoi Lab", Body: "API client is reading real data.", Kind: model.CommunityDynamicKindVideoUpdate, Status: model.CommunityDynamicStatusVisible, CreatedAt: fixedNow().Add(-time.Minute), UpdatedAt: fixedNow().Add(-time.Minute)},
 		},
 		follows:      map[string][]model.CreatorFollow{},
+		histories:    map[string][]model.VideoHistory{},
 		interactions: map[string][]model.VideoInteraction{},
 		sources: map[string][]model.VideoSourceOption{
 			"video-aoi-alpha": {{ID: "s1", VideoID: "video-aoi-alpha", Src: "https://example.invalid/a.mp4", Kind: model.VideoSourceKindNative, Label: "主源", IsDefault: true}},
@@ -685,6 +738,26 @@ func (r *fakeRepository) ListVideoInteractions(_ context.Context, filter model.V
 		}
 		items = append(items, interaction)
 	}
+	if filter.Limit > 0 && len(items) > filter.Limit {
+		return items[:filter.Limit], nil
+	}
+	return items, nil
+}
+
+func (r *fakeRepository) ListVideoHistory(_ context.Context, filter model.VideoHistoryFilter) ([]model.VideoHistory, error) {
+	items := make([]model.VideoHistory, 0)
+	for _, history := range r.histories[filter.ClientID] {
+		if history.DeletedAt != nil {
+			continue
+		}
+		items = append(items, history)
+	}
+	sort.SliceStable(items, func(i, j int) bool {
+		if items[i].LastViewedAt.Equal(items[j].LastViewedAt) {
+			return items[i].VideoID < items[j].VideoID
+		}
+		return items[i].LastViewedAt.After(items[j].LastViewedAt)
+	})
 	if filter.Limit > 0 && len(items) > filter.Limit {
 		return items[:filter.Limit], nil
 	}
@@ -845,6 +918,20 @@ func (r *fakeRepository) SetVideoInteraction(_ context.Context, interaction mode
 	return nil
 }
 
+func (r *fakeRepository) SetVideoHistory(_ context.Context, history model.VideoHistory) error {
+	items := r.histories[history.ClientID]
+	for index := range items {
+		if items[index].VideoID != history.VideoID {
+			continue
+		}
+		items[index] = history
+		r.histories[history.ClientID] = items
+		return nil
+	}
+	r.histories[history.ClientID] = append(items, history)
+	return nil
+}
+
 func (r *fakeRepository) UnfollowCreator(_ context.Context, creatorID string, clientID string, now time.Time) error {
 	items := r.follows[clientID]
 	for index := range items {
@@ -874,6 +961,19 @@ func (r *fakeRepository) UnsetVideoInteraction(_ context.Context, videoID string
 		}
 		return nil
 	}
+	return nil
+}
+
+func (r *fakeRepository) ClearVideoHistory(_ context.Context, clientID string, now time.Time) error {
+	items := r.histories[clientID]
+	for index := range items {
+		if items[index].DeletedAt != nil {
+			continue
+		}
+		items[index].DeletedAt = &now
+		items[index].UpdatedAt = now
+	}
+	r.histories[clientID] = items
 	return nil
 }
 

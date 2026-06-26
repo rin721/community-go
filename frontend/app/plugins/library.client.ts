@@ -3,5 +3,7 @@ export default defineNuxtPlugin(() => {
 
   onNuxtReady(() => {
     library.restore()
+    void library.syncWithBackend()
+    void library.syncHistoryWithBackend()
   })
 })

@@ -228,6 +228,15 @@ export interface VideoInteractionRequest {
   clientId: string
 }
 
+export interface VideoHistoryRequest {
+  clientId: string
+  progressSeconds: number
+}
+
+export interface VideoHistoryClearRequest {
+  clientId: string
+}
+
 export interface CreatorFollowState {
   clientId: string
   creatorId: string
@@ -289,6 +298,20 @@ export interface VideoLibraryPayload {
   message: string | null
   favorites: PageResult<VideoSummary>
   watchLater: PageResult<VideoSummary>
+}
+
+export interface VideoHistoryItem {
+  video: VideoSummary
+  progressSeconds: number
+  lastViewedAt: string
+}
+
+export interface VideoHistoryPayload {
+  authenticated: boolean
+  clientId?: string | null
+  historyCount: number
+  message: string | null
+  items: PageResult<VideoHistoryItem>
 }
 
 export type CommunityNotificationKind = "comment" | "danmaku" | "follow" | "interaction" | "report" | "submission"

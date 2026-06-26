@@ -32,6 +32,10 @@ import type {
   VideoInteractionKind,
   VideoInteractionRequest,
   VideoInteractionState,
+  VideoHistoryClearRequest,
+  VideoHistoryItem,
+  VideoHistoryPayload,
+  VideoHistoryRequest,
   VideoLibraryPayload,
   VideoSummary
 } from "~/types/api"
@@ -229,6 +233,26 @@ export function useAoiApi() {
     })
   }
 
+  async function getVideoHistory(clientId: string, limit = 48): Promise<VideoHistoryPayload> {
+    return await request<VideoHistoryPayload>("/history", {
+      query: { clientId, limit }
+    })
+  }
+
+  async function recordVideoHistory(idOrSlug: string, body: VideoHistoryRequest): Promise<VideoHistoryItem> {
+    return await request<VideoHistoryItem>(`/videos/${encodeURIComponent(idOrSlug)}/history`, {
+      body,
+      method: "POST"
+    })
+  }
+
+  async function clearVideoHistory(body: VideoHistoryClearRequest): Promise<VideoHistoryPayload> {
+    return await request<VideoHistoryPayload>("/history/clear", {
+      body,
+      method: "POST"
+    })
+  }
+
   async function getCommunityNotifications(clientId: string, limit = 48): Promise<CommunityNotificationPayload> {
     return await request<CommunityNotificationPayload>("/notifications", {
       query: { clientId, limit }
@@ -255,7 +279,9 @@ export function useAoiApi() {
     getCreatorProfile,
     getCommunityDynamics,
     getFollowingFeed,
+    clearVideoHistory,
     getVideoInteractionState,
+    getVideoHistory,
     getVideoLibrary,
     followCreator,
     createCommunityDynamic,
@@ -274,6 +300,7 @@ export function useAoiApi() {
     search,
     searchVideos,
     markCommunityNotificationsRead,
+    recordVideoHistory,
     setVideoInteraction,
     unfollowCreator,
     unsetVideoInteraction

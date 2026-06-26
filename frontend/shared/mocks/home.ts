@@ -20,6 +20,10 @@ import type {
   CreateVideoCommentRequest,
   CreateVideoDanmakuRequest,
   CreateVideoReportRequest,
+  VideoHistoryClearRequest,
+  VideoHistoryItem,
+  VideoHistoryPayload,
+  VideoHistoryRequest,
   VideoInteractionKind,
   VideoInteractionRequest,
   VideoInteractionState,
@@ -804,9 +808,66 @@ const mockVideoComments: Record<string, VideoComment[]> = {
 }
 
 const mockVideoDanmaku: Record<string, VideoDanmakuItem[]> = {}
+const mockVideoHistory: Record<string, Record<string, VideoHistoryItem>> = {}
 const mockVideoReports: CommunityReportReceipt[] = []
 const mockCommunityNotifications: Record<string, CommunityNotificationItem[]> = {}
 const mockCommunitySubmissions: Record<string, CommunitySubmissionItem[]> = {}
+
+export function getMockVideoHistory(clientId: string, limit?: number): VideoHistoryPayload | null {
+  const normalizedClientId = normalizeMockClientId(clientId)
+
+  if (!normalizedClientId) {
+    return null
+  }
+
+  const items = Object.values(mockVideoHistory[normalizedClientId] || {})
+    .sort((left, right) => Date.parse(right.lastViewedAt) - Date.parse(left.lastViewedAt))
+  const visibleItems = items.slice(0, Math.min(Math.max(limit || 48, 1), 100))
+
+  return {
+    authenticated: false,
+    clientId: normalizedClientId,
+    historyCount: items.length,
+    items: {
+      items: visibleItems,
+      nextCursor: null
+    },
+    message: "观看历史来自 mock 社区 API；真实模式会写入 Go 后端匿名观看历史表。"
+  }
+}
+
+export function recordMockVideoHistory(idOrSlug: string, payload: VideoHistoryRequest): VideoHistoryItem | null {
+  const video = getMockVideo(idOrSlug)
+  const clientId = normalizeMockClientId(payload.clientId)
+
+  if (!video || !clientId) {
+    return null
+  }
+
+  const item: VideoHistoryItem = {
+    lastViewedAt: new Date().toISOString(),
+    progressSeconds: normalizeMockHistoryProgress(payload.progressSeconds, video.durationSeconds),
+    video
+  }
+  mockVideoHistory[clientId] = {
+    ...(mockVideoHistory[clientId] || {}),
+    [video.id]: item
+  }
+
+  return item
+}
+
+export function clearMockVideoHistory(payload: VideoHistoryClearRequest): VideoHistoryPayload | null {
+  const clientId = normalizeMockClientId(payload.clientId)
+
+  if (!clientId) {
+    return null
+  }
+
+  delete mockVideoHistory[clientId]
+
+  return getMockVideoHistory(clientId)
+}
 
 export function getMockVideoDanmaku(idOrSlug: string): VideoDanmakuPayload | null {
   const video = mockVideos.find((item) => item.id === idOrSlug || item.slug === idOrSlug)
@@ -1205,6 +1266,17 @@ function normalizeMockVideoReportReason(value: unknown): VideoReportReason | nul
     || value === "other"
     ? value
     : null
+}
+
+function normalizeMockHistoryProgress(value: unknown, durationSeconds: number) {
+  const next = Number(value)
+  const maxSecond = Math.max(0, durationSeconds)
+
+  if (!Number.isFinite(next)) {
+    return 0
+  }
+
+  return Math.min(maxSecond, Math.max(0, Math.round(next)))
 }
 
 function normalizeMockSubmissionVisibility(value: unknown) {

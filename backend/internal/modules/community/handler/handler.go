@@ -164,6 +164,15 @@ func (h *Handler) UnsetVideoInteraction(c ports.HTTPContext) {
 	writeOK(c, state, err, h.writeError)
 }
 
+func (h *Handler) RecordHistory(c ports.HTTPContext) {
+	var req model.VideoHistoryRequest
+	if !bind(c, &req) {
+		return
+	}
+	item, err := h.service.RecordVideoHistory(c.RequestContext(), c.Param("idOrSlug"), req)
+	writeOK(c, item, err, h.writeError)
+}
+
 func (h *Handler) Search(c ports.HTTPContext) {
 	limit, ok := parseIntQuery(c, "limit", 24)
 	if !ok {
@@ -212,6 +221,27 @@ func (h *Handler) Library(c ports.HTTPContext) {
 	payload, err := h.service.VideoLibrary(c.RequestContext(), model.VideoInteractionRequest{
 		ClientID: queryValue(c, "clientId"),
 	})
+	writeOK(c, payload, err, h.writeError)
+}
+
+func (h *Handler) History(c ports.HTTPContext) {
+	limit, ok := parseIntQuery(c, "limit", 48)
+	if !ok {
+		return
+	}
+	payload, err := h.service.VideoHistory(c.RequestContext(), model.VideoHistoryFilter{
+		ClientID: queryValue(c, "clientId"),
+		Limit:    limit,
+	})
+	writeOK(c, payload, err, h.writeError)
+}
+
+func (h *Handler) ClearHistory(c ports.HTTPContext) {
+	var req model.VideoHistoryClearRequest
+	if !bind(c, &req) {
+		return
+	}
+	payload, err := h.service.ClearVideoHistory(c.RequestContext(), req)
 	writeOK(c, payload, err, h.writeError)
 }
 

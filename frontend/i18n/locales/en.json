@@ -1229,5 +1229,25 @@
       "loading": "Loading",
       "empty": "No submissions from this browser yet."
     }
+  },
+  "history": {
+    "title": "History",
+    "description": "Watch history is written to the backend community module, with local cache kept as an offline fallback. Refreshes reconcile recent views and progress by anonymous clientId.",
+    "gridAria": "Recently watched",
+    "actions": {
+      "clear": "Clear history",
+      "syncing": "Syncing"
+    },
+    "progress": {
+      "aria": "Watch progress",
+      "done": "Watched",
+      "opened": "Just opened",
+      "continue": "Continue at {time}"
+    },
+    "empty": {
+      "title": "No history yet",
+      "description": "Open a video detail page and recent views plus playback progress will sync from the backend.",
+      "action": "Back home"
+    }
   }
 }

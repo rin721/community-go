@@ -94,6 +94,19 @@ type VideoInteraction struct {
 
 func (VideoInteraction) TableName() string { return "community_video_interactions" }
 
+// VideoHistory 保存匿名客户端的视频观看进度和最近观看时间。
+type VideoHistory struct {
+	ClientID        string     `gorm:"column:client_id;primaryKey;size:96" json:"clientId"`
+	VideoID         string     `gorm:"column:video_id;primaryKey;size:96" json:"videoId"`
+	ProgressSeconds int        `gorm:"column:progress_seconds;not null;default:0" json:"progressSeconds"`
+	LastViewedAt    time.Time  `gorm:"column:last_viewed_at;not null" json:"lastViewedAt"`
+	CreatedAt       time.Time  `gorm:"column:created_at;not null" json:"-"`
+	UpdatedAt       time.Time  `gorm:"column:updated_at;not null" json:"-"`
+	DeletedAt       *time.Time `gorm:"column:deleted_at" json:"-"`
+}
+
+func (VideoHistory) TableName() string { return "community_video_history" }
+
 // CommunityReport 保存匿名客户端提交的社区内容举报记录。
 type CommunityReport struct {
 	ID         string     `gorm:"column:id;primaryKey;size:96" json:"id"`
@@ -304,6 +317,15 @@ type VideoInteractionRequest struct {
 	ClientID string `json:"clientId"`
 }
 
+type VideoHistoryRequest struct {
+	ClientID        string `json:"clientId"`
+	ProgressSeconds int    `json:"progressSeconds"`
+}
+
+type VideoHistoryClearRequest struct {
+	ClientID string `json:"clientId"`
+}
+
 type CommunityNotificationRequest struct {
 	ClientID string `json:"clientId"`
 }
@@ -390,6 +412,11 @@ type CommunityNotificationFilter struct {
 	Limit    int
 }
 
+type VideoHistoryFilter struct {
+	ClientID string
+	Limit    int
+}
+
 type CommunityNotificationItem struct {
 	ID         string     `json:"id"`
 	Kind       string     `json:"kind"`
@@ -428,6 +455,20 @@ type VideoInteractionState struct {
 	Favorited  bool   `json:"favorited"`
 	WatchLater bool   `json:"watchLater"`
 	LikeCount  int64  `json:"likeCount"`
+}
+
+type VideoHistoryItem struct {
+	Video           VideoSummary `json:"video"`
+	ProgressSeconds int          `json:"progressSeconds"`
+	LastViewedAt    time.Time    `json:"lastViewedAt"`
+}
+
+type VideoHistoryPayload struct {
+	Authenticated bool                         `json:"authenticated"`
+	ClientID      *string                      `json:"clientId,omitempty"`
+	HistoryCount  int                          `json:"historyCount"`
+	Message       *string                      `json:"message"`
+	Items         PageResult[VideoHistoryItem] `json:"items"`
 }
 
 type CommunityReportReceipt struct {

@@ -18,55 +18,52 @@ useHead({
 </script>
 
 <template>
-  <div>
+  <div class="aoi-page">
     <BrandBand />
+    <CategoryTabs
+      v-model="selectedCategory"
+      :categories="categories"
+      @change="selectCategory"
+    />
 
-    <div class="aoi-page">
-      <CategoryTabs
-        v-model="selectedCategory"
-        :categories="categories"
-        @change="selectCategory"
+    <AnnouncementStrip :announcement="announcement" />
+
+    <CommunityPulse
+      :items="dynamics"
+      :title="t('home.dynamicsTitle')"
+      :description="t('home.dynamicsDescription')"
+    />
+
+    <AoiSection :title="t('home.latest')" :count="videos.length" title-id="latest-title">
+      <template #actions>
+        <AoiActionBar class="home-view-toggle" surface size="sm" label="视图模式">
+          <AoiIconButton icon="grid-3x3" :label="t('home.gridView')" active variant="tonal" size="sm" />
+          <AoiIconButton icon="list" :label="t('home.listView')" size="sm" />
+        </AoiActionBar>
+      </template>
+
+      <VideoGridSkeleton v-if="pending" />
+
+      <PageState
+        v-else-if="!pending && error"
+        icon="circle-alert"
+        title="内容加载失败"
+        action-icon="refresh-cw"
+        action-label="重试"
+        @action="refresh()"
       />
 
-      <AnnouncementStrip :announcement="announcement" />
-
-      <CommunityPulse
-        :items="dynamics"
-        :title="t('home.dynamicsTitle')"
-        :description="t('home.dynamicsDescription')"
+      <PageState
+        v-else-if="!pending && videos.length === 0"
+        icon="inbox"
+        title="该分类暂时没有内容"
+        action-icon="rotate-ccw"
+        action-label="返回首页"
+        @action="selectCategory('home')"
       />
 
-      <AoiSection :title="t('home.latest')" :count="videos.length" title-id="latest-title">
-        <template #actions>
-          <AoiActionBar class="home-view-toggle" surface size="sm" label="视图模式">
-            <AoiIconButton icon="grid-3x3" :label="t('home.gridView')" active variant="tonal" size="sm" />
-            <AoiIconButton icon="list" :label="t('home.listView')" size="sm" />
-          </AoiActionBar>
-        </template>
-
-        <VideoGridSkeleton v-if="pending" />
-
-        <PageState
-          v-else-if="!pending && error"
-          icon="circle-alert"
-          title="内容加载失败"
-          action-icon="refresh-cw"
-          action-label="重试"
-          @action="refresh()"
-        />
-
-        <PageState
-          v-else-if="!pending && videos.length === 0"
-          icon="inbox"
-          title="该分类暂时没有内容"
-          action-icon="rotate-ccw"
-          action-label="返回首页"
-          @action="selectCategory('home')"
-        />
-
-        <VideoGrid v-else-if="videos.length > 0" :videos="videos" />
-      </AoiSection>
-    </div>
+      <VideoGrid v-else-if="videos.length > 0" :videos="videos" />
+    </AoiSection>
   </div>
 </template>
 

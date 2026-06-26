@@ -1,26 +1,65 @@
 <script setup lang="ts">
+import type { AoiApiErrorPayload } from "~/types/api"
+
+const { t } = useI18n()
+const authApi = useAoiAuthApi()
+const username = ref("")
 const displayName = ref("")
 const email = ref("")
+const orgCode = ref("")
+const orgName = ref("")
 const password = ref("")
-const submitted = ref(false)
+const pending = ref(false)
+const errorMessage = ref("")
+const successMessage = ref("")
 
 const canSubmit = computed(() => {
-  return displayName.value.trim().length >= 2
+  return username.value.trim().length >= 2
+    && orgCode.value.trim().length >= 2
+    && orgName.value.trim().length >= 2
     && email.value.trim().length > 0
-    && password.value.length >= 6
+    && password.value.length > 0
+    && !pending.value
 })
 
-function submitRegister() {
+async function submitRegister() {
   if (!canSubmit.value) {
     return
   }
 
-  submitted.value = true
+  pending.value = true
+  errorMessage.value = ""
+  successMessage.value = ""
+
+  try {
+    const result = await authApi.signup({
+      displayName: displayName.value.trim() || undefined,
+      email: email.value.trim(),
+      orgCode: orgCode.value.trim(),
+      orgName: orgName.value.trim(),
+      password: password.value,
+      username: username.value.trim()
+    })
+
+    successMessage.value = result.status === "verification_pending"
+      ? t("auth.register.verificationPending")
+      : t("auth.register.success", { sessionId: result.session?.sessionId || "-" })
+  } catch (error) {
+    errorMessage.value = authErrorMessage(error, t("auth.errors.default"))
+  } finally {
+    pending.value = false
+  }
 }
 
-useHead({
-  title: "注册 - Aoi"
-})
+function authErrorMessage(error: unknown, fallback: string) {
+  const apiError = error as Partial<AoiApiErrorPayload>
+
+  return apiError.message || fallback
+}
+
+useHead(() => ({
+  title: t("auth.register.headTitle")
+}))
 </script>
 
 <template>
@@ -28,35 +67,59 @@ useHead({
     <AuthShell labelledby="register-title" visual-position="end">
       <AuthPanel
         title-id="register-title"
-        title="创建账号"
-        description="先保留一个轻量注册入口，用来预览未来账号体系和跳转转场。"
-        submit-label="注册"
+        :title="t('auth.register.title')"
+        :description="t('auth.register.description')"
+        :submit-label="pending ? t('auth.register.submitting') : t('auth.register.submit')"
         submit-icon="user-plus"
         :disabled="!canSubmit"
-        :success-message="submitted ? '已创建演示账号。真实注册逻辑可以在接入后端鉴权接口后补齐。' : undefined"
+        :loading="pending"
+        :error-message="errorMessage || undefined"
+        :success-message="successMessage || undefined"
         @submit="submitRegister"
       >
         <template #fields>
           <AoiTextField
+            v-model="username"
+            :label="t('auth.register.username')"
+            :placeholder="t('auth.register.usernamePlaceholder')"
+            :supporting-text="t('auth.register.usernameHelp')"
+            appearance="outlined"
+            @enter="submitRegister"
+          />
+          <AoiTextField
             v-model="displayName"
-            label="昵称"
-            placeholder="Rin721"
-            supporting-text="至少 2 个字符"
+            :label="t('auth.register.displayName')"
+            :placeholder="t('auth.register.displayNamePlaceholder')"
             appearance="outlined"
             @enter="submitRegister"
           />
           <AoiTextField
             v-model="email"
-            label="邮箱"
-            placeholder="rin@example.com"
+            :label="t('auth.register.email')"
+            :placeholder="t('auth.register.emailPlaceholder')"
             type="email"
             appearance="outlined"
             @enter="submitRegister"
           />
           <AoiTextField
+            v-model="orgCode"
+            :label="t('auth.register.orgCode')"
+            :placeholder="t('auth.register.orgCodePlaceholder')"
+            :supporting-text="t('auth.register.orgCodeHelp')"
+            appearance="outlined"
+            @enter="submitRegister"
+          />
+          <AoiTextField
+            v-model="orgName"
+            :label="t('auth.register.orgName')"
+            :placeholder="t('auth.register.orgNamePlaceholder')"
+            appearance="outlined"
+            @enter="submitRegister"
+          />
+          <AoiTextField
             v-model="password"
-            label="密码"
-            supporting-text="至少 6 位即可触发演示状态"
+            :label="t('auth.register.password')"
+            :supporting-text="t('auth.register.passwordHelp')"
             type="password"
             appearance="outlined"
             @enter="submitRegister"
@@ -64,8 +127,8 @@ useHead({
         </template>
 
         <template #switch>
-          <span>已经有账号？</span>
-          <AoiLink to="/login">去登录</AoiLink>
+          <span>{{ t("auth.register.hasAccount") }}</span>
+          <AoiLink to="/login">{{ t("auth.register.loginAction") }}</AoiLink>
         </template>
       </AuthPanel>
 

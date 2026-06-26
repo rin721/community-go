@@ -1,3 +1,6 @@
+const communityApiBaseURL = process.env.NUXT_PUBLIC_API_BASE_URL || "/api/v1/public/community"
+const authApiBaseURL = process.env.NUXT_PUBLIC_AUTH_API_BASE_URL || communityApiBaseURL.replace(/\/public\/community\/?$/, "")
+
 export default defineNuxtConfig({
   compatibilityDate: "2026-06-03",
   devtools: { enabled: false },
@@ -22,7 +25,8 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      apiBaseURL: process.env.NUXT_PUBLIC_API_BASE_URL || "/api/v1/public/community",
+      apiBaseURL: communityApiBaseURL,
+      authApiBaseURL,
       apiMock: process.env.NUXT_PUBLIC_API_MOCK === "true"
     }
   },

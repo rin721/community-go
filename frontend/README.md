@@ -2,7 +2,7 @@
 
 Aoi Web 是一个 Nuxt 4 前端优先的视频社区应用。项目使用 Vue 3、TypeScript、Pinia、`@nuxtjs/i18n`、`@nuxt/icon`，并通过本地 Aoi wrapper 统一封装 Material Web 组件。
 
-当前应用默认通过 `useAoiApi()` 接入 `backend/internal/modules/community` 公开社区接口，Nuxt mock API 仅服务本地演示与调试；浏览器本地偏好 / 缓存只承担匿名 clientId、离线降级和上传草稿元数据。页面覆盖首页发现、分类浏览、搜索、关注动态、视频播放、用户页、观看记录/收藏、上传草稿和设置中心；评论列表、评论发布、匿名创作者关注、点赞、收藏、稍后看、观看记录和通知均按当前社区 API 边界接入。关注动态始终绑定匿名 clientId，视频评论列表按后端 `sort=newest/oldest` 独立请求结果窗口。共享 DTO 与 mock fixture 需贴近后端社区契约。
+当前应用默认通过 `useAoiApi()` 接入 `backend/internal/modules/community` 公开社区接口，通过 `useAoiAuthApi()` 接入后端 IAM 登录 / 注册接口；Nuxt mock API 仅服务本地演示与调试。浏览器本地偏好 / 缓存只承担匿名 clientId、离线降级和上传草稿元数据。页面覆盖首页发现、分类浏览、搜索、关注动态、视频播放、用户页、观看记录/收藏、上传草稿、登录注册和设置中心；评论列表、评论发布、匿名创作者关注、点赞、收藏、稍后看、观看记录、通知、登录和注册均按当前 API 边界接入。关注动态始终绑定匿名 clientId，视频评论列表按后端 `sort=newest/oldest` 独立请求结果窗口。共享 DTO 与 mock fixture 需贴近后端社区契约。
 
 ## 标星历史
 
@@ -41,8 +41,10 @@ flowchart TD
 
   subgraph Data["数据与状态"]
     Api["useAoiApi"]
+    AuthApi["useAoiAuthApi"]
     Telemetry["useAoiApiTelemetry"]
     BackendApi["backend /api/v1/public/community"]
+    IamApi["backend /api/v1/auth"]
     LocalStorage["浏览器 localStorage"]
     MockApi["server/api/mock"]
     DevApi["server/api/developer"]
@@ -59,8 +61,11 @@ flowchart TD
   Stores --> LocalStorage
   Pages --> Composables
   Composables --> Api
+  Composables --> AuthApi
   Api --> Telemetry
   Api --> BackendApi
+  AuthApi --> Telemetry
+  AuthApi --> IamApi
   Api -. "NUXT_PUBLIC_API_MOCK=true" .-> MockApi
   MockApi --> Shared
   Pages --> I18n
@@ -141,9 +146,10 @@ Nuxt public runtime config 支持以下环境变量：
 | 变量 | 默认值 | 说明 |
 | --- | --- | --- |
 | `NUXT_PUBLIC_API_BASE_URL` | `/api/v1/public/community` | `useAoiApi()` 使用的后端社区 API 基础路径；本地分端口联调可设为 `http://127.0.0.1:9999/api/v1/public/community` |
+| `NUXT_PUBLIC_AUTH_API_BASE_URL` | 从 `NUXT_PUBLIC_API_BASE_URL` 派生到 `/api/v1` | `useAoiAuthApi()` 使用的后端 IAM API 基础路径；分端口联调时可显式设为 `http://127.0.0.1:9999/api/v1` |
 | `NUXT_PUBLIC_API_MOCK` | `false` | 设置为 `true` 时使用 Nuxt mock API；默认使用 `NUXT_PUBLIC_API_BASE_URL` 并消费后端 `result` envelope |
 
-应用代码访问 API 时应统一通过 `useAoiApi()`，并保持与 `useAoiApiTelemetry()` 的错误诊断兼容。
+社区页面访问公开社区接口时使用 `useAoiApi()`；登录、注册和后续认证接口使用 `useAoiAuthApi()`，并保持与 `useAoiApiTelemetry()` 的错误诊断兼容。
 
 ## 开发约定
 

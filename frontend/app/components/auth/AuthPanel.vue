@@ -3,6 +3,8 @@ const props = withDefaults(defineProps<{
   description?: string
   disabled?: boolean
   eyebrow?: string
+  errorMessage?: string
+  loading?: boolean
   submitIcon?: string
   submitLabel: string
   successMessage?: string
@@ -12,6 +14,8 @@ const props = withDefaults(defineProps<{
   description: undefined,
   disabled: false,
   eyebrow: "Aoi Account",
+  errorMessage: undefined,
+  loading: false,
   submitIcon: undefined,
   successMessage: undefined
 })
@@ -31,18 +35,28 @@ const emit = defineEmits<{
       <slot name="fields" />
     </div>
 
-    <AoiButton tone="accent" variant="filled"
+    <AoiButton
+      tone="accent"
+      variant="filled"
       :icon="props.submitIcon"
-      type="button"
+      type="submit"
       :disabled="props.disabled"
-      @click="emit('submit')"
+      :loading="props.loading"
     >
       {{ props.submitLabel }}
     </AoiButton>
 
     <AoiStatusMessage
+      v-if="props.errorMessage"
+      intent="danger"
+      icon="circle-alert"
+      :message="props.errorMessage"
+    />
+
+    <AoiStatusMessage
       v-if="props.successMessage"
       intent="success"
+      icon="circle-check"
       :message="props.successMessage"
     />
 

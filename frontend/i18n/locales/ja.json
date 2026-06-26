@@ -46,6 +46,53 @@
     "settings": "設定",
     "login": "ログイン"
   },
+  "auth": {
+    "errors": {
+      "default": "認証 API を利用できません。しばらくしてから再試行してください。"
+    },
+    "login": {
+      "headTitle": "ログイン - Aoi",
+      "title": "Aoi にログイン",
+      "description": "バックエンド IAM API で現在のブラウザセッションを発行します。ログイン成功後、セッション Cookie はバックエンドが書き込みます。",
+      "identifier": "メールまたはユーザー名",
+      "identifierPlaceholder": "rin{'@'}example.com",
+      "orgCode": "組織コード",
+      "orgCodePlaceholder": "例：aoi",
+      "orgCodeHelp": "複数組織のアカウントで現在の組織を指定します。空欄の場合はバックエンドが判断します。",
+      "password": "パスワード",
+      "passwordHelp": "送信するとバックエンド認証 API にリクエストします。パスワードポリシーはバックエンドが検証します。",
+      "submit": "ログイン",
+      "submitting": "ログイン中",
+      "success": "バックエンドがセッションを発行しました。現在の sessionId：{sessionId}",
+      "noAccount": "アカウントをお持ちでない場合",
+      "registerAction": "登録へ"
+    },
+    "register": {
+      "headTitle": "登録 - Aoi",
+      "title": "アカウント作成",
+      "description": "登録はバックエンド IAM API を呼び出して組織 owner を作成し、後端ポリシーに応じてセッションまたはメール検証状態を返します。",
+      "username": "ユーザー名",
+      "usernamePlaceholder": "rin721",
+      "usernameHelp": "2 文字以上。ログインとメンバー識別に使います。",
+      "displayName": "表示名",
+      "displayNamePlaceholder": "Rin721",
+      "email": "メール",
+      "emailPlaceholder": "rin{'@'}example.com",
+      "orgCode": "組織コード",
+      "orgCodePlaceholder": "例：aoi",
+      "orgCodeHelp": "組織コードはバックエンドのテナント識別子になります。小文字、数字、ハイフンを使ってください。",
+      "orgName": "組織名",
+      "orgNamePlaceholder": "Aoi Lab",
+      "password": "パスワード",
+      "passwordHelp": "送信後、バックエンドがパスワードポリシーとアカウント作成ルールを検証します。",
+      "submit": "登録",
+      "submitting": "登録中",
+      "success": "アカウントと組織を作成しました。現在の sessionId：{sessionId}",
+      "verificationPending": "アカウントを作成しました。メール検証フローを完了して有効化してください。",
+      "hasAccount": "すでにアカウントがありますか？",
+      "loginAction": "ログインへ"
+    }
+  },
   "home": {
     "subtitle": "クリエイター向けの軽やかでかわいい動画コミュニティ。標準ではバックエンドの Community API に接続し、Nuxt mock はローカルのデモとデバッグに使います。",
     "latest": "最新",

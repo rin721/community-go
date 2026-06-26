@@ -22,6 +22,7 @@ const { t } = useI18n()
 .brand-band {
   position: relative;
   overflow: visible;
+  width: 100%;
   border: 0;
   background: none;
   box-shadow: none;
@@ -31,16 +32,15 @@ const { t } = useI18n()
   position: relative;
   z-index: 1;
   display: flex;
-  width: min(var(--aoi-content-wide-max-width), calc(100% - 10vw));
-  max-width: var(--aoi-content-max-width);
+  width: 100%;
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  margin: 0 auto;
+  margin: 0;
   border: 0;
   background: none;
   box-shadow: none;
-  padding: 26px 0 30px;
+  padding: 8px 0 26px;
   backdrop-filter: none;
 }
 
@@ -103,8 +103,7 @@ const { t } = useI18n()
 
 @media (max-width: 639px) {
   .brand-band__inner {
-    width: calc(100% - 24px);
-    padding: 18px 0 22px;
+    padding: 4px 0 18px;
   }
 
   .brand-band__eyebrow {

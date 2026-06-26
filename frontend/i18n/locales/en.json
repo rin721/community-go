@@ -46,6 +46,53 @@
     "settings": "Settings",
     "login": "Log in"
   },
+  "auth": {
+    "errors": {
+      "default": "The authentication API is unavailable. Please try again later."
+    },
+    "login": {
+      "headTitle": "Log in - Aoi",
+      "title": "Log in to Aoi",
+      "description": "Use the backend IAM API to issue the current browser session. The backend writes the session cookies after a successful login.",
+      "identifier": "Email or username",
+      "identifierPlaceholder": "rin{'@'}example.com",
+      "orgCode": "Organization code",
+      "orgCodePlaceholder": "Example: aoi",
+      "orgCodeHelp": "Use this for multi-organization accounts, or leave it blank for backend resolution.",
+      "password": "Password",
+      "passwordHelp": "Submitting calls the backend authentication API. The backend validates the password policy.",
+      "submit": "Log in",
+      "submitting": "Logging in",
+      "success": "The backend issued a session. Current sessionId: {sessionId}",
+      "noAccount": "No account yet?",
+      "registerAction": "Create one"
+    },
+    "register": {
+      "headTitle": "Register - Aoi",
+      "title": "Create account",
+      "description": "Registration calls the backend IAM API to create an organization owner and returns either a session or an email verification state.",
+      "username": "Username",
+      "usernamePlaceholder": "rin721",
+      "usernameHelp": "At least 2 characters, used for login and member identity.",
+      "displayName": "Display name",
+      "displayNamePlaceholder": "Rin721",
+      "email": "Email",
+      "emailPlaceholder": "rin{'@'}example.com",
+      "orgCode": "Organization code",
+      "orgCodePlaceholder": "Example: aoi",
+      "orgCodeHelp": "The organization code becomes the backend tenant identifier. Use lowercase letters, numbers, or hyphens.",
+      "orgName": "Organization name",
+      "orgNamePlaceholder": "Aoi Lab",
+      "password": "Password",
+      "passwordHelp": "The backend validates the password policy and account creation rules after submission.",
+      "submit": "Register",
+      "submitting": "Registering",
+      "success": "The account and organization were created. Current sessionId: {sessionId}",
+      "verificationPending": "The account was created. Complete the email verification flow to activate it.",
+      "hasAccount": "Already have an account?",
+      "loginAction": "Log in"
+    }
+  },
   "home": {
     "subtitle": "A light, cute video community for creators, connected to the backend Community API by default while Nuxt mock data stays available for local demos and debugging.",
     "latest": "Latest",

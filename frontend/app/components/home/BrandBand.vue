@@ -21,27 +21,32 @@ const { t } = useI18n()
 <style scoped>
 .brand-band {
   position: relative;
-  min-height: 172px;
-  overflow: hidden;
-  background: transparent;
+  overflow: visible;
+  border: 0;
+  background: none;
+  box-shadow: none;
 }
 
 .brand-band__inner {
   position: relative;
   z-index: 1;
   display: flex;
-  width: 100%;
+  width: min(var(--aoi-content-wide-max-width), calc(100% - 10vw));
   max-width: var(--aoi-content-max-width);
-  min-height: 172px;
   align-items: center;
   justify-content: space-between;
   gap: 24px;
   margin: 0 auto;
-  padding: 28px 5vw 34px;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  padding: 26px 0 30px;
+  backdrop-filter: none;
 }
 
 .brand-band__copy {
   min-width: 0;
+  max-width: min(680px, 100%);
 }
 
 .brand-band__eyebrow {
@@ -64,11 +69,12 @@ const { t } = useI18n()
 }
 
 .brand-band__subtitle {
-  max-width: 620px;
+  max-width: 640px;
   margin: 12px 0 0;
   color: var(--aoi-text-muted);
   line-height: 1.7;
   overflow-wrap: anywhere;
+  text-wrap: pretty;
 }
 
 .brand-band__motif {
@@ -79,6 +85,7 @@ const { t } = useI18n()
   font-size: 20px;
   font-weight: 800;
   line-height: 1;
+  opacity: .72;
   text-align: right;
   white-space: nowrap;
 }
@@ -95,13 +102,9 @@ const { t } = useI18n()
 }
 
 @media (max-width: 639px) {
-  .brand-band {
-    min-height: 138px;
-  }
-
   .brand-band__inner {
-    min-height: 138px;
-    padding: 20px 16px 26px;
+    width: calc(100% - 24px);
+    padding: 18px 0 22px;
   }
 
   .brand-band__eyebrow {

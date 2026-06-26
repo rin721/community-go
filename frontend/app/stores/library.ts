@@ -338,7 +338,13 @@ export const useLibraryStore = defineStore("library", () => {
     const api = useAoiApi()
 
     try {
-      const payload = await api.getVideoLibrary(ensureClientId())
+      const activeClientId = ensureClientId()
+      let payload = await api.getVideoLibrary(activeClientId)
+
+      if (await pushMissingLocalLibraryItems(payload, activeClientId)) {
+        payload = await api.getVideoLibrary(activeClientId)
+      }
+
       applyBackendLibrary(payload)
       return payload
     } catch (error) {
@@ -427,6 +433,27 @@ export const useLibraryStore = defineStore("library", () => {
     } finally {
       setPending(video.id, false)
     }
+  }
+
+  async function pushMissingLocalLibraryItems(payload: VideoLibraryPayload, activeClientId: string) {
+    const api = useAoiApi()
+    const remoteFavoriteIds = new Set(payload.favorites.items.map((video) => video.id))
+    const remoteWatchLaterIds = new Set(payload.watchLater.items.map((video) => video.id))
+    const writes: Array<Promise<VideoInteractionState>> = []
+
+    for (const video of favoriteList.value.filter((item) => !remoteFavoriteIds.has(item.id))) {
+      writes.push(api.setVideoInteraction(video.id, "favorite", { clientId: activeClientId }))
+    }
+    for (const video of watchLaterList.value.filter((item) => !remoteWatchLaterIds.has(item.id))) {
+      writes.push(api.setVideoInteraction(video.id, "watch_later", { clientId: activeClientId }))
+    }
+
+    if (writes.length === 0) {
+      return false
+    }
+
+    await Promise.all(writes)
+    return true
   }
 
   function applyLocalInteraction(video: CountableVideoSummary, kind: VideoInteractionKind, active: boolean) {

@@ -26,7 +26,7 @@
 - `pkg` 不能导入 `internal/app` 或 `internal/modules`。
 - 业务 service 不应直接导入 `pkg` 具体实现，也不应导入同模块 `repository` 实现。
 - 数据库、缓存、日志、HTTP client、SMTP、存储、执行器等基础设施应由应用装配层或模块 infrastructure 创建，再通过接口注入。
-- 新业务扩展必须新增模块，不得恢复插件系统或新增隐藏兼容层。
+- 新业务扩展通过显式模块新增，注册路径需要在应用装配和 route contract 中可见。
 
 ## 类型边界
 

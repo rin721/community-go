@@ -1,6 +1,6 @@
 # 新增模块
 
-未来业务扩展统一通过模块新增，不恢复插件系统。
+业务扩展统一通过模块新增。
 
 当前项目采用显式模块装配，不做运行期动态发现。完整接入蓝图见 [模块接入蓝图](module-blueprint.md)；内置 `announcements` 模块是当前最小端到端示例。
 
@@ -36,4 +36,4 @@ internal/modules/<module>/
 - repository 可以使用基础设施，但必须通过 service-local contract 暴露能力。
 - handler 不写业务规则、事务编排或权限语义。
 - 可变策略、产品码、品牌、缓存 TTL、请求头等进入配置或 contract，不写死在代码中。
-- 新增模块不允许通过动态扫描、隐藏 fallback 或兼容层模拟旧插件系统。
+- 新增模块必须使用显式装配、route contract 和代码审查可见的注册路径。

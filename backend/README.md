@@ -98,7 +98,7 @@ flowchart TD
 ## 当前定位
 
 - 主系统提供共享平台能力：账号、组织、权限、配置、审计、API catalog、媒体、版本、健康检查和后台控制台；`announcements` 提供最小端到端业务模块示例。
-- 未来业务扩展统一通过 `internal/modules/<module>` 新增模块，不再使用远程插件系统作为主扩展方式。
+- 业务扩展统一通过 `internal/modules/<module>` 新增模块，并接入应用装配、route contract、前端 API client、页面、i18n 和测试。
 - 前端统一位于 `web/app`，覆盖公开页面、`/setup` 初始化向导和 `/admin` 后台控制台。
 - 产品名称、产品码、认证 issuer、请求头、存储 bucket、日志文件名等默认值通过配置和环境变量覆盖，不应写死在业务代码中。
 

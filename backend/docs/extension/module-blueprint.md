@@ -4,7 +4,7 @@
 
 ## 当前代码事实
 
-当前平台不使用插件运行时，也不做运行期动态模块扫描。模块接入采用显式装配：
+当前平台使用显式模块装配，不做运行期动态模块扫描。模块接入采用显式装配：
 
 | 位置 | 职责 |
 | --- | --- |
@@ -107,7 +107,7 @@ go test ./internal/modules/system/... -count=1 -mod=readonly
 8. 同步 `web/app/app/i18n/locales/zh-CN.json` 和 `web/app/app/i18n/locales/en-US.json`。
 9. 增加 Vitest 或 Playwright 覆盖列表、详情、创建、编辑、删除、空状态和错误状态中至少一个关键闭环。
 
-前端不得先实现后端不存在的生产能力。需要方向性展示时，只能写成文档、待办或静态说明，不能放进可操作的后台生产页面。
+前端生产能力以已暴露后端 API 为准。需要方向性展示时，只能写成文档、待办或静态说明，不能放进可操作的后台生产页面。
 
 ## README 与文档要求
 
@@ -146,10 +146,10 @@ git diff --check
 
 涉及可见页面时，还需要按 `docs/testing/test-matrix.md` 执行桌面和移动端视觉检查，并把证据写入 `docs/testing`。
 
-## 禁止事项
+## 边界事项
 
-- 不得恢复 `internal/plugin`、`pkg/plugin`、`pkg/pluginapi`、远程插件协议或 `/api/v1/plugins`。
-- 不得新增“模块动态扫描”来绕过显式装配和代码审查。
+- 模块代码只落在 `internal/modules`、应用装配、route contract、前端 API client、页面、i18n、测试和文档链路。
+- 模块注册必须显式声明，代码审查、OpenAPI 和权限同步能直接看到新增能力。
 - 不得把业务 DTO、权限枚举、缓存 key 或模块状态塞进根 `types`。
 - 不得在 service 中直接导入 `pkg` 具体实现、`internal/ports` 或同模块 `repository`。
 - 不得让 repository、工具库或基础设施适配吞掉错误。

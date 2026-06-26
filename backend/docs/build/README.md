@@ -13,7 +13,7 @@
 - 修改 Dockerfile、CI、发布包脚本或 WebUI 构建目录时，必须同步这里和发布文档。
 - 当前机器无法运行 Docker 时，不得把容器构建或运行写成已通过；应引用 CI 或目标环境证据。
 - 使用 CI artifact 作为 Docker 证据时，应通过 `scripts/check-ci-docker-evidence.ps1` 校验 workflow run、提交、artifact 和 `docker-smoke-ci.log` 内容。
-- 构建文档只描述当前命令和产物路径，不恢复旧命令、旧前端入口或旧插件交付路径。
+- 构建文档只描述当前命令、产物路径、前端入口和模块化交付路径。
 
 ## 常用验证
 

@@ -27,4 +27,4 @@ pnpm --dir web/app test
 pnpm --dir web/app typecheck
 ```
 
-`app/frontend-boundary.test.ts` 会检查旧组件路径和基础层反向依赖，避免恢复已移除的旧 UI 入口。
+`app/frontend-boundary.test.ts` 会检查组件路径和基础层反向依赖，确保 UI 入口与当前组件体系一致。

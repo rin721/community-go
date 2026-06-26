@@ -1,6 +1,6 @@
 # extension 目录说明
 
-`extension` 说明业务扩展方式。当前项目的扩展路径是模块化开发，不再使用插件系统。
+`extension` 说明业务扩展方式。当前项目的扩展路径是模块化开发，业务能力通过显式模块装配接入。
 
 ## 当前文档
 
@@ -11,7 +11,7 @@
 
 ## 维护规则
 
-- 新业务能力必须通过 `internal/modules` 和 React 模块化页面扩展，不恢复 `internal/plugin`、`pkg/plugin` 或插件 API。
+- 新业务能力必须通过 `internal/modules`、route contract 和 React 模块化页面扩展；运行路径以当前模块化链路为准。
 - 新增主系统 API 必须先进入 `internal/transport/http/contracts.go`，再生成 OpenAPI。
 - 模块私有类型留在模块内；只有平台生命周期和跨层契约进入全局 `types`。
 

@@ -11,14 +11,14 @@
 
 ## RPC
 
-RPC 仅保留平台内部服务能力注册，不再承载插件协议。测试中保留对 `plugin.*` 方法不存在的断言，防止插件 RPC 回流。
+RPC 仅保留平台内部服务能力注册。测试会确认 RPC 方法集与当前平台边界一致。
 
 ## 变更规则
 
 - 新增主系统 API 时，先改 route contract，再注册实际 handler。
 - 不得按路径前缀、method 字符串或目录推断权限；权限和 API catalog 只能从 contract 派生。
 - `GET /openapi.yaml` 是公开运行时契约接口，不纳入 `/api/v1` catalog 或权限同步。
-- 不得恢复 `/api/v1/plugins` 或远程插件协议路径。
+- 公开社区、系统和后台 API 路径以 route contract 和真实 handler 为准；扩展能力走模块化 HTTP contract。
 
 ## 验证命令
 

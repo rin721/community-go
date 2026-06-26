@@ -1,6 +1,6 @@
 # Announcements 模块
 
-`internal/modules/announcements` 是一个端到端业务示例模块，用于验证平台移除插件系统后，业务能力可以通过模块化方式扩展。它同时覆盖后台管理和公开只读产品线入口。
+`internal/modules/announcements` 是一个端到端业务示例模块，用于验证业务能力可以通过模块化方式扩展。它同时覆盖后台管理和公开只读产品线入口。
 
 ## 职责
 

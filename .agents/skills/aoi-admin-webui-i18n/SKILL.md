@@ -18,7 +18,7 @@ description: "Repository-specific workflow for React WebUI and i18n work in this
 - API 请求通过 `web/app/app/lib/api` endpoint 表和 API client。
 - 服务端数据使用 TanStack Query；认证快照和本地偏好使用 Zustand。
 - 用户可见文本、按钮、表格列、状态、错误和 SEO 文案进入 `zh-CN.json` 与 `en-US.json`。
-- locale 使用 canonical `zh-CN` / `en-US`，不要恢复前端 `en.json` 或双轨映射。
+- locale 使用 canonical `zh-CN` / `en-US`，资源目录和 API 传递保持单线。
 - 权限不足时同时处理按钮禁用、说明文案、空状态和后端真实 403。
 - 表格、筛选、分页、弹窗、加载态、空态、错误态和窄屏布局要形成可用闭环。
 - 图标优先使用 `lucide-react`；不要为常见动作手写文本按钮替代图标。

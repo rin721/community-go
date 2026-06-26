@@ -154,7 +154,7 @@ powershell -ExecutionPolicy Bypass -File scripts/check-error-result-boundaries.p
 
 `internal/app/reloadapp.Reload` 的运行态热重载仍是 best-effort 流程。关闭旧 cache 或 storage 失败不会回滚已经生效的禁用或替换动作，但会写入 warn 日志，并保留 component action 和底层错误，避免资源释放问题无声残留。
 
-`types/errors` 已删除未使用的具体用户/邮箱错误码，只保留通用参数、业务、认证、授权、资源和系统错误码。模块私有错误通过模块 service 局部错误、handler 映射、`messageKey` 和 `messageArgs` 表达。
+`types/errors` 当前只保留通用参数、业务、认证、授权、资源和系统错误码。模块私有错误通过模块 service 局部错误、handler 映射、`messageKey` 和 `messageArgs` 表达。
 
 `types/result.NewPageResult` 在 `pageSize <= 0` 时不再触发除零 panic，而是保留调用方传入的分页上下文并返回 `totalPages=0`。调用方仍应在 handler/service 做分页参数校验。
 

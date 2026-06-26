@@ -18,14 +18,14 @@
 
 ## 新增模块规范
 
-- 未来业务扩展统一新增模块，不使用插件系统。
+- 业务扩展统一新增模块，并接入显式装配链路。
 - service 定义自己需要的最小接口，不导入同模块 repository 实现。
 - handler 使用稳定 DTO，不用匿名结构或散落 `map[string]any` 表达普通业务 API。
 - 主系统 HTTP API 必须进入 `internal/transport/http/contracts.go`，再生成 `docs/api/openapi.yaml`。
 - 模块私有类型留在模块内部；只有平台生命周期、跨层上下文和全局契约可进入根 `types`。
 - 非 IAM 模块需要读取当前认证主体或构造权限判断上下文时，使用 `types/auth`，不要直接导入 IAM 模块内部 service。
 - 新模块必须显式接入 `internal/app/initapp/layers.go`、`internal/app/initapp/modules.go`、`internal/app/initapp/transport.go`、`internal/transport/http/contracts.go` 和 `internal/transport/http/router.go`。
-- 具体步骤见 `docs/extension/module-blueprint.md`；不要通过动态扫描或隐藏注册表恢复插件式扩展。
+- 具体步骤见 `docs/extension/module-blueprint.md`；注册路径必须显式可审查，不通过动态扫描或隐藏注册表接入生产能力。
 
 ## 验证命令
 

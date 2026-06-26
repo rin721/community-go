@@ -22,7 +22,7 @@
 - 用户可见文案进入 `i18n/locales/*.json`，不要硬编码在页面、表单 schema、表格列或 SEO helper 中。
 - 后台页面必须处理加载态、空态、错误态和权限禁用态。
 - 前端不能声明后端未暴露的生产能力；本地预览或 UI-only 字段必须明确不进入 API payload。
-- 插件管理页已移除，新增业务页面应通过模块化 route、API、i18n、权限和 Playwright 用例接入。
+- 新增业务页面应通过模块化 route、API、i18n、权限和 Playwright 用例接入。
 
 ## 验证命令
 
@@ -33,4 +33,4 @@ pnpm --dir web/app test
 pnpm --dir web/app test:e2e
 ```
 
-`app/frontend-boundary.test.ts` 会随 `pnpm --dir web/app test` 执行，固定 API endpoint、直接 `fetch` 例外、旧插件入口和 UI 组件层级边界。
+`app/frontend-boundary.test.ts` 会随 `pnpm --dir web/app test` 执行，固定 API endpoint、直接 `fetch` 例外和 UI 组件层级边界。

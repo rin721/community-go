@@ -16,9 +16,9 @@
 
 人类文档应解释当前代码，而不是把未来想法写成既成事实。未来工作或缺失能力应放入 backlog/known gaps，除非明确标记为计划变更。
 
-优先在结构化目录中增加文档，避免继续增加顶层零散文件。旧链接必须迁移到当前结构化入口并删除旧入口；无法立即迁移的外部约束必须记录为阻塞点，不得写成长期兼容规则。
+优先在结构化目录中增加文档，避免继续增加顶层零散文件。既有链接应迁移到当前结构化入口；无法立即迁移的外部约束必须记录为阻塞点，不得写成长期兼容规则。
 
-已删除的分散 AI 规则目录不得重新作为项目规则、任务计划或运行态入口。需要长期规则时更新根 `AGENTS.md`；需要可复用执行流程时使用 `.agents/skills`；需要一次性证据时放入合适的 `docs/testing`、`docs/release`、`docs/maintenance` 或被忽略的 `tmp/ai`。
+项目规则、任务计划和运行态入口以根 `AGENTS.md`、结构化文档和 `.agents/skills` 为准。需要长期规则时更新根 `AGENTS.md`；需要可复用执行流程时使用 `.agents/skills`；需要一次性证据时放入合适的 `docs/testing`、`docs/release`、`docs/maintenance` 或被忽略的 `tmp/ai`。
 
 ## 架构边界维护
 
@@ -32,7 +32,7 @@
 - 根 `AGENTS.md` 承载长期项目规则；子目录 `AGENTS.md` 只能补充局部约束，不得覆盖根规则。
 - `.agents/skills` 承载可复用执行技能，例如仓库级平台化维护、提交规范、发布审查和特定检查流程；技能必须是抽象、可复用、可验证的，不得写入一次性任务记录。
 - `.agents/skills/aoi-admin-platform-maintenance` 是当前仓库的平台化维护总 skill，处理架构重构、readiness gate 和开源验收时优先使用。
-- `.agents/skills/aoi-admin-docs-governance`、`.agents/skills/aoi-admin-build-ci-governance`、`.agents/skills/aoi-admin-config-governance`、`.agents/skills/aoi-admin-dev-onboarding`、`.agents/skills/aoi-admin-module-development`、`.agents/skills/aoi-admin-iam-governance`、`.agents/skills/aoi-admin-api-contract-sync`、`.agents/skills/aoi-admin-plugin-removal`、`.agents/skills/aoi-admin-webui-i18n`、`.agents/skills/aoi-admin-release-readiness`、`.agents/skills/aoi-admin-runtime-cli-governance`、`.agents/skills/aoi-admin-observability-ops`、`.agents/skills/aoi-admin-error-result-governance`、`.agents/skills/aoi-admin-data-migration-governance`、`.agents/skills/aoi-admin-task-planning`、`.agents/skills/aoi-admin-pr-review-governance`、`.agents/skills/aoi-admin-visual-qa-governance`、`.agents/skills/aoi-admin-security-dependency-governance` 分别用于文档/Agent 规则治理、构建 CI 与质量门禁、配置治理、新开发者入门与本地演示、模块开发、IAM 闭环、API 契约同步、插件移除防回潮、React WebUI/i18n、发布验收、CLI/运行时生命周期、可观测性与运行证据、错误结果契约、数据库迁移数据治理、阶段任务计划、PR 审查、视觉 QA 和安全依赖治理场景；任务命中这些范围时优先使用对应专项 skill。
+- `.agents/skills/aoi-admin-docs-governance`、`.agents/skills/aoi-admin-build-ci-governance`、`.agents/skills/aoi-admin-config-governance`、`.agents/skills/aoi-admin-dev-onboarding`、`.agents/skills/aoi-admin-module-development`、`.agents/skills/aoi-admin-iam-governance`、`.agents/skills/aoi-admin-api-contract-sync`、`.agents/skills/aoi-admin-plugin-removal`、`.agents/skills/aoi-admin-webui-i18n`、`.agents/skills/aoi-admin-release-readiness`、`.agents/skills/aoi-admin-runtime-cli-governance`、`.agents/skills/aoi-admin-observability-ops`、`.agents/skills/aoi-admin-error-result-governance`、`.agents/skills/aoi-admin-data-migration-governance`、`.agents/skills/aoi-admin-task-planning`、`.agents/skills/aoi-admin-pr-review-governance`、`.agents/skills/aoi-admin-visual-qa-governance`、`.agents/skills/aoi-admin-security-dependency-governance` 分别用于文档/Agent 规则治理、构建 CI 与质量门禁、配置治理、新开发者入门与本地演示、模块开发、IAM 闭环、API 契约同步、扩展边界治理、React WebUI/i18n、发布验收、CLI/运行时生命周期、可观测性与运行证据、错误结果契约、数据库迁移数据治理、阶段任务计划、PR 审查、视觉 QA 和安全依赖治理场景；任务命中这些范围时优先使用对应专项 skill。
 - 新增或修改 `.agents/skills` 后必须运行 `powershell -ExecutionPolicy Bypass -File scripts/check-agent-skills.ps1`，确认 `SKILL.md` front matter、仓库级 `agents/openai.yaml` 和默认触发提示可被本地 gate 验证。
 - `tools/ai` 只承载 AI 辅助工具配置，不作为长期规则入口。
 - `tmp/ai` 可存放本地运行输出、截图、临时报告和验证草稿；这些资料不进入版本控制，也不作为发布事实。需要长期留证时，应整理到 `docs/testing`、`docs/release` 或 `docs/maintenance`。

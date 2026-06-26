@@ -70,7 +70,7 @@ go run ./cmd/console db migrate up --config=<生产配置路径>
   - `APP_AUTH_SIGNING_KEY`
   - `APP_AUTH_REFRESH_TOKEN_PEPPER`
   - `APP_AUTH_MFA_SECRET_KEY`
-- 数据库、缓存、品牌、认证、存储和 i18n 变量必须使用当前命名，例如 `APP_DB_*`、`APP_CACHE_*`、`APP_BRAND_*`、`APP_AUTH_*`、`APP_STORAGE_*`、`APP_I18N_*`。不要恢复旧变量名或旧部署参数。
+- 数据库、缓存、品牌、认证、存储和 i18n 变量必须使用当前命名，例如 `APP_DB_*`、`APP_CACHE_*`、`APP_BRAND_*`、`APP_AUTH_*`、`APP_STORAGE_*`、`APP_I18N_*`。
 
 ### 4. 验证命令
 
@@ -171,7 +171,7 @@ powershell -ExecutionPolicy Bypass -File scripts/check-release-evidence.ps1 -Tem
 powershell -ExecutionPolicy Bypass -File scripts/check-release-evidence.ps1 -SelfTest
 ```
 
-`release-preflight.ps1` 用于编排本地发布前 gate；`check-local-tooling.ps1` 用于提前识别 Go、Node、pnpm/corepack、Python、GitHub CLI、Docker 和 Bash 的可用性，避免把工具缺失误写成发布证据；`check-plugin-removal.ps1` 用于固定插件系统已移除、配置示例无插件块、生产交付面无插件 API 的边界；`check-error-result-boundaries.ps1` 用于固定生产 Go 代码中显式忽略错误的 allowlist，避免新工具库、service 或运行时装配无说明吞掉错误；`check-agent-skills.ps1` 用于验证 `.agents/skills` 的 front matter、仓库级 OpenAI 元数据和默认触发提示；`check-doc-readmes.ps1` 用于验证关键目录 README 覆盖，防止新模块、脚本或前端目录缺少开发说明；`check-doc-links.ps1` 用于验证根 README、AGENTS、仓库级 skill、`docs/**`、关键源码 README 和 React 前端文档的相对链接、图片路径和 Markdown 锚点，防止发布说明、任务计划、目录索引或 skill 使用说明出现断链；`check-operational-observation-template.ps1` 用于固定 IAM 授权策略重载、IAM 通知投递队列、System 维护清理和流量探针等后台补偿观测模板结构；`check-worktree-convergence.ps1` 用于统计当前变更规模，并拦截 `.env`、本地配置、根级运行态目录、生成目录或测试报告混入当前变更或 Git 跟踪文件；`runtime-smoke.ps1` 可以证明当前提交在本机临时 SQLite 环境下能启动并暴露关键端点；`docker-smoke.ps1` 和 `docker-smoke.sh` 可以在具备 Docker 的 Windows、Linux、macOS 或 CI 环境证明镜像构建、容器启动和关键端点可访问；`check-ci-docker-evidence.ps1` 可以在 GitHub Actions 产出 `docker-smoke-evidence` 后校验 workflow run、提交、artifact 和 `docker-smoke-ci.log` 内容。这些脚本都不能替代生产数据库、备份、回滚和真实目标环境 smoke。
+`release-preflight.ps1` 用于编排本地发布前 gate；`check-local-tooling.ps1` 用于提前识别 Go、Node、pnpm/corepack、Python、GitHub CLI、Docker 和 Bash 的可用性，避免把工具缺失误写成发布证据；`check-plugin-removal.ps1` 用于验证模块化扩展边界、受控配置示例和生产交付面 API 路径；`check-error-result-boundaries.ps1` 用于固定生产 Go 代码中显式忽略错误的 allowlist，避免新工具库、service 或运行时装配无说明吞掉错误；`check-agent-skills.ps1` 用于验证 `.agents/skills` 的 front matter、仓库级 OpenAI 元数据和默认触发提示；`check-doc-readmes.ps1` 用于验证关键目录 README 覆盖，防止新模块、脚本或前端目录缺少开发说明；`check-doc-links.ps1` 用于验证根 README、AGENTS、仓库级 skill、`docs/**`、关键源码 README 和 React 前端文档的相对链接、图片路径和 Markdown 锚点，防止发布说明、任务计划、目录索引或 skill 使用说明出现断链；`check-operational-observation-template.ps1` 用于固定 IAM 授权策略重载、IAM 通知投递队列、System 维护清理和流量探针等后台补偿观测模板结构；`check-worktree-convergence.ps1` 用于统计当前变更规模，并拦截 `.env`、本地配置、根级运行态目录、生成目录或测试报告混入当前变更或 Git 跟踪文件；`runtime-smoke.ps1` 可以证明当前提交在本机临时 SQLite 环境下能启动并暴露关键端点；`docker-smoke.ps1` 和 `docker-smoke.sh` 可以在具备 Docker 的 Windows、Linux、macOS 或 CI 环境证明镜像构建、容器启动和关键端点可访问；`check-ci-docker-evidence.ps1` 可以在 GitHub Actions 产出 `docker-smoke-evidence` 后校验 workflow run、提交、artifact 和 `docker-smoke-ci.log` 内容。这些脚本都不能替代生产数据库、备份、回滚和真实目标环境 smoke。
 `check-package-sqlite-boundary.ps1` 用于固定发布包 SQLite/CGO 边界，确认默认 `CGO_ENABLED=0` 会明确提示 SQLite 不可用，`--cgo` dry-run 会明确提示 SQLite 可用，并检查包内 README 与 manifest 字段仍由 `scripts/package.py` 生成；它不能替代目标平台 CGO/SQLite 二进制 smoke。
 
 发布证据模板已独立沉淀在 [发布证据模板](release-evidence-template.md)。复制模板并填写目标环境结果后，运行：
@@ -188,5 +188,5 @@ powershell -ExecutionPolicy Bypass -File scripts/check-release-evidence.ps1 -Pat
 - 不得在发布证据中粘贴未脱敏密钥、连接串、Token 或 Cookie。
 - 不得跳过迁移状态检查后直接执行发布。
 - 不得在破坏型迁移没有备份和恢复计划时继续发布。
-- 不得恢复已删除的插件运行时、旧部署变量或旧品牌命名。
+- 发布包、部署变量和品牌命名必须保持当前生产交付面一致。
 - 不得把 Docker、Bash、Playwright 等本地工具缺失写成通过验证；必须记录为环境限制和残余风险。

@@ -1,6 +1,6 @@
 # scripts 目录说明
 
-`scripts` 存放本地验证、发布打包和工程辅助脚本。脚本应服务当前开源后台管理 / 控制台平台的真实入口，不得恢复旧入口、旧品牌名或已删除的插件系统。
+`scripts` 存放本地验证、发布打包和工程辅助脚本。脚本应服务当前开源后台管理 / 控制台平台的真实入口、当前品牌命名和模块化扩展边界。
 
 ## 当前脚本
 
@@ -21,13 +21,13 @@
 | `runtime-smoke.ps1` | 本地真实进程烟测脚本，自动构建服务、使用临时 SQLite 启动、检查 `/health`、`/ready`、`/openapi.yaml` 和 `/admin`。 |
 | `docker-smoke.ps1` | Docker 容器烟测脚本，在具备 Docker 的环境构建镜像、启动临时容器并检查关键端点。 |
 | `docker-smoke.sh` | Linux/macOS/CI 使用的 Docker 容器烟测脚本，可复用已构建镜像并检查关键端点。 |
-| `check-open-source-readiness.ps1` | 开源可用性只读检查脚本，验证关键 README、任务计划入口、构建与 CI、CLI 工作流、已知缺口、维护指南入口、错误与结果边界 gate 入口、已删除插件路径、旧品牌命名、locale 文件和配置示例边界。 |
+| `check-open-source-readiness.ps1` | 开源可用性只读检查脚本，验证关键 README、任务计划入口、构建与 CI、CLI 工作流、已知缺口、维护指南入口、错误与结果边界 gate 入口、模块化扩展路径、品牌命名、locale 文件和配置示例边界。 |
 | `check-doc-readmes.ps1` | README 覆盖只读检查脚本，验证应用入口、文档、后端分层、工具库、全局类型和 React 前端关键目录都有非空 README。 |
 | `check-doc-links.ps1` | Markdown 相对链接只读检查脚本，验证根 README、AGENTS、仓库级 skill、`docs/**`、关键源码 README 和 React 前端文档中的文件、目录和 Markdown 锚点目标存在。 |
 | `check-agent-skills.ps1` | Agent skill 只读检查脚本，验证 `.agents/skills` 的 `SKILL.md` front matter、仓库级 skill 元数据和 OpenAI 触发提示。 |
 | `agent-skill-registry.ps1` | 仓库级 Agent skill 注册表，被 skill 结构检查、文档链接检查和开源 readiness 共同读取，避免多处维护 skill 名单。 |
-| `check-entry-brand-convergence.ps1` | 入口与品牌收敛只读检查脚本，验证 `cmd/console`、中性 module path、Docker/CI/打包入口和部署命名未回退到旧入口或旧品牌。 |
-| `check-plugin-removal.ps1` | 插件系统移除只读检查脚本，验证插件运行时、协议、配置、迁移、前端入口已删除，并确认模块化替代路径存在。 |
+| `check-entry-brand-convergence.ps1` | 入口与品牌收敛只读检查脚本，验证 `cmd/console`、中性 module path、Docker/CI/打包入口和部署命名与当前交付面一致。 |
+| `check-plugin-removal.ps1` | 模块化扩展边界只读检查脚本，验证生产交付面 API、受控配置示例和前端入口与模块化路线一致。 |
 | `check-worktree-convergence.ps1` | 工作树收敛只读检查脚本，统计当前变更规模，并拦截运行态、生成目录或本地配置出现在变更或 Git 跟踪文件中。 |
 
 ## 使用规则
@@ -78,7 +78,7 @@ powershell -ExecutionPolicy Bypass -File scripts/runtime-smoke.ps1 -Port 29999 -
 powershell -ExecutionPolicy Bypass -File scripts/check-open-source-readiness.ps1
 ```
 
-脚本会检查关键说明文档、总任务计划与 PR 拆分计划入口、构建与 CI、CLI 工作流、已知缺口、已删除插件交付路径、受控配置示例、前后端 locale 文件、旧品牌命名和生产交付面的插件残留。该脚本只读，不会修改配置、生成数据或启动服务。
+脚本会检查关键说明文档、总任务计划与 PR 拆分计划入口、构建与 CI、CLI 工作流、已知缺口、模块化扩展边界、受控配置示例、前后端 locale 文件、品牌命名和生产交付面 API 路径。该脚本只读，不会修改配置、生成数据或启动服务。
 
 ## README 覆盖检查
 
@@ -108,7 +108,7 @@ powershell -ExecutionPolicy Bypass -File scripts/check-doc-links.ps1
 powershell -ExecutionPolicy Bypass -File scripts/check-agent-skills.ps1
 ```
 
-仓库级 skill 名单统一维护在 `scripts/agent-skill-registry.ps1`，`check-agent-skills.ps1`、`check-doc-links.ps1` 和 `check-open-source-readiness.ps1` 会共同读取该注册表。脚本会检查所有 skill 的 `SKILL.md` 是否包含可解析的 front matter、目录名是否与 `name` 一致、`description` 是否存在，并要求 `.agents/skills` 下的 skill 以普通仓库文件自包含，不得提交为 gitlink/submodule；对仓库级维护、开源 readiness、文档治理、构建 CI、配置治理、新开发者入门、首次安装闭环、模块开发、IAM 治理、系统运维、API 契约、插件移除、WebUI/i18n、发布验收、CLI/运行时生命周期、可观测性、错误结果契约、数据库迁移数据治理、阶段任务计划、PR 审查、视觉 QA、安全依赖治理和提交规范 skill，会额外要求 `agents/openai.yaml` 存在且包含 `interface.display_name`、`short_description` 和带 `$<skill-name>` 的 `default_prompt`，并拦截旧进程入口、旧脚手架命名、旧 module path 残留和已漂移的命令示例。该脚本只读，不会修改 skill 内容。
+仓库级 skill 名单统一维护在 `scripts/agent-skill-registry.ps1`，`check-agent-skills.ps1`、`check-doc-links.ps1` 和 `check-open-source-readiness.ps1` 会共同读取该注册表。脚本会检查所有 skill 的 `SKILL.md` 是否包含可解析的 front matter、目录名是否与 `name` 一致、`description` 是否存在，并要求 `.agents/skills` 下的 skill 以普通仓库文件自包含，不得提交为 gitlink/submodule；对仓库级维护、开源 readiness、文档治理、构建 CI、配置治理、新开发者入门、首次安装闭环、模块开发、IAM 治理、系统运维、API 契约、扩展边界治理、WebUI/i18n、发布验收、CLI/运行时生命周期、可观测性、错误结果契约、数据库迁移数据治理、阶段任务计划、PR 审查、视觉 QA、安全依赖治理和提交规范 skill，会额外要求 `agents/openai.yaml` 存在且包含 `interface.display_name`、`short_description` 和带 `$<skill-name>` 的 `default_prompt`，并检查进程入口、脚手架命名、module path 和命令示例与当前交付面一致。该脚本只读，不会修改 skill 内容。
 
 ## 错误与结果边界检查
 
@@ -120,7 +120,7 @@ powershell -ExecutionPolicy Bypass -File scripts/check-error-result-boundaries.p
 
 脚本扫描 `internal`、`pkg` 和 `types` 下的生产 Go 文件，查找显式 `_ =` 丢弃错误、关闭、删除、写入、同步、发送或停止等结果的高风险候选。当前只允许少量已解释的 best-effort 例外，例如临时监听器关闭、HMAC 写入和托管服务控制文件的一次性清理；新增忽略行为必须改为返回错误、记录明确状态，或在脚本 allowlist 中写清业务影响。
 
-## 插件系统移除检查
+## 模块化扩展边界检查
 
 第二组 PR、模块化扩展、配置示例或前端后台入口变更后运行：
 
@@ -130,9 +130,9 @@ powershell -ExecutionPolicy Bypass -File scripts/check-plugin-removal.ps1
 
 脚本会检查：
 
-- 插件运行时、插件协议、插件 API 包、插件迁移、插件配置示例和前端插件入口已删除。
-- `internal/modules` 和模块开发文档作为替代扩展路径存在。
-- 受控配置示例和生产交付面没有恢复 `plugins:`、`/plugin-api` 或 `/api/v1/plugins`。
+- 生产交付面 API、受控配置示例和前端入口与模块化路线一致。
+- `internal/modules` 和模块开发文档作为扩展路径存在。
+- 受控配置示例和生产交付面只暴露当前模块化扩展入口。
 
 ## 入口与品牌收敛检查
 
@@ -144,9 +144,9 @@ powershell -ExecutionPolicy Bypass -File scripts/check-entry-brand-convergence.p
 
 脚本会检查：
 
-- 当前唯一 Go 入口是 `cmd/console`，旧入口目录不存在。
+- 当前唯一 Go 入口是 `cmd/console`。
 - Go module path、Dockerfile、CI、发布包脚本、部署脚本和配置示例使用中性命名。
-- 入口和部署交付面没有旧品牌、旧脚手架、旧请求头或旧入口残留。
+- 入口和部署交付面使用当前品牌、脚手架、请求头和入口命名。
 
 ## 发布前本地 gate
 
@@ -156,7 +156,7 @@ powershell -ExecutionPolicy Bypass -File scripts/check-entry-brand-convergence.p
 powershell -ExecutionPolicy Bypass -File scripts/release-preflight.ps1
 ```
 
-默认 gate 会执行本机工具检查、入口与品牌收敛、插件系统移除、错误与结果边界检查、Agent skill 检查、README 覆盖检查、文档链接检查、开源 readiness、部署防线检查、发布证据模板校验、后台补偿观测模板校验、聚焦 Go 测试、前端 i18n、视觉 QA 脚本语法、Docker PowerShell/Bash 烟测脚本静态检查和 `git diff --check`。它不会启动服务、构建 Docker 镜像或写入生产配置。
+默认 gate 会执行本机工具检查、入口与品牌收敛、模块化扩展边界、错误与结果边界检查、Agent skill 检查、README 覆盖检查、文档链接检查、开源 readiness、部署防线检查、发布证据模板校验、后台补偿观测模板校验、聚焦 Go 测试、前端 i18n、视觉 QA 脚本语法、Docker PowerShell/Bash 烟测脚本静态检查和 `git diff --check`。它不会启动服务、构建 Docker 镜像或写入生产配置。
 默认 gate 也会执行 Agent skill、README 覆盖和文档链接检查，确保 `.agents/skills` 的仓库级工作流具有可触发、可校验的元数据，关键目录说明不会在模块扩展后漂移，根 README、AGENTS、仓库级 skill、`docs/**` 和关键源码 README 的相对链接不会断开。
 默认 gate 还会执行 CI Docker 证据校验脚本自检，确认后续用 GitHub Actions artifact 补 Docker 证据时不会只停留在手工说明。
 默认 gate 还会执行 `scripts/check-package-sqlite-boundary.ps1`，确认默认发布包 `CGO_ENABLED=0` 时明确提示 SQLite 不可用，`--cgo` 计划明确提示 SQLite 可用，并检查包内 `README.txt` 与 `manifest.json` 的字段来源没有漂移。

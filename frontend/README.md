@@ -2,7 +2,7 @@
 
 Aoi Web 是一个 Nuxt 4 前端优先的视频社区应用。项目使用 Vue 3、TypeScript、Pinia、`@nuxtjs/i18n`、`@nuxt/icon`，并通过本地 Aoi wrapper 统一封装 Material Web 组件。
 
-当前应用默认通过 `useAoiApi()` 接入 `backend/internal/modules/community` 公开社区接口，Nuxt mock API 作为本地演示与调试数据源保留；浏览器本地偏好 / 缓存只承担匿名 clientId、离线降级和上传草稿元数据。页面覆盖首页发现、分类浏览、搜索、关注动态、视频播放、用户页、观看记录/收藏、上传草稿和设置中心；评论列表、评论发布、匿名创作者关注、点赞、收藏、稍后看、观看记录和通知均按当前社区 API 边界接入。共享 DTO 与 mock fixture 需贴近后端社区契约。
+当前应用默认通过 `useAoiApi()` 接入 `backend/internal/modules/community` 公开社区接口，Nuxt mock API 仅服务本地演示与调试；浏览器本地偏好 / 缓存只承担匿名 clientId、离线降级和上传草稿元数据。页面覆盖首页发现、分类浏览、搜索、关注动态、视频播放、用户页、观看记录/收藏、上传草稿和设置中心；评论列表、评论发布、匿名创作者关注、点赞、收藏、稍后看、观看记录和通知均按当前社区 API 边界接入。关注动态始终绑定匿名 clientId，视频评论列表按后端 `sort=newest/oldest` 独立请求结果窗口。共享 DTO 与 mock fixture 需贴近后端社区契约。
 
 ## 标星历史
 
@@ -153,6 +153,7 @@ Nuxt public runtime config 支持以下环境变量：
 - 普通文本链接、卡片链接、标签链接和导航链接统一使用 `AoiLink`。
 - 样式优先使用 `app/assets/css/tokens.css` 中的 CSS 变量和 `app/assets/css/main.css` 中的共享布局规则。
 - 新增共享用户可见文案时，同步维护 `i18n/locales/zh-CN.json`、`i18n/locales/en.json` 和 `i18n/locales/ja.json`。
+- 评论、关注、收藏、历史、通知等社区状态优先以 `useAoiApi()` 返回的后端 payload 为准；`localStorage` 只保存匿名 clientId 和必要降级缓存。
 - `/settings/components` 组件实验台中的业务内容样本应通过 `useAoiApi()` 读取社区 API；本地预览样本只服务组件状态回归和接口诊断边界。
 - 浏览器本地 store 必须只在客户端安全 hydrate，并能从损坏的 `localStorage` 恢复。
 - 上传草稿状态不要持久化文件字节，只保存文件元数据。

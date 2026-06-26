@@ -2,15 +2,20 @@ import type {
   AoiApiErrorPayload,
   ApiResultEnvelope,
   ErrorResponse,
+  AuthSessionSnapshot,
   LoginRequest,
   SignupRequest,
-  SignupResult,
-  AuthTokenPair
+  SignupResult
 } from "~/types/api"
 
 type AuthRequestOptions = {
   body?: unknown
   method?: "GET" | "POST"
+  suppressTelemetry?: boolean
+}
+
+type AuthLogoutResult = {
+  loggedOut?: boolean
 }
 
 export function useAoiAuthApi() {
@@ -31,16 +36,33 @@ export function useAoiAuthApi() {
     } catch (error) {
       const apiError = isAoiApiErrorPayload(error) ? error : toAoiAuthApiError(error, endpoint)
 
-      telemetry.recordError(apiError)
+      if (!options.suppressTelemetry) {
+        telemetry.recordError(apiError)
+      }
       throw apiError
     }
   }
 
-  async function login(body: LoginRequest): Promise<AuthTokenPair> {
-    return await request<AuthTokenPair>("/auth/login", {
+  async function login(body: LoginRequest): Promise<AuthSessionSnapshot> {
+    return await request<AuthSessionSnapshot>("/auth/login", {
       body,
       method: "POST"
     })
+  }
+
+  async function getSession(options: { suppressTelemetry?: boolean } = {}): Promise<AuthSessionSnapshot> {
+    return await request<AuthSessionSnapshot>("/me/session", {
+      method: "GET",
+      suppressTelemetry: options.suppressTelemetry
+    })
+  }
+
+  async function logout(): Promise<boolean> {
+    const result = await request<AuthLogoutResult>("/auth/logout", {
+      method: "POST"
+    })
+
+    return result.loggedOut === true
   }
 
   async function signup(body: SignupRequest): Promise<SignupResult> {
@@ -51,7 +73,9 @@ export function useAoiAuthApi() {
   }
 
   return {
+    getSession,
     login,
+    logout,
     signup
   }
 }

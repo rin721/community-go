@@ -3,14 +3,16 @@ import type { AoiApiErrorPayload } from "~/types/api"
 
 const { t } = useI18n()
 const authApi = useAoiAuthApi()
+const authSession = useAuthSessionStore()
 const identifier = ref("")
-const orgCode = ref("")
 const password = ref("")
 const pending = ref(false)
+const logoutPending = ref(false)
 const errorMessage = ref("")
 const successMessage = ref("")
 
 const canSubmit = computed(() => identifier.value.trim().length > 0 && password.value.length > 0 && !pending.value)
+const currentSession = computed(() => authSession.session)
 
 async function submitLogin() {
   if (!canSubmit.value) {
@@ -24,15 +26,34 @@ async function submitLogin() {
   try {
     const session = await authApi.login({
       identifier: identifier.value.trim(),
-      orgCode: orgCode.value.trim() || undefined,
       password: password.value
     })
 
-    successMessage.value = t("auth.login.success", { sessionId: session.sessionId || "-" })
+    authSession.acceptSession(session)
+    successMessage.value = t("auth.login.success")
   } catch (error) {
     errorMessage.value = authErrorMessage(error, t("auth.errors.default"))
   } finally {
     pending.value = false
+  }
+}
+
+async function submitLogout() {
+  if (logoutPending.value) {
+    return
+  }
+
+  logoutPending.value = true
+  errorMessage.value = ""
+  successMessage.value = ""
+
+  try {
+    await authSession.logout()
+    successMessage.value = t("auth.session.logoutSuccess")
+  } catch (error) {
+    errorMessage.value = authErrorMessage(error, t("auth.errors.default"))
+  } finally {
+    logoutPending.value = false
   }
 }
 
@@ -54,7 +75,29 @@ useHead(() => ({
         <AuthMotionVisual title="Login" />
       </template>
 
+      <div v-if="currentSession" class="auth-session-card">
+        <AoiStatusMessage as="div" icon="circle-user-round" intent="success">
+          <span>
+            <strong>{{ t("auth.session.title") }}</strong>
+            {{ t("auth.session.description") }}
+          </span>
+        </AoiStatusMessage>
+        <AoiActionBar>
+          <AoiButton
+            icon="log-out"
+            tone="accent"
+            variant="outlined"
+            :loading="logoutPending"
+            :disabled="logoutPending"
+            @click="submitLogout"
+          >
+            {{ logoutPending ? t("auth.session.loggingOut") : t("auth.session.logout") }}
+          </AoiButton>
+        </AoiActionBar>
+      </div>
+
       <AuthPanel
+        v-else
         title-id="login-title"
         :title="t('auth.login.title')"
         :description="t('auth.login.description')"
@@ -71,14 +114,6 @@ useHead(() => ({
             v-model="identifier"
             :label="t('auth.login.identifier')"
             :placeholder="t('auth.login.identifierPlaceholder')"
-            appearance="outlined"
-            @enter="submitLogin"
-          />
-          <AoiTextField
-            v-model="orgCode"
-            :label="t('auth.login.orgCode')"
-            :placeholder="t('auth.login.orgCodePlaceholder')"
-            :supporting-text="t('auth.login.orgCodeHelp')"
             appearance="outlined"
             @enter="submitLogin"
           />
@@ -106,6 +141,15 @@ useHead(() => ({
   display: grid;
   min-height: calc(100vh - 36px);
   align-items: center;
+}
+
+.auth-session-card {
+  display: grid;
+  gap: 12px;
+}
+
+.auth-session-card strong {
+  margin-right: 6px;
 }
 
 @media (max-width: 639px) {

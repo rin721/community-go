@@ -7,6 +7,7 @@ export interface AoiNavigationItem {
 
 export function useAoiNavigation() {
   const { t } = useI18n()
+  const authSession = useAuthSessionStore()
   const route = useRoute()
 
   function isActive(path: string) {
@@ -36,7 +37,9 @@ export function useAoiNavigation() {
   ])
 
   const secondaryItems = computed<AoiNavigationItem[]>(() => [
-    { icon: "log-in", label: t("nav.login"), to: "/login", active: isActive("/login") || isActive("/register") },
+    authSession.authenticated
+      ? { icon: "circle-user-round", label: t("nav.account"), to: "/login", active: isActive("/login") || isActive("/register") }
+      : { icon: "log-in", label: t("nav.login"), to: "/login", active: isActive("/login") || isActive("/register") },
     { icon: "settings", label: t("nav.settings"), to: "/settings", active: isActive("/settings") }
   ])
 

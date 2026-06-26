@@ -3,11 +3,10 @@ import type { AoiApiErrorPayload } from "~/types/api"
 
 const { t } = useI18n()
 const authApi = useAoiAuthApi()
+const authSession = useAuthSessionStore()
 const username = ref("")
 const displayName = ref("")
 const email = ref("")
-const orgCode = ref("")
-const orgName = ref("")
 const password = ref("")
 const pending = ref(false)
 const errorMessage = ref("")
@@ -15,12 +14,26 @@ const successMessage = ref("")
 
 const canSubmit = computed(() => {
   return username.value.trim().length >= 2
-    && orgCode.value.trim().length >= 2
-    && orgName.value.trim().length >= 2
     && email.value.trim().length > 0
     && password.value.length > 0
     && !pending.value
 })
+
+function communityAccountScope() {
+  const source = username.value.trim() || email.value.trim().split("@")[0] || "member"
+  const code = source
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48) || "member"
+  const name = displayName.value.trim() || username.value.trim() || "Aoi member"
+
+  return {
+    orgCode: `community-${code}`,
+    orgName: name
+  }
+}
 
 async function submitRegister() {
   if (!canSubmit.value) {
@@ -32,18 +45,20 @@ async function submitRegister() {
   successMessage.value = ""
 
   try {
+    const accountScope = communityAccountScope()
     const result = await authApi.signup({
       displayName: displayName.value.trim() || undefined,
       email: email.value.trim(),
-      orgCode: orgCode.value.trim(),
-      orgName: orgName.value.trim(),
+      orgCode: accountScope.orgCode,
+      orgName: accountScope.orgName,
       password: password.value,
       username: username.value.trim()
     })
 
     successMessage.value = result.status === "verification_pending"
       ? t("auth.register.verificationPending")
-      : t("auth.register.success", { sessionId: result.session?.sessionId || "-" })
+      : t("auth.register.success")
+    authSession.acceptSignupResult(result)
   } catch (error) {
     errorMessage.value = authErrorMessage(error, t("auth.errors.default"))
   } finally {
@@ -98,21 +113,6 @@ useHead(() => ({
             :label="t('auth.register.email')"
             :placeholder="t('auth.register.emailPlaceholder')"
             type="email"
-            appearance="outlined"
-            @enter="submitRegister"
-          />
-          <AoiTextField
-            v-model="orgCode"
-            :label="t('auth.register.orgCode')"
-            :placeholder="t('auth.register.orgCodePlaceholder')"
-            :supporting-text="t('auth.register.orgCodeHelp')"
-            appearance="outlined"
-            @enter="submitRegister"
-          />
-          <AoiTextField
-            v-model="orgName"
-            :label="t('auth.register.orgName')"
-            :placeholder="t('auth.register.orgNamePlaceholder')"
             appearance="outlined"
             @enter="submitRegister"
           />

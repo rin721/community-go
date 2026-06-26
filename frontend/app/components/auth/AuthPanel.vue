@@ -26,7 +26,7 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <form v-aoi-reveal="'pop'" class="auth-panel" @submit.prevent="emit('submit')">
+  <form class="auth-panel" @submit.prevent="emit('submit')">
     <p v-if="props.eyebrow" class="auth-panel__eyebrow">{{ props.eyebrow }}</p>
     <h1 :id="props.titleId">{{ props.title }}</h1>
     <p v-if="props.description" class="auth-panel__description">{{ props.description }}</p>

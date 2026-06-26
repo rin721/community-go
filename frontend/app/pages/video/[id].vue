@@ -2,7 +2,14 @@
 import type { CommentSortMode, CommentView } from "~/types/comments"
 import type { AoiDanmakuMapper, AoiDanmakuMode } from "~/types/danmaku"
 import type { PlayerPlaybackRate } from "~/types/player"
-import type { CreateVideoDanmakuRequest, CreateVideoReportRequest, VideoComment, VideoDanmakuItem, VideoReportReason } from "~/types/api"
+import type {
+  CreateVideoDanmakuRequest,
+  CreateVideoReportRequest,
+  VideoComment,
+  VideoCommentPayload,
+  VideoDanmakuItem,
+  VideoReportReason
+} from "~/types/api"
 
 const route = useRoute()
 const api = useAoiApi()
@@ -28,25 +35,17 @@ const selectedSourceId = ref("")
 
 const { data: watchPayload, error, pending, refresh } = useAsyncData(() => `video-watch-${id.value}`, async () => {
   const video = await api.getVideoDetail(id.value)
-  const [creator, danmakuPayload, commentPayload] = await Promise.all([
+  const [creator, danmakuPayload] = await Promise.all([
     api.getCreatorProfile(video.uploader.handle).catch(() => null),
     api.getVideoDanmaku(video.id).catch(() => ({
       items: [],
       nextCursor: null,
       totalCount: 0,
       videoId: video.id
-    })),
-    api.getVideoComments(video.id, { limit: 48, sort: commentSortMode.value }).catch(() => ({
-      items: [],
-      nextCursor: null,
-      sort: commentSortMode.value,
-      totalCount: video.commentCount,
-      videoId: video.id
     }))
   ])
 
   return {
-    commentPayload,
     creator,
     danmakuItems: danmakuPayload.items,
     video
@@ -56,8 +55,26 @@ const { data: watchPayload, error, pending, refresh } = useAsyncData(() => `vide
 })
 
 const video = computed(() => watchPayload.value?.video || null)
+const { data: serverCommentPayload } = useAsyncData(
+  () => `video-comments-${video.value?.id || id.value}-${commentSortMode.value}`,
+  async () => {
+    const currentVideo = video.value
+    if (!currentVideo) {
+      return emptyVideoCommentPayload(id.value, commentSortMode.value)
+    }
+
+    return await api.getVideoComments(currentVideo.id, { limit: 48, sort: commentSortMode.value })
+      .catch(() => emptyVideoCommentPayload(
+        currentVideo.id,
+        commentSortMode.value,
+        currentVideo.commentCount
+      ))
+  },
+  {
+    watch: [() => video.value?.id, commentSortMode]
+  }
+)
 const creator = computed(() => watchPayload.value?.creator || null)
-const serverCommentPayload = computed(() => watchPayload.value?.commentPayload || null)
 const serverDanmakuItems = computed(() => watchPayload.value?.danmakuItems || [])
 const mergedDanmakuItems = computed(() => {
   if (!video.value) {
@@ -248,20 +265,17 @@ function isVideoReportReason(value: string): value is VideoReportReason {
 }
 
 function appendServerComment(comment: VideoComment) {
-  if (!watchPayload.value) {
+  const payload = serverCommentPayload.value
+  if (!payload) {
     return
   }
 
-  const payload = watchPayload.value.commentPayload
   const items = [comment, ...payload.items.filter((item) => item.id !== comment.id)]
 
-  watchPayload.value = {
-    ...watchPayload.value,
-    commentPayload: {
-      ...payload,
-      items,
-      totalCount: Math.max(payload.totalCount + 1, items.length)
-    }
+  serverCommentPayload.value = {
+    ...payload,
+    items,
+    totalCount: Math.max(payload.totalCount + 1, items.length)
   }
 }
 
@@ -292,6 +306,16 @@ function sortCommentViews(items: CommentView[], sort: CommentSortMode) {
 
     return sort === "oldest" ? aTime - bTime : bTime - aTime
   })
+}
+
+function emptyVideoCommentPayload(videoId: string, sort: CommentSortMode, totalCount = 0): VideoCommentPayload {
+  return {
+    items: [],
+    nextCursor: null,
+    sort,
+    totalCount,
+    videoId
+  }
 }
 
 useHead(() => ({

@@ -53,7 +53,7 @@
     },
     "session": {
       "title": "Signed in",
-      "description": "Your community account can sync favorites, follows, notifications, and submissions.",
+      "description": "{account}'s community account can sync favorites, follows, notifications, and submissions.",
       "logout": "Log out",
       "loggingOut": "Logging out",
       "logoutSuccess": "You are now signed out."

@@ -1,8 +1,8 @@
 import type {
-  AuthSessionSnapshot,
+  CommunityAuthSession,
   CommunitySignupRequest,
   LoginRequest,
-  SignupResult
+  CommunitySignupResult
 } from "../types/api"
 
 export const mockCommunityAuthCookieName = "aoi_mock_community_session"
@@ -19,7 +19,7 @@ type MockCommunityAccount = {
 const mockCommunityAccountsByEmail = new Map<string, MockCommunityAccount>()
 const mockCommunityAccountsById = new Map<string, MockCommunityAccount>()
 const mockCommunityAccountsByUsername = new Map<string, MockCommunityAccount>()
-const mockCommunitySessions = new Map<string, AuthSessionSnapshot>()
+const mockCommunitySessions = new Map<string, CommunityAuthSession>()
 
 seedMockCommunityAccount({
   displayName: "Rin721",
@@ -28,7 +28,7 @@ seedMockCommunityAccount({
   username: "rin721"
 })
 
-export function createMockCommunitySignup(body: CommunitySignupRequest): SignupResult | null {
+export function createMockCommunitySignup(body: CommunitySignupRequest): CommunitySignupResult | null {
   const username = normalizeToken(body.username)
   const email = normalizeEmail(body.email)
   const password = normalizePassword(body.password)
@@ -57,7 +57,7 @@ export function createMockCommunitySignup(body: CommunitySignupRequest): SignupR
   }
 }
 
-export function createMockCommunityLogin(body: LoginRequest): AuthSessionSnapshot | null {
+export function createMockCommunityLogin(body: LoginRequest): CommunityAuthSession | null {
   const identifier = normalizeToken(body.identifier)
   const password = normalizePassword(body.password)
   const account = mockCommunityAccountsByUsername.get(identifier) || mockCommunityAccountsByEmail.get(identifier)
@@ -69,7 +69,7 @@ export function createMockCommunityLogin(body: LoginRequest): AuthSessionSnapsho
   return issueMockCommunitySession(account)
 }
 
-export function getMockCommunitySession(sessionId: string): AuthSessionSnapshot | null {
+export function getMockCommunitySession(sessionId: string): CommunityAuthSession | null {
   const session = mockCommunitySessions.get(sessionId)
 
   if (!session) {
@@ -126,9 +126,14 @@ function registerMockCommunityAccount(input: Omit<MockCommunityAccount, "created
   return account
 }
 
-function issueMockCommunitySession(account: MockCommunityAccount): AuthSessionSnapshot {
+function issueMockCommunitySession(account: MockCommunityAccount): CommunityAuthSession {
   const now = Date.now()
-  const session: AuthSessionSnapshot = {
+  const session: CommunityAuthSession = {
+    account: {
+      displayName: account.displayName,
+      handle: account.username,
+      id: account.id
+    },
     accessExpiresAt: new Date(now + 1000 * 60 * 60).toISOString(),
     refreshExpiresAt: new Date(now + 1000 * 60 * 60 * 24 * 7).toISOString(),
     sessionId: `mock-session-${account.id}-${now.toString(36)}`,

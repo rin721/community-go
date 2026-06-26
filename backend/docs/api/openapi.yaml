@@ -5310,6 +5310,16 @@
                       "accessExpiresAt":
                         "format": "date-time"
                         "type": "string"
+                      "account":
+                        "properties":
+                          "displayName":
+                            "type": "string"
+                          "handle":
+                            "type": "string"
+                          "id":
+                            "format": "int64"
+                            "type": "integer"
+                        "type": "object"
                       "refreshExpiresAt":
                         "format": "date-time"
                         "type": "string"
@@ -5459,6 +5469,16 @@
                       "accessExpiresAt":
                         "format": "date-time"
                         "type": "string"
+                      "account":
+                        "properties":
+                          "displayName":
+                            "type": "string"
+                          "handle":
+                            "type": "string"
+                          "id":
+                            "format": "int64"
+                            "type": "integer"
+                        "type": "object"
                       "refreshExpiresAt":
                         "format": "date-time"
                         "type": "string"
@@ -5564,6 +5584,16 @@
                           "accessExpiresAt":
                             "format": "date-time"
                             "type": "string"
+                          "account":
+                            "properties":
+                              "displayName":
+                                "type": "string"
+                              "handle":
+                                "type": "string"
+                              "id":
+                                "format": "int64"
+                                "type": "integer"
+                            "type": "object"
                           "refreshExpiresAt":
                             "format": "date-time"
                             "type": "string"

@@ -53,7 +53,7 @@
     },
     "session": {
       "title": "ログイン中",
-      "description": "コミュニティアカウントで、お気に入り、フォロー、通知、投稿を同期できます。",
+      "description": "{account} のコミュニティアカウントで、お気に入り、フォロー、通知、投稿を同期できます。",
       "logout": "ログアウト",
       "loggingOut": "ログアウト中",
       "logoutSuccess": "ログアウトしました。"

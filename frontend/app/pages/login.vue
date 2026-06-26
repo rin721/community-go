@@ -13,6 +13,9 @@ const successMessage = ref("")
 
 const canSubmit = computed(() => identifier.value.trim().length > 0 && password.value.length > 0 && !pending.value)
 const currentSession = computed(() => authSession.session)
+const currentAccountName = computed(() => {
+  return currentSession.value?.account.displayName || currentSession.value?.account.handle || ""
+})
 
 async function submitLogin() {
   if (!canSubmit.value) {
@@ -79,7 +82,7 @@ useHead(() => ({
         <AoiStatusMessage as="div" icon="circle-user-round" intent="success">
           <span>
             <strong>{{ t("auth.session.title") }}</strong>
-            {{ t("auth.session.description") }}
+            {{ t("auth.session.description", { account: currentAccountName }) }}
           </span>
         </AoiStatusMessage>
         <AoiActionBar>

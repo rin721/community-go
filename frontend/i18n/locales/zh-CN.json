@@ -53,7 +53,7 @@
     },
     "session": {
       "title": "已登录",
-      "description": "你的社区账号可同步收藏、关注、通知和投稿状态。",
+      "description": "{account} 的社区账号可同步收藏、关注、通知和投稿状态。",
       "logout": "退出登录",
       "loggingOut": "正在退出",
       "logoutSuccess": "已退出当前账号。"

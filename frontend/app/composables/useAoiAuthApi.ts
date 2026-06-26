@@ -2,10 +2,10 @@ import type {
   AoiApiErrorPayload,
   ApiResultEnvelope,
   ErrorResponse,
-  AuthSessionSnapshot,
+  CommunityAuthSession,
   CommunitySignupRequest,
   LoginRequest,
-  SignupResult
+  CommunitySignupResult
 } from "~/types/api"
 
 type AuthRequestOptions = {
@@ -45,15 +45,15 @@ export function useAoiAuthApi() {
     }
   }
 
-  async function login(body: LoginRequest): Promise<AuthSessionSnapshot> {
-    return await request<AuthSessionSnapshot>(`${authPath.value}/login`, {
+  async function login(body: LoginRequest): Promise<CommunityAuthSession> {
+    return await request<CommunityAuthSession>(`${authPath.value}/login`, {
       body,
       method: "POST"
     })
   }
 
-  async function getSession(options: { suppressTelemetry?: boolean } = {}): Promise<AuthSessionSnapshot> {
-    return await request<AuthSessionSnapshot>(`${authPath.value}/session`, {
+  async function getSession(options: { suppressTelemetry?: boolean } = {}): Promise<CommunityAuthSession> {
+    return await request<CommunityAuthSession>(`${authPath.value}/session`, {
       method: "GET",
       suppressTelemetry: options.suppressTelemetry
     })
@@ -67,8 +67,8 @@ export function useAoiAuthApi() {
     return result.loggedOut === true
   }
 
-  async function signup(body: CommunitySignupRequest): Promise<SignupResult> {
-    return await request<SignupResult>(`${authPath.value}/signup`, {
+  async function signup(body: CommunitySignupRequest): Promise<CommunitySignupResult> {
+    return await request<CommunitySignupResult>(`${authPath.value}/signup`, {
       body,
       method: "POST"
     })

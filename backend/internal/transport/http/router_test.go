@@ -237,7 +237,7 @@ func (s *fakeIAMService) CurrentSession(context.Context, iamservice.Principal) (
 	return iamservice.SessionSnapshot{UserID: 1, OrgID: 1, SessionID: 1, ProductCode: "console-platform", ClientType: "pc_web", RefreshExpiresAt: time.Now().Add(time.Hour)}, nil
 }
 func (s *fakeIAMService) Me(context.Context, iamservice.Principal) (*iammodel.User, error) {
-	return nil, nil
+	return &iammodel.User{ID: 1, Username: "rin721", DisplayName: "Rin721", Email: "rin@example.com"}, nil
 }
 func (s *fakeIAMService) ListMyOrganizations(context.Context, iamservice.Principal) ([]iammodel.Organization, error) {
 	return nil, nil
@@ -454,8 +454,11 @@ func TestNewRouterCommunitySignupEndpointUsesCommunityPayload(t *testing.T) {
 	if iamSvc.lastSignupInput.OrgCode != "community-rin-721" || iamSvc.lastSignupInput.OrgName != "Rin" {
 		t.Fatalf("unexpected community signup account bridge: %#v", iamSvc.lastSignupInput)
 	}
-	if strings.Contains(recorder.Body.String(), "orgId") || strings.Contains(recorder.Body.String(), "permissions") {
+	if strings.Contains(recorder.Body.String(), "orgId") || strings.Contains(recorder.Body.String(), "permissions") || strings.Contains(recorder.Body.String(), "roles") {
 		t.Fatalf("community signup response should expose a compact community session, got %s", recorder.Body.String())
+	}
+	if !strings.Contains(recorder.Body.String(), `"account"`) || !strings.Contains(recorder.Body.String(), `"handle":"rin721"`) {
+		t.Fatalf("community signup response should expose community account identity, got %s", recorder.Body.String())
 	}
 }
 
@@ -477,8 +480,11 @@ func TestNewRouterCommunityAuthEndpointsUseCommunityPayload(t *testing.T) {
 	if iamSvc.lastLoginInput.Identifier != "rin@example.com" || iamSvc.lastLoginInput.OrgCode != "" {
 		t.Fatalf("unexpected community login input: %#v", iamSvc.lastLoginInput)
 	}
-	if strings.Contains(login.Body.String(), "orgId") || strings.Contains(login.Body.String(), "permissions") {
+	if strings.Contains(login.Body.String(), "orgId") || strings.Contains(login.Body.String(), "permissions") || strings.Contains(login.Body.String(), "roles") {
 		t.Fatalf("community login response should expose a compact community session, got %s", login.Body.String())
+	}
+	if !strings.Contains(login.Body.String(), `"account"`) || !strings.Contains(login.Body.String(), `"displayName":"Rin721"`) {
+		t.Fatalf("community login response should expose community account identity, got %s", login.Body.String())
 	}
 
 	session := httptest.NewRecorder()
@@ -488,8 +494,11 @@ func TestNewRouterCommunityAuthEndpointsUseCommunityPayload(t *testing.T) {
 	if session.Code != http.StatusOK {
 		t.Fatalf("expected community session status %d, got %d body %s", http.StatusOK, session.Code, session.Body.String())
 	}
-	if strings.Contains(session.Body.String(), "orgId") || strings.Contains(session.Body.String(), "permissions") {
+	if strings.Contains(session.Body.String(), "orgId") || strings.Contains(session.Body.String(), "permissions") || strings.Contains(session.Body.String(), "roles") {
 		t.Fatalf("community session response should expose a compact community session, got %s", session.Body.String())
+	}
+	if !strings.Contains(session.Body.String(), `"account"`) || !strings.Contains(session.Body.String(), `"displayName":"Rin721"`) {
+		t.Fatalf("community session response should expose community account identity, got %s", session.Body.String())
 	}
 
 	logout := httptest.NewRecorder()

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/open-console/console-platform/internal/middleware"
+	iammodel "github.com/open-console/console-platform/internal/modules/iam/model"
 	"github.com/open-console/console-platform/internal/modules/iam/service"
 	"github.com/open-console/console-platform/internal/ports"
 	"github.com/open-console/console-platform/types/result"
@@ -197,11 +198,18 @@ type CommunityLoginRequest struct {
 	MFACode     string `json:"mfaCode"`
 }
 
+type CommunityAuthAccount struct {
+	ID          int64  `json:"id,string"`
+	Handle      string `json:"handle"`
+	DisplayName string `json:"displayName"`
+}
+
 type CommunityAuthSessionSnapshot struct {
-	UserID           int64     `json:"userId,string"`
-	SessionID        int64     `json:"sessionId,string"`
-	AccessExpiresAt  time.Time `json:"accessExpiresAt"`
-	RefreshExpiresAt time.Time `json:"refreshExpiresAt"`
+	UserID           int64                `json:"userId,string"`
+	SessionID        int64                `json:"sessionId,string"`
+	Account          CommunityAuthAccount `json:"account"`
+	AccessExpiresAt  time.Time            `json:"accessExpiresAt"`
+	RefreshExpiresAt time.Time            `json:"refreshExpiresAt"`
 }
 
 type CommunitySignupResult struct {
@@ -455,7 +463,12 @@ func (h *Handler) CommunitySignup(c ports.HTTPContext) {
 	if signupResult.Tokens.AccessToken != "" {
 		h.setAuthCookies(c, signupResult.Tokens)
 	}
-	result.OK(c, communitySignupResult(signupResult))
+	communityResult, err := h.communitySignupResult(c.RequestContext(), signupResult)
+	if err != nil {
+		h.write(c, nil, err)
+		return
+	}
+	result.OK(c, communityResult)
 }
 
 func (h *Handler) CommunityLogin(c ports.HTTPContext) {
@@ -482,7 +495,12 @@ func (h *Handler) CommunityLogin(c ports.HTTPContext) {
 	if pair.AccessToken != "" {
 		h.setAuthCookies(c, pair)
 	}
-	result.OK(c, communityAuthSessionFromTokenPair(pair))
+	session, err := h.communityAuthSessionFromTokenPair(c.RequestContext(), pair)
+	if err != nil {
+		h.write(c, nil, err)
+		return
+	}
+	result.OK(c, session)
 }
 
 func (h *Handler) CommunitySession(c ports.HTTPContext) {
@@ -495,7 +513,12 @@ func (h *Handler) CommunitySession(c ports.HTTPContext) {
 		h.write(c, nil, err)
 		return
 	}
-	result.OK(c, communityAuthSessionFromSnapshot(session))
+	out, err := h.communityAuthSessionFromSnapshot(c.RequestContext(), principal, session)
+	if err != nil {
+		h.write(c, nil, err)
+		return
+	}
+	result.OK(c, out)
 }
 
 func (h *Handler) CommunityLogout(c ports.HTTPContext) {
@@ -562,33 +585,75 @@ func normalizeCommunityAccountHandle(value string) string {
 	return normalized
 }
 
-func communitySignupResult(result service.SignupResult) CommunitySignupResult {
+func (h *Handler) communitySignupResult(ctx context.Context, result service.SignupResult) (CommunitySignupResult, error) {
 	out := CommunitySignupResult{
 		Status:   result.Status,
 		Delivery: result.Delivery,
 	}
 	if result.Session != nil {
-		session := communityAuthSessionFromSnapshot(*result.Session)
+		principal := communityPrincipalFromSessionSnapshot(*result.Session)
+		session, err := h.communityAuthSessionFromSnapshot(ctx, principal, *result.Session)
+		if err != nil {
+			return CommunitySignupResult{}, err
+		}
 		out.Session = &session
 	}
-	return out
+	return out, nil
 }
 
-func communityAuthSessionFromTokenPair(pair service.TokenPair) CommunityAuthSessionSnapshot {
+func (h *Handler) communityAuthSessionFromTokenPair(ctx context.Context, pair service.TokenPair) (CommunityAuthSessionSnapshot, error) {
+	principal := service.Principal{
+		UserID:      pair.UserID,
+		OrgID:       pair.OrgID,
+		SessionID:   pair.SessionID,
+		ProductCode: pair.ProductCode,
+		ClientType:  pair.ClientType,
+	}
+	user, err := h.service.Me(ctx, principal)
+	if err != nil {
+		return CommunityAuthSessionSnapshot{}, err
+	}
 	return CommunityAuthSessionSnapshot{
 		UserID:           pair.UserID,
 		SessionID:        pair.SessionID,
+		Account:          communityAuthAccountFromUser(user),
 		AccessExpiresAt:  pair.AccessExpiresAt,
 		RefreshExpiresAt: pair.RefreshExpiresAt,
-	}
+	}, nil
 }
 
-func communityAuthSessionFromSnapshot(session service.SessionSnapshot) CommunityAuthSessionSnapshot {
+func (h *Handler) communityAuthSessionFromSnapshot(ctx context.Context, principal service.Principal, session service.SessionSnapshot) (CommunityAuthSessionSnapshot, error) {
+	user, err := h.service.Me(ctx, principal)
+	if err != nil {
+		return CommunityAuthSessionSnapshot{}, err
+	}
 	return CommunityAuthSessionSnapshot{
 		UserID:           session.UserID,
 		SessionID:        session.SessionID,
+		Account:          communityAuthAccountFromUser(user),
 		AccessExpiresAt:  session.AccessExpiresAt,
 		RefreshExpiresAt: session.RefreshExpiresAt,
+	}, nil
+}
+
+func communityPrincipalFromSessionSnapshot(session service.SessionSnapshot) service.Principal {
+	return service.Principal{
+		UserID:      session.UserID,
+		OrgID:       session.OrgID,
+		SessionID:   session.SessionID,
+		ProductCode: session.ProductCode,
+		ClientType:  session.ClientType,
+	}
+}
+
+func communityAuthAccountFromUser(user *iammodel.User) CommunityAuthAccount {
+	if user == nil {
+		return CommunityAuthAccount{}
+	}
+	return CommunityAuthAccount{
+		ID:          user.ID,
+		Handle:      user.Username,
+		DisplayName: user.DisplayName,
 	}
 }
 

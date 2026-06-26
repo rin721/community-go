@@ -1,4 +1,4 @@
-import type { AoiApiErrorPayload, AuthSessionSnapshot, SignupResult } from "~/types/api"
+import type { AoiApiErrorPayload, CommunityAuthSession, CommunitySignupResult } from "~/types/api"
 
 function errorMessage(error: unknown) {
   const apiError = error as Partial<AoiApiErrorPayload>
@@ -10,17 +10,17 @@ export const useAuthSessionStore = defineStore("auth-session", () => {
   const error = ref<string | null>(null)
   const hydrated = ref(false)
   const pending = ref(false)
-  const session = ref<AuthSessionSnapshot | null>(null)
+  const session = ref<CommunityAuthSession | null>(null)
 
   const authenticated = computed(() => Boolean(session.value?.sessionId))
 
-  function acceptSession(nextSession: AuthSessionSnapshot | null | undefined) {
+  function acceptSession(nextSession: CommunityAuthSession | null | undefined) {
     session.value = nextSession || null
     error.value = null
     hydrated.value = true
   }
 
-  function acceptSignupResult(result: SignupResult) {
+  function acceptSignupResult(result: CommunitySignupResult) {
     acceptSession(result.session)
   }
 

@@ -23,25 +23,32 @@ export interface ApiResultEnvelope<T> {
   serverTime: number
 }
 
-export interface AuthSessionSnapshot {
+export interface CommunityAuthAccount {
+  id: string
+  handle: string
+  displayName: string
+}
+
+export interface CommunityAuthSession {
   userId: string
   sessionId: string
+  account: CommunityAuthAccount
   accessExpiresAt: string
   refreshExpiresAt: string
 }
 
-export type SignupStatus = "authenticated" | "verification_pending"
+export type CommunitySignupStatus = "authenticated" | "verification_pending"
 
-export interface AuthNotificationDelivery {
+export interface CommunityAuthNotificationDelivery {
   debug: boolean
   token?: string
   url?: string
 }
 
-export interface SignupResult {
-  status: SignupStatus
-  session?: AuthSessionSnapshot | null
-  delivery?: AuthNotificationDelivery | null
+export interface CommunitySignupResult {
+  status: CommunitySignupStatus
+  session?: CommunityAuthSession | null
+  delivery?: CommunityAuthNotificationDelivery | null
 }
 
 export interface CommunitySignupRequest {

@@ -68,7 +68,9 @@ const lastSavedLabel = computed(() => activeDraft.value
   : t("upload.emptyValue"))
 const communityAccountActive = computed(() => authSession.authenticated)
 const submissionAuthorField = computed({
-  get: () => communityAccountActive.value ? t("upload.fields.accountAuthor") : submissionAuthorName.value,
+  get: () => communityAccountActive.value
+    ? authSession.session?.account.displayName || authSession.session?.account.handle || t("upload.fields.accountAuthor")
+    : submissionAuthorName.value,
   set: (value: string) => {
     if (!communityAccountActive.value) {
       submissionAuthorName.value = value

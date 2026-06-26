@@ -87,34 +87,8 @@ function formatDuration(totalSeconds: number) {
   position: relative;
   aspect-ratio: 16 / 9;
   overflow: hidden;
-  border: 1px solid var(--aoi-surface-border);
   border-radius: var(--aoi-radius-card);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.52);
-}
-
-.video-card__cover::before,
-.video-card__cover::after {
-  position: absolute;
-  content: "";
-  pointer-events: none;
-}
-
-.video-card__cover::before {
-  inset: auto 12px 12px auto;
-  width: 42px;
-  height: 42px;
-  border: 2px solid rgba(255, 255, 255, 0.72);
-  border-radius: var(--aoi-radius-round);
-}
-
-.video-card__cover::after {
-  top: 14px;
-  left: 14px;
-  width: 78px;
-  height: 3px;
-  border-radius: var(--aoi-radius-round);
-  background: rgba(255, 255, 255, 0.72);
-  box-shadow: 0 12px 0 rgba(255, 255, 255, 0.42);
+  box-shadow: 0 10px 28px rgba(33, 33, 33, 0.035);
 }
 
 .video-card__duration {

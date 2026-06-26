@@ -15,7 +15,7 @@ defineProps<{
     interactive
   >
     <template #media>
-      <span class="category-card__swatch" :style="{ backgroundColor: category.accentColor || 'var(--aoi-accent-50)' }" />
+      <span class="category-card__swatch" :style="{ '--category-card-accent': category.accentColor || 'var(--aoi-accent-50)' }" />
     </template>
     <template #title>{{ category.name }}</template>
     <template v-if="category.description" #description>{{ category.description }}</template>
@@ -27,15 +27,17 @@ defineProps<{
 
 <style scoped>
 .category-card {
-  --aoi-info-card-media-size: 10px;
+  --aoi-info-card-media-size: 30px;
   width: 100%;
   height: 100%;
 }
 
 .category-card__swatch {
   width: 10px;
-  height: 42px;
+  height: 10px;
   border-radius: var(--aoi-radius-round);
+  background: var(--category-card-accent);
+  box-shadow: 0 0 0 7px color-mix(in srgb, var(--category-card-accent) 12%, transparent);
 }
 
 .category-card :deep(.aoi-info-card__title) {

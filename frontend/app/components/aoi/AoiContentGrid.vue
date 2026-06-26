@@ -4,18 +4,21 @@ import type { AoiContentGridGap, AoiRevealProp } from "~/types/ui"
 const props = withDefaults(defineProps<{
   as?: string
   gap?: AoiContentGridGap
+  maxWidth?: string
   minWidth?: string
   mobileColumns?: 1 | 2
   reveal?: AoiRevealProp
 }>(), {
   as: "div",
   gap: "normal",
+  maxWidth: "1fr",
   minWidth: "224px",
   mobileColumns: 1,
   reveal: false
 })
 
 const gridStyle = computed(() => ({
+  "--aoi-content-grid-max-width": props.maxWidth,
   "--aoi-content-grid-min-width": props.minWidth
 }))
 </script>
@@ -39,7 +42,7 @@ const gridStyle = computed(() => ({
 .aoi-content-grid {
   display: grid;
   min-width: 0;
-  grid-template-columns: repeat(auto-fill, minmax(var(--aoi-content-grid-min-width), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--aoi-content-grid-min-width)), var(--aoi-content-grid-max-width)));
 }
 
 .aoi-content-grid--gap-normal {

@@ -165,6 +165,7 @@ useHead(() => ({
     >
       <AoiContentGrid
         class="category-index-page__map"
+        max-width="260px"
         min-width="220px"
         gap="compact"
         :mobile-columns="1"
@@ -233,7 +234,6 @@ useHead(() => ({
 .category-index-page__map {
   min-width: 0;
   align-items: stretch;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 260px));
   justify-content: start;
 }
 

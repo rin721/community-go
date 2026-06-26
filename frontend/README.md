@@ -29,7 +29,7 @@ flowchart TD
     Composables["composables"]
     Plugins["plugins"]
     Assets["CSS tokens 与全局样式"]
-    Config["前端配置与 build default profile"]
+    Config["默认体验配置"]
   end
 
   subgraph UI["UI 基础"]

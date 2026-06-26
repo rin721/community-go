@@ -27,12 +27,12 @@ defineProps<{
   grid-template-columns: 30px minmax(0, 1fr);
   gap: 12px;
   align-items: start;
-  border: 1px solid color-mix(in srgb, var(--aoi-active-color) 10%, var(--aoi-surface-border));
+  border: 0;
   border-radius: var(--aoi-radius-container);
   background:
-    linear-gradient(90deg, color-mix(in srgb, var(--aoi-active-color) 6%, transparent), transparent 42%),
-    color-mix(in srgb, var(--aoi-surface-solid) 34%, transparent);
-  box-shadow: none;
+    linear-gradient(90deg, color-mix(in srgb, var(--aoi-active-color) 4%, transparent), transparent 42%),
+    color-mix(in srgb, var(--aoi-surface-solid) 28%, transparent);
+  box-shadow: 0 14px 36px rgba(33, 33, 33, 0.035);
   backdrop-filter: blur(8px);
   margin: 0 0 18px;
   padding: 13px 16px;

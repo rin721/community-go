@@ -50,6 +50,7 @@ Thumbs.db
 */configs/config.yaml
 
 # Temporary files
+/tmp/
 */tmp/
 */data/
 *.tmp

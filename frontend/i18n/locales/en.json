@@ -1280,12 +1280,16 @@
   },
   "upload": {
     "headTitle": "Upload - Aoi",
+    "eyebrow": "Community submissions",
     "title": "Upload workspace",
-    "description": "Prepare video details and submit them to the community review queue.",
+    "description": "Prepare video details and submit metadata to the backend community review queue. File bytes stay in the browser and are not persisted locally.",
     "newDraft": "New draft",
+    "refresh": "Refresh data",
     "defaultAuthor": "Aoi Creator",
     "emptyValue": "None",
     "categoryUnselected": "Unselected",
+    "clientPending": "waiting",
+    "clientLabel": "Anonymous clientId: {client}",
     "lastSaved": "Autosaved at {value}",
     "addTag": "Add",
     "removeTag": "Remove tag {tag}",
@@ -1293,6 +1297,24 @@
     "actionBarLabel": "Upload draft actions",
     "submit": "Submit for review",
     "deleteDraft": "Delete current draft",
+    "loadingTitle": "Restoring upload workspace",
+    "loadingDescription": "Restoring local draft metadata and syncing community categories plus submission receipts.",
+    "categoryLoadError": "The Categories API failed, so new community categories cannot be selected yet.",
+    "sourceStatus": {
+      "syncing": "Syncing community categories, anonymous clientId, and recent submission receipts.",
+      "error": "The submission data source is unavailable; this page will not fall back to static placeholder submissions.",
+      "ready": "From the Community Submissions API: {categories} selectable categories and {submissions} receipts for this browser."
+    },
+    "stats": {
+      "drafts": "Drafts",
+      "draftsDescription": "Upload metadata saved in this browser",
+      "ready": "Ready",
+      "readyDescription": "Local drafts with required fields complete",
+      "submitted": "Submitted",
+      "submittedDescription": "Drafts marked as sent for review locally",
+      "remote": "Receipts",
+      "remoteDescription": "Recent submission records returned by the API"
+    },
     "status": {
       "none": "No draft",
       "draft": "Draft autosaved",
@@ -1368,8 +1390,15 @@
     },
     "submissions": {
       "title": "Recent submissions",
+      "description": "The backend community queue returned {count} receipts for this anonymous clientId.",
+      "refresh": "Refresh submissions",
       "loading": "Loading",
-      "empty": "No submissions from this browser yet."
+      "empty": "No submissions from this browser yet.",
+      "errorTitle": "Submission receipts failed",
+      "errorDescription": "The Community Submissions API did not return recent records. Please retry later.",
+      "pendingReview": "Pending review",
+      "fileSize": "File size",
+      "createdAt": "Submitted"
     }
   },
   "history": {

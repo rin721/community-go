@@ -11,6 +11,8 @@ import {
   getCategoryLeafNodes
 } from "~~/shared/utils/categories"
 
+type UploadStatusIntent = "danger" | "success"
+
 const api = useAoiApi()
 const drafts = useUploadDraftStore()
 const library = useLibraryStore()
@@ -20,16 +22,27 @@ const submissionAuthorName = ref("")
 const submissionError = ref<string | null>(null)
 const submissionReceipt = ref<CommunitySubmissionItem | null>(null)
 const submissions = ref<CommunitySubmissionItem[]>([])
+const submissionsError = ref<string | null>(null)
+const submissionsLoaded = ref(false)
 const submissionsPending = ref(false)
 const submitting = ref(false)
 
-const { data: categories, pending: categoriesPending } = useAsyncData(
+const { data: categories, error: categoriesError, pending: categoriesPending, refresh: refreshCategories } = useAsyncData(
   "upload-categories",
   () => api.listCategories(),
   { default: () => [] }
 )
 
 const activeDraft = computed(() => drafts.activeDraft)
+const dateLocale = computed(() => {
+  if (locale.value === "ja") {
+    return "ja-JP"
+  }
+  if (locale.value === "en") {
+    return "en-US"
+  }
+  return "zh-CN"
+})
 const validation = computed<UploadDraftValidation>(() => activeDraft.value
   ? drafts.validateDraft(activeDraft.value)
   : { missing: ["upload.validation.createDraft"], ready: false, warnings: [] })
@@ -52,6 +65,18 @@ const selectedCategoryName = computed(() => {
 const lastSavedLabel = computed(() => activeDraft.value
   ? formatDate(activeDraft.value.updatedAt)
   : t("upload.emptyValue"))
+const activeClientId = computed(() => {
+  if (library.clientId) {
+    return library.clientId
+  }
+  if (submissions.value[0]?.clientId) {
+    return submissions.value[0].clientId
+  }
+  return ""
+})
+const maskedClientId = computed(() => activeClientId.value
+  ? `...${activeClientId.value.slice(-8)}`
+  : t("upload.clientPending"))
 const canSubmit = computed(() => Boolean(
   activeDraft.value?.source &&
   validation.value.ready &&
@@ -67,7 +92,54 @@ const submitStatusMessage = computed(() => {
   }
   return ""
 })
-const submitStatusIntent = computed<"danger" | "success">(() => submissionError.value ? "danger" : "success")
+const submitStatusIntent = computed<UploadStatusIntent>(() => submissionError.value ? "danger" : "success")
+const isDraftsLoading = computed(() => !drafts.hydrated)
+const isSubmissionsLoading = computed(() => submissionsPending.value && !submissionsLoaded.value)
+const isSourceSyncing = computed(() => categoriesPending.value || submissionsPending.value || isDraftsLoading.value)
+const sourceLabel = computed(() => {
+  if (isSourceSyncing.value) {
+    return t("upload.sourceStatus.syncing")
+  }
+  if (categoriesError.value || submissionsError.value) {
+    return t("upload.sourceStatus.error")
+  }
+  return t("upload.sourceStatus.ready", {
+    categories: formatCount(categoryOptions.value.length),
+    submissions: formatCount(submissions.value.length)
+  })
+})
+const uploadStats = computed(() => [
+  {
+    description: t("upload.stats.draftsDescription"),
+    icon: "files",
+    label: t("upload.stats.drafts"),
+    value: formatCount(drafts.draftCount)
+  },
+  {
+    description: t("upload.stats.readyDescription"),
+    icon: "badge-check",
+    label: t("upload.stats.ready"),
+    value: formatCount(drafts.readyCount)
+  },
+  {
+    description: t("upload.stats.submittedDescription"),
+    icon: "send",
+    label: t("upload.stats.submitted"),
+    value: formatCount(drafts.submittedCount)
+  },
+  {
+    description: t("upload.stats.remoteDescription"),
+    icon: "database",
+    label: t("upload.stats.remote"),
+    value: formatCount(submissions.value.length)
+  }
+])
+const submissionSummary = computed(() => submissionsError.value
+  ? submissionsError.value
+  : t("upload.submissions.description", {
+      count: formatCount(submissions.value.length)
+    }))
+const categoryStatusMessage = computed(() => categoriesError.value ? t("upload.categoryLoadError") : "")
 
 const draftTitle = computed({
   get: () => activeDraft.value?.title || "",
@@ -195,14 +267,24 @@ async function refreshSubmissions() {
   }
 
   submissionsPending.value = true
+  submissionsError.value = null
   try {
     const payload = await api.getCommunitySubmissions(ensureCommunityClientId(), 12)
     submissions.value = payload.items.items
-  } catch {
+  } catch (error) {
     submissions.value = []
+    submissionsError.value = apiErrorMessage(error)
   } finally {
     submissionsPending.value = false
+    submissionsLoaded.value = true
   }
+}
+
+async function refreshUploadData() {
+  await Promise.all([
+    refreshCategories(),
+    refreshSubmissions()
+  ])
 }
 
 function deleteActiveDraft() {
@@ -224,7 +306,7 @@ function formatBytes(size: number) {
 }
 
 function formatDate(value: string) {
-  return new Date(value).toLocaleString(locale.value, {
+  return new Date(value).toLocaleString(dateLocale.value, {
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
@@ -232,11 +314,36 @@ function formatDate(value: string) {
   })
 }
 
+function formatCount(value: number) {
+  return new Intl.NumberFormat(dateLocale.value, {
+    maximumFractionDigits: 1,
+    notation: value >= 1000 ? "compact" : "standard"
+  }).format(value)
+}
+
 function draftStatusLabel(status?: string) {
   if (status === "submitted") {
     return t("upload.status.submitted")
   }
   return status ? t("upload.status.draft") : t("upload.status.none")
+}
+
+function submissionStatusLabel(status: string) {
+  if (status === "pending_review") {
+    return t("upload.submissions.pendingReview")
+  }
+
+  return status
+}
+
+function visibilityLabelFor(value: string) {
+  if (value === "public") {
+    return t("upload.visibility.public")
+  }
+  if (value === "unlisted") {
+    return t("upload.visibility.unlisted")
+  }
+  return t("upload.visibility.private")
 }
 
 function ensureCommunityClientId() {
@@ -257,19 +364,54 @@ function selectDraft(id: string) {
   drafts.selectDraft(id)
 }
 
-useHead({
+useHead(() => ({
   title: t("upload.headTitle")
-})
+}))
 </script>
 
 <template>
-  <div class="aoi-page">
-    <PageHeader
-      icon="upload"
-      :title="t('upload.title')"
-      :description="t('upload.description')"
-    >
-      <template #actions>
+  <div class="aoi-page upload-page">
+    <section v-aoi-reveal="'rise'" class="upload-hero" :aria-label="t('upload.title')">
+      <PageHeader
+        icon="upload"
+        :eyebrow="t('upload.eyebrow')"
+        :title="t('upload.title')"
+        :description="t('upload.description')"
+      >
+        <template #actions>
+          <AoiButton
+            tone="accent"
+            variant="tonal"
+            icon="file-plus-2"
+            :disabled="!drafts.hydrated"
+            @click="drafts.createDraft()"
+          >
+            {{ t('upload.newDraft') }}
+          </AoiButton>
+          <AoiButton
+            tone="neutral"
+            variant="outlined"
+            icon="refresh-cw"
+            :loading="isSourceSyncing"
+            @click="refreshUploadData"
+          >
+            {{ t('upload.refresh') }}
+          </AoiButton>
+        </template>
+      </PageHeader>
+
+      <div class="upload-hero__meta">
+        <p class="upload-hero__source">
+          <AoiIcon name="database" :size="14" decorative />
+          {{ sourceLabel }}
+        </p>
+        <p class="upload-hero__source">
+          <AoiIcon name="fingerprint" :size="14" decorative />
+          {{ t("upload.clientLabel", { client: maskedClientId }) }}
+        </p>
+      </div>
+
+      <div class="upload-hero__mobile-actions">
         <AoiButton
           tone="accent"
           variant="tonal"
@@ -279,10 +421,46 @@ useHead({
         >
           {{ t('upload.newDraft') }}
         </AoiButton>
-      </template>
-    </PageHeader>
+        <AoiButton
+          tone="neutral"
+          variant="outlined"
+          icon="refresh-cw"
+          :loading="isSourceSyncing"
+          @click="refreshUploadData"
+        >
+          {{ t('upload.refresh') }}
+        </AoiButton>
+      </div>
+    </section>
 
-    <div v-if="drafts.hydrated" class="upload-workspace">
+    <AoiStatGrid
+      v-if="drafts.hydrated"
+      class="upload-page__stats"
+      :items="uploadStats"
+      :columns="4"
+      reveal="fade"
+    />
+
+    <section
+      v-if="isDraftsLoading"
+      class="upload-loading"
+      :aria-label="t('upload.loadingTitle')"
+      aria-live="polite"
+    >
+      <span class="upload-loading__sr">
+        {{ t("upload.loadingTitle") }}. {{ t("upload.loadingDescription") }}
+      </span>
+      <div class="upload-loading__header" aria-hidden="true">
+        <span class="upload-loading__line upload-loading__line--title" />
+        <span class="upload-loading__line" />
+      </div>
+      <div class="upload-loading__columns" aria-hidden="true">
+        <span class="upload-loading__panel" />
+        <span class="upload-loading__panel upload-loading__panel--side" />
+      </div>
+    </section>
+
+    <div v-else class="upload-workspace">
       <main class="upload-workspace__main">
         <PageState
           v-if="!activeDraft"
@@ -330,6 +508,14 @@ useHead({
               <span>{{ t('upload.lastSaved', { value: lastSavedLabel }) }}</span>
             </div>
 
+            <AoiStatusMessage
+              v-if="categoryStatusMessage"
+              intent="danger"
+              icon="cloud-alert"
+            >
+              {{ categoryStatusMessage }}
+            </AoiStatusMessage>
+
             <div class="upload-form-grid">
               <AoiTextField
                 v-model="draftTitle"
@@ -352,7 +538,7 @@ useHead({
                 v-model="draftCategory"
                 :label="t('upload.fields.category')"
                 appearance="outlined"
-                :disabled="categoriesPending"
+                :disabled="categoriesPending || categoryOptions.length === 0"
                 :options="categoryOptions"
               />
               <AoiSelect
@@ -485,19 +671,74 @@ useHead({
         >
           <div class="upload-panel__title">
             <h2>{{ t('upload.submissions.title') }}</h2>
-            <span>{{ submissionsPending ? t('upload.submissions.loading') : submissions.length }}</span>
+            <span>{{ submissionsPending ? t('upload.submissions.loading') : formatCount(submissions.length) }}</span>
           </div>
 
-          <div v-if="submissions.length" class="upload-submission-list">
-            <div
+          <p class="upload-panel__description">
+            {{ submissionSummary }}
+          </p>
+
+          <div class="upload-panel__actions">
+            <AoiButton
+              tone="accent"
+              variant="outlined"
+              size="sm"
+              icon="refresh-cw"
+              :loading="submissionsPending"
+              @click="refreshSubmissions"
+            >
+              {{ t('upload.submissions.refresh') }}
+            </AoiButton>
+          </div>
+
+          <div v-if="isSubmissionsLoading" class="upload-submission-loading" aria-hidden="true">
+            <span v-for="item in 3" :key="item" class="upload-submission-loading__card" />
+          </div>
+
+          <PageState
+            v-else-if="submissionsError"
+            icon="cloud-alert"
+            :title="t('upload.submissions.errorTitle')"
+            :description="t('upload.submissions.errorDescription')"
+            action-icon="refresh-cw"
+            :action-label="t('upload.submissions.refresh')"
+            @action="refreshSubmissions"
+          />
+
+          <div v-else-if="submissions.length" class="upload-submission-list" role="list">
+            <article
               v-for="item in submissions"
               :key="item.id"
               class="upload-submission-list__item"
+              role="listitem"
             >
-              <strong>{{ item.title }}</strong>
-              <span>{{ item.category?.name || item.categorySlug }} · {{ t('upload.status.submitted') }}</span>
-              <small>{{ formatDate(item.createdAt) }}</small>
-            </div>
+              <div class="upload-submission-list__heading">
+                <strong>{{ item.title }}</strong>
+                <span>{{ submissionStatusLabel(item.status) }}</span>
+              </div>
+              <p>{{ item.description || t('upload.review.emptyDescription') }}</p>
+              <dl class="upload-submission-list__meta">
+                <div>
+                  <dt>{{ t('upload.review.category') }}</dt>
+                  <dd>{{ item.category?.name || item.categorySlug }}</dd>
+                </div>
+                <div>
+                  <dt>{{ t('upload.review.visibility') }}</dt>
+                  <dd>{{ visibilityLabelFor(item.visibility) }}</dd>
+                </div>
+                <div>
+                  <dt>{{ t('upload.submissions.fileSize') }}</dt>
+                  <dd>{{ formatBytes(item.sourceSize) }}</dd>
+                </div>
+                <div>
+                  <dt>{{ t('upload.submissions.createdAt') }}</dt>
+                  <dd>{{ formatDate(item.createdAt) }}</dd>
+                </div>
+              </dl>
+              <div v-if="item.tags.length" class="upload-submission-list__tags" :aria-label="t('upload.tagsAriaLabel')">
+                <span v-for="tag in item.tags" :key="tag"># {{ tag }}</span>
+              </div>
+            </article>
           </div>
           <p v-else class="upload-empty-note">
             {{ t('upload.submissions.empty') }}
@@ -509,6 +750,140 @@ useHead({
 </template>
 
 <style scoped>
+.upload-page {
+  display: grid;
+  gap: 18px;
+}
+
+.upload-hero {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  gap: 14px;
+  overflow: hidden;
+  border: 1px solid var(--aoi-state-border-active);
+  border-radius: var(--aoi-radius-sm);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--aoi-accent-10) 72%, transparent), transparent 46%),
+    linear-gradient(180deg, color-mix(in srgb, var(--aoi-surface-solid) 88%, transparent), var(--aoi-surface));
+  box-shadow: var(--aoi-shadow-sm);
+  padding: 18px;
+}
+
+.upload-hero::before {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(90deg, var(--aoi-accent-50), var(--aoi-sakura-50), var(--aoi-accent-40));
+  content: "";
+}
+
+.upload-hero :deep(.page-header) {
+  margin: 0;
+}
+
+.upload-hero :deep(.page-header__description) {
+  max-width: 780px;
+  text-wrap: pretty;
+}
+
+.upload-hero__meta,
+.upload-hero__mobile-actions {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.upload-hero__source {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid color-mix(in srgb, var(--aoi-state-border-active) 58%, transparent);
+  border-radius: var(--aoi-radius-round);
+  background: color-mix(in srgb, var(--aoi-surface-solid) 76%, transparent);
+  color: var(--aoi-text-muted);
+  font-size: 12px;
+  font-weight: 760;
+  line-height: 1.5;
+  margin: 0;
+  overflow-wrap: anywhere;
+  padding: 6px 10px;
+}
+
+.upload-hero__mobile-actions {
+  display: none;
+}
+
+.upload-page__stats {
+  min-width: 0;
+}
+
+.upload-loading {
+  position: relative;
+  display: grid;
+  gap: 16px;
+  overflow: hidden;
+  border: 1px solid var(--aoi-border);
+  border-radius: var(--aoi-radius-sm);
+  background: var(--aoi-surface);
+  box-shadow: var(--aoi-shadow-sm);
+  padding: 18px;
+}
+
+.upload-loading__sr {
+  position: absolute;
+  overflow: hidden;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.upload-loading__header {
+  display: grid;
+  gap: 10px;
+}
+
+.upload-loading__line,
+.upload-loading__panel,
+.upload-submission-loading__card {
+  background: linear-gradient(110deg, var(--aoi-accent-10), var(--aoi-surface-muted), var(--aoi-accent-10));
+  background-size: 200% 100%;
+  animation: upload-loading-shimmer 1.2s var(--aoi-ease-out) infinite;
+}
+
+.upload-loading__line {
+  display: block;
+  width: min(100%, 640px);
+  height: 10px;
+  border-radius: var(--aoi-radius-round);
+}
+
+.upload-loading__line--title {
+  width: min(52%, 320px);
+  height: 18px;
+}
+
+.upload-loading__columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 18px;
+}
+
+.upload-loading__panel {
+  min-height: 360px;
+  border-radius: var(--aoi-radius-sm);
+}
+
+.upload-loading__panel--side {
+  min-height: 260px;
+}
+
 .upload-workspace {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 340px;
@@ -545,6 +920,18 @@ useHead({
   color: var(--aoi-text-muted);
   overflow-wrap: anywhere;
   text-align: end;
+}
+
+.upload-panel__description {
+  margin: -4px 0 0;
+  color: var(--aoi-text-muted);
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.upload-panel__actions {
+  display: flex;
+  justify-content: flex-start;
 }
 
 .upload-form-grid {
@@ -584,21 +971,56 @@ useHead({
 
 .upload-submission-list {
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
 
 .upload-submission-list__item {
   display: grid;
-  gap: 3px;
+  min-width: 0;
+  gap: 10px;
   border: 1px solid var(--aoi-border);
   border-radius: var(--aoi-radius-card);
-  padding: 10px 12px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--aoi-accent-10) 44%, transparent), transparent 58%),
+    var(--aoi-card-bg);
+  padding: 12px;
+  transition:
+    border-color var(--aoi-motion-fast) var(--aoi-ease-out),
+    transform var(--aoi-motion-fast) var(--aoi-ease-out);
+}
+
+.upload-submission-list__item:hover,
+.upload-submission-list__item:focus-within {
+  border-color: var(--aoi-state-border-active);
+  transform: translate3d(0, -1px, 0);
+}
+
+.upload-submission-list__heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: start;
+}
+
+.upload-submission-list__heading span,
+.upload-submission-list__tags span {
+  border: 1px solid color-mix(in srgb, var(--aoi-state-border-active) 52%, transparent);
+  border-radius: var(--aoi-radius-round);
+  background: color-mix(in srgb, var(--aoi-surface-solid) 76%, transparent);
+  color: var(--aoi-accent-60);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.5;
+  padding: 4px 8px;
 }
 
 .upload-submission-list__item strong,
-.upload-submission-list__item span,
-.upload-submission-list__item small,
+.upload-submission-list__item p,
+.upload-submission-list__meta,
+.upload-submission-list__meta dt,
+.upload-submission-list__meta dd,
 .upload-empty-note {
+  margin: 0;
   min-width: 0;
   overflow-wrap: anywhere;
 }
@@ -608,27 +1030,102 @@ useHead({
   line-height: 1.45;
 }
 
-.upload-submission-list__item span,
-.upload-submission-list__item small,
+.upload-submission-list__item p,
+.upload-submission-list__meta dt,
 .upload-empty-note {
   color: var(--aoi-text-muted);
 }
 
+.upload-submission-list__item p {
+  line-height: 1.6;
+}
+
+.upload-submission-list__meta {
+  display: grid;
+  gap: 8px;
+}
+
+.upload-submission-list__meta div {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.upload-submission-list__meta dd {
+  color: var(--aoi-text);
+  font-weight: 750;
+}
+
+.upload-submission-list__tags,
+.upload-submission-loading {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.upload-submission-loading {
+  display: grid;
+}
+
+.upload-submission-loading__card {
+  min-height: 92px;
+  border-radius: var(--aoi-radius-card);
+}
+
 .upload-empty-note {
-  margin: 0;
   line-height: 1.7;
 }
 
 @media (max-width: 960px) {
+  .upload-loading__columns,
   .upload-workspace {
     grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 639px) {
+  .upload-hero__meta,
+  .upload-hero__mobile-actions {
+    display: grid;
+  }
+
   .upload-form-grid,
-  .upload-tags__input {
+  .upload-tags__input,
+  .upload-submission-list__heading {
     grid-template-columns: 1fr;
+  }
+
+  .upload-tags__input :deep(.aoi-button),
+  .upload-hero__mobile-actions :deep(.aoi-button) {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .upload-loading__line,
+  .upload-loading__panel,
+  .upload-submission-loading__card {
+    animation: none;
+  }
+
+  .upload-submission-list__item {
+    transition: none;
+  }
+
+  .upload-submission-list__item:hover,
+  .upload-submission-list__item:focus-within {
+    transform: none;
+  }
+}
+
+@keyframes upload-loading-shimmer {
+  from {
+    background-position: 120% 0;
+  }
+
+  to {
+    background-position: -80% 0;
   }
 }
 </style>

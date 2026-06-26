@@ -1280,12 +1280,16 @@
   },
   "upload": {
     "headTitle": "投稿 - Aoi",
+    "eyebrow": "社区投稿",
     "title": "投稿工作台",
-    "description": "准备视频信息，并提交到社区待审核队列。",
+    "description": "准备视频信息，并将元数据提交到后端社区待审核队列；文件字节仍留在浏览器，不写入本地持久化。",
     "newDraft": "新建草稿",
+    "refresh": "刷新数据",
     "defaultAuthor": "Aoi 创作者",
     "emptyValue": "无",
     "categoryUnselected": "未选择",
+    "clientPending": "等待同步",
+    "clientLabel": "匿名 clientId：{client}",
     "lastSaved": "自动保存于 {value}",
     "addTag": "添加",
     "removeTag": "移除标签 {tag}",
@@ -1293,6 +1297,24 @@
     "actionBarLabel": "投稿草稿操作",
     "submit": "提交审核",
     "deleteDraft": "删除当前草稿",
+    "loadingTitle": "正在恢复投稿工作台",
+    "loadingDescription": "正在恢复本地草稿元数据，并同步社区分类与投稿回执。",
+    "categoryLoadError": "分类 API 加载失败，暂时无法选择新的社区分类。",
+    "sourceStatus": {
+      "syncing": "正在同步社区分类、匿名 clientId 和最近投稿回执。",
+      "error": "社区投稿数据源暂时不可用；页面不会退回静态占位投稿。",
+      "ready": "来自社区投稿 API：{categories} 个可选分类，当前浏览器已有 {submissions} 条投稿回执。"
+    },
+    "stats": {
+      "drafts": "草稿",
+      "draftsDescription": "当前浏览器保存的投稿元数据",
+      "ready": "可提交",
+      "readyDescription": "必填项已补齐的本地草稿",
+      "submitted": "已提交",
+      "submittedDescription": "本地标记为已送审的草稿",
+      "remote": "后端回执",
+      "remoteDescription": "社区 API 返回的最近投稿记录"
+    },
     "status": {
       "none": "无草稿",
       "draft": "草稿已自动保存",
@@ -1368,8 +1390,15 @@
     },
     "submissions": {
       "title": "最近投稿",
+      "description": "当前匿名 clientId 从后端社区投稿队列读取到 {count} 条回执。",
+      "refresh": "刷新投稿",
       "loading": "加载中",
-      "empty": "当前浏览器还没有投稿记录。"
+      "empty": "当前浏览器还没有投稿记录。",
+      "errorTitle": "投稿回执加载失败",
+      "errorDescription": "社区投稿 API 暂时没有返回最近记录，请稍后重试。",
+      "pendingReview": "待审核",
+      "fileSize": "文件大小",
+      "createdAt": "提交时间"
     }
   },
   "history": {

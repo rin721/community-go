@@ -1280,12 +1280,16 @@
   },
   "upload": {
     "headTitle": "投稿 - Aoi",
+    "eyebrow": "コミュニティ投稿",
     "title": "投稿ワークスペース",
-    "description": "動画情報を準備し、コミュニティの審査キューへ送信します。",
+    "description": "動画情報を準備し、メタデータをバックエンドのコミュニティ審査キューへ送信します。ファイル本体はブラウザ内に残り、ローカルには保存しません。",
     "newDraft": "新規下書き",
+    "refresh": "データを更新",
     "defaultAuthor": "Aoi クリエイター",
     "emptyValue": "なし",
     "categoryUnselected": "未選択",
+    "clientPending": "同期待ち",
+    "clientLabel": "匿名 clientId：{client}",
     "lastSaved": "自動保存 {value}",
     "addTag": "追加",
     "removeTag": "タグ {tag} を削除",
@@ -1293,6 +1297,24 @@
     "actionBarLabel": "投稿下書きの操作",
     "submit": "審査へ送信",
     "deleteDraft": "現在の下書きを削除",
+    "loadingTitle": "投稿ワークスペースを復元中",
+    "loadingDescription": "ローカルの下書きメタデータを復元し、コミュニティカテゴリと投稿控えを同期しています。",
+    "categoryLoadError": "カテゴリ API の読み込みに失敗したため、新しいコミュニティカテゴリはまだ選択できません。",
+    "sourceStatus": {
+      "syncing": "コミュニティカテゴリ、匿名 clientId、最近の投稿控えを同期しています。",
+      "error": "投稿データソースは一時的に利用できません。このページは静的な代替投稿へ戻りません。",
+      "ready": "Community Submissions API から {categories} 件の選択可能カテゴリと、このブラウザの {submissions} 件の投稿控えを取得しました。"
+    },
+    "stats": {
+      "drafts": "下書き",
+      "draftsDescription": "このブラウザに保存された投稿メタデータ",
+      "ready": "送信可能",
+      "readyDescription": "必須項目がそろったローカル下書き",
+      "submitted": "送信済み",
+      "submittedDescription": "ローカルで審査送信済みにした下書き",
+      "remote": "控え",
+      "remoteDescription": "API が返した最近の投稿記録"
+    },
     "status": {
       "none": "下書きなし",
       "draft": "下書きは保存済み",
@@ -1368,8 +1390,15 @@
     },
     "submissions": {
       "title": "最近の投稿",
+      "description": "この匿名 clientId に対して、バックエンドのコミュニティキューから {count} 件の控えが返りました。",
+      "refresh": "投稿を更新",
       "loading": "読み込み中",
-      "empty": "このブラウザからの投稿はまだありません。"
+      "empty": "このブラウザからの投稿はまだありません。",
+      "errorTitle": "投稿控えを読み込めませんでした",
+      "errorDescription": "Community Submissions API から最近の記録が返りませんでした。しばらくしてから再試行してください。",
+      "pendingReview": "審査待ち",
+      "fileSize": "ファイルサイズ",
+      "createdAt": "送信日時"
     }
   },
   "history": {

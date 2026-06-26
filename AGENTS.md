@@ -14,13 +14,13 @@
 
 - `backend/` 是可运行、可扩展、可二次开发的开源后台管理 / 控制台平台底座。
 - `backend/` 主平台统一承载账号、权限、组织租户、配置、审计日志、API catalog、媒体、版本、系统管理、初始化和基础运营能力。
-- `frontend/` 是 Nuxt 4 前端优先的视频社区应用，覆盖首页发现、分类浏览、搜索、关注动态、视频播放、用户页、历史/收藏、上传草稿、设置中心和项目文档。
+- `frontend/` 是 Nuxt 4 前端优先的视频社区应用，覆盖首页发现、分类浏览、搜索、关注动态、视频播放、用户页、历史/收藏、上传草稿和设置中心。
 - 未来业务扩展优先通过 `backend/internal/modules` 新增模块，并通过后端 contract、前端 API client、页面、i18n、测试和文档同步落地。
 - 不得在任一前端凭空实现后端尚未暴露的生产能力；mock、fixture 和本地状态必须清楚标记为前端体验或开发辅助。
 
 ## 强制规则
 
-- 不保留旧产物、旧入口、旧字段、旧示例、旧文档、旧逻辑、旧兼容层、deprecated 设计或临时过渡方案。
+- 不保留旧产物、旧入口、旧字段、旧示例、旧文档、旧逻辑、旧兼容层、停用设计或临时过渡方案。
 - 发现废弃设计后，必须迁移到当前设计并删除旧实现，不允许新旧双轨并存。
 - CLI、WebUI、runtime、配置加载和初始化流程不得各自维护重复逻辑；共享行为必须收敛到统一实现。
 - 修改代码前必须分析现状、调用链、依赖关系和影响边界；不得基于猜测修改代码。
@@ -83,7 +83,7 @@
 
 本节只在任务触碰 `frontend/**`、前端视觉/交互/i18n/API/mock/构建，或用户明确要求开发前端时生效。
 
-- `frontend/` 使用 Nuxt 4、Vue 3、TypeScript、Pinia、`@nuxtjs/i18n`、`@nuxt/icon`、Material Web、本地 Aoi wrapper、Nuxt Content 和 pnpm。
+- `frontend/` 使用 Nuxt 4、Vue 3、TypeScript、Pinia、`@nuxtjs/i18n`、`@nuxt/icon`、Material Web、本地 Aoi wrapper 和 pnpm；页面路由以社区产品体验、内容消费和用户业务流程为主。
 - 包管理器只能使用 pnpm，版本由 `frontend/package.json` 的 `packageManager` 固定；不得引入 npm、Yarn 或 Bun lockfile。
 - 业务页面和功能组件不得直接使用 `md-*` Material Web 元素；需要新能力时先扩展 `frontend/app/components/aoi/`。
 - Material Web 的注册与行为必须保持在 Aoi wrapper 和 `frontend/app/plugins` 后面，不得在业务页面散落实现细节。
@@ -93,7 +93,7 @@
 - 浏览器本地 store 必须只在客户端安全 hydrate，并能从损坏的 `localStorage` 恢复；不得把凭据、私有 payload、文件字节或不可恢复的大对象写入持久化存储。
 - 上传草稿状态不要持久化文件字节，只保存文件元数据。
 - 新增共享用户可见文案时，同步维护 `frontend/i18n/locales/zh-CN.json`、`frontend/i18n/locales/en.json` 和 `frontend/i18n/locales/ja.json`。
-- `frontend/content/docs/**` 的多语言页面应保持相同 slug；默认语言为 `zh-CN`，现有 `no_prefix` 策略不得被无意改变。
+- 项目说明、开发约定和架构资料分别维护在根 `AGENTS.md`、后端 `backend/docs/**` 或对应 README；`frontend/` 只维护运行态页面、组件、样式、状态、API 接入和测试资料。
 - 可见 UI 变更必须检查桌面和移动端，至少覆盖 `1440x900` 与 `390x844` 或说明无法检查的原因。
 - 当前 `frontend/` 没有提交 lint 脚本；除非后续新增脚本或明确提供命令，不得声称已完成 lint 验证。
 
@@ -108,12 +108,11 @@
 - 图标控件必须有可访问名称；交互元素支持键盘、`:focus-visible`、触控尺寸和 `prefers-reduced-motion`。
 - 对话框、菜单、浮层、播放器控制、上传、裁剪、富文本和设置页必须具备加载、空状态、错误、禁用和恢复路径。
 
-## 插件系统
+## 模块化扩展边界
 
-- `backend/` 的远程插件运行时、插件协议、插件示例、插件配置块、插件管理页面和插件权限已从当前架构移除。
-- 不得新增 `backend/internal/plugin`、`backend/pkg/plugin`、`backend/pkg/pluginapi`、`backend/_examples/remote-plugins`、`backend/docs/api/plugin-protocol` 或 `/api/v1/plugins`。
-- 受控配置示例、部署示例、前端生产 API 和文档教程不得恢复插件配置块、插件 API 路径或插件协议兼容层；被忽略的本地派生配置不作为交付事实。
-- 未来扩展统一通过模块化路线实现：模块代码、应用装配、route contract、前端 API client、页面、i18n、测试和文档同步更新。
+- 后端业务扩展统一落在 `backend/internal/modules`、`backend/internal/app/initapp`、route contract、API catalog、权限、前端 API client、页面、i18n、测试和文档同步链路。
+- 受控配置示例、部署示例、前端生产 API 和文档教程只描述模块化扩展入口、系统配置和公开 HTTP contract。
+- 跨模块共享能力先沉淀到稳定基础设施、平台 contract 或受控注册表，不在业务模块之间复制运行时协议、权限模型或管理页面。
 
 ## 文档约定
 
@@ -121,14 +120,14 @@
 - 文档、注释、README 和长期规则以中文为主；保留具体命令、文件路径和已验证事实。
 - 如果终端输出出现乱码，先用 UTF-8 或原始字节检查文件，再重写文档。
 - 所有关键代码实现应具备 README 或说明文档，方便未来开发者快速理解和使用。
-- `frontend/` 的长期前端规则已经合并到本文件；不要恢复 `frontend/AGENTS.md`、`frontend/CLAUDE.md` 或 `frontend/design/rules.md` 作为并行规则入口。
+- `frontend/` 的长期前端规则统一维护在本文件；前端目录内只保留与运行态实现直接相关的页面、组件、样式、状态、API 与测试资料。
 
 ## Skill 与 Agent 配置
 
 - 根目录 `.agents/skills` 是本聚合仓库的主 skill 入口，已合并后端维护、构建 CI、文档治理、模块开发、API 契约、WebUI/i18n、视觉 QA、提交规范和通用前端/设计技能。
 - `backend/.agents/skills` 是导入后端源码自带的上游副本；在本聚合仓库执行任务时优先使用根目录 `.agents/skills`。
 - README/AGENTS/docs/skill 元数据治理使用 `.agents/skills/aoi-admin-docs-governance`；阶段任务计划、进度追踪、验收证据索引和 PR 拆分计划使用 `.agents/skills/aoi-admin-task-planning`。
-- 后端平台化重构、最终验收审计、模块化扩展、插件移除防回潮、README/AGENTS/docs 同步或发布前 readiness 任务，优先使用 `.agents/skills/aoi-admin-platform-maintenance`。
+- 后端平台化重构、最终验收审计、模块化扩展、扩展边界治理、README/AGENTS/docs 同步或发布前 readiness 任务，优先使用 `.agents/skills/aoi-admin-platform-maintenance`。
 - 构建系统、GitHub Actions、Dockerfile、发布包脚本、`backend/scripts/check-*.ps1`、`backend/scripts/release-preflight.ps1` 和质量门禁变更使用 `.agents/skills/aoi-admin-build-ci-governance`。
 - 新增业务模块使用 `.agents/skills/aoi-admin-module-development`；IAM 认证、权限、菜单、会话、审计和通知链路变更使用 `.agents/skills/aoi-admin-iam-governance`；HTTP API/权限/OpenAPI 变更使用 `.agents/skills/aoi-admin-api-contract-sync`。
 - React WebUI/i18n 变更使用 `.agents/skills/aoi-admin-webui-i18n`；可见 UI 截图、视觉 QA、响应式验收和页面证据使用 `.agents/skills/aoi-admin-visual-qa-governance`。

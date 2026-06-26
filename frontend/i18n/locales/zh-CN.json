@@ -60,6 +60,60 @@
     "childrenTitle": "子分类",
     "childrenDescription": "继续细分浏览，父级分类会聚合下方所有内容。"
   },
+  "search": {
+    "headTitle": "搜索 - Aoi",
+    "headTitleWithQuery": "{query} - Aoi 搜索",
+    "eyebrow": "社区索引",
+    "title": "搜索",
+    "description": "搜索视频、创作者和分区。结果来自当前社区 API，页面会保留真实数据的数量、空态和错误状态。",
+    "browseCategories": "浏览分区",
+    "sourceIdle": "输入关键词后会请求社区搜索 API；当前页面不使用静态结果。",
+    "sourceWithQuery": "正在使用社区搜索 API 查询「{query}」。",
+    "inputLabel": "搜索关键词",
+    "inputPlaceholder": "例如：动画、设计、移动端",
+    "submit": "搜索",
+    "idleTitle": "输入一个关键词开始探索",
+    "idleDescription": "试试搜索动画、设计、移动端或音 MAD，也可以从分区页继续浏览。",
+    "loadingTitle": "正在搜索",
+    "loadingDescription": "正在从社区 API 汇总视频、创作者和分区结果。",
+    "errorTitle": "搜索失败",
+    "errorDescription": "社区 API 暂时没有返回搜索结果，请稍后重试。",
+    "retry": "重试",
+    "emptyTitle": "没有找到结果",
+    "emptyDescription": "没有匹配「{query}」的内容，可以换一个更短或更宽泛的关键词。",
+    "resultsTitle": "搜索结果",
+    "resultsDescription": "「{query}」共返回 {count} 条真实社区结果。",
+    "emptyTabTitle": "没有{type}结果",
+    "emptyTabDescription": "「{query}」有其他类型的结果，但当前{type}分类为空。",
+    "tabsAria": "搜索结果类型",
+    "tabs": {
+      "all": "全部 {count}",
+      "videos": "视频 {count}",
+      "creators": "创作者 {count}",
+      "categories": "分区 {count}"
+    },
+    "tabNames": {
+      "all": "全部",
+      "videos": "视频",
+      "creators": "创作者",
+      "categories": "分区"
+    },
+    "stats": {
+      "total": "全部结果",
+      "totalDescription": "视频、创作者和分区合计",
+      "videos": "视频",
+      "videosDescription": "可直接播放或加入稍后看",
+      "creators": "创作者",
+      "creatorsDescription": "可进入主页并关注",
+      "categories": "分区",
+      "categoriesDescription": "可继续细分浏览"
+    },
+    "sections": {
+      "videos": "视频",
+      "creators": "创作者",
+      "categories": "分区"
+    }
+  },
   "creator": {
     "headTitle": "创作者",
     "profileEyebrow": "创作者档案",

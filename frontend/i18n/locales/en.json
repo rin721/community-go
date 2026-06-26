@@ -60,6 +60,60 @@
     "childrenTitle": "Subcategories",
     "childrenDescription": "Browse a narrower branch. Parent categories aggregate everything below them."
   },
+  "search": {
+    "headTitle": "Search - Aoi",
+    "headTitleWithQuery": "{query} - Aoi Search",
+    "eyebrow": "Community index",
+    "title": "Search",
+    "description": "Search videos, creators, and categories. Results come from the active Community API with real counts, empty states, and error states.",
+    "browseCategories": "Browse categories",
+    "sourceIdle": "Enter a keyword to query the Community Search API; this page does not use static results.",
+    "sourceWithQuery": "Querying the Community Search API for \"{query}\".",
+    "inputLabel": "Search keyword",
+    "inputPlaceholder": "Try animation, design, or mobile",
+    "submit": "Search",
+    "idleTitle": "Enter a keyword to start exploring",
+    "idleDescription": "Try animation, design, mobile, or music MAD, or continue browsing from categories.",
+    "loadingTitle": "Searching",
+    "loadingDescription": "Collecting video, creator, and category results from the Community API.",
+    "errorTitle": "Search failed",
+    "errorDescription": "The Community API did not return search results. Please try again later.",
+    "retry": "Retry",
+    "emptyTitle": "No results found",
+    "emptyDescription": "Nothing matched \"{query}\". Try a shorter or broader keyword.",
+    "resultsTitle": "Search results",
+    "resultsDescription": "\"{query}\" returned {count} real community results.",
+    "emptyTabTitle": "No {type} results",
+    "emptyTabDescription": "\"{query}\" has results in other types, but the current {type} tab is empty.",
+    "tabsAria": "Search result types",
+    "tabs": {
+      "all": "All {count}",
+      "videos": "Videos {count}",
+      "creators": "Creators {count}",
+      "categories": "Categories {count}"
+    },
+    "tabNames": {
+      "all": "all",
+      "videos": "videos",
+      "creators": "creators",
+      "categories": "categories"
+    },
+    "stats": {
+      "total": "All results",
+      "totalDescription": "Videos, creators, and categories combined",
+      "videos": "Videos",
+      "videosDescription": "Ready to watch or save for later",
+      "creators": "Creators",
+      "creatorsDescription": "Open profiles and follow",
+      "categories": "Categories",
+      "categoriesDescription": "Continue into narrower branches"
+    },
+    "sections": {
+      "videos": "Videos",
+      "creators": "Creators",
+      "categories": "Categories"
+    }
+  },
   "creator": {
     "headTitle": "Creator",
     "profileEyebrow": "Creator profile",

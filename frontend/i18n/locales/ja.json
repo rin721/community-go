@@ -60,6 +60,60 @@
     "childrenTitle": "サブカテゴリ",
     "childrenDescription": "より細かい分類で閲覧します。親カテゴリは配下の内容をまとめて表示します。"
   },
+  "search": {
+    "headTitle": "検索 - Aoi",
+    "headTitleWithQuery": "{query} - Aoi 検索",
+    "eyebrow": "コミュニティ索引",
+    "title": "検索",
+    "description": "動画、クリエイター、カテゴリを検索します。結果は現在の Community API から取得し、実データの件数、空状態、エラー状態を表示します。",
+    "browseCategories": "カテゴリを見る",
+    "sourceIdle": "キーワードを入力すると Community Search API に問い合わせます。このページは静的な結果を使いません。",
+    "sourceWithQuery": "Community Search API で「{query}」を検索しています。",
+    "inputLabel": "検索キーワード",
+    "inputPlaceholder": "例：アニメ、デザイン、モバイル",
+    "submit": "検索",
+    "idleTitle": "キーワードを入力して探索を始める",
+    "idleDescription": "アニメ、デザイン、モバイル、音 MAD を試すか、カテゴリから続けて閲覧できます。",
+    "loadingTitle": "検索中",
+    "loadingDescription": "Community API から動画、クリエイター、カテゴリの結果を集計しています。",
+    "errorTitle": "検索に失敗しました",
+    "errorDescription": "Community API から検索結果が返りませんでした。しばらくしてから再試行してください。",
+    "retry": "再試行",
+    "emptyTitle": "結果が見つかりません",
+    "emptyDescription": "「{query}」に一致する内容はありません。短い、または広めのキーワードを試してください。",
+    "resultsTitle": "検索結果",
+    "resultsDescription": "「{query}」で {count} 件の実コミュニティ結果が返りました。",
+    "emptyTabTitle": "{type}結果はありません",
+    "emptyTabDescription": "「{query}」には他の種類の結果がありますが、現在の{type}タブは空です。",
+    "tabsAria": "検索結果タイプ",
+    "tabs": {
+      "all": "すべて {count}",
+      "videos": "動画 {count}",
+      "creators": "クリエイター {count}",
+      "categories": "カテゴリ {count}"
+    },
+    "tabNames": {
+      "all": "すべて",
+      "videos": "動画",
+      "creators": "クリエイター",
+      "categories": "カテゴリ"
+    },
+    "stats": {
+      "total": "すべての結果",
+      "totalDescription": "動画、クリエイター、カテゴリの合計",
+      "videos": "動画",
+      "videosDescription": "すぐに視聴、またはあとで見るに追加",
+      "creators": "クリエイター",
+      "creatorsDescription": "プロフィールを開いてフォロー",
+      "categories": "カテゴリ",
+      "categoriesDescription": "さらに細かい分類へ進む"
+    },
+    "sections": {
+      "videos": "動画",
+      "creators": "クリエイター",
+      "categories": "カテゴリ"
+    }
+  },
   "creator": {
     "headTitle": "クリエイター",
     "profileEyebrow": "クリエイタープロフィール",

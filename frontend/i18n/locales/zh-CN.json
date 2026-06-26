@@ -47,7 +47,7 @@
     "login": "登录"
   },
   "home": {
-    "subtitle": "一个清爽、可爱、面向创作者的视频社区，已准备从 Nuxt mock 切换到后端社区 API。",
+    "subtitle": "一个清爽、可爱、面向创作者的视频社区，默认接入后端社区 API，Nuxt mock 仅用于本地演示与调试。",
     "latest": "最新",
     "gridView": "网格视图",
     "listView": "列表视图",
@@ -61,7 +61,7 @@
     "detailHeadTitle": "{category} - Aoi 分类",
     "indexEyebrow": "社区分类",
     "indexTitle": "分类",
-    "indexDescription": "按内容类型浏览 Aoi 社区的视频内容。分类树和数量来自当前社区 API，不再使用静态占位数据。",
+    "indexDescription": "按内容类型浏览 Aoi 社区的视频内容。分类树和数量来自当前社区 API，并按真实返回展示。",
     "indexSourceLoading": "正在读取社区分类 API 和视频索引。",
     "indexSource": "来自社区分类 API：{categories} 个一级分类，已索引 {videos} 个视频。",
     "indexSectionsTitle": "分类地图",
@@ -78,7 +78,7 @@
     "errorTitle": "分类加载失败",
     "errorDescription": "社区 API 返回异常，请重试。",
     "emptyTitle": "还没有分类",
-    "emptyDescription": "当前社区数据源没有返回分类树，前端不会使用静态占位分类。",
+    "emptyDescription": "当前社区数据源没有返回分类树，页面展示空状态并等待社区数据。",
     "notFoundTitle": "分类不存在",
     "notFoundDescription": "没有找到「{slug}」这个分类。",
     "childrenTitle": "子分类",
@@ -108,7 +108,7 @@
     "title": "搜索",
     "description": "搜索视频、创作者和分区。结果来自当前社区 API，页面会保留真实数据的数量、空态和错误状态。",
     "browseCategories": "浏览分区",
-    "sourceIdle": "输入关键词后会请求社区搜索 API；当前页面不使用静态结果。",
+    "sourceIdle": "输入关键词后会请求社区搜索 API；当前页面只展示查询返回结果。",
     "sourceWithQuery": "正在使用社区搜索 API 查询「{query}」。",
     "inputLabel": "搜索关键词",
     "inputPlaceholder": "例如：动画、设计、移动端",
@@ -192,7 +192,7 @@
     "title": "关注动态",
     "description": "使用匿名 clientId 写入后端社区关注关系，展示你订阅的创作者和最新投稿。",
     "sourceLoading": "正在从社区关注 API 同步匿名关注关系、动态和推荐内容。",
-    "sourceMissing": "关注流尚未返回数据；页面不会用静态占位内容替代。",
+    "sourceMissing": "关注流尚未返回数据；页面展示空状态并等待社区数据。",
     "sourceAuthenticated": "正在展示登录态关注流，共 {count} 个关注关系。",
     "sourceAnonymous": "正在展示匿名关注流，共 {count} 个关注关系。",
     "sourceRecommended": "当前匿名 clientId 暂无关注，展示 {creators} 位推荐创作者和 {videos} 条推荐更新。",
@@ -1265,7 +1265,7 @@
     "categoryLoadError": "分类 API 加载失败，暂时无法选择新的社区分类。",
     "sourceStatus": {
       "syncing": "正在同步社区分类、匿名 clientId 和最近投稿回执。",
-      "error": "社区投稿数据源暂时不可用；页面不会退回静态占位投稿。",
+      "error": "社区投稿数据源暂时不可用；页面展示错误状态并等待社区投稿 API。",
       "ready": "来自社区投稿 API：{categories} 个可选分类，当前浏览器已有 {submissions} 条投稿回执。"
     },
     "stats": {

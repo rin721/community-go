@@ -2,7 +2,7 @@
 
 Aoi Web 是一个 Nuxt 4 前端优先的视频社区应用。项目使用 Vue 3、TypeScript、Pinia、`@nuxtjs/i18n`、`@nuxt/icon`，并通过本地 Aoi wrapper 统一封装 Material Web 组件。
 
-当前应用以 Nuxt mock API、后端社区公开接口和浏览器本地偏好 / 缓存共同支撑体验，覆盖首页发现、分类浏览、搜索、关注动态、视频播放、用户页、历史/收藏、上传草稿和设置中心；评论列表、评论发布与匿名创作者关注已接入 `backend/internal/modules/community`，历史、收藏和投稿草稿仍属于浏览器本地体验层。共享 DTO 与 mock fixture 需贴近后端社区契约。
+当前应用默认通过 `useAoiApi()` 接入 `backend/internal/modules/community` 公开社区接口，Nuxt mock API 作为本地演示与调试数据源保留；浏览器本地偏好 / 缓存只承担匿名 clientId、离线降级和上传草稿元数据。页面覆盖首页发现、分类浏览、搜索、关注动态、视频播放、用户页、观看记录/收藏、上传草稿和设置中心；评论列表、评论发布、匿名创作者关注、点赞、收藏、稍后看、观看记录和通知均按当前社区 API 边界接入。共享 DTO 与 mock fixture 需贴近后端社区契约。
 
 ## 标星历史
 
@@ -42,6 +42,7 @@ flowchart TD
   subgraph Data["数据与状态"]
     Api["useAoiApi"]
     Telemetry["useAoiApiTelemetry"]
+    BackendApi["backend /api/v1/public/community"]
     LocalStorage["浏览器 localStorage"]
     MockApi["server/api/mock"]
     DevApi["server/api/developer"]
@@ -59,7 +60,8 @@ flowchart TD
   Pages --> Composables
   Composables --> Api
   Api --> Telemetry
-  Api --> MockApi
+  Api --> BackendApi
+  Api -. "NUXT_PUBLIC_API_MOCK=true" .-> MockApi
   MockApi --> Shared
   Pages --> I18n
   I18n --> Locales
@@ -138,8 +140,8 @@ Nuxt public runtime config 支持以下环境变量：
 
 | 变量 | 默认值 | 说明 |
 | --- | --- | --- |
-| `NUXT_PUBLIC_API_BASE_URL` | `/api/v1/public/community` | 关闭 mock 后 `useAoiApi()` 使用的后端社区 API 基础路径；本地分端口联调可设为 `http://127.0.0.1:9999/api/v1/public/community` |
-| `NUXT_PUBLIC_API_MOCK` | `true` | 设置为 `false` 时使用 `NUXT_PUBLIC_API_BASE_URL` 并消费后端 `result` envelope |
+| `NUXT_PUBLIC_API_BASE_URL` | `/api/v1/public/community` | `useAoiApi()` 使用的后端社区 API 基础路径；本地分端口联调可设为 `http://127.0.0.1:9999/api/v1/public/community` |
+| `NUXT_PUBLIC_API_MOCK` | `false` | 设置为 `true` 时使用 Nuxt mock API；默认使用 `NUXT_PUBLIC_API_BASE_URL` 并消费后端 `result` envelope |
 
 应用代码访问 API 时应统一通过 `useAoiApi()`，并保持与 `useAoiApiTelemetry()` 的错误诊断兼容。
 

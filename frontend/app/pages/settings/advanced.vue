@@ -20,7 +20,8 @@ const pendingAction = ref<{
 
 const activeBaseURL = computed(() => config.public.apiMock ? "/api/mock" : config.public.apiBaseURL)
 const dataSourceStats = computed(() => [
-  { label: "Mock API", value: config.public.apiMock ? "开启" : "关闭，使用后端社区 API" },
+  { label: "数据源", value: config.public.apiMock ? "Nuxt Mock API" : "后端社区 API" },
+  { label: "Mock 开关", value: config.public.apiMock ? "NUXT_PUBLIC_API_MOCK=true" : "默认后端" },
   { label: "Base URL", value: activeBaseURL.value }
 ])
 const localStats = computed(() => ({
@@ -106,13 +107,13 @@ function cancelPendingAction() {
       title="数据源"
       description="当前运行时配置只读展示。"
     >
-      <AoiStatGrid :items="dataSourceStats" :columns="2" />
+      <AoiStatGrid :items="dataSourceStats" :columns="3" />
     </SettingsPanel>
 
     <SettingsPanel
       icon="cloud"
       title="API 状态"
-      description="确认当前 Nuxt mock 或后端社区 API 的可用端点。"
+      description="确认当前运行时数据源的可用端点。"
     >
       <template #actions>
         <AoiButton tone="accent"

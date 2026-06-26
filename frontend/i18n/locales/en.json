@@ -47,7 +47,7 @@
     "login": "Log in"
   },
   "home": {
-    "subtitle": "A light, cute video community for creators, ready to switch from Nuxt mock data to the backend community API.",
+    "subtitle": "A light, cute video community for creators, connected to the backend Community API by default while Nuxt mock data stays available for local demos and debugging.",
     "latest": "Latest",
     "gridView": "Grid view",
     "listView": "List view",
@@ -61,7 +61,7 @@
     "detailHeadTitle": "{category} - Aoi Category",
     "indexEyebrow": "Community categories",
     "indexTitle": "Categories",
-    "indexDescription": "Browse Aoi community videos by content type. The category tree and counts come from the active Community API, not static placeholders.",
+    "indexDescription": "Browse Aoi community videos by content type. The category tree and counts come from the active Community API and render the returned data directly.",
     "indexSourceLoading": "Reading the Community Categories API and video index.",
     "indexSource": "From the Community Categories API: {categories} root categories and {videos} indexed videos.",
     "indexSectionsTitle": "Category map",
@@ -78,7 +78,7 @@
     "errorTitle": "Categories failed to load",
     "errorDescription": "The Community API returned an error. Please try again.",
     "emptyTitle": "No categories yet",
-    "emptyDescription": "The current community data source did not return a category tree, so the frontend will not show static placeholder categories.",
+    "emptyDescription": "The current community data source did not return a category tree, so the page shows an empty state until community data is available.",
     "notFoundTitle": "Category not found",
     "notFoundDescription": "Could not find the \"{slug}\" category.",
     "childrenTitle": "Subcategories",
@@ -108,7 +108,7 @@
     "title": "Search",
     "description": "Search videos, creators, and categories. Results come from the active Community API with real counts, empty states, and error states.",
     "browseCategories": "Browse categories",
-    "sourceIdle": "Enter a keyword to query the Community Search API; this page does not use static results.",
+    "sourceIdle": "Enter a keyword to query the Community Search API; this page only renders query results.",
     "sourceWithQuery": "Querying the Community Search API for \"{query}\".",
     "inputLabel": "Search keyword",
     "inputPlaceholder": "Try animation, design, or mobile",
@@ -192,7 +192,7 @@
     "title": "Following",
     "description": "Anonymous clientId follows are written to the community backend, then used to show subscribed creators and new uploads.",
     "sourceLoading": "Syncing anonymous follows, pulses, and recommendations from the Community Following API.",
-    "sourceMissing": "The following feed has not returned data; static placeholders will not be used.",
+    "sourceMissing": "The following feed has not returned data; the page shows an empty state while it waits for community data.",
     "sourceAuthenticated": "Showing an authenticated following feed with {count} relationships.",
     "sourceAnonymous": "Showing an anonymous following feed with {count} relationships.",
     "sourceRecommended": "This anonymous clientId has no follows yet, so {creators} recommended creators and {videos} recommended updates are shown.",
@@ -1265,7 +1265,7 @@
     "categoryLoadError": "The Categories API failed, so new community categories cannot be selected yet.",
     "sourceStatus": {
       "syncing": "Syncing community categories, anonymous clientId, and recent submission receipts.",
-      "error": "The submission data source is unavailable; this page will not fall back to static placeholder submissions.",
+      "error": "The submission data source is unavailable; the page shows an error state while waiting for the Community Submissions API.",
       "ready": "From the Community Submissions API: {categories} selectable categories and {submissions} receipts for this browser."
     },
     "stats": {

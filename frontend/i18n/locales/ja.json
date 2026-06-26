@@ -47,7 +47,7 @@
     "login": "ログイン"
   },
   "home": {
-    "subtitle": "クリエイター向けの軽やかでかわいい動画コミュニティ。Nuxt mock からバックエンドのコミュニティ API へ切り替えられます。",
+    "subtitle": "クリエイター向けの軽やかでかわいい動画コミュニティ。標準ではバックエンドの Community API に接続し、Nuxt mock はローカルのデモとデバッグに使います。",
     "latest": "最新",
     "gridView": "グリッド表示",
     "listView": "リスト表示",
@@ -61,7 +61,7 @@
     "detailHeadTitle": "{category} - Aoi カテゴリ",
     "indexEyebrow": "コミュニティカテゴリ",
     "indexTitle": "カテゴリ",
-    "indexDescription": "コンテンツタイプごとに Aoi コミュニティの動画を閲覧します。カテゴリツリーと件数は現在の Community API から取得し、静的な代替データは使いません。",
+    "indexDescription": "コンテンツタイプごとに Aoi コミュニティの動画を閲覧します。カテゴリツリーと件数は現在の Community API から取得し、返されたデータをそのまま表示します。",
     "indexSourceLoading": "Community Categories API と動画インデックスを読み込んでいます。",
     "indexSource": "Community Categories API から {categories} 件のルートカテゴリ、{videos} 件の動画を取得しました。",
     "indexSectionsTitle": "カテゴリマップ",
@@ -78,7 +78,7 @@
     "errorTitle": "カテゴリの読み込みに失敗しました",
     "errorDescription": "Community API がエラーを返しました。再試行してください。",
     "emptyTitle": "カテゴリはまだありません",
-    "emptyDescription": "現在のコミュニティデータソースはカテゴリツリーを返していません。フロントエンドは静的な代替カテゴリを表示しません。",
+    "emptyDescription": "現在のコミュニティデータソースはカテゴリツリーを返していません。ページは空状態を表示し、コミュニティデータを待ちます。",
     "notFoundTitle": "カテゴリが見つかりません",
     "notFoundDescription": "「{slug}」カテゴリは見つかりませんでした。",
     "childrenTitle": "サブカテゴリ",
@@ -108,7 +108,7 @@
     "title": "検索",
     "description": "動画、クリエイター、カテゴリを検索します。結果は現在の Community API から取得し、実データの件数、空状態、エラー状態を表示します。",
     "browseCategories": "カテゴリを見る",
-    "sourceIdle": "キーワードを入力すると Community Search API に問い合わせます。このページは静的な結果を使いません。",
+    "sourceIdle": "キーワードを入力すると Community Search API に問い合わせます。このページは検索結果だけを表示します。",
     "sourceWithQuery": "Community Search API で「{query}」を検索しています。",
     "inputLabel": "検索キーワード",
     "inputPlaceholder": "例：アニメ、デザイン、モバイル",
@@ -192,7 +192,7 @@
     "title": "フォロー更新",
     "description": "匿名 clientId のフォロー関係をコミュニティバックエンドへ保存し、購読したクリエイターと最新投稿を表示します。",
     "sourceLoading": "Community Following API から匿名フォロー、動向、おすすめを同期しています。",
-    "sourceMissing": "フォロー更新データはまだ返っていません。静的な代替内容は表示しません。",
+    "sourceMissing": "フォロー更新データはまだ返っていません。ページは空状態を表示し、コミュニティデータを待ちます。",
     "sourceAuthenticated": "ログイン済みフォロー更新として {count} 件の関係を表示しています。",
     "sourceAnonymous": "匿名フォロー更新として {count} 件の関係を表示しています。",
     "sourceRecommended": "この匿名 clientId にはまだフォローがないため、{creators} 人のおすすめクリエイターと {videos} 件のおすすめ更新を表示しています。",
@@ -1265,7 +1265,7 @@
     "categoryLoadError": "カテゴリ API の読み込みに失敗したため、新しいコミュニティカテゴリはまだ選択できません。",
     "sourceStatus": {
       "syncing": "コミュニティカテゴリ、匿名 clientId、最近の投稿控えを同期しています。",
-      "error": "投稿データソースは一時的に利用できません。このページは静的な代替投稿へ戻りません。",
+      "error": "投稿データソースは一時的に利用できません。ページはエラー状態を表示し、Community Submissions API を待ちます。",
       "ready": "Community Submissions API から {categories} 件の選択可能カテゴリと、このブラウザの {submissions} 件の投稿控えを取得しました。"
     },
     "stats": {

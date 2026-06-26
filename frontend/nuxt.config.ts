@@ -23,7 +23,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       apiBaseURL: process.env.NUXT_PUBLIC_API_BASE_URL || "/api/v1/public/community",
-      apiMock: process.env.NUXT_PUBLIC_API_MOCK !== "false"
+      apiMock: process.env.NUXT_PUBLIC_API_MOCK === "true"
     }
   },
 

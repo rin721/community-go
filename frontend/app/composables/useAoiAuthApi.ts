@@ -21,7 +21,9 @@ type AuthLogoutResult = {
 export function useAoiAuthApi() {
   const config = useRuntimeConfig()
   const telemetry = useAoiApiTelemetry()
-  const baseURL = computed(() => config.public.authApiBaseURL || "/api/v1")
+  const apiMock = computed(() => config.public.apiMock)
+  const baseURL = computed(() => apiMock.value ? "/api/mock" : config.public.authApiBaseURL || "/api/v1")
+  const signupEndpoint = computed(() => apiMock.value ? "/auth/signup" : "/public/community/auth/signup")
 
   async function request<T>(endpoint: string, options: AuthRequestOptions = {}): Promise<T> {
     try {
@@ -66,7 +68,7 @@ export function useAoiAuthApi() {
   }
 
   async function signup(body: CommunitySignupRequest): Promise<SignupResult> {
-    return await request<SignupResult>("/public/community/auth/signup", {
+    return await request<SignupResult>(signupEndpoint.value, {
       body,
       method: "POST"
     })

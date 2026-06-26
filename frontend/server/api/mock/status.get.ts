@@ -1,7 +1,10 @@
 import type { ApiStatus } from "../../../shared/types/api"
 
 const endpoints = [
+  "/auth/login",
+  "/auth/logout",
   "/auth/signup",
+  "/me/session",
   "/home",
   "/categories",
   "/videos",

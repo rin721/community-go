@@ -837,21 +837,13 @@
         }
       }
     },
-    "about": {
-      "developerUnlock": {
-        "hint": "Click the Aoi mark 4 times to enable Developer Mode.",
-        "remaining": "{count} more clicks to enter Developer Mode.",
-        "enabled": "Developer Mode is enabled. The Developer page is now available in Settings.",
-        "logoLabel": "Aoi product mark, click four times to enable Developer Mode"
-      }
-    },
     "developer": {
       "title": "Developer",
       "description": "Generate build-time default app settings and write the controlled source config in local development.",
       "locked": {
-        "title": "Developer Mode is locked",
-        "description": "Open the About page and use the hidden Aoi mark interaction to enable Developer Mode.",
-        "action": "Open About"
+        "title": "This page is unavailable",
+        "description": "Community settings keep appearance, playback, danmaku, language, connection status, and local data.",
+        "action": "Back to Appearance"
       },
       "status": {
         "title": "Build defaults",

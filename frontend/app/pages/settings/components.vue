@@ -654,9 +654,9 @@ function sendDanmaku(payload: { body: string, color: string, mode: AoiDanmakuMod
     icon="lock-keyhole"
     :title="t('settings.developer.locked.title')"
     :description="t('settings.developer.locked.description')"
-    action-icon="info"
+    action-icon="palette"
     :action-label="t('settings.developer.locked.action')"
-    @action="navigateTo('/settings/about')"
+    @action="navigateTo('/settings/appearance')"
   />
 
   <div v-else class="components-lab">

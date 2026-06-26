@@ -14,7 +14,6 @@ interface SettingsCatalogItem {
   id: string
   keywords: string
   label: string
-  requiresDeveloperMode?: boolean
   to: string
 }
 
@@ -28,9 +27,7 @@ const settingsCatalog = computed<SettingsCatalogItem[]>(() => [
   { id: "shortcut-key", depth: "all", group: "app", icon: "keyboard", label: "快捷键", description: "键盘操作预留。", keywords: "键盘 播放 评论", to: "/settings/shortcut-key" },
   { id: "about", depth: "basic", group: "project", icon: "info", label: "关于", description: "版本、技术栈和项目说明。", keywords: "版本 技术栈 仓库", to: "/settings/about" },
   { id: "acknowledgement", depth: "basic", group: "project", icon: "heart-handshake", label: "鸣谢", description: "链接、友情链接和致谢。", keywords: "链接 友情链接 致谢", to: "/settings/acknowledgement" },
-  { id: "advanced", depth: "all", group: "project", icon: "activity", label: "高级", description: "连接状态、本地缓存和重置。", keywords: "连接 错误 本地缓存 重置 数据", to: "/settings/advanced" },
-  { id: "components", depth: "all", group: "project", icon: "blocks", label: t("settings.components.title"), description: t("settings.components.catalogDescription"), keywords: t("settings.components.keywords"), requiresDeveloperMode: true, to: "/settings/components" },
-  { id: "developer", depth: "all", group: "project", icon: "code-2", label: "开发者", description: "构建默认配置、运行时档案和公共资产。", keywords: "开发者 developer defaults build config restore profiles runtime profile assets public i18n 构建 默认 配置 恢复 多配置 运行时 档案 字段选择 差异预览 公共资产 文件管理 上传 下载 chmod", requiresDeveloperMode: true, to: "/settings/developer" }
+  { id: "advanced", depth: "all", group: "project", icon: "activity", label: "高级", description: "连接状态、本地缓存和重置。", keywords: "连接 错误 本地缓存 重置 数据", to: "/settings/advanced" }
 ])
 
 const depthOptions = computed(() => [
@@ -53,13 +50,7 @@ const depthModel = computed({
 })
 
 const normalizedQuery = computed(() => query.value.trim().toLowerCase())
-const availableItems = computed(() => settingsCatalog.value.filter((item) => {
-  if (item.requiresDeveloperMode && !settings.developerModeEnabled) {
-    return false
-  }
-
-  return settings.settingsDisplayDepth === "all" || item.depth === "basic"
-}))
+const availableItems = computed(() => settingsCatalog.value.filter((item) => settings.settingsDisplayDepth === "all" || item.depth === "basic"))
 const visibleGroups = computed(() => {
   const items = normalizedQuery.value
     ? availableItems.value.filter((item) => {

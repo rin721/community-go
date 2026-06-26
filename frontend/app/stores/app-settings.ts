@@ -297,7 +297,7 @@ function coercePersistedState(value: unknown): PersistedAppSettings {
     danmakuVisibleArea: clampNumber(candidate.danmakuVisibleArea, 20, 100, fallback.danmakuVisibleArea),
     dataMode: isDataMode(candidate.dataMode) ? candidate.dataMode : fallback.dataMode,
     derivationPreset: isAoiDerivationPreset(candidate.derivationPreset) ? candidate.derivationPreset : fallback.derivationPreset,
-    developerModeEnabled: Boolean(candidate.developerModeEnabled),
+    developerModeEnabled: import.meta.dev && Boolean(candidate.developerModeEnabled),
     disableWatchHistory: typeof candidate.disableWatchHistory === "boolean" ? candidate.disableWatchHistory : fallback.disableWatchHistory,
     hideRecentSearches: typeof candidate.hideRecentSearches === "boolean" ? candidate.hideRecentSearches : fallback.hideRecentSearches,
     locale: isLocale(candidate.locale) ? candidate.locale : fallback.locale,
@@ -957,7 +957,7 @@ export const useAppSettingsStore = defineStore("app-settings", () => {
   }
 
   function setDeveloperModeEnabled(value: boolean) {
-    developerModeEnabled.value = value
+    developerModeEnabled.value = import.meta.dev && value
     persist()
   }
 

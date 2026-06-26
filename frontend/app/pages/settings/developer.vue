@@ -872,7 +872,7 @@ async function importRuntimeProfiles(files: File[]) {
 
 function disableDeveloperMode() {
   settings.setDeveloperModeEnabled(false)
-  navigateTo("/settings/about")
+  navigateTo("/settings/appearance")
 }
 </script>
 
@@ -883,9 +883,9 @@ function disableDeveloperMode() {
       icon="lock-keyhole"
       :title="t('settings.developer.locked.title')"
       :description="t('settings.developer.locked.description')"
-      action-icon="sparkles"
+      action-icon="palette"
       :action-label="t('settings.developer.locked.action')"
-      @action="navigateTo('/settings/about')"
+      @action="navigateTo('/settings/appearance')"
     />
 
     <template v-else>

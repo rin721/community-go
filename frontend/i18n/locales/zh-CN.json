@@ -837,21 +837,13 @@
         }
       }
     },
-    "about": {
-      "developerUnlock": {
-        "hint": "连续点击 Aoi 标识 4 次可开启开发者模式。",
-        "remaining": "再点击 {count} 次进入开发者模式。",
-        "enabled": "开发者模式已开启，设置导航中已新增开发者页面。",
-        "logoLabel": "Aoi 产品标识，连续点击四次开启开发者模式"
-      }
-    },
     "developer": {
       "title": "开发者",
       "description": "生成构建前默认应用设置，并在本地开发环境写入受控源配置。",
       "locked": {
-        "title": "开发者模式未开启",
-        "description": "前往关于页，用隐藏的 Aoi 标识交互开启开发者模式后即可访问这里。",
-        "action": "前往关于"
+        "title": "当前页面不可用",
+        "description": "社区设置目录保留外观、播放、弹幕、语言、连接状态和本地数据。",
+        "action": "返回外观"
       },
       "status": {
         "title": "构建默认配置",

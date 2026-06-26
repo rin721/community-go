@@ -1,5 +1,41 @@
 <script setup lang="ts">
 const { desktopPrimaryItems, secondaryItems } = useAoiNavigation()
+const route = useRoute()
+const focusedLabelKey = ref<string | null>(null)
+const hoveredLabelKey = ref<string | null>(null)
+const visibleLabelKey = computed(() => hoveredLabelKey.value || focusedLabelKey.value)
+
+watch(() => route.fullPath, () => {
+  focusedLabelKey.value = null
+})
+
+function showFocusedRailLabel(key: string) {
+  focusedLabelKey.value = key
+}
+
+function hideFocusedRailLabel() {
+  focusedLabelKey.value = null
+}
+
+function showHoveredRailLabel(key: string) {
+  hoveredLabelKey.value = key
+}
+
+function hideHoveredRailLabel() {
+  hoveredLabelKey.value = null
+}
+
+function handleRailClick(event: MouseEvent) {
+  hideFocusedRailLabel()
+
+  const element = event.currentTarget instanceof HTMLElement
+    ? event.currentTarget
+    : event.target instanceof HTMLElement
+      ? event.target.closest<HTMLElement>("a, button, [tabindex]")
+      : null
+
+  element?.blur()
+}
 </script>
 
 <template>
@@ -9,7 +45,14 @@ const { desktopPrimaryItems, secondaryItems } = useAoiNavigation()
         v-for="item in desktopPrimaryItems"
         :key="item.to"
         class="app-rail__item"
-        :class="{ 'app-rail__item--active': item.active }"
+        :class="{
+          'app-rail__item--active': item.active,
+          'app-rail__item--label-visible': visibleLabelKey === item.to
+        }"
+        @focusin="showFocusedRailLabel(item.to)"
+        @focusout="hideFocusedRailLabel"
+        @pointerenter="showHoveredRailLabel(item.to)"
+        @pointerleave="hideHoveredRailLabel"
       >
         <AoiIconButton
           class="app-rail__button"
@@ -20,6 +63,7 @@ const { desktopPrimaryItems, secondaryItems } = useAoiNavigation()
           :to="item.to"
           :tone="item.active ? 'accent' : 'muted'"
           variant="plain"
+          @click="handleRailClick"
         />
 
         <span class="app-rail__label" aria-hidden="true">{{ item.label }}</span>
@@ -31,7 +75,14 @@ const { desktopPrimaryItems, secondaryItems } = useAoiNavigation()
         v-for="item in secondaryItems"
         :key="item.to"
         class="app-rail__item"
-        :class="{ 'app-rail__item--active': item.active }"
+        :class="{
+          'app-rail__item--active': item.active,
+          'app-rail__item--label-visible': visibleLabelKey === item.to
+        }"
+        @focusin="showFocusedRailLabel(item.to)"
+        @focusout="hideFocusedRailLabel"
+        @pointerenter="showHoveredRailLabel(item.to)"
+        @pointerleave="hideHoveredRailLabel"
       >
         <AoiIconButton
           class="app-rail__button"
@@ -42,6 +93,7 @@ const { desktopPrimaryItems, secondaryItems } = useAoiNavigation()
           :to="item.to"
           :tone="item.active ? 'accent' : 'muted'"
           variant="plain"
+          @click="handleRailClick"
         />
         <span class="app-rail__label" aria-hidden="true">{{ item.label }}</span>
       </span>
@@ -167,8 +219,7 @@ const { desktopPrimaryItems, secondaryItems } = useAoiNavigation()
   white-space: nowrap;
 }
 
-.app-rail__item:hover .app-rail__label,
-.app-rail__item:focus-within .app-rail__label {
+.app-rail__item--label-visible .app-rail__label {
   opacity: 1;
   transform: translate3d(0, -50%, 0) scale(1);
 }

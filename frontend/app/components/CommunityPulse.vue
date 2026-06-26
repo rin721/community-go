@@ -131,7 +131,7 @@ function formatDate(value: string) {
   min-width: 0;
   gap: 12px;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--aoi-accent-60) 18%, var(--aoi-border));
+  border: 1px solid var(--aoi-surface-border);
   border-radius: var(--aoi-radius-card);
   background:
     linear-gradient(135deg, color-mix(in srgb, var(--aoi-accent-10) 72%, transparent), transparent 42%),
@@ -142,20 +142,8 @@ function formatDate(value: string) {
     transform var(--aoi-motion-fast) var(--aoi-ease-out);
 }
 
-.community-pulse__card::before {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 34px;
-  height: 18px;
-  border-top: 2px solid color-mix(in srgb, var(--aoi-accent-60) 38%, transparent);
-  border-right: 2px solid color-mix(in srgb, var(--aoi-sun-50) 42%, transparent);
-  content: "";
-  pointer-events: none;
-}
-
 .community-pulse__card:hover {
-  border-color: color-mix(in srgb, var(--aoi-accent-60) 34%, var(--aoi-border));
+  border-color: var(--aoi-surface-border-hover);
   transform: translateY(-2px);
 }
 
@@ -229,7 +217,7 @@ function formatDate(value: string) {
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 9px;
-  border: 1px solid var(--aoi-border);
+  border: 1px solid var(--aoi-surface-border);
   border-radius: var(--aoi-radius-control);
   background: color-mix(in srgb, var(--aoi-surface-solid) 68%, transparent);
   padding: 9px;

@@ -1015,8 +1015,8 @@
     "components": {
       "title": "コンポーネント",
       "eyebrow": "Developer components",
-      "description": "開発者モードで Aoi コンポーネント、業務コンポーネント、ページ内の操作状態をまとめて確認します。",
-      "catalogDescription": "コンポーネント実験台、コントロール状態、業務コンポーネント例。",
+      "description": "開発者モードで Aoi コンポーネント、Community API サンプル、業務コンポーネント、ページ内の操作状態をまとめて確認します。",
+      "catalogDescription": "コンポーネント実験台、Community API サンプル、コントロール状態、業務コンポーネント例。",
       "loadingTitle": "開発者モードを確認中",
       "loadingDescription": "ローカル設定の復元後、コンポーネント実験台へアクセスできるか判定します。",
       "keywords": "components showcase developer aoi controls lab demo コンポーネント 実験台"

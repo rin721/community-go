@@ -254,7 +254,7 @@ useHead(() => ({
   grid-template-columns: auto minmax(0, 1fr);
   gap: 14px;
   align-items: center;
-  border: 1px solid var(--aoi-border);
+  border: 1px solid var(--aoi-surface-border);
   border-radius: var(--aoi-radius-sm);
   background: var(--aoi-surface);
   box-shadow: var(--aoi-shadow-sm);
@@ -313,7 +313,7 @@ useHead(() => ({
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 18px;
   align-items: center;
-  border: 1px solid var(--aoi-state-border-active);
+  border: 1px solid var(--aoi-surface-border);
   border-radius: var(--aoi-radius-sm);
   background:
     linear-gradient(135deg, var(--aoi-accent-10), rgba(255, 255, 255, 0.92) 54%),
@@ -322,19 +322,10 @@ useHead(() => ({
   padding: 16px;
 }
 
-.notifications-summary::before {
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 4px;
-  background: var(--aoi-accent-50);
-  content: "";
-}
-
 .notifications-summary__copy {
   display: grid;
   min-width: 0;
   gap: 5px;
-  padding-left: 6px;
 }
 
 .notifications-summary__eyebrow {
@@ -353,7 +344,7 @@ useHead(() => ({
   display: grid;
   min-width: 74px;
   place-items: center;
-  border: 1px solid color-mix(in srgb, var(--aoi-state-border-active) 60%, transparent);
+  border: 1px solid var(--aoi-surface-border);
   border-radius: var(--aoi-radius-sm);
   background: color-mix(in srgb, var(--aoi-surface-solid) 72%, transparent);
   padding: 10px;
@@ -406,7 +397,7 @@ useHead(() => ({
   grid-template-columns: auto minmax(0, 1fr);
   gap: 12px;
   align-items: start;
-  border: 1px solid var(--aoi-border);
+  border: 1px solid var(--aoi-surface-border);
   border-radius: var(--aoi-radius-sm);
   background: var(--aoi-surface);
   box-shadow: var(--aoi-shadow-sm);
@@ -418,13 +409,13 @@ useHead(() => ({
 }
 
 .notification-card--unread {
-  border-color: var(--aoi-state-border-active);
+  border-color: var(--aoi-surface-border-hover);
   background: color-mix(in srgb, var(--aoi-accent-10) 48%, var(--aoi-surface-solid));
 }
 
 .notification-card:hover,
 .notification-card:focus-within {
-  border-color: var(--aoi-state-border-active);
+  border-color: var(--aoi-surface-border-hover);
   transform: translate3d(0, -1px, 0);
 }
 

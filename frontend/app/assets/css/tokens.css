@@ -19,6 +19,8 @@
   --aoi-surface-solid: #ffffff;
   --aoi-surface-muted: #faf5f7;
   --aoi-border: rgba(33, 33, 33, 0.11);
+  --aoi-surface-border: color-mix(in srgb, var(--aoi-border) 68%, transparent);
+  --aoi-surface-border-hover: color-mix(in srgb, var(--aoi-border) 78%, var(--aoi-active-color) 10%);
   --aoi-text: #212121;
   --aoi-text-muted: #6d6670;
   --aoi-icon: #6d6670;

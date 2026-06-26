@@ -1015,8 +1015,8 @@
     "components": {
       "title": "组件",
       "eyebrow": "Developer components",
-      "description": "按开发者模式集中展示 Aoi 组件、业务组件和页面内交互状态。",
-      "catalogDescription": "组件实验台、控件状态和业务组件示例。",
+      "description": "按开发者模式集中展示 Aoi 组件、社区 API 样本、业务组件和页面内交互状态。",
+      "catalogDescription": "组件实验台、社区 API 样本、控件状态和业务组件示例。",
       "loadingTitle": "正在读取开发者模式",
       "loadingDescription": "本地设置恢复后会继续判断是否允许访问组件实验台。",
       "keywords": "组件 components showcase developer aoi 控件 实验台 demo"

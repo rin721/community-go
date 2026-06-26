@@ -57,7 +57,7 @@ const props = withDefaults(defineProps<{
 .aoi-surface--state,
 .aoi-surface--code,
 .aoi-surface--toolbar {
-  border: 1px solid var(--aoi-border);
+  border: 1px solid var(--aoi-surface-border);
   box-shadow: var(--aoi-shadow-sm);
 }
 
@@ -157,7 +157,7 @@ const props = withDefaults(defineProps<{
 
 .aoi-surface--interactive:hover,
 .aoi-surface--selected {
-  border-color: var(--aoi-surface-intent-border);
+  border-color: var(--aoi-surface-border-hover);
   background: var(--aoi-surface-intent-bg-hover);
 }
 

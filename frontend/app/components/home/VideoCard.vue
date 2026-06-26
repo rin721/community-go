@@ -61,7 +61,7 @@ function formatDuration(totalSeconds: number) {
 }
 
 .video-card:hover {
-  border-color: color-mix(in srgb, var(--aoi-accent-60) 32%, var(--aoi-border));
+  border-color: var(--aoi-surface-border-hover);
   background: var(--aoi-surface);
   box-shadow: var(--aoi-shadow-sm);
   transform: translate3d(0, -3px, 0);
@@ -87,7 +87,7 @@ function formatDuration(totalSeconds: number) {
   position: relative;
   aspect-ratio: 16 / 9;
   overflow: hidden;
-  border: 1px solid var(--aoi-border);
+  border: 1px solid var(--aoi-surface-border);
   border-radius: var(--aoi-radius-card);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.52);
 }

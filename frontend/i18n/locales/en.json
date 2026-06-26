@@ -1015,8 +1015,8 @@
     "components": {
       "title": "Components",
       "eyebrow": "Developer components",
-      "description": "A developer-mode lab for Aoi components, business components, and local interaction states.",
-      "catalogDescription": "Component lab, control states, and business component examples.",
+      "description": "A developer-mode lab for Aoi components, Community API samples, business components, and in-page interaction states.",
+      "catalogDescription": "Component lab, Community API samples, control states, and business component examples.",
       "loadingTitle": "Reading Developer Mode",
       "loadingDescription": "The component lab will continue once local settings have been restored.",
       "keywords": "components showcase developer aoi controls lab demo"

@@ -23,16 +23,20 @@ const { t } = useI18n()
   position: relative;
   min-height: 172px;
   overflow: hidden;
-  border-bottom: 1px solid var(--aoi-border);
-  background: rgba(255, 255, 255, 0.82);
+  border-bottom: 1px solid var(--aoi-surface-border);
+  background: color-mix(in srgb, var(--aoi-surface-solid) 82%, transparent);
 }
 
 .brand-band::before {
   position: absolute;
   inset: 18px 5vw;
-  border: 1px solid color-mix(in srgb, var(--aoi-accent-60) 22%, var(--aoi-border));
   border-radius: var(--aoi-radius-card);
+  background:
+    radial-gradient(circle at 8% 16%, color-mix(in srgb, var(--aoi-accent-10) 64%, transparent), transparent 36%),
+    radial-gradient(circle at 88% 72%, color-mix(in srgb, var(--aoi-sakura-10) 74%, transparent), transparent 38%);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--aoi-surface-solid) 68%, transparent);
   content: "";
+  opacity: .72;
   pointer-events: none;
 }
 
@@ -41,10 +45,10 @@ const { t } = useI18n()
   right: 5vw;
   bottom: 17px;
   left: 5vw;
-  height: 2px;
-  background: linear-gradient(90deg, var(--aoi-accent-60), transparent 22%, var(--aoi-secondary-50) 52%, transparent 78%, var(--aoi-sun-50));
+  height: 1px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--aoi-accent-60) 18%, transparent), transparent);
   content: "";
-  opacity: .72;
+  opacity: .42;
   pointer-events: none;
 }
 

@@ -153,6 +153,7 @@ Nuxt public runtime config 支持以下环境变量：
 - 普通文本链接、卡片链接、标签链接和导航链接统一使用 `AoiLink`。
 - 样式优先使用 `app/assets/css/tokens.css` 中的 CSS 变量和 `app/assets/css/main.css` 中的共享布局规则。
 - 新增共享用户可见文案时，同步维护 `i18n/locales/zh-CN.json`、`i18n/locales/en.json` 和 `i18n/locales/ja.json`。
+- `/settings/components` 组件实验台中的业务内容样本应通过 `useAoiApi()` 读取社区 API；本地预览样本只服务组件状态回归和接口诊断边界。
 - 浏览器本地 store 必须只在客户端安全 hydrate，并能从损坏的 `localStorage` 恢复。
 - 上传草稿状态不要持久化文件字节，只保存文件元数据。
 

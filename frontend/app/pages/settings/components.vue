@@ -8,7 +8,19 @@ import {
   mockCategoryTree,
   mockVideos
 } from "~~/shared/mocks/home"
-import type { VideoDanmakuItem, VideoSummary } from "~/types/api"
+import { flattenCategoryTree } from "~~/shared/utils/categories"
+import type {
+  Announcement,
+  Category,
+  CategoryTreeNode,
+  CreatorProfile,
+  HomePayload,
+  VideoCommentPayload,
+  VideoDanmakuItem,
+  VideoDanmakuPayload,
+  VideoDetail,
+  VideoSummary
+} from "~/types/api"
 import type { CommentView } from "~/types/comments"
 import type { AoiDanmakuItem, AoiDanmakuMapper, AoiDanmakuMode } from "~/types/danmaku"
 import type { AoiLightboxItem } from "~/types/lightbox"
@@ -30,8 +42,60 @@ interface DemoAccordionItem {
   title: string
 }
 
+const api = useAoiApi()
 const { t } = useI18n()
 const settings = useAppSettingsStore()
+
+const fallbackVideoDetail = getMockVideoDetail(mockVideos[0]?.slug || "aoi-alpha")
+const fallbackVideoDanmakuPayload = getMockVideoDanmaku(mockVideos[0]?.slug || "aoi-alpha")
+const fallbackCreators = listMockCreators(3)
+const fallbackComments: CommentView[] = [
+  {
+    authorName: "Aoi Viewer",
+    body: "按钮、菜单、弹窗和输入状态都在同一页看到，回归时很顺手。",
+    createdAt: "2026-06-09T03:00:00.000Z",
+    id: "comment-demo-1",
+    status: "visible",
+    updatedAt: "2026-06-09T03:00:00.000Z",
+    videoId: "video-aoi-alpha"
+  },
+  {
+    authorName: "Design Note",
+    body: "长滚动实验台保留了目标页的密度，但颜色仍然来自 Aoi。",
+    createdAt: "2026-06-09T03:08:00.000Z",
+    id: "comment-demo-2",
+    status: "visible",
+    updatedAt: "2026-06-09T03:08:00.000Z",
+    videoId: "video-aoi-alpha"
+  }
+]
+const emptyHomePayload: HomePayload = {
+  announcement: null,
+  categories: [],
+  dynamics: {
+    items: [],
+    nextCursor: null
+  },
+  latest: {
+    items: [],
+    nextCursor: null
+  }
+}
+const emptyCommentPayload: VideoCommentPayload = {
+  items: [],
+  nextCursor: null,
+  sort: "newest",
+  totalCount: 0,
+  videoId: ""
+}
+
+const {
+  data: homePreview,
+  error: homePreviewError,
+  pending: homePreviewPending
+} = useAsyncData("settings-components-community-home", () => api.getHomePayload(), {
+  default: () => emptyHomePayload
+})
 
 const demoPage = ref(1)
 const viewMode = ref("list")
@@ -87,7 +151,7 @@ const richTextMarkdown = ref([
   "这里集中展示按钮、表单、弹层、播放器、弹幕和业务组件。",
   "",
   "- 保持 Aoi token",
-  "- 使用本地 mock 数据",
+  "- 业务样本优先读取社区 API",
   "- 复杂组件延迟渲染"
 ].join("\n"))
 const richTextDocument = ref<AoiRichTextDocument | null>(null)
@@ -113,30 +177,7 @@ const toolbarFullscreen = ref(false)
 const demoCurrentTime = ref(36)
 
 const menuAnchorId = "aoi-components-menu-anchor"
-const videoDetail = getMockVideoDetail(mockVideos[0]?.slug || "aoi-alpha")
-const videoDanmakuPayload = getMockVideoDanmaku(mockVideos[0]?.slug || "aoi-alpha")
-const creators = listMockCreators(3)
-const sampleVideos = mockVideos.slice(0, 6)
-const comments = ref<CommentView[]>([
-  {
-    authorName: "Aoi Viewer",
-    body: "按钮、菜单、弹窗和输入状态都在同一页看到，回归时很顺手。",
-    createdAt: "2026-06-09T03:00:00.000Z",
-    id: "comment-demo-1",
-    status: "visible",
-    updatedAt: "2026-06-09T03:00:00.000Z",
-    videoId: "video-aoi-alpha"
-  },
-  {
-    authorName: "Design Note",
-    body: "长滚动实验台保留了目标页的密度，但颜色仍然来自 Aoi。",
-    createdAt: "2026-06-09T03:08:00.000Z",
-    id: "comment-demo-2",
-    status: "visible",
-    updatedAt: "2026-06-09T03:08:00.000Z",
-    videoId: "video-aoi-alpha"
-  }
-])
+const localPreviewComments = ref<CommentView[]>([])
 const uploadDrafts = ref<UploadDraft[]>([
   {
     allowComments: true,
@@ -225,7 +266,7 @@ const actionTones = [
   { value: "danger", label: "险" },
   { value: "info", label: "信" }
 ] as const
-const lightboxItems: AoiLightboxItem[] = [
+const lightboxItems = computed<AoiLightboxItem[]>(() => [
   {
     alt: "Aoi sunflower gradient",
     description: "使用渐变图像验证 inline gallery、弹层和缩略图。",
@@ -248,13 +289,13 @@ const lightboxItems: AoiLightboxItem[] = [
     alt: "Aoi sample video",
     description: "示例视频用于验证 lightbox 视频 controls。",
     id: "video",
-    posterSrc: "gradient:aoi-components-video",
-    src: videoDetail?.sourceUrl || "",
+    posterSrc: videoDetail.value?.thumbnailUrl || "gradient:aoi-components-video",
+    src: videoDetail.value?.sourceUrl || "",
     thumbnailSrc: "gradient:aoi-components-video-thumb",
     title: "Video lightbox",
     type: "video"
   }
-]
+])
 const accordionItems: DemoAccordionItem[] = [
   { body: "紧凑标题、细分割线和轻阴影来自目标组件页的实验感。", id: "first", title: "第 1 个" },
   { body: "菜单、浮窗、对话框统一走 Aoi layer，避免 z-index 互相竞争。", id: "popover", title: "浮窗测试" },
@@ -295,19 +336,83 @@ const derivationControls = [
     value: 44
   }
 ]
-const statItems = [
+const sampleCategoryTree = computed<CategoryTreeNode[]>(() => (
+  homePreview.value.categories.length ? homePreview.value.categories : mockCategoryTree
+))
+const sampleCategories = computed<Category[]>(() => flattenCategoryTree(sampleCategoryTree.value).map(({ children: _children, depth: _depth, path: _path, ...category }) => category))
+const sampleAnnouncement = computed<Announcement | null>(() => homePreview.value.announcement || mockAnnouncement)
+const sampleVideos = computed<VideoSummary[]>(() => (
+  homePreview.value.latest.items.length ? homePreview.value.latest.items : mockVideos
+).slice(0, 6))
+const selectedVideo = computed<VideoSummary | undefined>(() => sampleVideos.value[0])
+const selectedVideoSlug = computed(() => selectedVideo.value?.slug || selectedVideo.value?.id || mockVideos[0]?.slug || "aoi-alpha")
+const {
+  data: videoDetailPreview,
+  error: videoDetailPreviewError
+} = useAsyncData("settings-components-community-video-detail", () => api.getVideoDetail(selectedVideoSlug.value), {
+  default: () => fallbackVideoDetail,
+  watch: [selectedVideoSlug]
+})
+const {
+  data: videoDanmakuPreview,
+  error: videoDanmakuPreviewError
+} = useAsyncData("settings-components-community-video-danmaku", () => api.getVideoDanmaku(selectedVideoSlug.value), {
+  default: () => fallbackVideoDanmakuPayload,
+  watch: [selectedVideoSlug]
+})
+const {
+  data: videoCommentPreview,
+  error: videoCommentPreviewError
+} = useAsyncData("settings-components-community-video-comments", () => api.getVideoComments(selectedVideoSlug.value, { limit: 8, sort: "newest" }), {
+  default: () => emptyCommentPayload,
+  watch: [selectedVideoSlug]
+})
+const selectedCreatorHandle = computed(() => selectedVideo.value?.uploader.handle || fallbackCreators[0]?.handle || "")
+const {
+  data: creatorPreview,
+  error: creatorPreviewError
+} = useAsyncData("settings-components-community-creator", async () => {
+  if (!selectedCreatorHandle.value) {
+    return null
+  }
+
+  return await api.getCreatorProfile(selectedCreatorHandle.value)
+}, {
+  default: () => null,
+  watch: [selectedCreatorHandle]
+})
+const videoDetail = computed<VideoDetail | null>(() => videoDetailPreview.value || fallbackVideoDetail)
+const videoDanmakuPayload = computed<VideoDanmakuPayload | null>(() => videoDanmakuPreview.value || fallbackVideoDanmakuPayload)
+const creators = computed<CreatorProfile[]>(() => creatorPreview.value ? [creatorPreview.value] : fallbackCreators)
+const comments = computed<CommentView[]>(() => {
+  const remoteComments = videoCommentPreview.value.items.length ? videoCommentPreview.value.items : fallbackComments
+
+  return [
+    ...localPreviewComments.value,
+    ...remoteComments
+  ]
+})
+const businessPreviewError = computed(() => homePreviewError.value || videoDetailPreviewError.value || videoDanmakuPreviewError.value || videoCommentPreviewError.value || creatorPreviewError.value)
+const businessPreviewSource = computed(() => {
+  if (homePreviewPending.value) {
+    return "同步中"
+  }
+
+  return businessPreviewError.value ? "本地预览样本" : "社区 API"
+})
+const statItems = computed(() => [
   { icon: "blocks", label: "组件", value: "70+" },
   { icon: "panel-left", label: "分区", value: 8 },
   { icon: "mouse-pointer-click", label: "交互", value: 24 },
-  { icon: "shield-check", label: "模式", value: "Dev" }
-]
+  { icon: "database", label: "业务样本", value: businessPreviewSource.value }
+])
 const tagItems = [
   { icon: "hash", label: "components", to: "/search?q=components" },
   { icon: "sun", label: "aoi-token", value: "token" },
   { icon: "blocks", label: "developer", value: "developer" }
 ]
 const danmakuItems = computed<AoiDanmakuItem[]>(() => {
-  const items = videoDanmakuPayload?.items || []
+  const items = videoDanmakuPayload.value?.items || []
 
   return items.map((item) => ({
     authorName: item.authorName,
@@ -332,8 +437,7 @@ const richTextPlainText = computed(() => richTextPayload.value?.text || "")
 const richTextDocumentPreview = computed(() => JSON.stringify(richTextDocument.value || {}, null, 2))
 const activeDraft = computed(() => uploadDrafts.value.find((draft) => draft.id === activeDraftId.value) || uploadDrafts.value[0])
 const activeDraftSource = computed<UploadDraftSource | null>(() => activeDraft.value?.source || null)
-const selectedVideo = computed<VideoSummary | undefined>(() => sampleVideos[0])
-const videoSources = computed(() => videoDetail?.sources || [])
+const videoSources = computed(() => videoDetail.value?.sources || [])
 const componentChecklist = [
   "AoiActionBar",
   "AoiButton",
@@ -460,7 +564,7 @@ function addComment(body: string) {
 
   const now = new Date().toISOString()
 
-  comments.value = [
+  localPreviewComments.value = [
     {
       authorName: commentAuthorName.value.trim() || "Demo User",
       body: trimmedBody,
@@ -468,9 +572,9 @@ function addComment(body: string) {
       id: `comment-${Date.now().toString(36)}`,
       status: "visible",
       updatedAt: now,
-      videoId: "video-aoi-alpha"
+      videoId: videoDetail.value?.id || selectedVideo.value?.id || "video-aoi-alpha"
     },
-    ...comments.value
+    ...localPreviewComments.value
   ]
   commentSubmitRevision.value += 1
   showStatus("评论组件已收到一条本地示例。")
@@ -847,8 +951,8 @@ function sendDanmaku(payload: { body: string, color: string, mode: AoiDanmakuMod
         <MobileHeader />
         <div class="components-lab__nav-canvas">
           <BrandBand />
-          <AnnouncementStrip :announcement="mockAnnouncement" />
-          <CategoryTabs v-model="selectedCategory" :categories="mockCategoryTree" />
+          <AnnouncementStrip :announcement="sampleAnnouncement" />
+          <CategoryTabs v-model="selectedCategory" :categories="sampleCategoryTree" />
         </div>
         <BottomNav />
       </div>
@@ -865,7 +969,7 @@ function sendDanmaku(payload: { body: string, color: string, mode: AoiDanmakuMod
       <div class="components-lab__content-grid">
         <VideoCard v-if="selectedVideo" :video="selectedVideo" :index="0" />
         <VideoCardSkeleton />
-        <CategoryCard v-if="mockCategories[1]" :category="mockCategories[1]" />
+        <CategoryCard v-if="sampleCategories[1]" :category="sampleCategories[1]" />
         <CreatorCard v-if="creators[0]" :creator="creators[0]" />
         <HistoryEntryCard
           v-if="selectedVideo"

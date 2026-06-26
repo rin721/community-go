@@ -71,10 +71,10 @@ function change(value: string) {
   height: 38px;
   align-items: center;
   justify-content: center;
-  border: 1px solid transparent;
+  border: 1px solid color-mix(in srgb, var(--aoi-surface-border) 12%, transparent);
   border-radius: var(--aoi-radius-round);
   appearance: none;
-  background: color-mix(in srgb, var(--aoi-surface-solid) 38%, transparent);
+  background: color-mix(in srgb, var(--aoi-surface-solid) 24%, transparent);
   color: var(--aoi-text-muted);
   cursor: pointer;
   font: inherit;
@@ -91,8 +91,8 @@ function change(value: string) {
 }
 
 .category-tabs__item:hover {
-  border-color: color-mix(in srgb, var(--aoi-active-color) 18%, transparent);
-  background: color-mix(in srgb, var(--aoi-active-color) 7%, var(--aoi-surface-solid) 38%);
+  border-color: color-mix(in srgb, var(--aoi-active-color) 12%, transparent);
+  background: color-mix(in srgb, var(--aoi-active-color) 7%, transparent);
   color: var(--aoi-text);
   transform: translateY(-1px);
 }
@@ -102,10 +102,10 @@ function change(value: string) {
 }
 
 .category-tabs__item--active {
-  border-color: color-mix(in srgb, var(--aoi-active-color) 26%, transparent);
-  background: color-mix(in srgb, var(--aoi-active-color) 12%, var(--aoi-surface-solid) 42%);
+  border-color: color-mix(in srgb, var(--aoi-active-color) 18%, transparent);
+  background: color-mix(in srgb, var(--aoi-active-color) 10%, transparent);
   color: var(--aoi-active-color);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--aoi-active-color) 8%, transparent);
+  box-shadow: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

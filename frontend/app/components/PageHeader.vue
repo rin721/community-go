@@ -40,11 +40,13 @@ withDefaults(defineProps<{
   width: 42px;
   height: 42px;
   place-items: center;
-  border: 1px solid var(--aoi-border);
   border-radius: var(--aoi-radius-sm);
-  background: var(--aoi-accent-10);
+  background:
+    radial-gradient(circle at 36% 30%, color-mix(in srgb, var(--aoi-active-color) 18%, transparent), transparent 58%),
+    color-mix(in srgb, var(--aoi-accent-10) 78%, transparent);
   color: var(--aoi-accent-60);
   flex: 0 0 auto;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--aoi-active-color) 10%, transparent);
 }
 
 .page-header__copy {

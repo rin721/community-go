@@ -131,13 +131,13 @@ function formatDate(value: string) {
   min-width: 0;
   gap: 12px;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--aoi-surface-border) 42%, transparent);
+  border: 1px solid color-mix(in srgb, var(--aoi-surface-border) 20%, transparent);
   border-radius: var(--aoi-radius-card);
   background:
-    linear-gradient(135deg, color-mix(in srgb, var(--aoi-accent-10) 44%, transparent), transparent 44%),
-    color-mix(in srgb, var(--aoi-card-bg) 72%, transparent);
+    linear-gradient(135deg, color-mix(in srgb, var(--aoi-accent-10) 28%, transparent), transparent 46%),
+    color-mix(in srgb, var(--aoi-card-bg) 58%, transparent);
   padding: 14px;
-  box-shadow: 0 12px 32px rgba(33, 33, 33, 0.035);
+  box-shadow: 0 10px 28px rgba(33, 33, 33, 0.026);
   transition:
     border-color var(--aoi-motion-fast) var(--aoi-ease-out),
     box-shadow var(--aoi-motion-fast) var(--aoi-ease-out),
@@ -145,8 +145,8 @@ function formatDate(value: string) {
 }
 
 .community-pulse__card:hover {
-  border-color: color-mix(in srgb, var(--aoi-surface-border-hover) 52%, transparent);
-  box-shadow: 0 16px 40px rgba(33, 33, 33, 0.05);
+  border-color: color-mix(in srgb, var(--aoi-surface-border-hover) 30%, transparent);
+  box-shadow: 0 14px 34px rgba(33, 33, 33, 0.038);
   transform: translateY(-2px);
 }
 
@@ -220,9 +220,9 @@ function formatDate(value: string) {
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 9px;
-  border: 1px solid color-mix(in srgb, var(--aoi-surface-border) 42%, transparent);
+  border: 1px solid color-mix(in srgb, var(--aoi-surface-border) 24%, transparent);
   border-radius: var(--aoi-radius-control);
-  background: color-mix(in srgb, var(--aoi-surface-solid) 52%, transparent);
+  background: color-mix(in srgb, var(--aoi-surface-solid) 38%, transparent);
   padding: 9px;
 }
 

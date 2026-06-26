@@ -18,9 +18,9 @@
   --aoi-surface: rgba(255, 255, 255, 0.94);
   --aoi-surface-solid: #ffffff;
   --aoi-surface-muted: #faf5f7;
-  --aoi-border: rgba(33, 33, 33, 0.11);
-  --aoi-surface-border: color-mix(in srgb, var(--aoi-border) 68%, transparent);
-  --aoi-surface-border-hover: color-mix(in srgb, var(--aoi-border) 78%, var(--aoi-active-color) 10%);
+  --aoi-border: rgba(33, 33, 33, 0.085);
+  --aoi-surface-border: color-mix(in srgb, var(--aoi-border) 48%, transparent);
+  --aoi-surface-border-hover: color-mix(in srgb, var(--aoi-border) 58%, var(--aoi-active-color) 8%);
   --aoi-text: #212121;
   --aoi-text-muted: #6d6670;
   --aoi-icon: #6d6670;
@@ -29,8 +29,8 @@
   --aoi-warning: #a76500;
   --aoi-info: var(--aoi-secondary-50);
   --aoi-focus: color-mix(in srgb, var(--aoi-accent-60) 32%, transparent);
-  --aoi-shadow-sm: 0 4px 14px rgba(33, 33, 33, 0.05);
-  --aoi-shadow-md: 0 12px 30px rgba(33, 33, 33, 0.10);
+  --aoi-shadow-sm: 0 5px 16px rgba(33, 33, 33, 0.035);
+  --aoi-shadow-md: 0 14px 32px rgba(33, 33, 33, 0.065);
   --aoi-danger: #ba1a1a;
   --aoi-content-max-width: 100%;
   --aoi-content-wide-max-width: 88%;
@@ -43,7 +43,7 @@
   --aoi-row-padding: 12px;
   --aoi-card-padding: 14px;
   --aoi-panel-bg: var(--aoi-surface);
-  --aoi-card-bg: rgba(255, 255, 255, 0.78);
+  --aoi-card-bg: rgba(255, 255, 255, 0.68);
   --aoi-control-bg: rgba(255, 255, 255, 0.72);
   --aoi-state-hover: color-mix(in srgb, var(--aoi-accent-60) 6%, white);
   --aoi-state-active: color-mix(in srgb, var(--aoi-accent-60) 10%, white);

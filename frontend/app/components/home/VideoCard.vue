@@ -61,9 +61,9 @@ function formatDuration(totalSeconds: number) {
 }
 
 .video-card:hover {
-  border-color: var(--aoi-surface-border-hover);
-  background: var(--aoi-surface);
-  box-shadow: var(--aoi-shadow-sm);
+  border-color: transparent;
+  background: color-mix(in srgb, var(--aoi-surface-solid) 32%, transparent);
+  box-shadow: 0 10px 24px rgba(33, 33, 33, 0.035);
   transform: translate3d(0, -3px, 0);
 }
 

@@ -155,6 +155,7 @@ Nuxt public runtime config 支持以下环境变量：
 - 业务页面和功能组件不要直接使用 `md-*` Material Web 元素；需要新能力时先扩展 `app/components/aoi/`。
 - 普通文本链接、卡片链接、标签链接和导航链接统一使用 `AoiLink`。
 - 样式优先使用 `app/assets/css/tokens.css` 中的 CSS 变量和 `app/assets/css/main.css` 中的共享布局规则。
+- 页面层级以透明表面、低透明边线、轻阴影和稳定媒体比例表达；首页横幅、分类导航、动态卡片和媒体卡片保持轻量边界，贴近清爽的视频社区阅读节奏。
 - 新增共享用户可见文案时，同步维护 `i18n/locales/zh-CN.json`、`i18n/locales/en.json` 和 `i18n/locales/ja.json`。
 - 登录、注册和账号状态使用社区账号语义。
 - 评论、关注、收藏、稍后看、历史、通知等社区状态优先以 `useAoiApi()` 返回的后端 payload 为准；`localStorage` 只保存匿名 clientId 和必要降级缓存，收藏 / 稍后看 / 历史缓存会在后端可用后通过社区 API 回灌并重新读取。

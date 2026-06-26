@@ -23,33 +23,7 @@ const { t } = useI18n()
   position: relative;
   min-height: 172px;
   overflow: hidden;
-  border-bottom: 1px solid var(--aoi-surface-border);
-  background: color-mix(in srgb, var(--aoi-surface-solid) 82%, transparent);
-}
-
-.brand-band::before {
-  position: absolute;
-  inset: 18px 5vw;
-  border-radius: var(--aoi-radius-card);
-  background:
-    radial-gradient(circle at 8% 16%, color-mix(in srgb, var(--aoi-accent-10) 64%, transparent), transparent 36%),
-    radial-gradient(circle at 88% 72%, color-mix(in srgb, var(--aoi-sakura-10) 74%, transparent), transparent 38%);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--aoi-surface-solid) 68%, transparent);
-  content: "";
-  opacity: .72;
-  pointer-events: none;
-}
-
-.brand-band::after {
-  position: absolute;
-  right: 5vw;
-  bottom: 17px;
-  left: 5vw;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--aoi-accent-60) 18%, transparent), transparent);
-  content: "";
-  opacity: .42;
-  pointer-events: none;
+  background: transparent;
 }
 
 .brand-band__inner {
@@ -123,15 +97,6 @@ const { t } = useI18n()
 @media (max-width: 639px) {
   .brand-band {
     min-height: 138px;
-  }
-
-  .brand-band::before {
-    inset: 12px;
-  }
-
-  .brand-band::after {
-    right: 12px;
-    left: 12px;
   }
 
   .brand-band__inner {

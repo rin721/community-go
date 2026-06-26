@@ -1,15 +1,5 @@
 <script setup lang="ts">
 import type {
-  AoiDeveloperAssetActionResponse,
-  AoiDeveloperAssetEntry,
-  AoiDeveloperAssetListResponse,
-  AoiDeveloperAssetUploadResponse
-} from "~~/shared/types/developer-assets"
-import type {
-  AoiBuildProfileManifest,
-  AoiSettingsProfile
-} from "~/lib/aoiSettingsProfiles"
-import type {
   AoiAppearanceContrast,
   AoiAppearanceDensity,
   AoiAppearanceShape,
@@ -18,15 +8,7 @@ import type {
 } from "~/stores/app-settings"
 import type {
   AoiAccentPresetCardOption,
-  AoiAccentPresetCards
 } from "~/utils/aoiAccentPresets"
-import {
-  aoiPublicAssetPathToUrl,
-  normalizeAoiAccentPresetCards
-} from "~/utils/aoiAccentPresets"
-import {
-  normalizeAoiBuildDefaultAppSettings
-} from "~/lib/aoiBuildDefaultSerialization"
 import type {
   AoiContentWidthMode,
   AoiContentWidthPercentKey,
@@ -59,40 +41,8 @@ const settings = useAppSettingsStore()
 const resetAppearanceConfirmOpen = ref(false)
 const resettingAppearance = ref(false)
 const showAdvancedSettings = computed(() => settings.settingsDisplayDepth === "all")
-const canEditAccentCards = computed(() => false)
-const accentCardEditorOpen = ref(false)
-const accentCardConfirmOpen = ref(false)
-const accentCardSaving = ref(false)
-const accentCardBusy = ref("")
-const accentCardError = ref("")
-const accentCardAssetError = ref("")
-const accentCardStatus = ref("")
-const editingAccentPreset = ref<AoiAccentPresetCardOption | null>(null)
 type ActivePersonaTool = "custom" | null
 const activePersonaTool = ref<ActivePersonaTool>(null)
-const accentCardDraft = reactive({
-  backgroundImagePath: "",
-  description: "",
-  subtitle: "",
-  title: ""
-})
-const assetCurrentPath = ref("")
-const assetEntries = ref<AoiDeveloperAssetEntry[]>([])
-const pendingAccentCardWrite = shallowRef<{
-  fields: string[]
-  nextCards: AoiAccentPresetCards
-  profile: AoiSettingsProfile
-  settings: ReturnType<typeof normalizeAoiBuildDefaultAppSettings>
-} | null>(null)
-
-interface DeveloperProfilesResponse {
-  manifest: AoiBuildProfileManifest
-  ok: boolean
-  originalProfiles?: AoiSettingsProfile[]
-  paths?: unknown
-  profiles: AoiSettingsProfile[]
-  updatedAt: string
-}
 
 const themeCards: Array<{ icon: string, label: string, value: AoiPreferredTheme }> = [
   { icon: "sun", label: "浅色主题", value: "light" },
@@ -309,9 +259,6 @@ const palettePresets = computed(() => settings.accentPresetCardOptions)
 const customPersonaStyle = computed(() => ({
   "--persona-accent": aoiRgbaToCss(settings.customAccent)
 }))
-const imageAssetEntries = computed(() => assetEntries.value.filter((entry) => {
-  return entry.kind === "directory" || entry.previewKind === "image"
-}))
 const accentPreviewTones = ["accent10", "accent20", "accent40", "accent50", "accent60"] as const
 const accentDerivationIsDefault = computed(() => {
   return AOI_ACCENT_DERIVED_TONES.every((tone) => {
@@ -424,17 +371,6 @@ function setAppearanceContrast(value: string) {
   settings.setAppearanceContrast(value as AoiAppearanceContrast)
 }
 
-function parentAssetPath(path: string) {
-  const segments = path.split("/").filter(Boolean)
-
-  segments.pop()
-  return segments.join("/")
-}
-
-function accentCardImageUrl(path: string) {
-  return path ? aoiPublicAssetPathToUrl(path) : ""
-}
-
 function personaPresetStyle(preset: AoiAccentPresetCardOption) {
   return {
     "--persona-10": preset.accent10,
@@ -454,288 +390,6 @@ function selectPresetPersona(preset: AoiAccentPresetCardOption) {
 function selectCustomPersona() {
   activePersonaTool.value = "custom"
   settings.setCustomAccent(settings.customAccent)
-}
-
-function draftAccentCardConfig() {
-  const preset = editingAccentPreset.value
-
-  if (!preset) {
-    return {}
-  }
-
-  const title = accentCardDraft.title.trim()
-  const subtitle = accentCardDraft.subtitle.trim()
-  const description = accentCardDraft.description.trim()
-  const backgroundImagePath = accentCardDraft.backgroundImagePath.trim()
-  const normalized = normalizeAoiAccentPresetCards({
-    [preset.value]: {
-      backgroundImagePath,
-      description,
-      subtitle: subtitle && subtitle !== preset.subtitle ? subtitle : "",
-      title: title && title !== preset.label ? title : ""
-    }
-  })
-
-  return normalized[preset.value] || {}
-}
-
-function formatAccentCardConfig(value: unknown) {
-  const preset = editingAccentPreset.value
-
-  if (!preset) {
-    return "{}"
-  }
-
-  return JSON.stringify(normalizeAoiAccentPresetCards({ [preset.value]: value })[preset.value] || {}, null, 2)
-}
-
-function openAccentCardEditor(preset: AoiAccentPresetCardOption) {
-  editingAccentPreset.value = preset
-  accentCardDraft.title = preset.cardTitle
-  accentCardDraft.subtitle = preset.cardSubtitle
-  accentCardDraft.description = preset.cardDescription
-  accentCardDraft.backgroundImagePath = preset.backgroundImagePath
-  accentCardError.value = ""
-  accentCardAssetError.value = ""
-  accentCardStatus.value = ""
-  accentCardEditorOpen.value = true
-  void loadPublicAssets(parentAssetPath(preset.backgroundImagePath))
-}
-
-function closeAccentCardEditor() {
-  accentCardEditorOpen.value = false
-  editingAccentPreset.value = null
-  pendingAccentCardWrite.value = null
-  accentCardConfirmOpen.value = false
-  accentCardBusy.value = ""
-  accentCardAssetError.value = ""
-}
-
-async function requestDeveloperAssets<T>(body: Record<string, unknown>) {
-  return await $fetch<T>("/api/developer/assets", {
-    method: "POST",
-    body: {
-      rootId: "public",
-      ...body
-    }
-  })
-}
-
-async function loadPublicAssets(path = assetCurrentPath.value) {
-  accentCardBusy.value = "assets"
-  accentCardAssetError.value = ""
-
-  try {
-    const response = await requestDeveloperAssets<AoiDeveloperAssetListResponse>({
-      action: "list",
-      path
-    })
-
-    assetCurrentPath.value = response.currentPath
-    assetEntries.value = response.entries
-  } catch {
-    assetCurrentPath.value = ""
-    assetEntries.value = []
-    accentCardAssetError.value = t("settings.appearance.palette.cards.errors.loadAssets")
-  } finally {
-    accentCardBusy.value = ""
-  }
-}
-
-function openAssetDirectory(entry: AoiDeveloperAssetEntry) {
-  if (entry.kind === "directory") {
-    void loadPublicAssets(entry.path)
-  }
-}
-
-function goAssetParent() {
-  void loadPublicAssets(parentAssetPath(assetCurrentPath.value))
-}
-
-function selectAssetImage(entry: AoiDeveloperAssetEntry) {
-  if (entry.kind === "file" && entry.previewKind === "image") {
-    accentCardDraft.backgroundImagePath = entry.path
-  }
-}
-
-function clearAccentCardImage() {
-  accentCardDraft.backgroundImagePath = ""
-}
-
-function safeUploadFilename(file: File) {
-  const extension = file.name.match(/\.[a-z0-9]+$/i)?.[0].toLowerCase() || ".png"
-  const base = file.name
-    .replace(/\.[^.]+$/, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 36) || "theme-card"
-
-  return `${base}-${Date.now().toString(36)}${extension}`
-}
-
-async function ensureThemeCardAssetDirectory() {
-  try {
-    await requestDeveloperAssets<AoiDeveloperAssetActionResponse>({
-      action: "createDirectory",
-      name: "theme-card-backgrounds",
-      path: ""
-    })
-  } catch (error) {
-    const statusCode = error && typeof error === "object" && "statusCode" in error
-      ? Number((error as { statusCode?: number }).statusCode)
-      : 0
-
-    if (statusCode !== 409) {
-      throw error
-    }
-  }
-}
-
-async function onAccentCardUpload(files: File[]) {
-  const file = files[0]
-
-  if (!file) {
-    return
-  }
-
-  if (!file.type.startsWith("image/")) {
-    accentCardError.value = t("settings.appearance.palette.cards.errors.imageOnly")
-    return
-  }
-
-  accentCardBusy.value = "upload"
-  accentCardError.value = ""
-  accentCardAssetError.value = ""
-
-  try {
-    await ensureThemeCardAssetDirectory()
-
-    const form = new FormData()
-    const uploadFile = new File([file], safeUploadFilename(file), { type: file.type })
-
-    form.append("rootId", "public")
-    form.append("path", "theme-card-backgrounds")
-    form.append("overwrite", "false")
-    form.append("files", uploadFile)
-
-    const response = await $fetch<AoiDeveloperAssetUploadResponse>("/api/developer/assets/upload", {
-      method: "POST",
-      body: form
-    })
-    const uploaded = response.uploaded.find((entry) => entry.previewKind === "image")
-
-    if (uploaded) {
-      accentCardDraft.backgroundImagePath = uploaded.path
-      assetCurrentPath.value = response.currentPath
-      assetEntries.value = response.entries
-    }
-  } catch {
-    accentCardError.value = t("settings.appearance.palette.cards.errors.upload")
-  } finally {
-    accentCardBusy.value = ""
-  }
-}
-
-async function loadBuildProfiles() {
-  return await $fetch<DeveloperProfilesResponse>("/api/developer/profiles", {
-    method: "POST",
-    body: { action: "listBuild" }
-  })
-}
-
-async function prepareAccentCardWrite() {
-  const preset = editingAccentPreset.value
-
-  if (!preset) {
-    return
-  }
-
-  accentCardBusy.value = "prepare"
-  accentCardError.value = ""
-
-  try {
-    const response = await loadBuildProfiles()
-    const activeId = response.manifest.activeProfileId
-    const profile = response.profiles.find((item) => item.id === activeId) || response.profiles[0]
-
-    if (!profile) {
-      accentCardError.value = t("settings.appearance.palette.cards.errors.profile")
-      return
-    }
-
-    const currentCards = normalizeAoiAccentPresetCards(profile.settings.accentPresetCards || settings.accentPresetCards)
-    const nextCards = { ...currentCards }
-    const nextCard = draftAccentCardConfig()
-
-    if (Object.keys(nextCard).length) {
-      nextCards[preset.value] = nextCard
-    } else {
-      delete nextCards[preset.value]
-    }
-
-    const normalizedCards = normalizeAoiAccentPresetCards(nextCards)
-
-    if (JSON.stringify(currentCards) === JSON.stringify(normalizedCards)) {
-      accentCardStatus.value = t("settings.appearance.palette.cards.noChanges")
-      return
-    }
-
-    const nextSettings = normalizeAoiBuildDefaultAppSettings({
-      ...profile.settings,
-      accentPresetCards: normalizedCards
-    })
-    const fields = profile.fields.includes("accentPresetCards")
-      ? [...profile.fields]
-      : [...profile.fields, "accentPresetCards"]
-
-    pendingAccentCardWrite.value = {
-      fields,
-      nextCards: normalizedCards,
-      profile,
-      settings: nextSettings
-    }
-    accentCardConfirmOpen.value = true
-  } catch {
-    accentCardError.value = t("settings.appearance.palette.cards.errors.profile")
-  } finally {
-    accentCardBusy.value = ""
-  }
-}
-
-async function confirmAccentCardWrite() {
-  const pending = pendingAccentCardWrite.value
-
-  if (!pending) {
-    return
-  }
-
-  accentCardSaving.value = true
-  accentCardError.value = ""
-
-  try {
-    const response = await $fetch<DeveloperProfilesResponse>("/api/developer/profiles", {
-      method: "POST",
-      body: {
-        action: "writeBuild",
-        fields: pending.fields,
-        id: pending.profile.id,
-        settings: pending.settings
-      }
-    })
-    const activeProfile = response.profiles.find((profile) => profile.id === response.manifest.activeProfileId)
-
-    settings.setBuildAccentPresetCards(activeProfile?.settings.accentPresetCards || pending.nextCards)
-    accentCardStatus.value = t("settings.appearance.palette.cards.saved")
-    accentCardConfirmOpen.value = false
-    accentCardEditorOpen.value = false
-    editingAccentPreset.value = null
-    pendingAccentCardWrite.value = null
-  } catch {
-    accentCardError.value = t("settings.appearance.palette.cards.errors.save")
-  } finally {
-    accentCardSaving.value = false
-  }
 }
 
 async function onBackgroundChange(files: File[]) {
@@ -1035,15 +689,6 @@ function formatBytes(value: number) {
               />
             </span>
           </button>
-          <AoiIconButton
-            v-if="canEditAccentCards"
-            class="settings-persona-card__edit"
-            icon="image-plus"
-            size="sm"
-            variant="tonal"
-            :label="t('settings.appearance.palette.cards.editAria', { title: preset.cardTitle })"
-            @click.stop="openAccentCardEditor(preset)"
-          />
         </div>
 
         <button
@@ -1073,8 +718,6 @@ function formatBytes(value: number) {
           </span>
         </button>
       </div>
-      <p v-if="accentCardStatus" class="settings-note">{{ accentCardStatus }}</p>
-
       <div v-if="activePersonaTool === 'custom'" class="settings-persona-tool settings-persona-tool--custom">
         <AoiColorPalette
           v-model="customAccentModel"
@@ -1226,201 +869,6 @@ function formatBytes(value: number) {
         {{ t("settings.resetPage.action") }}
       </AoiButton>
     </SettingsPanel>
-
-    <AoiDialog v-model:open="accentCardEditorOpen" @closed="closeAccentCardEditor">
-      <template #headline>
-        {{ t("settings.appearance.palette.cards.dialogTitle") }}
-      </template>
-
-      <div v-if="editingAccentPreset" class="settings-accent-card-editor">
-        <div
-          class="settings-accent-card-editor__preview"
-          :class="{ 'settings-accent-card-editor__preview--empty': !accentCardDraft.backgroundImagePath }"
-          :style="{ backgroundImage: accentCardDraft.backgroundImagePath ? `url(${accentCardImageUrl(accentCardDraft.backgroundImagePath)})` : undefined }"
-        >
-          <span>
-            {{ accentCardDraft.title || editingAccentPreset.label }}
-            <small>{{ accentCardDraft.subtitle || editingAccentPreset.subtitle }}</small>
-          </span>
-        </div>
-
-        <div class="settings-accent-card-editor__fields">
-          <AoiTextField
-            v-model="accentCardDraft.title"
-            appearance="outlined"
-            :label="t('settings.appearance.palette.cards.titleLabel')"
-            :max-length="48"
-          />
-          <AoiTextField
-            v-model="accentCardDraft.subtitle"
-            appearance="outlined"
-            :label="t('settings.appearance.palette.cards.subtitleLabel')"
-            :max-length="64"
-          />
-          <AoiTextField
-            v-model="accentCardDraft.description"
-            appearance="outlined"
-            multiline
-            :rows="3"
-            :label="t('settings.appearance.palette.cards.descriptionLabel')"
-            :max-length="180"
-          />
-          <AoiTextField
-            v-model="accentCardDraft.backgroundImagePath"
-            appearance="outlined"
-            icon="image"
-            :label="t('settings.appearance.palette.cards.imagePathLabel')"
-            :placeholder="t('settings.appearance.palette.cards.imagePathPlaceholder')"
-          />
-        </div>
-
-        <div class="settings-accent-card-assets">
-          <div class="settings-accent-card-assets__toolbar">
-            <strong>{{ t("settings.appearance.palette.cards.assetsTitle") }}</strong>
-            <span>{{ assetCurrentPath || "/" }}</span>
-            <AoiActionBar size="sm" align="end">
-              <AoiButton
-                size="sm"
-                icon="corner-up-left"
-                :disabled="!assetCurrentPath || Boolean(accentCardBusy)"
-                @click="goAssetParent"
-              >
-                {{ t("settings.appearance.palette.cards.parent") }}
-              </AoiButton>
-              <AoiButton
-                size="sm"
-                icon="refresh-cw"
-                :disabled="Boolean(accentCardBusy)"
-                @click="loadPublicAssets()"
-              >
-                {{ t("settings.appearance.palette.cards.refresh") }}
-              </AoiButton>
-              <AoiFileInput
-                accept="image/png,image/jpeg,image/webp,image/gif,image/avif,image/svg+xml"
-                :disabled="Boolean(accentCardBusy)"
-                @change="onAccentCardUpload"
-              >
-                <template #default="{ open }">
-                  <AoiButton tone="accent"
-                    variant="outlined"
-                    size="sm"
-                    icon="upload"
-                    :disabled="Boolean(accentCardBusy)"
-                    @click="open"
-                  >
-                    {{ t("settings.appearance.palette.cards.upload") }}
-                  </AoiButton>
-                </template>
-              </AoiFileInput>
-              <AoiButton
-                size="sm"
-                icon="x"
-                :disabled="!accentCardDraft.backgroundImagePath"
-                @click="clearAccentCardImage"
-              >
-                {{ t("settings.appearance.palette.cards.clearImage") }}
-              </AoiButton>
-            </AoiActionBar>
-          </div>
-
-          <div v-if="accentCardAssetError" class="settings-accent-card-assets__error">
-            <span>{{ accentCardAssetError }}</span>
-            <AoiButton tone="accent"
-              variant="outlined"
-              size="sm"
-              icon="refresh-cw"
-              :disabled="Boolean(accentCardBusy)"
-              @click="loadPublicAssets()"
-            >
-              {{ t("settings.appearance.palette.cards.retry") }}
-            </AoiButton>
-          </div>
-
-          <div v-else v-aoi-scroll-native class="settings-accent-card-assets__list">
-            <button
-              v-for="entry in imageAssetEntries"
-              :key="`${entry.kind}:${entry.path}`"
-              class="settings-accent-card-assets__item"
-              :class="{
-                'settings-accent-card-assets__item--directory': entry.kind === 'directory',
-                'settings-accent-card-assets__item--selected': entry.path === accentCardDraft.backgroundImagePath
-              }"
-              type="button"
-              @click="entry.kind === 'directory' ? openAssetDirectory(entry) : selectAssetImage(entry)"
-              @dblclick="entry.kind === 'directory' ? openAssetDirectory(entry) : selectAssetImage(entry)"
-            >
-              <span
-                v-if="entry.kind === 'file'"
-                class="settings-accent-card-assets__thumb"
-                :style="{ backgroundImage: `url(${entry.publicUrl || accentCardImageUrl(entry.path)})` }"
-              />
-              <AoiIcon v-else name="folder" :size="18" decorative />
-              <span>{{ entry.name }}</span>
-            </button>
-            <p v-if="!imageAssetEntries.length" class="settings-note">
-              {{ t("settings.appearance.palette.cards.emptyAssets") }}
-            </p>
-          </div>
-        </div>
-
-        <p v-if="accentCardError" class="settings-error">{{ accentCardError }}</p>
-      </div>
-
-      <template #actions>
-        <AoiButton
-          :disabled="accentCardSaving"
-          @click="closeAccentCardEditor"
-        >
-          {{ t("settings.appearance.palette.cards.cancel") }}
-        </AoiButton>
-        <AoiButton tone="accent" variant="filled"
-          icon="save"
-          :loading="accentCardBusy === 'prepare'"
-          :disabled="accentCardSaving || Boolean(accentCardBusy)"
-          @click="prepareAccentCardWrite"
-        >
-          {{ t("settings.appearance.palette.cards.save") }}
-        </AoiButton>
-      </template>
-    </AoiDialog>
-
-    <AoiDialog v-model:open="accentCardConfirmOpen">
-      <template #headline>
-        {{ t("settings.appearance.palette.cards.confirmTitle") }}
-      </template>
-
-      <div class="settings-accent-card-confirm">
-        <p>{{ t("settings.appearance.palette.cards.confirmDescription") }}</p>
-        <div class="settings-accent-card-confirm__diff">
-          <section>
-            <strong>{{ t("settings.appearance.palette.cards.before") }}</strong>
-            <code>{{ formatAccentCardConfig(editingAccentPreset ? settings.accentPresetCards[editingAccentPreset.value] : undefined) }}</code>
-          </section>
-          <AoiIcon name="arrow-right" :size="18" decorative />
-          <section>
-            <strong>{{ t("settings.appearance.palette.cards.after") }}</strong>
-            <code>{{ formatAccentCardConfig(editingAccentPreset && pendingAccentCardWrite ? pendingAccentCardWrite.nextCards[editingAccentPreset.value] : undefined) }}</code>
-          </section>
-        </div>
-        <p v-if="accentCardError" class="settings-error">{{ accentCardError }}</p>
-      </div>
-
-      <template #actions>
-        <AoiButton
-          :disabled="accentCardSaving"
-          @click="accentCardConfirmOpen = false"
-        >
-          {{ t("settings.appearance.palette.cards.cancel") }}
-        </AoiButton>
-        <AoiButton tone="accent" variant="filled"
-          icon="check"
-          :loading="accentCardSaving"
-          @click="confirmAccentCardWrite"
-        >
-          {{ t("settings.appearance.palette.cards.confirmSave") }}
-        </AoiButton>
-      </template>
-    </AoiDialog>
 
     <AoiDialog v-model:open="resetAppearanceConfirmOpen">
       <template #headline>{{ t("settings.resetPage.appearance.title") }}</template>
@@ -1683,25 +1131,6 @@ function formatBytes(value: number) {
   color: var(--persona-60, var(--aoi-accent-60));
 }
 
-.settings-persona-card__edit {
-  position: absolute;
-  z-index: 1;
-  top: 10px;
-  right: 10px;
-  opacity: 0;
-  transform: translateY(-3px);
-  backdrop-filter: blur(10px);
-  transition:
-    opacity .16s ease,
-    transform .16s ease;
-}
-
-.settings-persona-card-wrap:hover .settings-persona-card__edit,
-.settings-persona-card-wrap:focus-within .settings-persona-card__edit {
-  opacity: 1;
-  transform: translateY(0);
-}
-
 .settings-persona-card--custom .settings-persona-card__hero {
   --persona-60: var(--persona-accent, var(--aoi-accent-60));
   --persona-50: var(--persona-accent, var(--aoi-accent-50));
@@ -1740,196 +1169,6 @@ function formatBytes(value: number) {
 
 .settings-persona-tool__header :deep(.aoi-action-bar) {
   justify-content: end;
-}
-
-.settings-accent-card-editor {
-  display: grid;
-  width: min(720px, calc(100vw - 48px));
-  max-width: 100%;
-  gap: var(--aoi-grid-gap-compact);
-}
-
-.settings-accent-card-editor__preview {
-  display: grid;
-  min-height: 170px;
-  place-items: end start;
-  overflow: hidden;
-  border: 1px solid var(--aoi-border);
-  border-radius: var(--aoi-radius-card);
-  background:
-    linear-gradient(180deg, transparent, color-mix(in srgb, var(--aoi-card-bg) 92%, transparent)),
-    var(--aoi-surface-muted);
-  background-position: center;
-  background-size: cover;
-  padding: var(--aoi-card-padding);
-}
-
-.settings-accent-card-editor__preview span {
-  display: grid;
-  gap: 4px;
-  border-radius: var(--aoi-radius-card);
-  background: color-mix(in srgb, var(--aoi-card-bg) 74%, transparent);
-  padding: 10px 12px;
-  color: var(--aoi-text);
-  font-weight: 820;
-  backdrop-filter: blur(10px);
-}
-
-.settings-accent-card-editor__preview small {
-  color: var(--aoi-text-muted);
-  font-size: 12px;
-  font-weight: 720;
-}
-
-.settings-accent-card-editor__preview--empty {
-  background:
-    linear-gradient(135deg, color-mix(in srgb, var(--aoi-accent-20) 58%, transparent), transparent 55%),
-    var(--aoi-surface-muted);
-}
-
-.settings-accent-card-editor__fields {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--aoi-grid-gap-compact);
-}
-
-.settings-accent-card-editor__fields > :nth-child(n + 3) {
-  grid-column: 1 / -1;
-}
-
-.settings-accent-card-assets {
-  display: grid;
-  gap: var(--aoi-grid-gap-compact);
-}
-
-.settings-accent-card-assets__toolbar {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 4px var(--aoi-grid-gap-compact);
-  align-items: center;
-}
-
-.settings-accent-card-assets__toolbar strong {
-  color: var(--aoi-text);
-}
-
-.settings-accent-card-assets__toolbar > span {
-  min-width: 0;
-  overflow-wrap: anywhere;
-  color: var(--aoi-text-muted);
-  font-size: 12px;
-  font-weight: 720;
-}
-
-.settings-accent-card-assets__toolbar :deep(.aoi-action-bar) {
-  grid-row: 1 / span 2;
-  grid-column: 2;
-}
-
-.settings-accent-card-assets__error {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: var(--aoi-grid-gap-compact);
-  align-items: center;
-  border: 1px solid color-mix(in srgb, var(--aoi-danger) 28%, var(--aoi-border));
-  border-radius: var(--aoi-radius-card);
-  background: color-mix(in srgb, var(--aoi-danger) 7%, var(--aoi-card-bg));
-  padding: 10px 12px;
-  color: var(--aoi-danger);
-  font-size: 13px;
-  font-weight: 760;
-}
-
-.settings-accent-card-assets__list {
-  display: grid;
-  max-height: min(34vh, 280px);
-  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
-  gap: 8px;
-  overflow: auto;
-  border: 1px solid var(--aoi-border);
-  border-radius: var(--aoi-radius-card);
-  background: var(--aoi-control-bg);
-  padding: 8px;
-}
-
-.settings-accent-card-assets__item {
-  display: grid;
-  min-width: 0;
-  gap: 6px;
-  justify-items: start;
-  border: 1px solid var(--aoi-border);
-  border-radius: var(--aoi-radius-card);
-  background: var(--aoi-card-bg);
-  padding: 8px;
-  color: var(--aoi-text);
-  cursor: pointer;
-  font: inherit;
-  text-align: left;
-}
-
-.settings-accent-card-assets__item:hover,
-.settings-accent-card-assets__item:focus-visible {
-  border-color: var(--aoi-state-border-active);
-  background: var(--aoi-state-hover);
-}
-
-.settings-accent-card-assets__item--selected {
-  border-color: var(--aoi-state-border-active);
-  background: var(--aoi-state-active);
-}
-
-.settings-accent-card-assets__item > span:last-child {
-  overflow: hidden;
-  max-width: 100%;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.settings-accent-card-assets__thumb {
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  border-radius: var(--aoi-radius-card);
-  background-position: center;
-  background-size: cover;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, white 38%, transparent);
-}
-
-.settings-accent-card-confirm {
-  display: grid;
-  width: min(680px, calc(100vw - 48px));
-  max-width: 100%;
-  gap: var(--aoi-grid-gap-compact);
-}
-
-.settings-accent-card-confirm p {
-  margin: 0;
-  color: var(--aoi-text-muted);
-  line-height: 1.7;
-}
-
-.settings-accent-card-confirm__diff {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  gap: var(--aoi-grid-gap-compact);
-  align-items: stretch;
-}
-
-.settings-accent-card-confirm__diff section {
-  display: grid;
-  min-width: 0;
-  gap: 8px;
-  border: 1px solid var(--aoi-border);
-  border-radius: var(--aoi-radius-card);
-  background: var(--aoi-card-bg);
-  padding: 10px;
-}
-
-.settings-accent-card-confirm__diff code {
-  overflow: auto;
-  max-height: 220px;
-  color: var(--aoi-text);
-  font-size: 12px;
-  white-space: pre-wrap;
 }
 
 .settings-accent-derivation {
@@ -2107,18 +1346,7 @@ function formatBytes(value: number) {
   width: min(calc(var(--aoi-settings-card-min-width) * 1.88), 100%);
 }
 
-@media (hover: none), (pointer: coarse) {
-  .settings-persona-card__edit {
-    opacity: .78;
-    transform: none;
-  }
-}
-
 @media (max-width: 760px) {
-  .settings-accent-card-assets__toolbar,
-  .settings-accent-card-assets__error,
-  .settings-accent-card-confirm__diff,
-  .settings-accent-card-editor__fields,
   .settings-accent-strength-control,
   .settings-form-group,
   .settings-persona-tool__header,
@@ -2142,23 +1370,8 @@ function formatBytes(value: number) {
     display: none;
   }
 
-  .settings-persona-card__edit {
-    opacity: .78;
-    transform: none;
-  }
-
   .settings-persona-tool__header :deep(.aoi-action-bar) {
     justify-content: start;
-  }
-
-  .settings-accent-card-assets__toolbar :deep(.aoi-action-bar) {
-    grid-row: auto;
-    grid-column: auto;
-    justify-content: start;
-  }
-
-  .settings-accent-card-confirm__diff > .aoi-icon {
-    transform: rotate(90deg);
   }
 
   .settings-accent-strength-control__value {

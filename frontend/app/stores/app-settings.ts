@@ -20,7 +20,7 @@ import {
 } from "~/utils/aoiScroll"
 import type { AoiRouteProgressEasing } from "~/utils/aoiRouteProgress"
 import {
-  AOI_ROUTE_PROGRESS_LEGACY_DELAY_MS,
+  AOI_ROUTE_PROGRESS_DELAY_REBASE_MATCH_MS,
   AOI_ROUTE_PROGRESS_SETTINGS_VERSION,
   clampAoiRouteProgressSetting,
   isAoiRouteProgressEasing
@@ -120,7 +120,6 @@ interface PersistedAppSettings {
   danmakuVisibleArea: number
   dataMode: AoiDataMode
   derivationPreset: AoiDerivationPreset
-  developerModeEnabled: boolean
   disableWatchHistory: boolean
   hideRecentSearches: boolean
   locale: AoiLocale
@@ -208,7 +207,6 @@ function emptyState(): PersistedAppSettings {
     danmakuVisibleArea: defaults.danmakuVisibleArea,
     dataMode: defaults.dataMode,
     derivationPreset: defaults.derivationPreset,
-    developerModeEnabled: false,
     disableWatchHistory: defaults.disableWatchHistory,
     hideRecentSearches: defaults.hideRecentSearches,
     locale: defaults.locale,
@@ -264,7 +262,7 @@ function coercePersistedState(value: unknown): PersistedAppSettings {
 
   const candidate = value as Partial<PersistedAppSettings>
   const routeProgressSettingsVersion = typeof candidate.routeProgressSettingsVersion === "number" ? candidate.routeProgressSettingsVersion : 0
-  const shouldMigrateRouteProgressDelay = candidate.routeProgressDelayMs === AOI_ROUTE_PROGRESS_LEGACY_DELAY_MS
+  const shouldMigrateRouteProgressDelay = candidate.routeProgressDelayMs === AOI_ROUTE_PROGRESS_DELAY_REBASE_MATCH_MS
     && (candidate.routeProgressDelayMigrated !== true || routeProgressSettingsVersion < AOI_ROUTE_PROGRESS_SETTINGS_VERSION)
   const routeProgressDelayMs = shouldMigrateRouteProgressDelay
     ? fallback.routeProgressDelayMs
@@ -297,7 +295,6 @@ function coercePersistedState(value: unknown): PersistedAppSettings {
     danmakuVisibleArea: clampNumber(candidate.danmakuVisibleArea, 20, 100, fallback.danmakuVisibleArea),
     dataMode: isDataMode(candidate.dataMode) ? candidate.dataMode : fallback.dataMode,
     derivationPreset: isAoiDerivationPreset(candidate.derivationPreset) ? candidate.derivationPreset : fallback.derivationPreset,
-    developerModeEnabled: import.meta.dev && Boolean(candidate.developerModeEnabled),
     disableWatchHistory: typeof candidate.disableWatchHistory === "boolean" ? candidate.disableWatchHistory : fallback.disableWatchHistory,
     hideRecentSearches: typeof candidate.hideRecentSearches === "boolean" ? candidate.hideRecentSearches : fallback.hideRecentSearches,
     locale: isLocale(candidate.locale) ? candidate.locale : fallback.locale,
@@ -513,7 +510,6 @@ export const useAppSettingsStore = defineStore("app-settings", () => {
   const openVideosInNewTab = ref(initialState.openVideosInNewTab)
   const useRelativeDates = ref(initialState.useRelativeDates)
   const dataMode = ref<AoiDataMode>(initialState.dataMode)
-  const developerModeEnabled = ref(initialState.developerModeEnabled)
   const hideRecentSearches = ref(initialState.hideRecentSearches)
   const disableWatchHistory = ref(initialState.disableWatchHistory)
   const noSearchRecommendations = ref(initialState.noSearchRecommendations)
@@ -751,7 +747,6 @@ export const useAppSettingsStore = defineStore("app-settings", () => {
       danmakuVisibleArea: danmakuVisibleArea.value,
       dataMode: dataMode.value,
       derivationPreset: derivationPreset.value,
-      developerModeEnabled: developerModeEnabled.value,
       disableWatchHistory: disableWatchHistory.value,
       hideRecentSearches: hideRecentSearches.value,
       locale: locale.value,
@@ -825,7 +820,6 @@ export const useAppSettingsStore = defineStore("app-settings", () => {
     danmakuVisibleArea.value = state.danmakuVisibleArea
     dataMode.value = state.dataMode
     derivationPreset.value = state.derivationPreset
-    developerModeEnabled.value = state.developerModeEnabled
     disableWatchHistory.value = state.disableWatchHistory
     hideRecentSearches.value = state.hideRecentSearches
     locale.value = state.locale
@@ -953,11 +947,6 @@ export const useAppSettingsStore = defineStore("app-settings", () => {
 
   function setLocalePreference(value: AoiLocale) {
     locale.value = value
-    persist()
-  }
-
-  function setDeveloperModeEnabled(value: boolean) {
-    developerModeEnabled.value = import.meta.dev && value
     persist()
   }
 
@@ -1367,7 +1356,6 @@ export const useAppSettingsStore = defineStore("app-settings", () => {
       openVideosInNewTab,
       useRelativeDates,
       dataMode,
-      developerModeEnabled,
       hideRecentSearches,
       disableWatchHistory,
       noSearchRecommendations,
@@ -1443,7 +1431,6 @@ export const useAppSettingsStore = defineStore("app-settings", () => {
     danmakuVisibleArea,
     dataMode,
     derivationPreset,
-    developerModeEnabled,
     disableWatchHistory,
     effectiveDanmakuRuntimeSettings,
     effectiveRevealMotionSettings,
@@ -1506,7 +1493,6 @@ export const useAppSettingsStore = defineStore("app-settings", () => {
     setContentWidthPercent,
     setCustomAccent,
     setDerivationPreset,
-    setDeveloperModeEnabled,
     setDanmakuBlocklist,
     setDanmakuFontScale,
     setDanmakuOpacity,

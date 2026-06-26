@@ -4,7 +4,6 @@ import type {
   ErrorResponse,
   AuthSessionSnapshot,
   LoginRequest,
-  SignupRequest,
   SignupResult
 } from "~/types/api"
 
@@ -25,7 +24,12 @@ type CommunitySignupRequest = {
   password: string
 }
 
-const COMMUNITY_SIGNUP_SCOPE_PREFIX = "community"
+type BackendSignupRequest = CommunitySignupRequest & {
+  orgCode: string
+  orgName: string
+}
+
+const COMMUNITY_SIGNUP_ACCOUNT_PREFIX = "community"
 const COMMUNITY_SIGNUP_FALLBACK_HANDLE = "member"
 const COMMUNITY_SIGNUP_FALLBACK_NAME = "Community member"
 
@@ -91,14 +95,14 @@ export function useAoiAuthApi() {
   }
 }
 
-function toSignupRequest(body: CommunitySignupRequest): SignupRequest {
+function toSignupRequest(body: CommunitySignupRequest): BackendSignupRequest {
   const handle = communityAccountHandle(body.username, body.email)
   const name = body.displayName?.trim() || body.username.trim() || COMMUNITY_SIGNUP_FALLBACK_NAME
 
   return {
     displayName: body.displayName,
     email: body.email,
-    orgCode: `${COMMUNITY_SIGNUP_SCOPE_PREFIX}-${handle}`,
+    orgCode: `${COMMUNITY_SIGNUP_ACCOUNT_PREFIX}-${handle}`,
     orgName: name,
     password: body.password,
     username: body.username

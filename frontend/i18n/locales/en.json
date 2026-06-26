@@ -318,7 +318,7 @@
   "settings": {
     "shell": {
       "title": "Settings",
-      "description": "Adjust Aoi appearance, preferences, local data, and diagnostics.",
+      "description": "Adjust Aoi appearance, playback, danmaku, language, and local data.",
       "searchLabel": "Search settings",
       "searchPlaceholder": "Theme, background, player...",
       "emptyText": "No matching settings.",
@@ -344,15 +344,15 @@
       "confirm": "Reset",
       "appearance": {
         "title": "Reset Appearance Settings",
-        "description": "Restore appearance, palette, background parameters, and size units from the current active build configuration. The browser-saved background image will be cleared."
+        "description": "Restore appearance, palette, background parameters, and size units to their defaults. The browser-saved background image will be cleared."
       },
       "preference": {
         "title": "Reset Preference Settings",
-        "description": "Restore data mode, browsing, route progress, reveal motion, scrolling, privacy, and focus settings from the current active build configuration."
+        "description": "Restore data mode, browsing, route progress, reveal motion, scrolling, privacy, and focus settings to their defaults."
       },
       "language": {
         "title": "Reset Language Settings",
-        "description": "Restore the interface language from the current active build configuration and apply it immediately."
+        "description": "Restore the interface language to its default and apply it immediately."
       }
     },
     "derivation": {
@@ -607,38 +607,6 @@
               "affected": "May affect: active progress color, page-edge hint gradients, brand/auth/profile decorative gradients, rich-text quote borders, and skeleton accents."
             }
           }
-        },
-        "cards": {
-          "editAria": "Edit {title} card background",
-          "dialogTitle": "Edit accent color card",
-          "titleLabel": "Card title",
-          "subtitleLabel": "Card subtitle",
-          "descriptionLabel": "Supporting copy",
-          "imagePathLabel": "Public asset image path",
-          "imagePathPlaceholder": "theme-card-backgrounds/example.webp",
-          "assetsTitle": "Public asset images",
-          "parent": "Parent",
-          "refresh": "Refresh",
-          "upload": "Upload image",
-          "clearImage": "Clear image",
-          "emptyAssets": "No selectable images in this folder.",
-          "cancel": "Cancel",
-          "save": "Save to build config",
-          "confirmTitle": "Write accent card config",
-          "confirmDescription": "This writes the current active build profile, only updating accent card assets and leaving the original backup unchanged.",
-          "before": "Before",
-          "after": "After",
-          "confirmSave": "Confirm write",
-          "saved": "Accent card config was written to the current active build profile.",
-          "errors": {
-            "imageOnly": "Choose an image file.",
-            "loadAssets": "Could not read public assets. Try again later.",
-            "profile": "Could not read build profiles, so the card config cannot be written.",
-            "save": "Could not write the build profile. Check that developer mode is still available.",
-            "upload": "Image upload failed. Try another image or retry later."
-          },
-          "noChanges": "No card changes to write.",
-          "retry": "Retry"
         }
       },
       "density": {
@@ -836,229 +804,6 @@
           "maxOffsetLabel": "Max offset"
         }
       }
-    },
-    "developer": {
-      "title": "Developer",
-      "description": "Generate build-time default app settings and write the controlled source config in local development.",
-      "locked": {
-        "title": "This page is unavailable",
-        "description": "Community settings keep appearance, playback, danmaku, language, connection status, and local data.",
-        "action": "Back to Appearance"
-      },
-      "status": {
-        "title": "Build defaults",
-        "description": "This page only writes the active default config. The original backup config is never modified.",
-        "runtimeMode": "Runtime mode",
-        "development": "Local development",
-        "production": "Production build",
-        "activePath": "Active config",
-        "originalPath": "Original backup",
-        "generatedSize": "Generated size",
-        "updatedAt": "Last write: {time}"
-      },
-      "generated": {
-        "title": "Generated preview",
-        "description": "Generate TypeScript config from the current app settings. Developer Mode, background files, and local content data are excluded."
-      },
-      "source": {
-        "title": "Source config actions",
-        "description": "Write overwrites the active default config. Restore regenerates it from the original backup.",
-        "devNote": "The write API is available only on the local dev server and accepts only a fixed allowlist settings object.",
-        "productionNote": "This is not the local dev server, so source writes and restores are disabled."
-      },
-      "actions": {
-        "refresh": "Refresh",
-        "copy": "Copy",
-        "download": "Download",
-        "write": "Write source config",
-        "restore": "Restore original defaults",
-        "disable": "Disable Developer Mode"
-      },
-      "messages": {
-        "refreshed": "Preview regenerated from the current app settings.",
-        "copied": "TypeScript config copied.",
-        "downloaded": "TypeScript config downloaded.",
-        "written": "Active build defaults were written.",
-        "restored": "Active defaults were restored from the original backup."
-      },
-      "errors": {
-        "copy": "Copy failed. Select the preview text directly instead.",
-        "download": "Download failed. Try copying instead.",
-        "write": "Write failed. Make sure this is the local dev server.",
-        "restore": "Restore failed. Make sure this is the local dev server."
-      },
-      "profiles": {
-        "buildTitle": "Build preset profiles",
-        "runtimeTitle": "Runtime setting profiles",
-        "fieldPicker": "Field picker",
-        "diffPreview": "Diff preview",
-        "confirmBeforeApply": "Profile writes and applies must show a diff preview and confirmation.",
-        "buildDescription": "Build presets use one JSON file per profile and keep a matching original backup.",
-        "runtimeDescription": "Runtime profiles are stored only in the current browser and can be imported or exported.",
-        "backgroundReferenceNote": "Background profiles save references only, never image bytes.",
-        "actions": {
-          "create": "Create",
-          "copy": "Copy",
-          "rename": "Rename",
-          "delete": "Delete",
-          "setActive": "Set active",
-          "writeCurrent": "Write current settings",
-          "restoreOriginal": "Restore original",
-          "apply": "Preview and apply",
-          "updateFromCurrent": "Update from current",
-          "import": "Import",
-          "export": "Export",
-          "selectAll": "Select all",
-          "clear": "Clear"
-        }
-      },
-      "assets": {
-        "title": "Public Assets",
-        "description": "Manage build-bound files in public, app/assets, and i18n/locales from the local dev server.",
-        "unavailable": {
-          "title": "Public asset management is available only in local dev",
-          "description": "Production builds and preview do not expose source-file write APIs. Use this panel under pnpm dev."
-        },
-        "rootLabel": "Asset root",
-        "searchLabel": "Search current directory",
-        "viewModeLabel": "Asset view mode",
-        "sortLabel": "Sort",
-        "breadcrumbLabel": "Asset path",
-        "itemCount": "{count} items",
-        "empty": "No assets are available in this directory.",
-        "emptySearch": "No assets match the current search.",
-        "lastUpdated": "Last refresh/write: {time}",
-        "noSelection": "Select a file or directory.",
-        "previewUnavailable": "This file type cannot be previewed inline. Download or replace it instead.",
-        "previewDirectory": "Double-click a directory to open it. File previews appear here.",
-        "workspace": {
-          "label": "Asset workspace",
-          "browser": "Browse",
-          "preview": "Preview",
-          "editor": "Text editor"
-        },
-        "explorer": {
-          "title": "Explorer",
-          "loading": "Loading",
-          "expand": "Expand directory",
-          "collapse": "Collapse directory"
-        },
-        "views": {
-          "list": "List view",
-          "grid": "Grid view"
-        },
-        "sort": {
-          "nameAsc": "Name A-Z",
-          "nameDesc": "Name Z-A",
-          "modifiedDesc": "Newest first",
-          "modifiedAsc": "Oldest first",
-          "sizeDesc": "Largest first",
-          "sizeAsc": "Smallest first",
-          "kindAsc": "Type"
-        },
-        "detail": {
-          "title": "Details"
-        },
-        "preview": {
-          "title": "Preview"
-        },
-        "kinds": {
-          "directory": "Directory",
-          "file": "File"
-        },
-        "stats": {
-          "root": "Root",
-          "path": "Path",
-          "items": "Items",
-          "type": "Type",
-          "size": "Size",
-          "mode": "Mode",
-          "modified": "Modified"
-        },
-        "table": {
-          "name": "Name",
-          "type": "Type",
-          "size": "Size",
-          "mode": "Mode",
-          "modified": "Modified",
-          "actions": "Actions"
-        },
-        "actions": {
-          "refresh": "Refresh",
-          "newFile": "New file",
-          "newDirectory": "New folder",
-          "upload": "Upload",
-          "open": "Open",
-          "download": "Download",
-          "more": "More",
-          "rename": "Rename",
-          "copy": "Copy",
-          "move": "Move",
-          "chmod": "chmod",
-          "delete": "Delete",
-          "copyPublicUrl": "Copy public URL",
-          "loadText": "Load text",
-          "saveText": "Save text",
-          "create": "Create",
-          "cancel": "Cancel",
-          "overwriteUpload": "Overwrite upload"
-        },
-        "dialogs": {
-          "createFileTitle": "Create file",
-          "createFileDescription": "Create an empty text file in the current directory.",
-          "createDirectoryTitle": "Create folder",
-          "createDirectoryDescription": "Create a folder in the current directory.",
-          "renameTitle": "Rename asset",
-          "renameDescription": "Rename {name}.",
-          "copyTitle": "Copy asset",
-          "copyDescription": "Copy {name} to a relative target path. If the target is a directory, the original name is kept.",
-          "moveTitle": "Move asset",
-          "moveDescription": "Move {name} to a relative target path. This changes the source directory structure.",
-          "chmodTitle": "Change permissions",
-          "chmodDescription": "Set a 3- or 4-digit octal mode for {name}, such as 644, 755, or 7777.",
-          "deleteTitle": "Delete asset",
-          "deleteDescription": "Delete {name}. Directories are deleted recursively and are not moved to trash.",
-          "nameLabel": "Name",
-          "destinationLabel": "Target relative path",
-          "modeLabel": "Permission mode",
-          "overwriteLabel": "Allow overwriting existing target",
-          "uploadOverwriteTitle": "Overwrite existing files?",
-          "uploadOverwriteDescription": "One or more uploaded files already exist in the target directory. Confirm to overwrite them."
-        },
-        "editor": {
-          "title": "Text editor",
-          "placeholder": "Load text before editing here.",
-          "unavailable": "Only text assets up to 1 MiB can be edited inline."
-        },
-        "messages": {
-          "refreshed": "Public assets refreshed.",
-          "textLoaded": "Text content loaded.",
-          "textSaved": "Text content saved.",
-          "chmodded": "Asset permissions updated.",
-          "copied": "Asset copied.",
-          "createdDirectory": "Folder created.",
-          "createdFile": "File created.",
-          "deleted": "Asset deleted.",
-          "moved": "Asset moved.",
-          "renamed": "Asset renamed.",
-          "uploaded": "Uploaded {count} files.",
-          "publicUrlCopied": "Public URL copied."
-        },
-        "errors": {
-          "action": "Public asset action failed",
-          "upload": "Upload failed",
-          "copyUrl": "Could not copy the public URL."
-        }
-      }
-    },
-    "components": {
-      "title": "Components",
-      "eyebrow": "Developer components",
-      "description": "A developer-mode lab for Aoi components, community data samples, business components, and in-page interaction states.",
-      "catalogDescription": "Component lab, community data samples, control states, and business component examples.",
-      "loadingTitle": "Reading Developer Mode",
-      "loadingDescription": "The component lab will continue once local settings have been restored.",
-      "keywords": "components showcase developer aoi controls lab demo"
     },
     "experimental": {
       "title": "Experiments",

@@ -12,7 +12,6 @@ export type AoiSettingsProfilePageId =
   | "about"
   | "acknowledgement"
   | "advanced"
-  | "developer"
 
 export interface AoiSettingsProfileField {
   depth: AoiSettingsProfileFieldDepth
@@ -208,7 +207,6 @@ const PROFILE_PAGE_LABELS: Record<AoiSettingsProfilePageId, string> = {
   advanced: "高级",
   appearance: "外观",
   danmaku: "弹幕",
-  developer: "开发者",
   experimental: "实验",
   language: "语言",
   player: "播放器",

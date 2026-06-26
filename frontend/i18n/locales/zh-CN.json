@@ -318,7 +318,7 @@
   "settings": {
     "shell": {
       "title": "设置",
-      "description": "调整 Aoi 的外观、偏好、本地数据和开发诊断。",
+      "description": "调整 Aoi 的外观、播放、弹幕、语言和本地数据。",
       "searchLabel": "搜索设置",
       "searchPlaceholder": "主题、背景、播放器...",
       "emptyText": "没有匹配的设置项。",
@@ -344,15 +344,15 @@
       "confirm": "确认重置",
       "appearance": {
         "title": "重置外观设置",
-        "description": "将按当前 active 构建配置恢复外观、色板、背景参数和规格单位，并清除当前浏览器保存的背景图片。"
+        "description": "恢复外观、色板、背景参数和规格单位为默认值，并清除当前浏览器保存的背景图片。"
       },
       "preference": {
         "title": "重置偏好设置",
-        "description": "将按当前 active 构建配置恢复流量、浏览、路由进度、入场动效、滚动、隐私和专注设置。"
+        "description": "恢复流量、浏览、路由进度、入场动效、滚动、隐私和专注设置为默认值。"
       },
       "language": {
         "title": "重置语言设置",
-        "description": "将按当前 active 构建配置恢复界面语言，并立即应用。"
+        "description": "恢复界面语言为默认值，并立即应用。"
       }
     },
     "derivation": {
@@ -607,38 +607,6 @@
               "affected": "可能影响：进度条 active 色、页面边缘提示渐变、品牌/认证/用户页装饰渐变、富文本引用边线、骨架屏 accent。"
             }
           }
-        },
-        "cards": {
-          "editAria": "编辑 {title} 卡片",
-          "dialogTitle": "编辑个性色卡片",
-          "titleLabel": "卡片标题",
-          "subtitleLabel": "卡片副标题",
-          "descriptionLabel": "卡片描述",
-          "imagePathLabel": "public 背景图片",
-          "imagePathPlaceholder": "/theme-card-backgrounds/example.webp",
-          "assetsTitle": "public 图片资源",
-          "parent": "上一级",
-          "refresh": "刷新",
-          "upload": "上传图片",
-          "clearImage": "清除图片",
-          "emptyAssets": "当前目录没有可用图片。",
-          "cancel": "取消",
-          "save": "保存到构建配置",
-          "confirmTitle": "写入个性色卡片配置？",
-          "confirmDescription": "将把这组变更写入当前 active build profile。不会写入浏览器本地设置，也不会修改 original 备份。",
-          "before": "变更前",
-          "after": "变更后",
-          "confirmSave": "确认写入",
-          "saved": "个性色卡片已写入当前 active build profile。",
-          "errors": {
-            "imageOnly": "请选择图片文件。",
-            "loadAssets": "无法读取 public 图片资源。",
-            "profile": "无法读取当前构建 profile。",
-            "save": "无法写入当前构建 profile，请稍后重试。",
-            "upload": "无法上传图片到 public 资源。"
-          },
-          "noChanges": "没有需要写入的卡片变更。",
-          "retry": "重试"
         }
       },
       "density": {
@@ -836,229 +804,6 @@
           "maxOffsetLabel": "最大位移"
         }
       }
-    },
-    "developer": {
-      "title": "开发者",
-      "description": "生成构建前默认应用设置，并在本地开发环境写入受控源配置。",
-      "locked": {
-        "title": "当前页面不可用",
-        "description": "社区设置目录保留外观、播放、弹幕、语言、连接状态和本地数据。",
-        "action": "返回外观"
-      },
-      "status": {
-        "title": "构建默认配置",
-        "description": "当前页面只会写入活动默认配置，原始备份配置不会被修改。",
-        "runtimeMode": "运行模式",
-        "development": "本地开发",
-        "production": "生产构建",
-        "activePath": "活动配置",
-        "originalPath": "原始备份",
-        "generatedSize": "生成大小",
-        "updatedAt": "上次写入：{time}"
-      },
-      "generated": {
-        "title": "生成预览",
-        "description": "从当前应用设置生成 TypeScript 配置；不包含开发者模式、背景文件和本地内容数据。"
-      },
-      "source": {
-        "title": "源配置操作",
-        "description": "写入会覆盖活动默认配置；恢复会从原始备份重新生成活动配置。",
-        "devNote": "写入接口仅在本地 dev 服务可用，并且只接受固定 allowlist 设置对象。",
-        "productionNote": "当前不是本地 dev 服务，源文件写入和恢复已禁用。"
-      },
-      "actions": {
-        "refresh": "刷新",
-        "copy": "复制",
-        "download": "下载",
-        "write": "写入源配置",
-        "restore": "恢复原始默认",
-        "disable": "关闭开发者模式"
-      },
-      "messages": {
-        "refreshed": "已按当前应用设置重新生成预览。",
-        "copied": "已复制 TypeScript 配置。",
-        "downloaded": "已下载 TypeScript 配置。",
-        "written": "已写入活动构建默认配置。",
-        "restored": "已从原始备份恢复活动配置。"
-      },
-      "errors": {
-        "copy": "复制失败，请直接选择预览内容。",
-        "download": "下载失败，请改用复制。",
-        "write": "写入失败，请确认当前运行的是本地 dev 服务。",
-        "restore": "恢复失败，请确认当前运行的是本地 dev 服务。"
-      },
-      "profiles": {
-        "buildTitle": "构建预设 profiles",
-        "runtimeTitle": "运行时档案 profiles",
-        "fieldPicker": "字段选择器",
-        "diffPreview": "差异预览",
-        "confirmBeforeApply": "应用或写入 profile 前必须预览差异并确认。",
-        "buildDescription": "构建预设一档一 JSON，并保留对应 original 备份。",
-        "runtimeDescription": "运行时档案仅保存在浏览器本地，可导入导出。",
-        "backgroundReferenceNote": "背景只保存引用信息，不保存图片字节。",
-        "actions": {
-          "create": "新建",
-          "copy": "复制",
-          "rename": "重命名",
-          "delete": "删除",
-          "setActive": "设为 active",
-          "writeCurrent": "从当前设置写入",
-          "restoreOriginal": "恢复 original",
-          "apply": "预览后应用",
-          "updateFromCurrent": "从当前设置更新",
-          "import": "导入",
-          "export": "导出",
-          "selectAll": "全选",
-          "clear": "清空"
-        }
-      },
-      "assets": {
-        "title": "公共资产",
-        "description": "在本地开发服务中管理会进入构建产物的 public、app/assets 和 i18n/locales 文件。",
-        "unavailable": {
-          "title": "公共资产管理仅在本地 dev 服务可用",
-          "description": "生产构建和 preview 不开放源文件写入 API；请在 pnpm dev 下使用该面板。"
-        },
-        "rootLabel": "资产根目录",
-        "searchLabel": "搜索当前目录",
-        "viewModeLabel": "资产视图模式",
-        "sortLabel": "排序",
-        "breadcrumbLabel": "资产路径",
-        "itemCount": "{count} 项",
-        "empty": "当前目录没有可显示的资产。",
-        "emptySearch": "当前搜索没有匹配的资产。",
-        "lastUpdated": "最近刷新/写入：{time}",
-        "noSelection": "请选择一个文件或目录。",
-        "previewUnavailable": "该文件类型不支持内联预览，可下载或替换。",
-        "previewDirectory": "目录可双击打开；文件会在这里显示预览。",
-        "workspace": {
-          "label": "资产工作区",
-          "browser": "浏览",
-          "preview": "预览",
-          "editor": "文本编辑"
-        },
-        "explorer": {
-          "title": "资源管理器",
-          "loading": "读取中",
-          "expand": "展开目录",
-          "collapse": "收起目录"
-        },
-        "views": {
-          "list": "列表视图",
-          "grid": "网格视图"
-        },
-        "sort": {
-          "nameAsc": "名称 A-Z",
-          "nameDesc": "名称 Z-A",
-          "modifiedDesc": "最近修改优先",
-          "modifiedAsc": "最早修改优先",
-          "sizeDesc": "大文件优先",
-          "sizeAsc": "小文件优先",
-          "kindAsc": "类型"
-        },
-        "detail": {
-          "title": "详情"
-        },
-        "preview": {
-          "title": "预览"
-        },
-        "kinds": {
-          "directory": "目录",
-          "file": "文件"
-        },
-        "stats": {
-          "root": "根目录",
-          "path": "路径",
-          "items": "项目数",
-          "type": "类型",
-          "size": "大小",
-          "mode": "权限",
-          "modified": "修改时间"
-        },
-        "table": {
-          "name": "名称",
-          "type": "类型",
-          "size": "大小",
-          "mode": "权限",
-          "modified": "修改时间",
-          "actions": "操作"
-        },
-        "actions": {
-          "refresh": "刷新",
-          "newFile": "新建文件",
-          "newDirectory": "新建文件夹",
-          "upload": "上传",
-          "open": "打开",
-          "download": "下载",
-          "more": "更多",
-          "rename": "重命名",
-          "copy": "复制",
-          "move": "移动",
-          "chmod": "chmod",
-          "delete": "删除",
-          "copyPublicUrl": "复制公开 URL",
-          "loadText": "读取文本",
-          "saveText": "保存文本",
-          "create": "创建",
-          "cancel": "取消",
-          "overwriteUpload": "覆盖上传"
-        },
-        "dialogs": {
-          "createFileTitle": "新建文件",
-          "createFileDescription": "在当前目录创建一个空文本文件。",
-          "createDirectoryTitle": "新建文件夹",
-          "createDirectoryDescription": "在当前目录创建一个文件夹。",
-          "renameTitle": "重命名资产",
-          "renameDescription": "将 {name} 改为新的名称。",
-          "copyTitle": "复制资产",
-          "copyDescription": "复制 {name} 到目标相对路径；如果目标是目录，会保留原文件名。",
-          "moveTitle": "移动资产",
-          "moveDescription": "移动 {name} 到目标相对路径；该操作会改变源码目录结构。",
-          "chmodTitle": "修改权限",
-          "chmodDescription": "为 {name} 设置 3 或 4 位八进制权限，例如 644、755 或 7777。",
-          "deleteTitle": "删除资产",
-          "deleteDescription": "删除 {name}。目录会递归删除，且不会进入回收站。",
-          "nameLabel": "名称",
-          "destinationLabel": "目标相对路径",
-          "modeLabel": "权限 mode",
-          "overwriteLabel": "允许覆盖已有目标",
-          "uploadOverwriteTitle": "覆盖已有文件？",
-          "uploadOverwriteDescription": "上传目标中已有同名文件。确认后会覆盖这些文件。"
-        },
-        "editor": {
-          "title": "文本编辑",
-          "placeholder": "读取文本后可在这里编辑。",
-          "unavailable": "只有 1 MiB 以内的文本资产可在线编辑。"
-        },
-        "messages": {
-          "refreshed": "公共资产已刷新。",
-          "textLoaded": "文本内容已读取。",
-          "textSaved": "文本内容已保存。",
-          "chmodded": "资产权限已更新。",
-          "copied": "资产已复制。",
-          "createdDirectory": "文件夹已创建。",
-          "createdFile": "文件已创建。",
-          "deleted": "资产已删除。",
-          "moved": "资产已移动。",
-          "renamed": "资产已重命名。",
-          "uploaded": "已上传 {count} 个文件。",
-          "publicUrlCopied": "公开 URL 已复制。"
-        },
-        "errors": {
-          "action": "公共资产操作失败",
-          "upload": "上传失败",
-          "copyUrl": "复制公开 URL 失败。"
-        }
-      }
-    },
-    "components": {
-      "title": "组件",
-      "eyebrow": "Developer components",
-      "description": "按开发者模式集中展示 Aoi 组件、社区数据样本、业务组件和页面内交互状态。",
-      "catalogDescription": "组件实验台、社区数据样本、控件状态和业务组件示例。",
-      "loadingTitle": "正在读取开发者模式",
-      "loadingDescription": "本地设置恢复后会继续判断是否允许访问组件实验台。",
-      "keywords": "组件 components showcase developer aoi 控件 实验台 demo"
     },
     "experimental": {
       "title": "实验",

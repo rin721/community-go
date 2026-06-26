@@ -23,26 +23,11 @@ export interface ApiResultEnvelope<T> {
   serverTime: number
 }
 
-export interface AuthPermissionGrant {
-  productCode: string
-  scope: string
-  code: string
-}
-
 export interface AuthSessionSnapshot {
   userId: string
-  orgId: string
   sessionId: string
-  productCode: string
-  clientType: string
   accessExpiresAt: string
   refreshExpiresAt: string
-  permissions: AuthPermissionGrant[]
-}
-
-export interface AuthTokenPair extends AuthSessionSnapshot {
-  accessToken: string
-  refreshToken: string
 }
 
 export type SignupStatus = "authenticated" | "verification_pending"
@@ -62,19 +47,9 @@ export interface SignupResult {
 export interface LoginRequest {
   identifier: string
   password: string
-  orgCode?: string
   captchaId?: string
   captchaCode?: string
   mfaCode?: string
-}
-
-export interface SignupRequest {
-  orgCode: string
-  orgName: string
-  username: string
-  email: string
-  displayName?: string
-  password: string
 }
 
 export interface Category {

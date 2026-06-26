@@ -47,7 +47,6 @@ flowchart TD
     AccountApi["backend /api/v1/auth"]
     LocalStorage["浏览器 localStorage"]
     MockApi["server/api/mock"]
-    DevApi["server/api/developer"]
     Shared["shared DTO 与 fixture"]
   end
 
@@ -74,7 +73,6 @@ flowchart TD
   Plugins --> Stores
   Pages --> Assets
   Components --> Assets
-  Config --> DevApi
 ```
 
 ## IDE
@@ -129,9 +127,8 @@ app/composables/             Nuxt composable
 app/stores/                  Pinia store 与浏览器本地状态
 app/pages/                   Nuxt 页面路由
 app/plugins/                 客户端插件与 Material Web 注册
-app/config/                  前端配置与 build default profile
+app/config/                  前端运行默认配置
 server/api/mock/             Nuxt mock API
-server/api/developer/        开发辅助 API
 shared/                      app 与 mock API 复用的 DTO、fixture
 i18n/locales/                `zh-CN`、`en`、`ja` 文案
 ../AGENTS.md                 聚合仓库长期产品、架构、UI、API 与交互约束
@@ -159,9 +156,8 @@ Nuxt public runtime config 支持以下环境变量：
 - 普通文本链接、卡片链接、标签链接和导航链接统一使用 `AoiLink`。
 - 样式优先使用 `app/assets/css/tokens.css` 中的 CSS 变量和 `app/assets/css/main.css` 中的共享布局规则。
 - 新增共享用户可见文案时，同步维护 `i18n/locales/zh-CN.json`、`i18n/locales/en.json` 和 `i18n/locales/ja.json`。
-- 前台登录、注册和账号状态使用社区账号语义；站点后台的管理角色、权限和配置概念留在后台控制台交付面。
+- 登录、注册和账号状态使用社区账号语义。
 - 评论、关注、收藏、稍后看、历史、通知等社区状态优先以 `useAoiApi()` 返回的后端 payload 为准；`localStorage` 只保存匿名 clientId 和必要降级缓存，收藏 / 稍后看 / 历史缓存会在后端可用后通过社区 API 回灌并重新读取。
-- `/settings/components` 组件实验台中的业务内容样本应通过 `useAoiApi()` 读取社区 API；本地预览样本只服务组件状态回归和接口诊断边界。
 - 浏览器本地 store 必须只在客户端安全 hydrate，并能从损坏的 `localStorage` 恢复。
 - 上传草稿状态不要持久化文件字节，只保存文件元数据。
 

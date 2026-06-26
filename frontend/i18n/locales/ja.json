@@ -318,7 +318,7 @@
   "settings": {
     "shell": {
       "title": "設定",
-      "description": "Aoi の外観、好み、ローカルデータ、診断を調整します。",
+      "description": "Aoi の外観、再生、弾幕、言語、ローカルデータを調整します。",
       "searchLabel": "設定を検索",
       "searchPlaceholder": "テーマ、背景、プレイヤー...",
       "emptyText": "一致する設定項目はありません。",
@@ -344,15 +344,15 @@
       "confirm": "リセット",
       "appearance": {
         "title": "外観設定をリセット",
-        "description": "現在の active ビルド設定に合わせて、外観、パレット、背景パラメーター、サイズ単位を復元し、ブラウザーに保存された背景画像を消去します。"
+        "description": "外観、パレット、背景パラメーター、サイズ単位を既定値に戻し、ブラウザーに保存された背景画像を消去します。"
       },
       "preference": {
         "title": "環境設定をリセット",
-        "description": "現在の active ビルド設定に合わせて、データモード、閲覧、ルート進行、表示モーション、スクロール、プライバシー、集中設定を復元します。"
+        "description": "データモード、閲覧、ルート進行、表示モーション、スクロール、プライバシー、集中設定を既定値に戻します。"
       },
       "language": {
         "title": "言語設定をリセット",
-        "description": "現在の active ビルド設定に合わせてインターフェイス言語を復元し、すぐに適用します。"
+        "description": "インターフェイス言語を既定値に戻し、すぐに適用します。"
       }
     },
     "derivation": {
@@ -607,38 +607,6 @@
               "affected": "影響する可能性：進捗バーの active 色、ページ端のヒントグラデーション、ブランド/認証/プロフィール装飾グラデーション、リッチテキスト引用線、スケルトンの accent。"
             }
           }
-        },
-        "cards": {
-          "editAria": "{title} カードを編集",
-          "dialogTitle": "アクセントカラーカードを編集",
-          "titleLabel": "カードタイトル",
-          "subtitleLabel": "カードサブタイトル",
-          "descriptionLabel": "カード説明",
-          "imagePathLabel": "public 背景画像",
-          "imagePathPlaceholder": "/theme-card-backgrounds/example.webp",
-          "assetsTitle": "public 画像アセット",
-          "parent": "上へ",
-          "refresh": "更新",
-          "upload": "画像をアップロード",
-          "clearImage": "画像をクリア",
-          "emptyAssets": "このフォルダーに使える画像はありません。",
-          "cancel": "キャンセル",
-          "save": "ビルド設定に保存",
-          "confirmTitle": "アクセントカラーカード設定を書き込みますか？",
-          "confirmDescription": "この変更を現在の active build profile に書き込みます。ブラウザーのローカル設定や original バックアップは変更しません。",
-          "before": "変更前",
-          "after": "変更後",
-          "confirmSave": "書き込む",
-          "saved": "アクセントカラーカードを現在の active build profile に保存しました。",
-          "errors": {
-            "imageOnly": "画像ファイルを選んでください。",
-            "loadAssets": "public 画像アセットを読み込めません。",
-            "profile": "現在のビルド profile を読み込めません。",
-            "save": "現在のビルド profile に書き込めません。後でもう一度試してください。",
-            "upload": "画像を public アセットにアップロードできません。"
-          },
-          "noChanges": "書き込むカード変更はありません。",
-          "retry": "再試行"
         }
       },
       "density": {
@@ -836,229 +804,6 @@
           "maxOffsetLabel": "最大変位"
         }
       }
-    },
-    "developer": {
-      "title": "開発者",
-      "description": "ビルド時の既定アプリ設定を生成し、ローカル開発環境で管理対象のソース設定へ書き込みます。",
-      "locked": {
-        "title": "このページは利用できません",
-        "description": "コミュニティ設定には外観、再生、弾幕、言語、接続状態、ローカルデータを残しています。",
-        "action": "外観に戻る"
-      },
-      "status": {
-        "title": "ビルド既定設定",
-        "description": "このページはアクティブな既定設定だけを書き込みます。元のバックアップ設定は変更しません。",
-        "runtimeMode": "実行モード",
-        "development": "ローカル開発",
-        "production": "本番ビルド",
-        "activePath": "アクティブ設定",
-        "originalPath": "元のバックアップ",
-        "generatedSize": "生成サイズ",
-        "updatedAt": "最終書き込み：{time}"
-      },
-      "generated": {
-        "title": "生成プレビュー",
-        "description": "現在のアプリ設定から TypeScript 設定を生成します。開発者モード、背景ファイル、ローカルコンテンツデータは含みません。"
-      },
-      "source": {
-        "title": "ソース設定操作",
-        "description": "書き込みはアクティブな既定設定を上書きします。復元は元のバックアップから再生成します。",
-        "devNote": "書き込み API はローカル dev サーバーでのみ利用でき、固定 allowlist の設定オブジェクトだけを受け付けます。",
-        "productionNote": "現在はローカル dev サーバーではないため、ソース書き込みと復元は無効です。"
-      },
-      "actions": {
-        "refresh": "更新",
-        "copy": "コピー",
-        "download": "ダウンロード",
-        "write": "ソース設定へ書き込み",
-        "restore": "元の既定へ復元",
-        "disable": "開発者モードを無効化"
-      },
-      "messages": {
-        "refreshed": "現在のアプリ設定からプレビューを再生成しました。",
-        "copied": "TypeScript 設定をコピーしました。",
-        "downloaded": "TypeScript 設定をダウンロードしました。",
-        "written": "アクティブなビルド既定設定を書き込みました。",
-        "restored": "元のバックアップからアクティブ設定を復元しました。"
-      },
-      "errors": {
-        "copy": "コピーに失敗しました。プレビュー本文を直接選択してください。",
-        "download": "ダウンロードに失敗しました。コピーを試してください。",
-        "write": "書き込みに失敗しました。ローカル dev サーバーで実行しているか確認してください。",
-        "restore": "復元に失敗しました。ローカル dev サーバーで実行しているか確認してください。"
-      },
-      "profiles": {
-        "buildTitle": "ビルドプリセット profiles",
-        "runtimeTitle": "実行時設定 profiles",
-        "fieldPicker": "フィールド選択",
-        "diffPreview": "差分プレビュー",
-        "confirmBeforeApply": "profile の書き込みや適用前には差分プレビューと確認が必要です。",
-        "buildDescription": "ビルドプリセットは profile ごとに 1 つの JSON と対応する original バックアップを持ちます。",
-        "runtimeDescription": "実行時 profile は現在のブラウザだけに保存され、インポートとエクスポートができます。",
-        "backgroundReferenceNote": "背景は参照情報だけを保存し、画像バイトは保存しません。",
-        "actions": {
-          "create": "新規作成",
-          "copy": "コピー",
-          "rename": "名前変更",
-          "delete": "削除",
-          "setActive": "active に設定",
-          "writeCurrent": "現在の設定を書き込み",
-          "restoreOriginal": "original を復元",
-          "apply": "プレビューして適用",
-          "updateFromCurrent": "現在の設定から更新",
-          "import": "インポート",
-          "export": "エクスポート",
-          "selectAll": "すべて選択",
-          "clear": "クリア"
-        }
-      },
-      "assets": {
-        "title": "公共アセット",
-        "description": "ローカル dev サーバーから、ビルド成果物に入る public、app/assets、i18n/locales のファイルを管理します。",
-        "unavailable": {
-          "title": "公共アセット管理はローカル dev のみ利用できます",
-          "description": "本番ビルドと preview ではソースファイル書き込み API を公開しません。pnpm dev でこのパネルを使用してください。"
-        },
-        "rootLabel": "アセットルート",
-        "searchLabel": "現在のディレクトリを検索",
-        "viewModeLabel": "アセット表示モード",
-        "sortLabel": "並び替え",
-        "breadcrumbLabel": "アセットパス",
-        "itemCount": "{count} 件",
-        "empty": "このディレクトリに表示できるアセットはありません。",
-        "emptySearch": "現在の検索に一致するアセットはありません。",
-        "lastUpdated": "最終更新 / 書き込み：{time}",
-        "noSelection": "ファイルまたはディレクトリを選択してください。",
-        "previewUnavailable": "このファイル形式はインラインプレビューに対応していません。ダウンロードまたは置換してください。",
-        "previewDirectory": "ディレクトリはダブルクリックで開けます。ファイルのプレビューはここに表示されます。",
-        "workspace": {
-          "label": "アセットワークスペース",
-          "browser": "閲覧",
-          "preview": "プレビュー",
-          "editor": "テキスト編集"
-        },
-        "explorer": {
-          "title": "エクスプローラー",
-          "loading": "読み込み中",
-          "expand": "ディレクトリを展開",
-          "collapse": "ディレクトリを折りたたむ"
-        },
-        "views": {
-          "list": "リスト表示",
-          "grid": "グリッド表示"
-        },
-        "sort": {
-          "nameAsc": "名前 A-Z",
-          "nameDesc": "名前 Z-A",
-          "modifiedDesc": "更新日時が新しい順",
-          "modifiedAsc": "更新日時が古い順",
-          "sizeDesc": "サイズが大きい順",
-          "sizeAsc": "サイズが小さい順",
-          "kindAsc": "種類"
-        },
-        "detail": {
-          "title": "詳細"
-        },
-        "preview": {
-          "title": "プレビュー"
-        },
-        "kinds": {
-          "directory": "ディレクトリ",
-          "file": "ファイル"
-        },
-        "stats": {
-          "root": "ルート",
-          "path": "パス",
-          "items": "項目数",
-          "type": "種類",
-          "size": "サイズ",
-          "mode": "権限",
-          "modified": "更新日時"
-        },
-        "table": {
-          "name": "名前",
-          "type": "種類",
-          "size": "サイズ",
-          "mode": "権限",
-          "modified": "更新日時",
-          "actions": "操作"
-        },
-        "actions": {
-          "refresh": "更新",
-          "newFile": "新規ファイル",
-          "newDirectory": "新規フォルダ",
-          "upload": "アップロード",
-          "open": "開く",
-          "download": "ダウンロード",
-          "more": "その他",
-          "rename": "名前変更",
-          "copy": "コピー",
-          "move": "移動",
-          "chmod": "chmod",
-          "delete": "削除",
-          "copyPublicUrl": "公開 URL をコピー",
-          "loadText": "テキストを読み込み",
-          "saveText": "テキストを保存",
-          "create": "作成",
-          "cancel": "キャンセル",
-          "overwriteUpload": "上書きアップロード"
-        },
-        "dialogs": {
-          "createFileTitle": "ファイルを作成",
-          "createFileDescription": "現在のディレクトリに空のテキストファイルを作成します。",
-          "createDirectoryTitle": "フォルダを作成",
-          "createDirectoryDescription": "現在のディレクトリにフォルダを作成します。",
-          "renameTitle": "アセット名を変更",
-          "renameDescription": "{name} の名前を変更します。",
-          "copyTitle": "アセットをコピー",
-          "copyDescription": "{name} を相対パスの宛先へコピーします。宛先がディレクトリの場合、元の名前を保持します。",
-          "moveTitle": "アセットを移動",
-          "moveDescription": "{name} を相対パスの宛先へ移動します。ソースのディレクトリ構造が変わります。",
-          "chmodTitle": "権限を変更",
-          "chmodDescription": "{name} に 644、755、7777 など 3 桁または 4 桁の 8 進 mode を設定します。",
-          "deleteTitle": "アセットを削除",
-          "deleteDescription": "{name} を削除します。ディレクトリは再帰的に削除され、ゴミ箱には移動しません。",
-          "nameLabel": "名前",
-          "destinationLabel": "宛先の相対パス",
-          "modeLabel": "権限 mode",
-          "overwriteLabel": "既存の宛先を上書きする",
-          "uploadOverwriteTitle": "既存ファイルを上書きしますか？",
-          "uploadOverwriteDescription": "アップロード先に同名ファイルがあります。確認するとそれらを上書きします。"
-        },
-        "editor": {
-          "title": "テキスト編集",
-          "placeholder": "テキストを読み込むとここで編集できます。",
-          "unavailable": "1 MiB 以下のテキストアセットだけインライン編集できます。"
-        },
-        "messages": {
-          "refreshed": "公共アセットを更新しました。",
-          "textLoaded": "テキスト内容を読み込みました。",
-          "textSaved": "テキスト内容を保存しました。",
-          "chmodded": "アセット権限を更新しました。",
-          "copied": "アセットをコピーしました。",
-          "createdDirectory": "フォルダを作成しました。",
-          "createdFile": "ファイルを作成しました。",
-          "deleted": "アセットを削除しました。",
-          "moved": "アセットを移動しました。",
-          "renamed": "アセット名を変更しました。",
-          "uploaded": "{count} 個のファイルをアップロードしました。",
-          "publicUrlCopied": "公開 URL をコピーしました。"
-        },
-        "errors": {
-          "action": "公共アセット操作に失敗しました",
-          "upload": "アップロードに失敗しました",
-          "copyUrl": "公開 URL をコピーできませんでした。"
-        }
-      }
-    },
-    "components": {
-      "title": "コンポーネント",
-      "eyebrow": "Developer components",
-      "description": "開発者モードで Aoi コンポーネント、コミュニティデータサンプル、業務コンポーネント、ページ内の操作状態をまとめて確認します。",
-      "catalogDescription": "コンポーネント実験台、コミュニティデータサンプル、コントロール状態、業務コンポーネント例。",
-      "loadingTitle": "開発者モードを確認中",
-      "loadingDescription": "ローカル設定の復元後、コンポーネント実験台へアクセスできるか判定します。",
-      "keywords": "components showcase developer aoi controls lab demo コンポーネント 実験台"
     },
     "experimental": {
       "title": "実験",

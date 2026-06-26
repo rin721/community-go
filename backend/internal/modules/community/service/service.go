@@ -1377,45 +1377,59 @@ func (s *service) decorateVideos(ctx context.Context, videos []model.Video) ([]m
 }
 
 func buildCategoryTree(categories []model.Category) []model.CategoryTreeNode {
-	nodes := make(map[string]*model.CategoryTreeNode, len(categories))
-	order := make([]string, 0, len(categories))
+	known := make(map[string]struct{}, len(categories))
 	for _, category := range categories {
-		item := model.CategoryTreeNode{Category: category, Children: []model.CategoryTreeNode{}}
-		nodes[category.Slug] = &item
-		order = append(order, category.Slug)
+		known[category.Slug] = struct{}{}
 	}
-	for _, slug := range order {
-		node := nodes[slug]
-		if node.Category.ParentSlug != nil {
-			if parent, ok := nodes[*node.Category.ParentSlug]; ok {
-				parent.Children = append(parent.Children, *node)
+
+	roots := make([]model.Category, 0)
+	childrenByParent := make(map[string][]model.Category, len(categories))
+	for _, category := range categories {
+		parentSlug := ""
+		if category.ParentSlug != nil {
+			if _, ok := known[*category.ParentSlug]; ok {
+				parentSlug = *category.ParentSlug
 			}
 		}
-	}
-	roots := make([]model.CategoryTreeNode, 0)
-	for _, slug := range order {
-		node := nodes[slug]
-		if node.Category.ParentSlug != nil {
-			if _, ok := nodes[*node.Category.ParentSlug]; ok {
-				continue
-			}
+		if parentSlug == "" {
+			roots = append(roots, category)
+			continue
 		}
-		roots = append(roots, *node)
+		childrenByParent[parentSlug] = append(childrenByParent[parentSlug], category)
 	}
-	sortCategoryTree(roots)
-	return roots
+
+	sortCategories(roots)
+	for parentSlug := range childrenByParent {
+		sortCategories(childrenByParent[parentSlug])
+	}
+
+	var buildNode func(model.Category) model.CategoryTreeNode
+	buildNode = func(category model.Category) model.CategoryTreeNode {
+		children := childrenByParent[category.Slug]
+		node := model.CategoryTreeNode{
+			Category: category,
+			Children: make([]model.CategoryTreeNode, 0, len(children)),
+		}
+		for _, child := range children {
+			node.Children = append(node.Children, buildNode(child))
+		}
+		return node
+	}
+
+	tree := make([]model.CategoryTreeNode, 0, len(roots))
+	for _, root := range roots {
+		tree = append(tree, buildNode(root))
+	}
+	return tree
 }
 
-func sortCategoryTree(nodes []model.CategoryTreeNode) {
-	sort.SliceStable(nodes, func(i, j int) bool {
-		if nodes[i].Order == nodes[j].Order {
-			return nodes[i].Slug < nodes[j].Slug
+func sortCategories(categories []model.Category) {
+	sort.SliceStable(categories, func(i, j int) bool {
+		if categories[i].Order == categories[j].Order {
+			return categories[i].Slug < categories[j].Slug
 		}
-		return nodes[i].Order < nodes[j].Order
+		return categories[i].Order < categories[j].Order
 	})
-	for index := range nodes {
-		sortCategoryTree(nodes[index].Children)
-	}
 }
 
 func sortVideoComments(items []model.VideoComment, sortMode string) {

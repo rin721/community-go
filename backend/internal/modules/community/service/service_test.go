@@ -25,6 +25,9 @@ func TestServiceHomePayloadBuildsCategoryTreeAndVideos(t *testing.T) {
 	if payload.Categories[1].Slug != "creative" || len(payload.Categories[1].Children) != 1 {
 		t.Fatalf("expected creative root with design child, got %#v", payload.Categories[1])
 	}
+	if len(payload.Categories[1].Children[0].Children) != 1 || payload.Categories[1].Children[0].Children[0].Slug != "motion" {
+		t.Fatalf("expected design child to keep motion grandchild, got %#v", payload.Categories[1].Children[0])
+	}
 	if len(payload.Latest.Items) != 2 {
 		t.Fatalf("expected latest videos, got %#v", payload.Latest.Items)
 	}
@@ -621,6 +624,7 @@ func newFakeRepository() *fakeRepository {
 			{ID: "cat-home", Slug: "home", Name: "首页", Order: 0},
 			{ID: "cat-creative", Slug: "creative", Name: "创作", Order: 10},
 			{ID: "cat-design", Slug: "design", Name: "设计", Description: &description, ParentSlug: strPtr("creative"), Order: 10},
+			{ID: "cat-motion", Slug: "motion", Name: "动效", ParentSlug: strPtr("design"), Order: 5},
 		},
 		creators: []model.Creator{
 			{UserSummary: model.UserSummary{ID: "user-rin", Handle: "rin721", DisplayName: "Rin721", AvatarURL: &avatar}, Bio: &bio, FollowerCount: 42, JoinedAt: fixedNow()},

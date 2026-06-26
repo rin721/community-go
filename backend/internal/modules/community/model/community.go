@@ -32,13 +32,20 @@ const (
 	CommunityNotificationKindFollow      = "follow"
 	CommunityNotificationKindInteraction = "interaction"
 	CommunityNotificationKindReport      = "report"
+	CommunityNotificationKindSubmission  = "submission"
 
-	CommunityNotificationTargetVideo   = "video"
-	CommunityNotificationTargetCreator = "creator"
+	CommunityNotificationTargetVideo      = "video"
+	CommunityNotificationTargetCreator    = "creator"
+	CommunityNotificationTargetSubmission = "submission"
 
 	CommunityDynamicKindText        = "text"
 	CommunityDynamicKindVideoUpdate = "video_update"
 	CommunityDynamicStatusVisible   = "visible"
+
+	CommunitySubmissionStatusPendingReview = "pending_review"
+	CommunitySubmissionVisibilityPublic    = "public"
+	CommunitySubmissionVisibilityUnlisted  = "unlisted"
+	CommunitySubmissionVisibilityPrivate   = "private"
 )
 
 // UserSummary 是社区公开接口中展示创作者的最小视图。
@@ -140,6 +147,29 @@ type CommunityDynamic struct {
 }
 
 func (CommunityDynamic) TableName() string { return "community_dynamics" }
+
+// CommunitySubmission saves anonymous upload metadata for the public community review queue.
+type CommunitySubmission struct {
+	ID            string     `gorm:"column:id;primaryKey;size:96" json:"id"`
+	ClientID      string     `gorm:"column:client_id;size:96;not null;index" json:"clientId"`
+	AuthorName    string     `gorm:"column:author_name;size:120;not null" json:"authorName"`
+	Title         string     `gorm:"column:title;size:180;not null" json:"title"`
+	Description   string     `gorm:"column:description;size:720;not null;default:''" json:"description"`
+	CategorySlug  string     `gorm:"column:category_slug;size:96;not null;index" json:"categorySlug"`
+	TagsJSON      string     `gorm:"column:tags_json;type:text;not null" json:"-"`
+	Visibility    string     `gorm:"column:visibility;size:32;not null;default:public" json:"visibility"`
+	SourceName    string     `gorm:"column:source_name;size:260;not null" json:"sourceName"`
+	SourceSize    int64      `gorm:"column:source_size;not null;default:0" json:"sourceSize"`
+	SourceType    string     `gorm:"column:source_type;size:120;not null;default:''" json:"sourceType"`
+	AllowComments bool       `gorm:"column:allow_comments;not null;default:true" json:"allowComments"`
+	Sensitive     bool       `gorm:"column:sensitive;not null;default:false" json:"sensitive"`
+	Status        string     `gorm:"column:status;size:32;not null;default:pending_review;index" json:"status"`
+	CreatedAt     time.Time  `gorm:"column:created_at;not null" json:"createdAt"`
+	UpdatedAt     time.Time  `gorm:"column:updated_at;not null" json:"updatedAt"`
+	DeletedAt     *time.Time `gorm:"column:deleted_at" json:"-"`
+}
+
+func (CommunitySubmission) TableName() string { return "community_submissions" }
 
 // Category 是社区内容分类的扁平持久化模型。
 type Category struct {
@@ -285,10 +315,30 @@ type CreateCommunityDynamicRequest struct {
 	VideoID    string `json:"videoId,omitempty"`
 }
 
+type CreateCommunitySubmissionRequest struct {
+	ClientID      string   `json:"clientId"`
+	AuthorName    string   `json:"authorName"`
+	Title         string   `json:"title"`
+	Description   string   `json:"description"`
+	CategorySlug  string   `json:"categorySlug"`
+	Tags          []string `json:"tags"`
+	Visibility    string   `json:"visibility"`
+	SourceName    string   `json:"sourceName"`
+	SourceSize    int64    `json:"sourceSize"`
+	SourceType    string   `json:"sourceType"`
+	AllowComments bool     `json:"allowComments"`
+	Sensitive     bool     `json:"sensitive"`
+}
+
 type CommunityDynamicFilter struct {
 	ClientID   string
 	CreatorIDs []string
 	Limit      int
+}
+
+type CommunitySubmissionFilter struct {
+	ClientID string
+	Limit    int
 }
 
 type CommunityDynamicItem struct {
@@ -307,6 +357,32 @@ type CommunityDynamicPayload struct {
 	ClientID      *string                          `json:"clientId,omitempty"`
 	Message       *string                          `json:"message"`
 	Items         PageResult[CommunityDynamicItem] `json:"items"`
+}
+
+type CommunitySubmissionItem struct {
+	ID            string    `json:"id"`
+	ClientID      string    `json:"clientId"`
+	AuthorName    string    `json:"authorName"`
+	Title         string    `json:"title"`
+	Description   string    `json:"description"`
+	CategorySlug  string    `json:"categorySlug"`
+	Category      *Category `json:"category,omitempty"`
+	Tags          []string  `json:"tags"`
+	Visibility    string    `json:"visibility"`
+	SourceName    string    `json:"sourceName"`
+	SourceSize    int64     `json:"sourceSize"`
+	SourceType    string    `json:"sourceType"`
+	AllowComments bool      `json:"allowComments"`
+	Sensitive     bool      `json:"sensitive"`
+	Status        string    `json:"status"`
+	CreatedAt     time.Time `json:"createdAt"`
+}
+
+type CommunitySubmissionPayload struct {
+	Authenticated bool                                `json:"authenticated"`
+	ClientID      *string                             `json:"clientId"`
+	Message       *string                             `json:"message"`
+	Items         PageResult[CommunitySubmissionItem] `json:"items"`
 }
 
 type CommunityNotificationFilter struct {

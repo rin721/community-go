@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"regexp"
 	"sort"
@@ -39,6 +40,8 @@ type Service interface {
 	MarkCommunityNotificationsRead(context.Context, model.CommunityNotificationRequest) (model.CommunityNotificationPayload, error)
 	ListCommunityDynamics(context.Context, model.CommunityDynamicFilter) (model.CommunityDynamicPayload, error)
 	CreateCommunityDynamic(context.Context, model.CreateCommunityDynamicRequest) (model.CommunityDynamicItem, error)
+	ListCommunitySubmissions(context.Context, model.CommunitySubmissionFilter) (model.CommunitySubmissionPayload, error)
+	CreateCommunitySubmission(context.Context, model.CreateCommunitySubmissionRequest) (model.CommunitySubmissionItem, error)
 	FollowCreator(context.Context, string, model.CreatorFollowRequest) (model.CreatorFollowState, error)
 	UnfollowCreator(context.Context, string, model.CreatorFollowRequest) (model.CreatorFollowState, error)
 	SetVideoInteraction(context.Context, string, string, model.VideoInteractionRequest) (model.VideoInteractionState, error)
@@ -60,6 +63,7 @@ type Repository interface {
 	CreateCommunityReport(context.Context, model.CommunityReport) error
 	CreateCommunityNotification(context.Context, model.CommunityNotification) error
 	CreateCommunityDynamic(context.Context, model.CommunityDynamic) error
+	CreateCommunitySubmission(context.Context, model.CommunitySubmission) error
 	FollowCreator(context.Context, model.CreatorFollow) error
 	SetVideoInteraction(context.Context, model.VideoInteraction) error
 	ListCategories(context.Context) ([]model.Category, error)
@@ -68,6 +72,7 @@ type Repository interface {
 	ListVideoInteractions(context.Context, model.VideoInteractionFilter) ([]model.VideoInteraction, error)
 	ListCommunityNotifications(context.Context, model.CommunityNotificationFilter) ([]model.CommunityNotification, error)
 	ListCommunityDynamics(context.Context, model.CommunityDynamicFilter) ([]model.CommunityDynamic, error)
+	ListCommunitySubmissions(context.Context, model.CommunitySubmissionFilter) ([]model.CommunitySubmission, error)
 	ListVideoComments(context.Context, string, model.VideoCommentFilter) ([]model.VideoComment, error)
 	ListCreators(context.Context, int) ([]model.Creator, error)
 	ListDanmaku(context.Context, string) ([]model.VideoDanmakuItem, error)
@@ -114,6 +119,7 @@ func (s *service) CommunityStatus(context.Context) model.APIStatus {
 			"/status",
 			"/home",
 			"/dynamics",
+			"/submissions",
 			"/categories",
 			"/videos",
 			"/videos/:idOrSlug",
@@ -803,6 +809,106 @@ func (s *service) CreateCommunityDynamic(ctx context.Context, req model.CreateCo
 	return items[0], nil
 }
 
+func (s *service) ListCommunitySubmissions(ctx context.Context, filter model.CommunitySubmissionFilter) (model.CommunitySubmissionPayload, error) {
+	if s.repo == nil {
+		return model.CommunitySubmissionPayload{}, ErrStorageUnavailable
+	}
+	clientID, err := normalizeCommunityClientID(filter.ClientID)
+	if err != nil {
+		return model.CommunitySubmissionPayload{}, err
+	}
+	filter.ClientID = clientID
+	filter.Limit = normalizeLimit(filter.Limit, 24)
+	submissions, err := s.repo.ListCommunitySubmissions(ctx, filter)
+	if err != nil {
+		return model.CommunitySubmissionPayload{}, mapStorageError(err)
+	}
+	items, err := s.decorateSubmissions(ctx, submissions)
+	if err != nil {
+		return model.CommunitySubmissionPayload{}, err
+	}
+	message := "投稿记录来自后端 community_submissions 待审核池；当前只保存文件元数据，不保存文件字节。"
+	return model.CommunitySubmissionPayload{
+		Authenticated: false,
+		ClientID:      &clientID,
+		Items:         model.PageResult[model.CommunitySubmissionItem]{Items: items},
+		Message:       &message,
+	}, nil
+}
+
+func (s *service) CreateCommunitySubmission(ctx context.Context, req model.CreateCommunitySubmissionRequest) (model.CommunitySubmissionItem, error) {
+	if s.repo == nil {
+		return model.CommunitySubmissionItem{}, ErrStorageUnavailable
+	}
+	clientID, err := normalizeCommunityClientID(req.ClientID)
+	if err != nil {
+		return model.CommunitySubmissionItem{}, err
+	}
+	authorName := normalizeCommentAuthor(req.AuthorName)
+	title := trimRunes(req.Title, 160)
+	description := trimRunes(req.Description, 720)
+	categorySlug := strings.TrimSpace(req.CategorySlug)
+	sourceName := trimRunes(req.SourceName, 240)
+	sourceType := trimRunes(req.SourceType, 120)
+	visibility, err := normalizeSubmissionVisibility(req.Visibility)
+	if err != nil {
+		return model.CommunitySubmissionItem{}, err
+	}
+	category, err := s.categoryForSlug(ctx, categorySlug)
+	if err != nil {
+		return model.CommunitySubmissionItem{}, err
+	}
+	tags := normalizeSubmissionTags(req.Tags)
+	tagsJSON, err := encodeSubmissionTags(tags)
+	if err != nil {
+		return model.CommunitySubmissionItem{}, err
+	}
+	if authorName == "" || len([]rune(title)) < 4 || sourceName == "" || req.SourceSize <= 0 || category == nil {
+		return model.CommunitySubmissionItem{}, ErrInvalidInput
+	}
+	now := s.now()
+	submission := model.CommunitySubmission{
+		ID:            s.newSubmissionID(),
+		ClientID:      clientID,
+		AuthorName:    authorName,
+		Title:         title,
+		Description:   description,
+		CategorySlug:  category.Slug,
+		TagsJSON:      tagsJSON,
+		Visibility:    visibility,
+		SourceName:    sourceName,
+		SourceSize:    req.SourceSize,
+		SourceType:    sourceType,
+		AllowComments: req.AllowComments,
+		Sensitive:     req.Sensitive,
+		Status:        model.CommunitySubmissionStatusPendingReview,
+		CreatedAt:     now,
+		UpdatedAt:     now,
+	}
+	if err := s.repo.CreateCommunitySubmission(ctx, submission); err != nil {
+		return model.CommunitySubmissionItem{}, mapStorageError(err)
+	}
+	if err := s.createNotification(ctx, model.CommunityNotification{
+		ClientID:   clientID,
+		Kind:       model.CommunityNotificationKindSubmission,
+		Title:      "投稿已进入待审核",
+		Body:       "《" + submission.Title + "》已进入待审核池，当前已保存标题、分区、标签和文件元数据。",
+		TargetKind: model.CommunityNotificationTargetSubmission,
+		TargetID:   submission.ID,
+		Link:       "/upload",
+	}); err != nil {
+		return model.CommunitySubmissionItem{}, err
+	}
+	items, err := s.decorateSubmissions(ctx, []model.CommunitySubmission{submission})
+	if err != nil {
+		return model.CommunitySubmissionItem{}, err
+	}
+	if len(items) == 0 {
+		return model.CommunitySubmissionItem{}, ErrStorageUnavailable
+	}
+	return items[0], nil
+}
+
 func (s *service) createNotification(ctx context.Context, notification model.CommunityNotification) error {
 	if s.repo == nil {
 		return ErrStorageUnavailable
@@ -999,6 +1105,65 @@ func (s *service) decorateDynamics(ctx context.Context, dynamics []model.Communi
 		})
 	}
 	return items, nil
+}
+
+func (s *service) decorateSubmissions(ctx context.Context, submissions []model.CommunitySubmission) ([]model.CommunitySubmissionItem, error) {
+	if len(submissions) == 0 {
+		return []model.CommunitySubmissionItem{}, nil
+	}
+	categories, err := s.repo.ListCategories(ctx)
+	if err != nil {
+		return nil, mapStorageError(err)
+	}
+	categoryBySlug := make(map[string]model.Category, len(categories))
+	for _, category := range categories {
+		categoryBySlug[category.Slug] = category
+	}
+	items := make([]model.CommunitySubmissionItem, 0, len(submissions))
+	for _, submission := range submissions {
+		var category *model.Category
+		if match, ok := categoryBySlug[submission.CategorySlug]; ok {
+			item := match
+			category = &item
+		}
+		items = append(items, model.CommunitySubmissionItem{
+			ID:            submission.ID,
+			ClientID:      submission.ClientID,
+			AuthorName:    submission.AuthorName,
+			Title:         submission.Title,
+			Description:   submission.Description,
+			CategorySlug:  submission.CategorySlug,
+			Category:      category,
+			Tags:          decodeSubmissionTags(submission.TagsJSON),
+			Visibility:    submission.Visibility,
+			SourceName:    submission.SourceName,
+			SourceSize:    submission.SourceSize,
+			SourceType:    submission.SourceType,
+			AllowComments: submission.AllowComments,
+			Sensitive:     submission.Sensitive,
+			Status:        submission.Status,
+			CreatedAt:     submission.CreatedAt,
+		})
+	}
+	return items, nil
+}
+
+func (s *service) categoryForSlug(ctx context.Context, slug string) (*model.Category, error) {
+	slug = strings.TrimSpace(slug)
+	if slug == "" {
+		return nil, ErrInvalidInput
+	}
+	categories, err := s.repo.ListCategories(ctx)
+	if err != nil {
+		return nil, mapStorageError(err)
+	}
+	for _, category := range categories {
+		if category.Slug == slug {
+			item := category
+			return &item, nil
+		}
+	}
+	return nil, ErrInvalidInput
 }
 
 func (s *service) videoSummariesForInteractions(ctx context.Context, interactions []model.VideoInteraction) ([]model.VideoSummary, error) {
@@ -1456,6 +1621,59 @@ func normalizeReportDetail(value string) string {
 	return trimRunes(value, 500)
 }
 
+func normalizeSubmissionVisibility(value string) (string, error) {
+	switch strings.TrimSpace(value) {
+	case "", model.CommunitySubmissionVisibilityPublic:
+		return model.CommunitySubmissionVisibilityPublic, nil
+	case model.CommunitySubmissionVisibilityUnlisted:
+		return model.CommunitySubmissionVisibilityUnlisted, nil
+	case model.CommunitySubmissionVisibilityPrivate:
+		return model.CommunitySubmissionVisibilityPrivate, nil
+	default:
+		return "", ErrInvalidInput
+	}
+}
+
+func normalizeSubmissionTags(tags []string) []string {
+	seen := map[string]struct{}{}
+	out := make([]string, 0, len(tags))
+	for _, tag := range tags {
+		value := trimRunes(strings.TrimPrefix(strings.TrimSpace(tag), "#"), 40)
+		if value == "" {
+			continue
+		}
+		key := strings.ToLower(value)
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		out = append(out, value)
+		if len(out) >= 8 {
+			break
+		}
+	}
+	return out
+}
+
+func encodeSubmissionTags(tags []string) (string, error) {
+	if tags == nil {
+		tags = []string{}
+	}
+	raw, err := json.Marshal(tags)
+	if err != nil {
+		return "", err
+	}
+	return string(raw), nil
+}
+
+func decodeSubmissionTags(value string) []string {
+	var tags []string
+	if err := json.Unmarshal([]byte(strings.TrimSpace(value)), &tags); err != nil {
+		return []string{}
+	}
+	return normalizeSubmissionTags(tags)
+}
+
 func normalizeCommunityClientID(value string) (string, error) {
 	value = strings.TrimSpace(value)
 	if value == "" || len([]rune(value)) > 96 {
@@ -1596,4 +1814,15 @@ func (s *service) newDynamicID() string {
 		return raw
 	}
 	return "dynamic-" + raw
+}
+
+func (s *service) newSubmissionID() string {
+	raw := strings.TrimSpace(s.cfg.NewID())
+	if raw == "" {
+		raw = strconv.FormatInt(s.now().UnixNano(), 10)
+	}
+	if strings.HasPrefix(raw, "submission-") {
+		return raw
+	}
+	return "submission-" + raw
 }

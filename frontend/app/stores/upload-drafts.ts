@@ -85,6 +85,7 @@ function isUploadDraft(value: unknown): value is UploadDraft {
     && typeof draft.description === "string"
     && typeof draft.categorySlug === "string"
     && isVisibility(draft.visibility)
+    && isDraftStatus(draft.status)
     && Array.isArray(draft.tags)
     && typeof draft.createdAt === "string"
     && typeof draft.updatedAt === "string"
@@ -92,6 +93,10 @@ function isUploadDraft(value: unknown): value is UploadDraft {
 
 function isVisibility(value: unknown): value is UploadDraftVisibility {
   return value === "public" || value === "unlisted" || value === "private"
+}
+
+function isDraftStatus(value: unknown): value is UploadDraft["status"] {
+  return value === "draft" || value === "submitted"
 }
 
 function uniqueTags(tags: string[]) {
@@ -122,8 +127,8 @@ export const useUploadDraftStore = defineStore("uploadDrafts", () => {
     .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt)))
   const activeDraft = computed(() => activeDraftId.value ? drafts.value[activeDraftId.value] || null : null)
   const draftCount = computed(() => draftList.value.length)
-  const queuedCount = computed(() => draftList.value.filter((draft) => draft.status === "queued-local").length)
   const readyCount = computed(() => draftList.value.filter((draft) => validateDraft(draft).ready).length)
+  const submittedCount = computed(() => draftList.value.filter((draft) => draft.status === "submitted").length)
 
   function assignState(state: PersistedUploadDraftState) {
     activeDraftId.value = state.activeDraftId
@@ -141,7 +146,7 @@ export const useUploadDraftStore = defineStore("uploadDrafts", () => {
         drafts: drafts.value
       } satisfies PersistedUploadDraftState))
     } catch {
-      // Upload drafts are optional prototype data.
+      // Upload drafts are optional local metadata.
     }
   }
 
@@ -190,9 +195,7 @@ export const useUploadDraftStore = defineStore("uploadDrafts", () => {
     }
 
     const patchChangesStatus = Object.prototype.hasOwnProperty.call(patch, "status")
-    const nextStatus = patchChangesStatus
-      ? patch.status || draft.status
-      : draft.status === "queued-local" ? "draft" : draft.status
+    const nextStatus = patchChangesStatus ? patch.status || draft.status : "draft"
 
     drafts.value = {
       ...drafts.value,
@@ -223,16 +226,6 @@ export const useUploadDraftStore = defineStore("uploadDrafts", () => {
     })
   }
 
-  function queueActiveDraft() {
-    const draft = activeDraft.value
-
-    if (!draft || !validateDraft(draft).ready) {
-      return
-    }
-
-    updateDraft(draft.id, { status: "queued-local" })
-  }
-
   function deleteDraft(id: string) {
     if (!drafts.value[id]) {
       return
@@ -251,7 +244,7 @@ export const useUploadDraftStore = defineStore("uploadDrafts", () => {
       try {
         window.localStorage.removeItem(STORAGE_KEY)
       } catch {
-        // Upload drafts are optional prototype data.
+        // Upload drafts are optional local metadata.
       }
     }
   }
@@ -261,23 +254,23 @@ export const useUploadDraftStore = defineStore("uploadDrafts", () => {
     const warnings: string[] = []
 
     if (draft.title.trim().length < 4) {
-      missing.push("标题至少 4 个字符")
+      missing.push("upload.validation.titleRequired")
     }
 
     if (!draft.source) {
-      missing.push("选择一个视频文件")
+      missing.push("upload.validation.sourceRequired")
     }
 
     if (!draft.categorySlug) {
-      missing.push("选择内容分区")
+      missing.push("upload.validation.categoryRequired")
     }
 
     if (draft.description.trim().length < 20) {
-      warnings.push("建议补充 20 字以上简介，便于未来搜索与推荐")
+      warnings.push("upload.validation.descriptionHelpful")
     }
 
     if (draft.tags.length < 2) {
-      warnings.push("建议至少添加 2 个标签")
+      warnings.push("upload.validation.tagsHelpful")
     }
 
     return {
@@ -301,13 +294,12 @@ export const useUploadDraftStore = defineStore("uploadDrafts", () => {
     drafts,
     ensureDraft,
     hydrated,
-    queuedCount,
-    queueActiveDraft,
     readyCount,
     resetDrafts,
     restore,
     selectDraft,
     setActiveSource,
+    submittedCount,
     updateActiveDraft,
     updateDraft,
     validateDraft

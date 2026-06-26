@@ -338,6 +338,8 @@ func publicAnnouncementListParams() []RouteParam {
 
 func communityRouteContracts() []RouteContract {
 	return []RouteContract{
+		publicRoute("community.submissions.list", http.MethodGet, appconstants.APIPath("public", "community", "submissions"), "Community", "查询社区匿名投稿记录", nil, jsonType[communitymodel.CommunitySubmissionPayload](), queryParam("clientId", "string"), queryInt("limit")),
+		publicRoute("community.submissions.create", http.MethodPost, appconstants.APIPath("public", "community", "submissions"), "Community", "提交社区投稿元数据", jsonType[communitymodel.CreateCommunitySubmissionRequest](), jsonType[communitymodel.CommunitySubmissionItem]()),
 		publicRoute("community.status", http.MethodGet, appconstants.APIPath("public", "community", "status"), "Community", "查询社区公开 API 状态", nil, jsonType[communitymodel.APIStatus]()),
 		publicRoute("community.home", http.MethodGet, appconstants.APIPath("public", "community", "home"), "Community", "查询社区首页聚合数据", nil, jsonType[communitymodel.HomePayload]()),
 		publicRoute("community.dynamics.list", http.MethodGet, appconstants.APIPath("public", "community", "dynamics"), "Community", "查询社区动态时间线", nil, jsonType[communitymodel.CommunityDynamicPayload](), queryParam("clientId", "string"), queryInt("limit")),

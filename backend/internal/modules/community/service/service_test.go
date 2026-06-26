@@ -261,6 +261,95 @@ func TestServiceCommunityDynamicRejectsInvalidInput(t *testing.T) {
 	}
 }
 
+func TestServiceCreateCommunitySubmissionPersistsPendingReviewMetadata(t *testing.T) {
+	repo := newFakeRepository()
+	ids := []string{"unit-submission", "unit-submission-notification"}
+	nextID := 0
+	svc := New(repo, Config{
+		NewID: func() string {
+			id := ids[nextID]
+			nextID++
+			return id
+		},
+		Now: fixedNow,
+	})
+
+	item, err := svc.CreateCommunitySubmission(context.Background(), model.CreateCommunitySubmissionRequest{
+		AllowComments: true,
+		AuthorName:    "  Aoi Creator  ",
+		CategorySlug:  "design",
+		ClientID:      " browser-client-1 ",
+		Description:   "  Metadata only submission  ",
+		SourceName:    "  alpha-preview.mp4  ",
+		SourceSize:    1024 * 1024,
+		SourceType:    "video/mp4",
+		Tags:          []string{" Aoi ", "#Design", "aoi"},
+		Title:         "  Alpha preview upload  ",
+		Visibility:    model.CommunitySubmissionVisibilityUnlisted,
+	})
+	if err != nil {
+		t.Fatalf("CreateCommunitySubmission() error = %v", err)
+	}
+	if item.ID != "submission-unit-submission" || item.Status != model.CommunitySubmissionStatusPendingReview {
+		t.Fatalf("expected pending submission id/status, got %#v", item)
+	}
+	if item.ClientID != "browser-client-1" || item.AuthorName != "Aoi Creator" || item.Title != "Alpha preview upload" {
+		t.Fatalf("expected normalized submitter and title, got %#v", item)
+	}
+	if item.Category == nil || item.Category.Slug != "design" || item.CategorySlug != "design" {
+		t.Fatalf("expected decorated category, got %#v", item)
+	}
+	if len(item.Tags) != 2 || item.Tags[0] != "Aoi" || item.Tags[1] != "Design" {
+		t.Fatalf("expected normalized unique tags, got %#v", item.Tags)
+	}
+	if item.SourceName != "alpha-preview.mp4" || item.SourceSize != 1024*1024 || item.SourceType != "video/mp4" {
+		t.Fatalf("expected source metadata only, got %#v", item)
+	}
+	if len(repo.submissions) != 1 || repo.submissions[0].TagsJSON == "" {
+		t.Fatalf("expected persisted submission with tag json, got %#v", repo.submissions)
+	}
+	if len(repo.notifications) != 1 || repo.notifications[0].Kind != model.CommunityNotificationKindSubmission {
+		t.Fatalf("expected submission notification, got %#v", repo.notifications)
+	}
+
+	payload, err := svc.ListCommunitySubmissions(context.Background(), model.CommunitySubmissionFilter{ClientID: " browser-client-1 "})
+	if err != nil {
+		t.Fatalf("ListCommunitySubmissions() error = %v", err)
+	}
+	if payload.ClientID == nil || *payload.ClientID != "browser-client-1" || len(payload.Items.Items) != 1 {
+		t.Fatalf("expected client submission payload, got %#v", payload)
+	}
+}
+
+func TestServiceCommunitySubmissionRejectsInvalidInput(t *testing.T) {
+	svc := New(newFakeRepository(), Config{Now: fixedNow})
+
+	valid := model.CreateCommunitySubmissionRequest{
+		AllowComments: true,
+		AuthorName:    "Aoi Creator",
+		CategorySlug:  "design",
+		ClientID:      "browser-client-1",
+		SourceName:    "alpha-preview.mp4",
+		SourceSize:    1024,
+		Title:         "Alpha preview upload",
+		Visibility:    model.CommunitySubmissionVisibilityPublic,
+	}
+	for name, mutate := range map[string]func(*model.CreateCommunitySubmissionRequest){
+		"missing client": func(req *model.CreateCommunitySubmissionRequest) { req.ClientID = "" },
+		"short title":    func(req *model.CreateCommunitySubmissionRequest) { req.Title = "abc" },
+		"bad category":   func(req *model.CreateCommunitySubmissionRequest) { req.CategorySlug = "missing" },
+		"bad visibility": func(req *model.CreateCommunitySubmissionRequest) { req.Visibility = "friends" },
+		"missing source": func(req *model.CreateCommunitySubmissionRequest) { req.SourceName = "" },
+		"zero size":      func(req *model.CreateCommunitySubmissionRequest) { req.SourceSize = 0 },
+	} {
+		req := valid
+		mutate(&req)
+		if _, err := svc.CreateCommunitySubmission(context.Background(), req); err != ErrInvalidInput {
+			t.Fatalf("%s: expected ErrInvalidInput, got %v", name, err)
+		}
+	}
+}
+
 func TestServiceVideoInteractionPersistsAndUpdatesLikeCount(t *testing.T) {
 	repo := newFakeRepository()
 	svc := New(repo, Config{Now: fixedNow})
@@ -466,6 +555,7 @@ type fakeRepository struct {
 	interactions  map[string][]model.VideoInteraction
 	notifications []model.CommunityNotification
 	reports       []model.CommunityReport
+	submissions   []model.CommunitySubmission
 	sources       map[string][]model.VideoSourceOption
 	tags          map[string][]string
 }
@@ -648,6 +738,11 @@ func (r *fakeRepository) CreateCommunityDynamic(_ context.Context, dynamic model
 	return nil
 }
 
+func (r *fakeRepository) CreateCommunitySubmission(_ context.Context, submission model.CommunitySubmission) error {
+	r.submissions = append([]model.CommunitySubmission{submission}, r.submissions...)
+	return nil
+}
+
 func (r *fakeRepository) ListCommunityNotifications(_ context.Context, filter model.CommunityNotificationFilter) ([]model.CommunityNotification, error) {
 	items := make([]model.CommunityNotification, 0)
 	for _, notification := range r.notifications {
@@ -678,6 +773,20 @@ func (r *fakeRepository) ListCommunityDynamics(_ context.Context, filter model.C
 			}
 		}
 		items = append(items, dynamic)
+	}
+	if filter.Limit > 0 && len(items) > filter.Limit {
+		return items[:filter.Limit], nil
+	}
+	return items, nil
+}
+
+func (r *fakeRepository) ListCommunitySubmissions(_ context.Context, filter model.CommunitySubmissionFilter) ([]model.CommunitySubmission, error) {
+	items := make([]model.CommunitySubmission, 0)
+	for _, submission := range r.submissions {
+		if submission.ClientID != filter.ClientID || submission.DeletedAt != nil {
+			continue
+		}
+		items = append(items, submission)
 	}
 	if filter.Limit > 0 && len(items) > filter.Limit {
 		return items[:filter.Limit], nil

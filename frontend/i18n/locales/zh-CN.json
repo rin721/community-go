@@ -123,7 +123,8 @@
       "danmaku": "弹幕",
       "follow": "关注",
       "interaction": "互动",
-      "report": "举报"
+      "report": "举报",
+      "submission": "投稿"
     }
   },
   "docs": {
@@ -1133,6 +1134,100 @@
       "hint": "动态会写入社区 API，并刷新当前时间线。",
       "submit": "发布动态",
       "error": "动态发布失败，请稍后重试。"
+    }
+  },
+  "upload": {
+    "headTitle": "投稿 - Aoi",
+    "title": "投稿工作台",
+    "description": "准备视频信息，并提交到社区待审核队列。",
+    "newDraft": "新建草稿",
+    "defaultAuthor": "Aoi 创作者",
+    "emptyValue": "无",
+    "categoryUnselected": "未选择",
+    "lastSaved": "自动保存于 {value}",
+    "addTag": "添加",
+    "removeTag": "移除标签 {tag}",
+    "tagsAriaLabel": "投稿草稿标签",
+    "actionBarLabel": "投稿草稿操作",
+    "submit": "提交审核",
+    "deleteDraft": "删除当前草稿",
+    "status": {
+      "none": "无草稿",
+      "draft": "草稿已自动保存",
+      "submitted": "已提交审核"
+    },
+    "visibility": {
+      "public": "公开",
+      "unlisted": "仅链接可见",
+      "private": "私密草稿"
+    },
+    "empty": {
+      "title": "还没有投稿草稿",
+      "description": "新建草稿后填写标题、分类、标签和可见性。"
+    },
+    "source": {
+      "title": "视频文件",
+      "emptyTitle": "选择视频文件",
+      "emptyDescription": "这里仅读取文件名、大小和 MIME 类型，文件字节仍留在浏览器。",
+      "choose": "选择文件",
+      "replace": "替换文件"
+    },
+    "basic": {
+      "title": "基础信息"
+    },
+    "fields": {
+      "title": "标题",
+      "titlePlaceholder": "输入视频标题",
+      "titleHelp": "至少 4 个字符",
+      "author": "显示名称",
+      "authorPlaceholder": "创作者显示名",
+      "authorHelp": "用于审核记录和回执通知",
+      "category": "分类",
+      "visibility": "可见性",
+      "description": "简介",
+      "descriptionPlaceholder": "说明视频内容、看点和适合谁观看",
+      "descriptionHelp": "会随元数据记录一起提交",
+      "allowComments": "允许评论",
+      "sensitive": "标记敏感内容",
+      "tags": "标签",
+      "tagsPlaceholder": "输入后按 Enter",
+      "tagsHelp": "最多 8 个标签"
+    },
+    "validation": {
+      "createDraft": "请先新建草稿",
+      "titleRequired": "标题至少 4 个字符",
+      "sourceRequired": "请选择视频文件",
+      "categoryRequired": "请选择内容分类",
+      "descriptionHelpful": "补充 20 字以上简介，有助于后续搜索与推荐",
+      "tagsHelpful": "建议至少添加 2 个标签"
+    },
+    "draftList": {
+      "ariaLabel": "投稿草稿列表",
+      "untitled": "未命名草稿",
+      "tagCount": "{count} 个标签"
+    },
+    "drafts": {
+      "title": "草稿"
+    },
+    "review": {
+      "title": "发布检查",
+      "untitled": "未命名草稿",
+      "emptyDescription": "简介会显示在这里，方便你检查第一眼信息。",
+      "category": "分类",
+      "visibility": "可见性",
+      "status": "状态",
+      "ready": "必填项已经完整。",
+      "readyShort": "可提交",
+      "incompleteShort": "待补全"
+    },
+    "submission": {
+      "success": "投稿元数据已提交，回执 {id}",
+      "error": "提交失败，请确认社区 API 可用后重试。"
+    },
+    "submissions": {
+      "title": "最近投稿",
+      "loading": "加载中",
+      "empty": "当前浏览器还没有投稿记录。"
     }
   }
 }

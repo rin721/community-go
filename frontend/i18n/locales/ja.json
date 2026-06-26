@@ -123,7 +123,8 @@
       "danmaku": "弾幕",
       "follow": "フォロー",
       "interaction": "インタラクション",
-      "report": "通報"
+      "report": "通報",
+      "submission": "投稿"
     }
   },
   "docs": {
@@ -1133,6 +1134,100 @@
       "hint": "動向はコミュニティ API に投稿され、このタイムラインを更新します。",
       "submit": "動向を投稿",
       "error": "動向の投稿に失敗しました。あとでもう一度お試しください。"
+    }
+  },
+  "upload": {
+    "headTitle": "投稿 - Aoi",
+    "title": "投稿ワークスペース",
+    "description": "動画情報を準備し、コミュニティの審査キューへ送信します。",
+    "newDraft": "新規下書き",
+    "defaultAuthor": "Aoi クリエイター",
+    "emptyValue": "なし",
+    "categoryUnselected": "未選択",
+    "lastSaved": "自動保存 {value}",
+    "addTag": "追加",
+    "removeTag": "タグ {tag} を削除",
+    "tagsAriaLabel": "投稿下書きのタグ",
+    "actionBarLabel": "投稿下書きの操作",
+    "submit": "審査へ送信",
+    "deleteDraft": "現在の下書きを削除",
+    "status": {
+      "none": "下書きなし",
+      "draft": "下書きは保存済み",
+      "submitted": "審査に送信済み"
+    },
+    "visibility": {
+      "public": "公開",
+      "unlisted": "限定リンク",
+      "private": "非公開下書き"
+    },
+    "empty": {
+      "title": "投稿下書きはまだありません",
+      "description": "下書きを作成して、タイトル、カテゴリ、タグ、公開範囲を準備します。"
+    },
+    "source": {
+      "title": "動画ファイル",
+      "emptyTitle": "動画ファイルを選択",
+      "emptyDescription": "ここではファイル名、サイズ、MIME タイプだけを読み取り、ファイル本体はブラウザ内に残します。",
+      "choose": "ファイルを選択",
+      "replace": "ファイルを変更"
+    },
+    "basic": {
+      "title": "基本情報"
+    },
+    "fields": {
+      "title": "タイトル",
+      "titlePlaceholder": "動画タイトルを入力",
+      "titleHelp": "4文字以上",
+      "author": "表示名",
+      "authorPlaceholder": "クリエイター名",
+      "authorHelp": "審査記録と通知の控えに使われます",
+      "category": "カテゴリ",
+      "visibility": "公開範囲",
+      "description": "説明",
+      "descriptionPlaceholder": "動画の内容、見どころ、対象視聴者を説明",
+      "descriptionHelp": "メタデータ記録として送信されます",
+      "allowComments": "コメントを許可",
+      "sensitive": "センシティブな内容としてマーク",
+      "tags": "タグ",
+      "tagsPlaceholder": "入力後に Enter",
+      "tagsHelp": "最大8個まで"
+    },
+    "validation": {
+      "createDraft": "先に下書きを作成してください",
+      "titleRequired": "タイトルは4文字以上必要です",
+      "sourceRequired": "動画ファイルを選択してください",
+      "categoryRequired": "コンテンツカテゴリを選択してください",
+      "descriptionHelpful": "検索や推薦のために20文字以上の説明を追加しましょう",
+      "tagsHelpful": "タグを2個以上追加するのがおすすめです"
+    },
+    "draftList": {
+      "ariaLabel": "投稿下書き一覧",
+      "untitled": "無題の下書き",
+      "tagCount": "{count} 個のタグ"
+    },
+    "drafts": {
+      "title": "下書き"
+    },
+    "review": {
+      "title": "公開前チェック",
+      "untitled": "無題の下書き",
+      "emptyDescription": "説明文はここに表示され、第一印象を確認できます。",
+      "category": "カテゴリ",
+      "visibility": "公開範囲",
+      "status": "状態",
+      "ready": "必須項目は入力済みです。",
+      "readyShort": "送信可能",
+      "incompleteShort": "未完了"
+    },
+    "submission": {
+      "success": "投稿メタデータを送信しました。控え {id}",
+      "error": "送信に失敗しました。Community API を確認して再試行してください。"
+    },
+    "submissions": {
+      "title": "最近の投稿",
+      "loading": "読み込み中",
+      "empty": "このブラウザからの投稿はまだありません。"
     }
   }
 }

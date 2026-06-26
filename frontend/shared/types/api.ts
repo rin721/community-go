@@ -173,6 +173,51 @@ export interface CreateCommunityDynamicRequest {
   videoId?: string
 }
 
+export type CommunitySubmissionStatus = "pending_review"
+
+export type CommunitySubmissionVisibility = "public" | "unlisted" | "private"
+
+export interface CreateCommunitySubmissionRequest {
+  clientId: string
+  authorName: string
+  title: string
+  description: string
+  categorySlug: string
+  tags: string[]
+  visibility: CommunitySubmissionVisibility
+  sourceName: string
+  sourceSize: number
+  sourceType: string
+  allowComments: boolean
+  sensitive: boolean
+}
+
+export interface CommunitySubmissionItem {
+  id: string
+  clientId: string
+  authorName: string
+  title: string
+  description: string
+  categorySlug: string
+  category?: Category | null
+  tags: string[]
+  visibility: CommunitySubmissionVisibility
+  sourceName: string
+  sourceSize: number
+  sourceType: string
+  allowComments: boolean
+  sensitive: boolean
+  status: CommunitySubmissionStatus
+  createdAt: string
+}
+
+export interface CommunitySubmissionPayload {
+  authenticated: boolean
+  clientId?: string | null
+  message: string | null
+  items: PageResult<CommunitySubmissionItem>
+}
+
 export interface CreatorFollowRequest {
   clientId: string
 }
@@ -246,9 +291,9 @@ export interface VideoLibraryPayload {
   watchLater: PageResult<VideoSummary>
 }
 
-export type CommunityNotificationKind = "comment" | "danmaku" | "follow" | "interaction" | "report"
+export type CommunityNotificationKind = "comment" | "danmaku" | "follow" | "interaction" | "report" | "submission"
 
-export type CommunityNotificationTargetKind = "video" | "creator"
+export type CommunityNotificationTargetKind = "video" | "creator" | "submission"
 
 export interface CommunityNotificationItem {
   id: string

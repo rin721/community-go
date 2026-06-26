@@ -7,7 +7,10 @@ import type {
   CommunityNotificationItem,
   CommunityNotificationPayload,
   CommunityReportReceipt,
+  CommunitySubmissionItem,
+  CommunitySubmissionPayload,
   CreateCommunityDynamicRequest,
+  CreateCommunitySubmissionRequest,
   CreatorFollowState,
   CreatorProfile,
   FollowingFeedPayload,
@@ -803,6 +806,7 @@ const mockVideoComments: Record<string, VideoComment[]> = {
 const mockVideoDanmaku: Record<string, VideoDanmakuItem[]> = {}
 const mockVideoReports: CommunityReportReceipt[] = []
 const mockCommunityNotifications: Record<string, CommunityNotificationItem[]> = {}
+const mockCommunitySubmissions: Record<string, CommunitySubmissionItem[]> = {}
 
 export function getMockVideoDanmaku(idOrSlug: string): VideoDanmakuPayload | null {
   const video = mockVideos.find((item) => item.id === idOrSlug || item.slug === idOrSlug)
@@ -988,6 +992,75 @@ export function createMockVideoReport(idOrSlug: string, payload: CreateVideoRepo
   return receipt
 }
 
+export function getMockCommunitySubmissions(clientId: string, limit?: number): CommunitySubmissionPayload | null {
+  const normalizedClientId = normalizeMockClientId(clientId)
+
+  if (!normalizedClientId) {
+    return null
+  }
+
+  const items = [...(mockCommunitySubmissions[normalizedClientId] || [])]
+    .sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt))
+  const visibleItems = items.slice(0, Math.min(Math.max(limit || 24, 1), 100))
+
+  return {
+    authenticated: false,
+    clientId: normalizedClientId,
+    items: {
+      items: visibleItems,
+      nextCursor: null
+    },
+    message: "投稿记录来自 mock 社区 API；真实模式会写入 Go 后端 community_submissions 表。"
+  }
+}
+
+export function createMockCommunitySubmission(payload: CreateCommunitySubmissionRequest): CommunitySubmissionItem | null {
+  const clientId = normalizeMockClientId(payload.clientId)
+  const authorName = payload.authorName.trim().slice(0, 24)
+  const title = payload.title.trim().slice(0, 160)
+  const category = getMockCategory(payload.categorySlug)
+  const visibility = normalizeMockSubmissionVisibility(payload.visibility)
+  const sourceName = payload.sourceName.trim().slice(0, 240)
+
+  if (!clientId || !authorName || title.length < 4 || !category || !visibility || !sourceName || payload.sourceSize <= 0) {
+    return null
+  }
+
+  const item: CommunitySubmissionItem = {
+    allowComments: Boolean(payload.allowComments),
+    authorName,
+    category,
+    categorySlug: category.slug,
+    clientId,
+    createdAt: new Date().toISOString(),
+    description: payload.description.trim().slice(0, 720),
+    id: `submission-${clientId}-${Date.now().toString(36)}`,
+    sensitive: Boolean(payload.sensitive),
+    sourceName,
+    sourceSize: payload.sourceSize,
+    sourceType: payload.sourceType.trim().slice(0, 120),
+    status: "pending_review",
+    tags: normalizeMockSubmissionTags(payload.tags),
+    title,
+    visibility
+  }
+
+  mockCommunitySubmissions[clientId] = [
+    item,
+    ...(mockCommunitySubmissions[clientId] || [])
+  ]
+  pushMockCommunityNotification(clientId, {
+    body: `《${item.title}》已进入待审核池，当前只保存标题、分区、标签和文件元数据。`,
+    kind: "submission",
+    link: "/upload",
+    targetId: item.id,
+    targetKind: "submission",
+    title: "投稿已进入待审核"
+  })
+
+  return item
+}
+
 export function getMockCommunityNotifications(clientId: string, limit?: number): CommunityNotificationPayload | null {
   const normalizedClientId = normalizeMockClientId(clientId)
 
@@ -1132,6 +1205,29 @@ function normalizeMockVideoReportReason(value: unknown): VideoReportReason | nul
     || value === "other"
     ? value
     : null
+}
+
+function normalizeMockSubmissionVisibility(value: unknown) {
+  return value === "public" || value === "unlisted" || value === "private" ? value : null
+}
+
+function normalizeMockSubmissionTags(tags: string[]) {
+  const seen = new Set<string>()
+
+  return tags
+    .map((tag) => tag.trim().replace(/^#/, "").slice(0, 40))
+    .filter(Boolean)
+    .filter((tag) => {
+      const key = tag.toLowerCase()
+
+      if (seen.has(key)) {
+        return false
+      }
+
+      seen.add(key)
+      return true
+    })
+    .slice(0, 8)
 }
 
 function isMockVideoInteractionKind(value: string): value is VideoInteractionKind {

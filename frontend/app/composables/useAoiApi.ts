@@ -8,8 +8,11 @@ import type {
   CommunityNotificationPayload,
   CommunityNotificationRequest,
   CommunityReportReceipt,
+  CommunitySubmissionItem,
+  CommunitySubmissionPayload,
   CreatorFollowState,
   CreateCommunityDynamicRequest,
+  CreateCommunitySubmissionRequest,
   CreateVideoCommentRequest,
   CreateVideoDanmakuRequest,
   CreateVideoReportRequest,
@@ -82,6 +85,19 @@ export function useAoiApi() {
 
   async function createCommunityDynamic(body: CreateCommunityDynamicRequest): Promise<CommunityDynamicItem> {
     return await request<CommunityDynamicItem>("/dynamics", {
+      body,
+      method: "POST"
+    })
+  }
+
+  async function getCommunitySubmissions(clientId: string, limit = 24): Promise<CommunitySubmissionPayload> {
+    return await request<CommunitySubmissionPayload>("/submissions", {
+      query: { clientId, limit }
+    })
+  }
+
+  async function createCommunitySubmission(body: CreateCommunitySubmissionRequest): Promise<CommunitySubmissionItem> {
+    return await request<CommunitySubmissionItem>("/submissions", {
       body,
       method: "POST"
     })
@@ -243,8 +259,10 @@ export function useAoiApi() {
     getVideoLibrary,
     followCreator,
     createCommunityDynamic,
+    createCommunitySubmission,
     getHomePayload,
     getCommunityNotifications,
+    getCommunitySubmissions,
     createVideoComment,
     createVideoDanmaku,
     createVideoReport,

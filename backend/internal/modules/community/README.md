@@ -1,6 +1,6 @@
 # Community 模块
 
-`internal/modules/community` 为 `frontend/` Nuxt 视频社区提供公开社区数据接口。当前阶段覆盖首页、分类、视频列表、视频详情、弹幕读取与轻量发布、视频评论读取与轻量发布、视频级举报提交、搜索、创作者资料、匿名创作者关注、视频点赞 / 收藏 / 稍后看、社区动态流查询与轻量发布、关注动态和匿名通知收件箱。
+`internal/modules/community` 为 `frontend/` Nuxt 视频社区提供公开社区数据接口。当前阶段覆盖首页、分类、视频列表、视频详情、弹幕读取与轻量发布、视频评论读取与轻量发布、视频级举报提交、投稿元数据待审核池、搜索、创作者资料、匿名创作者关注、视频点赞 / 收藏 / 稍后看、社区动态流查询与轻量发布、关注动态和匿名通知收件箱。
 
 ## 职责
 
@@ -9,6 +9,7 @@
 - 支持视频弹幕列表读取和轻量公开发布。
 - 支持视频评论列表读取和轻量公开发布，并同步视频 `comment_count`。
 - 支持视频级轻量举报提交，保存匿名 `clientId`、原因、补充说明和待处理状态。
+- 支持投稿元数据提交和查询，保存匿名 `clientId`、作者名、标题、简介、分类、标签、可见性和文件元数据，不保存文件字节。
 - 支持以匿名 `clientId` 关注 / 取消关注创作者，并同步创作者 `follower_count`。
 - 支持以匿名 `clientId` 点赞、收藏、取消互动、查询互动状态和读取收藏 / 稍后看列表。
 - 支持以匿名 `clientId` 查询通知、标记已读，并把评论、弹幕、举报、关注和视频互动写入轻量消息流。
@@ -17,7 +18,7 @@
 
 ## 非职责
 
-- 不处理投稿审核、登录态用户关系归并、评论 / 弹幕审核、评论编辑删除、举报审核处理、外部通知投递、登录态消息中心或创作者后台管理。
+- 不处理真实文件上传、视频转码、投稿审核发布、登录态用户关系归并、评论 / 弹幕审核、评论编辑删除、举报审核处理、外部通知投递、登录态消息中心或创作者后台管理。
 - 不恢复插件系统或 `/api/v1/plugins`。
 - 不让 Nuxt 页面凭空展示后端不存在的生产写入能力；评论写入失败必须显式反馈，弹幕写入失败只能降级到浏览器缓存，浏览器本地状态只能保存显示名称、匿名 clientId、观看历史和必要降级缓存。
 
@@ -47,6 +48,8 @@
 - `POST /videos/:idOrSlug/interactions/:kind`
 - `DELETE /videos/:idOrSlug/interactions/:kind`
 - `POST /videos/:idOrSlug/reports`
+- `GET /submissions`
+- `POST /submissions`
 - `GET /notifications`
 - `POST /notifications/read`
 - `GET /dynamics`
@@ -61,7 +64,7 @@
 
 ## 数据
 
-迁移 `20260626000100_create_community_tables.sql` 创建社区读取表，并写入一组与 Nuxt 现有体验相同的初始内容。迁移 `20260626000200_create_community_video_comments.sql` 追加公开评论表、初始评论和 `comment_count` 收敛。迁移 `20260626000300_create_community_creator_follows.sql` 追加匿名创作者关注关系表。迁移 `20260626000400_create_community_video_interactions.sql` 追加匿名视频点赞、收藏和稍后看关系表。迁移 `20260626000500_create_community_reports.sql` 追加社区举报记录表。迁移 `20260626000600_create_community_notifications.sql` 追加匿名通知表。迁移 `20260626000700_create_community_dynamics.sql` 追加社区动态表和初始时间线内容。后续若增加真实投稿、审核、登录态归并、外部通知投递或登录态消息中心，应追加迁移，不修改历史迁移。
+迁移 `20260626000100_create_community_tables.sql` 创建社区读取表，并写入一组与 Nuxt 现有体验相同的初始内容。迁移 `20260626000200_create_community_video_comments.sql` 追加公开评论表、初始评论和 `comment_count` 收敛。迁移 `20260626000300_create_community_creator_follows.sql` 追加匿名创作者关注关系表。迁移 `20260626000400_create_community_video_interactions.sql` 追加匿名视频点赞、收藏和稍后看关系表。迁移 `20260626000500_create_community_reports.sql` 追加社区举报记录表。迁移 `20260626000600_create_community_notifications.sql` 追加匿名通知表。迁移 `20260626000700_create_community_dynamics.sql` 追加社区动态表和初始时间线内容。迁移 `20260626000800_create_community_submissions.sql` 追加投稿元数据待审核池。后续若增加真实文件上传、视频转码、审核发布、登录态归并、外部通知投递或登录态消息中心，应追加迁移，不修改历史迁移。
 
 ## 验证
 

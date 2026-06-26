@@ -58,6 +58,27 @@ func (h *Handler) CreateDynamic(c ports.HTTPContext) {
 	writeOK(c, item, err, h.writeError)
 }
 
+func (h *Handler) Submissions(c ports.HTTPContext) {
+	limit, ok := parseIntQuery(c, "limit", 24)
+	if !ok {
+		return
+	}
+	payload, err := h.service.ListCommunitySubmissions(c.RequestContext(), model.CommunitySubmissionFilter{
+		ClientID: queryValue(c, "clientId"),
+		Limit:    limit,
+	})
+	writeOK(c, payload, err, h.writeError)
+}
+
+func (h *Handler) CreateSubmission(c ports.HTTPContext) {
+	var req model.CreateCommunitySubmissionRequest
+	if !bind(c, &req) {
+		return
+	}
+	item, err := h.service.CreateCommunitySubmission(c.RequestContext(), req)
+	writeOK(c, item, err, h.writeError)
+}
+
 func (h *Handler) Videos(c ports.HTTPContext) {
 	limit, ok := parseIntQuery(c, "limit", 24)
 	if !ok {

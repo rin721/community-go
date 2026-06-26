@@ -1,4 +1,4 @@
-export type UploadDraftStatus = "draft" | "queued-local"
+export type UploadDraftStatus = "draft" | "submitted"
 export type UploadDraftVisibility = "public" | "unlisted" | "private"
 
 export interface UploadDraftSource {
@@ -17,6 +17,8 @@ export interface UploadDraft {
   sensitive: boolean
   source: UploadDraftSource | null
   status: UploadDraftStatus
+  submittedAt?: string
+  submissionId?: string
   tags: string[]
   title: string
   updatedAt: string

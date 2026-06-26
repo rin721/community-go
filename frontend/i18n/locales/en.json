@@ -123,7 +123,8 @@
       "danmaku": "Danmaku",
       "follow": "Follow",
       "interaction": "Interaction",
-      "report": "Report"
+      "report": "Report",
+      "submission": "Submission"
     }
   },
   "docs": {
@@ -1133,6 +1134,100 @@
       "hint": "Pulses are posted to the Community API and refresh this timeline.",
       "submit": "Post pulse",
       "error": "Pulse failed. Please try again."
+    }
+  },
+  "upload": {
+    "headTitle": "Upload - Aoi",
+    "title": "Upload workspace",
+    "description": "Prepare video details and submit them to the community review queue.",
+    "newDraft": "New draft",
+    "defaultAuthor": "Aoi Creator",
+    "emptyValue": "None",
+    "categoryUnselected": "Unselected",
+    "lastSaved": "Autosaved at {value}",
+    "addTag": "Add",
+    "removeTag": "Remove tag {tag}",
+    "tagsAriaLabel": "Upload draft tags",
+    "actionBarLabel": "Upload draft actions",
+    "submit": "Submit for review",
+    "deleteDraft": "Delete current draft",
+    "status": {
+      "none": "No draft",
+      "draft": "Draft autosaved",
+      "submitted": "Submitted for review"
+    },
+    "visibility": {
+      "public": "Public",
+      "unlisted": "Unlisted link",
+      "private": "Private draft"
+    },
+    "empty": {
+      "title": "No upload draft yet",
+      "description": "Create a draft to prepare title, category, tags, and visibility."
+    },
+    "source": {
+      "title": "Video source",
+      "emptyTitle": "Choose a video file",
+      "emptyDescription": "Only the name, size, and MIME type are read here; file bytes stay in the browser.",
+      "choose": "Choose file",
+      "replace": "Replace file"
+    },
+    "basic": {
+      "title": "Basic information"
+    },
+    "fields": {
+      "title": "Title",
+      "titlePlaceholder": "Enter video title",
+      "titleHelp": "At least 4 characters",
+      "author": "Display name",
+      "authorPlaceholder": "Creator display name",
+      "authorHelp": "Used for the review record and receipt notification",
+      "category": "Category",
+      "visibility": "Visibility",
+      "description": "Description",
+      "descriptionPlaceholder": "Describe the video, its hook, and who it is for",
+      "descriptionHelp": "Submitted with the metadata record",
+      "allowComments": "Allow comments",
+      "sensitive": "Mark sensitive content",
+      "tags": "Tags",
+      "tagsPlaceholder": "Press Enter after typing",
+      "tagsHelp": "Up to 8 tags"
+    },
+    "validation": {
+      "createDraft": "Create a draft",
+      "titleRequired": "Title needs at least 4 characters",
+      "sourceRequired": "Choose a video file",
+      "categoryRequired": "Choose a content category",
+      "descriptionHelpful": "Add a 20+ character description for future search and recommendations",
+      "tagsHelpful": "Add at least 2 tags"
+    },
+    "draftList": {
+      "ariaLabel": "Upload draft list",
+      "untitled": "Untitled draft",
+      "tagCount": "{count} tags"
+    },
+    "drafts": {
+      "title": "Drafts"
+    },
+    "review": {
+      "title": "Publish check",
+      "untitled": "Untitled draft",
+      "emptyDescription": "The description appears here so you can check the first impression.",
+      "category": "Category",
+      "visibility": "Visibility",
+      "status": "Status",
+      "ready": "Required items are complete.",
+      "readyShort": "Ready",
+      "incompleteShort": "Incomplete"
+    },
+    "submission": {
+      "success": "Submission received. Receipt {id}",
+      "error": "Submission failed. Check that the Community API is available and retry."
+    },
+    "submissions": {
+      "title": "Recent submissions",
+      "loading": "Loading",
+      "empty": "No submissions from this browser yet."
     }
   }
 }

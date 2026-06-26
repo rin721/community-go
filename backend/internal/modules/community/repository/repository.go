@@ -314,6 +314,10 @@ func (r *repository) CreateCommunityDynamic(ctx context.Context, dynamic model.C
 	return r.db.Create(ctx, &dynamic)
 }
 
+func (r *repository) CreateCommunitySubmission(ctx context.Context, submission model.CommunitySubmission) error {
+	return r.db.Create(ctx, &submission)
+}
+
 func (r *repository) ListCommunityNotifications(ctx context.Context, filter model.CommunityNotificationFilter) ([]model.CommunityNotification, error) {
 	opts := []database.QueryOption{
 		database.Where("client_id = ?", strings.TrimSpace(filter.ClientID)),
@@ -343,6 +347,20 @@ func (r *repository) ListCommunityDynamics(ctx context.Context, filter model.Com
 	var dynamics []model.CommunityDynamic
 	err := r.db.Find(ctx, &dynamics, opts...)
 	return dynamics, err
+}
+
+func (r *repository) ListCommunitySubmissions(ctx context.Context, filter model.CommunitySubmissionFilter) ([]model.CommunitySubmission, error) {
+	opts := []database.QueryOption{
+		database.Where("client_id = ?", strings.TrimSpace(filter.ClientID)),
+		alive(),
+		database.Order("created_at DESC, id DESC"),
+	}
+	if filter.Limit > 0 {
+		opts = append(opts, database.Limit(filter.Limit))
+	}
+	var submissions []model.CommunitySubmission
+	err := r.db.Find(ctx, &submissions, opts...)
+	return submissions, err
 }
 
 func (r *repository) MarkCommunityNotificationsRead(ctx context.Context, clientID string, now time.Time) error {

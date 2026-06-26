@@ -32,8 +32,8 @@ const localStats = computed(() => ({
 const hasLocalData = computed(() => Object.values(localStats.value).some((value) => value > 0))
 const uploadStats = computed(() => ({
   drafts: uploadDrafts.draftCount,
-  queued: uploadDrafts.queuedCount,
-  ready: uploadDrafts.readyCount
+  ready: uploadDrafts.readyCount,
+  submitted: uploadDrafts.submittedCount
 }))
 const hasUploadDrafts = computed(() => uploadStats.value.drafts > 0)
 const followingStats = computed(() => ({
@@ -233,7 +233,7 @@ function cancelPendingAction() {
 
         <SettingsDataActionCard
           title="投稿草稿"
-          :description="`草稿 ${uploadStats.drafts} · 可排队 ${uploadStats.ready} · 已排队 ${uploadStats.queued}`"
+          :description="`草稿 ${uploadStats.drafts} · 可提交 ${uploadStats.ready} · 已提交 ${uploadStats.submitted}`"
         >
           <template #actions>
             <AoiButton tone="accent"

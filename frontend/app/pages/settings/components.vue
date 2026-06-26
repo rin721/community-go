@@ -165,7 +165,7 @@ const uploadDrafts = ref<UploadDraft[]>([
     id: "draft-empty",
     sensitive: false,
     source: null,
-    status: "queued-local",
+    status: "draft",
     tags: ["review"],
     title: "",
     updatedAt: "2026-06-08T02:12:00.000Z",

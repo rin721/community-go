@@ -1,4 +1,10 @@
 <script setup lang="ts">
+import type {
+  AoiApiErrorPayload,
+  CommunitySubmissionItem,
+  CommunitySubmissionVisibility
+} from "~/types/api"
+import type { UploadDraftValidation } from "~/types/upload"
 import {
   findCategoryInTree,
   formatCategoryPath,
@@ -7,7 +13,15 @@ import {
 
 const api = useAoiApi()
 const drafts = useUploadDraftStore()
+const library = useLibraryStore()
+const { locale, t } = useI18n()
 const tagInput = ref("")
+const submissionAuthorName = ref("")
+const submissionError = ref<string | null>(null)
+const submissionReceipt = ref<CommunitySubmissionItem | null>(null)
+const submissions = ref<CommunitySubmissionItem[]>([])
+const submissionsPending = ref(false)
+const submitting = ref(false)
 
 const { data: categories, pending: categoriesPending } = useAsyncData(
   "upload-categories",
@@ -16,43 +30,44 @@ const { data: categories, pending: categoriesPending } = useAsyncData(
 )
 
 const activeDraft = computed(() => drafts.activeDraft)
-const validation = computed(() => activeDraft.value
+const validation = computed<UploadDraftValidation>(() => activeDraft.value
   ? drafts.validateDraft(activeDraft.value)
-  : { missing: ["创建一个草稿"], ready: false, warnings: [] })
+  : { missing: ["upload.validation.createDraft"], ready: false, warnings: [] })
 const categoryOptions = computed(() => categories.value
   .flatMap((category) => category.slug === "home" ? [] : [category])
   .flatMap((category) => getCategoryLeafNodes([category]))
   .map((category) => ({ label: formatCategoryPath(category), value: category.slug })))
-const visibilityOptions = [
-  { label: "公开", value: "public" },
-  { label: "不公开链接", value: "unlisted" },
-  { label: "私密草稿", value: "private" }
-]
-const statusLabel = computed(() => {
-  if (!activeDraft.value) {
-    return "无草稿"
-  }
-
-  return activeDraft.value.status === "queued-local" ? "已本地排队" : "草稿自动保存"
-})
+const visibilityOptions = computed(() => [
+  { label: t("upload.visibility.public"), value: "public" },
+  { label: t("upload.visibility.unlisted"), value: "unlisted" },
+  { label: t("upload.visibility.private"), value: "private" }
+])
+const statusLabel = computed(() => draftStatusLabel(activeDraft.value?.status))
 const selectedCategoryName = computed(() => {
   const slug = activeDraft.value?.categorySlug
   const category = slug ? findCategoryInTree(categories.value, slug) : null
 
-  return category ? formatCategoryPath(category) : "未选择"
+  return category ? formatCategoryPath(category) : t("upload.categoryUnselected")
 })
-const lastSavedLabel = computed(() => {
-  if (!activeDraft.value) {
-    return "暂无"
+const lastSavedLabel = computed(() => activeDraft.value
+  ? formatDate(activeDraft.value.updatedAt)
+  : t("upload.emptyValue"))
+const canSubmit = computed(() => Boolean(
+  activeDraft.value?.source &&
+  validation.value.ready &&
+  submissionAuthorName.value.trim() &&
+  !submitting.value
+))
+const submitStatusMessage = computed(() => {
+  if (submissionError.value) {
+    return submissionError.value
   }
-
-  return new Date(activeDraft.value.updatedAt).toLocaleString("zh-CN", {
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    month: "2-digit"
-  })
+  if (submissionReceipt.value) {
+    return t("upload.submission.success", { id: submissionReceipt.value.id })
+  }
+  return ""
 })
+const submitStatusIntent = computed<"danger" | "success">(() => submissionError.value ? "danger" : "success")
 
 const draftTitle = computed({
   get: () => activeDraft.value?.title || "",
@@ -88,6 +103,11 @@ watch(() => drafts.hydrated, (hydrated) => {
     drafts.createDraft()
   }
 }, { immediate: true })
+
+onMounted(() => {
+  submissionAuthorName.value = submissionAuthorName.value || t("upload.defaultAuthor")
+  void refreshSubmissions()
+})
 
 function onFileSelected(files: File[]) {
   const file = files[0]
@@ -128,6 +148,63 @@ function removeTag(tag: string) {
   })
 }
 
+async function submitActiveDraft() {
+  const draft = activeDraft.value
+  const source = draft?.source
+
+  if (!draft || !source || !canSubmit.value) {
+    return
+  }
+
+  submitting.value = true
+  submissionError.value = null
+
+  try {
+    const item = await api.createCommunitySubmission({
+      allowComments: draft.allowComments,
+      authorName: submissionAuthorName.value.trim(),
+      categorySlug: draft.categorySlug,
+      clientId: ensureCommunityClientId(),
+      description: draft.description,
+      sensitive: draft.sensitive,
+      sourceName: source.name,
+      sourceSize: source.size,
+      sourceType: source.type || "video/*",
+      tags: draft.tags,
+      title: draft.title,
+      visibility: draft.visibility as CommunitySubmissionVisibility
+    })
+    submissionReceipt.value = item
+    drafts.updateDraft(draft.id, {
+      status: "submitted",
+      submittedAt: item.createdAt,
+      submissionId: item.id
+    })
+    await refreshSubmissions()
+  } catch (error) {
+    submissionReceipt.value = null
+    submissionError.value = apiErrorMessage(error)
+  } finally {
+    submitting.value = false
+  }
+}
+
+async function refreshSubmissions() {
+  if (!import.meta.client) {
+    return
+  }
+
+  submissionsPending.value = true
+  try {
+    const payload = await api.getCommunitySubmissions(ensureCommunityClientId(), 12)
+    submissions.value = payload.items.items
+  } catch {
+    submissions.value = []
+  } finally {
+    submissionsPending.value = false
+  }
+}
+
 function deleteActiveDraft() {
   if (activeDraft.value) {
     drafts.deleteDraft(activeDraft.value.id)
@@ -146,12 +223,42 @@ function formatBytes(size: number) {
   return `${(size / 1024 / 1024).toFixed(1)} MB`
 }
 
+function formatDate(value: string) {
+  return new Date(value).toLocaleString(locale.value, {
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    month: "2-digit"
+  })
+}
+
+function draftStatusLabel(status?: string) {
+  if (status === "submitted") {
+    return t("upload.status.submitted")
+  }
+  return status ? t("upload.status.draft") : t("upload.status.none")
+}
+
+function ensureCommunityClientId() {
+  if (import.meta.client && !library.hydrated) {
+    library.restore()
+  }
+
+  return library.ensureClientId()
+}
+
+function apiErrorMessage(error: unknown) {
+  const apiError = error as Partial<AoiApiErrorPayload>
+
+  return apiError.message || t("upload.submission.error")
+}
+
 function selectDraft(id: string) {
   drafts.selectDraft(id)
 }
 
 useHead({
-  title: "Upload - Aoi"
+  title: t("upload.headTitle")
 })
 </script>
 
@@ -159,17 +266,18 @@ useHead({
   <div class="aoi-page">
     <PageHeader
       icon="upload"
-      title="投稿工作台"
-      description="当前只保存浏览器本地草稿，帮助前端先跑通创作信息流；真实上传、审核和转码留给未来 Go 后端。"
+      :title="t('upload.title')"
+      :description="t('upload.description')"
     >
       <template #actions>
-        <AoiButton tone="accent"
+        <AoiButton
+          tone="accent"
           variant="tonal"
           icon="file-plus-2"
           :disabled="!drafts.hydrated"
           @click="drafts.createDraft()"
         >
-          新建草稿
+          {{ t('upload.newDraft') }}
         </AoiButton>
       </template>
     </PageHeader>
@@ -179,10 +287,10 @@ useHead({
         <PageState
           v-if="!activeDraft"
           icon="file-plus-2"
-          title="还没有投稿草稿"
-          description="创建一个本地草稿后，可以先整理标题、分区、标签和可见性。"
+          :title="t('upload.empty.title')"
+          :description="t('upload.empty.description')"
           action-icon="file-plus-2"
-          action-label="新建草稿"
+          :action-label="t('upload.newDraft')"
           @action="drafts.createDraft()"
         />
 
@@ -195,17 +303,17 @@ useHead({
             :reveal="{ variant: 'rise', index: 0 }"
           >
             <div class="upload-panel__title">
-              <h2>视频源</h2>
+              <h2>{{ t('upload.source.title') }}</h2>
               <span>{{ statusLabel }}</span>
             </div>
 
             <UploadDropZone
               :source="activeDraft.source"
               :format-bytes="formatBytes"
-              empty-title="选择一个视频文件"
-              empty-description="这里只读取文件名、大小和 MIME 类型，不上传文件内容。"
-              choose-label="选择文件"
-              replace-label="替换文件"
+              :empty-title="t('upload.source.emptyTitle')"
+              :empty-description="t('upload.source.emptyDescription')"
+              :choose-label="t('upload.source.choose')"
+              :replace-label="t('upload.source.replace')"
               @change="onFileSelected"
             />
           </AoiSurface>
@@ -218,48 +326,58 @@ useHead({
             :reveal="{ variant: 'rise', index: 1 }"
           >
             <div class="upload-panel__title">
-              <h2>基础信息</h2>
-              <span>自动保存 · {{ lastSavedLabel }}</span>
+              <h2>{{ t('upload.basic.title') }}</h2>
+              <span>{{ t('upload.lastSaved', { value: lastSavedLabel }) }}</span>
             </div>
 
             <div class="upload-form-grid">
               <AoiTextField
                 v-model="draftTitle"
-                label="标题"
+                :label="t('upload.fields.title')"
                 appearance="outlined"
-                placeholder="输入视频标题"
-                supporting-text="至少 4 个字符"
+                :placeholder="t('upload.fields.titlePlaceholder')"
+                :supporting-text="t('upload.fields.titleHelp')"
               />
+              <AoiTextField
+                v-model="submissionAuthorName"
+                :label="t('upload.fields.author')"
+                appearance="outlined"
+                :placeholder="t('upload.fields.authorPlaceholder')"
+                :supporting-text="t('upload.fields.authorHelp')"
+              />
+            </div>
+
+            <div class="upload-form-grid">
               <AoiSelect
                 v-model="draftCategory"
-                label="分区"
+                :label="t('upload.fields.category')"
                 appearance="outlined"
                 :disabled="categoriesPending"
                 :options="categoryOptions"
+              />
+              <AoiSelect
+                v-model="draftVisibility"
+                :label="t('upload.fields.visibility')"
+                appearance="outlined"
+                :options="visibilityOptions"
               />
             </div>
 
             <AoiTextField
               v-model="draftDescription"
-              label="简介"
+              :label="t('upload.fields.description')"
               appearance="outlined"
-              placeholder="写一点这支视频的内容、亮点和适合谁看"
-              supporting-text="本阶段只保存为本地草稿"
+              :placeholder="t('upload.fields.descriptionPlaceholder')"
+              :supporting-text="t('upload.fields.descriptionHelp')"
               multiline
               :rows="5"
               :max-length="600"
             />
 
-            <div class="upload-form-grid">
-              <AoiSelect
-                v-model="draftVisibility"
-                label="可见性"
-                appearance="outlined"
-                :options="visibilityOptions"
-              />
+            <div class="upload-form-grid upload-form-grid--checks">
               <div class="upload-checks">
-                <AoiCheckbox v-model="allowComments" label="允许评论" />
-                <AoiCheckbox v-model="sensitive" label="含敏感内容标记" />
+                <AoiCheckbox v-model="allowComments" :label="t('upload.fields.allowComments')" />
+                <AoiCheckbox v-model="sensitive" :label="t('upload.fields.sensitive')" />
               </div>
             </div>
 
@@ -267,40 +385,52 @@ useHead({
               <div class="upload-tags__input">
                 <AoiTextField
                   v-model="tagInput"
-                  label="标签"
+                  :label="t('upload.fields.tags')"
                   appearance="outlined"
-                  placeholder="输入后按 Enter"
-                  supporting-text="最多保存 8 个标签"
+                  :placeholder="t('upload.fields.tagsPlaceholder')"
+                  :supporting-text="t('upload.fields.tagsHelp')"
                   @enter="addTag"
                 />
-                <AoiButton tone="accent" variant="outlined" icon="plus" @click="addTag()">添加</AoiButton>
+                <AoiButton tone="accent" variant="outlined" icon="plus" @click="addTag()">
+                  {{ t('upload.addTag') }}
+                </AoiButton>
               </div>
-              <div v-if="activeDraft.tags.length" class="upload-tags__list" aria-label="草稿标签">
+              <div v-if="activeDraft.tags.length" class="upload-tags__list" :aria-label="t('upload.tagsAriaLabel')">
                 <AoiChip
                   v-for="tag in activeDraft.tags"
                   :key="tag"
                   :label="`# ${tag}`"
                   removable
-                  :remove-label="`移除标签 ${tag}`"
+                  :remove-label="t('upload.removeTag', { tag })"
                   @remove="removeTag(tag)"
                 />
               </div>
             </div>
           </AoiSurface>
 
-          <AoiActionBar reveal="fade" label="投稿草稿操作">
-            <AoiButton tone="accent"
+          <AoiActionBar reveal="fade" :label="t('upload.actionBarLabel')">
+            <AoiButton
+              tone="accent"
               variant="filled"
               icon="send"
-              :disabled="!validation.ready"
-              @click="drafts.queueActiveDraft()"
+              :loading="submitting"
+              :disabled="!canSubmit"
+              @click="submitActiveDraft"
             >
-              本地排队预览
+              {{ t('upload.submit') }}
             </AoiButton>
             <AoiButton icon="trash-2" @click="deleteActiveDraft">
-              删除当前草稿
+              {{ t('upload.deleteDraft') }}
             </AoiButton>
           </AoiActionBar>
+
+          <AoiStatusMessage
+            v-if="submitStatusMessage"
+            :intent="submitStatusIntent"
+            :icon="submissionError ? 'circle-alert' : 'circle-check'"
+          >
+            {{ submitStatusMessage }}
+          </AoiStatusMessage>
         </template>
       </main>
 
@@ -313,7 +443,7 @@ useHead({
           :reveal="{ variant: 'slide-left', index: 0 }"
         >
           <div class="upload-panel__title">
-            <h2>草稿</h2>
+            <h2>{{ t('upload.drafts.title') }}</h2>
             <span>{{ drafts.draftCount }}</span>
           </div>
 
@@ -332,8 +462,8 @@ useHead({
           :reveal="{ variant: 'slide-left', index: 1 }"
         >
           <div class="upload-panel__title">
-            <h2>发布预检</h2>
-            <span>{{ validation.ready ? "可排队" : "未完成" }}</span>
+            <h2>{{ t('upload.review.title') }}</h2>
+            <span>{{ validation.ready ? t('upload.review.readyShort') : t('upload.review.incompleteShort') }}</span>
           </div>
 
           <UploadReviewCard
@@ -344,6 +474,34 @@ useHead({
             :status-label="statusLabel"
             :validation="validation"
           />
+        </AoiSurface>
+
+        <AoiSurface
+          as="section"
+          class="upload-panel"
+          surface="panel"
+          padding="lg"
+          :reveal="{ variant: 'slide-left', index: 2 }"
+        >
+          <div class="upload-panel__title">
+            <h2>{{ t('upload.submissions.title') }}</h2>
+            <span>{{ submissionsPending ? t('upload.submissions.loading') : submissions.length }}</span>
+          </div>
+
+          <div v-if="submissions.length" class="upload-submission-list">
+            <div
+              v-for="item in submissions"
+              :key="item.id"
+              class="upload-submission-list__item"
+            >
+              <strong>{{ item.title }}</strong>
+              <span>{{ item.category?.name || item.categorySlug }} · {{ t('upload.status.submitted') }}</span>
+              <small>{{ formatDate(item.createdAt) }}</small>
+            </div>
+          </div>
+          <p v-else class="upload-empty-note">
+            {{ t('upload.submissions.empty') }}
+          </p>
         </AoiSurface>
       </aside>
     </div>
@@ -385,12 +543,18 @@ useHead({
 
 .upload-panel__title span {
   color: var(--aoi-text-muted);
+  overflow-wrap: anywhere;
+  text-align: end;
 }
 
 .upload-form-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(220px, 260px);
   gap: 12px;
+}
+
+.upload-form-grid--checks {
+  grid-template-columns: 1fr;
 }
 
 .upload-checks {
@@ -416,6 +580,43 @@ useHead({
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.upload-submission-list {
+  display: grid;
+  gap: 8px;
+}
+
+.upload-submission-list__item {
+  display: grid;
+  gap: 3px;
+  border: 1px solid var(--aoi-border);
+  border-radius: var(--aoi-radius-card);
+  padding: 10px 12px;
+}
+
+.upload-submission-list__item strong,
+.upload-submission-list__item span,
+.upload-submission-list__item small,
+.upload-empty-note {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.upload-submission-list__item strong {
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.upload-submission-list__item span,
+.upload-submission-list__item small,
+.upload-empty-note {
+  color: var(--aoi-text-muted);
+}
+
+.upload-empty-note {
+  margin: 0;
+  line-height: 1.7;
 }
 
 @media (max-width: 960px) {

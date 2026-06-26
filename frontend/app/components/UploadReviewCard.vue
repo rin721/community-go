@@ -10,17 +10,23 @@ const props = defineProps<{
   visibility: UploadDraftVisibility | string
 }>()
 
+const { t } = useI18n()
+
 const visibilityLabel = computed(() => {
   if (props.visibility === "public") {
-    return "公开"
+    return t("upload.visibility.public")
   }
 
   if (props.visibility === "unlisted") {
-    return "不公开链接"
+    return t("upload.visibility.unlisted")
   }
 
-  return "私密草稿"
+  return t("upload.visibility.private")
 })
+
+function validationText(value: string) {
+  return value.startsWith("upload.") ? t(value) : value
+}
 </script>
 
 <template>
@@ -28,35 +34,35 @@ const visibilityLabel = computed(() => {
     <div class="upload-review-card__cover">
       <AoiIcon name="play" :size="30" decorative />
     </div>
-    <h3>{{ props.title || "未命名草稿" }}</h3>
-    <p>{{ props.description || "简介会显示在这里，帮助你检查内容卡片的第一印象。" }}</p>
+    <h3>{{ props.title || t('upload.review.untitled') }}</h3>
+    <p>{{ props.description || t('upload.review.emptyDescription') }}</p>
 
     <dl class="upload-review-card__meta">
       <div>
-        <dt>分区</dt>
+        <dt>{{ t('upload.review.category') }}</dt>
         <dd>{{ props.categoryName }}</dd>
       </div>
       <div>
-        <dt>可见性</dt>
+        <dt>{{ t('upload.review.visibility') }}</dt>
         <dd>{{ visibilityLabel }}</dd>
       </div>
       <div>
-        <dt>状态</dt>
+        <dt>{{ t('upload.review.status') }}</dt>
         <dd>{{ props.statusLabel }}</dd>
       </div>
     </dl>
 
     <div class="upload-review-card__checklist">
       <p v-if="props.validation.missing.length === 0" class="upload-review-card__ok">
-        必填项已完成。
+        {{ t('upload.review.ready') }}
       </p>
       <p v-for="item in props.validation.missing" v-else :key="item">
         <AoiIcon name="circle-alert" :size="15" decorative />
-        {{ item }}
+        {{ validationText(item) }}
       </p>
       <p v-for="item in props.validation.warnings" :key="item">
         <AoiIcon name="info" :size="15" decorative />
-        {{ item }}
+        {{ validationText(item) }}
       </p>
     </div>
   </div>
@@ -88,6 +94,7 @@ const visibilityLabel = computed(() => {
 }
 
 .upload-review-card h3 {
+  overflow-wrap: anywhere;
   font-size: 18px;
   line-height: 1.35;
 }
@@ -99,6 +106,7 @@ const visibilityLabel = computed(() => {
 }
 
 .upload-review-card p {
+  overflow-wrap: anywhere;
   line-height: 1.7;
 }
 
@@ -117,6 +125,7 @@ const visibilityLabel = computed(() => {
 }
 
 .upload-review-card__meta dd {
+  overflow-wrap: anywhere;
   color: var(--aoi-text);
   font-weight: 750;
 }

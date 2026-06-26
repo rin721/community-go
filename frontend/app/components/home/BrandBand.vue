@@ -27,7 +27,7 @@ const { t } = useI18n()
   background: transparent;
   background-color: transparent;
   box-shadow: none;
-  padding: 0 0 16px;
+  padding: 0 0 10px;
 }
 
 .brand-band__inner {
@@ -106,7 +106,7 @@ const { t } = useI18n()
 
 @media (max-width: 639px) {
   .brand-band {
-    padding: 2px 0 14px;
+    padding: 2px 0 10px;
   }
 
   .brand-band__inner {

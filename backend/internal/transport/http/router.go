@@ -304,6 +304,7 @@ func registerCommunityRoutes(v1 ports.HTTPRouter, deps RouterDeps) []RouteContra
 		routeSpecFor("community.videos.interaction-state", deps.CommunityHandler.VideoInteractionState),
 		routeSpecFor("community.videos.interactions.set", deps.CommunityHandler.SetVideoInteraction),
 		routeSpecFor("community.videos.interactions.unset", deps.CommunityHandler.UnsetVideoInteraction),
+		routeSpecFor("community.videos.reports.create", deps.CommunityHandler.CreateVideoReport),
 		routeSpecFor("community.search", deps.CommunityHandler.Search),
 		routeSpecFor("community.creators.get", deps.CommunityHandler.Creator),
 		routeSpecFor("community.creators.follow-state", deps.CommunityHandler.CreatorFollowState),

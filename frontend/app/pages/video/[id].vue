@@ -2,7 +2,7 @@
 import type { CommentSortMode, CommentView } from "~/types/comments"
 import type { AoiDanmakuMapper, AoiDanmakuMode } from "~/types/danmaku"
 import type { PlayerPlaybackRate } from "~/types/player"
-import type { CreateVideoDanmakuRequest, VideoComment, VideoDanmakuItem } from "~/types/api"
+import type { CreateVideoDanmakuRequest, CreateVideoReportRequest, VideoComment, VideoDanmakuItem, VideoReportReason } from "~/types/api"
 
 const route = useRoute()
 const api = useAoiApi()
@@ -18,6 +18,12 @@ const localDanmakuEnabled = ref(true)
 const commentSubmitError = ref("")
 const commentSubmitRevision = ref(0)
 const commentSubmitting = ref(false)
+const reportDetail = ref("")
+const reportDialogOpen = ref(false)
+const reportReceiptId = ref("")
+const reportReason = ref<VideoReportReason>("spam")
+const reportSubmitError = ref("")
+const reportSubmitting = ref(false)
 const selectedSourceId = ref("")
 
 const { data: watchPayload, error, pending, refresh } = useAsyncData(() => `video-watch-${id.value}`, async () => {
@@ -76,6 +82,24 @@ const commentThreadDescription = computed(() => t("player.communityCommentDescri
   count: visibleComments.value.length,
   total: displayCommentCount.value
 }))
+const reportReasonModel = computed({
+  get: () => reportReason.value,
+  set: (value: string) => {
+    if (isVideoReportReason(value)) {
+      reportReason.value = value
+    }
+  }
+})
+const reportReasonOptions = computed(() => [
+  { label: t("player.reportReasonSpam"), value: "spam" },
+  { label: t("player.reportReasonAbuse"), value: "abuse" },
+  { label: t("player.reportReasonCopyright"), value: "copyright" },
+  { label: t("player.reportReasonMisleading"), value: "misleading" },
+  { label: t("player.reportReasonOther"), value: "other" }
+])
+const reportCanSubmit = computed(() => {
+  return Boolean(video.value && library.hydrated && !reportSubmitting.value && !reportReceiptId.value)
+})
 const initialProgressSeconds = computed(() => {
   if (!video.value || settings.disableWatchHistory) {
     return 0
@@ -179,6 +203,46 @@ async function submitComment(body: string) {
   } finally {
     commentSubmitting.value = false
   }
+}
+
+function openReportDialog() {
+  reportDialogOpen.value = true
+  reportDetail.value = ""
+  reportReceiptId.value = ""
+  reportReason.value = "spam"
+  reportSubmitError.value = ""
+}
+
+async function submitReport() {
+  if (!video.value || !reportCanSubmit.value) {
+    return
+  }
+
+  const request: CreateVideoReportRequest = {
+    clientId: library.ensureClientId(),
+    detail: reportDetail.value,
+    reason: reportReason.value
+  }
+
+  reportSubmitting.value = true
+  reportSubmitError.value = ""
+  try {
+    const receipt = await api.createVideoReport(video.value.id, request)
+    reportReceiptId.value = receipt.id
+    reportDetail.value = ""
+  } catch {
+    reportSubmitError.value = t("player.reportSubmitError")
+  } finally {
+    reportSubmitting.value = false
+  }
+}
+
+function isVideoReportReason(value: string): value is VideoReportReason {
+  return value === "spam"
+    || value === "abuse"
+    || value === "copyright"
+    || value === "misleading"
+    || value === "other"
 }
 
 function appendServerComment(comment: VideoComment) {
@@ -357,7 +421,15 @@ useHead(() => ({
               >
                 {{ isWatchLater ? t("player.watchLaterAdded") : t("player.watchLater") }}
               </AoiButton>
-              <AoiButton tone="accent" variant="outlined" icon="flag">
+              <AoiButton
+                tone="accent"
+                variant="outlined"
+                icon="flag"
+                :aria-label="t('player.report')"
+                :disabled="!library.hydrated || reportSubmitting"
+                :loading="reportSubmitting"
+                @click="openReportDialog"
+              >
                 {{ t("player.report") }}
               </AoiButton>
             </template>
@@ -387,6 +459,76 @@ useHead(() => ({
           </VideoWatchDetails>
         </template>
       </AoiWatchLayout>
+
+      <AoiDialog
+        :open="reportDialogOpen"
+        :dismissible="!reportSubmitting"
+        @update:open="reportDialogOpen = $event"
+      >
+        <template #headline>
+          {{ t("player.reportDialogTitle") }}
+        </template>
+
+        <form class="video-watch__report-dialog" @submit.prevent="submitReport">
+          <p class="video-watch__report-description">
+            {{ t("player.reportDialogDescription") }}
+          </p>
+          <AoiStatusMessage
+            v-if="reportSubmitError"
+            intent="danger"
+            :message="reportSubmitError"
+          />
+          <AoiStatusMessage
+            v-if="reportReceiptId"
+            intent="success"
+          >
+            <span class="video-watch__report-receipt">
+              <span>{{ t("player.reportSubmitSuccess") }}</span>
+              <code>{{ reportReceiptId }}</code>
+            </span>
+          </AoiStatusMessage>
+          <AoiSelect
+            v-model="reportReasonModel"
+            appearance="outlined"
+            :disabled="reportSubmitting || Boolean(reportReceiptId)"
+            :label="t('player.reportReasonLabel')"
+            :options="reportReasonOptions"
+          />
+          <AoiTextField
+            v-model="reportDetail"
+            appearance="outlined"
+            class="video-watch__report-detail"
+            :disabled="reportSubmitting || Boolean(reportReceiptId)"
+            :label="t('player.reportDetailLabel')"
+            :placeholder="t('player.reportDetailPlaceholder')"
+            :max-length="500"
+            multiline
+            :rows="5"
+          />
+        </form>
+
+        <template #actions>
+          <AoiButton
+            tone="accent"
+            variant="plain"
+            :disabled="reportSubmitting"
+            @click="reportDialogOpen = false"
+          >
+            {{ reportReceiptId ? t("player.reportClose") : t("player.reportCancel") }}
+          </AoiButton>
+          <AoiButton
+            v-if="!reportReceiptId"
+            tone="accent"
+            variant="filled"
+            icon="flag"
+            :disabled="!reportCanSubmit"
+            :loading="reportSubmitting"
+            @click="submitReport"
+          >
+            {{ t("player.reportSubmit") }}
+          </AoiButton>
+        </template>
+      </AoiDialog>
     </article>
 
     <PageState
@@ -468,6 +610,38 @@ useHead(() => ({
   overflow: auto;
   padding-right: 2px;
   scrollbar-width: thin;
+}
+
+.video-watch__report-dialog {
+  display: grid;
+  width: min(520px, calc(100vw - 48px));
+  gap: 12px;
+}
+
+.video-watch__report-description {
+  margin: 0;
+  color: var(--aoi-text-muted);
+  font-size: 13px;
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+
+.video-watch__report-detail {
+  width: 100%;
+}
+
+.video-watch__report-receipt {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.video-watch__report-receipt code {
+  color: inherit;
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 @media (max-width: 1100px) {

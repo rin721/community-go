@@ -100,6 +100,25 @@ export interface CreateVideoDanmakuRequest {
   color: string
 }
 
+export type VideoReportReason = "spam" | "abuse" | "copyright" | "misleading" | "other"
+
+export interface CreateVideoReportRequest {
+  clientId: string
+  reason: VideoReportReason
+  detail: string
+}
+
+export interface CommunityReportReceipt {
+  id: string
+  targetKind: "video"
+  targetId: string
+  videoId: string
+  clientId: string
+  reason: VideoReportReason
+  status: "pending"
+  createdAt: string
+}
+
 export type VideoCommentSortMode = "newest" | "oldest"
 
 export interface VideoComment {

@@ -18,6 +18,14 @@ const (
 	VideoInteractionKindLike       = "like"
 	VideoInteractionKindFavorite   = "favorite"
 	VideoInteractionKindWatchLater = "watch_later"
+
+	CommunityReportTargetVideo      = "video"
+	CommunityReportReasonSpam       = "spam"
+	CommunityReportReasonAbuse      = "abuse"
+	CommunityReportReasonCopyright  = "copyright"
+	CommunityReportReasonMisleading = "misleading"
+	CommunityReportReasonOther      = "other"
+	CommunityReportStatusPending    = "pending"
 )
 
 // UserSummary 是社区公开接口中展示创作者的最小视图。
@@ -65,6 +73,23 @@ type VideoInteraction struct {
 }
 
 func (VideoInteraction) TableName() string { return "community_video_interactions" }
+
+// CommunityReport 保存匿名客户端提交的社区内容举报记录。
+type CommunityReport struct {
+	ID         string     `gorm:"column:id;primaryKey;size:96" json:"id"`
+	TargetKind string     `gorm:"column:target_kind;size:32;not null;index" json:"targetKind"`
+	TargetID   string     `gorm:"column:target_id;size:96;not null;index" json:"targetId"`
+	VideoID    string     `gorm:"column:video_id;size:96;not null;index" json:"videoId"`
+	ClientID   string     `gorm:"column:client_id;size:96;not null;index" json:"clientId"`
+	Reason     string     `gorm:"column:reason;size:32;not null" json:"reason"`
+	Detail     string     `gorm:"column:detail;size:500;not null" json:"detail"`
+	Status     string     `gorm:"column:status;size:32;not null;default:pending" json:"status"`
+	CreatedAt  time.Time  `gorm:"column:created_at;not null" json:"createdAt"`
+	UpdatedAt  time.Time  `gorm:"column:updated_at;not null" json:"updatedAt"`
+	DeletedAt  *time.Time `gorm:"column:deleted_at" json:"-"`
+}
+
+func (CommunityReport) TableName() string { return "community_reports" }
 
 // Category 是社区内容分类的扁平持久化模型。
 type Category struct {
@@ -183,6 +208,12 @@ type CreateVideoDanmakuRequest struct {
 	Color       string `json:"color"`
 }
 
+type CreateVideoReportRequest struct {
+	ClientID string `json:"clientId"`
+	Reason   string `json:"reason"`
+	Detail   string `json:"detail"`
+}
+
 type CreatorFollowRequest struct {
 	ClientID string `json:"clientId"`
 }
@@ -207,6 +238,17 @@ type VideoInteractionState struct {
 	Favorited  bool   `json:"favorited"`
 	WatchLater bool   `json:"watchLater"`
 	LikeCount  int64  `json:"likeCount"`
+}
+
+type CommunityReportReceipt struct {
+	ID         string    `json:"id"`
+	TargetKind string    `json:"targetKind"`
+	TargetID   string    `json:"targetId"`
+	VideoID    string    `json:"videoId"`
+	ClientID   string    `json:"clientId"`
+	Reason     string    `json:"reason"`
+	Status     string    `json:"status"`
+	CreatedAt  time.Time `json:"createdAt"`
 }
 
 type Announcement struct {

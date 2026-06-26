@@ -7601,6 +7601,107 @@
       "tags":
         - "Community"
       "x-scope": "platform"
+  "/api/v1/public/community/videos/{idOrSlug}/reports":
+    "post":
+      "operationId": "community.videos.reports.create"
+      "parameters":
+        -
+          "in": "path"
+          "name": "idOrSlug"
+          "required": true
+          "schema":
+            "type": "string"
+      "requestBody":
+        "content":
+          "application/json":
+            "schema":
+              "properties":
+                "clientId":
+                  "type": "string"
+                "detail":
+                  "type": "string"
+                "reason":
+                  "type": "string"
+              "type": "object"
+        "required": true
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "properties":
+                  "code":
+                    "format": "int32"
+                    "type": "integer"
+                  "data":
+                    "properties":
+                      "clientId":
+                        "type": "string"
+                      "createdAt":
+                        "format": "date-time"
+                        "type": "string"
+                      "id":
+                        "type": "string"
+                      "reason":
+                        "type": "string"
+                      "status":
+                        "type": "string"
+                      "targetId":
+                        "type": "string"
+                      "targetKind":
+                        "type": "string"
+                      "videoId":
+                        "type": "string"
+                    "type": "object"
+                  "message":
+                    "type": "string"
+                  "messageArgs":
+                    "additionalProperties": true
+                    "type": "object"
+                  "messageKey":
+                    "type": "string"
+                  "serverTime":
+                    "format": "int64"
+                    "type": "integer"
+                  "traceId":
+                    "type": "string"
+                "type": "object"
+          "description": "OK"
+        "400":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Bad request"
+        "401":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Unauthorized"
+        "403":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Forbidden"
+        "404":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Not found"
+        "500":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Internal server error"
+      "security": []
+      "summary": "提交社区视频举报"
+      "tags":
+        - "Community"
+      "x-scope": "platform"
   "/api/v1/setup/complete":
     "post":
       "operationId": "setup.complete"

@@ -2,6 +2,7 @@ import type {
   Announcement,
   Category,
   CategoryTreeNode,
+  CommunityReportReceipt,
   CreatorFollowState,
   CreatorProfile,
   FollowingFeedPayload,
@@ -10,10 +11,12 @@ import type {
   CreatorFollowRequest,
   CreateVideoCommentRequest,
   CreateVideoDanmakuRequest,
+  CreateVideoReportRequest,
   VideoInteractionKind,
   VideoInteractionRequest,
   VideoInteractionState,
   VideoLibraryPayload,
+  VideoReportReason,
   VideoDanmakuItem,
   VideoDanmakuMode,
   VideoDanmakuPayload,
@@ -675,6 +678,7 @@ const mockVideoComments: Record<string, VideoComment[]> = {
 }
 
 const mockVideoDanmaku: Record<string, VideoDanmakuItem[]> = {}
+const mockVideoReports: CommunityReportReceipt[] = []
 
 export function getMockVideoDanmaku(idOrSlug: string): VideoDanmakuPayload | null {
   const video = mockVideos.find((item) => item.id === idOrSlug || item.slug === idOrSlug)
@@ -794,6 +798,36 @@ export function createMockVideoComment(idOrSlug: string, payload: CreateVideoCom
   return comment
 }
 
+export function createMockVideoReport(idOrSlug: string, payload: CreateVideoReportRequest): CommunityReportReceipt | null {
+  const video = mockVideos.find((item) => item.id === idOrSlug || item.slug === idOrSlug)
+
+  if (!video) {
+    return null
+  }
+
+  const clientId = payload.clientId.trim().slice(0, 96)
+  const reason = normalizeMockVideoReportReason(payload.reason)
+
+  if (!clientId || !reason) {
+    return null
+  }
+
+  const receipt: CommunityReportReceipt = {
+    id: `report-${video.id}-${Date.now().toString(36)}`,
+    targetKind: "video",
+    targetId: video.id,
+    videoId: video.id,
+    clientId,
+    reason,
+    status: "pending",
+    createdAt: new Date().toISOString()
+  }
+
+  mockVideoReports.push(receipt)
+
+  return receipt
+}
+
 function matchesVideo(video: VideoSummary, normalizedQuery: string) {
   const haystack = [
     video.title,
@@ -832,6 +866,16 @@ function normalizeMockDanmakuTime(value: unknown, durationSeconds: number) {
   }
 
   return Math.min(maxSecond, Math.max(0, Math.round(next)))
+}
+
+function normalizeMockVideoReportReason(value: unknown): VideoReportReason | null {
+  return value === "spam"
+    || value === "abuse"
+    || value === "copyright"
+    || value === "misleading"
+    || value === "other"
+    ? value
+    : null
 }
 
 function isMockVideoInteractionKind(value: string): value is VideoInteractionKind {

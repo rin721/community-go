@@ -34,8 +34,11 @@ const props = withDefaults(defineProps<{
   margin: 0;
   border: 1px solid var(--aoi-border);
   border-radius: var(--aoi-radius-card);
+  min-width: 0;
+  overflow-wrap: anywhere;
   line-height: 1.7;
   padding: 10px 12px;
+  word-break: break-word;
 }
 
 .aoi-status-message--success {

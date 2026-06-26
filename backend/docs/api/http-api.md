@@ -28,7 +28,7 @@ Authorization: Bearer <accessToken-or-api-token>
 | Auth | `/api/v1/auth/*`、`/api/v1/me*`、`/api/v1/invitations/*` | 登录、注册、MFA、找回密码、当前用户、邀请 |
 | IAM | `/api/v1/orgs/*`、`/api/v1/iam/notification-outbox*` | 组织、用户、角色、权限、API Token、会话、审计、脱敏通知投递队列和手动重试 |
 | Announcements | `/api/v1/announcements*`、`/api/v1/public/announcements*` | 公告后台管理，以及公开只读已发布公告列表和详情 |
-| Community | `/api/v1/public/community/*` | Nuxt 视频社区公开数据：首页、分类、视频、弹幕、评论、搜索、创作者资料、匿名关注和关注动态 |
+| Community | `/api/v1/public/community/*` | Nuxt 视频社区公开数据：首页、分类、视频、弹幕、评论、视频举报、搜索、创作者资料、匿名关注、视频互动和关注动态 |
 | System | `/api/v1/system/*` | 菜单、配置、服务信息、API catalog、操作记录、媒体、版本、参数、字典、流量探针 |
 
 ## 维护规则

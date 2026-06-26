@@ -271,6 +271,43 @@ func TestServiceVideoInteractionRejectsMissingClientID(t *testing.T) {
 	}
 }
 
+func TestServiceCreateVideoReportPersistsPendingReceipt(t *testing.T) {
+	repo := newFakeRepository()
+	svc := New(repo, Config{
+		NewID: func() string { return "unit-report" },
+		Now:   fixedNow,
+	})
+
+	receipt, err := svc.CreateVideoReport(context.Background(), "aoi-alpha", model.CreateVideoReportRequest{
+		ClientID: " browser-client-1 ",
+		Reason:   model.CommunityReportReasonMisleading,
+		Detail:   "  标题和内容不一致  ",
+	})
+	if err != nil {
+		t.Fatalf("CreateVideoReport() error = %v", err)
+	}
+	if receipt.ID != "report-unit-report" || receipt.VideoID != "video-aoi-alpha" || receipt.TargetKind != model.CommunityReportTargetVideo {
+		t.Fatalf("unexpected report receipt: %#v", receipt)
+	}
+	if receipt.ClientID != "browser-client-1" || receipt.Reason != model.CommunityReportReasonMisleading || receipt.Status != model.CommunityReportStatusPending {
+		t.Fatalf("expected normalized pending receipt, got %#v", receipt)
+	}
+	if len(repo.reports) != 1 || repo.reports[0].Detail != "标题和内容不一致" {
+		t.Fatalf("expected persisted normalized report, got %#v", repo.reports)
+	}
+}
+
+func TestServiceCreateVideoReportRejectsInvalidInput(t *testing.T) {
+	svc := New(newFakeRepository(), Config{Now: fixedNow})
+
+	if _, err := svc.CreateVideoReport(context.Background(), "aoi-alpha", model.CreateVideoReportRequest{Reason: model.CommunityReportReasonSpam}); err != ErrInvalidInput {
+		t.Fatalf("expected ErrInvalidInput for missing client id, got %v", err)
+	}
+	if _, err := svc.CreateVideoReport(context.Background(), "aoi-alpha", model.CreateVideoReportRequest{ClientID: "browser-client-1", Reason: "unknown"}); err != ErrInvalidInput {
+		t.Fatalf("expected ErrInvalidInput for invalid reason, got %v", err)
+	}
+}
+
 type fakeRepository struct {
 	categories    []model.Category
 	creators      []model.Creator
@@ -280,6 +317,7 @@ type fakeRepository struct {
 	danmaku       map[string][]model.VideoDanmakuItem
 	follows       map[string][]model.CreatorFollow
 	interactions  map[string][]model.VideoInteraction
+	reports       []model.CommunityReport
 	sources       map[string][]model.VideoSourceOption
 	tags          map[string][]string
 }
@@ -440,6 +478,11 @@ func (r *fakeRepository) CreateVideoComment(_ context.Context, comment model.Vid
 
 func (r *fakeRepository) CreateVideoDanmaku(_ context.Context, item model.VideoDanmakuItem) error {
 	r.danmaku[item.VideoID] = append(r.danmaku[item.VideoID], item)
+	return nil
+}
+
+func (r *fakeRepository) CreateCommunityReport(_ context.Context, report model.CommunityReport) error {
+	r.reports = append(r.reports, report)
 	return nil
 }
 

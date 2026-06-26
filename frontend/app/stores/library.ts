@@ -479,6 +479,7 @@ export const useLibraryStore = defineStore("library", () => {
     history,
     historyVideos,
     hydrated,
+    ensureClientId,
     isFavorite,
     isLiked,
     isPending,

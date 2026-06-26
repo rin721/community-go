@@ -41,6 +41,7 @@ type Service interface {
 	UnsetVideoInteraction(context.Context, string, string, model.VideoInteractionRequest) (model.VideoInteractionState, error)
 	CreateVideoComment(context.Context, string, model.CreateVideoCommentRequest) (model.VideoComment, error)
 	CreateVideoDanmaku(context.Context, string, model.CreateVideoDanmakuRequest) (model.VideoDanmakuItem, error)
+	CreateVideoReport(context.Context, string, model.CreateVideoReportRequest) (model.CommunityReportReceipt, error)
 }
 
 // Repository 是社区服务需要的最小持久化端口。
@@ -52,6 +53,7 @@ type Repository interface {
 	CountVideoComments(context.Context, string) (int, error)
 	CreateVideoComment(context.Context, model.VideoComment) error
 	CreateVideoDanmaku(context.Context, model.VideoDanmakuItem) error
+	CreateCommunityReport(context.Context, model.CommunityReport) error
 	FollowCreator(context.Context, model.CreatorFollow) error
 	SetVideoInteraction(context.Context, model.VideoInteraction) error
 	ListCategories(context.Context) ([]model.Category, error)
@@ -109,6 +111,7 @@ func (s *service) CommunityStatus(context.Context) model.APIStatus {
 			"/videos/:idOrSlug/interactions/:kind",
 			"/videos/:idOrSlug/comments",
 			"/videos/:idOrSlug/danmaku",
+			"/videos/:idOrSlug/reports",
 			"/search",
 			"/users/:handle",
 			"/users/:handle/follow-state",
@@ -302,6 +305,41 @@ func (s *service) CreateVideoDanmaku(ctx context.Context, idOrSlug string, req m
 		return model.VideoDanmakuItem{}, mapStorageError(err)
 	}
 	return item, nil
+}
+
+func (s *service) CreateVideoReport(ctx context.Context, idOrSlug string, req model.CreateVideoReportRequest) (model.CommunityReportReceipt, error) {
+	if s.repo == nil {
+		return model.CommunityReportReceipt{}, ErrStorageUnavailable
+	}
+	clientID, err := normalizeCommunityClientID(req.ClientID)
+	if err != nil {
+		return model.CommunityReportReceipt{}, err
+	}
+	reason, err := normalizeReportReason(req.Reason)
+	if err != nil {
+		return model.CommunityReportReceipt{}, err
+	}
+	video, err := s.repo.FindVideoByIDOrSlug(ctx, strings.TrimSpace(idOrSlug))
+	if err != nil {
+		return model.CommunityReportReceipt{}, mapStorageError(err)
+	}
+	now := s.now()
+	report := model.CommunityReport{
+		ID:         s.newReportID(),
+		TargetKind: model.CommunityReportTargetVideo,
+		TargetID:   video.ID,
+		VideoID:    video.ID,
+		ClientID:   clientID,
+		Reason:     reason,
+		Detail:     normalizeReportDetail(req.Detail),
+		Status:     model.CommunityReportStatusPending,
+		CreatedAt:  now,
+		UpdatedAt:  now,
+	}
+	if err := s.repo.CreateCommunityReport(ctx, report); err != nil {
+		return model.CommunityReportReceipt{}, mapStorageError(err)
+	}
+	return reportReceipt(report), nil
 }
 
 func (s *service) GetVideoInteractionState(ctx context.Context, idOrSlug string, req model.VideoInteractionRequest) (model.VideoInteractionState, error) {
@@ -991,6 +1029,31 @@ func normalizeDanmakuTime(value int, durationSeconds int) int {
 	return value
 }
 
+func normalizeReportReason(value string) (string, error) {
+	switch strings.TrimSpace(value) {
+	case model.CommunityReportReasonSpam:
+		return model.CommunityReportReasonSpam, nil
+	case model.CommunityReportReasonAbuse:
+		return model.CommunityReportReasonAbuse, nil
+	case model.CommunityReportReasonCopyright:
+		return model.CommunityReportReasonCopyright, nil
+	case model.CommunityReportReasonMisleading:
+		return model.CommunityReportReasonMisleading, nil
+	case model.CommunityReportReasonOther:
+		return model.CommunityReportReasonOther, nil
+	default:
+		return "", ErrInvalidInput
+	}
+}
+
+func normalizeReportDetail(value string) string {
+	value = strings.TrimSpace(value)
+	if len([]rune(value)) > 500 {
+		value = string([]rune(value)[:500])
+	}
+	return value
+}
+
 func normalizeCommunityClientID(value string) (string, error) {
 	value = strings.TrimSpace(value)
 	if value == "" || len([]rune(value)) > 96 {
@@ -1041,6 +1104,19 @@ func mapStorageError(err error) error {
 	return err
 }
 
+func reportReceipt(report model.CommunityReport) model.CommunityReportReceipt {
+	return model.CommunityReportReceipt{
+		ID:         report.ID,
+		TargetKind: report.TargetKind,
+		TargetID:   report.TargetID,
+		VideoID:    report.VideoID,
+		ClientID:   report.ClientID,
+		Reason:     report.Reason,
+		Status:     report.Status,
+		CreatedAt:  report.CreatedAt,
+	}
+}
+
 func communityAnnouncement(now func() time.Time) *model.Announcement {
 	return &model.Announcement{
 		ID:       "community-live-data",
@@ -1077,4 +1153,15 @@ func (s *service) newDanmakuID() string {
 		return raw
 	}
 	return "danmaku-" + raw
+}
+
+func (s *service) newReportID() string {
+	raw := strings.TrimSpace(s.cfg.NewID())
+	if raw == "" {
+		raw = strconv.FormatInt(s.now().UnixNano(), 10)
+	}
+	if strings.HasPrefix(raw, "report-") {
+		return raw
+	}
+	return "report-" + raw
 }

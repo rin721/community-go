@@ -3,9 +3,11 @@ import type {
   ApiResultEnvelope,
   ApiStatus,
   CategoryTreeNode,
+  CommunityReportReceipt,
   CreatorFollowState,
   CreateVideoCommentRequest,
   CreateVideoDanmakuRequest,
+  CreateVideoReportRequest,
   CreatorFollowRequest,
   CreatorProfile,
   ErrorResponse,
@@ -111,6 +113,13 @@ export function useAoiApi() {
     })
   }
 
+  async function createVideoReport(idOrSlug: string, body: CreateVideoReportRequest): Promise<CommunityReportReceipt> {
+    return await request<CommunityReportReceipt>(`/videos/${encodeURIComponent(idOrSlug)}/reports`, {
+      body,
+      method: "POST"
+    })
+  }
+
   async function getVideoComments(idOrSlug: string, params: {
     limit?: number
     sort?: VideoCommentSortMode
@@ -201,6 +210,7 @@ export function useAoiApi() {
     getHomePayload,
     createVideoComment,
     createVideoDanmaku,
+    createVideoReport,
     getVideoDanmaku,
     getVideoComments,
     getVideoDetail,

@@ -7,9 +7,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/open-console/console-platform/internal/middleware"
 	"github.com/open-console/console-platform/internal/modules/community/model"
 	"github.com/open-console/console-platform/internal/modules/community/service"
 	"github.com/open-console/console-platform/internal/ports"
+	authtypes "github.com/open-console/console-platform/types/auth"
 	"github.com/open-console/console-platform/types/result"
 )
 
@@ -76,6 +78,32 @@ func (h *Handler) CreateSubmission(c ports.HTTPContext) {
 		return
 	}
 	item, err := h.service.CreateCommunitySubmission(c.RequestContext(), req)
+	writeOK(c, item, err, h.writeError)
+}
+
+func (h *Handler) AccountSubmissions(c ports.HTTPContext) {
+	principal, ok := requirePrincipal(c)
+	if !ok {
+		return
+	}
+	limit, ok := parseIntQuery(c, "limit", 24)
+	if !ok {
+		return
+	}
+	payload, err := h.service.ListCommunityAccountSubmissions(c.RequestContext(), principal, limit)
+	writeOK(c, payload, err, h.writeError)
+}
+
+func (h *Handler) CreateAccountSubmission(c ports.HTTPContext) {
+	principal, ok := requirePrincipal(c)
+	if !ok {
+		return
+	}
+	var req model.CreateCommunityAccountSubmissionRequest
+	if !bind(c, &req) {
+		return
+	}
+	item, err := h.service.CreateCommunityAccountSubmission(c.RequestContext(), principal, req)
 	writeOK(c, item, err, h.writeError)
 }
 
@@ -282,6 +310,15 @@ func (h *Handler) writeError(c ports.HTTPContext, err error) {
 		}
 		result.InternalError(c, result.MessageKeyInternalError)
 	}
+}
+
+func requirePrincipal(c ports.HTTPContext) (authtypes.Principal, bool) {
+	principal, ok := middleware.GetPrincipal(c)
+	if !ok {
+		result.Unauthorized(c, "api.auth.missingPrincipal")
+		return authtypes.Principal{}, false
+	}
+	return principal, true
 }
 
 func queryValue(c ports.HTTPContext, key string) string {

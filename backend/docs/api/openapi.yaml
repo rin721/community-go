@@ -4990,6 +4990,289 @@
       "tags":
         - "Announcements"
       "x-scope": "platform"
+  "/api/v1/public/community/account/submissions":
+    "get":
+      "operationId": "community.account.submissions.list"
+      "parameters":
+        -
+          "in": "query"
+          "name": "limit"
+          "required": false
+          "schema":
+            "format": "int32"
+            "type": "integer"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "properties":
+                  "code":
+                    "format": "int32"
+                    "type": "integer"
+                  "data":
+                    "properties":
+                      "authenticated":
+                        "type": "boolean"
+                      "clientId":
+                        "type": "string"
+                      "items":
+                        "properties":
+                          "items":
+                            "items":
+                              "properties":
+                                "allowComments":
+                                  "type": "boolean"
+                                "authorName":
+                                  "type": "string"
+                                "category":
+                                  "properties":
+                                    "accentColor":
+                                      "type": "string"
+                                    "description":
+                                      "type": "string"
+                                    "id":
+                                      "type": "string"
+                                    "name":
+                                      "type": "string"
+                                    "order":
+                                      "format": "int32"
+                                      "type": "integer"
+                                    "parentSlug":
+                                      "type": "string"
+                                    "slug":
+                                      "type": "string"
+                                  "type": "object"
+                                "categorySlug":
+                                  "type": "string"
+                                "clientId":
+                                  "type": "string"
+                                "createdAt":
+                                  "format": "date-time"
+                                  "type": "string"
+                                "description":
+                                  "type": "string"
+                                "id":
+                                  "type": "string"
+                                "sensitive":
+                                  "type": "boolean"
+                                "sourceName":
+                                  "type": "string"
+                                "sourceSize":
+                                  "format": "int64"
+                                  "type": "integer"
+                                "sourceType":
+                                  "type": "string"
+                                "status":
+                                  "type": "string"
+                                "tags":
+                                  "items":
+                                    "type": "string"
+                                  "type": "array"
+                                "title":
+                                  "type": "string"
+                                "visibility":
+                                  "type": "string"
+                              "type": "object"
+                            "type": "array"
+                          "nextCursor":
+                            "type": "string"
+                        "type": "object"
+                      "message":
+                        "type": "string"
+                    "type": "object"
+                  "message":
+                    "type": "string"
+                  "messageArgs":
+                    "additionalProperties": true
+                    "type": "object"
+                  "messageKey":
+                    "type": "string"
+                  "serverTime":
+                    "format": "int64"
+                    "type": "integer"
+                  "traceId":
+                    "type": "string"
+                "type": "object"
+          "description": "OK"
+        "400":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Bad request"
+        "401":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Unauthorized"
+        "403":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Forbidden"
+        "404":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Not found"
+        "500":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Internal server error"
+      "summary": "查询社区账号投稿记录"
+      "tags":
+        - "Community"
+      "x-scope": "tenant"
+    "post":
+      "operationId": "community.account.submissions.create"
+      "requestBody":
+        "content":
+          "application/json":
+            "schema":
+              "properties":
+                "allowComments":
+                  "type": "boolean"
+                "categorySlug":
+                  "type": "string"
+                "description":
+                  "type": "string"
+                "sensitive":
+                  "type": "boolean"
+                "sourceName":
+                  "type": "string"
+                "sourceSize":
+                  "format": "int64"
+                  "type": "integer"
+                "sourceType":
+                  "type": "string"
+                "tags":
+                  "items":
+                    "type": "string"
+                  "type": "array"
+                "title":
+                  "type": "string"
+                "visibility":
+                  "type": "string"
+              "type": "object"
+        "required": true
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "properties":
+                  "code":
+                    "format": "int32"
+                    "type": "integer"
+                  "data":
+                    "properties":
+                      "allowComments":
+                        "type": "boolean"
+                      "authorName":
+                        "type": "string"
+                      "category":
+                        "properties":
+                          "accentColor":
+                            "type": "string"
+                          "description":
+                            "type": "string"
+                          "id":
+                            "type": "string"
+                          "name":
+                            "type": "string"
+                          "order":
+                            "format": "int32"
+                            "type": "integer"
+                          "parentSlug":
+                            "type": "string"
+                          "slug":
+                            "type": "string"
+                        "type": "object"
+                      "categorySlug":
+                        "type": "string"
+                      "clientId":
+                        "type": "string"
+                      "createdAt":
+                        "format": "date-time"
+                        "type": "string"
+                      "description":
+                        "type": "string"
+                      "id":
+                        "type": "string"
+                      "sensitive":
+                        "type": "boolean"
+                      "sourceName":
+                        "type": "string"
+                      "sourceSize":
+                        "format": "int64"
+                        "type": "integer"
+                      "sourceType":
+                        "type": "string"
+                      "status":
+                        "type": "string"
+                      "tags":
+                        "items":
+                          "type": "string"
+                        "type": "array"
+                      "title":
+                        "type": "string"
+                      "visibility":
+                        "type": "string"
+                    "type": "object"
+                  "message":
+                    "type": "string"
+                  "messageArgs":
+                    "additionalProperties": true
+                    "type": "object"
+                  "messageKey":
+                    "type": "string"
+                  "serverTime":
+                    "format": "int64"
+                    "type": "integer"
+                  "traceId":
+                    "type": "string"
+                "type": "object"
+          "description": "OK"
+        "400":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Bad request"
+        "401":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Unauthorized"
+        "403":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Forbidden"
+        "404":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Not found"
+        "500":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Internal server error"
+      "summary": "提交社区账号投稿元数据"
+      "tags":
+        - "Community"
+      "x-scope": "tenant"
   "/api/v1/public/community/auth/login":
     "post":
       "operationId": "community.auth.login"

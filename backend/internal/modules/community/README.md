@@ -38,7 +38,12 @@
 公开接口统一位于 `/api/v1/public/community`：
 
 - `GET /status`
+- `POST /auth/login`
+- `POST /auth/logout`
+- `GET /auth/session`
 - `POST /auth/signup`
+- `GET /account/submissions`
+- `POST /account/submissions`
 - `GET /home`
 - `GET /categories`
 - `GET /videos`

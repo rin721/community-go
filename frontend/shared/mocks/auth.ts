@@ -17,6 +17,7 @@ type MockCommunityAccount = {
 }
 
 const mockCommunityAccountsByEmail = new Map<string, MockCommunityAccount>()
+const mockCommunityAccountsById = new Map<string, MockCommunityAccount>()
 const mockCommunityAccountsByUsername = new Map<string, MockCommunityAccount>()
 const mockCommunitySessions = new Map<string, AuthSessionSnapshot>()
 
@@ -87,6 +88,25 @@ export function clearMockCommunitySession(sessionId: string) {
   mockCommunitySessions.delete(sessionId)
 }
 
+export function getMockCommunityAccountForSession(sessionId: string) {
+  const session = getMockCommunitySession(sessionId)
+
+  if (!session) {
+    return null
+  }
+
+  const account = mockCommunityAccountsById.get(session.userId)
+
+  if (!account) {
+    return null
+  }
+
+  return {
+    authorName: account.displayName,
+    clientId: `account:${account.id}`
+  }
+}
+
 function seedMockCommunityAccount(input: Omit<MockCommunityAccount, "createdAt" | "id">) {
   registerMockCommunityAccount(input)
 }
@@ -101,6 +121,7 @@ function registerMockCommunityAccount(input: Omit<MockCommunityAccount, "created
 
   mockCommunityAccountsByUsername.set(account.username, account)
   mockCommunityAccountsByEmail.set(account.email, account)
+  mockCommunityAccountsById.set(account.id, account)
 
   return account
 }

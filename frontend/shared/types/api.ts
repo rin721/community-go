@@ -228,6 +228,8 @@ export interface CreateCommunitySubmissionRequest {
   sensitive: boolean
 }
 
+export type CreateCommunityAccountSubmissionRequest = Omit<CreateCommunitySubmissionRequest, "authorName" | "clientId">
+
 export interface CommunitySubmissionItem {
   id: string
   clientId: string

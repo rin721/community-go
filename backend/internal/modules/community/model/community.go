@@ -352,6 +352,19 @@ type CreateCommunitySubmissionRequest struct {
 	Sensitive     bool     `json:"sensitive"`
 }
 
+type CreateCommunityAccountSubmissionRequest struct {
+	Title         string   `json:"title"`
+	Description   string   `json:"description"`
+	CategorySlug  string   `json:"categorySlug"`
+	Tags          []string `json:"tags"`
+	Visibility    string   `json:"visibility"`
+	SourceName    string   `json:"sourceName"`
+	SourceSize    int64    `json:"sourceSize"`
+	SourceType    string   `json:"sourceType"`
+	AllowComments bool     `json:"allowComments"`
+	Sensitive     bool     `json:"sensitive"`
+}
+
 type CommunityDynamicFilter struct {
 	ClientID   string
 	CreatorIDs []string

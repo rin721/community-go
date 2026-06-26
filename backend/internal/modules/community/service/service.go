@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/open-console/console-platform/internal/modules/community/model"
+	authtypes "github.com/open-console/console-platform/types/auth"
 )
 
 var (
@@ -43,6 +44,8 @@ type Service interface {
 	CreateCommunityDynamic(context.Context, model.CreateCommunityDynamicRequest) (model.CommunityDynamicItem, error)
 	ListCommunitySubmissions(context.Context, model.CommunitySubmissionFilter) (model.CommunitySubmissionPayload, error)
 	CreateCommunitySubmission(context.Context, model.CreateCommunitySubmissionRequest) (model.CommunitySubmissionItem, error)
+	ListCommunityAccountSubmissions(context.Context, authtypes.Principal, int) (model.CommunitySubmissionPayload, error)
+	CreateCommunityAccountSubmission(context.Context, authtypes.Principal, model.CreateCommunityAccountSubmissionRequest) (model.CommunitySubmissionItem, error)
 	FollowCreator(context.Context, string, model.CreatorFollowRequest) (model.CreatorFollowState, error)
 	UnfollowCreator(context.Context, string, model.CreatorFollowRequest) (model.CreatorFollowState, error)
 	SetVideoInteraction(context.Context, string, string, model.VideoInteractionRequest) (model.VideoInteractionState, error)
@@ -123,7 +126,11 @@ func (s *service) CommunityStatus(context.Context) model.APIStatus {
 		LatencyMs:   0,
 		Endpoints: []string{
 			"/status",
+			"/auth/login",
+			"/auth/logout",
+			"/auth/session",
 			"/auth/signup",
+			"/account/submissions",
 			"/home",
 			"/dynamics",
 			"/submissions",
@@ -988,6 +995,45 @@ func (s *service) CreateCommunitySubmission(ctx context.Context, req model.Creat
 	return items[0], nil
 }
 
+func (s *service) ListCommunityAccountSubmissions(ctx context.Context, principal authtypes.Principal, limit int) (model.CommunitySubmissionPayload, error) {
+	clientID, err := communityAccountClientID(principal)
+	if err != nil {
+		return model.CommunitySubmissionPayload{}, err
+	}
+	payload, err := s.ListCommunitySubmissions(ctx, model.CommunitySubmissionFilter{
+		ClientID: clientID,
+		Limit:    limit,
+	})
+	if err != nil {
+		return model.CommunitySubmissionPayload{}, err
+	}
+	payload.Authenticated = true
+	message := "Community account submissions are stored in the shared review queue."
+	payload.Message = &message
+	return payload, nil
+}
+
+func (s *service) CreateCommunityAccountSubmission(ctx context.Context, principal authtypes.Principal, req model.CreateCommunityAccountSubmissionRequest) (model.CommunitySubmissionItem, error) {
+	clientID, err := communityAccountClientID(principal)
+	if err != nil {
+		return model.CommunitySubmissionItem{}, err
+	}
+	return s.CreateCommunitySubmission(ctx, model.CreateCommunitySubmissionRequest{
+		AllowComments: req.AllowComments,
+		AuthorName:    communityAccountAuthorName(principal),
+		CategorySlug:  req.CategorySlug,
+		ClientID:      clientID,
+		Description:   req.Description,
+		Sensitive:     req.Sensitive,
+		SourceName:    req.SourceName,
+		SourceSize:    req.SourceSize,
+		SourceType:    req.SourceType,
+		Tags:          req.Tags,
+		Title:         req.Title,
+		Visibility:    req.Visibility,
+	})
+}
+
 func (s *service) createNotification(ctx context.Context, notification model.CommunityNotification) error {
 	if s.repo == nil {
 		return ErrStorageUnavailable
@@ -1837,6 +1883,25 @@ func normalizeCommunityClientID(value string) (string, error) {
 		return "", ErrInvalidInput
 	}
 	return value, nil
+}
+
+func communityAccountClientID(principal authtypes.Principal) (string, error) {
+	if principal.UserID <= 0 {
+		return "", ErrInvalidInput
+	}
+	return normalizeCommunityClientID("account:" + strconv.FormatInt(principal.UserID, 10))
+}
+
+func communityAccountAuthorName(principal authtypes.Principal) string {
+	if name := normalizeCommentAuthor(principal.Username); name != "" {
+		return name
+	}
+	if emailName, _, ok := strings.Cut(strings.TrimSpace(principal.Email), "@"); ok {
+		if name := normalizeCommentAuthor(emailName); name != "" {
+			return name
+		}
+	}
+	return normalizeCommentAuthor("user-" + strconv.FormatInt(principal.UserID, 10))
 }
 
 func normalizeLimit(value int, fallback int) int {

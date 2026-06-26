@@ -11,6 +11,7 @@ import type {
   CommunitySubmissionItem,
   CommunitySubmissionPayload,
   CreatorFollowState,
+  CreateCommunityAccountSubmissionRequest,
   CreateCommunityDynamicRequest,
   CreateCommunitySubmissionRequest,
   CreateVideoCommentRequest,
@@ -106,6 +107,19 @@ export function useAoiApi() {
 
   async function createCommunitySubmission(body: CreateCommunitySubmissionRequest): Promise<CommunitySubmissionItem> {
     return await request<CommunitySubmissionItem>("/submissions", {
+      body,
+      method: "POST"
+    })
+  }
+
+  async function getCommunityAccountSubmissions(limit = 24): Promise<CommunitySubmissionPayload> {
+    return await request<CommunitySubmissionPayload>("/account/submissions", {
+      query: { limit }
+    })
+  }
+
+  async function createCommunityAccountSubmission(body: CreateCommunityAccountSubmissionRequest): Promise<CommunitySubmissionItem> {
+    return await request<CommunitySubmissionItem>("/account/submissions", {
       body,
       method: "POST"
     })
@@ -289,9 +303,11 @@ export function useAoiApi() {
     getVideoHistory,
     getVideoLibrary,
     followCreator,
+    createCommunityAccountSubmission,
     createCommunityDynamic,
     createCommunitySubmission,
     getHomePayload,
+    getCommunityAccountSubmissions,
     getCommunityNotifications,
     getCommunitySubmissions,
     createVideoComment,

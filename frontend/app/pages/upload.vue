@@ -14,6 +14,7 @@ import {
 type UploadStatusIntent = "danger" | "success"
 
 const api = useAoiApi()
+const authSession = useAuthSessionStore()
 const drafts = useUploadDraftStore()
 const library = useLibraryStore()
 const { locale, t } = useI18n()
@@ -65,10 +66,19 @@ const selectedCategoryName = computed(() => {
 const lastSavedLabel = computed(() => activeDraft.value
   ? formatDate(activeDraft.value.updatedAt)
   : t("upload.emptyValue"))
+const communityAccountActive = computed(() => authSession.authenticated)
+const submissionAuthorField = computed({
+  get: () => communityAccountActive.value ? t("upload.fields.accountAuthor") : submissionAuthorName.value,
+  set: (value: string) => {
+    if (!communityAccountActive.value) {
+      submissionAuthorName.value = value
+    }
+  }
+})
 const canSubmit = computed(() => Boolean(
   activeDraft.value?.source &&
   validation.value.ready &&
-  submissionAuthorName.value.trim() &&
+  (communityAccountActive.value || submissionAuthorName.value.trim()) &&
   !submitting.value
 ))
 const submitStatusMessage = computed(() => {
@@ -166,7 +176,7 @@ watch(() => drafts.hydrated, (hydrated) => {
 
 onMounted(() => {
   submissionAuthorName.value = submissionAuthorName.value || t("upload.defaultAuthor")
-  void refreshSubmissions()
+  void refreshSessionAndSubmissions()
 })
 
 function onFileSelected(files: File[]) {
@@ -198,6 +208,13 @@ function addTag(event?: KeyboardEvent) {
   tagInput.value = ""
 }
 
+async function refreshSessionAndSubmissions() {
+  if (!authSession.hydrated) {
+    await authSession.refreshSession({ silent: true })
+  }
+  await refreshSubmissions()
+}
+
 function removeTag(tag: string) {
   if (!activeDraft.value) {
     return
@@ -220,11 +237,9 @@ async function submitActiveDraft() {
   submissionError.value = null
 
   try {
-    const item = await api.createCommunitySubmission({
+    const submission = {
       allowComments: draft.allowComments,
-      authorName: submissionAuthorName.value.trim(),
       categorySlug: draft.categorySlug,
-      clientId: ensureCommunityClientId(),
       description: draft.description,
       sensitive: draft.sensitive,
       sourceName: source.name,
@@ -233,7 +248,14 @@ async function submitActiveDraft() {
       tags: draft.tags,
       title: draft.title,
       visibility: draft.visibility as CommunitySubmissionVisibility
-    })
+    }
+    const item = communityAccountActive.value
+      ? await api.createCommunityAccountSubmission(submission)
+      : await api.createCommunitySubmission({
+          ...submission,
+          authorName: submissionAuthorName.value.trim(),
+          clientId: ensureCommunityClientId()
+        })
     submissionReceipt.value = item
     drafts.updateDraft(draft.id, {
       status: "submitted",
@@ -257,7 +279,9 @@ async function refreshSubmissions() {
   submissionsPending.value = true
   submissionsError.value = null
   try {
-    const payload = await api.getCommunitySubmissions(ensureCommunityClientId(), 12)
+    const payload = communityAccountActive.value
+      ? await api.getCommunityAccountSubmissions(12)
+      : await api.getCommunitySubmissions(ensureCommunityClientId(), 12)
     submissions.value = payload.items.items
   } catch (error) {
     submissions.value = []
@@ -271,7 +295,7 @@ async function refreshSubmissions() {
 async function refreshUploadData() {
   await Promise.all([
     refreshCategories(),
-    refreshSubmissions()
+    refreshSessionAndSubmissions()
   ])
 }
 
@@ -509,11 +533,12 @@ useHead(() => ({
                 :supporting-text="t('upload.fields.titleHelp')"
               />
               <AoiTextField
-                v-model="submissionAuthorName"
+                v-model="submissionAuthorField"
                 :label="t('upload.fields.author')"
                 appearance="outlined"
                 :placeholder="t('upload.fields.authorPlaceholder')"
-                :supporting-text="t('upload.fields.authorHelp')"
+                :supporting-text="communityAccountActive ? t('upload.fields.accountAuthorHelp') : t('upload.fields.authorHelp')"
+                :disabled="communityAccountActive"
               />
             </div>
 

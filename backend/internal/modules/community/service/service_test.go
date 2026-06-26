@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/open-console/console-platform/internal/modules/community/model"
+	authtypes "github.com/open-console/console-platform/types/auth"
 )
 
 func TestServiceHomePayloadBuildsCategoryTreeAndVideos(t *testing.T) {
@@ -351,6 +352,43 @@ func TestServiceCommunitySubmissionRejectsInvalidInput(t *testing.T) {
 		if _, err := svc.CreateCommunitySubmission(context.Background(), req); err != ErrInvalidInput {
 			t.Fatalf("%s: expected ErrInvalidInput, got %v", name, err)
 		}
+	}
+}
+
+func TestServiceCommunityAccountSubmissionUsesPrincipalIdentity(t *testing.T) {
+	repo := newFakeRepository()
+	svc := New(repo, Config{
+		NewID: func() string { return "account-submission" },
+		Now:   fixedNow,
+	})
+	principal := authtypes.Principal{
+		UserID:   42,
+		Username: "Rin Creator",
+		Email:    "rin@example.com",
+	}
+
+	item, err := svc.CreateCommunityAccountSubmission(context.Background(), principal, model.CreateCommunityAccountSubmissionRequest{
+		AllowComments: true,
+		CategorySlug:  "design",
+		SourceName:    "account-preview.mp4",
+		SourceSize:    2048,
+		SourceType:    "video/mp4",
+		Title:         "Account preview upload",
+		Visibility:    model.CommunitySubmissionVisibilityPublic,
+	})
+	if err != nil {
+		t.Fatalf("CreateCommunityAccountSubmission() error = %v", err)
+	}
+	if item.ClientID != "account:42" || item.AuthorName != "Rin Creator" {
+		t.Fatalf("expected account identity, got %#v", item)
+	}
+
+	payload, err := svc.ListCommunityAccountSubmissions(context.Background(), principal, 12)
+	if err != nil {
+		t.Fatalf("ListCommunityAccountSubmissions() error = %v", err)
+	}
+	if !payload.Authenticated || payload.ClientID == nil || *payload.ClientID != "account:42" || len(payload.Items.Items) != 1 {
+		t.Fatalf("expected authenticated account submissions, got %#v", payload)
 	}
 }
 

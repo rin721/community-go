@@ -347,7 +347,19 @@ func registerCommunityRoutes(v1 ports.HTTPRouter, deps RouterDeps) []RouteContra
 		routeSpecFor("community.history.clear", deps.CommunityHandler.ClearHistory),
 	}
 	registerRouteSpecs(public, appconstants.APIPath("public", "community"), specs)
-	return routeContractsFromSpecs(specs)
+	registered := routeContractsFromSpecs(specs)
+
+	account := v1.Group("/public/community/account")
+	account.Use(middleware.Auth(deps.IAMAuth, iamAuthMiddlewareConfig(deps)))
+	account.Use(middleware.CSRF(iamCSRFMiddlewareConfig(deps)))
+	accountSpecs := []routeSpec{
+		routeSpecFor("community.account.submissions.list", deps.CommunityHandler.AccountSubmissions),
+		routeSpecFor("community.account.submissions.create", deps.CommunityHandler.CreateAccountSubmission),
+	}
+	registerRouteSpecs(account, appconstants.APIPath("public", "community", "account"), accountSpecs)
+	registered = append(registered, routeContractsFromSpecs(accountSpecs)...)
+
+	return registered
 }
 
 func iamAuthMiddlewareConfig(deps RouterDeps) middleware.AuthConfig {

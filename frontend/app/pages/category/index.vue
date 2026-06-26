@@ -163,32 +163,19 @@ useHead(() => ({
       title-id="category-index-title"
       :reveal="false"
     >
-      <AoiReveal
-        v-for="(category, index) in categories"
-        :key="category.id"
-        :index="index"
+      <AoiContentGrid
+        class="category-index-page__map"
+        min-width="220px"
+        gap="compact"
+        :mobile-columns="1"
       >
-        <section class="category-tree-group">
-          <CategoryCard
-            :category="category"
-            :count="countFor(category)"
-          />
-
-          <AoiContentGrid
-            v-if="category.children.length"
-            min-width="220px"
-            gap="compact"
-            :mobile-columns="1"
-          >
-            <CategoryCard
-              v-for="child in category.children"
-              :key="child.id"
-              :category="child"
-              :count="countFor(child)"
-            />
-          </AoiContentGrid>
-        </section>
-      </AoiReveal>
+        <CategoryCard
+          v-for="category in allCategories"
+          :key="category.id"
+          :category="category"
+          :count="countFor(category)"
+        />
+      </AoiContentGrid>
     </AoiSection>
   </div>
 </template>
@@ -246,9 +233,8 @@ useHead(() => ({
   min-width: 0;
 }
 
-.category-tree-group {
-  display: grid;
-  gap: var(--aoi-grid-gap-compact);
+.category-index-page__map {
+  min-width: 0;
 }
 
 .category-loading {

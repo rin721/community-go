@@ -28,6 +28,8 @@ defineProps<{
 <style scoped>
 .category-card {
   --aoi-info-card-media-size: 10px;
+  width: 100%;
+  height: 100%;
 }
 
 .category-card__swatch {

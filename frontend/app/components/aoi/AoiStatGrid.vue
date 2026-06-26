@@ -38,12 +38,14 @@ const gridStyle = computed(() => ({
 <style scoped>
 .aoi-stat-grid {
   display: grid;
+  min-width: 0;
   grid-template-columns: var(--aoi-stat-grid-columns);
   gap: var(--aoi-nav-group-gap);
 }
 
 .aoi-stat-grid__item {
   display: grid;
+  min-width: 0;
   gap: max(4px, calc(var(--aoi-grid-gap-compact) - 8px));
 }
 
@@ -63,6 +65,7 @@ const gridStyle = computed(() => ({
 .aoi-stat-grid__item small {
   color: var(--aoi-text-muted);
   line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 760px) {
@@ -71,7 +74,7 @@ const gridStyle = computed(() => ({
   }
 }
 
-@media (max-width: 460px) {
+@media (max-width: 560px) {
   .aoi-stat-grid {
     grid-template-columns: 1fr;
   }

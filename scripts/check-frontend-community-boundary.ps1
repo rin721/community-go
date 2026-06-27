@@ -38,6 +38,10 @@ $checks = @(
     @{
         Name = "control-console account wording"
         Pattern = '\b(admin|administrator|consoleUser|controlConsole)\b'
+    },
+    @{
+        Name = "frontend docs route reference"
+        Pattern = '(?:to|href|path)\s*[:=]\s*(["''])/docs(?:[/#?][^"'']*)?\1|navigateTo\(\s*(["''])/docs(?:[/#?][^"'']*)?\2'
     }
 )
 $routeChecks = @(

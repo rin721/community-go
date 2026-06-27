@@ -24,6 +24,7 @@ description: "Repository-specific workflow for banyao-web community frontend/bac
 ## 数据接入规则
 
 - 后端社区生产能力以 `backend/internal/transport/http/contracts.go`、真实路由和 `backend/internal/modules/community` 为事实来源。
+- 发现后端社区 HTTP 接口存在硬编码数据、静态返回或伪造业务状态时，必须补齐 `backend/internal/modules/community` 内的 model、repository、service、handler 和真实持久化链路，并同步 route contract；不得在后端真实接口继续新增 Mock 分支或把 fixture 混入联调路径。
 - `GET /api/v1/public/community/status` 是前端判断真实 API、setup 状态和端点清单的入口。
 - 平台初始化未完成时，内容 API、社区账号 API 和账号路径应返回 503 result envelope，`messageKey=api.setup.required`，`data` 为 `CommunitySetupStatus`。
 - Nuxt mock 必须清楚标记为演示/调试能力；mock `/api/mock/status` 应返回 `mode=mock` 与 setup 已完成状态，避免伪装成真实联调。

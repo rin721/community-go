@@ -44,6 +44,7 @@
 
 - 可变业务策略、品牌标识、产品维度、平台维度、认证安全策略、会话并发策略、Cookie/CSRF/header 名称、缓存开关、缓存 TTL、运行时默认值和部署差异不得硬编码在业务代码、前端页面、store、handler 或 service 中。
 - 上述可变项必须进入配置结构、默认配置、示例配置、环境变量覆盖、route contract、受控注册表或系统配置管理。
+- 排查初始化、联调、运行态问题或切换真实数据源时，如果 `.env`、`config.local.yaml`、`backend/configs/config.local.yaml` 等本地配置文件阻碍当前真实运行路径，且判断其可能来自历史旧配置，可以按当前配置结构和示例配置直接修正；修改前后必须说明原因、影响范围和不纳入提交的本地边界。
 - 根目录 README、项目 Logo 和仓库叙事可以保留项目代号；该例外不适用于运行时代码、配置默认值、API、日志、错误信息、前端生产文案或模块命名。
 - 后端新增或修改配置项时，必须同步 `backend/internal/config`、配置默认值、`backend/configs/*.example.yaml`、`backend/configs/examples/*.example.yaml`、`backend/deploy/config.production.example.yaml`、后端 system locale、相关文档和测试。
 - `backend` 的 `brand.productCode` 是主平台默认产品码来源；产品线、客户端类型、平台类型、组织上下文和缓存 key 维度必须通过配置、请求上下文或 contract 传递。

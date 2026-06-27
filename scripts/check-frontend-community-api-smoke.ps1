@@ -62,7 +62,9 @@ function Invoke-JsonEnvelope {
     param(
         [string]$Url,
         [string]$Method = "GET",
-        [object]$Body = $null
+        [object]$Body = $null,
+        [object]$WebSession = $null,
+        [hashtable]$Headers = @{}
     )
 
     $options = @{
@@ -75,6 +77,12 @@ function Invoke-JsonEnvelope {
         $options["Body"] = ($Body | ConvertTo-Json -Depth 8)
         $options["ContentType"] = "application/json"
     }
+    if ($null -ne $WebSession) {
+        $options["WebSession"] = $WebSession
+    }
+    if ($Headers.Count -gt 0) {
+        $options["Headers"] = $Headers
+    }
 
     $response = Invoke-WebRequest @options
     $json = ConvertFrom-JsonResponse $response
@@ -82,6 +90,35 @@ function Invoke-JsonEnvelope {
         throw "Unexpected API result from $Url"
     }
     return $json
+}
+
+function Get-SessionCookieValue {
+    param(
+        [object]$WebSession,
+        [string]$Url,
+        [string]$Name
+    )
+
+    $uri = [Uri]$Url
+    $cookie = $WebSession.Cookies.GetCookies($uri) | Where-Object { $_.Name -eq $Name } | Select-Object -First 1
+    if ($null -eq $cookie -or [string]::IsNullOrWhiteSpace($cookie.Value)) {
+        throw "Expected session cookie '$Name' after community account signup"
+    }
+    return $cookie.Value
+}
+
+function Assert-NoControlConsoleIdentity {
+    param(
+        [object]$Payload,
+        [string]$Name
+    )
+
+    $json = $Payload | ConvertTo-Json -Depth 12
+    foreach ($term in @("orgId", "roles", "permissions")) {
+        if ($json -match ('"' + [regex]::Escape($term) + '"')) {
+            throw "$Name exposed control-console identity field '$term'"
+        }
+    }
 }
 
 function Set-ProcessEnv {
@@ -228,6 +265,66 @@ try {
         throw "Community search endpoint returned no matching videos"
     }
 
+    $accountSession = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+    $runId = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
+    $accountEmail = "community-smoke-$runId@example.com"
+    $accountName = "community_smoke_$runId"
+    $signup = Invoke-JsonEnvelope -Url "$baseUrl/auth/signup" -Method "POST" -WebSession $accountSession -Body @{
+        displayName = "Community Smoke"
+        email = $accountEmail
+        password = "Password123!"
+        username = $accountName
+    }
+    Assert-NoControlConsoleIdentity -Payload $signup.data -Name "community signup"
+    if ($signup.data.status -ne "authenticated" -or -not $signup.data.session.sessionId -or -not $signup.data.session.account.handle) {
+        throw "Community signup endpoint did not return an authenticated community session"
+    }
+
+    $session = Invoke-JsonEnvelope -Url "$baseUrl/auth/session" -WebSession $accountSession
+    Assert-NoControlConsoleIdentity -Payload $session.data -Name "community session"
+    if ($session.data.account.displayName -ne "Community Smoke") {
+        throw "Community session endpoint did not keep the compact community account identity"
+    }
+
+    $csrfToken = Get-SessionCookieValue -WebSession $accountSession -Url $baseUrl -Name "console_csrf"
+    $accountHeaders = @{
+        "X-CSRF-Token" = $csrfToken
+    }
+    $accountFollow = Invoke-JsonEnvelope -Url "$baseUrl/account/users/rin721/follow" -Method "POST" -WebSession $accountSession -Headers $accountHeaders
+    if ($accountFollow.data.following -ne $true -or $accountFollow.data.clientId -notmatch "^account:") {
+        throw "Community account follow endpoint did not persist account-scoped follow state"
+    }
+
+    $accountDynamic = Invoke-JsonEnvelope -Url "$baseUrl/account/dynamics" -Method "POST" -WebSession $accountSession -Headers $accountHeaders -Body @{
+        body = "Account smoke dynamic from API verification"
+        videoId = $firstVideo.id
+    }
+    if ($accountDynamic.data.authorName -ne $session.data.account.displayName) {
+        throw "Community account dynamic endpoint did not use the signed-in community account; expected author=$($session.data.account.displayName), got author=$($accountDynamic.data.authorName)"
+    }
+
+    $accountHistory = Invoke-JsonEnvelope -Url "$baseUrl/account/videos/$($firstVideo.slug)/history" -Method "POST" -WebSession $accountSession -Headers $accountHeaders -Body @{
+        progressSeconds = 42
+    }
+    if ($accountHistory.data.video.id -ne $firstVideo.id -or $accountHistory.data.progressSeconds -ne 42) {
+        throw "Community account history endpoint did not persist the playback progress"
+    }
+
+    $accountHistoryList = Invoke-JsonEnvelope -Url "$baseUrl/account/history?limit=8" -WebSession $accountSession
+    if ($accountHistoryList.data.authenticated -ne $true -or $accountHistoryList.data.clientId -notmatch "^account:" -or $accountHistoryList.data.items.items.Count -lt 1) {
+        throw "Community account history list did not return account-scoped data"
+    }
+
+    $accountFeed = Invoke-JsonEnvelope -Url "$baseUrl/account/feed/following" -WebSession $accountSession
+    if ($accountFeed.data.authenticated -ne $true -or $accountFeed.data.followingCount -lt 1 -or $accountFeed.data.dynamics.items.Count -lt 1) {
+        throw "Community account following feed did not return account-scoped data"
+    }
+
+    $accountNotifications = Invoke-JsonEnvelope -Url "$baseUrl/account/notifications?limit=8" -WebSession $accountSession
+    if ($accountNotifications.data.clientId -notmatch "^account:" -or $accountNotifications.data.items.items.Count -lt 1) {
+        throw "Community account notifications endpoint did not return account-scoped notifications"
+    }
+
     $results = @(
         [pscustomobject]@{ Name = "status"; Url = "$baseUrl/status"; Detail = "mode=$($status.data.mode)" }
         [pscustomobject]@{ Name = "home"; Url = "$baseUrl/home"; Detail = "categories=$($homePayload.data.categories.Count), videos=$($homePayload.data.latest.items.Count), dynamics=$($homePayload.data.dynamics.items.Count)" }
@@ -236,6 +333,10 @@ try {
         [pscustomobject]@{ Name = "interaction"; Url = "$baseUrl/videos/$($firstVideo.slug)/interactions/like"; Detail = "liked=$($interaction.data.liked), clientId=$($interaction.data.clientId)" }
         [pscustomobject]@{ Name = "notifications"; Url = "$baseUrl/notifications?clientId=$clientId&limit=8"; Detail = "count=$($notifications.data.items.items.Count), clientId=$($notifications.data.clientId)" }
         [pscustomobject]@{ Name = "search"; Url = "$baseUrl/search?q=Aoi&limit=8"; Detail = "videos=$($search.data.videos.items.Count)" }
+        [pscustomobject]@{ Name = "account-signup"; Url = "$baseUrl/auth/signup"; Detail = "status=$($signup.data.status), handle=$($signup.data.session.account.handle)" }
+        [pscustomobject]@{ Name = "account-following"; Url = "$baseUrl/account/feed/following"; Detail = "following=$($accountFeed.data.followingCount), dynamics=$($accountFeed.data.dynamics.items.Count)" }
+        [pscustomobject]@{ Name = "account-history"; Url = "$baseUrl/account/history?limit=8"; Detail = "count=$($accountHistoryList.data.items.items.Count), clientId=$($accountHistoryList.data.clientId)" }
+        [pscustomobject]@{ Name = "account-notifications"; Url = "$baseUrl/account/notifications?limit=8"; Detail = "count=$($accountNotifications.data.items.items.Count), clientId=$($accountNotifications.data.clientId)" }
     )
 
     foreach ($result in $results) {

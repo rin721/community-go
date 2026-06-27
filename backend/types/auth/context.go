@@ -10,6 +10,7 @@ type Principal struct {
 	ProductCode string `json:"productCode"`
 	ClientType  string `json:"clientType"`
 	Username    string `json:"username"`
+	DisplayName string `json:"displayName"`
 	Email       string `json:"email"`
 	RoleCode    string `json:"roleCode,omitempty"`
 }

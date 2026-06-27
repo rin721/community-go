@@ -2080,6 +2080,9 @@ func communityAccountClientID(principal authtypes.Principal) (string, error) {
 }
 
 func communityAccountAuthorName(principal authtypes.Principal) string {
+	if name := normalizeCommentAuthor(principal.DisplayName); name != "" {
+		return name
+	}
 	if name := normalizeCommentAuthor(principal.Username); name != "" {
 		return name
 	}

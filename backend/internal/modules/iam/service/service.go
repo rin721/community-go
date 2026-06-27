@@ -1280,7 +1280,7 @@ func (s *service) bootstrapOwner(ctx context.Context, input ownerBootstrapInput)
 			return err
 		}
 		sessionCtx := s.resolveSessionContext(input.ProductCode, input.ClientType)
-		result.Principal = &Principal{UserID: user.ID, OrgID: org.ID, ProductCode: sessionCtx.ProductCode, ClientType: sessionCtx.ClientType, Username: user.Username, Email: user.Email}
+		result.Principal = &Principal{UserID: user.ID, OrgID: org.ID, ProductCode: sessionCtx.ProductCode, ClientType: sessionCtx.ClientType, Username: user.Username, DisplayName: user.DisplayName, Email: user.Email}
 		return nil
 	})
 	if err != nil {
@@ -1711,7 +1711,7 @@ func (s *service) AuthenticateToken(ctx context.Context, raw string) (Principal,
 	if session.ProductCode != sessionCtx.ProductCode || session.ClientType != sessionCtx.ClientType {
 		return Principal{}, ErrInvalidToken
 	}
-	return Principal{UserID: user.ID, OrgID: claims.OrgID, SessionID: session.ID, ProductCode: sessionCtx.ProductCode, ClientType: sessionCtx.ClientType, Username: user.Username, Email: user.Email}, nil
+	return Principal{UserID: user.ID, OrgID: claims.OrgID, SessionID: session.ID, ProductCode: sessionCtx.ProductCode, ClientType: sessionCtx.ClientType, Username: user.Username, DisplayName: user.DisplayName, Email: user.Email}, nil
 }
 
 // Authorize 校验主体是否允许访问指定对象动作。
@@ -3217,7 +3217,7 @@ func (s *service) authenticateAPIToken(ctx context.Context, raw string) (Princip
 		return Principal{}, err
 	}
 	sessionCtx := s.resolveSessionContext("", "api_token")
-	return Principal{UserID: user.ID, OrgID: apiToken.OrgID, ProductCode: sessionCtx.ProductCode, ClientType: sessionCtx.ClientType, Username: user.Username, Email: user.Email, RoleCode: apiToken.RoleCode}, nil
+	return Principal{UserID: user.ID, OrgID: apiToken.OrgID, ProductCode: sessionCtx.ProductCode, ClientType: sessionCtx.ClientType, Username: user.Username, DisplayName: user.DisplayName, Email: user.Email, RoleCode: apiToken.RoleCode}, nil
 }
 
 // authorizeRole 按 Principal 中的 RoleCode 校验权限。

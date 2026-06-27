@@ -2288,6 +2288,8 @@
                     "properties":
                       "clientType":
                         "type": "string"
+                      "displayName":
+                        "type": "string"
                       "email":
                         "type": "string"
                       "orgId":

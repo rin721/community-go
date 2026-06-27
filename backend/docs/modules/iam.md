@@ -78,7 +78,7 @@ go run ./cmd/console db migrate up --config=configs/config.yaml
 | `POST /api/v1/iam/notification-outbox/{outboxId}/retry` | `platform notification:retry` | 手动重试 pending/failed 通知任务并写入 `notification.retry` 审计 |
 | `/api/v1/orgs/*` | 是 | 组织、用户、邀请、角色、权限、API Token、会话、审计管理 |
 
-视频社区前端使用 `POST /api/v1/public/community/auth/signup`、`POST /api/v1/public/community/auth/login`、`GET /api/v1/public/community/auth/session` 和 `POST /api/v1/public/community/auth/logout` 完成社区账号流程。社区账号响应只返回 `userId`、`sessionId`、`accessExpiresAt` 和 `refreshExpiresAt`，页面不读取组织、角色或权限快照。
+视频社区前端使用 `POST /api/v1/public/community/auth/signup`、`POST /api/v1/public/community/auth/login`、`GET /api/v1/public/community/auth/session` 和 `POST /api/v1/public/community/auth/logout` 完成社区账号流程。社区账号响应返回 `userId`、`sessionId`、`accessExpiresAt`、`refreshExpiresAt` 和 `account.id / account.handle / account.displayName`，页面不读取组织、角色或权限快照。
 
 组织管理接口按 `productCode + scope + obj:act` 权限保护。平台能力使用 `platform` scope，例如系统配置、API catalog、权限同步和组织列表；租户能力使用 `tenant` scope，例如 `user:update`、`role:create`、`api_token:revoke`、`session:revoke`、`audit:read`。当前预留 `product` scope，但尚未提供产品线业务 API。
 

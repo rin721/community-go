@@ -308,16 +308,17 @@ func TestServiceCreateCommunityAccountDynamicUsesPrincipalIdentity(t *testing.T)
 	})
 
 	item, err := svc.CreateCommunityAccountDynamic(context.Background(), authtypes.Principal{
-		UserID:   721,
-		Username: "rin721",
-		Email:    "rin@example.invalid",
+		UserID:      721,
+		Username:    "rin721",
+		DisplayName: "Rin Creator",
+		Email:       "rin@example.invalid",
 	}, model.CreateCommunityAccountDynamicRequest{
 		Body: "  Account owned pulse  ",
 	})
 	if err != nil {
 		t.Fatalf("CreateCommunityAccountDynamic() error = %v", err)
 	}
-	if item.ID != "dynamic-account-dynamic" || item.AuthorName != "rin721" || item.Body != "Account owned pulse" {
+	if item.ID != "dynamic-account-dynamic" || item.AuthorName != "Rin Creator" || item.Body != "Account owned pulse" {
 		t.Fatalf("expected principal-backed dynamic, got %#v", item)
 	}
 	if len(repo.dynamics) == 0 || repo.dynamics[0].ClientID != "account:721" {

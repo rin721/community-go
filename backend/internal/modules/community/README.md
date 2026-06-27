@@ -18,7 +18,7 @@
 - 支持查询公开社区动态时间线，并以社区账号或匿名 `clientId` 发布轻量动态；动态可绑定视频并装饰创作者与视频摘要。
 - 保持 DTO、筛选条件、错误和仓储 contract 在模块内部，不污染根 `types`。
 
-社区账号会话面向普通观看与创作者流程，响应字段为 `userId`、`sessionId`、过期时间和 `account.id / account.handle / account.displayName`，前台页面只基于这些社区字段展示账号状态。
+社区账号会话面向普通观看与创作者流程，响应字段为 `userId`、`sessionId`、过期时间和 `account.id / account.handle / account.displayName`，前台页面只基于这些社区字段展示账号状态。账号动态和账号投稿使用 `account.displayName` 作为作者展示名，数据范围仍由登录态派生的账号 `clientId` 控制。
 
 ## 非职责
 
@@ -99,4 +99,10 @@
 go test ./internal/modules/community/... -count=1 -mod=readonly
 go test ./internal/transport/http -count=1 -mod=readonly
 go run ./cmd/console api openapi --output docs/api/openapi.yaml
+```
+
+聚合仓库根目录还提供社区前后端联调烟测：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/check-frontend-community-api-smoke.ps1
 ```

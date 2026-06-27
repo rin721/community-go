@@ -178,7 +178,7 @@ function formatCount(value: number) {
         :level="3"
         :reveal="false"
       >
-        <AoiContentGrid min-width="220px" gap="compact" :mobile-columns="1">
+        <AoiContentGrid max-width="260px" min-width="220px" gap="compact" :mobile-columns="1">
           <AoiReveal
             v-for="(child, index) in childCategories"
             :key="child.id"

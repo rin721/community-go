@@ -57,20 +57,20 @@ const props = withDefaults(defineProps<{
 .aoi-surface--state,
 .aoi-surface--code,
 .aoi-surface--toolbar {
-  border: 1px solid color-mix(in srgb, var(--aoi-surface-border) 24%, transparent);
-  box-shadow: 0 10px 30px rgba(33, 33, 33, 0.026);
+  border: 1px solid color-mix(in srgb, var(--aoi-surface-border) 16%, transparent);
+  box-shadow: 0 8px 24px rgba(33, 33, 33, 0.018);
 }
 
 .aoi-surface--panel {
   border-radius: var(--aoi-radius-container);
-  background: color-mix(in srgb, var(--aoi-panel-bg) 76%, transparent);
+  background: color-mix(in srgb, var(--aoi-panel-bg) 68%, transparent);
 }
 
 .aoi-surface--card,
 .aoi-surface--state,
 .aoi-surface--toolbar {
   border-radius: var(--aoi-radius-card);
-  background: color-mix(in srgb, var(--aoi-card-bg) 82%, transparent);
+  background: color-mix(in srgb, var(--aoi-card-bg) 74%, transparent);
 }
 
 .aoi-surface--state {
@@ -157,8 +157,8 @@ const props = withDefaults(defineProps<{
 
 .aoi-surface--interactive:hover,
 .aoi-surface--selected {
-  border-color: color-mix(in srgb, var(--aoi-surface-border-hover) 34%, transparent);
-  background: color-mix(in srgb, var(--aoi-surface-intent-bg-hover) 72%, transparent);
+  border-color: color-mix(in srgb, var(--aoi-surface-border-hover) 24%, transparent);
+  background: color-mix(in srgb, var(--aoi-surface-intent-bg-hover) 64%, transparent);
 }
 
 .aoi-surface--interactive:hover {

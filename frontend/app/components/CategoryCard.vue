@@ -28,16 +28,21 @@ defineProps<{
 <style scoped>
 .category-card {
   --aoi-info-card-media-size: 30px;
-  width: 100%;
+  width: min(100%, 260px);
+  min-height: 78px;
   height: 100%;
 }
 
+.category-card :deep(.aoi-info-card__main) {
+  align-items: center;
+}
+
 .category-card__swatch {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 30px;
   border-radius: var(--aoi-radius-round);
   background: var(--category-card-accent);
-  box-shadow: 0 0 0 7px color-mix(in srgb, var(--category-card-accent) 12%, transparent);
+  box-shadow: none;
 }
 
 .category-card :deep(.aoi-info-card__title) {
@@ -46,12 +51,12 @@ defineProps<{
 
 .category-card__count {
   display: inline-flex;
-  min-width: 30px;
-  height: 24px;
+  min-width: 28px;
+  height: 22px;
   align-items: center;
   justify-content: center;
   border-radius: var(--aoi-radius-control);
-  background: var(--aoi-accent-10);
+  background: color-mix(in srgb, var(--aoi-accent-10) 72%, transparent);
   color: var(--aoi-accent-60);
   font-size: 12px;
   font-weight: 800;

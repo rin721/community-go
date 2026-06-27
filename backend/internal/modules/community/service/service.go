@@ -31,6 +31,7 @@ type Service interface {
 	GetVideoComments(context.Context, string, model.VideoCommentFilter) (model.VideoCommentPayload, error)
 	GetVideoDetail(context.Context, string) (model.VideoDetail, error)
 	GetVideoInteractionState(context.Context, string, model.VideoInteractionRequest) (model.VideoInteractionState, error)
+	GetAccountVideoInteractionState(context.Context, authtypes.Principal, string) (model.VideoInteractionState, error)
 	GetCreatorFollowState(context.Context, string, model.CreatorFollowRequest) (model.CreatorFollowState, error)
 	ListCategories(context.Context) ([]model.CategoryTreeNode, error)
 	ListVideos(context.Context, model.VideoFilter) (model.PageResult[model.VideoSummary], error)
@@ -38,7 +39,9 @@ type Service interface {
 	FollowingFeed(context.Context, model.CreatorFollowRequest) (model.FollowingFeedPayload, error)
 	AccountFollowingFeed(context.Context, authtypes.Principal) (model.FollowingFeedPayload, error)
 	VideoLibrary(context.Context, model.VideoInteractionRequest) (model.VideoLibraryPayload, error)
+	AccountVideoLibrary(context.Context, authtypes.Principal) (model.VideoLibraryPayload, error)
 	VideoHistory(context.Context, model.VideoHistoryFilter) (model.VideoHistoryPayload, error)
+	AccountVideoHistory(context.Context, authtypes.Principal, int) (model.VideoHistoryPayload, error)
 	CommunityNotifications(context.Context, model.CommunityNotificationFilter) (model.CommunityNotificationPayload, error)
 	MarkCommunityNotificationsRead(context.Context, model.CommunityNotificationRequest) (model.CommunityNotificationPayload, error)
 	CommunityAccountNotifications(context.Context, authtypes.Principal, int) (model.CommunityNotificationPayload, error)
@@ -56,9 +59,13 @@ type Service interface {
 	UnfollowAccountCreator(context.Context, authtypes.Principal, string) (model.CreatorFollowState, error)
 	GetAccountCreatorFollowState(context.Context, authtypes.Principal, string) (model.CreatorFollowState, error)
 	SetVideoInteraction(context.Context, string, string, model.VideoInteractionRequest) (model.VideoInteractionState, error)
+	SetAccountVideoInteraction(context.Context, authtypes.Principal, string, string) (model.VideoInteractionState, error)
 	UnsetVideoInteraction(context.Context, string, string, model.VideoInteractionRequest) (model.VideoInteractionState, error)
+	UnsetAccountVideoInteraction(context.Context, authtypes.Principal, string, string) (model.VideoInteractionState, error)
 	RecordVideoHistory(context.Context, string, model.VideoHistoryRequest) (model.VideoHistoryItem, error)
+	RecordAccountVideoHistory(context.Context, authtypes.Principal, string, model.RecordAccountVideoHistoryRequest) (model.VideoHistoryItem, error)
 	ClearVideoHistory(context.Context, model.VideoHistoryClearRequest) (model.VideoHistoryPayload, error)
+	ClearAccountVideoHistory(context.Context, authtypes.Principal) (model.VideoHistoryPayload, error)
 	CreateVideoComment(context.Context, string, model.CreateVideoCommentRequest) (model.VideoComment, error)
 	CreateVideoDanmaku(context.Context, string, model.CreateVideoDanmakuRequest) (model.VideoDanmakuItem, error)
 	CreateVideoReport(context.Context, string, model.CreateVideoReportRequest) (model.CommunityReportReceipt, error)
@@ -139,11 +146,17 @@ func (s *service) CommunityStatus(context.Context) model.APIStatus {
 			"/auth/signup",
 			"/account/dynamics",
 			"/account/feed/following",
+			"/account/history",
+			"/account/history/clear",
+			"/account/library",
 			"/account/notifications",
 			"/account/notifications/read",
 			"/account/submissions",
 			"/account/users/:handle/follow-state",
 			"/account/users/:handle/follow",
+			"/account/videos/:idOrSlug/interaction-state",
+			"/account/videos/:idOrSlug/interactions/:kind",
+			"/account/videos/:idOrSlug/history",
 			"/home",
 			"/dynamics",
 			"/submissions",
@@ -450,6 +463,14 @@ func (s *service) GetVideoInteractionState(ctx context.Context, idOrSlug string,
 	return s.videoInteractionState(ctx, *video, clientID)
 }
 
+func (s *service) GetAccountVideoInteractionState(ctx context.Context, principal authtypes.Principal, idOrSlug string) (model.VideoInteractionState, error) {
+	clientID, err := communityAccountClientID(principal)
+	if err != nil {
+		return model.VideoInteractionState{}, err
+	}
+	return s.GetVideoInteractionState(ctx, idOrSlug, model.VideoInteractionRequest{ClientID: clientID})
+}
+
 func (s *service) SetVideoInteraction(ctx context.Context, idOrSlug string, kind string, req model.VideoInteractionRequest) (model.VideoInteractionState, error) {
 	video, clientID, err := s.videoAndClient(ctx, idOrSlug, req)
 	if err != nil {
@@ -497,6 +518,14 @@ func (s *service) SetVideoInteraction(ctx context.Context, idOrSlug string, kind
 	return s.videoInteractionState(ctx, *updated, clientID)
 }
 
+func (s *service) SetAccountVideoInteraction(ctx context.Context, principal authtypes.Principal, idOrSlug string, kind string) (model.VideoInteractionState, error) {
+	clientID, err := communityAccountClientID(principal)
+	if err != nil {
+		return model.VideoInteractionState{}, err
+	}
+	return s.SetVideoInteraction(ctx, idOrSlug, kind, model.VideoInteractionRequest{ClientID: clientID})
+}
+
 func (s *service) UnsetVideoInteraction(ctx context.Context, idOrSlug string, kind string, req model.VideoInteractionRequest) (model.VideoInteractionState, error) {
 	video, clientID, err := s.videoAndClient(ctx, idOrSlug, req)
 	if err != nil {
@@ -514,6 +543,14 @@ func (s *service) UnsetVideoInteraction(ctx context.Context, idOrSlug string, ki
 		return model.VideoInteractionState{}, mapStorageError(err)
 	}
 	return s.videoInteractionState(ctx, *updated, clientID)
+}
+
+func (s *service) UnsetAccountVideoInteraction(ctx context.Context, principal authtypes.Principal, idOrSlug string, kind string) (model.VideoInteractionState, error) {
+	clientID, err := communityAccountClientID(principal)
+	if err != nil {
+		return model.VideoInteractionState{}, err
+	}
+	return s.UnsetVideoInteraction(ctx, idOrSlug, kind, model.VideoInteractionRequest{ClientID: clientID})
 }
 
 func (s *service) GetCreatorProfile(ctx context.Context, handle string) (model.CreatorProfile, error) {
@@ -769,6 +806,21 @@ func (s *service) VideoLibrary(ctx context.Context, req model.VideoInteractionRe
 	}, nil
 }
 
+func (s *service) AccountVideoLibrary(ctx context.Context, principal authtypes.Principal) (model.VideoLibraryPayload, error) {
+	clientID, err := communityAccountClientID(principal)
+	if err != nil {
+		return model.VideoLibraryPayload{}, err
+	}
+	payload, err := s.VideoLibrary(ctx, model.VideoInteractionRequest{ClientID: clientID})
+	if err != nil {
+		return model.VideoLibraryPayload{}, err
+	}
+	payload.Authenticated = true
+	message := "社区账号资料库会跟随当前登录账号同步。"
+	payload.Message = &message
+	return payload, nil
+}
+
 func (s *service) VideoHistory(ctx context.Context, filter model.VideoHistoryFilter) (model.VideoHistoryPayload, error) {
 	if s.repo == nil {
 		return model.VideoHistoryPayload{}, ErrStorageUnavailable
@@ -788,6 +840,21 @@ func (s *service) VideoHistory(ctx context.Context, filter model.VideoHistoryFil
 		return model.VideoHistoryPayload{}, err
 	}
 	return videoHistoryPayload(clientID, items), nil
+}
+
+func (s *service) AccountVideoHistory(ctx context.Context, principal authtypes.Principal, limit int) (model.VideoHistoryPayload, error) {
+	clientID, err := communityAccountClientID(principal)
+	if err != nil {
+		return model.VideoHistoryPayload{}, err
+	}
+	payload, err := s.VideoHistory(ctx, model.VideoHistoryFilter{ClientID: clientID, Limit: limit})
+	if err != nil {
+		return model.VideoHistoryPayload{}, err
+	}
+	payload.Authenticated = true
+	message := "社区账号观看历史会跟随当前登录账号同步。"
+	payload.Message = &message
+	return payload, nil
 }
 
 func (s *service) RecordVideoHistory(ctx context.Context, idOrSlug string, req model.VideoHistoryRequest) (model.VideoHistoryItem, error) {
@@ -824,6 +891,17 @@ func (s *service) RecordVideoHistory(ctx context.Context, idOrSlug string, req m
 	return items[0], nil
 }
 
+func (s *service) RecordAccountVideoHistory(ctx context.Context, principal authtypes.Principal, idOrSlug string, req model.RecordAccountVideoHistoryRequest) (model.VideoHistoryItem, error) {
+	clientID, err := communityAccountClientID(principal)
+	if err != nil {
+		return model.VideoHistoryItem{}, err
+	}
+	return s.RecordVideoHistory(ctx, idOrSlug, model.VideoHistoryRequest{
+		ClientID:        clientID,
+		ProgressSeconds: req.ProgressSeconds,
+	})
+}
+
 func (s *service) ClearVideoHistory(ctx context.Context, req model.VideoHistoryClearRequest) (model.VideoHistoryPayload, error) {
 	if s.repo == nil {
 		return model.VideoHistoryPayload{}, ErrStorageUnavailable
@@ -836,6 +914,21 @@ func (s *service) ClearVideoHistory(ctx context.Context, req model.VideoHistoryC
 		return model.VideoHistoryPayload{}, mapStorageError(err)
 	}
 	return videoHistoryPayload(clientID, []model.VideoHistoryItem{}), nil
+}
+
+func (s *service) ClearAccountVideoHistory(ctx context.Context, principal authtypes.Principal) (model.VideoHistoryPayload, error) {
+	clientID, err := communityAccountClientID(principal)
+	if err != nil {
+		return model.VideoHistoryPayload{}, err
+	}
+	payload, err := s.ClearVideoHistory(ctx, model.VideoHistoryClearRequest{ClientID: clientID})
+	if err != nil {
+		return model.VideoHistoryPayload{}, err
+	}
+	payload.Authenticated = true
+	message := "社区账号观看历史会跟随当前登录账号同步。"
+	payload.Message = &message
+	return payload, nil
 }
 
 func (s *service) CommunityNotifications(ctx context.Context, filter model.CommunityNotificationFilter) (model.CommunityNotificationPayload, error) {

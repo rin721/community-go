@@ -280,6 +280,10 @@ export interface VideoHistoryRequest {
   progressSeconds: number
 }
 
+export interface RecordAccountVideoHistoryRequest {
+  progressSeconds: number
+}
+
 export interface VideoHistoryClearRequest {
   clientId: string
 }

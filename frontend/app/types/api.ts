@@ -37,6 +37,7 @@ export type {
   HomePayload,
   LoginRequest,
   PageResult,
+  RecordAccountVideoHistoryRequest,
   SearchPayload,
   CommunitySignupResult,
   CommunitySignupStatus,

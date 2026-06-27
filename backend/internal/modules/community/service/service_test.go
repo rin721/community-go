@@ -577,6 +577,69 @@ func TestServiceVideoHistoryPersistsListsAndClearsProgress(t *testing.T) {
 	}
 }
 
+func TestServiceAccountVideoLibraryAndHistoryUsePrincipalIdentity(t *testing.T) {
+	repo := newFakeRepository()
+	now := fixedNow()
+	svc := New(repo, Config{Now: func() time.Time { return now }})
+	principal := authtypes.Principal{
+		UserID:   42,
+		Username: "Rin Creator",
+		Email:    "rin@example.com",
+	}
+
+	state, err := svc.SetAccountVideoInteraction(context.Background(), principal, "aoi-alpha", model.VideoInteractionKindFavorite)
+	if err != nil {
+		t.Fatalf("SetAccountVideoInteraction(favorite) error = %v", err)
+	}
+	if !state.Favorited || state.ClientID != "account:42" {
+		t.Fatalf("expected account favorite state, got %#v", state)
+	}
+	if _, err := svc.SetAccountVideoInteraction(context.Background(), principal, "go-api-ready", model.VideoInteractionKindWatchLater); err != nil {
+		t.Fatalf("SetAccountVideoInteraction(watch_later) error = %v", err)
+	}
+
+	library, err := svc.AccountVideoLibrary(context.Background(), principal)
+	if err != nil {
+		t.Fatalf("AccountVideoLibrary() error = %v", err)
+	}
+	if !library.Authenticated || library.ClientID == nil || *library.ClientID != "account:42" || library.FavoriteCount != 1 || library.WatchLaterCount != 1 {
+		t.Fatalf("expected account library payload, got %#v", library)
+	}
+
+	now = now.Add(time.Minute)
+	item, err := svc.RecordAccountVideoHistory(context.Background(), principal, "aoi-alpha", model.RecordAccountVideoHistoryRequest{ProgressSeconds: 999})
+	if err != nil {
+		t.Fatalf("RecordAccountVideoHistory() error = %v", err)
+	}
+	if item.Video.ID != "video-aoi-alpha" || item.ProgressSeconds != 300 {
+		t.Fatalf("expected normalized account history item, got %#v", item)
+	}
+
+	history, err := svc.AccountVideoHistory(context.Background(), principal, 12)
+	if err != nil {
+		t.Fatalf("AccountVideoHistory() error = %v", err)
+	}
+	if !history.Authenticated || history.ClientID == nil || *history.ClientID != "account:42" || history.HistoryCount != 1 {
+		t.Fatalf("expected account history payload, got %#v", history)
+	}
+
+	cleared, err := svc.ClearAccountVideoHistory(context.Background(), principal)
+	if err != nil {
+		t.Fatalf("ClearAccountVideoHistory() error = %v", err)
+	}
+	if !cleared.Authenticated || cleared.ClientID == nil || *cleared.ClientID != "account:42" || cleared.HistoryCount != 0 || len(cleared.Items.Items) != 0 {
+		t.Fatalf("expected cleared account history, got %#v", cleared)
+	}
+
+	state, err = svc.UnsetAccountVideoInteraction(context.Background(), principal, "aoi-alpha", model.VideoInteractionKindFavorite)
+	if err != nil {
+		t.Fatalf("UnsetAccountVideoInteraction() error = %v", err)
+	}
+	if state.Favorited || state.ClientID != "account:42" {
+		t.Fatalf("expected cleared account favorite, got %#v", state)
+	}
+}
+
 func TestServiceVideoInteractionRejectsMissingClientID(t *testing.T) {
 	svc := New(newFakeRepository(), Config{Now: fixedNow})
 

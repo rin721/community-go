@@ -81,7 +81,7 @@ type CreatorFollow struct {
 
 func (CreatorFollow) TableName() string { return "community_creator_follows" }
 
-// VideoInteraction 保存匿名客户端对视频的点赞、收藏和稍后看关系。
+// VideoInteraction 保存社区账号或匿名客户端对视频的点赞、收藏和稍后看关系。
 type VideoInteraction struct {
 	ClientID     string     `gorm:"column:client_id;primaryKey;size:96" json:"clientId"`
 	VideoID      string     `gorm:"column:video_id;primaryKey;size:96" json:"videoId"`
@@ -94,7 +94,7 @@ type VideoInteraction struct {
 
 func (VideoInteraction) TableName() string { return "community_video_interactions" }
 
-// VideoHistory 保存匿名客户端的视频观看进度和最近观看时间。
+// VideoHistory 保存社区账号或匿名客户端的视频观看进度和最近观看时间。
 type VideoHistory struct {
 	ClientID        string     `gorm:"column:client_id;primaryKey;size:96" json:"clientId"`
 	VideoID         string     `gorm:"column:video_id;primaryKey;size:96" json:"videoId"`
@@ -124,7 +124,7 @@ type CommunityReport struct {
 
 func (CommunityReport) TableName() string { return "community_reports" }
 
-// CommunityNotification 保存匿名社区客户端的轻量站内消息。
+// CommunityNotification 保存社区账号或匿名客户端的轻量站内消息。
 type CommunityNotification struct {
 	ID         string     `gorm:"column:id;primaryKey;size:96" json:"id"`
 	ClientID   string     `gorm:"column:client_id;size:96;not null;index" json:"clientId"`
@@ -161,7 +161,7 @@ type CommunityDynamic struct {
 
 func (CommunityDynamic) TableName() string { return "community_dynamics" }
 
-// CommunitySubmission saves anonymous upload metadata for the public community review queue.
+// CommunitySubmission saves community account or anonymous upload metadata for the review queue.
 type CommunitySubmission struct {
 	ID            string     `gorm:"column:id;primaryKey;size:96" json:"id"`
 	ClientID      string     `gorm:"column:client_id;size:96;not null;index" json:"clientId"`
@@ -320,6 +320,10 @@ type VideoInteractionRequest struct {
 type VideoHistoryRequest struct {
 	ClientID        string `json:"clientId"`
 	ProgressSeconds int    `json:"progressSeconds"`
+}
+
+type RecordAccountVideoHistoryRequest struct {
+	ProgressSeconds int `json:"progressSeconds"`
 }
 
 type VideoHistoryClearRequest struct {

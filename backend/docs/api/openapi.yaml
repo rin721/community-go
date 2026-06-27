@@ -5482,6 +5482,503 @@
       "tags":
         - "Community"
       "x-scope": "tenant"
+  "/api/v1/public/community/account/history":
+    "get":
+      "operationId": "community.account.history.list"
+      "parameters":
+        -
+          "in": "query"
+          "name": "limit"
+          "required": false
+          "schema":
+            "format": "int32"
+            "type": "integer"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "properties":
+                  "code":
+                    "format": "int32"
+                    "type": "integer"
+                  "data":
+                    "properties":
+                      "authenticated":
+                        "type": "boolean"
+                      "clientId":
+                        "type": "string"
+                      "historyCount":
+                        "format": "int32"
+                        "type": "integer"
+                      "items":
+                        "properties":
+                          "items":
+                            "items":
+                              "properties":
+                                "lastViewedAt":
+                                  "format": "date-time"
+                                  "type": "string"
+                                "progressSeconds":
+                                  "format": "int32"
+                                  "type": "integer"
+                                "video":
+                                  "properties":
+                                    "categories":
+                                      "items":
+                                        "properties":
+                                          "accentColor":
+                                            "type": "string"
+                                          "description":
+                                            "type": "string"
+                                          "id":
+                                            "type": "string"
+                                          "name":
+                                            "type": "string"
+                                          "order":
+                                            "format": "int32"
+                                            "type": "integer"
+                                          "parentSlug":
+                                            "type": "string"
+                                          "slug":
+                                            "type": "string"
+                                        "type": "object"
+                                      "type": "array"
+                                    "commentCount":
+                                      "format": "int64"
+                                      "type": "integer"
+                                    "description":
+                                      "type": "string"
+                                    "durationSeconds":
+                                      "format": "int32"
+                                      "type": "integer"
+                                    "id":
+                                      "type": "string"
+                                    "publishedAt":
+                                      "format": "date-time"
+                                      "type": "string"
+                                    "slug":
+                                      "type": "string"
+                                    "thumbnailUrl":
+                                      "type": "string"
+                                    "title":
+                                      "type": "string"
+                                    "uploader":
+                                      "properties":
+                                        "avatarUrl":
+                                          "type": "string"
+                                        "displayName":
+                                          "type": "string"
+                                        "handle":
+                                          "type": "string"
+                                        "id":
+                                          "type": "string"
+                                      "type": "object"
+                                    "viewCount":
+                                      "format": "int64"
+                                      "type": "integer"
+                                  "type": "object"
+                              "type": "object"
+                            "type": "array"
+                          "nextCursor":
+                            "type": "string"
+                        "type": "object"
+                      "message":
+                        "type": "string"
+                    "type": "object"
+                  "message":
+                    "type": "string"
+                  "messageArgs":
+                    "additionalProperties": true
+                    "type": "object"
+                  "messageKey":
+                    "type": "string"
+                  "serverTime":
+                    "format": "int64"
+                    "type": "integer"
+                  "traceId":
+                    "type": "string"
+                "type": "object"
+          "description": "OK"
+        "400":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Bad request"
+        "401":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Unauthorized"
+        "403":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Forbidden"
+        "404":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Not found"
+        "500":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Internal server error"
+      "summary": "查询社区账号观看历史"
+      "tags":
+        - "Community"
+      "x-scope": "tenant"
+  "/api/v1/public/community/account/history/clear":
+    "post":
+      "operationId": "community.account.history.clear"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "properties":
+                  "code":
+                    "format": "int32"
+                    "type": "integer"
+                  "data":
+                    "properties":
+                      "authenticated":
+                        "type": "boolean"
+                      "clientId":
+                        "type": "string"
+                      "historyCount":
+                        "format": "int32"
+                        "type": "integer"
+                      "items":
+                        "properties":
+                          "items":
+                            "items":
+                              "properties":
+                                "lastViewedAt":
+                                  "format": "date-time"
+                                  "type": "string"
+                                "progressSeconds":
+                                  "format": "int32"
+                                  "type": "integer"
+                                "video":
+                                  "properties":
+                                    "categories":
+                                      "items":
+                                        "properties":
+                                          "accentColor":
+                                            "type": "string"
+                                          "description":
+                                            "type": "string"
+                                          "id":
+                                            "type": "string"
+                                          "name":
+                                            "type": "string"
+                                          "order":
+                                            "format": "int32"
+                                            "type": "integer"
+                                          "parentSlug":
+                                            "type": "string"
+                                          "slug":
+                                            "type": "string"
+                                        "type": "object"
+                                      "type": "array"
+                                    "commentCount":
+                                      "format": "int64"
+                                      "type": "integer"
+                                    "description":
+                                      "type": "string"
+                                    "durationSeconds":
+                                      "format": "int32"
+                                      "type": "integer"
+                                    "id":
+                                      "type": "string"
+                                    "publishedAt":
+                                      "format": "date-time"
+                                      "type": "string"
+                                    "slug":
+                                      "type": "string"
+                                    "thumbnailUrl":
+                                      "type": "string"
+                                    "title":
+                                      "type": "string"
+                                    "uploader":
+                                      "properties":
+                                        "avatarUrl":
+                                          "type": "string"
+                                        "displayName":
+                                          "type": "string"
+                                        "handle":
+                                          "type": "string"
+                                        "id":
+                                          "type": "string"
+                                      "type": "object"
+                                    "viewCount":
+                                      "format": "int64"
+                                      "type": "integer"
+                                  "type": "object"
+                              "type": "object"
+                            "type": "array"
+                          "nextCursor":
+                            "type": "string"
+                        "type": "object"
+                      "message":
+                        "type": "string"
+                    "type": "object"
+                  "message":
+                    "type": "string"
+                  "messageArgs":
+                    "additionalProperties": true
+                    "type": "object"
+                  "messageKey":
+                    "type": "string"
+                  "serverTime":
+                    "format": "int64"
+                    "type": "integer"
+                  "traceId":
+                    "type": "string"
+                "type": "object"
+          "description": "OK"
+        "400":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Bad request"
+        "401":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Unauthorized"
+        "403":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Forbidden"
+        "404":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Not found"
+        "500":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Internal server error"
+      "summary": "清空社区账号观看历史"
+      "tags":
+        - "Community"
+      "x-scope": "tenant"
+  "/api/v1/public/community/account/library":
+    "get":
+      "operationId": "community.account.library"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "properties":
+                  "code":
+                    "format": "int32"
+                    "type": "integer"
+                  "data":
+                    "properties":
+                      "authenticated":
+                        "type": "boolean"
+                      "clientId":
+                        "type": "string"
+                      "favoriteCount":
+                        "format": "int32"
+                        "type": "integer"
+                      "favorites":
+                        "properties":
+                          "items":
+                            "items":
+                              "properties":
+                                "categories":
+                                  "items":
+                                    "properties":
+                                      "accentColor":
+                                        "type": "string"
+                                      "description":
+                                        "type": "string"
+                                      "id":
+                                        "type": "string"
+                                      "name":
+                                        "type": "string"
+                                      "order":
+                                        "format": "int32"
+                                        "type": "integer"
+                                      "parentSlug":
+                                        "type": "string"
+                                      "slug":
+                                        "type": "string"
+                                    "type": "object"
+                                  "type": "array"
+                                "commentCount":
+                                  "format": "int64"
+                                  "type": "integer"
+                                "description":
+                                  "type": "string"
+                                "durationSeconds":
+                                  "format": "int32"
+                                  "type": "integer"
+                                "id":
+                                  "type": "string"
+                                "publishedAt":
+                                  "format": "date-time"
+                                  "type": "string"
+                                "slug":
+                                  "type": "string"
+                                "thumbnailUrl":
+                                  "type": "string"
+                                "title":
+                                  "type": "string"
+                                "uploader":
+                                  "properties":
+                                    "avatarUrl":
+                                      "type": "string"
+                                    "displayName":
+                                      "type": "string"
+                                    "handle":
+                                      "type": "string"
+                                    "id":
+                                      "type": "string"
+                                  "type": "object"
+                                "viewCount":
+                                  "format": "int64"
+                                  "type": "integer"
+                              "type": "object"
+                            "type": "array"
+                          "nextCursor":
+                            "type": "string"
+                        "type": "object"
+                      "message":
+                        "type": "string"
+                      "watchLater":
+                        "properties":
+                          "items":
+                            "items":
+                              "properties":
+                                "categories":
+                                  "items":
+                                    "properties":
+                                      "accentColor":
+                                        "type": "string"
+                                      "description":
+                                        "type": "string"
+                                      "id":
+                                        "type": "string"
+                                      "name":
+                                        "type": "string"
+                                      "order":
+                                        "format": "int32"
+                                        "type": "integer"
+                                      "parentSlug":
+                                        "type": "string"
+                                      "slug":
+                                        "type": "string"
+                                    "type": "object"
+                                  "type": "array"
+                                "commentCount":
+                                  "format": "int64"
+                                  "type": "integer"
+                                "description":
+                                  "type": "string"
+                                "durationSeconds":
+                                  "format": "int32"
+                                  "type": "integer"
+                                "id":
+                                  "type": "string"
+                                "publishedAt":
+                                  "format": "date-time"
+                                  "type": "string"
+                                "slug":
+                                  "type": "string"
+                                "thumbnailUrl":
+                                  "type": "string"
+                                "title":
+                                  "type": "string"
+                                "uploader":
+                                  "properties":
+                                    "avatarUrl":
+                                      "type": "string"
+                                    "displayName":
+                                      "type": "string"
+                                    "handle":
+                                      "type": "string"
+                                    "id":
+                                      "type": "string"
+                                  "type": "object"
+                                "viewCount":
+                                  "format": "int64"
+                                  "type": "integer"
+                              "type": "object"
+                            "type": "array"
+                          "nextCursor":
+                            "type": "string"
+                        "type": "object"
+                      "watchLaterCount":
+                        "format": "int32"
+                        "type": "integer"
+                    "type": "object"
+                  "message":
+                    "type": "string"
+                  "messageArgs":
+                    "additionalProperties": true
+                    "type": "object"
+                  "messageKey":
+                    "type": "string"
+                  "serverTime":
+                    "format": "int64"
+                    "type": "integer"
+                  "traceId":
+                    "type": "string"
+                "type": "object"
+          "description": "OK"
+        "400":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Bad request"
+        "401":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Unauthorized"
+        "403":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Forbidden"
+        "404":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Not found"
+        "500":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Internal server error"
+      "summary": "查询社区账号资料库"
+      "tags":
+        - "Community"
+      "x-scope": "tenant"
   "/api/v1/public/community/account/notifications":
     "get":
       "operationId": "community.account.notifications.list"
@@ -6233,6 +6730,408 @@
                 "$ref": "#/components/schemas/ErrorResult"
           "description": "Internal server error"
       "summary": "查询社区账号关注状态"
+      "tags":
+        - "Community"
+      "x-scope": "tenant"
+  "/api/v1/public/community/account/videos/{idOrSlug}/history":
+    "post":
+      "operationId": "community.account.videos.history.record"
+      "parameters":
+        -
+          "in": "path"
+          "name": "idOrSlug"
+          "required": true
+          "schema":
+            "type": "string"
+      "requestBody":
+        "content":
+          "application/json":
+            "schema":
+              "properties":
+                "progressSeconds":
+                  "format": "int32"
+                  "type": "integer"
+              "type": "object"
+        "required": true
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "properties":
+                  "code":
+                    "format": "int32"
+                    "type": "integer"
+                  "data":
+                    "properties":
+                      "lastViewedAt":
+                        "format": "date-time"
+                        "type": "string"
+                      "progressSeconds":
+                        "format": "int32"
+                        "type": "integer"
+                      "video":
+                        "properties":
+                          "categories":
+                            "items":
+                              "properties":
+                                "accentColor":
+                                  "type": "string"
+                                "description":
+                                  "type": "string"
+                                "id":
+                                  "type": "string"
+                                "name":
+                                  "type": "string"
+                                "order":
+                                  "format": "int32"
+                                  "type": "integer"
+                                "parentSlug":
+                                  "type": "string"
+                                "slug":
+                                  "type": "string"
+                              "type": "object"
+                            "type": "array"
+                          "commentCount":
+                            "format": "int64"
+                            "type": "integer"
+                          "description":
+                            "type": "string"
+                          "durationSeconds":
+                            "format": "int32"
+                            "type": "integer"
+                          "id":
+                            "type": "string"
+                          "publishedAt":
+                            "format": "date-time"
+                            "type": "string"
+                          "slug":
+                            "type": "string"
+                          "thumbnailUrl":
+                            "type": "string"
+                          "title":
+                            "type": "string"
+                          "uploader":
+                            "properties":
+                              "avatarUrl":
+                                "type": "string"
+                              "displayName":
+                                "type": "string"
+                              "handle":
+                                "type": "string"
+                              "id":
+                                "type": "string"
+                            "type": "object"
+                          "viewCount":
+                            "format": "int64"
+                            "type": "integer"
+                        "type": "object"
+                    "type": "object"
+                  "message":
+                    "type": "string"
+                  "messageArgs":
+                    "additionalProperties": true
+                    "type": "object"
+                  "messageKey":
+                    "type": "string"
+                  "serverTime":
+                    "format": "int64"
+                    "type": "integer"
+                  "traceId":
+                    "type": "string"
+                "type": "object"
+          "description": "OK"
+        "400":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Bad request"
+        "401":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Unauthorized"
+        "403":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Forbidden"
+        "404":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Not found"
+        "500":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Internal server error"
+      "summary": "记录社区账号视频观看历史"
+      "tags":
+        - "Community"
+      "x-scope": "tenant"
+  "/api/v1/public/community/account/videos/{idOrSlug}/interaction-state":
+    "get":
+      "operationId": "community.account.videos.interaction-state"
+      "parameters":
+        -
+          "in": "path"
+          "name": "idOrSlug"
+          "required": true
+          "schema":
+            "type": "string"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "properties":
+                  "code":
+                    "format": "int32"
+                    "type": "integer"
+                  "data":
+                    "properties":
+                      "clientId":
+                        "type": "string"
+                      "favorited":
+                        "type": "boolean"
+                      "likeCount":
+                        "format": "int64"
+                        "type": "integer"
+                      "liked":
+                        "type": "boolean"
+                      "videoId":
+                        "type": "string"
+                      "watchLater":
+                        "type": "boolean"
+                    "type": "object"
+                  "message":
+                    "type": "string"
+                  "messageArgs":
+                    "additionalProperties": true
+                    "type": "object"
+                  "messageKey":
+                    "type": "string"
+                  "serverTime":
+                    "format": "int64"
+                    "type": "integer"
+                  "traceId":
+                    "type": "string"
+                "type": "object"
+          "description": "OK"
+        "400":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Bad request"
+        "401":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Unauthorized"
+        "403":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Forbidden"
+        "404":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Not found"
+        "500":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Internal server error"
+      "summary": "查询社区账号视频互动状态"
+      "tags":
+        - "Community"
+      "x-scope": "tenant"
+  "/api/v1/public/community/account/videos/{idOrSlug}/interactions/{kind}":
+    "delete":
+      "operationId": "community.account.videos.interactions.unset"
+      "parameters":
+        -
+          "in": "path"
+          "name": "idOrSlug"
+          "required": true
+          "schema":
+            "type": "string"
+        -
+          "in": "path"
+          "name": "kind"
+          "required": true
+          "schema":
+            "type": "string"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "properties":
+                  "code":
+                    "format": "int32"
+                    "type": "integer"
+                  "data":
+                    "properties":
+                      "clientId":
+                        "type": "string"
+                      "favorited":
+                        "type": "boolean"
+                      "likeCount":
+                        "format": "int64"
+                        "type": "integer"
+                      "liked":
+                        "type": "boolean"
+                      "videoId":
+                        "type": "string"
+                      "watchLater":
+                        "type": "boolean"
+                    "type": "object"
+                  "message":
+                    "type": "string"
+                  "messageArgs":
+                    "additionalProperties": true
+                    "type": "object"
+                  "messageKey":
+                    "type": "string"
+                  "serverTime":
+                    "format": "int64"
+                    "type": "integer"
+                  "traceId":
+                    "type": "string"
+                "type": "object"
+          "description": "OK"
+        "400":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Bad request"
+        "401":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Unauthorized"
+        "403":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Forbidden"
+        "404":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Not found"
+        "500":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Internal server error"
+      "summary": "取消社区账号视频互动关系"
+      "tags":
+        - "Community"
+      "x-scope": "tenant"
+    "post":
+      "operationId": "community.account.videos.interactions.set"
+      "parameters":
+        -
+          "in": "path"
+          "name": "idOrSlug"
+          "required": true
+          "schema":
+            "type": "string"
+        -
+          "in": "path"
+          "name": "kind"
+          "required": true
+          "schema":
+            "type": "string"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "properties":
+                  "code":
+                    "format": "int32"
+                    "type": "integer"
+                  "data":
+                    "properties":
+                      "clientId":
+                        "type": "string"
+                      "favorited":
+                        "type": "boolean"
+                      "likeCount":
+                        "format": "int64"
+                        "type": "integer"
+                      "liked":
+                        "type": "boolean"
+                      "videoId":
+                        "type": "string"
+                      "watchLater":
+                        "type": "boolean"
+                    "type": "object"
+                  "message":
+                    "type": "string"
+                  "messageArgs":
+                    "additionalProperties": true
+                    "type": "object"
+                  "messageKey":
+                    "type": "string"
+                  "serverTime":
+                    "format": "int64"
+                    "type": "integer"
+                  "traceId":
+                    "type": "string"
+                "type": "object"
+          "description": "OK"
+        "400":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Bad request"
+        "401":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Unauthorized"
+        "403":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Forbidden"
+        "404":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Not found"
+        "500":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Internal server error"
+      "summary": "设置社区账号视频互动关系"
       "tags":
         - "Community"
       "x-scope": "tenant"

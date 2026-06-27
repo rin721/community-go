@@ -358,10 +358,17 @@ func registerCommunityRoutes(v1 ports.HTTPRouter, deps RouterDeps) []RouteContra
 		routeSpecFor("community.account.creators.follow", deps.CommunityHandler.FollowAccountCreator),
 		routeSpecFor("community.account.creators.unfollow", deps.CommunityHandler.UnfollowAccountCreator),
 		routeSpecFor("community.account.feed.following", deps.CommunityHandler.AccountFollowing),
+		routeSpecFor("community.account.library", deps.CommunityHandler.AccountLibrary),
+		routeSpecFor("community.account.history.list", deps.CommunityHandler.AccountHistory),
+		routeSpecFor("community.account.history.clear", deps.CommunityHandler.ClearAccountHistory),
 		routeSpecFor("community.account.notifications.list", deps.CommunityHandler.AccountNotifications),
 		routeSpecFor("community.account.notifications.read", deps.CommunityHandler.MarkAccountNotificationsRead),
 		routeSpecFor("community.account.submissions.list", deps.CommunityHandler.AccountSubmissions),
 		routeSpecFor("community.account.submissions.create", deps.CommunityHandler.CreateAccountSubmission),
+		routeSpecFor("community.account.videos.interaction-state", deps.CommunityHandler.AccountVideoInteractionState),
+		routeSpecFor("community.account.videos.interactions.set", deps.CommunityHandler.SetAccountVideoInteraction),
+		routeSpecFor("community.account.videos.interactions.unset", deps.CommunityHandler.UnsetAccountVideoInteraction),
+		routeSpecFor("community.account.videos.history.record", deps.CommunityHandler.RecordAccountHistory),
 	}
 	registerRouteSpecs(account, appconstants.APIPath("public", "community", "account"), accountSpecs)
 	registered = append(registered, routeContractsFromSpecs(accountSpecs)...)

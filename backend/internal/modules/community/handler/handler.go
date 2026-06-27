@@ -189,12 +189,30 @@ func (h *Handler) VideoInteractionState(c ports.HTTPContext) {
 	writeOK(c, state, err, h.writeError)
 }
 
+func (h *Handler) AccountVideoInteractionState(c ports.HTTPContext) {
+	principal, ok := requirePrincipal(c)
+	if !ok {
+		return
+	}
+	state, err := h.service.GetAccountVideoInteractionState(c.RequestContext(), principal, c.Param("idOrSlug"))
+	writeOK(c, state, err, h.writeError)
+}
+
 func (h *Handler) SetVideoInteraction(c ports.HTTPContext) {
 	var req model.VideoInteractionRequest
 	if !bind(c, &req) {
 		return
 	}
 	state, err := h.service.SetVideoInteraction(c.RequestContext(), c.Param("idOrSlug"), c.Param("kind"), req)
+	writeOK(c, state, err, h.writeError)
+}
+
+func (h *Handler) SetAccountVideoInteraction(c ports.HTTPContext) {
+	principal, ok := requirePrincipal(c)
+	if !ok {
+		return
+	}
+	state, err := h.service.SetAccountVideoInteraction(c.RequestContext(), principal, c.Param("idOrSlug"), c.Param("kind"))
 	writeOK(c, state, err, h.writeError)
 }
 
@@ -205,12 +223,34 @@ func (h *Handler) UnsetVideoInteraction(c ports.HTTPContext) {
 	writeOK(c, state, err, h.writeError)
 }
 
+func (h *Handler) UnsetAccountVideoInteraction(c ports.HTTPContext) {
+	principal, ok := requirePrincipal(c)
+	if !ok {
+		return
+	}
+	state, err := h.service.UnsetAccountVideoInteraction(c.RequestContext(), principal, c.Param("idOrSlug"), c.Param("kind"))
+	writeOK(c, state, err, h.writeError)
+}
+
 func (h *Handler) RecordHistory(c ports.HTTPContext) {
 	var req model.VideoHistoryRequest
 	if !bind(c, &req) {
 		return
 	}
 	item, err := h.service.RecordVideoHistory(c.RequestContext(), c.Param("idOrSlug"), req)
+	writeOK(c, item, err, h.writeError)
+}
+
+func (h *Handler) RecordAccountHistory(c ports.HTTPContext) {
+	principal, ok := requirePrincipal(c)
+	if !ok {
+		return
+	}
+	var req model.RecordAccountVideoHistoryRequest
+	if !bind(c, &req) {
+		return
+	}
+	item, err := h.service.RecordAccountVideoHistory(c.RequestContext(), principal, c.Param("idOrSlug"), req)
 	writeOK(c, item, err, h.writeError)
 }
 
@@ -301,6 +341,15 @@ func (h *Handler) Library(c ports.HTTPContext) {
 	writeOK(c, payload, err, h.writeError)
 }
 
+func (h *Handler) AccountLibrary(c ports.HTTPContext) {
+	principal, ok := requirePrincipal(c)
+	if !ok {
+		return
+	}
+	payload, err := h.service.AccountVideoLibrary(c.RequestContext(), principal)
+	writeOK(c, payload, err, h.writeError)
+}
+
 func (h *Handler) History(c ports.HTTPContext) {
 	limit, ok := parseIntQuery(c, "limit", 48)
 	if !ok {
@@ -313,12 +362,34 @@ func (h *Handler) History(c ports.HTTPContext) {
 	writeOK(c, payload, err, h.writeError)
 }
 
+func (h *Handler) AccountHistory(c ports.HTTPContext) {
+	principal, ok := requirePrincipal(c)
+	if !ok {
+		return
+	}
+	limit, ok := parseIntQuery(c, "limit", 48)
+	if !ok {
+		return
+	}
+	payload, err := h.service.AccountVideoHistory(c.RequestContext(), principal, limit)
+	writeOK(c, payload, err, h.writeError)
+}
+
 func (h *Handler) ClearHistory(c ports.HTTPContext) {
 	var req model.VideoHistoryClearRequest
 	if !bind(c, &req) {
 		return
 	}
 	payload, err := h.service.ClearVideoHistory(c.RequestContext(), req)
+	writeOK(c, payload, err, h.writeError)
+}
+
+func (h *Handler) ClearAccountHistory(c ports.HTTPContext) {
+	principal, ok := requirePrincipal(c)
+	if !ok {
+		return
+	}
+	payload, err := h.service.ClearAccountVideoHistory(c.RequestContext(), principal)
 	writeOK(c, payload, err, h.writeError)
 }
 

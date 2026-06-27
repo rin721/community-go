@@ -15,6 +15,7 @@ import type {
   CreateCommunityAccountSubmissionRequest,
   CreateCommunityDynamicRequest,
   CreateCommunitySubmissionRequest,
+  RecordAccountVideoHistoryRequest,
   CreateVideoCommentRequest,
   CreateVideoDanmakuRequest,
   CreateVideoReportRequest,
@@ -224,6 +225,22 @@ export function useAoiApi() {
     })
   }
 
+  async function getAccountVideoInteractionState(idOrSlug: string): Promise<VideoInteractionState> {
+    return await request<VideoInteractionState>(`/account/videos/${encodeURIComponent(idOrSlug)}/interaction-state`)
+  }
+
+  async function setAccountVideoInteraction(idOrSlug: string, kind: VideoInteractionKind): Promise<VideoInteractionState> {
+    return await request<VideoInteractionState>(`/account/videos/${encodeURIComponent(idOrSlug)}/interactions/${encodeURIComponent(kind)}`, {
+      method: "POST"
+    })
+  }
+
+  async function unsetAccountVideoInteraction(idOrSlug: string, kind: VideoInteractionKind): Promise<VideoInteractionState> {
+    return await request<VideoInteractionState>(`/account/videos/${encodeURIComponent(idOrSlug)}/interactions/${encodeURIComponent(kind)}`, {
+      method: "DELETE"
+    })
+  }
+
   async function getCreatorProfile(handle: string): Promise<CreatorProfile> {
     return await request<CreatorProfile>(`/users/${encodeURIComponent(handle)}`)
   }
@@ -280,9 +297,19 @@ export function useAoiApi() {
     })
   }
 
+  async function getAccountVideoLibrary(): Promise<VideoLibraryPayload> {
+    return await request<VideoLibraryPayload>("/account/library")
+  }
+
   async function getVideoHistory(clientId: string, limit = 48): Promise<VideoHistoryPayload> {
     return await request<VideoHistoryPayload>("/history", {
       query: { clientId, limit }
+    })
+  }
+
+  async function getAccountVideoHistory(limit = 48): Promise<VideoHistoryPayload> {
+    return await request<VideoHistoryPayload>("/account/history", {
+      query: { limit }
     })
   }
 
@@ -293,9 +320,22 @@ export function useAoiApi() {
     })
   }
 
+  async function recordAccountVideoHistory(idOrSlug: string, body: RecordAccountVideoHistoryRequest): Promise<VideoHistoryItem> {
+    return await request<VideoHistoryItem>(`/account/videos/${encodeURIComponent(idOrSlug)}/history`, {
+      body,
+      method: "POST"
+    })
+  }
+
   async function clearVideoHistory(body: VideoHistoryClearRequest): Promise<VideoHistoryPayload> {
     return await request<VideoHistoryPayload>("/history/clear", {
       body,
+      method: "POST"
+    })
+  }
+
+  async function clearAccountVideoHistory(): Promise<VideoHistoryPayload> {
+    return await request<VideoHistoryPayload>("/account/history/clear", {
       method: "POST"
     })
   }
@@ -341,6 +381,10 @@ export function useAoiApi() {
     getCommunityDynamics,
     getFollowingFeed,
     clearVideoHistory,
+    clearAccountVideoHistory,
+    getAccountVideoHistory,
+    getAccountVideoInteractionState,
+    getAccountVideoLibrary,
     getVideoInteractionState,
     getVideoHistory,
     getVideoLibrary,
@@ -367,10 +411,13 @@ export function useAoiApi() {
     searchVideos,
     markCommunityAccountNotificationsRead,
     markCommunityNotificationsRead,
+    recordAccountVideoHistory,
     recordVideoHistory,
+    setAccountVideoInteraction,
     setVideoInteraction,
     unfollowAccountCreator,
     unfollowCreator,
+    unsetAccountVideoInteraction,
     unsetVideoInteraction
   }
 }

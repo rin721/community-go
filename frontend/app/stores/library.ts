@@ -14,6 +14,7 @@ interface PersistedLibraryState {
 }
 
 type CountableVideoSummary = VideoSummary & { likeCount?: number }
+type LibraryScope = "account" | "anonymous"
 
 function emptyState(): PersistedLibraryState {
   return {
@@ -90,6 +91,10 @@ function normalizeClientId(value: string | null | undefined) {
   return normalized && normalized.length <= 96 ? normalized : ""
 }
 
+function isAccountClientId(value: string) {
+  return value.startsWith("account:")
+}
+
 function errorMessage(error: unknown) {
   const apiError = error as Partial<AoiApiErrorPayload>
 
@@ -105,11 +110,13 @@ function setListItem<T>(items: T[], value: T, exists: boolean, matches: (item: T
 }
 
 export const useLibraryStore = defineStore("library", () => {
+  const authSession = useAuthSessionStore()
   const backendReady = ref(false)
   const clientId = ref("")
   const favoriteVideos = ref<Record<string, LibraryVideoSnapshot>>({})
   const history = ref<HistoryEntry[]>([])
   const hydrated = ref(false)
+  const libraryScope = ref<LibraryScope>("anonymous")
   const likedVideoIds = ref<string[]>([])
   const likeCountsByVideoId = ref<Record<string, number>>({})
   const pendingVideoIds = ref<Record<string, boolean>>({})
@@ -121,6 +128,7 @@ export const useLibraryStore = defineStore("library", () => {
   const historyVideos = computed(() => history.value.map((entry) => entry.video))
   const likedCount = computed(() => likedVideoIds.value.length)
   const watchLaterList = computed(() => Object.values(watchLaterVideos.value))
+  const communityAccountActive = computed(() => authSession.authenticated)
 
   function assignState(state: PersistedLibraryState) {
     favoriteVideos.value = state.favoriteVideos
@@ -142,7 +150,7 @@ export const useLibraryStore = defineStore("library", () => {
   }
 
   function persist() {
-    if (!import.meta.client || !hydrated.value) {
+    if (!import.meta.client || !hydrated.value || libraryScope.value !== "anonymous") {
       return
     }
 
@@ -184,7 +192,8 @@ export const useLibraryStore = defineStore("library", () => {
     }
 
     try {
-      clientId.value = normalizeClientId(window.localStorage.getItem(CLIENT_ID_STORAGE_KEY)) || createClientId()
+      const storedClientId = normalizeClientId(window.localStorage.getItem(CLIENT_ID_STORAGE_KEY))
+      clientId.value = storedClientId && !isAccountClientId(storedClientId) ? storedClientId : createClientId()
       persistClientId()
     } catch {
       clientId.value = createClientId()
@@ -193,7 +202,32 @@ export const useLibraryStore = defineStore("library", () => {
     }
   }
 
+  function markCurrentScope() {
+    if (communityAccountActive.value) {
+      libraryScope.value = "account"
+    }
+  }
+
+  async function resolveAccountScope() {
+    if (!authSession.hydrated) {
+      await authSession.refreshSession({ silent: true })
+    }
+    libraryScope.value = communityAccountActive.value ? "account" : "anonymous"
+    return communityAccountActive.value
+  }
+
+  function applyClientScope(nextClientId: string | null | undefined, authenticated: boolean) {
+    const normalizedClientId = normalizeClientId(nextClientId)
+    const accountScoped = authenticated || isAccountClientId(normalizedClientId)
+    libraryScope.value = accountScoped ? "account" : "anonymous"
+    if (normalizedClientId && !accountScoped) {
+      clientId.value = normalizedClientId
+      persistClientId()
+    }
+  }
+
   function recordView(video: VideoSummary, progressSeconds?: number) {
+    markCurrentScope()
     const existing = history.value.find((entry) => entry.video.id === video.id)
     const current = history.value.filter((entry) => entry.video.id !== video.id)
     const normalizedProgress = normalizeProgress(video, progressSeconds)
@@ -210,6 +244,7 @@ export const useLibraryStore = defineStore("library", () => {
   }
 
   function updateHistoryProgress(videoId: string, progressSeconds: number) {
+    markCurrentScope()
     let updated = false
     history.value = history.value.map((entry) => {
       if (entry.video.id !== videoId) {
@@ -261,10 +296,13 @@ export const useLibraryStore = defineStore("library", () => {
     const api = useAoiApi()
 
     try {
-      const item = await api.recordVideoHistory(entry.video.id, {
-        clientId: ensureClientId(),
-        progressSeconds: entry.progressSeconds
-      })
+      const accountScoped = await resolveAccountScope()
+      const item = accountScoped
+        ? await api.recordAccountVideoHistory(entry.video.id, { progressSeconds: entry.progressSeconds })
+        : await api.recordVideoHistory(entry.video.id, {
+          clientId: ensureClientId(),
+          progressSeconds: entry.progressSeconds
+        })
       backendReady.value = true
       syncError.value = null
       return item
@@ -280,11 +318,7 @@ export const useLibraryStore = defineStore("library", () => {
       return
     }
 
-    const normalizedClientId = normalizeClientId(payload.clientId)
-    if (normalizedClientId) {
-      clientId.value = normalizedClientId
-      persistClientId()
-    }
+    applyClientScope(payload.clientId, payload.authenticated)
 
     backendReady.value = true
     syncError.value = null
@@ -297,11 +331,7 @@ export const useLibraryStore = defineStore("library", () => {
       return
     }
 
-    const normalizedClientId = normalizeClientId(payload.clientId)
-    if (normalizedClientId) {
-      clientId.value = normalizedClientId
-      persistClientId()
-    }
+    applyClientScope(payload.clientId, payload.authenticated)
 
     backendReady.value = true
     syncError.value = null
@@ -314,7 +344,9 @@ export const useLibraryStore = defineStore("library", () => {
 
   function applyInteractionState(video: CountableVideoSummary, state: VideoInteractionState) {
     const normalizedClientId = normalizeClientId(state.clientId)
-    if (normalizedClientId) {
+    const accountScoped = communityAccountActive.value || isAccountClientId(normalizedClientId)
+    libraryScope.value = accountScoped ? "account" : "anonymous"
+    if (normalizedClientId && !accountScoped) {
       clientId.value = normalizedClientId
       persistClientId()
     }
@@ -338,10 +370,13 @@ export const useLibraryStore = defineStore("library", () => {
     const api = useAoiApi()
 
     try {
-      const activeClientId = ensureClientId()
-      let payload = await api.getVideoLibrary(activeClientId)
+      const accountScoped = await resolveAccountScope()
+      const activeClientId = accountScoped ? "" : ensureClientId()
+      let payload = accountScoped
+        ? await api.getAccountVideoLibrary()
+        : await api.getVideoLibrary(activeClientId)
 
-      if (await pushMissingLocalLibraryItems(payload, activeClientId)) {
+      if (!accountScoped && await pushMissingLocalLibraryItems(payload, activeClientId)) {
         payload = await api.getVideoLibrary(activeClientId)
       }
 
@@ -362,15 +397,19 @@ export const useLibraryStore = defineStore("library", () => {
     const api = useAoiApi()
 
     try {
-      let payload = await api.getVideoHistory(ensureClientId(), limit)
-      if (payload.items.items.length === 0 && history.value.length > 0) {
+      const accountScoped = await resolveAccountScope()
+      const activeClientId = accountScoped ? "" : ensureClientId()
+      let payload = accountScoped
+        ? await api.getAccountVideoHistory(limit)
+        : await api.getVideoHistory(activeClientId, limit)
+      if (!accountScoped && payload.items.items.length === 0 && history.value.length > 0) {
         await Promise.all(
           history.value.slice(0, limit).map((entry) => api.recordVideoHistory(entry.video.id, {
-            clientId: ensureClientId(),
+            clientId: activeClientId,
             progressSeconds: entry.progressSeconds
           }))
         )
-        payload = await api.getVideoHistory(ensureClientId(), limit)
+        payload = await api.getVideoHistory(activeClientId, limit)
       }
       applyBackendHistory(payload)
       return payload
@@ -389,7 +428,10 @@ export const useLibraryStore = defineStore("library", () => {
     const api = useAoiApi()
 
     try {
-      const state = await api.getVideoInteractionState(video.id, ensureClientId())
+      const accountScoped = await resolveAccountScope()
+      const state = accountScoped
+        ? await api.getAccountVideoInteractionState(video.id)
+        : await api.getVideoInteractionState(video.id, ensureClientId())
       applyInteractionState(video, state)
       return state
     } catch (error) {
@@ -418,13 +460,17 @@ export const useLibraryStore = defineStore("library", () => {
 
     const active = isInteractionActive(video.id, kind)
     const api = useAoiApi()
-    const activeClientId = ensureClientId()
     setPending(video.id, true)
 
     try {
+      const accountScoped = await resolveAccountScope()
       const state = active
-        ? await api.unsetVideoInteraction(video.id, kind, activeClientId)
-        : await api.setVideoInteraction(video.id, kind, { clientId: activeClientId })
+        ? accountScoped
+          ? await api.unsetAccountVideoInteraction(video.id, kind)
+          : await api.unsetVideoInteraction(video.id, kind, ensureClientId())
+        : accountScoped
+          ? await api.setAccountVideoInteraction(video.id, kind)
+          : await api.setVideoInteraction(video.id, kind, { clientId: ensureClientId() })
       applyInteractionState(video, state)
     } catch (error) {
       backendReady.value = false
@@ -544,6 +590,7 @@ export const useLibraryStore = defineStore("library", () => {
     }
     historySyncTimers.clear()
 
+    const accountScoped = hydrated.value ? await resolveAccountScope() : false
     history.value = []
     if (!hydrated.value) {
       return
@@ -552,7 +599,11 @@ export const useLibraryStore = defineStore("library", () => {
     const api = useAoiApi()
 
     try {
-      await api.clearVideoHistory({ clientId: ensureClientId() })
+      if (accountScoped) {
+        await api.clearAccountVideoHistory()
+      } else {
+        await api.clearVideoHistory({ clientId: ensureClientId() })
+      }
       backendReady.value = true
       syncError.value = null
     } catch (error) {
@@ -571,6 +622,7 @@ export const useLibraryStore = defineStore("library", () => {
 
   async function clearCollection(kind: Extract<VideoInteractionKind, "favorite" | "watch_later">) {
     const items = kind === "favorite" ? favoriteList.value : watchLaterList.value
+    const accountScoped = hydrated.value ? await resolveAccountScope() : false
     if (kind === "favorite") {
       favoriteVideos.value = {}
     } else {
@@ -581,8 +633,10 @@ export const useLibraryStore = defineStore("library", () => {
     }
 
     const api = useAoiApi()
-    const activeClientId = ensureClientId()
-    const results = await Promise.allSettled(items.map((video) => api.unsetVideoInteraction(video.id, kind, activeClientId)))
+    const activeClientId = accountScoped ? "" : ensureClientId()
+    const results = await Promise.allSettled(items.map((video) => accountScoped
+      ? api.unsetAccountVideoInteraction(video.id, kind)
+      : api.unsetVideoInteraction(video.id, kind, activeClientId)))
     if (results.some((item) => item.status === "rejected")) {
       backendReady.value = false
       syncError.value = "部分互动关系清理失败，下次同步会重新校准。"
@@ -594,6 +648,7 @@ export const useLibraryStore = defineStore("library", () => {
   }
 
   function resetLibrary() {
+    libraryScope.value = "anonymous"
     assignState(emptyState())
     backendReady.value = false
     syncError.value = null

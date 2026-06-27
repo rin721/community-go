@@ -157,7 +157,7 @@ Nuxt public runtime config 支持以下环境变量：
 - 样式优先使用 `app/assets/css/tokens.css` 中的 CSS 变量和 `app/assets/css/main.css` 中的共享布局规则。
 - 页面层级以透明表面、低透明边线、轻阴影和稳定媒体比例表达；首页横幅、分类导航、动态卡片和媒体卡片保持轻量边界，贴近清爽的视频社区阅读节奏。
 - 新增共享用户可见文案时，同步维护 `i18n/locales/zh-CN.json`、`i18n/locales/en.json` 和 `i18n/locales/ja.json`。
-- 登录、注册和账号状态使用社区账号语义。
+- 登录、注册和账号状态使用普通社区账号语义；页面、store、shared DTO、mock fixture 和 i18n 只表达用户资料、会话、创作者、互动、收藏、历史、通知与投稿等社区平台流程。
 - 浏览器侧注册请求只提交用户名、显示名、邮箱和密码；社区公开认证入口返回前端会话需要的最小字段。
 - 评论、关注、收藏、稍后看、历史、通知等社区状态优先以 `useAoiApi()` 返回的后端 payload 为准；`localStorage` 只保存匿名 clientId 和必要降级缓存，收藏 / 稍后看 / 历史缓存会在后端可用后通过社区 API 回灌并重新读取。
 - 浏览器本地 store 必须只在客户端安全 hydrate，并能从损坏的 `localStorage` 恢复。
@@ -169,6 +169,7 @@ Nuxt public runtime config 支持以下环境变量：
 
 - 修改 TypeScript、Vue、路由、composable 或 store 后，运行 `pnpm typecheck`。
 - 修改 Nuxt 配置、server route、runtime config 或构建敏感模块后，运行 `pnpm build`。
+- 修改登录、注册、会话、账号状态、shared DTO、mock fixture 或 i18n 后，从仓库根目录运行 `powershell -ExecutionPolicy Bypass -File scripts/check-frontend-community-boundary.ps1`。
 - 可见 UI 变更应尽量在浏览器中检查桌面和移动端表现。
 - 除非后续新增脚本或明确提供命令，不要声称已经完成 lint 验证。
 

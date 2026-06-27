@@ -86,6 +86,7 @@
 本节只在任务触碰 `frontend/**`、前端视觉/交互/i18n/API/mock/构建，或用户明确要求开发前端时生效。
 
 - `frontend/` 使用 Nuxt 4、Vue 3、TypeScript、Pinia、`@nuxtjs/i18n`、`@nuxt/icon`、Material Web、本地 Aoi wrapper 和 pnpm；页面路由以社区产品体验、内容消费和用户业务流程为主。
+- `frontend/` 的登录、注册、资料库、通知、上传和设置只使用普通社区账号语义；账号 DTO、Pinia store、mock fixture、页面文案和 i18n 只暴露 `userId`、`sessionId`、`account`、`handle`、`displayName` 等社区字段。
 - 包管理器只能使用 pnpm，版本由 `frontend/package.json` 的 `packageManager` 固定；不得引入 npm、Yarn 或 Bun lockfile。
 - 业务页面和功能组件不得直接使用 `md-*` Material Web 元素；需要新能力时先扩展 `frontend/app/components/aoi/`。
 - Material Web 的注册与行为必须保持在 Aoi wrapper 和 `frontend/app/plugins` 后面，不得在业务页面散落实现细节。
@@ -178,6 +179,7 @@ pnpm --dir frontend typecheck
 pnpm --dir frontend build
 pnpm --dir frontend dev
 pnpm --dir frontend preview
+powershell -ExecutionPolicy Bypass -File scripts/check-frontend-community-boundary.ps1
 ```
 
 聚合仓库规则与 skill 检查：

@@ -4,10 +4,10 @@
 
 ## 当前阶段
 
-- 阶段编号：`P5`
-- 阶段主题：后端社区真实业务数据来源收敛
-- 当前结论：`P1` 已完成社区 setup 边界与真实 API smoke；`P2` 已完成核心页面视觉 QA 与移动端导航避让；`P3` 已完成评论 / 动态本人编辑删除、投稿审核状态流转、审核发布生成社区视频记录和 system media 受控关联；`P4` 已完成少量真实内容视觉节奏与社区前端 Cookie / CSRF 凭证链路。本轮进入 P5：收敛后端社区 HTTP 返回面的硬编码业务数据，`/status` endpoint 清单改由真实 route contract 注册结果注入，`/home.announcement` 改由公告模块已发布数据提供，视频装饰不再猜测分类或伪造 `Unknown` 上传者，投稿发布不再写入演示型创作者简介。转码、公开播放源治理和后台可视化审核页仍是后续独立叶节点。
-- 影响范围：`backend/internal/app/initapp/**`、`backend/internal/modules/community/**`、`backend/internal/transport/http/**`、`backend/internal/modules/announcements/**` 测试协作、`backend/docs/**`、`frontend/README.md`、`TASK_TREE.md`；不改变 HTTP path、DTO 字段名、OpenAPI schema、数据库迁移或 Nuxt mock fixture。
+- 阶段编号：`P6`
+- 阶段主题：社区登录注册与全业务多模态 QA 覆盖
+- 当前结论：`P1` 已完成社区 setup 边界与真实 API smoke；`P2` 已完成核心页面视觉 QA 与移动端导航避让；`P3` 已完成评论 / 动态本人编辑删除、投稿审核状态流转、审核发布生成社区视频记录和 system media 受控关联；`P4` 已完成少量真实内容视觉节奏与社区前端 Cookie / CSRF 凭证链路；`P5` 已完成后端社区 HTTP 返回面真实数据来源收敛；`P6` 已完成真实 API smoke 的社区登录 / 登出 / 重新登录验证，并扩展页面 smoke 的注册、登录、通知、历史、收藏 / 稍后看和账号态业务截图覆盖。转码、公开播放源治理和后台可视化审核页仍是后续独立叶节点。
+- 影响范围：`scripts/check-frontend-community-api-smoke.ps1`、`scripts/frontend-community-page-smoke.cjs`、`frontend/app/pages/collections.vue`、`frontend/README.md`、`TASK_TREE.md`；不改变 HTTP path、DTO 字段名、OpenAPI schema、数据库迁移、Nuxt mock fixture 或生产业务行为。
 
 ## 设计语言蒸馏
 
@@ -94,6 +94,10 @@
       [x] 叶节点 C3.6.b：`/home.announcement` 从公告模块已发布数据读取，无公告时返回 `null`
       [x] 叶节点 C3.6.c：视频装饰仅使用持久化分类关联和真实创作者，缺失引用暴露数据一致性错误
       [x] 叶节点 C3.6.d：投稿审核发布生成创作者时不写演示 bio 或默认展示名
+    [x] 子分支 C3.7：登录注册与账号态页面 smoke 覆盖
+      [x] 叶节点 C3.7.a：真实 API smoke 覆盖社区账号登录、登出、登出后匿名 session 和重新登录 session 恢复
+      [x] 叶节点 C3.7.b：真实页面 smoke 覆盖注册、登录会话、错误登录、重新登录和账号态截图
+      [x] 叶节点 C3.7.c：真实页面 smoke 覆盖关注 / 取消关注 / 再关注、账号动态、收藏、稍后看、历史、通知已读和双端视觉截图
 
 [ ] 主干 D：文档、规则与 Skill 同步
   [x] 分支 D1：任务树入口
@@ -233,4 +237,15 @@
 - [x] `powershell -ExecutionPolicy Bypass -File backend/scripts/check-error-result-boundaries.ps1` 通过。
 - [x] `powershell -ExecutionPolicy Bypass -File scripts/check-frontend-community-boundary.ps1` 通过。
 - [x] `powershell -ExecutionPolicy Bypass -File scripts/check-frontend-community-api-smoke.ps1` 通过，真实后端 smoke 输出 `home-initial announcement=False`、审核发布生成视频、system media 上传、评论 / 动态编辑删除、账号路径和通知链路均通过。
+- [x] `git diff --check` 通过；PowerShell 输出提示 `frontend/README.md` 工作区 CRLF 会在 Git 触碰时按仓库规则转为 LF。
+
+### P6：社区登录注册与全业务多模态 QA 覆盖
+
+- [x] `powershell -ExecutionPolicy Bypass -File scripts/check-frontend-community-api-smoke.ps1` 通过，真实后端 smoke 输出包含 `[account-login] session=...` 与 `[account-logout] loggedOut=True, anonymousSession=True`，并继续覆盖投稿、审核发布、评论 / 动态、关注、历史和通知持久化链路。
+- [x] `powershell -ExecutionPolicy Bypass -File scripts/check-frontend-community-page-smoke.ps1` 通过；桌面输出 `auth account=page_smoke_desktop_...`、`favorite=true`、`watchLater=true`、`notifications cards=4, unreadAfterRead=0`，移动端输出 `auth account=page_smoke_mobile_...`、`collections favorites=1, watchLater=1`、`settings panels=4, endpoints=44`。
+- [x] 页面 smoke 截图输出到 `tmp/ai/frontend-community-page-smoke/screenshots`，覆盖 `register`、`login-session`、`login-error`、`login`、`home`、`category`、`search`、`creator`、`creator-account`、`following`、`video`、`history`、`collections`、`notifications`、`upload`、`settings` 的桌面与移动端视图。
+- [x] 视觉模型检查 `contact-sheet-desktop.png`、`contact-sheet-mobile.png` 和 `collections-mobile.png`，未发现横向溢出、表单不可见、成功 / 错误提示不可读或关键控件被底部导航遮挡；收藏页补充移动端底部安全间距，并修正 smoke 的底部导航检测候选，避免把页面根容器误判为内容遮挡。
+- [x] `pnpm --dir frontend typecheck` 通过。
+- [x] `powershell -ExecutionPolicy Bypass -File scripts/check-frontend-community-boundary.ps1` 通过。
+- [x] `node --check scripts/frontend-community-page-smoke.cjs` 通过。
 - [x] `git diff --check` 通过；PowerShell 输出提示 `frontend/README.md` 工作区 CRLF 会在 Git 触碰时按仓库规则转为 LF。

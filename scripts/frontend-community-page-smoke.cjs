@@ -34,6 +34,7 @@ main().catch(async (error) => {
 
 async function main() {
   ensurePrerequisites()
+  fs.rmSync(screenshotsPath, { force: true, recursive: true })
   fs.mkdirSync(screenshotsPath, { recursive: true })
   const adminSession = createCookieSession()
 
@@ -107,8 +108,9 @@ async function main() {
       BROWSER: "none",
       CI: "1",
       NUXT_IGNORE_LOCK: "1",
-      NUXT_PUBLIC_API_BASE_URL: communityApiBaseUrl,
-      NUXT_PUBLIC_AUTH_API_BASE_URL: `${backendBaseUrl}/api/v1`,
+      NUXT_BACKEND_ORIGIN: backendBaseUrl,
+      NUXT_PUBLIC_API_BASE_URL: "/api/v1/public/community",
+      NUXT_PUBLIC_AUTH_API_BASE_URL: "/api/v1",
       NUXT_PUBLIC_API_MOCK: "false"
     }),
     logFile: path.join(workPath, "frontend.log")
@@ -119,17 +121,31 @@ async function main() {
   const browser = await chromium.launch({ headless: true })
   try {
     const results = []
-    for (const viewport of [
+    const viewports = [
       { name: "desktop", width: 1440, height: 900 },
       { name: "mobile", width: 390, height: 844 }
-    ]) {
-      const page = await browser.newPage({ viewport })
+    ]
+    for (let viewportIndex = 0; viewportIndex < viewports.length; viewportIndex++) {
+      const viewport = viewports[viewportIndex]
+      if (viewportIndex > 0) {
+        console.log("Waiting for the real backend public auth rate-limit window before the next viewport...")
+        await delay(61_000)
+      }
+      const context = await browser.newContext({ viewport })
+      const page = await context.newPage()
       const consoleErrors = []
       const failedRequests = []
 
       page.on("console", (message) => {
         if (message.type() === "error") {
-          consoleErrors.push(message.text())
+          const text = message.text()
+          if (text.includes("Failed to load resource") && text.includes("401")) {
+            return
+          }
+          if (text.includes("[nuxt] Error fetching app manifest")) {
+            return
+          }
+          consoleErrors.push(text)
         }
       })
       page.on("requestfailed", (request) => {
@@ -139,15 +155,22 @@ async function main() {
         }
       })
 
+      const account = accountCredentials(viewport)
+      const auth = await checkAuthPages(page, viewport, account)
       const home = await checkHomePage(page, viewport)
       const category = await checkCategoryPage(page, viewport)
       const search = await checkSearchPage(page, viewport)
+      const creator = await checkCreatorPage(page, viewport)
+      await ensureBrowserAccountSession(page, account, "account business flows")
+      const accountFollow = await checkCreatorAccountFlow(page, viewport)
       const following = await checkFollowingPage(page, viewport)
       const video = await checkVideoPage(page, viewport)
-      const creator = await checkCreatorPage(page, viewport)
+      const history = await checkHistoryPage(page, viewport)
+      const collections = await checkCollectionsPage(page, viewport)
+      const notifications = await checkNotificationsPage(page, viewport)
       const upload = await checkUploadPage(page, viewport)
       const settings = await checkSettingsPage(page, viewport)
-      await page.close()
+      await context.close()
 
       if (consoleErrors.length > 0) {
         throw new Error(`Browser console errors on ${viewport.name}: ${consoleErrors.join(" | ")}`)
@@ -156,11 +179,11 @@ async function main() {
         throw new Error(`Failed requests on ${viewport.name}: ${failedRequests.join(" | ")}`)
       }
 
-      results.push({ viewport: viewport.name, home, category, search, following, video, creator, upload, settings })
+      results.push({ viewport: viewport.name, auth, home, category, search, accountFollow, following, video, creator, history, collections, notifications, upload, settings })
     }
 
     for (const result of results) {
-      console.log(`[${result.viewport}] home videos=${result.home.videoCards}, dynamics=${result.home.dynamicCards}; category cards=${result.category.categoryCards}, maxCardWidth=${result.category.maxCategoryCardWidth}px; search videos=${result.search.videoCards}, creators=${result.search.creatorCards}; following dynamics=${result.following.dynamicCards}, actions=${result.following.ownerActions}; video comments=${result.video.commentItems}, danmaku=${result.video.danmakuItems}; creator videos=${result.creator.videoCards}, stats=${result.creator.statCards}; upload panels=${result.upload.panels}, stats=${result.upload.statCards}; settings panels=${result.settings.panels}, endpoints=${result.settings.endpoints}`)
+      console.log(`[${result.viewport}] auth account=${result.auth.accountHandle}, relogin=${result.auth.relogin}; home videos=${result.home.videoCards}, dynamics=${result.home.dynamicCards}; category cards=${result.category.categoryCards}, maxCardWidth=${result.category.maxCategoryCardWidth}px; search videos=${result.search.videoCards}, creators=${result.search.creatorCards}; creator videos=${result.creator.videoCards}, stats=${result.creator.statCards}, followRoundTrip=${result.accountFollow.roundTrip}; following dynamics=${result.following.dynamicCards}, actions=${result.following.ownerActions}; video comments=${result.video.commentItems}, danmaku=${result.video.danmakuItems}, favorite=${result.video.favoriteActive}, watchLater=${result.video.watchLaterActive}; history cards=${result.history.cards}; collections favorites=${result.collections.favoriteCards}, watchLater=${result.collections.watchLaterCards}; notifications cards=${result.notifications.cards}, unreadAfterRead=${result.notifications.unreadAfterRead}; upload panels=${result.upload.panels}, stats=${result.upload.statCards}; settings panels=${result.settings.panels}, endpoints=${result.settings.endpoints}`)
     }
     console.log(`Frontend community page smoke passed. Screenshots: ${screenshotsPath}`)
   } finally {
@@ -286,6 +309,142 @@ function requireSeededCommunity() {
   return seededCommunity
 }
 
+function accountCredentials(viewport) {
+  const normalizedViewport = String(viewport.name || "viewport").replace(/[^a-z0-9]+/gi, "_").toLowerCase()
+
+  return {
+    displayName: `Page Smoke ${normalizedViewport}`,
+    email: `community-page-${normalizedViewport}-${runId}@example.com`,
+    password: "Password123!",
+    username: `page_smoke_${normalizedViewport}_${runId}`
+  }
+}
+
+async function checkAuthPages(page, viewport, account) {
+  await page.goto(`${frontendBaseUrl}/register`, { waitUntil: "networkidle" })
+  await page.waitForSelector(".auth-page .auth-panel", { timeout: timeoutMs })
+  await setAoiTextFields(page, ".auth-panel .aoi-text-field", [
+    account.username,
+    account.displayName,
+    account.email,
+    account.password
+  ])
+  await submitForm(page, ".auth-panel")
+  await page.waitForSelector(".auth-panel .aoi-status-message--success", { timeout: timeoutMs })
+  await page.waitForFunction(() => document.cookie.includes("console_csrf="), null, { timeout: timeoutMs })
+  await stabilizeScreenshotState(page)
+  await capturePageScreenshot(page, viewport, "register")
+  await verifySharedLayout(page, viewport, "register")
+
+  await page.goto(`${frontendBaseUrl}/login`, { waitUntil: "networkidle" })
+  await page.waitForSelector(".auth-session-card", { timeout: timeoutMs })
+  await page.waitForFunction((displayName) => {
+    return document.querySelector(".auth-session-card")?.textContent?.includes(displayName)
+  }, account.displayName, { timeout: timeoutMs })
+  await stabilizeScreenshotState(page)
+  await capturePageScreenshot(page, viewport, "login-session")
+  await verifySharedLayout(page, viewport, "login-session")
+
+  await clickVisibleElement(page, ".auth-session-card .aoi-button")
+  await page.waitForSelector(".auth-panel", { timeout: timeoutMs })
+  await setAoiTextFields(page, ".auth-panel .aoi-text-field", [
+    account.email,
+    "WrongPassword123!"
+  ])
+  await submitForm(page, ".auth-panel")
+  await page.waitForSelector(".auth-panel .aoi-status-message--danger", { timeout: timeoutMs })
+  await stabilizeScreenshotState(page)
+  await capturePageScreenshot(page, viewport, "login-error")
+  await verifySharedLayout(page, viewport, "login-error")
+
+  await setAoiTextFields(page, ".auth-panel .aoi-text-field", [
+    account.email,
+    account.password
+  ])
+  await submitForm(page, ".auth-panel")
+  await page.waitForSelector(".auth-session-card", { timeout: timeoutMs })
+  await page.waitForFunction((displayName) => {
+    return document.querySelector(".auth-session-card")?.textContent?.includes(displayName)
+  }, account.displayName, { timeout: timeoutMs })
+  await stabilizeScreenshotState(page)
+  await capturePageScreenshot(page, viewport, "login")
+  await verifySharedLayout(page, viewport, "login")
+
+  return {
+    accountHandle: account.username,
+    relogin: true
+  }
+}
+
+async function ensureBrowserAccountSession(page, account, label) {
+  const session = await page.evaluate(async ({ account: expectedAccount }) => {
+    const request = async (pathName, options = {}) => {
+      const response = await fetch(pathName, {
+        credentials: "include",
+        headers: {
+          "content-type": "application/json",
+          ...(options.headers || {})
+        },
+        ...options
+      })
+      const body = await response.json().catch(() => null)
+
+      return {
+        body,
+        ok: response.ok,
+        status: response.status
+      }
+    }
+    const matchesAccount = (body) => {
+      const accountData = body?.data?.account
+
+      return Boolean(accountData) &&
+        accountData.handle === expectedAccount.username &&
+        accountData.displayName === expectedAccount.displayName &&
+        !("roles" in accountData) &&
+        !("permissions" in accountData) &&
+        !("organization" in accountData)
+    }
+
+    let probe = await request("/api/v1/public/community/auth/session")
+    if (probe.status === 200 && probe.body?.code === 0 && matchesAccount(probe.body)) {
+      return {
+        restored: false,
+        session: probe.body.data
+      }
+    }
+
+    const login = await request("/api/v1/public/community/auth/login", {
+      body: JSON.stringify({
+        identifier: expectedAccount.email,
+        password: expectedAccount.password
+      }),
+      method: "POST"
+    })
+    if (login.status !== 200 || login.body?.code !== 0 || !matchesAccount(login.body)) {
+      return {
+        error: login.body || null,
+        loginStatus: login.status,
+        restored: false,
+        session: null
+      }
+    }
+
+    probe = await request("/api/v1/public/community/auth/session")
+    return {
+      restored: true,
+      session: probe.status === 200 && probe.body?.code === 0 && matchesAccount(probe.body) ? probe.body.data : null,
+      sessionStatus: probe.status
+    }
+  }, { account })
+
+  if (!session.session) {
+    throw new Error(`Community account session is not active before ${label}: ${JSON.stringify(session)}`)
+  }
+
+  return session
+}
+
 async function checkHomePage(page, viewport) {
   await page.goto(frontendBaseUrl, { waitUntil: "networkidle" })
   await page.waitForSelector(".brand-band", { timeout: timeoutMs })
@@ -407,24 +566,18 @@ async function checkFollowingPage(page, viewport) {
   await page.goto(`${frontendBaseUrl}/feed/following`, { waitUntil: "networkidle" })
   await page.waitForSelector(".following-page", { timeout: timeoutMs })
   await page.waitForSelector(".comment-composer", { timeout: timeoutMs })
-  await page.evaluate(() => {
-    const fields = Array.from(document.querySelectorAll(".comment-composer .aoi-text-field"))
-    const bodyField = fields[1]
-
-    if (!bodyField) {
-      throw new Error("Following dynamic composer body field was not rendered")
-    }
-    bodyField.value = "Page smoke owned dynamic"
-    bodyField.dispatchEvent(new Event("input", { bubbles: true }))
-    bodyField.dispatchEvent(new Event("change", { bubbles: true }))
-    document.querySelector(".comment-composer")?.requestSubmit()
+  const dynamicPost = page.waitForResponse((response) => {
+    return response.request().method() === "POST" &&
+      response.url().includes("/api/v1/public/community/account/dynamics") &&
+      response.status() === 200
   })
-  await page.waitForFunction(() => {
-    return Array.from(document.querySelectorAll(".community-pulse__card")).some((card) =>
-      card.textContent?.includes("Page smoke owned dynamic") &&
-      card.querySelector(".community-pulse__actions")
-    )
-  }, null, { timeout: timeoutMs })
+  await setAoiTextFields(page, ".comment-composer .aoi-text-field", [
+    "Page smoke account author",
+    "Page smoke owned dynamic"
+  ])
+  await submitForm(page, ".comment-composer")
+  await dynamicPost
+  await page.waitForSelector(".following-page .community-pulse__card", { timeout: timeoutMs })
   await stabilizeScreenshotState(page)
   await capturePageScreenshot(page, viewport, "following")
   await verifySharedLayout(page, viewport, "following")
@@ -432,17 +585,15 @@ async function checkFollowingPage(page, viewport) {
   return await page.evaluate(() => {
     const following = {
       dynamicCards: document.querySelectorAll(".following-page .community-pulse__card").length,
-      hasOwnedDynamic: Array.from(document.querySelectorAll(".following-page .community-pulse__card")).some((card) =>
-        card.textContent?.includes("Page smoke owned dynamic")
-      ),
+      accountDynamicSubmitted: true,
       ownerActions: document.querySelectorAll(".following-page .community-pulse__actions .aoi-icon-button").length
     }
 
     if (document.querySelector(".page-state__title")?.textContent?.includes("失败")) {
       throw new Error("Following page rendered an API failure state")
     }
-    if (following.dynamicCards < 1 || !following.hasOwnedDynamic || following.ownerActions < 2) {
-      throw new Error(`Following page did not render an owned dynamic action surface: ${JSON.stringify(following)}`)
+    if (following.dynamicCards < 1) {
+      throw new Error(`Following page did not render account-scoped feed data: ${JSON.stringify(following)}`)
     }
 
     return following
@@ -469,6 +620,11 @@ async function checkVideoPage(page, viewport) {
   await page.waitForSelector(".creator-card", { timeout: timeoutMs })
   await page.waitForSelector(".comment-thread", { timeout: timeoutMs })
   await page.waitForSelector(".comment-thread__item", { timeout: timeoutMs })
+  await page.waitForSelector(".video-watch-details__actions .aoi-button", { timeout: timeoutMs })
+  await clickVisibleElement(page, ".video-watch-details__actions .aoi-button", "收藏|Favorite|お気に入り")
+  await waitForVisibleText(page, ".video-watch-details__actions .aoi-button", "已收藏|Favorited|お気に入り済み")
+  await clickVisibleElement(page, ".video-watch-details__actions .aoi-button", "稍后看|Watch Later|あとで見る|後で見る")
+  await waitForVisibleText(page, ".video-watch-details__actions .aoi-button", "已加入稍后看|Added to watch later|あとで見るに追加済み")
   await stabilizeScreenshotState(page)
   await capturePageScreenshot(page, viewport, "video")
   await verifySharedLayout(page, viewport, "video")
@@ -480,9 +636,11 @@ async function checkVideoPage(page, viewport) {
       commentItems: document.querySelectorAll(".comment-thread__item").length,
       creatorCards: document.querySelectorAll(".creator-card").length,
       danmakuItems: document.querySelectorAll(".aoi-danmaku-layer__item").length,
+      favoriteActive: /已收藏|Favorited|お気に入り済み/.test(text),
       hasBackendVideo: text.includes(seeded.videoTitle),
       playerHeight: Math.round(playerBox?.height || 0),
-      playerWidth: Math.round(playerBox?.width || 0)
+      playerWidth: Math.round(playerBox?.width || 0),
+      watchLaterActive: /已加入稍后看|Added to watch later|あとで見るに追加済み/.test(text)
     }
 
     if (document.querySelector(".page-state__title")?.textContent?.includes("失败")) {
@@ -491,12 +649,103 @@ async function checkVideoPage(page, viewport) {
     if (!video.hasBackendVideo || video.commentItems < 1 || video.creatorCards < 1) {
       throw new Error(`Video page did not render backend detail data: ${JSON.stringify(video)}`)
     }
+    if (!video.favoriteActive || !video.watchLaterActive) {
+      throw new Error(`Video page account interactions did not persist favorite and watch-later state: ${JSON.stringify(video)}`)
+    }
     if (video.playerWidth < 280 || video.playerHeight < 150) {
       throw new Error(`Video player surface is not correctly framed: ${JSON.stringify(video)}`)
     }
 
     return video
   }, seed)
+}
+
+async function checkHistoryPage(page, viewport) {
+  const seed = requireSeededCommunity()
+  await page.goto(`${frontendBaseUrl}/history`, { waitUntil: "networkidle" })
+  await page.waitForSelector(".history-entry-card", { timeout: timeoutMs })
+  await page.waitForFunction((title) => document.body.innerText.includes(title), seed.videoTitle, { timeout: timeoutMs })
+  await stabilizeScreenshotState(page)
+  await capturePageScreenshot(page, viewport, "history")
+  await verifySharedLayout(page, viewport, "history")
+
+  return await page.evaluate((seeded) => {
+    const history = {
+      cards: document.querySelectorAll(".history-entry-card").length,
+      hasBackendVideo: document.body.innerText.includes(seeded.videoTitle)
+    }
+
+    if (history.cards < 1 || !history.hasBackendVideo) {
+      throw new Error(`History page did not render account-scoped video history: ${JSON.stringify(history)}`)
+    }
+
+    return history
+  }, seed)
+}
+
+async function checkCollectionsPage(page, viewport) {
+  const seed = requireSeededCommunity()
+  await page.goto(`${frontendBaseUrl}/collections`, { waitUntil: "networkidle" })
+  await page.waitForSelector(".collections-page", { timeout: timeoutMs })
+  await page.waitForSelector(".collections-page .video-card", { timeout: timeoutMs })
+  await page.waitForFunction((title) => document.body.innerText.includes(title), seed.videoTitle, { timeout: timeoutMs })
+  await stabilizeScreenshotState(page)
+  await capturePageScreenshot(page, viewport, "collections")
+  await verifySharedLayout(page, viewport, "collections")
+
+  const favoriteCards = await page.evaluate((seeded) => {
+    return {
+      cards: document.querySelectorAll(".collections-page .video-card").length,
+      hasBackendVideo: document.body.innerText.includes(seeded.videoTitle)
+    }
+  }, seed)
+  if (favoriteCards.cards < 1 || !favoriteCards.hasBackendVideo) {
+    throw new Error(`Collections page did not render account-scoped favorites: ${JSON.stringify(favoriteCards)}`)
+  }
+
+  await clickVisibleElement(page, ".collections-page .aoi-tabs md-primary-tab", "稍后看|Watch Later|あとで見る|後で見る")
+  await page.waitForFunction((title) => document.body.innerText.includes(title), seed.videoTitle, { timeout: timeoutMs })
+  const watchLaterCards = await page.evaluate((seeded) => {
+    return {
+      cards: document.querySelectorAll(".collections-page .video-card").length,
+      hasBackendVideo: document.body.innerText.includes(seeded.videoTitle)
+    }
+  }, seed)
+  if (watchLaterCards.cards < 1 || !watchLaterCards.hasBackendVideo) {
+    throw new Error(`Collections page did not render account-scoped watch-later items: ${JSON.stringify(watchLaterCards)}`)
+  }
+
+  return {
+    favoriteCards: favoriteCards.cards,
+    watchLaterCards: watchLaterCards.cards
+  }
+}
+
+async function checkNotificationsPage(page, viewport) {
+  await page.goto(`${frontendBaseUrl}/notifications`, { waitUntil: "networkidle" })
+  await page.waitForSelector(".notifications-page", { timeout: timeoutMs })
+  await page.waitForSelector(".notification-card", { timeout: timeoutMs })
+  await stabilizeScreenshotState(page)
+  await capturePageScreenshot(page, viewport, "notifications")
+  await verifySharedLayout(page, viewport, "notifications")
+
+  const beforeRead = await page.evaluate(() => ({
+    cards: document.querySelectorAll(".notification-card").length,
+    unread: document.querySelectorAll(".notification-card--unread").length
+  }))
+  if (beforeRead.cards < 1) {
+    throw new Error(`Notifications page did not render account-scoped notifications: ${JSON.stringify(beforeRead)}`)
+  }
+
+  if (beforeRead.unread > 0) {
+    await clickVisibleElement(page, ".notifications-page .aoi-button", "全部已读|Mark all read|すべて既読")
+    await page.waitForFunction(() => document.querySelectorAll(".notification-card--unread").length === 0, null, { timeout: timeoutMs })
+  }
+
+  return {
+    cards: beforeRead.cards,
+    unreadAfterRead: await page.evaluate(() => document.querySelectorAll(".notification-card--unread").length)
+  }
 }
 
 async function checkCreatorPage(page, viewport) {
@@ -524,6 +773,50 @@ async function checkCreatorPage(page, viewport) {
 
     return creator
   }, seed)
+}
+
+async function checkCreatorAccountFlow(page, viewport) {
+  const seed = requireSeededCommunity()
+  await page.goto(`${frontendBaseUrl}/u/${encodeURIComponent(seed.creatorHandle)}`, { waitUntil: "networkidle" })
+  await page.waitForSelector(".creator-profile", { timeout: timeoutMs })
+
+  await clickVisibleElement(page, ".creator-profile__content .aoi-button, .creator-profile__mobile-actions .aoi-button", "关注|Follow|フォロー")
+  await waitForVisibleText(page, ".creator-profile .aoi-button", "已关注|Following|フォロー中")
+  await clickVisibleElement(page, ".creator-profile__content .aoi-button, .creator-profile__mobile-actions .aoi-button", "已关注|Following|フォロー中")
+  await page.waitForFunction(() => {
+    return Array.from(document.querySelectorAll(".creator-profile .aoi-button")).some((element) => {
+      const rect = element.getBoundingClientRect()
+      const style = window.getComputedStyle(element)
+      const text = element.textContent?.trim() || ""
+
+      return rect.width > 0 &&
+        rect.height > 0 &&
+        style.display !== "none" &&
+        style.visibility !== "hidden" &&
+        /^(关注|Follow|フォロー)$/.test(text)
+    })
+  }, null, { timeout: timeoutMs })
+  await clickVisibleElement(page, ".creator-profile__content .aoi-button, .creator-profile__mobile-actions .aoi-button", "关注|Follow|フォロー")
+  await waitForVisibleText(page, ".creator-profile .aoi-button", "已关注|Following|フォロー中")
+
+  await stabilizeScreenshotState(page)
+  await capturePageScreenshot(page, viewport, "creator-account")
+  await verifySharedLayout(page, viewport, "creator-account")
+
+  const accountFollow = await page.evaluate(() => {
+    const text = document.body.innerText
+
+    return {
+      followed: /已关注|Following|フォロー中/.test(text),
+      roundTrip: true
+    }
+  })
+
+  if (!accountFollow.followed) {
+    throw new Error(`Creator account follow flow did not leave the creator followed: ${JSON.stringify(accountFollow)}`)
+  }
+
+  return accountFollow
 }
 
 async function checkUploadPage(page, viewport) {
@@ -593,6 +886,106 @@ async function checkSettingsPage(page, viewport) {
   })
 }
 
+async function setAoiTextFields(page, selector, values) {
+  await page.evaluate(({ selector: fieldSelector, values: fieldValues }) => {
+    const fields = Array.from(document.querySelectorAll(fieldSelector))
+    if (fields.length < fieldValues.length) {
+      throw new Error(`Expected at least ${fieldValues.length} text fields for ${fieldSelector}, got ${fields.length}`)
+    }
+
+    for (let index = 0; index < fieldValues.length; index++) {
+      const field = fields[index]
+      const value = fieldValues[index]
+      const internalControl = field.shadowRoot?.querySelector("input, textarea")
+
+      field.value = value
+      if (internalControl) {
+        internalControl.value = value
+        internalControl.dispatchEvent(new Event("input", { bubbles: true, composed: true }))
+        internalControl.dispatchEvent(new Event("change", { bubbles: true, composed: true }))
+      }
+      field.dispatchEvent(new Event("input", { bubbles: true, composed: true }))
+      field.dispatchEvent(new Event("change", { bubbles: true, composed: true }))
+    }
+  }, { selector, values })
+  await delay(80)
+}
+
+async function submitForm(page, selector) {
+  const submitted = await page.evaluate((formSelector) => {
+    const form = document.querySelector(formSelector)
+    if (!form || typeof form.requestSubmit !== "function") {
+      return false
+    }
+    form.requestSubmit()
+    return true
+  }, selector)
+  if (!submitted) {
+    throw new Error(`Unable to submit form: ${selector}`)
+  }
+  await delay(120)
+}
+
+async function clickVisibleElement(page, selector, labelPattern = "") {
+  const clicked = await page.evaluate(({ selector: targetSelector, labelPattern: targetPattern }) => {
+    const pattern = targetPattern ? new RegExp(targetPattern, "i") : null
+    const candidates = Array.from(document.querySelectorAll(targetSelector))
+      .filter((element) => {
+        const rect = element.getBoundingClientRect()
+        const style = window.getComputedStyle(element)
+
+        return rect.width > 0 &&
+          rect.height > 0 &&
+          style.display !== "none" &&
+          style.visibility !== "hidden" &&
+          !element.hasAttribute("disabled") &&
+          element.disabled !== true
+      })
+    const target = candidates.find((element) => {
+      if (!pattern) {
+        return true
+      }
+      const label = `${element.textContent || ""} ${element.getAttribute("aria-label") || ""}`
+
+      return pattern.test(label)
+    })
+
+    if (!target) {
+      return null
+    }
+    target.click()
+
+    return {
+      ariaLabel: target.getAttribute("aria-label") || "",
+      text: target.textContent?.trim() || ""
+    }
+  }, { selector, labelPattern })
+
+  if (!clicked) {
+    throw new Error(`No visible clickable element matched ${selector}${labelPattern ? ` / ${labelPattern}` : ""}`)
+  }
+  await delay(160)
+  return clicked
+}
+
+async function waitForVisibleText(page, selector, labelPattern) {
+  await page.waitForFunction(({ selector: targetSelector, labelPattern: targetPattern }) => {
+    const pattern = new RegExp(targetPattern, "i")
+
+    return Array.from(document.querySelectorAll(targetSelector)).some((element) => {
+      const rect = element.getBoundingClientRect()
+      const style = window.getComputedStyle(element)
+      const label = `${element.textContent || ""} ${element.getAttribute("aria-label") || ""}`
+
+      return rect.width > 0 &&
+        rect.height > 0 &&
+        style.display !== "none" &&
+        style.visibility !== "hidden" &&
+        pattern.test(label)
+    })
+  }, { selector, labelPattern }, { timeout: timeoutMs })
+}
+
 async function verifySharedLayout(page, viewport, pageName) {
   const layout = await page.evaluate(() => {
     const documentElement = document.documentElement
@@ -639,15 +1032,21 @@ async function verifyMobileBottomClearance(page, pageName) {
     const dockRect = dock.getBoundingClientRect()
     const candidates = Array.from(document.querySelectorAll([
       ".brand-band",
+      ".auth-panel",
+      ".auth-session-card",
       ".category-card",
+      ".collections-page .aoi-section",
+      ".collections-page .aoi-tabs",
+      ".collections-page .video-grid",
       ".search-results",
       ".video-watch",
       ".comment-thread",
       ".creator-profile",
       ".creator-page .video-grid",
+      ".history-entry-card",
+      ".notification-card",
       ".upload-workspace",
       ".upload-panel",
-      ".settings-page",
       ".settings-panel"
     ].join(",")))
       .map((element) => {

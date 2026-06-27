@@ -428,6 +428,10 @@ useHead(() => ({
 }
 
 @media (max-width: 639px) {
+  .collections-page {
+    padding-bottom: calc(var(--aoi-mobile-content-bottom-space) + 24px);
+  }
+
   .collections-hero__meta,
   .collections-hero__mobile-actions {
     display: grid;

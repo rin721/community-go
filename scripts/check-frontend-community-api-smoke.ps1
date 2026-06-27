@@ -703,6 +703,32 @@ try {
         throw "Community account notifications endpoint did not return account-scoped notifications"
     }
 
+    $logout = Invoke-JsonEnvelope -Url "$baseUrl/auth/logout" -Method "POST" -WebSession $accountSession -Headers $accountHeaders
+    if ($logout.data.loggedOut -ne $true) {
+        throw "Community logout endpoint did not return a logout receipt"
+    }
+
+    $anonymousAfterLogout = Invoke-JsonEnvelope -Url "$baseUrl/auth/session" -WebSession $accountSession
+    if ($null -ne $anonymousAfterLogout.data) {
+        throw "Community session endpoint still returned account data after logout"
+    }
+
+    $loginSession = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+    $login = Invoke-JsonEnvelope -Url "$baseUrl/auth/login" -Method "POST" -WebSession $loginSession -Body @{
+        identifier = $accountEmail
+        password = "Password123!"
+    }
+    Assert-NoControlConsoleIdentity -Payload $login.data -Name "community login"
+    if (-not $login.data.sessionId -or $login.data.account.handle -ne $signup.data.session.account.handle) {
+        throw "Community login endpoint did not return the original community account session"
+    }
+
+    $loginSessionProbe = Invoke-JsonEnvelope -Url "$baseUrl/auth/session" -WebSession $loginSession
+    Assert-NoControlConsoleIdentity -Payload $loginSessionProbe.data -Name "community relogin session"
+    if ($loginSessionProbe.data.account.displayName -ne "Community Smoke") {
+        throw "Community session endpoint did not keep the compact identity after login"
+    }
+
     $results = @(
         [pscustomobject]@{ Name = "status"; Url = "$baseUrl/status"; Detail = "mode=$($status.data.mode), setupRequired=$($status.data.setup.required), setupCompleted=$($status.data.setup.completed)" }
         [pscustomobject]@{ Name = "setup"; Url = "$apiRoot/auth/setup/initial-admin"; Detail = $setupDetail }
@@ -718,6 +744,8 @@ try {
         [pscustomobject]@{ Name = "notifications"; Url = "$baseUrl/notifications?clientId=$clientId&limit=8"; Detail = "count=$(@($notifications.data.items.items).Count), clientId=$($notifications.data.clientId)" }
         [pscustomobject]@{ Name = "search"; Url = "$baseUrl/search?q=Community%20smoke&limit=8"; Detail = "videos=$(@($search.data.videos.items).Count)" }
         [pscustomobject]@{ Name = "account-signup"; Url = "$baseUrl/auth/signup"; Detail = "status=$($signup.data.status), handle=$($signup.data.session.account.handle)" }
+        [pscustomobject]@{ Name = "account-login"; Url = "$baseUrl/auth/login"; Detail = "session=$($login.data.sessionId), handle=$($login.data.account.handle)" }
+        [pscustomobject]@{ Name = "account-logout"; Url = "$baseUrl/auth/logout"; Detail = "loggedOut=$($logout.data.loggedOut), anonymousSession=$($null -eq $anonymousAfterLogout.data)" }
         [pscustomobject]@{ Name = "account-dynamics"; Url = "$baseUrl/account/dynamics"; Detail = "updated=$($updatedAccountDynamic.data.body), deleted=$($deletedAccountDynamic.data.deleted)" }
         [pscustomobject]@{ Name = "account-following"; Url = "$baseUrl/account/feed/following"; Detail = "following=$($accountFeed.data.followingCount), dynamics=$(@($accountFeed.data.dynamics.items).Count)" }
         [pscustomobject]@{ Name = "account-history"; Url = "$baseUrl/account/history?limit=8"; Detail = "count=$(@($accountHistoryList.data.items.items).Count), clientId=$($accountHistoryList.data.clientId)" }

@@ -23,5 +23,6 @@ auth.signupDisabled: Signup is disabled
 auth.invitationClosed: The invitation is no longer available
 auth.notificationDeliveryFailed: The notification email could not be delivered. Check the SMTP configuration and try again.
 setup.forbidden: This setup action is not authorized
+setup.required: Platform initialization is not complete, so the community data entry is unavailable
 setup.runNotFound: Initialization run was not found
 setup.failed: "Initialization failed: {{.error}}"

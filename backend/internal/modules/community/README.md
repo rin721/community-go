@@ -39,6 +39,8 @@
 
 公开接口统一位于 `/api/v1/public/community`：
 
+`GET /status` 始终可读，响应包含 `setup.required`、`setup.completed` 和 `setup.currentStep`。社区公开内容、账号接口和社区认证接口在平台初始化未完成时返回 503 result envelope，`messageKey` 为 `api.setup.required`，前端据此显示初始化状态并保留真实数据入口。
+
 - `GET /status`
 - `POST /auth/login`
 - `POST /auth/logout`
@@ -91,7 +93,7 @@
 
 ## 数据
 
-迁移 `20260626000100_create_community_tables.sql` 创建社区读取表，并写入一组与 Nuxt 现有体验相同的初始内容。迁移 `20260626000200_create_community_video_comments.sql` 追加公开评论表、初始评论和 `comment_count` 收敛。迁移 `20260626000300_create_community_creator_follows.sql` 追加创作者关注关系表。迁移 `20260626000400_create_community_video_interactions.sql` 追加视频点赞、收藏和稍后看关系表。迁移 `20260626000500_create_community_reports.sql` 追加社区举报记录表。迁移 `20260626000600_create_community_notifications.sql` 追加通知表。迁移 `20260626000700_create_community_dynamics.sql` 追加社区动态表和初始时间线内容。迁移 `20260626000800_create_community_submissions.sql` 追加投稿元数据待审核池。迁移 `20260626000900_create_community_video_history.sql` 追加观看历史表。社区账号与匿名客户端通过 `client_id` 统一区分数据范围。
+社区数据表覆盖分类、创作者、视频、视频源、标签、弹幕、公开评论、关注关系、视频互动、举报、通知、动态、投稿元数据和观看历史。平台初始化完成后，公开接口读取这些表并返回真实社区内容；平台初始化未完成时，`/status` 只返回接口清单和 setup 状态，内容接口保持统一的初始化响应。社区账号与匿名客户端通过 `client_id` 统一区分数据范围。
 
 ## 验证
 

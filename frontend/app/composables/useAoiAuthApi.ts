@@ -3,6 +3,7 @@ import type {
   ApiResultEnvelope,
   ErrorResponse,
   CommunityAuthSession,
+  CommunitySetupStatus,
   CommunitySignupRequest,
   LoginRequest,
   CommunitySignupResult
@@ -90,11 +91,16 @@ function unwrapAuthResponse<T>(response: unknown, endpoint: string): T {
   }
 
   if (response.code !== 0) {
+    const responseData = response.data
+
     throw {
       code: String(response.code),
       endpoint,
       message: response.message || response.messageKey || "请求暂时失败，请稍后重试。",
+      messageArgs: response.messageArgs,
+      messageKey: response.messageKey,
       requestId: response.traceId || `aoi-auth-${Date.now()}`,
+      setup: isCommunitySetupStatus(responseData) ? responseData : null,
       statusCode: 200
     } satisfies AoiApiErrorPayload
   }
@@ -112,6 +118,7 @@ function toAoiAuthApiError(error: unknown, endpoint: string): AoiApiErrorPayload
   }
   const responseError = isErrorResponse(fetchError.data) ? fetchError.data.error : null
   const resultError = isApiResultEnvelope(fetchError.data) ? fetchError.data : null
+  const resultData = resultError?.data
   const statusCode = fetchError.statusCode || fetchError.status || 500
   const code = responseError?.code || (resultError ? String(resultError.code) : null) || fetchError.statusMessage || "AOI_AUTH_API_ERROR"
 
@@ -119,7 +126,10 @@ function toAoiAuthApiError(error: unknown, endpoint: string): AoiApiErrorPayload
     code,
     endpoint,
     message: responseError?.message || resultError?.message || fetchError.message || "请求暂时失败，请稍后重试。",
+    messageArgs: resultError?.messageArgs,
+    messageKey: resultError?.messageKey,
     requestId: responseError?.requestId || resultError?.traceId || `aoi-auth-${Date.now()}`,
+    setup: isCommunitySetupStatus(resultData) ? resultData : null,
     statusCode
   }
 }
@@ -139,6 +149,16 @@ function isErrorResponse(value: unknown): value is ErrorResponse {
     value &&
     typeof value === "object" &&
     "error" in value
+  )
+}
+
+function isCommunitySetupStatus(value: unknown): value is CommunitySetupStatus {
+  return Boolean(
+    value &&
+    typeof value === "object" &&
+    "required" in value &&
+    "completed" in value &&
+    "currentStep" in value
   )
 }
 

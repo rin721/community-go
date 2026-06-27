@@ -17,16 +17,38 @@ import (
 
 // Handler 是视频社区公开 API 的 HTTP 适配器。
 type Handler struct {
-	logger  ports.Logger
-	service service.Service
+	logger              ports.Logger
+	service             service.Service
+	setupStatusProvider SetupStatusProvider
+}
+
+type SetupStatusProvider interface {
+	CommunitySetupStatus(context.Context) (model.SetupStatus, error)
 }
 
 func New(service service.Service, logger ports.Logger) *Handler {
 	return &Handler{service: service, logger: logger}
 }
 
+func (h *Handler) UseSetupStatusProvider(provider SetupStatusProvider) {
+	h.setupStatusProvider = provider
+}
+
 func (h *Handler) Status(c ports.HTTPContext) {
-	result.OK(c, h.service.CommunityStatus(c.RequestContext()))
+	status := h.service.CommunityStatus(c.RequestContext())
+	status.Setup = model.SetupStatus{Completed: true}
+	if h.setupStatusProvider != nil {
+		setup, err := h.setupStatusProvider.CommunitySetupStatus(c.RequestContext())
+		if err != nil {
+			if h.logger != nil {
+				h.logger.Error("community setup status failed", "error", err)
+			}
+			result.InternalError(c, result.MessageKeyInternalError)
+			return
+		}
+		status.Setup = setup
+	}
+	result.OK(c, status)
 }
 
 func (h *Handler) Home(c ports.HTTPContext) {

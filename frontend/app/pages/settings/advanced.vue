@@ -19,10 +19,21 @@ const pendingAction = ref<{
 } | null>(null)
 
 const activeBaseURL = computed(() => config.public.apiMock ? "/api/mock" : config.public.apiBaseURL)
+const setupBlocked = computed(() => Boolean(apiStatus.value?.setup.required && !apiStatus.value.setup.completed))
+const communityAccessStatus = computed(() => {
+  if (config.public.apiMock) {
+    return "演示数据可用"
+  }
+  if (setupBlocked.value) {
+    return `初始化中：${apiStatus.value?.setup.currentStep || "等待处理"}`
+  }
+  return "社区接口可用"
+})
 const dataSourceStats = computed(() => [
   { label: "数据源", value: config.public.apiMock ? "本地演示数据" : "社区实时数据" },
   { label: "演示开关", value: config.public.apiMock ? "已启用" : "未启用" },
-  { label: "Base URL", value: activeBaseURL.value }
+  { label: "Base URL", value: activeBaseURL.value },
+  { label: "接口状态", value: communityAccessStatus.value }
 ])
 const localStats = computed(() => ({
   favorites: Object.keys(library.favoriteVideos).length,
@@ -63,6 +74,7 @@ const apiStatusStats = computed(() => apiStatus.value
       { label: "模式", value: apiStatus.value.mode },
       { label: "Base Path", value: apiStatus.value.basePath },
       { label: "Endpoint", value: apiStatus.value.endpoints.length },
+      { label: "初始化", value: apiStatus.value.setup.completed ? "完成" : "进行中" },
       { label: "更新时间", value: new Date(apiStatus.value.generatedAt).toLocaleTimeString("zh-CN") }
     ]
   : [])
@@ -107,7 +119,7 @@ function cancelPendingAction() {
       title="数据源"
       description="当前运行时配置只读展示。"
     >
-      <AoiStatGrid :items="dataSourceStats" :columns="3" />
+      <AoiStatGrid :items="dataSourceStats" :columns="4" />
     </SettingsPanel>
 
     <SettingsPanel
@@ -139,6 +151,10 @@ function cancelPendingAction() {
 
       <template v-else-if="!apiStatusPending && apiStatus">
         <AoiStatGrid :items="apiStatusStats" />
+
+        <p v-if="setupBlocked" class="settings-note settings-note--warning">
+          平台初始化未完成，当前社区内容接口会返回初始化状态。完成初始化后，前端会读取真实社区数据。
+        </p>
 
         <div v-if="apiStatus.endpoints.length" class="settings-endpoint-list" aria-label="已实现连接端点">
           <code v-for="endpoint in apiStatus.endpoints" :key="endpoint">{{ endpoint }}</code>
@@ -341,6 +357,14 @@ function cancelPendingAction() {
 .settings-api-errors span,
 .settings-api-errors small {
   color: var(--aoi-text-muted);
+}
+
+.settings-note--warning {
+  border: 1px solid var(--aoi-intent-warning-border);
+  border-radius: var(--aoi-radius-sm);
+  background: var(--aoi-intent-warning-soft-bg);
+  color: var(--aoi-text);
+  padding: 10px 12px;
 }
 
 .settings-data-panels {

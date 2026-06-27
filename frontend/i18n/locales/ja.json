@@ -100,7 +100,14 @@
     "listView": "リスト表示",
     "categoryTabsAria": "コンテンツカテゴリ",
     "dynamicsTitle": "コミュニティ動向",
-    "dynamicsDescription": "クリエイターの短い更新と軽いお知らせを、kirakira らしい軽やかな読書感で表示します。"
+    "dynamicsDescription": "クリエイターの短い更新と軽いお知らせを、kirakira らしい軽やかな読書感で表示します。",
+    "setupRequiredTitle": "プラットフォーム初期化が完了していません",
+    "setupRequiredDescription": "コミュニティ API はプラットフォーム初期化の完了を待っています。完了後、ホームは実際の動向、カテゴリ、動画を読み込みます。",
+    "setupRequiredAction": "初期化を開く",
+    "loadFailedTitle": "コンテンツを読み込めませんでした",
+    "retry": "再試行",
+    "emptyCategoryTitle": "このカテゴリにはコンテンツがありません",
+    "backHome": "ホームへ戻る"
   },
   "category": {
     "indexHeadTitle": "カテゴリ - Aoi",

@@ -100,7 +100,14 @@
     "listView": "List view",
     "categoryTabsAria": "Content categories",
     "dynamicsTitle": "Community pulse",
-    "dynamicsDescription": "Short creator updates and lightweight site notes, tuned for a breezy kirakira reading rhythm."
+    "dynamicsDescription": "Short creator updates and lightweight site notes, tuned for a breezy kirakira reading rhythm.",
+    "setupRequiredTitle": "Platform initialization is not complete",
+    "setupRequiredDescription": "Community endpoints are waiting for platform initialization to finish. After setup, the home page will read real dynamics, categories, and videos.",
+    "setupRequiredAction": "Open setup",
+    "loadFailedTitle": "Content failed to load",
+    "retry": "Retry",
+    "emptyCategoryTitle": "No content in this category",
+    "backHome": "Back to home"
   },
   "category": {
     "indexHeadTitle": "Categories - Aoi",

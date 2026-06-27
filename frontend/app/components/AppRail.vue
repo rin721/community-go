@@ -53,6 +53,7 @@ function handleRailClick(event: MouseEvent) {
         @focusout="hideFocusedRailLabel"
         @pointerenter="showHoveredRailLabel(item.to)"
         @pointerleave="hideHoveredRailLabel"
+        @pointerdown="hideHoveredRailLabel"
       >
         <AoiIconButton
           class="app-rail__button"
@@ -83,6 +84,7 @@ function handleRailClick(event: MouseEvent) {
         @focusout="hideFocusedRailLabel"
         @pointerenter="showHoveredRailLabel(item.to)"
         @pointerleave="hideHoveredRailLabel"
+        @pointerdown="hideHoveredRailLabel"
       >
         <AoiIconButton
           class="app-rail__button"

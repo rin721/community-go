@@ -73,7 +73,7 @@ func SaveSetupConfig(ctx context.Context, configPath string, stepKey string, val
 // ExecuteInitialization 执行数据库、IAM 和系统默认数据初始化。
 //
 // 函数会装配最小可运行应用图来复用真实服务逻辑，但不会启动 HTTP/RPC 监听；defer 中统一关闭已创建资源，
-// 避免初始化命令遗留数据库、缓存或后台任务句柄。
+// 避免初始化命令留下数据库、缓存或后台任务句柄。
 func ExecuteInitialization(ctx context.Context, stdout io.Writer, input InitializationInput) (err error) {
 	if input.ConfigPath == "" {
 		input.ConfigPath = constants.AppDefaultConfigPath
@@ -109,7 +109,10 @@ func ExecuteInitialization(ctx context.Context, stdout io.Writer, input Initiali
 	if modules.IAM.Handler != nil {
 		modules.IAM.Handler.UseSetupService(center.IAMSetupService())
 	}
-	transport, err = initapp.NewSilentTransport(core, infra, modules, initcenter.NewHandler(center, core.Logger, initcenter.HandlerConfigFromAppConfig(core.Config)))
+	if modules.Community.Handler != nil {
+		modules.Community.Handler.UseSetupStatusProvider(center)
+	}
+	transport, err = initapp.NewSilentTransport(core, infra, modules, initcenter.NewHandler(center, core.Logger, initcenter.HandlerConfigFromAppConfig(core.Config)), center)
 	if err != nil {
 		return err
 	}

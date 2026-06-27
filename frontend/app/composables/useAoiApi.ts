@@ -8,6 +8,7 @@ import type {
   CommunityNotificationPayload,
   CommunityNotificationRequest,
   CommunityReportReceipt,
+  CommunitySetupStatus,
   CommunitySubmissionItem,
   CommunitySubmissionPayload,
   CreatorFollowState,
@@ -422,17 +423,26 @@ export function useAoiApi() {
   }
 }
 
+export function isAoiSetupRequiredError(error: unknown): boolean {
+  return hasAoiSetupRequiredError(error)
+}
+
 function unwrapApiResponse<T>(response: unknown, endpoint: string): T {
   if (!isApiResultEnvelope<T>(response)) {
     return response as T
   }
 
   if (response.code !== 0) {
+    const responseData = response.data
+
     throw {
       code: String(response.code),
       endpoint,
       message: response.message || response.messageKey || "请求暂时失败，请稍后重试。",
+      messageArgs: response.messageArgs,
+      messageKey: response.messageKey,
       requestId: response.traceId || `aoi-local-${Date.now()}`,
+      setup: isCommunitySetupStatus(responseData) ? responseData : null,
       statusCode: 200
     } satisfies AoiApiErrorPayload
   }
@@ -450,6 +460,7 @@ function toAoiApiError(error: unknown, endpoint: string): AoiApiErrorPayload {
   }
   const responseError = isErrorResponse(fetchError.data) ? fetchError.data.error : null
   const resultError = isApiResultEnvelope(fetchError.data) ? fetchError.data : null
+  const resultData = resultError?.data
   const statusCode = fetchError.statusCode || fetchError.status || 500
   const code = responseError?.code || (resultError ? String(resultError.code) : null) || fetchError.statusMessage || "AOI_API_ERROR"
 
@@ -457,7 +468,10 @@ function toAoiApiError(error: unknown, endpoint: string): AoiApiErrorPayload {
     code,
     endpoint,
     message: responseError?.message || resultError?.message || fetchError.message || "请求暂时失败，请稍后重试。",
+    messageArgs: resultError?.messageArgs,
+    messageKey: resultError?.messageKey,
     requestId: responseError?.requestId || resultError?.traceId || `aoi-local-${Date.now()}`,
+    setup: isCommunitySetupStatus(resultData) ? resultData : null,
     statusCode
   }
 }
@@ -480,6 +494,16 @@ function isErrorResponse(value: unknown): value is ErrorResponse {
   )
 }
 
+function isCommunitySetupStatus(value: unknown): value is CommunitySetupStatus {
+  return Boolean(
+    value &&
+    typeof value === "object" &&
+    "required" in value &&
+    "completed" in value &&
+    "currentStep" in value
+  )
+}
+
 function isAoiApiErrorPayload(value: unknown): value is AoiApiErrorPayload {
   return Boolean(
     value &&
@@ -488,4 +512,36 @@ function isAoiApiErrorPayload(value: unknown): value is AoiApiErrorPayload {
     "statusCode" in value &&
     "requestId" in value
   )
+}
+
+function hasAoiSetupRequiredError(value: unknown, visited = new Set<unknown>()): boolean {
+  if (!value || typeof value !== "object" || visited.has(value)) {
+    return false
+  }
+
+  visited.add(value)
+
+  if (isAoiApiErrorPayload(value) && (
+    value.messageKey === "api.setup.required"
+    || (value.statusCode === 503 && value.setup?.required === true && value.setup.completed === false)
+  )) {
+    return true
+  }
+
+  const record = value as Record<string, unknown>
+
+  if (record.messageKey === "api.setup.required") {
+    return true
+  }
+
+  if (
+    (record.statusCode === 503 || record.status === 503)
+    && isCommunitySetupStatus(record.setup)
+    && record.setup.required === true
+    && record.setup.completed === false
+  ) {
+    return true
+  }
+
+  return ["data", "cause", "error", "response", "value"].some((key) => hasAoiSetupRequiredError(record[key], visited))
 }

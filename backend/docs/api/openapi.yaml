@@ -9628,6 +9628,15 @@
                         "type": "integer"
                       "mode":
                         "type": "string"
+                      "setup":
+                        "properties":
+                          "completed":
+                            "type": "boolean"
+                          "currentStep":
+                            "type": "string"
+                          "required":
+                            "type": "boolean"
+                        "type": "object"
                     "type": "object"
                   "message":
                     "type": "string"

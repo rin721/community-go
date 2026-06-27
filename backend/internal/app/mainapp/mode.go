@@ -63,8 +63,11 @@ func BuildServer(core initapp.Core, configPath string, onConfigChange ConfigChan
 	if modules.IAM.Handler != nil {
 		modules.IAM.Handler.UseSetupService(setupCenter.IAMSetupService())
 	}
+	if modules.Community.Handler != nil {
+		modules.Community.Handler.UseSetupStatusProvider(setupCenter)
+	}
 	setupHandler := initcenter.NewHandler(setupCenter, core.Logger, initcenter.HandlerConfigFromAppConfig(core.Config))
-	transport, err := initapp.NewTransport(core, infra, modules, setupHandler)
+	transport, err := initapp.NewTransport(core, infra, modules, setupHandler, setupCenter)
 	if err != nil {
 		return BuildResult{}, err
 	}

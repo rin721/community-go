@@ -14,6 +14,7 @@ import (
 
 	"github.com/open-console/console-platform/internal/app/initapp"
 	appconfig "github.com/open-console/console-platform/internal/config"
+	communitymodel "github.com/open-console/console-platform/internal/modules/community/model"
 	iammodel "github.com/open-console/console-platform/internal/modules/iam/model"
 	iamservice "github.com/open-console/console-platform/internal/modules/iam/service"
 )
@@ -385,6 +386,18 @@ func (s *Service) Complete(ctx context.Context, input Input) (CompleteResult, er
 
 func (s *Service) IAMSetupService() IAMSetupService {
 	return iamSetupAdapter{center: s}
+}
+
+func (s *Service) CommunitySetupStatus(ctx context.Context) (communitymodel.SetupStatus, error) {
+	status, err := s.Status(ctx)
+	if err != nil {
+		return communitymodel.SetupStatus{}, err
+	}
+	return communitymodel.SetupStatus{
+		Required:    status.Required,
+		Completed:   status.Completed,
+		CurrentStep: status.CurrentStep,
+	}, nil
 }
 
 func (s *Service) AuthorizeSetupRead(ctx context.Context, setupToken string) error {

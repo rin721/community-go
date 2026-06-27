@@ -26,7 +26,7 @@ import (
 //
 // 该函数会在创建路由前把 Web 初始设置服务挂到模块依赖上；模块后台任务会被收集到
 // Transport.Background，由 lifecycleapp 统一启动、回滚和关闭。
-func NewTransport(core Core, infra Infrastructure, modules Modules, setupHandler httptransport.SetupHandler) (Transport, error) {
+func NewTransport(core Core, infra Infrastructure, modules Modules, setupHandler httptransport.SetupHandler, setupStatusProvider httptransport.SetupStatusProvider) (Transport, error) {
 	corsConfig, err := NewCORS(core.Config, core.Logger)
 	if err != nil {
 		return Transport{}, err
@@ -44,6 +44,7 @@ func NewTransport(core Core, infra Infrastructure, modules Modules, setupHandler
 		modules.IAM.Handler,
 		modules.System.Handler,
 		setupHandler,
+		setupStatusProvider,
 		modules.IAM.Service,
 	)
 	if err != nil {
@@ -73,11 +74,11 @@ func NewTransport(core Core, infra Infrastructure, modules Modules, setupHandler
 // NewSilentTransport assembles transport without writing framework debug output
 // to stdout or stderr. It is intended for CLI initialization paths that need
 // route metadata but do not start the HTTP server.
-func NewSilentTransport(core Core, infra Infrastructure, modules Modules, setupHandler httptransport.SetupHandler) (Transport, error) {
+func NewSilentTransport(core Core, infra Infrastructure, modules Modules, setupHandler httptransport.SetupHandler, setupStatusProvider httptransport.SetupStatusProvider) (Transport, error) {
 	var transport Transport
 	err := web.WithSilentGlobals(func() error {
 		var err error
-		transport, err = NewTransport(core, infra, modules, setupHandler)
+		transport, err = NewTransport(core, infra, modules, setupHandler, setupStatusProvider)
 		return err
 	})
 	return transport, err
@@ -133,6 +134,7 @@ func NewHTTPServer(
 	iamHandler *iamhandler.Handler,
 	systemHandler *systemhandler.Handler,
 	setupHandler httptransport.SetupHandler,
+	setupStatusProvider httptransport.SetupStatusProvider,
 	iamService iamservice.Service,
 ) (*web.Engine, httpserver.HTTPServer, error) {
 	middlewareCfg := middleware.DefaultMiddlewareConfig()
@@ -143,20 +145,21 @@ func NewHTTPServer(
 	engine := web.New(cfg.Server.Mode)
 	router := adapters.NewHTTPEngine(engine)
 	httptransport.NewRouter(httptransport.RouterDeps{
-		Router:               router,
-		StaticSPA:            router,
-		Logger:               log,
-		I18n:                 i18nApp,
-		Database:             adapters.NewDatabase(db),
-		TraceIDGenerator:     traceIDGenerator,
-		Middleware:           middlewareCfg,
-		AnnouncementsHandler: announcementsHandler,
-		CommunityHandler:     communityHandler,
-		IAMHandler:           iamHandler,
-		SystemHandler:        systemHandler,
-		SetupHandler:         setupHandler,
-		IAMAuth:              iamService,
-		IAMAuthz:             iamService,
+		Router:                       router,
+		StaticSPA:                    router,
+		Logger:                       log,
+		I18n:                         i18nApp,
+		Database:                     adapters.NewDatabase(db),
+		TraceIDGenerator:             traceIDGenerator,
+		Middleware:                   middlewareCfg,
+		AnnouncementsHandler:         announcementsHandler,
+		CommunityHandler:             communityHandler,
+		CommunitySetupStatusProvider: setupStatusProvider,
+		IAMHandler:                   iamHandler,
+		SystemHandler:                systemHandler,
+		SetupHandler:                 setupHandler,
+		IAMAuth:                      iamService,
+		IAMAuthz:                     iamService,
 		WebUI: httptransport.WebUIDeps{
 			Enabled:   webUICfg.EnabledValue(),
 			MountPath: webUICfg.MountPath,

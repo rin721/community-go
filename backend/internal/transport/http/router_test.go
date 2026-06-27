@@ -20,6 +20,7 @@ import (
 	announcementhandler "github.com/open-console/console-platform/internal/modules/announcements/handler"
 	announcementservice "github.com/open-console/console-platform/internal/modules/announcements/service"
 	communityhandler "github.com/open-console/console-platform/internal/modules/community/handler"
+	communitymodel "github.com/open-console/console-platform/internal/modules/community/model"
 	communityservice "github.com/open-console/console-platform/internal/modules/community/service"
 	iamhandler "github.com/open-console/console-platform/internal/modules/iam/handler"
 	iammodel "github.com/open-console/console-platform/internal/modules/iam/model"
@@ -86,6 +87,17 @@ func (fakeSetupHandler) SaveConfig(c ports.HTTPContext) { c.JSON(http.StatusOK, 
 func (fakeSetupHandler) TestConfig(c ports.HTTPContext) { c.JSON(http.StatusOK, map[string]any{}) }
 func (fakeSetupHandler) SkipStep(c ports.HTTPContext)   { c.JSON(http.StatusOK, map[string]any{}) }
 func (fakeSetupHandler) Complete(c ports.HTTPContext)   { c.JSON(http.StatusOK, map[string]any{}) }
+
+type fakeCommunitySetupProvider struct {
+	status communitymodel.SetupStatus
+	err    error
+	calls  int
+}
+
+func (p *fakeCommunitySetupProvider) CommunitySetupStatus(context.Context) (communitymodel.SetupStatus, error) {
+	p.calls++
+	return p.status, p.err
+}
 
 // Close 实现测试桩的资源关闭入口，用于验证生命周期调用而不释放外部资源。
 func (db *fakeDatabase) Close() error {
@@ -523,6 +535,89 @@ func TestNewRouterCommunityAuthEndpointsUseCommunityPayload(t *testing.T) {
 	}
 }
 
+func TestNewRouterCommunityStatusIncludesSetupState(t *testing.T) {
+	provider := &fakeCommunitySetupProvider{status: communitymodel.SetupStatus{
+		Required:    true,
+		Completed:   false,
+		CurrentStep: "storage.configure",
+	}}
+	handler := communityhandler.New(communityservice.New(nil, communityservice.Config{}), nil)
+	handler.UseSetupStatusProvider(provider)
+	router := newTestRouter(RouterDeps{
+		CommunityHandler:             handler,
+		CommunitySetupStatusProvider: provider,
+	})
+
+	recorder, body := performRouterRequest(t, router, http.MethodGet, "/api/v1/public/community/status")
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected community status %d, got %d body %s", http.StatusOK, recorder.Code, recorder.Body.String())
+	}
+	assertSuccessResponse(t, body)
+	setup, ok := body.Data["setup"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected setup status object, got %#v", body.Data["setup"])
+	}
+	if setup["required"] != true || setup["completed"] != false || setup["currentStep"] != "storage.configure" {
+		t.Fatalf("unexpected setup status payload: %#v", setup)
+	}
+	if provider.calls != 1 {
+		t.Fatalf("expected setup provider call count 1, got %d", provider.calls)
+	}
+}
+
+func TestNewRouterCommunityContentRequiresCompletedSetup(t *testing.T) {
+	provider := &fakeCommunitySetupProvider{status: communitymodel.SetupStatus{
+		Required:    true,
+		Completed:   false,
+		CurrentStep: "storage.configure",
+	}}
+	handler := communityhandler.New(communityservice.New(nil, communityservice.Config{}), nil)
+	handler.UseSetupStatusProvider(provider)
+	router := newTestRouter(RouterDeps{
+		CommunityHandler:             handler,
+		CommunitySetupStatusProvider: provider,
+	})
+
+	recorder, body := performRouterRequest(t, router, http.MethodGet, "/api/v1/public/community/home")
+
+	if recorder.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected community home status %d, got %d body %s", http.StatusServiceUnavailable, recorder.Code, recorder.Body.String())
+	}
+	if body.MessageKey != "api.setup.required" {
+		t.Fatalf("expected setup required messageKey, got %#v", body)
+	}
+	assertDataValue(t, body.Data, "currentStep", "storage.configure")
+	if provider.calls != 1 {
+		t.Fatalf("expected setup provider call count 1, got %d", provider.calls)
+	}
+}
+
+func TestNewRouterCommunityContentContinuesWhenSetupCompleted(t *testing.T) {
+	provider := &fakeCommunitySetupProvider{status: communitymodel.SetupStatus{
+		Required:  false,
+		Completed: true,
+	}}
+	handler := communityhandler.New(communityservice.New(nil, communityservice.Config{}), nil)
+	handler.UseSetupStatusProvider(provider)
+	router := newTestRouter(RouterDeps{
+		CommunityHandler:             handler,
+		CommunitySetupStatusProvider: provider,
+	})
+
+	recorder, body := performRouterRequest(t, router, http.MethodGet, "/api/v1/public/community/home")
+
+	if recorder.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected storage status %d after setup gate, got %d body %s", http.StatusServiceUnavailable, recorder.Code, recorder.Body.String())
+	}
+	if body.MessageKey == "api.setup.required" {
+		t.Fatalf("expected request to reach community handler, got %#v", body)
+	}
+	if provider.calls != 1 {
+		t.Fatalf("expected setup provider call count 1, got %d", provider.calls)
+	}
+}
+
 func TestNewRouterSetupEndpointsArePublic(t *testing.T) {
 	iamSvc := &fakeIAMService{}
 	router := newTestRouter(RouterDeps{
@@ -907,7 +1002,7 @@ func TestOperationRecorderLogsFailureWithoutBlockingRequest(t *testing.T) {
 	}
 }
 
-// TestNewRouterDoesNotRegisterRemovedUserManagementRoutes 固定 HTTP 路由、中间件顺序和错误响应契约，确保后续注释补全或结构调整不改变该场景。
+// TestNewRouterSystemAPIsRequirePermissionAndListCatalog 固定系统 API 目录的权限校验和响应契约，确保后续注释补全或结构调整不改变该场景。
 func TestNewRouterSystemAPIsRequirePermissionAndListCatalog(t *testing.T) {
 	auth := &fakeIAMService{}
 	systemHandler := systemhandler.New(systemservice.New(systemservice.Config{}), permissionAuthorizer{
@@ -1244,7 +1339,7 @@ func TestNewRouterSystemAPIPermissionSyncReturnsUnavailableWithoutStore(t *testi
 	}
 }
 
-func TestNewRouterDoesNotRegisterRemovedUserManagementRoutes(t *testing.T) {
+func TestNewRouterKeepsStandaloneUserManagementRoutesOutsideCurrentSurface(t *testing.T) {
 	router := newTestRouter(RouterDeps{})
 
 	for _, path := range []string{

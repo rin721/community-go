@@ -5,12 +5,19 @@ export interface UserSummary {
   avatarUrl: string | null
 }
 
+export interface CommunitySetupStatus {
+  required: boolean
+  completed: boolean
+  currentStep: string
+}
+
 export interface ApiStatus {
   mode: "mock" | "go"
   basePath: string
   generatedAt: string
   latencyMs: number
   endpoints: string[]
+  setup: CommunitySetupStatus
 }
 
 export interface ApiResultEnvelope<T> {
@@ -414,8 +421,11 @@ export interface ErrorResponse {
 export interface AoiApiErrorPayload {
   code: string
   endpoint: string
+  messageArgs?: Record<string, unknown>
+  messageKey?: string
   message: string
   requestId: string
+  setup?: CommunitySetupStatus | null
   statusCode: number
 }
 

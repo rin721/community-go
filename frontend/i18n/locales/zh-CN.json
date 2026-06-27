@@ -100,7 +100,14 @@
     "listView": "列表视图",
     "categoryTabsAria": "内容分类",
     "dynamicsTitle": "社区动态",
-    "dynamicsDescription": "来自创作者的短更新和站内轻消息，保留 kirakira 式轻盈阅读节奏。"
+    "dynamicsDescription": "来自创作者的短更新和站内轻消息，保留 kirakira 式轻盈阅读节奏。",
+    "setupRequiredTitle": "平台初始化未完成",
+    "setupRequiredDescription": "当前社区接口正在等待平台初始化完成。完成初始化后，首页会读取真实社区动态、分类和视频内容。",
+    "setupRequiredAction": "打开初始化向导",
+    "loadFailedTitle": "内容加载失败",
+    "retry": "重试",
+    "emptyCategoryTitle": "该分类暂无内容",
+    "backHome": "返回首页"
   },
   "category": {
     "indexHeadTitle": "分类 - Aoi",

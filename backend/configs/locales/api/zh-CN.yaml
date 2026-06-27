@@ -23,5 +23,6 @@ auth.signupDisabled: 当前注册入口不可用
 auth.invitationClosed: 邀请已不可用
 auth.notificationDeliveryFailed: 通知邮件投递失败，请检查 SMTP 配置后重试
 setup.forbidden: 当前初始化操作未授权
+setup.required: 平台初始化未完成，当前社区数据入口不可用
 setup.runNotFound: 初始化运行记录不存在
 setup.failed: 初始化失败：{{.error}}

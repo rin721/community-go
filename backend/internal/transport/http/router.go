@@ -15,6 +15,7 @@ import (
 	"github.com/open-console/console-platform/internal/middleware"
 	announcementhandler "github.com/open-console/console-platform/internal/modules/announcements/handler"
 	communityhandler "github.com/open-console/console-platform/internal/modules/community/handler"
+	communitymodel "github.com/open-console/console-platform/internal/modules/community/model"
 	iamhandler "github.com/open-console/console-platform/internal/modules/iam/handler"
 	systemhandler "github.com/open-console/console-platform/internal/modules/system/handler"
 	systemmodel "github.com/open-console/console-platform/internal/modules/system/model"
@@ -28,21 +29,22 @@ import (
 
 // RouterDeps 聚合 HTTP 路由装配所需依赖。
 type RouterDeps struct {
-	Router               ports.HTTPRouter
-	StaticSPA            ports.StaticSPAMounter
-	Logger               ports.Logger
-	I18n                 ports.I18n
-	Database             ports.Database
-	TraceIDGenerator     ports.IDGenerator
-	Middleware           middleware.MiddlewareConfig
-	AnnouncementsHandler *announcementhandler.Handler
-	CommunityHandler     *communityhandler.Handler
-	IAMHandler           *iamhandler.Handler
-	SystemHandler        *systemhandler.Handler
-	SetupHandler         SetupHandler
-	IAMAuth              middleware.Authenticator
-	IAMAuthz             middleware.Authorizer
-	WebUI                WebUIDeps
+	Router                       ports.HTTPRouter
+	StaticSPA                    ports.StaticSPAMounter
+	Logger                       ports.Logger
+	I18n                         ports.I18n
+	Database                     ports.Database
+	TraceIDGenerator             ports.IDGenerator
+	Middleware                   middleware.MiddlewareConfig
+	AnnouncementsHandler         *announcementhandler.Handler
+	CommunityHandler             *communityhandler.Handler
+	CommunitySetupStatusProvider SetupStatusProvider
+	IAMHandler                   *iamhandler.Handler
+	SystemHandler                *systemhandler.Handler
+	SetupHandler                 SetupHandler
+	IAMAuth                      middleware.Authenticator
+	IAMAuthz                     middleware.Authorizer
+	WebUI                        WebUIDeps
 }
 
 type SetupHandler interface {
@@ -55,6 +57,10 @@ type SetupHandler interface {
 	TestConfig(ports.HTTPContext)
 	SkipStep(ports.HTTPContext)
 	Complete(ports.HTTPContext)
+}
+
+type SetupStatusProvider interface {
+	CommunitySetupStatus(context.Context) (communitymodel.SetupStatus, error)
 }
 
 // WebUIDeps 描述 WebUI 静态产物挂载所需配置。
@@ -263,6 +269,7 @@ func registerIAMRoutes(v1 ports.HTTPRouter, deps RouterDeps) []RouteContract {
 func registerCommunityAuthRoutes(v1 ports.HTTPRouter, deps RouterDeps) []RouteContract {
 	auth := v1.Group("/public/community/auth")
 	auth.Use(middleware.RateLimit(middleware.RateLimitConfig{Enabled: true, Limit: 20, Window: time.Minute}))
+	auth.Use(communitySetupGate(deps.CommunitySetupStatusProvider, deps.Logger))
 	specs := []routeSpec{
 		routeSpecFor("community.auth.login", deps.IAMHandler.CommunityLogin),
 		routeSpecFor("community.auth.session", deps.IAMHandler.CommunitySession),
@@ -272,6 +279,7 @@ func registerCommunityAuthRoutes(v1 ports.HTTPRouter, deps RouterDeps) []RouteCo
 	registered := routeContractsFromSpecs(specs)
 
 	protected := v1.Group("/public/community/auth")
+	protected.Use(communitySetupGate(deps.CommunitySetupStatusProvider, deps.Logger))
 	protected.Use(middleware.Auth(deps.IAMAuth, iamAuthMiddlewareConfig(deps)))
 	protected.Use(middleware.CSRF(iamCSRFMiddlewareConfig(deps)))
 	protectedSpecs := []routeSpec{
@@ -313,10 +321,18 @@ func registerAnnouncementRoutes(v1 ports.HTTPRouter, deps RouterDeps) []RouteCon
 }
 
 func registerCommunityRoutes(v1 ports.HTTPRouter, deps RouterDeps) []RouteContract {
+	status := v1.Group("/public/community")
+	status.Use(middleware.RateLimit(middleware.RateLimitConfig{Enabled: true, Limit: 240, Window: time.Minute}))
+	statusSpecs := []routeSpec{
+		routeSpecFor("community.status", deps.CommunityHandler.Status),
+	}
+	registerRouteSpecs(status, appconstants.APIPath("public", "community"), statusSpecs)
+	registered := routeContractsFromSpecs(statusSpecs)
+
 	public := v1.Group("/public/community")
 	public.Use(middleware.RateLimit(middleware.RateLimitConfig{Enabled: true, Limit: 240, Window: time.Minute}))
+	public.Use(communitySetupGate(deps.CommunitySetupStatusProvider, deps.Logger))
 	specs := []routeSpec{
-		routeSpecFor("community.status", deps.CommunityHandler.Status),
 		routeSpecFor("community.home", deps.CommunityHandler.Home),
 		routeSpecFor("community.dynamics.list", deps.CommunityHandler.Dynamics),
 		routeSpecFor("community.dynamics.create", deps.CommunityHandler.CreateDynamic),
@@ -347,9 +363,10 @@ func registerCommunityRoutes(v1 ports.HTTPRouter, deps RouterDeps) []RouteContra
 		routeSpecFor("community.history.clear", deps.CommunityHandler.ClearHistory),
 	}
 	registerRouteSpecs(public, appconstants.APIPath("public", "community"), specs)
-	registered := routeContractsFromSpecs(specs)
+	registered = append(registered, routeContractsFromSpecs(specs)...)
 
 	account := v1.Group("/public/community/account")
+	account.Use(communitySetupGate(deps.CommunitySetupStatusProvider, deps.Logger))
 	account.Use(middleware.Auth(deps.IAMAuth, iamAuthMiddlewareConfig(deps)))
 	account.Use(middleware.CSRF(iamCSRFMiddlewareConfig(deps)))
 	accountSpecs := []routeSpec{
@@ -374,6 +391,35 @@ func registerCommunityRoutes(v1 ports.HTTPRouter, deps RouterDeps) []RouteContra
 	registered = append(registered, routeContractsFromSpecs(accountSpecs)...)
 
 	return registered
+}
+
+func communitySetupGate(provider SetupStatusProvider, log ports.Logger) ports.HTTPHandlerFunc {
+	return func(c ports.HTTPContext) {
+		if provider == nil {
+			c.Next()
+			return
+		}
+		setup, err := provider.CommunitySetupStatus(c.RequestContext())
+		if err != nil {
+			if log != nil {
+				log.Error("community setup status failed", "method", c.Method(), "path", c.Path(), "error", err)
+			}
+			c.AbortWithStatusJSON(http.StatusInternalServerError, result.LocalizedError(c, apperrors.ErrInternalServer, result.MessageKeyInternalError, nil, result.GetTraceID(c)))
+			return
+		}
+		if setup.Required && !setup.Completed {
+			c.AbortWithStatusJSON(http.StatusServiceUnavailable, result.LocalizedErrorWithData(
+				c,
+				apperrors.ErrBusinessLogic,
+				"api.setup.required",
+				map[string]any{"currentStep": setup.CurrentStep},
+				result.GetTraceID(c),
+				setup,
+			))
+			return
+		}
+		c.Next()
+	}
 }
 
 func iamAuthMiddlewareConfig(deps RouterDeps) middleware.AuthConfig {

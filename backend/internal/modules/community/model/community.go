@@ -603,12 +603,19 @@ type VideoCommentPayload struct {
 	VideoID    string         `json:"videoId"`
 }
 
+type SetupStatus struct {
+	Required    bool   `json:"required"`
+	Completed   bool   `json:"completed"`
+	CurrentStep string `json:"currentStep"`
+}
+
 type APIStatus struct {
-	Mode        string    `json:"mode"`
-	BasePath    string    `json:"basePath"`
-	GeneratedAt time.Time `json:"generatedAt"`
-	LatencyMs   int       `json:"latencyMs"`
-	Endpoints   []string  `json:"endpoints"`
+	Mode        string      `json:"mode"`
+	BasePath    string      `json:"basePath"`
+	GeneratedAt time.Time   `json:"generatedAt"`
+	LatencyMs   int         `json:"latencyMs"`
+	Endpoints   []string    `json:"endpoints"`
+	Setup       SetupStatus `json:"setup"`
 }
 
 type VideoFilter struct {

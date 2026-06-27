@@ -1,15 +1,29 @@
 import { getCategorySelfAndDescendants } from "~~/shared/utils/categories"
+import { isAoiSetupRequiredError } from "./useAoiApi"
 
 export function useHomeFeed() {
   const api = useAoiApi()
   const settings = useAppSettingsStore()
+  const setupRequired = useState("home-feed-setup-required", () => false)
 
   const selectedCategory = computed({
     get: () => settings.selectedCategory,
     set: (value: string) => settings.setSelectedCategory(value)
   })
 
-  const { data, error, pending, refresh } = useAsyncData("home-feed", () => api.getHomePayload(), {
+  const { data, error, pending, refresh } = useAsyncData("home-feed", async () => {
+    try {
+      const payload = await api.getHomePayload()
+
+      setupRequired.value = false
+
+      return payload
+    } catch (error) {
+      setupRequired.value = isAoiSetupRequiredError(error)
+
+      throw error
+    }
+  }, {
     default: () => ({
       categories: [],
       announcement: null,
@@ -52,6 +66,7 @@ export function useHomeFeed() {
     refresh,
     selectCategory,
     selectedCategory,
+    setupRequired,
     videos
   }
 }

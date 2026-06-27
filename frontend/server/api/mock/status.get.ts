@@ -44,5 +44,10 @@ export default defineEventHandler((): ApiStatus => ({
   endpoints,
   generatedAt: new Date().toISOString(),
   latencyMs: 0,
-  mode: "mock"
+  mode: "mock",
+  setup: {
+    completed: true,
+    currentStep: "",
+    required: false
+  }
 }))

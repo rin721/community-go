@@ -5,9 +5,9 @@
 ## 当前阶段
 
 - 阶段编号：`P4`
-- 阶段主题：少量真实内容下的前端视觉节奏与组件边界收敛
-- 当前结论：`P1` 已完成社区 setup 边界与真实 API smoke；`P2` 已完成核心页面视觉 QA 与移动端导航避让；`P3` 已完成 B3.1.a 评论编辑 / 删除、B3.1.b 动态编辑 / 删除、B3.1.c 投稿审核状态流转、B3.1.d.1 审核发布生成社区视频记录、B3.1.d.2 system media / community submission 受控关联和 C3.4/C3.5 真实 API / Mock 边界清理。本轮进入 P4/A2.2.a：真实 API 初始库通常只有少量内容，视频网格、搜索结果和创作者最新投稿需要在 1-2 条数据时保持可读卡片宽度与移动端单列节奏，避免旧多列网格造成大片空白和过窄卡片。转码、公开播放源治理和后台可视化审核页仍是后续独立叶节点。
-- 影响范围：`AGENTS.md`、`frontend/nuxt.config.ts`、`backend/internal/migrations/**`、`backend/internal/modules/community/**`、`backend/internal/transport/http/**`、`backend/docs/api/openapi.yaml`、`scripts/check-frontend-community-api-smoke.ps1`、`backend/docs/**`、`frontend/README.md`、`frontend/app/pages/upload.vue`、`frontend/shared/**`、`frontend/i18n/locales/**`、`.agents/skills/banyao-community-fullstack/SKILL.md`、`TASK_TREE.md`；既有 P3 投稿审核切片还触碰 `backend/internal/modules/iam/service/service.go`、`frontend/app/**`、`frontend/server/api/mock/**` 和 `scripts/frontend-community-page-smoke.cjs`。
+- 阶段主题：少量真实内容下的前端视觉节奏与社区前端会话凭证链路收敛
+- 当前结论：`P1` 已完成社区 setup 边界与真实 API smoke；`P2` 已完成核心页面视觉 QA 与移动端导航避让；`P3` 已完成 B3.1.a 评论编辑 / 删除、B3.1.b 动态编辑 / 删除、B3.1.c 投稿审核状态流转、B3.1.d.1 审核发布生成社区视频记录、B3.1.d.2 system media / community submission 受控关联和 C3.4/C3.5 真实 API / Mock 边界清理。本轮补充 P4/C1.4：社区前端真实账号接口不配置 API Token，统一使用浏览器 Cookie 会话与 CSRF 双提交凭证链路；API Token 继续只作为后台自动化和机器客户端访问能力。转码、公开播放源治理和后台可视化审核页仍是后续独立叶节点。
+- 影响范围：`AGENTS.md`、`frontend/nuxt.config.ts`、`frontend/app/composables/useAoiApi.ts`、`frontend/app/composables/useAoiAuthApi.ts`、`frontend/app/utils/apiCredentials.ts`、`backend/internal/migrations/**`、`backend/internal/modules/community/**`、`backend/internal/transport/http/**`、`backend/docs/api/openapi.yaml`、`scripts/check-frontend-community-api-smoke.ps1`、`backend/docs/**`、`frontend/README.md`、`frontend/app/pages/upload.vue`、`frontend/shared/**`、`frontend/i18n/locales/**`、`.agents/skills/banyao-community-fullstack/SKILL.md`、`TASK_TREE.md`；既有 P3 投稿审核切片还触碰 `backend/internal/modules/iam/service/service.go`、`frontend/app/**`、`frontend/server/api/mock/**` 和 `scripts/frontend-community-page-smoke.cjs`。
 
 ## 设计语言蒸馏
 
@@ -72,6 +72,7 @@
     [x] 子分支 C1.1：`useAoiApi()` 消费 result envelope 与 setup 错误数据
     [x] 子分支 C1.2：`useAoiAuthApi()` 透传社区账号 setup 错误状态
     [x] 子分支 C1.3：`frontend/shared/types/api.ts` 同步 `CommunitySetupStatus`
+    [x] 子分支 C1.4：真实社区账号接口统一使用 Cookie 会话与 CSRF header，不向 Nuxt 前端配置 API Token
   [x] 分支 C2：首页真实数据状态
     [x] 子分支 C2.1：`useHomeFeed()` 暴露 `setupRequired`
     [x] 子分支 C2.2：首页展示初始化引导，避免把未联调状态伪装成真实数据
@@ -97,6 +98,7 @@
     [x] 子分支 D2.1：更新 `frontend/README.md` 的 setup、Mock、视觉和验证说明
     [x] 子分支 D2.2：更新 `backend/docs/modules/community.md` 的当前能力和 setup gate
     [x] 子分支 D2.3：同步 API 文档、权限矩阵和 OpenAPI 生成产物
+    [x] 子分支 D2.4：同步 `frontend/README.md` 的 API Token、Cookie 会话、CORS credentials 与 CSRF 联调边界
   [x] 分支 D3：Skill 同步
     [x] 子分支 D3.1：新增社区全栈协作 skill
     [x] 子分支 D3.2：运行 `scripts/check-agent-skills.ps1`
@@ -111,6 +113,7 @@
     [x] 子分支 E2.2：`powershell -ExecutionPolicy Bypass -File scripts/check-frontend-community-boundary.ps1`
     [x] 子分支 E2.3：`powershell -ExecutionPolicy Bypass -File scripts/check-frontend-community-api-smoke.ps1`
     [x] 子分支 E2.4：`powershell -ExecutionPolicy Bypass -File scripts/check-frontend-community-page-smoke.ps1`
+    [x] 子分支 E2.5：`pnpm --dir frontend build`
   [x] 分支 E3：收敛检查
     [x] 子分支 E3.1：`powershell -ExecutionPolicy Bypass -File scripts/check-agent-skills.ps1`
     [x] 子分支 E3.2：`git diff --check`
@@ -151,6 +154,10 @@
 - [x] 影响评估：需要调整共享 `AoiContentGrid` 的可选网格模式、`VideoGrid` 的少量内容布局、视频网格 token、创作者页 handle 展示，以及前端 README / fullstack skill / 任务树记录；不改变 API、DTO、Mock 数据和业务状态。
 - [x] 实施原则：默认网格继续保持既有 `auto-fill` 行为，只有视频列表在 1-2 条真实数据时启用 `auto-fit` 与受控最大卡片宽度；移动端单条视频使用单列，避免右侧空洞；超长 handle 视觉上省略但保留 `title` 可查看完整值。
 - [x] 验证收敛：完成 `pnpm --dir frontend typecheck`、真实页面 smoke、截图复核、社区边界检查、agent skill 检查和 `git diff --check`。
+- [x] 分析现状：`useAoiAuthApi()` 已用 `credentials: "include"` 登录 / 注册，但 `useAoiApi()` 访问 `/api/v1/public/community/account/*` 时未携带浏览器会话 Cookie，也未为账号写请求注入 CSRF header，导致真实登录后的账号路径容易被误判为缺少凭证。
+- [x] 影响评估：只需收敛 Nuxt runtime config、前端 API composable、轻量 CSRF helper、前端 README 和任务树；不修改后端 API Token、route contract、OpenAPI、数据库或权限模型。
+- [x] 实施原则：Nuxt 社区前端不配置 API Token；API Token 继续作为后台自动化 / 机器客户端凭证。浏览器真实模式使用 Cookie 会话，写请求按后端默认 `console_csrf` / `X-CSRF-Token` 做双提交 CSRF。
+- [x] 验证收敛：完成 `pnpm --dir frontend typecheck`、社区边界检查、真实 API smoke、真实页面 smoke、`pnpm --dir frontend build` 和 `git diff --check`。
 
 ## 阶段验证记录
 
@@ -194,3 +201,11 @@
 - [x] `frontend/app/pages/u/[handle].vue` 的长 `@handle` 改为单行省略并保留 `title`，避免自动生成 handle 在桌面身份栏中折成多行。
 - [x] `pnpm --dir frontend typecheck` 通过。
 - [x] `powershell -ExecutionPolicy Bypass -File scripts/check-frontend-community-page-smoke.ps1` 通过；真实 API 播种 1 条视频后，桌面首页 / 搜索 / 创作者页截图中视频卡片宽度提升到稀疏布局，移动端继续通过 `390x844` 验证。
+
+### P4：社区前端会话凭证链路
+
+- [x] `frontend/nuxt.config.ts` 暴露 `csrfCookieName=console_csrf` 与 `csrfHeaderName=X-CSRF-Token` 默认值，并允许通过 `NUXT_PUBLIC_AUTH_CSRF_COOKIE_NAME` / `NUXT_PUBLIC_AUTH_CSRF_HEADER_NAME` 覆盖。
+- [x] `frontend/app/utils/apiCredentials.ts` 只在客户端读取 CSRF cookie，并只为 `POST` / `PATCH` / `DELETE` 生成 CSRF header；SSR 或缺少 cookie 时不注入空 header。
+- [x] `frontend/app/composables/useAoiApi.ts` 和 `frontend/app/composables/useAoiAuthApi.ts` 在真实请求中保持 `credentials: "include"`，账号写请求可随 Cookie 会话携带 CSRF header。
+- [x] `frontend/README.md` 明确 API Token 是后台机器访问凭证，不是 Nuxt 社区登录凭证；真实浏览器模式依赖 Cookie、CORS `allow_credentials=true`、一致 host 和 CSRF cookie/header。
+- [x] `pnpm --dir frontend typecheck`、`powershell -ExecutionPolicy Bypass -File scripts/check-frontend-community-boundary.ps1`、`powershell -ExecutionPolicy Bypass -File scripts/check-frontend-community-api-smoke.ps1`、`powershell -ExecutionPolicy Bypass -File scripts/check-frontend-community-page-smoke.ps1`、`pnpm --dir frontend build` 和 `git diff --check` 均已通过。

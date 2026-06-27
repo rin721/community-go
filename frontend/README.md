@@ -45,7 +45,7 @@ flowchart TD
     Telemetry["useAoiApiTelemetry"]
     SetupState["setup 状态"]
     BackendApi["backend /api/v1/public/community"]
-    AccountApi["backend /api/v1/auth"]
+    AccountApi["backend /api/v1/public/community/auth"]
     LocalStorage["浏览器 localStorage"]
     MockApi["server/api/mock"]
     Shared["shared DTO 与 fixture"]
@@ -148,10 +148,13 @@ Nuxt public runtime config 支持以下环境变量：
 | `NUXT_BACKEND_ORIGIN` | 空 | 可选 Nuxt / Nitro 代理目标；默认不启用同源代理，只有显式填写后才把 `/api/v1/**` 转发到后端 |
 | `NUXT_PUBLIC_API_BASE_URL` | 开发模式默认为 `http://localhost:9999/api/v1/public/community` | `useAoiApi()` 使用的后端社区 API 基础路径；本地直连 CORS 时使用绝对后端地址，启用 `NUXT_BACKEND_ORIGIN` 代理时由 Nuxt 自动改为相对路径 |
 | `NUXT_PUBLIC_AUTH_API_BASE_URL` | 从 `NUXT_PUBLIC_API_BASE_URL` 派生到 `/api/v1` | `useAoiAuthApi()` 使用的社区账号 API 基础路径；本地直连 CORS 时建议与页面同用 `localhost` 主机，避免 `localhost` / `127.0.0.1` 混用影响 Cookie SameSite |
+| `NUXT_PUBLIC_AUTH_CSRF_COOKIE_NAME` | `console_csrf` | 社区账号写请求读取的浏览器可见 CSRF cookie 名称，应与后端认证配置保持一致 |
+| `NUXT_PUBLIC_AUTH_CSRF_HEADER_NAME` | `X-CSRF-Token` | 社区账号 `POST` / `PATCH` / `DELETE` 请求注入的 CSRF header 名称，应与后端认证配置保持一致 |
 | `NUXT_PUBLIC_API_MOCK` | `false` | 设置为 `true` 时内容接口走 `/api/mock/*`，社区账号登录 / 注册 / 会话走 `/api/mock/auth/*`；默认使用后端公开社区接口和社区账号接口并消费 `result` envelope |
 
-社区页面访问公开社区接口时使用 `useAoiApi()`；登录、注册和后续账号接口使用 `useAoiAuthApi()`，并保持与 `useAoiApiTelemetry()` 的错误诊断兼容。真实后端若返回 `messageKey=api.setup.required`，错误 payload 的 `setup` 字段会传递给页面；首页和设置高级页必须显示初始化状态，不把该状态降级为静态内容。Nuxt mock `/api/mock/status` 返回 `mode=mock` 与 setup 已完成状态，仅表示本地演示边界。
-本地分端口联调默认使用浏览器直连 CORS：前端页面使用 `http://localhost:3000` 时，API 地址也使用 `http://localhost:9999`，后端必须使用精确前端来源配置 CORS，例如 `APP_CORS_ALLOW_ORIGINS=http://localhost:3000,http://127.0.0.1:3000` 与 `APP_CORS_ALLOW_CREDENTIALS=true`，不能把凭证请求与 `*` 来源混用。只有明确需要同源代理时才设置 `NUXT_BACKEND_ORIGIN`。
+社区页面访问公开社区接口时使用 `useAoiApi()`；登录、注册、会话和账号接口使用 `useAoiAuthApi()`，并保持与 `useAoiApiTelemetry()` 的错误诊断兼容。真实后端若返回 `messageKey=api.setup.required`，错误 payload 的 `setup` 字段会传递给页面；首页和设置高级页必须显示初始化状态，不把该状态降级为静态内容。Nuxt mock `/api/mock/status` 返回 `mode=mock` 与 setup 已完成状态，仅表示本地演示边界。
+API Token 是后台自动化、脚本或机器客户端访问后台接口的凭证，不是 Nuxt 浏览器社区登录凭证，也不要写入 `NUXT_PUBLIC_*`、Pinia store 或 `localStorage`。社区账号真实模式依赖浏览器 Cookie 会话：登录 / 注册接口由后端设置 `console_access` 等会话 Cookie，`useAoiApi()` 和 `useAoiAuthApi()` 使用 `credentials: "include"` 发送 Cookie，`POST` / `PATCH` / `DELETE` 写请求在客户端能读到 CSRF cookie 时自动带上 `X-CSRF-Token`。
+本地分端口联调默认使用浏览器直连 CORS：前端页面使用 `http://localhost:3000` 时，API 地址也使用 `http://localhost:9999`，后端必须使用精确前端来源配置 CORS，例如 `APP_CORS_ALLOW_ORIGINS=http://localhost:3000,http://127.0.0.1:3000` 与 `APP_CORS_ALLOW_CREDENTIALS=true`，不能把凭证请求与 `*` 来源混用。浏览器 Cookie 还要求页面和 API 使用一致主机，避免 `localhost` / `127.0.0.1` 混用；只有明确需要同源代理时才设置 `NUXT_BACKEND_ORIGIN`。
 真实 API 模式只展示后端数据库中的真实内容。新初始化后端保留社区基础分类 taxonomy，但不会写入 `Aoi Alpha`、`Layout Notes`、`Color Note` 等演示视频、创作者、动态、评论或弹幕；这些演示内容只保留在 `NUXT_PUBLIC_API_MOCK=true` 的 Nuxt mock 边界内。
 
 ## 开发约定

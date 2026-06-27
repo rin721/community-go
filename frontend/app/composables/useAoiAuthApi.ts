@@ -8,6 +8,7 @@ import type {
   LoginRequest,
   CommunitySignupResult
 } from "~/types/api"
+import { createAoiCredentialHeaders } from "~/utils/apiCredentials"
 
 type AuthRequestOptions = {
   body?: unknown
@@ -32,6 +33,7 @@ export function useAoiAuthApi() {
         baseURL: baseURL.value,
         body: options.body as BodyInit | Record<string, unknown> | null | undefined,
         credentials: "include",
+        headers: createAoiCredentialHeaders(options.method, config),
         method: options.method
       })
 

@@ -48,6 +48,7 @@ import type {
   VideoSummary
 } from "~/types/api"
 import { findCategoryInTree } from "~~/shared/utils/categories"
+import { createAoiCredentialHeaders } from "~/utils/apiCredentials"
 
 type RequestOptions = {
   body?: unknown
@@ -68,6 +69,8 @@ export function useAoiApi() {
       const response = await $fetch<unknown>(endpoint, {
         baseURL: baseURL.value,
         body: options.body as BodyInit | Record<string, unknown> | null | undefined,
+        credentials: "include",
+        headers: createAoiCredentialHeaders(options.method, config),
         method: options.method,
         query: options.query,
         signal: options.signal

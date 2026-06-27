@@ -307,6 +307,28 @@ func (h *Handler) MarkNotificationsRead(c ports.HTTPContext) {
 	writeOK(c, payload, err, h.writeError)
 }
 
+func (h *Handler) AccountNotifications(c ports.HTTPContext) {
+	principal, ok := requirePrincipal(c)
+	if !ok {
+		return
+	}
+	limit, ok := parseIntQuery(c, "limit", 48)
+	if !ok {
+		return
+	}
+	payload, err := h.service.CommunityAccountNotifications(c.RequestContext(), principal, limit)
+	writeOK(c, payload, err, h.writeError)
+}
+
+func (h *Handler) MarkAccountNotificationsRead(c ports.HTTPContext) {
+	principal, ok := requirePrincipal(c)
+	if !ok {
+		return
+	}
+	payload, err := h.service.MarkCommunityAccountNotificationsRead(c.RequestContext(), principal)
+	writeOK(c, payload, err, h.writeError)
+}
+
 func (h *Handler) writeError(c ports.HTTPContext, err error) {
 	switch {
 	case errors.Is(err, context.Canceled):

@@ -354,6 +354,8 @@ func registerCommunityRoutes(v1 ports.HTTPRouter, deps RouterDeps) []RouteContra
 	account.Use(middleware.CSRF(iamCSRFMiddlewareConfig(deps)))
 	accountSpecs := []routeSpec{
 		routeSpecFor("community.account.dynamics.create", deps.CommunityHandler.CreateAccountDynamic),
+		routeSpecFor("community.account.notifications.list", deps.CommunityHandler.AccountNotifications),
+		routeSpecFor("community.account.notifications.read", deps.CommunityHandler.MarkAccountNotificationsRead),
 		routeSpecFor("community.account.submissions.list", deps.CommunityHandler.AccountSubmissions),
 		routeSpecFor("community.account.submissions.create", deps.CommunityHandler.CreateAccountSubmission),
 	}

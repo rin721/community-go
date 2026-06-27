@@ -45,6 +45,8 @@
 - `GET /auth/session`
 - `POST /auth/signup`
 - `POST /account/dynamics`
+- `GET /account/notifications`
+- `POST /account/notifications/read`
 - `GET /account/submissions`
 - `POST /account/submissions`
 - `GET /home`

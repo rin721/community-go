@@ -2,6 +2,7 @@
 import type { CommunityNotificationItem } from "~/types/api"
 
 const api = useAoiApi()
+const authSession = useAuthSessionStore()
 const library = useLibraryStore()
 const { locale, t } = useI18n()
 const notificationsLoaded = ref(false)
@@ -9,13 +10,16 @@ const markReadPending = ref(false)
 
 const { data: payload, error, pending, refresh } = useAsyncData(
   "community-notifications",
-  () => api.getCommunityNotifications(library.ensureClientId()),
+  () => communityAccountActive.value
+    ? api.getCommunityAccountNotifications()
+    : api.getCommunityNotifications(library.ensureClientId()),
   {
     immediate: false,
     server: false
   }
 )
 
+const communityAccountActive = computed(() => authSession.authenticated)
 const notifications = computed(() => payload.value?.items.items || [])
 const unreadCount = computed(() => payload.value?.unreadCount || 0)
 const totalCount = computed(() => notifications.value.length)
@@ -38,6 +42,9 @@ onMounted(async () => {
   if (!library.hydrated) {
     library.restore()
   }
+  if (!authSession.hydrated) {
+    await authSession.refreshSession({ silent: true })
+  }
   await loadNotifications()
 })
 
@@ -56,9 +63,11 @@ async function markAllRead() {
   }
   markReadPending.value = true
   try {
-    payload.value = await api.markCommunityNotificationsRead({
-      clientId: library.ensureClientId()
-    })
+    payload.value = communityAccountActive.value
+      ? await api.markCommunityAccountNotificationsRead()
+      : await api.markCommunityNotificationsRead({
+          clientId: library.ensureClientId()
+        })
   } finally {
     markReadPending.value = false
   }

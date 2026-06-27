@@ -5144,6 +5144,226 @@
       "tags":
         - "Community"
       "x-scope": "tenant"
+  "/api/v1/public/community/account/notifications":
+    "get":
+      "operationId": "community.account.notifications.list"
+      "parameters":
+        -
+          "in": "query"
+          "name": "limit"
+          "required": false
+          "schema":
+            "format": "int32"
+            "type": "integer"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "properties":
+                  "code":
+                    "format": "int32"
+                    "type": "integer"
+                  "data":
+                    "properties":
+                      "authenticated":
+                        "type": "boolean"
+                      "clientId":
+                        "type": "string"
+                      "items":
+                        "properties":
+                          "items":
+                            "items":
+                              "properties":
+                                "body":
+                                  "type": "string"
+                                "createdAt":
+                                  "format": "date-time"
+                                  "type": "string"
+                                "creatorId":
+                                  "type": "string"
+                                "id":
+                                  "type": "string"
+                                "kind":
+                                  "type": "string"
+                                "link":
+                                  "type": "string"
+                                "readAt":
+                                  "format": "date-time"
+                                  "type": "string"
+                                "targetId":
+                                  "type": "string"
+                                "targetKind":
+                                  "type": "string"
+                                "title":
+                                  "type": "string"
+                                "videoId":
+                                  "type": "string"
+                              "type": "object"
+                            "type": "array"
+                          "nextCursor":
+                            "type": "string"
+                        "type": "object"
+                      "message":
+                        "type": "string"
+                      "unreadCount":
+                        "format": "int32"
+                        "type": "integer"
+                    "type": "object"
+                  "message":
+                    "type": "string"
+                  "messageArgs":
+                    "additionalProperties": true
+                    "type": "object"
+                  "messageKey":
+                    "type": "string"
+                  "serverTime":
+                    "format": "int64"
+                    "type": "integer"
+                  "traceId":
+                    "type": "string"
+                "type": "object"
+          "description": "OK"
+        "400":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Bad request"
+        "401":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Unauthorized"
+        "403":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Forbidden"
+        "404":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Not found"
+        "500":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Internal server error"
+      "summary": "查询社区账号通知"
+      "tags":
+        - "Community"
+      "x-scope": "tenant"
+  "/api/v1/public/community/account/notifications/read":
+    "post":
+      "operationId": "community.account.notifications.read"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "properties":
+                  "code":
+                    "format": "int32"
+                    "type": "integer"
+                  "data":
+                    "properties":
+                      "authenticated":
+                        "type": "boolean"
+                      "clientId":
+                        "type": "string"
+                      "items":
+                        "properties":
+                          "items":
+                            "items":
+                              "properties":
+                                "body":
+                                  "type": "string"
+                                "createdAt":
+                                  "format": "date-time"
+                                  "type": "string"
+                                "creatorId":
+                                  "type": "string"
+                                "id":
+                                  "type": "string"
+                                "kind":
+                                  "type": "string"
+                                "link":
+                                  "type": "string"
+                                "readAt":
+                                  "format": "date-time"
+                                  "type": "string"
+                                "targetId":
+                                  "type": "string"
+                                "targetKind":
+                                  "type": "string"
+                                "title":
+                                  "type": "string"
+                                "videoId":
+                                  "type": "string"
+                              "type": "object"
+                            "type": "array"
+                          "nextCursor":
+                            "type": "string"
+                        "type": "object"
+                      "message":
+                        "type": "string"
+                      "unreadCount":
+                        "format": "int32"
+                        "type": "integer"
+                    "type": "object"
+                  "message":
+                    "type": "string"
+                  "messageArgs":
+                    "additionalProperties": true
+                    "type": "object"
+                  "messageKey":
+                    "type": "string"
+                  "serverTime":
+                    "format": "int64"
+                    "type": "integer"
+                  "traceId":
+                    "type": "string"
+                "type": "object"
+          "description": "OK"
+        "400":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Bad request"
+        "401":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Unauthorized"
+        "403":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Forbidden"
+        "404":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Not found"
+        "500":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Internal server error"
+      "summary": "标记社区账号通知为已读"
+      "tags":
+        - "Community"
+      "x-scope": "tenant"
   "/api/v1/public/community/account/submissions":
     "get":
       "operationId": "community.account.submissions.list"

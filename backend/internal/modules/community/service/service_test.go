@@ -415,6 +415,22 @@ func TestServiceCommunityAccountSubmissionUsesPrincipalIdentity(t *testing.T) {
 	if !payload.Authenticated || payload.ClientID == nil || *payload.ClientID != "account:42" || len(payload.Items.Items) != 1 {
 		t.Fatalf("expected authenticated account submissions, got %#v", payload)
 	}
+
+	notifications, err := svc.CommunityAccountNotifications(context.Background(), principal, 12)
+	if err != nil {
+		t.Fatalf("CommunityAccountNotifications() error = %v", err)
+	}
+	if !notifications.Authenticated || notifications.ClientID == nil || *notifications.ClientID != "account:42" || notifications.UnreadCount != 1 {
+		t.Fatalf("expected authenticated account notifications, got %#v", notifications)
+	}
+
+	updated, err := svc.MarkCommunityAccountNotificationsRead(context.Background(), principal)
+	if err != nil {
+		t.Fatalf("MarkCommunityAccountNotificationsRead() error = %v", err)
+	}
+	if !updated.Authenticated || updated.UnreadCount != 0 || len(updated.Items.Items) != 1 || updated.Items.Items[0].ReadAt == nil {
+		t.Fatalf("expected read account notifications, got %#v", updated)
+	}
 }
 
 func TestServiceVideoInteractionPersistsAndUpdatesLikeCount(t *testing.T) {

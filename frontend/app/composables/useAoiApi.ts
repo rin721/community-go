@@ -293,6 +293,18 @@ export function useAoiApi() {
     })
   }
 
+  async function getCommunityAccountNotifications(limit = 48): Promise<CommunityNotificationPayload> {
+    return await request<CommunityNotificationPayload>("/account/notifications", {
+      query: { limit }
+    })
+  }
+
+  async function markCommunityAccountNotificationsRead(): Promise<CommunityNotificationPayload> {
+    return await request<CommunityNotificationPayload>("/account/notifications/read", {
+      method: "POST"
+    })
+  }
+
   async function getCategory(slug: string): Promise<CategoryTreeNode | null> {
     const categories = await listCategories()
 
@@ -316,6 +328,7 @@ export function useAoiApi() {
     createCommunityDynamic,
     createCommunitySubmission,
     getHomePayload,
+    getCommunityAccountNotifications,
     getCommunityAccountSubmissions,
     getCommunityNotifications,
     getCommunitySubmissions,
@@ -329,6 +342,7 @@ export function useAoiApi() {
     listVideos,
     search,
     searchVideos,
+    markCommunityAccountNotificationsRead,
     markCommunityNotificationsRead,
     recordVideoHistory,
     setVideoInteraction,

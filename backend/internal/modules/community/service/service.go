@@ -40,6 +40,8 @@ type Service interface {
 	VideoHistory(context.Context, model.VideoHistoryFilter) (model.VideoHistoryPayload, error)
 	CommunityNotifications(context.Context, model.CommunityNotificationFilter) (model.CommunityNotificationPayload, error)
 	MarkCommunityNotificationsRead(context.Context, model.CommunityNotificationRequest) (model.CommunityNotificationPayload, error)
+	CommunityAccountNotifications(context.Context, authtypes.Principal, int) (model.CommunityNotificationPayload, error)
+	MarkCommunityAccountNotificationsRead(context.Context, authtypes.Principal) (model.CommunityNotificationPayload, error)
 	ListCommunityDynamics(context.Context, model.CommunityDynamicFilter) (model.CommunityDynamicPayload, error)
 	CreateCommunityDynamic(context.Context, model.CreateCommunityDynamicRequest) (model.CommunityDynamicItem, error)
 	CreateCommunityAccountDynamic(context.Context, authtypes.Principal, model.CreateCommunityAccountDynamicRequest) (model.CommunityDynamicItem, error)
@@ -132,6 +134,8 @@ func (s *service) CommunityStatus(context.Context) model.APIStatus {
 			"/auth/session",
 			"/auth/signup",
 			"/account/dynamics",
+			"/account/notifications",
+			"/account/notifications/read",
 			"/account/submissions",
 			"/home",
 			"/dynamics",
@@ -817,6 +821,35 @@ func (s *service) MarkCommunityNotificationsRead(ctx context.Context, req model.
 		return model.CommunityNotificationPayload{}, mapStorageError(err)
 	}
 	return s.CommunityNotifications(ctx, model.CommunityNotificationFilter{ClientID: clientID, Limit: 48})
+}
+
+func (s *service) CommunityAccountNotifications(ctx context.Context, principal authtypes.Principal, limit int) (model.CommunityNotificationPayload, error) {
+	clientID, err := communityAccountClientID(principal)
+	if err != nil {
+		return model.CommunityNotificationPayload{}, err
+	}
+	payload, err := s.CommunityNotifications(ctx, model.CommunityNotificationFilter{
+		ClientID: clientID,
+		Limit:    limit,
+	})
+	if err != nil {
+		return model.CommunityNotificationPayload{}, err
+	}
+	payload.Authenticated = true
+	message := "社区账号通知会跟随当前登录账号同步。"
+	payload.Message = &message
+	return payload, nil
+}
+
+func (s *service) MarkCommunityAccountNotificationsRead(ctx context.Context, principal authtypes.Principal) (model.CommunityNotificationPayload, error) {
+	clientID, err := communityAccountClientID(principal)
+	if err != nil {
+		return model.CommunityNotificationPayload{}, err
+	}
+	if _, err := s.MarkCommunityNotificationsRead(ctx, model.CommunityNotificationRequest{ClientID: clientID}); err != nil {
+		return model.CommunityNotificationPayload{}, err
+	}
+	return s.CommunityAccountNotifications(ctx, principal, 48)
 }
 
 func (s *service) ListCommunityDynamics(ctx context.Context, filter model.CommunityDynamicFilter) (model.CommunityDynamicPayload, error) {

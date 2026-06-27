@@ -6,6 +6,8 @@ const endpoints = [
   "/auth/session",
   "/auth/signup",
   "/account/dynamics",
+  "/account/notifications",
+  "/account/notifications/read",
   "/account/submissions",
   "/home",
   "/categories",

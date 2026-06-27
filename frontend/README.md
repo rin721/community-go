@@ -174,7 +174,7 @@ Nuxt public runtime config 支持以下环境变量：
 - 修改 Nuxt 配置、server route、runtime config 或构建敏感模块后，运行 `pnpm build`。
 - 修改登录、注册、会话、账号状态、页面入口、shared DTO、mock fixture 或 i18n 后，从仓库根目录运行 `powershell -ExecutionPolicy Bypass -File scripts/check-frontend-community-boundary.ps1`。
 - 修改 `useAoiApi()`、社区 DTO、后端社区模块或联调配置后，从仓库根目录运行 `powershell -ExecutionPolicy Bypass -File scripts/check-frontend-community-api-smoke.ps1`；脚本会用临时 SQLite 启动后端并验证 `NUXT_PUBLIC_API_BASE_URL` 对应的公开社区数据链路。
-- 修改首页、分类页、内容网格或真实数据展示状态后，从仓库根目录运行 `powershell -ExecutionPolicy Bypass -File scripts/check-frontend-community-page-smoke.ps1`；脚本会用真实社区 API 启动 Nuxt，并保存桌面与移动端截图。
+- 修改首页、分类页、搜索页、视频播放页、内容网格或真实数据展示状态后，从仓库根目录运行 `powershell -ExecutionPolicy Bypass -File scripts/check-frontend-community-page-smoke.ps1`；脚本会用真实社区 API 启动 Nuxt，并保存桌面与移动端截图。该检查聚焦社区数据和页面结构，视频页会隔离外部媒体字节。
 - 可见 UI 变更应尽量在浏览器中检查桌面和移动端表现。
 - 除非后续新增脚本或明确提供命令，不要声称已经完成 lint 验证。
 

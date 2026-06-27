@@ -105,13 +105,15 @@ async function main() {
       })
       page.on("requestfailed", (request) => {
         const url = request.url()
-        if (!url.includes("/__nuxt")) {
+        if (!url.includes("/__nuxt") && (url.startsWith(frontendBaseUrl) || url.startsWith(backendBaseUrl))) {
           failedRequests.push(`${request.method()} ${url}: ${request.failure()?.errorText || "failed"}`)
         }
       })
 
       const home = await checkHomePage(page, viewport)
       const category = await checkCategoryPage(page, viewport)
+      const search = await checkSearchPage(page, viewport)
+      const video = await checkVideoPage(page, viewport)
       await page.close()
 
       if (consoleErrors.length > 0) {
@@ -121,11 +123,11 @@ async function main() {
         throw new Error(`Failed requests on ${viewport.name}: ${failedRequests.join(" | ")}`)
       }
 
-      results.push({ viewport: viewport.name, home, category })
+      results.push({ viewport: viewport.name, home, category, search, video })
     }
 
     for (const result of results) {
-      console.log(`[${result.viewport}] home videos=${result.home.videoCards}, dynamics=${result.home.dynamicCards}; category cards=${result.category.categoryCards}, maxCardWidth=${result.category.maxCategoryCardWidth}px`)
+      console.log(`[${result.viewport}] home videos=${result.home.videoCards}, dynamics=${result.home.dynamicCards}; category cards=${result.category.categoryCards}, maxCardWidth=${result.category.maxCategoryCardWidth}px; search videos=${result.search.videoCards}, creators=${result.search.creatorCards}; video comments=${result.video.commentItems}, danmaku=${result.video.danmakuItems}`)
     }
     console.log(`Frontend community page smoke passed. Screenshots: ${screenshotsPath}`)
   } finally {
@@ -139,6 +141,7 @@ async function checkHomePage(page, viewport) {
   await page.goto(frontendBaseUrl, { waitUntil: "networkidle" })
   await page.waitForSelector(".brand-band", { timeout: timeoutMs })
   await page.waitForSelector(".video-card", { timeout: timeoutMs })
+  await stabilizeScreenshotState(page)
   await page.screenshot({ path: path.join(screenshotsPath, `home-${viewport.name}.png`), fullPage: true })
 
   return await page.evaluate(() => {
@@ -183,6 +186,7 @@ async function checkHomePage(page, viewport) {
 async function checkCategoryPage(page, viewport) {
   await page.goto(`${frontendBaseUrl}/category`, { waitUntil: "networkidle" })
   await page.waitForSelector(".category-card", { timeout: timeoutMs })
+  await stabilizeScreenshotState(page)
   await page.screenshot({ path: path.join(screenshotsPath, `category-${viewport.name}.png`), fullPage: true })
 
   return await page.evaluate(() => {
@@ -213,6 +217,106 @@ async function checkCategoryPage(page, viewport) {
 
     return category
   })
+}
+
+async function checkSearchPage(page, viewport) {
+  await page.goto(`${frontendBaseUrl}/search`, { waitUntil: "networkidle" })
+  await page.waitForSelector(".search-toolbar input", { timeout: timeoutMs })
+  await page.fill(".search-toolbar input", "Aoi")
+  await page.press(".search-toolbar input", "Enter")
+  await page.waitForURL((url) => new URL(url).searchParams.get("q") === "Aoi", { timeout: timeoutMs })
+  await page.waitForSelector(".search-results .video-card", { timeout: timeoutMs })
+  await page.waitForLoadState("networkidle")
+  await stabilizeScreenshotState(page)
+  await page.screenshot({ path: path.join(screenshotsPath, `search-${viewport.name}.png`), fullPage: true })
+
+  return await page.evaluate(() => {
+    const text = document.body.innerText
+    const search = {
+      categoryCards: document.querySelectorAll(".search-results .category-card").length,
+      creatorCards: document.querySelectorAll(".search-results .creator-card").length,
+      hasBackendResult: text.includes("Aoi Alpha") || text.includes("清透社区首页"),
+      videoCards: document.querySelectorAll(".search-results .video-card").length
+    }
+
+    if (document.querySelector(".page-state__title")?.textContent?.includes("失败")) {
+      throw new Error("Search page rendered an API failure state")
+    }
+    if (search.videoCards < 1 || !search.hasBackendResult) {
+      throw new Error(`Search page did not render backend search data: ${JSON.stringify(search)}`)
+    }
+
+    return search
+  })
+}
+
+async function checkVideoPage(page, viewport) {
+  // Keep this smoke focused on community data and page layout; media byte availability belongs to player/media checks.
+  await page.route(/https?:\/\/.*\.mp4(\?.*)?$/i, async (route) => {
+    await route.fulfill({
+      body: Buffer.alloc(0),
+      contentType: "video/mp4",
+      headers: {
+        "accept-ranges": "bytes",
+        "content-length": "0"
+      },
+      status: 200
+    })
+  })
+  await page.goto(`${frontendBaseUrl}/video/aoi-alpha`, { waitUntil: "networkidle" })
+  await page.waitForSelector(".video-watch", { timeout: timeoutMs })
+  await page.waitForSelector(".aoi-video-player", { timeout: timeoutMs })
+  await page.waitForSelector(".creator-card", { timeout: timeoutMs })
+  await page.waitForSelector(".comment-thread", { timeout: timeoutMs })
+  await page.waitForSelector(".comment-thread__item", { timeout: timeoutMs })
+  await stabilizeScreenshotState(page)
+  await page.screenshot({ path: path.join(screenshotsPath, `video-${viewport.name}.png`), fullPage: true })
+
+  return await page.evaluate(() => {
+    const text = document.body.innerText
+    const playerBox = document.querySelector(".aoi-video-player")?.getBoundingClientRect()
+    const video = {
+      commentItems: document.querySelectorAll(".comment-thread__item").length,
+      creatorCards: document.querySelectorAll(".creator-card").length,
+      danmakuItems: document.querySelectorAll(".aoi-danmaku-layer__item").length,
+      hasBackendVideo: text.includes("Aoi Alpha") || text.includes("清透社区首页"),
+      playerHeight: Math.round(playerBox?.height || 0),
+      playerWidth: Math.round(playerBox?.width || 0)
+    }
+
+    if (document.querySelector(".page-state__title")?.textContent?.includes("失败")) {
+      throw new Error("Video page rendered an API failure state")
+    }
+    if (!video.hasBackendVideo || video.commentItems < 1 || video.creatorCards < 1) {
+      throw new Error(`Video page did not render backend detail data: ${JSON.stringify(video)}`)
+    }
+    if (video.playerWidth < 280 || video.playerHeight < 150) {
+      throw new Error(`Video player surface is not correctly framed: ${JSON.stringify(video)}`)
+    }
+
+    return video
+  })
+}
+
+async function stabilizeScreenshotState(page) {
+  await page.addStyleTag({
+    content: `
+      :root[data-aoi-reveal-motion="disabled"] .aoi-reveal[data-aoi-reveal-ready="true"],
+      .aoi-reveal[data-aoi-reveal-ready="true"] {
+        opacity: 1 !important;
+        transform: none !important;
+        transition: none !important;
+        will-change: auto !important;
+      }
+    `
+  })
+  await page.evaluate(() => {
+    document.documentElement.setAttribute("data-aoi-reveal-motion", "disabled")
+    document.querySelectorAll(".aoi-reveal").forEach((element) => {
+      element.setAttribute("data-aoi-reveal-state", "in")
+    })
+  })
+  await delay(80)
 }
 
 function startProcess(command, args, options) {

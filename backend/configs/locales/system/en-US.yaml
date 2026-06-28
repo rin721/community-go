@@ -50,6 +50,8 @@ config.sections.storage.label: File storage
 config.sections.storage.description: Storage driver, local paths, and object storage settings.
 config.sections.system.label: System management
 config.sections.system.description: System seed data and background maintenance cleanup policy.
+config.sections.community.label: Video community
+config.sections.community.description: Community video worker, local FFmpeg, and cloud webhook settings.
 config.sections.runtime.label: Runtime policy
 config.sections.runtime.description: CORS, i18n, migration, executor, and RPC runtime policy.
 
@@ -117,6 +119,14 @@ config.groups.system.defaults.label: Default data
 config.groups.system.defaults.description: Controls whether startup idempotently fills required platform default data.
 config.groups.system.maintenance.label: Background maintenance cleanup
 config.groups.system.maintenance.description: Controls background cleanup for media upload residue and probe history trimming.
+config.groups.community.video_mode.label: Video processing mode
+config.groups.community.video_mode.description: Choose local FFmpeg worker mode or generic cloud webhook mode.
+config.groups.community.video_worker.label: Video worker
+config.groups.community.video_worker.description: Controls polling, lease recovery, retries, executor pool, and webhook time windows.
+config.groups.community.video_local.label: Local FFmpeg
+config.groups.community.video_local.description: Local source storage, HLS output, FFmpeg/FFprobe paths, and HLS segment settings.
+config.groups.community.video_cloud.label: Cloud webhook
+config.groups.community.video_cloud.description: Generic dispatch URL, HMAC secrets, callback base URL, and cloud output boundary.
 config.groups.runtime.cors.label: CORS
 config.groups.runtime.cors.description: Cross-origin origins, methods, headers, and credentials.
 config.groups.runtime.i18n.label: Internationalization
@@ -127,6 +137,9 @@ config.groups.runtime.executor.label: Executor
 config.groups.runtime.executor.description: Background executor and worker pool settings.
 config.groups.runtime.rpc.label: RPC
 config.groups.runtime.rpc.description: RPC entry, listener, and timeout settings.
+
+config.options.community.video.mode.local.label: Local FFmpeg
+config.options.community.video.mode.cloud.label: Cloud webhook
 
 config.items.brand.productName.label: Product name
 config.items.brand.productName.description: Public product name displayed in the website and admin console.
@@ -336,5 +349,6 @@ dictionary.system.status.disabled: Disabled
 menus.groups.community.label: Community Management
 menus.items.communityAccounts.label: Community Accounts
 menus.items.communitySubmissions.label: Submission Review
+menus.items.communityCategories.label: Community Categories
 menus.items.communityReports.label: Report Handling
 menus.items.communityVideoJobs.label: Video Processing Jobs

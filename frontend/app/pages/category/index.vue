@@ -8,7 +8,7 @@ const { locale, t } = useI18n()
 const { data, pending, error, refresh } = useAsyncData("category-index", async () => {
   const [categories, videos] = await Promise.all([
     api.listCategories(),
-    api.listVideos({ category: "home" })
+    api.listVideos()
   ])
 
   return { categories, videos: videos.items }
@@ -67,10 +67,6 @@ const categoryStats = computed(() => [
 
 function countFor(category: CategoryTreeNode) {
   const slug = category.slug
-
-  if (slug === "home") {
-    return data.value.videos.length
-  }
 
   const slugs = getCategorySelfAndDescendants(data.value.categories, slug).map((item) => item.slug)
 

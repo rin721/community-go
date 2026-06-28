@@ -6,6 +6,7 @@
     },
     "actions": {
       "backHome": "Back home",
+      "close": "Close",
       "goAdmin": "Open platform console",
       "learnMore": "Learn more",
       "login": "Log in",
@@ -520,6 +521,7 @@
       "notificationOutbox": "Notification queue",
       "communityAccounts": "Community accounts",
       "communitySubmissions": "Submission review",
+      "communityCategories": "Community categories",
       "communityVideoJobs": "Video processing jobs",
       "communityReports": "Report handling",
       "media": "Media",
@@ -2620,6 +2622,94 @@
           "storageUnavailableDescription": "The backend reports that community accounts are not persisted yet. Run the community account migration first."
         }
       },
+      "categories": {
+        "title": "Community categories",
+        "description": "Manage video community categories through the system dictionary community.video.category. Real frontend mode only consumes these dictionary items, without backend seeds or frontend hardcoded categories.",
+        "badge": "System dictionary",
+        "summaryLabel": "Community category summary",
+        "empty": "The dictionary has no category items.",
+        "dictionary": {
+          "name": "Community video categories",
+          "description": "Video community category dictionary. Item value is the category slug, and extra may store parentSlug, description, and accentColor."
+        },
+        "actions": {
+          "cancel": "Cancel",
+          "cancelEdit": "Cancel edit",
+          "confirmDelete": "Confirm delete",
+          "create": "Create category",
+          "createDictionary": "Create category dictionary",
+          "delete": "Delete",
+          "edit": "Edit",
+          "new": "New category",
+          "save": "Save category"
+        },
+        "metrics": {
+          "total": "Items",
+          "active": "Active",
+          "roots": "Root categories"
+        },
+        "controls": {
+          "accentColor": "Accent color",
+          "description": "Description",
+          "label": "Display name",
+          "noParent": "No parent",
+          "parent": "Parent category",
+          "slug": "Category slug",
+          "sort": "Sort",
+          "status": "Status"
+        },
+        "columns": {
+          "actions": "Actions",
+          "category": "Category",
+          "parent": "Parent",
+          "sort": "Sort",
+          "status": "Status"
+        },
+        "form": {
+          "title": "Category item",
+          "description": "The category slug is stored in item value. Hierarchy, description, and accent color are stored in item extra JSON."
+        },
+        "list": {
+          "title": "Category list",
+          "description": "The current dictionary returned {{count}} category items."
+        },
+        "delete": {
+          "title": "Delete category",
+          "description": "Category {{name}} will be removed from the system dictionary. If videos still reference that slug, community APIs will surface a data consistency error."
+        },
+        "messages": {
+          "createdTitle": "Category created",
+          "createdDescription": "{{name}} was added to the community video category dictionary.",
+          "deletedTitle": "Category deleted",
+          "deletedDescription": "{{name}} was removed from the community video category dictionary.",
+          "dictionaryCreatedTitle": "Category dictionary created",
+          "dictionaryCreatedDescription": "community.video.category has been created. Category items can now be maintained.",
+          "dictionaryCreateFailedTitle": "Failed to create category dictionary",
+          "deleteFailedTitle": "Failed to delete category",
+          "saveFailedTitle": "Failed to save category",
+          "updatedTitle": "Category updated",
+          "updatedDescription": "{{name}} has been saved."
+        },
+        "states": {
+          "dictionaryMissingTitle": "Category dictionary missing",
+          "dictionaryMissingDescription": "The system defaults have not created community.video.category yet. Run default seeding or create the dictionary shell from this page.",
+          "emptyTitle": "No category items",
+          "emptyDescription": "Create at least one active category before real frontend upload and category navigation can offer choices.",
+          "errorTitle": "Community categories unavailable",
+          "loadingDescription": "Reading the community category dictionary.",
+          "permissionTitle": "Dictionary read permission required",
+          "permissionDescription": "The current session does not have the platform dictionary:read grant.",
+          "storageUnavailableTitle": "Dictionary storage unavailable",
+          "storageUnavailableDescription": "The backend reports that system dictionaries are not persisted yet. Run the system module migration first.",
+          "updatePermissionTitle": "Read-only access",
+          "updatePermissionDescription": "The current session does not have the platform dictionary:update grant."
+        },
+        "validation": {
+          "title": "Category fields need changes",
+          "description": "Category slug must start with a lowercase letter or number and may only contain lowercase letters, numbers, hyphens, or underscores. Display name and sort are required.",
+          "parentDescription": "A category cannot use itself as parent."
+        }
+      },
       "submissions": {
         "title": "Submission review",
         "description": "Read the community submission review queue and save approve or reject results through the real review API.",
@@ -2628,7 +2718,7 @@
         "empty": "No submissions returned.",
         "actions": {
           "approve": "Approve",
-          "publish": "Transcode and publish",
+          "publish": "Create transcode job",
           "reject": "Reject"
         },
         "metrics": {
@@ -2660,9 +2750,9 @@
           "description": "Current filters returned {{count}} submissions."
         },
         "messages": {
-          "publishFailedTitle": "Failed to publish \"{{title}}\"",
+          "publishFailedTitle": "Failed to create processing job for \"{{title}}\"",
           "publishSuccessTitle": "Video processing job created",
-          "publishSuccessDescription": "Job {{id}} is {{status}}. The video appears on the home and detail pages after it succeeds.",
+          "publishSuccessDescription": "Job {{id}} is {{status}}. Open Video processing jobs to watch worker progress and HLS output.",
           "reviewFailedTitle": "Failed to handle \"{{title}}\"",
           "reviewSuccessTitle": "Submission status saved",
           "reviewSuccessDescription": "\"{{title}}\" is now {{status}}."
@@ -2685,6 +2775,7 @@
         "summaryLabel": "Video job summary",
         "empty": "No video processing jobs returned.",
         "actions": {
+          "details": "Details",
           "retry": "Retry"
         },
         "metrics": {
@@ -2721,6 +2812,32 @@
         "list": {
           "title": "Processing queue",
           "description": "Current filters returned {{count}} jobs."
+        },
+        "detail": {
+          "title": "Job detail",
+          "description": "Inspect worker lease, cloud provider callback, HLS master output, renditions, and failure evidence for the selected job.",
+          "loading": "Reading video job detail.",
+          "renditions": "HLS renditions",
+          "fields": {
+            "id": "Job ID",
+            "submissionId": "Submission ID",
+            "videoId": "Published video",
+            "provider": "Provider",
+            "providerJobId": "Provider job",
+            "attempt": "Attempt",
+            "lockedBy": "Locked worker",
+            "lockedAt": "Locked at",
+            "heartbeatAt": "Heartbeat at",
+            "nextRunAt": "Next run at",
+            "startedAt": "Started at",
+            "finishedAt": "Finished at",
+            "callbackReceivedAt": "Callback received at",
+            "inputStorageKey": "Input storage",
+            "outputStorageKey": "Output storage",
+            "outputPublicUrl": "HLS master",
+            "failureCode": "Failure code",
+            "errorMessage": "Error"
+          }
         },
         "messages": {
           "retryFailedTitle": "Failed to retry job {{id}}",

@@ -34,6 +34,7 @@ export default [
     route("traffic-hijack", "./routes/admin/traffic-hijack.tsx"),
     route("api-tokens", "./routes/admin/api-tokens.tsx"),
     route("community/accounts", "./routes/admin/community-accounts.tsx"),
+    route("community/categories", "./routes/admin/community-categories.tsx"),
     route("community/submissions", "./routes/admin/community-submissions.tsx"),
     route("community/reports", "./routes/admin/community-reports.tsx"),
     route("community/video-jobs", "./routes/admin/community-video-jobs.tsx"),

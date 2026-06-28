@@ -3,6 +3,11 @@ package service
 import (
 	"bytes"
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"mime"
@@ -31,6 +36,9 @@ type VideoService interface {
 	ListJobs(context.Context, model.CommunityVideoJobFilter) (model.CommunityVideoJobPayload, error)
 	GetJob(context.Context, string) (model.CommunityVideoJobItem, error)
 	RetryJob(context.Context, authtypes.Principal, string) (model.CommunityVideoJobItem, error)
+	ClaimJobs(context.Context, VideoJobClaimInput) ([]string, error)
+	ProcessJob(context.Context, VideoJobProcessInput) error
+	HandleCallback(context.Context, string, VideoJobCallbackInput) (model.CommunityVideoJobItem, error)
 	GetAsset(context.Context, string) (VideoAsset, error)
 	GetSourceAsset(context.Context, string) (VideoAsset, error)
 }
@@ -51,9 +59,22 @@ type VideoConfig struct {
 	Mode          string
 	LocalBasePath string
 	LocalFSType   string
+	Worker        VideoWorkerConfig
 	Local         VideoLocalConfig
 	HLS           VideoHLSConfig
 	Cloud         VideoCloudConfig
+}
+
+type VideoWorkerConfig struct {
+	Enabled         bool
+	PollInterval    time.Duration
+	BatchSize       int
+	LeaseTimeout    time.Duration
+	MaxAttempts     int
+	RetryDelay      time.Duration
+	ExecutorPool    string
+	DispatchTimeout time.Duration
+	CallbackMaxSkew time.Duration
 }
 
 type VideoLocalConfig struct {
@@ -78,11 +99,36 @@ type VideoRenditionConfig struct {
 }
 
 type VideoCloudConfig struct {
-	Provider       string
-	ObjectStorage  string
-	Bucket         string
-	CDNBaseURL     string
-	CallbackSecret string
+	Provider        string
+	ObjectStorage   string
+	Bucket          string
+	CDNBaseURL      string
+	DispatchURL     string
+	DispatchSecret  string
+	CallbackBaseURL string
+	CallbackSecret  string
+}
+
+type VideoJobClaimInput struct {
+	WorkerID     string
+	Limit        int
+	LeaseTimeout time.Duration
+}
+
+type VideoJobProcessInput struct {
+	WorkerID string
+	JobID    string
+}
+
+type VideoJobCallbackInput struct {
+	Timestamp string
+	Signature string
+	Body      []byte
+}
+
+type storedVideoJobRequest struct {
+	Request    model.CreateCommunityVideoJobRequest `json:"request"`
+	ReviewerID string                               `json:"reviewerId"`
 }
 
 type configuredVideoService struct {
@@ -120,6 +166,30 @@ func normalizeVideoConfig(cfg VideoConfig) VideoConfig {
 	cfg.Mode = strings.ToLower(strings.TrimSpace(cfg.Mode))
 	if cfg.Mode == "" {
 		cfg.Mode = model.CommunityVideoProviderLocal
+	}
+	if cfg.Worker.PollInterval <= 0 {
+		cfg.Worker.PollInterval = 5 * time.Second
+	}
+	if cfg.Worker.BatchSize <= 0 {
+		cfg.Worker.BatchSize = 2
+	}
+	if cfg.Worker.LeaseTimeout <= 0 {
+		cfg.Worker.LeaseTimeout = 30 * time.Minute
+	}
+	if cfg.Worker.MaxAttempts <= 0 {
+		cfg.Worker.MaxAttempts = 3
+	}
+	if cfg.Worker.RetryDelay <= 0 {
+		cfg.Worker.RetryDelay = time.Minute
+	}
+	if strings.TrimSpace(cfg.Worker.ExecutorPool) == "" {
+		cfg.Worker.ExecutorPool = "background"
+	}
+	if cfg.Worker.DispatchTimeout <= 0 {
+		cfg.Worker.DispatchTimeout = 30 * time.Second
+	}
+	if cfg.Worker.CallbackMaxSkew <= 0 {
+		cfg.Worker.CallbackMaxSkew = 10 * time.Minute
 	}
 	if strings.TrimSpace(cfg.Local.FFmpegPath) == "" {
 		cfg.Local.FFmpegPath = "ffmpeg"
@@ -248,6 +318,11 @@ func (v *configuredVideoService) CreateTranscodeJob(ctx context.Context, princip
 		return model.CommunityVideoJobItem{}, mapStorageError(err)
 	}
 	now := v.app.now()
+	payload := storedVideoJobRequest{Request: req, ReviewerID: reviewerID}
+	rawPayload, err := json.Marshal(payload)
+	if err != nil {
+		return model.CommunityVideoJobItem{}, err
+	}
 	job := model.CommunityVideoJob{
 		ID:               v.app.newVideoJobID(),
 		SubmissionID:     submission.ID,
@@ -255,67 +330,15 @@ func (v *configuredVideoService) CreateTranscodeJob(ctx context.Context, princip
 		Provider:         v.provider.Name(),
 		Status:           model.CommunityVideoJobStatusQueued,
 		Progress:         0,
+		MaxAttempts:      v.cfg.Worker.MaxAttempts,
+		NextRunAt:        &now,
 		InputStorageKey:  asset.StorageKey,
 		OutputStorageKey: cleanStorageKey(v.cfg.Local.OutputRoot, submissionVideoOutputDir(*submission)),
+		RequestPayload:   string(rawPayload),
 		CreatedAt:        now,
 		UpdatedAt:        now,
 	}
 	if err := v.app.repo.CreateCommunityVideoJob(ctx, job); err != nil {
-		return model.CommunityVideoJobItem{}, mapStorageError(err)
-	}
-	started := v.app.now()
-	job.Status = model.CommunityVideoJobStatusRunning
-	job.Progress = 5
-	job.StartedAt = &started
-	job.UpdatedAt = started
-	if err := v.app.repo.UpdateCommunityVideoJob(ctx, job); err != nil {
-		return model.CommunityVideoJobItem{}, mapStorageError(err)
-	}
-	transcode, err := v.provider.Transcode(ctx, job, *submission, *asset, req)
-	if err != nil {
-		finished := v.app.now()
-		job.Status = model.CommunityVideoJobStatusFailed
-		job.Progress = 100
-		job.ErrorMessage = trimRunes(err.Error(), 1200)
-		job.FinishedAt = &finished
-		job.UpdatedAt = finished
-		if updateErr := v.app.repo.UpdateCommunityVideoJob(ctx, job); updateErr != nil {
-			return model.CommunityVideoJobItem{}, mapStorageError(updateErr)
-		}
-		return v.decorateJob(ctx, job)
-	}
-	videoID, err := v.publishTranscodedSubmission(ctx, *submission, *asset, transcode, req, reviewerID)
-	if err != nil {
-		finished := v.app.now()
-		job.Status = model.CommunityVideoJobStatusFailed
-		job.Progress = 100
-		job.ErrorMessage = trimRunes(err.Error(), 1200)
-		job.FinishedAt = &finished
-		job.UpdatedAt = finished
-		if updateErr := v.app.repo.UpdateCommunityVideoJob(ctx, job); updateErr != nil {
-			return model.CommunityVideoJobItem{}, mapStorageError(updateErr)
-		}
-		return model.CommunityVideoJobItem{}, err
-	}
-	for i := range transcode.Renditions {
-		transcode.Renditions[i].JobID = job.ID
-		transcode.Renditions[i].VideoID = videoID
-	}
-	if len(transcode.Renditions) > 0 {
-		if err := v.app.repo.CreateCommunityVideoRenditions(ctx, transcode.Renditions); err != nil {
-			return model.CommunityVideoJobItem{}, mapStorageError(err)
-		}
-	}
-	finished := v.app.now()
-	job.Status = model.CommunityVideoJobStatusSucceeded
-	job.Progress = 100
-	job.VideoID = videoID
-	job.OutputStorageKey = transcode.OutputStorageKey
-	job.OutputPublicURL = transcode.MasterURL
-	job.ErrorMessage = ""
-	job.FinishedAt = &finished
-	job.UpdatedAt = finished
-	if err := v.app.repo.UpdateCommunityVideoJob(ctx, job); err != nil {
 		return model.CommunityVideoJobItem{}, mapStorageError(err)
 	}
 	return v.decorateJob(ctx, job)
@@ -405,6 +428,152 @@ func (v *configuredVideoService) publishTranscodedSubmission(ctx context.Context
 	return videoID, nil
 }
 
+func (v *configuredVideoService) completeTranscodeJob(ctx context.Context, job model.CommunityVideoJob, submission model.CommunitySubmission, asset model.CommunityMediaAsset, transcode videoTranscodeResult, req model.CreateCommunityVideoJobRequest, reviewerID string) error {
+	videoID, err := v.publishTranscodedSubmission(ctx, submission, asset, transcode, req, reviewerID)
+	if err != nil {
+		finished := v.app.now()
+		job.Status = model.CommunityVideoJobStatusFailed
+		job.Progress = 100
+		job.ErrorMessage = trimRunes(err.Error(), 1200)
+		job.FailureCode = "publish_failed"
+		job.LockedBy = ""
+		job.LockedAt = nil
+		job.HeartbeatAt = nil
+		job.FinishedAt = &finished
+		job.UpdatedAt = finished
+		if updateErr := v.app.repo.UpdateCommunityVideoJob(ctx, job); updateErr != nil {
+			return mapStorageError(updateErr)
+		}
+		return err
+	}
+	for i := range transcode.Renditions {
+		transcode.Renditions[i].JobID = job.ID
+		transcode.Renditions[i].VideoID = videoID
+	}
+	if len(transcode.Renditions) > 0 {
+		if err := v.app.repo.CreateCommunityVideoRenditions(ctx, transcode.Renditions); err != nil {
+			return mapStorageError(err)
+		}
+	}
+	finished := v.app.now()
+	job.Status = model.CommunityVideoJobStatusSucceeded
+	job.Progress = 100
+	job.VideoID = videoID
+	job.OutputStorageKey = firstNonEmpty(transcode.OutputStorageKey, job.OutputStorageKey)
+	job.OutputPublicURL = transcode.MasterURL
+	job.ErrorMessage = ""
+	job.FailureCode = ""
+	job.LockedBy = ""
+	job.LockedAt = nil
+	job.HeartbeatAt = nil
+	job.FinishedAt = &finished
+	job.UpdatedAt = finished
+	return mapStorageError(v.app.repo.UpdateCommunityVideoJob(ctx, job))
+}
+
+func (v *configuredVideoService) failOrRetryJob(ctx context.Context, job model.CommunityVideoJob, code string, cause error) error {
+	now := v.app.now()
+	message := ""
+	if cause != nil {
+		message = cause.Error()
+	}
+	job.ErrorMessage = trimRunes(message, 1200)
+	job.FailureCode = trimRunes(code, 96)
+	job.LockedBy = ""
+	job.LockedAt = nil
+	job.HeartbeatAt = nil
+	job.UpdatedAt = now
+	if job.MaxAttempts <= 0 {
+		job.MaxAttempts = v.cfg.Worker.MaxAttempts
+	}
+	if job.Attempt < job.MaxAttempts {
+		next := now.Add(time.Duration(job.Attempt) * v.cfg.Worker.RetryDelay)
+		job.Status = model.CommunityVideoJobStatusQueued
+		job.Progress = 0
+		job.NextRunAt = &next
+		job.FinishedAt = nil
+	} else {
+		job.Status = model.CommunityVideoJobStatusFailed
+		job.Progress = 100
+		job.FinishedAt = &now
+	}
+	if err := v.app.repo.UpdateCommunityVideoJob(ctx, job); err != nil {
+		return mapStorageError(err)
+	}
+	return cause
+}
+
+func (v *configuredVideoService) dispatchCloudJob(ctx context.Context, job model.CommunityVideoJob, submission model.CommunitySubmission, asset model.CommunityMediaAsset, req model.CreateCommunityVideoJobRequest) error {
+	dispatchURL := strings.TrimSpace(v.cfg.Cloud.DispatchURL)
+	secret := strings.TrimSpace(v.cfg.Cloud.DispatchSecret)
+	if dispatchURL == "" || secret == "" {
+		return ErrStorageUnavailable
+	}
+	callbackPath := publicURL("/api/v1/public/community/video-jobs", job.ID+"/callback")
+	callbackURL := callbackPath
+	if base := strings.TrimSpace(v.cfg.Cloud.CallbackBaseURL); base != "" {
+		callbackURL = publicURL(base, "api/v1/public/community/video-jobs/"+job.ID+"/callback")
+	}
+	payload := map[string]any{
+		"jobId":            job.ID,
+		"submissionId":     submission.ID,
+		"mediaAssetId":     asset.ID,
+		"provider":         v.cfg.Cloud.Provider,
+		"sourceUrl":        asset.URL,
+		"sourceStorageKey": asset.StorageKey,
+		"outputStorageKey": job.OutputStorageKey,
+		"callbackPath":     callbackPath,
+		"callbackUrl":      callbackURL,
+		"durationSeconds":  req.DurationSeconds,
+		"thumbnailUrl":     req.ThumbnailURL,
+		"slug":             req.Slug,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+	timeout := v.cfg.Worker.DispatchTimeout
+	dispatchCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	httpReq, err := http.NewRequestWithContext(dispatchCtx, http.MethodPost, dispatchURL, bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	timestamp := strconv.FormatInt(v.app.now().Unix(), 10)
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("X-Community-Video-Timestamp", timestamp)
+	httpReq.Header.Set("X-Community-Video-Signature", signVideoWebhook(timestamp, body, secret))
+	resp, err := http.DefaultClient.Do(httpReq)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	respBody, readErr := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	if readErr != nil {
+		return readErr
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("cloud dispatch returned HTTP %d: %s", resp.StatusCode, trimRunes(string(respBody), 600))
+	}
+	var dispatchResp struct {
+		ProviderJobID string `json:"providerJobId"`
+		Status        string `json:"status"`
+		Progress      int    `json:"progress"`
+	}
+	if len(strings.TrimSpace(string(respBody))) > 0 {
+		if err := json.Unmarshal(respBody, &dispatchResp); err != nil {
+			return err
+		}
+	}
+	now := v.app.now()
+	job.ProviderJobID = strings.TrimSpace(dispatchResp.ProviderJobID)
+	job.Status = model.CommunityVideoJobStatusRunning
+	job.Progress = clampProgress(dispatchResp.Progress, 10, 99)
+	job.HeartbeatAt = &now
+	job.UpdatedAt = now
+	return mapStorageError(v.app.repo.UpdateCommunityVideoJob(ctx, job))
+}
+
 func (v *configuredVideoService) ListJobs(ctx context.Context, filter model.CommunityVideoJobFilter) (model.CommunityVideoJobPayload, error) {
 	if v.app == nil || v.app.repo == nil {
 		return model.CommunityVideoJobPayload{}, ErrStorageUnavailable
@@ -448,6 +617,190 @@ func (v *configuredVideoService) RetryJob(ctx context.Context, principal authtyp
 	return v.CreateTranscodeJob(ctx, principal, job.SubmissionID, model.CreateCommunityVideoJobRequest{})
 }
 
+func (v *configuredVideoService) ClaimJobs(ctx context.Context, input VideoJobClaimInput) ([]string, error) {
+	if v.app == nil || v.app.repo == nil {
+		return nil, ErrStorageUnavailable
+	}
+	workerID := strings.TrimSpace(input.WorkerID)
+	if workerID == "" {
+		return nil, ErrInvalidInput
+	}
+	limit := input.Limit
+	if limit <= 0 {
+		limit = v.cfg.Worker.BatchSize
+	}
+	leaseTimeout := input.LeaseTimeout
+	if leaseTimeout <= 0 {
+		leaseTimeout = v.cfg.Worker.LeaseTimeout
+	}
+	jobs, err := v.app.repo.ClaimCommunityVideoJobs(ctx, workerID, v.app.now(), leaseTimeout, limit)
+	if err != nil {
+		return nil, mapStorageError(err)
+	}
+	ids := make([]string, 0, len(jobs))
+	for _, job := range jobs {
+		ids = append(ids, job.ID)
+	}
+	return ids, nil
+}
+
+func (v *configuredVideoService) ProcessJob(ctx context.Context, input VideoJobProcessInput) error {
+	if v.app == nil || v.app.repo == nil {
+		return ErrStorageUnavailable
+	}
+	workerID := strings.TrimSpace(input.WorkerID)
+	jobID := strings.TrimSpace(input.JobID)
+	if workerID == "" || jobID == "" {
+		return ErrInvalidInput
+	}
+	job, err := v.app.repo.FindCommunityVideoJob(ctx, jobID)
+	if err != nil {
+		return mapStorageError(err)
+	}
+	if job.Status != model.CommunityVideoJobStatusQueued || job.LockedBy != workerID {
+		return nil
+	}
+	payload, err := decodeStoredVideoJobRequest(job.RequestPayload)
+	if err != nil {
+		return v.failOrRetryJob(ctx, *job, "invalid_request_payload", err)
+	}
+	submission, err := v.app.repo.FindCommunitySubmission(ctx, job.SubmissionID)
+	if err != nil {
+		return v.failOrRetryJob(ctx, *job, "submission_unavailable", mapStorageError(err))
+	}
+	if submission.Status != model.CommunitySubmissionStatusApproved && submission.Status != model.CommunitySubmissionStatusPublished {
+		return v.failOrRetryJob(ctx, *job, "submission_not_approved", ErrInvalidInput)
+	}
+	asset, err := v.app.repo.FindMediaAssetByID(ctx, job.MediaAssetID)
+	if err != nil {
+		return v.failOrRetryJob(ctx, *job, "asset_unavailable", mapStorageError(err))
+	}
+	now := v.app.now()
+	job.Status = model.CommunityVideoJobStatusRunning
+	job.Progress = 5
+	job.LockedBy = workerID
+	job.LockedAt = &now
+	job.HeartbeatAt = &now
+	job.StartedAt = firstTimePtr(job.StartedAt, now)
+	job.FinishedAt = nil
+	job.ErrorMessage = ""
+	job.FailureCode = ""
+	job.UpdatedAt = now
+	if err := v.app.repo.UpdateCommunityVideoJob(ctx, *job); err != nil {
+		return mapStorageError(err)
+	}
+	if v.provider.Name() == model.CommunityVideoProviderCloud {
+		if err := v.dispatchCloudJob(ctx, *job, *submission, *asset, payload.Request); err != nil {
+			return v.failOrRetryJob(ctx, *job, "cloud_dispatch_failed", err)
+		}
+		return nil
+	}
+	transcode, err := v.provider.Transcode(ctx, *job, *submission, *asset, payload.Request)
+	if err != nil {
+		return v.failOrRetryJob(ctx, *job, "local_transcode_failed", err)
+	}
+	return v.completeTranscodeJob(ctx, *job, *submission, *asset, transcode, payload.Request, payload.ReviewerID)
+}
+
+func (v *configuredVideoService) HandleCallback(ctx context.Context, jobID string, input VideoJobCallbackInput) (model.CommunityVideoJobItem, error) {
+	if v.app == nil || v.app.repo == nil {
+		return model.CommunityVideoJobItem{}, ErrStorageUnavailable
+	}
+	if err := v.verifyCallbackSignature(input); err != nil {
+		return model.CommunityVideoJobItem{}, err
+	}
+	var req model.CommunityVideoJobCallbackRequest
+	if err := json.Unmarshal(input.Body, &req); err != nil {
+		return model.CommunityVideoJobItem{}, ErrInvalidInput
+	}
+	job, err := v.app.repo.FindCommunityVideoJob(ctx, strings.TrimSpace(jobID))
+	if err != nil {
+		return model.CommunityVideoJobItem{}, mapStorageError(err)
+	}
+	payload, err := decodeStoredVideoJobRequest(job.RequestPayload)
+	if err != nil {
+		return model.CommunityVideoJobItem{}, err
+	}
+	now := v.app.now()
+	job.CallbackReceivedAt = &now
+	if strings.TrimSpace(req.ProviderJobID) != "" {
+		job.ProviderJobID = strings.TrimSpace(req.ProviderJobID)
+	}
+	switch strings.ToLower(strings.TrimSpace(req.Status)) {
+	case model.CommunityVideoJobStatusQueued, model.CommunityVideoJobStatusRunning:
+		job.Status = model.CommunityVideoJobStatusRunning
+		job.Progress = clampProgress(req.Progress, 10, 99)
+		job.HeartbeatAt = &now
+		job.UpdatedAt = now
+		if err := v.app.repo.UpdateCommunityVideoJob(ctx, *job); err != nil {
+			return model.CommunityVideoJobItem{}, mapStorageError(err)
+		}
+		return v.decorateJob(ctx, *job)
+	case model.CommunityVideoJobStatusSucceeded:
+		if job.Status == model.CommunityVideoJobStatusSucceeded {
+			job.CallbackReceivedAt = &now
+			if strings.TrimSpace(req.ProviderJobID) != "" {
+				job.ProviderJobID = strings.TrimSpace(req.ProviderJobID)
+			}
+			job.UpdatedAt = now
+			if err := v.app.repo.UpdateCommunityVideoJob(ctx, *job); err != nil {
+				return model.CommunityVideoJobItem{}, mapStorageError(err)
+			}
+			return v.decorateJob(ctx, *job)
+		}
+		submission, err := v.app.repo.FindCommunitySubmission(ctx, job.SubmissionID)
+		if err != nil {
+			return model.CommunityVideoJobItem{}, mapStorageError(err)
+		}
+		asset, err := v.app.repo.FindMediaAssetByID(ctx, job.MediaAssetID)
+		if err != nil {
+			return model.CommunityVideoJobItem{}, mapStorageError(err)
+		}
+		transcode := videoTranscodeResult{
+			DurationSeconds:  req.DurationSeconds,
+			ThumbnailURL:     req.ThumbnailURL,
+			MasterURL:        req.MasterURL,
+			OutputStorageKey: req.OutputStorageKey,
+			Renditions:       req.Renditions,
+		}
+		if strings.TrimSpace(transcode.MasterURL) == "" {
+			return model.CommunityVideoJobItem{}, ErrInvalidInput
+		}
+		if err := v.completeTranscodeJob(ctx, *job, *submission, *asset, transcode, payload.Request, payload.ReviewerID); err != nil {
+			return model.CommunityVideoJobItem{}, err
+		}
+		updated, err := v.app.repo.FindCommunityVideoJob(ctx, job.ID)
+		if err != nil {
+			return model.CommunityVideoJobItem{}, mapStorageError(err)
+		}
+		updated.CallbackReceivedAt = &now
+		if strings.TrimSpace(req.ProviderJobID) != "" {
+			updated.ProviderJobID = strings.TrimSpace(req.ProviderJobID)
+		}
+		updated.UpdatedAt = now
+		if err := v.app.repo.UpdateCommunityVideoJob(ctx, *updated); err != nil {
+			return model.CommunityVideoJobItem{}, mapStorageError(err)
+		}
+		return v.decorateJob(ctx, *updated)
+	case model.CommunityVideoJobStatusFailed, model.CommunityVideoJobStatusCanceled:
+		job.Status = strings.ToLower(strings.TrimSpace(req.Status))
+		job.Progress = 100
+		job.ErrorMessage = trimRunes(req.ErrorMessage, 1200)
+		job.FailureCode = trimRunes(req.FailureCode, 96)
+		job.LockedBy = ""
+		job.LockedAt = nil
+		job.HeartbeatAt = nil
+		job.FinishedAt = &now
+		job.UpdatedAt = now
+		if err := v.app.repo.UpdateCommunityVideoJob(ctx, *job); err != nil {
+			return model.CommunityVideoJobItem{}, mapStorageError(err)
+		}
+		return v.decorateJob(ctx, *job)
+	default:
+		return model.CommunityVideoJobItem{}, ErrInvalidInput
+	}
+}
+
 func (v *configuredVideoService) GetAsset(_ context.Context, assetPath string) (VideoAsset, error) {
 	if v.app == nil || v.app.cfg.Storage == nil {
 		return VideoAsset{}, ErrStorageUnavailable
@@ -489,22 +842,33 @@ func (v *configuredVideoService) decorateJob(ctx context.Context, job model.Comm
 		return model.CommunityVideoJobItem{}, mapStorageError(err)
 	}
 	return model.CommunityVideoJobItem{
-		ID:               job.ID,
-		SubmissionID:     job.SubmissionID,
-		MediaAssetID:     job.MediaAssetID,
-		VideoID:          job.VideoID,
-		Provider:         job.Provider,
-		Status:           job.Status,
-		Progress:         job.Progress,
-		InputStorageKey:  job.InputStorageKey,
-		OutputStorageKey: job.OutputStorageKey,
-		OutputPublicURL:  job.OutputPublicURL,
-		ErrorMessage:     job.ErrorMessage,
-		Renditions:       renditions,
-		StartedAt:        job.StartedAt,
-		FinishedAt:       job.FinishedAt,
-		CreatedAt:        job.CreatedAt,
-		UpdatedAt:        job.UpdatedAt,
+		ID:                 job.ID,
+		SubmissionID:       job.SubmissionID,
+		MediaAssetID:       job.MediaAssetID,
+		VideoID:            job.VideoID,
+		Provider:           job.Provider,
+		Status:             job.Status,
+		Progress:           job.Progress,
+		Attempt:            job.Attempt,
+		MaxAttempts:        job.MaxAttempts,
+		LockedBy:           job.LockedBy,
+		LockedAt:           job.LockedAt,
+		HeartbeatAt:        job.HeartbeatAt,
+		NextRunAt:          job.NextRunAt,
+		InputStorageKey:    job.InputStorageKey,
+		OutputStorageKey:   job.OutputStorageKey,
+		OutputPublicURL:    job.OutputPublicURL,
+		RequestPayload:     job.RequestPayload,
+		ProviderJobID:      job.ProviderJobID,
+		CallbackReceivedAt: job.CallbackReceivedAt,
+		FailureCode:        job.FailureCode,
+		CancelRequestedAt:  job.CancelRequestedAt,
+		ErrorMessage:       job.ErrorMessage,
+		Renditions:         renditions,
+		StartedAt:          job.StartedAt,
+		FinishedAt:         job.FinishedAt,
+		CreatedAt:          job.CreatedAt,
+		UpdatedAt:          job.UpdatedAt,
 	}, nil
 }
 
@@ -616,17 +980,24 @@ func (p localVideoProvider) localReadablePath(storageKey string) (string, func()
 	if err != nil {
 		return "", nil, err
 	}
-	cleanup := func() { _ = os.Remove(tmp.Name()) }
+	cleanup := func() { cleanupTempVideoSource(tmp.Name()) }
 	if _, err := tmp.Write(data); err != nil {
-		_ = tmp.Close()
+		closeErr := tmp.Close()
 		cleanup()
-		return "", nil, err
+		return "", nil, errors.Join(err, closeErr)
 	}
 	if err := tmp.Close(); err != nil {
 		cleanup()
 		return "", nil, err
 	}
 	return tmp.Name(), cleanup, nil
+}
+
+func cleanupTempVideoSource(name string) {
+	if err := os.Remove(name); err != nil && !errors.Is(err, os.ErrNotExist) {
+		// Temporary source files are best-effort cleanup for transcoding cache misses.
+		return
+	}
 }
 
 func (p localVideoProvider) localPath(storageKey string) string {
@@ -777,6 +1148,86 @@ func publicURL(base string, subpath string) string {
 	return base + "/" + subpath
 }
 
+func decodeStoredVideoJobRequest(raw string) (storedVideoJobRequest, error) {
+	var payload storedVideoJobRequest
+	if strings.TrimSpace(raw) == "" {
+		return payload, nil
+	}
+	if err := json.Unmarshal([]byte(raw), &payload); err != nil {
+		var req model.CreateCommunityVideoJobRequest
+		if legacyErr := json.Unmarshal([]byte(raw), &req); legacyErr != nil {
+			return payload, err
+		}
+		payload.Request = req
+	}
+	return payload, nil
+}
+
+func firstTimePtr(value *time.Time, fallback time.Time) *time.Time {
+	if value != nil {
+		return value
+	}
+	return &fallback
+}
+
+func clampProgress(value int, minimum int, maximum int) int {
+	if value < minimum {
+		return minimum
+	}
+	if value > maximum {
+		return maximum
+	}
+	return value
+}
+
+func signVideoWebhook(timestamp string, body []byte, secret string) string {
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write([]byte(strings.TrimSpace(timestamp)))
+	mac.Write([]byte("."))
+	mac.Write(body)
+	return "sha256=" + hex.EncodeToString(mac.Sum(nil))
+}
+
+func (v *configuredVideoService) verifyCallbackSignature(input VideoJobCallbackInput) error {
+	secret := strings.TrimSpace(v.cfg.Cloud.CallbackSecret)
+	if secret == "" {
+		return ErrStorageUnavailable
+	}
+	timestamp := strings.TrimSpace(input.Timestamp)
+	signature := strings.TrimSpace(input.Signature)
+	if timestamp == "" || signature == "" || len(input.Body) == 0 {
+		return ErrForbidden
+	}
+	unixSeconds, err := strconv.ParseInt(timestamp, 10, 64)
+	if err != nil {
+		return ErrForbidden
+	}
+	sentAt := time.Unix(unixSeconds, 0)
+	now := v.app.now()
+	maxSkew := v.cfg.Worker.CallbackMaxSkew
+	if maxSkew <= 0 {
+		maxSkew = 10 * time.Minute
+	}
+	if sentAt.Before(now.Add(-maxSkew)) || sentAt.After(now.Add(maxSkew)) {
+		return ErrForbidden
+	}
+	expected := signVideoWebhook(timestamp, input.Body, secret)
+	signature = strings.TrimPrefix(signature, "sha256=")
+	expected = strings.TrimPrefix(expected, "sha256=")
+	expectedBytes, err := hex.DecodeString(expected)
+	if err != nil {
+		return ErrForbidden
+	}
+	actualBytes, err := hex.DecodeString(signature)
+	if err != nil {
+		return ErrForbidden
+	}
+	if !hmac.Equal(expectedBytes, actualBytes) {
+		return ErrForbidden
+	}
+	return nil
+}
+
 func communityVideoAssetMIME(key string) string {
 	switch strings.ToLower(path.Ext(key)) {
 	case ".m3u8":
@@ -879,6 +1330,27 @@ func (s *service) RetryCommunityVideoJob(ctx context.Context, principal authtype
 		return model.CommunityVideoJobItem{}, ErrStorageUnavailable
 	}
 	return s.video.RetryJob(ctx, principal, jobID)
+}
+
+func (s *service) ClaimCommunityVideoJobs(ctx context.Context, input VideoJobClaimInput) ([]string, error) {
+	if s.video == nil {
+		return nil, ErrStorageUnavailable
+	}
+	return s.video.ClaimJobs(ctx, input)
+}
+
+func (s *service) ProcessCommunityVideoJob(ctx context.Context, input VideoJobProcessInput) error {
+	if s.video == nil {
+		return ErrStorageUnavailable
+	}
+	return s.video.ProcessJob(ctx, input)
+}
+
+func (s *service) HandleCommunityVideoJobCallback(ctx context.Context, jobID string, input VideoJobCallbackInput) (model.CommunityVideoJobItem, error) {
+	if s.video == nil {
+		return model.CommunityVideoJobItem{}, ErrStorageUnavailable
+	}
+	return s.video.HandleCallback(ctx, jobID, input)
 }
 
 func (s *service) GetCommunityVideoAsset(ctx context.Context, assetPath string) (VideoAsset, error) {

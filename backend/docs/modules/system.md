@@ -9,7 +9,7 @@
 | 菜单目录 | `GET /api/v1/system/menus` 返回当前后台菜单目录 |
 | API 目录 | 从当前进程已注册路由生成 API catalog，并可同步到数据库 |
 | 权限同步 | 将带权限的 API 目录同步到 IAM 权限目录 |
-| 字典管理 | 维护 `system_dictionaries` 和 `system_dictionary_items` |
+| 字典管理 | 维护 `system_dictionaries` 和 `system_dictionary_items`；社区视频分类使用内置字典 code `community.video.category`，具体 item 由后台管理 |
 | 参数管理 | 维护 `system_parameters` |
 | 系统配置 | 读取脱敏配置快照，受控更新运行时配置并可持久化到 YAML |
 | 操作记录 | 记录受保护后台 API 请求 |
@@ -47,7 +47,7 @@
 
 `GET /api/v1/system/menus` 只要求认证，但 handler 会按当前 `Principal`、菜单项 `permission` 和 `scope` 调用 IAM authorizer 过滤菜单项。前端只能展示该接口返回的菜单；接口未返回可用菜单时只能使用最小 dashboard 导航，不能回退到完整静态菜单。默认菜单的日志分组包含 `/notification-outbox`，该入口由 IAM 模块提供真实 API，菜单可见性依赖平台级 `notification:read` 权限，手动重试按钮另需 `notification:retry`。
 
-React 后台页面的系统写操作必须继续以 route contract 权限为准做体验层控制：例如运行时配置保存需要 `config:update`，API 清单同步和权限目录同步都需要 `permission:sync`，参数创建、编辑和删除分别需要 `parameter:create`、`parameter:update` 和 `parameter:delete`，字典创建、更新和删除分别需要 `dictionary:create`、`dictionary:update` 和 `dictionary:delete`，操作记录删除需要 `operation:delete`，版本发布包创建、导入、删除和下载分别需要 `version:create`、`version:import`、`version:delete` 和 `version:download`。媒体库分类创建、编辑和删除以及资源重命名需要 `media:update`，普通上传和断点续传检查、分片、完成、终止需要 `media:upload`，URL 导入需要 `media:import`，资源删除需要 `media:delete`，认证下载需要 `media:download`。流量劫持目标创建、编辑、立即探测和事件恢复需要 `traffic_hijack:update`，删除目标需要 `traffic_hijack:delete`。页面可使用 `/api/v1/me/session` 返回的 `permissions` 快照禁用按钮或选择框，但后端 handler、middleware 和 service 鉴权仍是唯一生产权限边界。
+React 后台页面的系统写操作必须继续以 route contract 权限为准做体验层控制：例如运行时配置保存需要 `config:update`，API 清单同步和权限目录同步都需要 `permission:sync`，参数创建、编辑和删除分别需要 `parameter:create`、`parameter:update` 和 `parameter:delete`，字典创建、更新和删除分别需要 `dictionary:create`、`dictionary:update` 和 `dictionary:delete`，社区分类页面复用这些字典权限管理 `community.video.category` item，操作记录删除需要 `operation:delete`，版本发布包创建、导入、删除和下载分别需要 `version:create`、`version:import`、`version:delete` 和 `version:download`。媒体库分类创建、编辑和删除以及资源重命名需要 `media:update`，普通上传和断点续传检查、分片、完成、终止需要 `media:upload`，URL 导入需要 `media:import`，资源删除需要 `media:delete`，认证下载需要 `media:download`。流量劫持目标创建、编辑、立即探测和事件恢复需要 `traffic_hijack:update`，删除目标需要 `traffic_hijack:delete`。页面可使用 `/api/v1/me/session` 返回的 `permissions` 快照禁用按钮或选择框，但后端 handler、middleware 和 service 鉴权仍是唯一生产权限边界。
 
 ## 版本发布包
 
@@ -125,7 +125,7 @@ system:
 
 `seed_defaults_on_start=true` 时，System 模块会在启动或初始化流程中幂等补齐平台运行所需默认数据：
 
-- 字典：`system.status`、`http.method`、`operation.result`。
+- 字典：`system.status`、`http.method`、`operation.result`、`community.video.category`。`community.video.category` 只内置字典 code，不内置具体分类 item；分类 item 由后台“社区分类”或系统字典管理维护。
 - 参数：`admin.title`、`admin.home_path`。
 
 这些数据不是业务演示数据，也不包含默认管理员账号。已有参数被后台修改后，seed 不会覆盖用户值。需要本地演示流程时，按 [本地演示环境与示例数据](../onboarding/demo-environment.md) 创建临时管理员和本地数据。

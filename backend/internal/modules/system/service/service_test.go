@@ -1316,7 +1316,7 @@ func TestSeedDefaultsCreatesSystemDataIdempotently(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SeedDefaults() error = %v", err)
 	}
-	if result.StorageStatus != "persisted" || result.DictionariesCreated != 3 || result.DictionaryItemsCreated != 9 || result.ParametersCreated != 2 {
+	if result.StorageStatus != "persisted" || result.DictionariesCreated != 4 || result.DictionaryItemsCreated != 9 || result.ParametersCreated != 2 {
 		t.Fatalf("unexpected seed result: %#v", result)
 	}
 
@@ -1324,7 +1324,10 @@ func TestSeedDefaultsCreatesSystemDataIdempotently(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListDictionaries() error = %v", err)
 	}
-	if catalog.Total != 3 || !dictionaryItemExists(catalog, "system.status", model.DictionaryStatusActive) || !dictionaryItemExists(catalog, "http.method", "DELETE") {
+	if catalog.Total != 4 ||
+		!dictionaryItemExists(catalog, "system.status", model.DictionaryStatusActive) ||
+		!dictionaryItemExists(catalog, "http.method", "DELETE") ||
+		!dictionaryExists(catalog, "community.video.category", 0) {
 		t.Fatalf("expected seeded dictionaries and items, got %#v", catalog)
 	}
 	title, err := svc.FindParameterByKey(context.Background(), "admin.title")
@@ -2394,6 +2397,15 @@ func dictionaryItemExists(catalog model.DictionaryCatalog, code string, value st
 			if item.Value == value {
 				return true
 			}
+		}
+	}
+	return false
+}
+
+func dictionaryExists(catalog model.DictionaryCatalog, code string, itemCount int) bool {
+	for _, dictionary := range catalog.Items {
+		if dictionary.Code == code && len(dictionary.Items) == itemCount {
+			return true
 		}
 	}
 	return false

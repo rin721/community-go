@@ -12,8 +12,15 @@ import (
 	authtypes "github.com/open-console/console-platform/types/auth"
 )
 
+func newTestService(repo *fakeRepository, cfg Config) Service {
+	if cfg.CategoryProvider == nil {
+		cfg.CategoryProvider = repo
+	}
+	return New(repo, cfg)
+}
+
 func TestServiceHomePayloadBuildsCategoryTreeAndVideos(t *testing.T) {
-	svc := New(newFakeRepository(), Config{Now: fixedNow})
+	svc := newTestService(newFakeRepository(), Config{Now: fixedNow})
 
 	payload, err := svc.GetHomePayload(context.Background())
 	if err != nil {
@@ -22,14 +29,14 @@ func TestServiceHomePayloadBuildsCategoryTreeAndVideos(t *testing.T) {
 	if payload.Announcement != nil {
 		t.Fatalf("expected no announcement without provider, got %#v", payload.Announcement)
 	}
-	if len(payload.Categories) != 2 {
-		t.Fatalf("expected two root categories, got %#v", payload.Categories)
+	if len(payload.Categories) != 1 {
+		t.Fatalf("expected one root category, got %#v", payload.Categories)
 	}
-	if payload.Categories[1].Slug != "creative" || len(payload.Categories[1].Children) != 1 {
-		t.Fatalf("expected creative root with design child, got %#v", payload.Categories[1])
+	if payload.Categories[0].Slug != "unit-root" || len(payload.Categories[0].Children) != 1 {
+		t.Fatalf("expected unit root with one child, got %#v", payload.Categories[0])
 	}
-	if len(payload.Categories[1].Children[0].Children) != 1 || payload.Categories[1].Children[0].Children[0].Slug != "motion" {
-		t.Fatalf("expected design child to keep motion grandchild, got %#v", payload.Categories[1].Children[0])
+	if len(payload.Categories[0].Children[0].Children) != 1 || payload.Categories[0].Children[0].Children[0].Slug != "unit-leaf" {
+		t.Fatalf("expected unit child to keep unit leaf, got %#v", payload.Categories[0].Children[0])
 	}
 	if len(payload.Latest.Items) != 2 {
 		t.Fatalf("expected latest videos, got %#v", payload.Latest.Items)
@@ -40,8 +47,8 @@ func TestServiceHomePayloadBuildsCategoryTreeAndVideos(t *testing.T) {
 	if got := payload.Latest.Items[0].Uploader.Handle; got != "rin721" {
 		t.Fatalf("expected decorated uploader handle rin721, got %q", got)
 	}
-	if got := payload.Latest.Items[0].Categories[0].Slug; got != "design" {
-		t.Fatalf("expected decorated category design, got %q", got)
+	if got := payload.Latest.Items[0].Categories[0].Slug; got != "unit-child" {
+		t.Fatalf("expected decorated unit category, got %q", got)
 	}
 }
 
@@ -54,7 +61,7 @@ func TestServiceHomePayloadUsesAnnouncementProvider(t *testing.T) {
 		StartsAt: fixedNow(),
 	}
 	provider := &fakeHomeAnnouncementProvider{announcement: announcement}
-	svc := New(newFakeRepository(), Config{HomeAnnouncementProvider: provider, Now: fixedNow})
+	svc := newTestService(newFakeRepository(), Config{HomeAnnouncementProvider: provider, Now: fixedNow})
 
 	payload, err := svc.GetHomePayload(context.Background())
 	if err != nil {
@@ -70,7 +77,7 @@ func TestServiceHomePayloadUsesAnnouncementProvider(t *testing.T) {
 
 func TestServiceHomePayloadReturnsAnnouncementProviderError(t *testing.T) {
 	wantErr := errors.New("announcement provider failed")
-	svc := New(newFakeRepository(), Config{
+	svc := newTestService(newFakeRepository(), Config{
 		HomeAnnouncementProvider: &fakeHomeAnnouncementProvider{err: wantErr},
 		Now:                      fixedNow,
 	})
@@ -84,7 +91,7 @@ func TestServiceHomePayloadReturnsAnnouncementProviderError(t *testing.T) {
 func TestServiceCommunitySignupUsesCommunityAccountSession(t *testing.T) {
 	repo := newFakeRepository()
 	nextIDs := []int64{101, 201}
-	svc := New(repo, Config{
+	svc := newTestService(repo, Config{
 		Now:       fixedNow,
 		Passwords: fakePasswordCrypto{},
 		NewIntID: func() int64 {
@@ -125,7 +132,7 @@ func TestServiceCommunitySignupUsesCommunityAccountSession(t *testing.T) {
 }
 
 func TestServiceVideoDetailDecoratesSourcesTagsAndRelated(t *testing.T) {
-	svc := New(newFakeRepository(), Config{Now: fixedNow})
+	svc := newTestService(newFakeRepository(), Config{Now: fixedNow})
 
 	detail, err := svc.GetVideoDetail(context.Background(), "aoi-alpha")
 	if err != nil {
@@ -148,7 +155,7 @@ func TestServiceVideoDetailDecoratesSourcesTagsAndRelated(t *testing.T) {
 func TestServiceListVideosUsesPersistedCategoryLinksOnly(t *testing.T) {
 	repo := newFakeRepository()
 	repo.categorySlugs["video-aoi-alpha"] = nil
-	svc := New(repo, Config{Now: fixedNow})
+	svc := newTestService(repo, Config{Now: fixedNow})
 
 	payload, err := svc.ListVideos(context.Background(), model.VideoFilter{Limit: 10})
 	if err != nil {
@@ -169,7 +176,7 @@ func TestServiceListVideosUsesPersistedCategoryLinksOnly(t *testing.T) {
 func TestServiceListVideosReturnsDataInconsistentForMissingUploader(t *testing.T) {
 	repo := newFakeRepository()
 	repo.creators = repo.creators[1:]
-	svc := New(repo, Config{Now: fixedNow})
+	svc := newTestService(repo, Config{Now: fixedNow})
 
 	_, err := svc.ListVideos(context.Background(), model.VideoFilter{Limit: 10})
 	if !errors.Is(err, ErrDataInconsistent) {
@@ -178,20 +185,20 @@ func TestServiceListVideosReturnsDataInconsistentForMissingUploader(t *testing.T
 }
 
 func TestServiceSearchAggregatesVideosCreatorsAndCategories(t *testing.T) {
-	svc := New(newFakeRepository(), Config{Now: fixedNow})
+	svc := newTestService(newFakeRepository(), Config{Now: fixedNow})
 
-	payload, err := svc.Search(context.Background(), "设计", 10)
+	payload, err := svc.Search(context.Background(), "子类", 10)
 	if err != nil {
 		t.Fatalf("Search() error = %v", err)
 	}
-	if payload.Query != "设计" {
+	if payload.Query != "子类" {
 		t.Fatalf("expected original query, got %q", payload.Query)
 	}
 	if len(payload.Videos.Items) == 0 {
 		t.Fatalf("expected matching videos, got %#v", payload)
 	}
-	if len(payload.Categories.Items) != 1 || payload.Categories.Items[0].Slug != "design" {
-		t.Fatalf("expected design category match, got %#v", payload.Categories.Items)
+	if len(payload.Categories.Items) != 1 || payload.Categories.Items[0].Slug != "unit-child" {
+		t.Fatalf("expected unit category match, got %#v", payload.Categories.Items)
 	}
 	if payload.TotalCount != len(payload.Videos.Items)+len(payload.Categories.Items)+len(payload.Creators.Items) {
 		t.Fatalf("unexpected total count in %#v", payload)
@@ -200,7 +207,7 @@ func TestServiceSearchAggregatesVideosCreatorsAndCategories(t *testing.T) {
 
 func TestServiceVideoCommentsCreatesAndListsPersistedComments(t *testing.T) {
 	repo := newFakeRepository()
-	svc := New(repo, Config{
+	svc := newTestService(repo, Config{
 		NewID: func() string { return "unit-comment" },
 		Now:   fixedNow,
 	})
@@ -242,7 +249,7 @@ func TestServiceVideoCommentOwnerCanUpdateAndDelete(t *testing.T) {
 	repo := newFakeRepository()
 	ids := []string{"unit-comment", "unit-comment-notification"}
 	nextID := 0
-	svc := New(repo, Config{
+	svc := newTestService(repo, Config{
 		NewID: func() string {
 			id := ids[nextID]
 			nextID++
@@ -296,7 +303,7 @@ func TestServiceVideoCommentOwnerCanUpdateAndDelete(t *testing.T) {
 }
 
 func TestServiceCreateVideoCommentRejectsEmptyInput(t *testing.T) {
-	svc := New(newFakeRepository(), Config{Now: fixedNow})
+	svc := newTestService(newFakeRepository(), Config{Now: fixedNow})
 
 	if _, err := svc.CreateVideoComment(context.Background(), "aoi-alpha", model.CreateVideoCommentRequest{AuthorName: "Aoi Viewer"}); err != ErrInvalidInput {
 		t.Fatalf("expected ErrInvalidInput, got %v", err)
@@ -305,7 +312,7 @@ func TestServiceCreateVideoCommentRejectsEmptyInput(t *testing.T) {
 
 func TestServiceCreateVideoDanmakuPersistsAndNormalizesInput(t *testing.T) {
 	repo := newFakeRepository()
-	svc := New(repo, Config{
+	svc := newTestService(repo, Config{
 		NewID: func() string { return "unit-danmaku" },
 		Now:   fixedNow,
 	})
@@ -343,7 +350,7 @@ func TestServiceCreateVideoDanmakuPersistsAndNormalizesInput(t *testing.T) {
 }
 
 func TestServiceCreateVideoDanmakuRejectsEmptyInput(t *testing.T) {
-	svc := New(newFakeRepository(), Config{Now: fixedNow})
+	svc := newTestService(newFakeRepository(), Config{Now: fixedNow})
 
 	if _, err := svc.CreateVideoDanmaku(context.Background(), "aoi-alpha", model.CreateVideoDanmakuRequest{AuthorName: "Aoi Viewer"}); err != ErrInvalidInput {
 		t.Fatalf("expected ErrInvalidInput, got %v", err)
@@ -352,7 +359,7 @@ func TestServiceCreateVideoDanmakuRejectsEmptyInput(t *testing.T) {
 
 func TestServiceCreatorFollowStatePersistsAndUpdatesFeed(t *testing.T) {
 	repo := newFakeRepository()
-	svc := New(repo, Config{Now: fixedNow})
+	svc := newTestService(repo, Config{Now: fixedNow})
 	req := model.CreatorFollowRequest{ClientID: "browser-client-1"}
 
 	state, err := svc.FollowCreator(context.Background(), "rin721", req)
@@ -387,7 +394,7 @@ func TestServiceCreatorFollowStatePersistsAndUpdatesFeed(t *testing.T) {
 }
 
 func TestServiceCreatorFollowRejectsMissingClientID(t *testing.T) {
-	svc := New(newFakeRepository(), Config{Now: fixedNow})
+	svc := newTestService(newFakeRepository(), Config{Now: fixedNow})
 
 	if _, err := svc.FollowCreator(context.Background(), "rin721", model.CreatorFollowRequest{}); err != ErrInvalidInput {
 		t.Fatalf("expected ErrInvalidInput, got %v", err)
@@ -396,7 +403,7 @@ func TestServiceCreatorFollowRejectsMissingClientID(t *testing.T) {
 
 func TestServiceAccountCreatorFollowUsesPrincipalIdentity(t *testing.T) {
 	repo := newFakeRepository()
-	svc := New(repo, Config{Now: fixedNow})
+	svc := newTestService(repo, Config{Now: fixedNow})
 	principal := authtypes.Principal{
 		UserID:   42,
 		Username: "Rin Creator",
@@ -441,7 +448,7 @@ func TestServiceAccountCreatorFollowUsesPrincipalIdentity(t *testing.T) {
 
 func TestServiceCommunityDynamicsListsAndCreatesTimelineItems(t *testing.T) {
 	repo := newFakeRepository()
-	svc := New(repo, Config{
+	svc := newTestService(repo, Config{
 		NewID: func() string { return "unit-dynamic" },
 		Now:   fixedNow,
 	})
@@ -485,7 +492,7 @@ func TestServiceCommunityDynamicsListsAndCreatesTimelineItems(t *testing.T) {
 
 func TestServiceCreateCommunityAccountDynamicUsesPrincipalIdentity(t *testing.T) {
 	repo := newFakeRepository()
-	svc := New(repo, Config{
+	svc := newTestService(repo, Config{
 		NewID: func() string { return "account-dynamic" },
 		Now:   fixedNow,
 	})
@@ -511,7 +518,7 @@ func TestServiceCreateCommunityAccountDynamicUsesPrincipalIdentity(t *testing.T)
 
 func TestServiceCommunityDynamicOwnerCanUpdateAndDelete(t *testing.T) {
 	repo := newFakeRepository()
-	svc := New(repo, Config{
+	svc := newTestService(repo, Config{
 		NewID: func() string { return "owned-dynamic" },
 		Now:   fixedNow,
 	})
@@ -563,7 +570,7 @@ func TestServiceCommunityDynamicOwnerCanUpdateAndDelete(t *testing.T) {
 }
 
 func TestServiceCommunityDynamicRejectsInvalidInput(t *testing.T) {
-	svc := New(newFakeRepository(), Config{Now: fixedNow})
+	svc := newTestService(newFakeRepository(), Config{Now: fixedNow})
 
 	if _, err := svc.CreateCommunityDynamic(context.Background(), model.CreateCommunityDynamicRequest{AuthorName: "Aoi Viewer"}); err != ErrInvalidInput {
 		t.Fatalf("expected ErrInvalidInput, got %v", err)
@@ -577,7 +584,7 @@ func TestServiceCreateCommunitySubmissionPersistsPendingReviewMetadata(t *testin
 	repo := newFakeRepository()
 	ids := []string{"unit-submission", "unit-submission-notification"}
 	nextID := 0
-	svc := New(repo, Config{
+	svc := newTestService(repo, Config{
 		NewID: func() string {
 			id := ids[nextID]
 			nextID++
@@ -589,13 +596,13 @@ func TestServiceCreateCommunitySubmissionPersistsPendingReviewMetadata(t *testin
 	item, err := svc.CreateCommunitySubmission(context.Background(), model.CreateCommunitySubmissionRequest{
 		AllowComments: true,
 		AuthorName:    "  Aoi Creator  ",
-		CategorySlug:  "design",
+		CategorySlug:  "unit-child",
 		ClientID:      " browser-client-1 ",
 		Description:   "  Metadata only submission  ",
 		SourceName:    "  alpha-preview.mp4  ",
 		SourceSize:    1024 * 1024,
 		SourceType:    "video/mp4",
-		Tags:          []string{" Aoi ", "#Design", "aoi"},
+		Tags:          []string{" Aoi ", "#Topic", "aoi"},
 		Title:         "  Alpha preview upload  ",
 		Visibility:    model.CommunitySubmissionVisibilityUnlisted,
 	})
@@ -608,10 +615,10 @@ func TestServiceCreateCommunitySubmissionPersistsPendingReviewMetadata(t *testin
 	if item.ClientID != "browser-client-1" || item.AuthorName != "Aoi Creator" || item.Title != "Alpha preview upload" {
 		t.Fatalf("expected normalized submitter and title, got %#v", item)
 	}
-	if item.Category == nil || item.Category.Slug != "design" || item.CategorySlug != "design" {
+	if item.Category == nil || item.Category.Slug != "unit-child" || item.CategorySlug != "unit-child" {
 		t.Fatalf("expected decorated category, got %#v", item)
 	}
-	if len(item.Tags) != 2 || item.Tags[0] != "Aoi" || item.Tags[1] != "Design" {
+	if len(item.Tags) != 2 || item.Tags[0] != "Aoi" || item.Tags[1] != "Topic" {
 		t.Fatalf("expected normalized unique tags, got %#v", item.Tags)
 	}
 	if item.SourceName != "alpha-preview.mp4" || item.SourceSize != 1024*1024 || item.SourceType != "video/mp4" {
@@ -635,13 +642,13 @@ func TestServiceCreateCommunitySubmissionPersistsPendingReviewMetadata(t *testin
 
 func TestServiceReviewCommunitySubmissionTransitionsAndNotifies(t *testing.T) {
 	repo := newFakeRepository()
-	svc := New(repo, Config{Now: fixedNow})
+	svc := newTestService(repo, Config{Now: fixedNow})
 	principal := authtypes.Principal{UserID: 7, Username: "reviewer"}
 
 	item, err := svc.CreateCommunitySubmission(context.Background(), model.CreateCommunitySubmissionRequest{
 		AllowComments: true,
 		AuthorName:    "Aoi Creator",
-		CategorySlug:  "design",
+		CategorySlug:  "unit-child",
 		ClientID:      "browser-client-1",
 		SourceName:    "alpha-preview.mp4",
 		SourceSize:    1024,
@@ -691,13 +698,13 @@ func TestServiceReviewCommunitySubmissionTransitionsAndNotifies(t *testing.T) {
 
 func TestServiceReviewCommunitySubmissionCanGenerateVideoRecord(t *testing.T) {
 	repo := newFakeRepository()
-	svc := New(repo, Config{Now: fixedNow})
+	svc := newTestService(repo, Config{Now: fixedNow})
 	principal := authtypes.Principal{UserID: 7, Username: "reviewer"}
 
 	item, err := svc.CreateCommunitySubmission(context.Background(), model.CreateCommunitySubmissionRequest{
 		AllowComments: true,
 		AuthorName:    "Aoi Creator",
-		CategorySlug:  "design",
+		CategorySlug:  "unit-child",
 		ClientID:      "browser-client-1",
 		Description:   "A generated video from review.",
 		SourceName:    "alpha-generated.mp4",
@@ -736,7 +743,7 @@ func TestServiceReviewCommunitySubmissionCanGenerateVideoRecord(t *testing.T) {
 	if detail.Title != "Generated review video" || detail.SourceURL != "https://example.invalid/generated.mp4" || detail.DurationSeconds != 128 {
 		t.Fatalf("expected generated video to use submission metadata and source URL, got %#v", detail)
 	}
-	if detail.Uploader.DisplayName != "Aoi Creator" || len(detail.Categories) != 1 || detail.Categories[0].Slug != "design" {
+	if detail.Uploader.DisplayName != "Aoi Creator" || len(detail.Categories) != 1 || detail.Categories[0].Slug != "unit-child" {
 		t.Fatalf("expected generated creator and category decoration, got %#v", detail)
 	}
 	creator, err := repo.FindCreatorByHandle(context.Background(), detail.Uploader.Handle)
@@ -761,13 +768,13 @@ func TestServiceReviewCommunitySubmissionCanGenerateVideoFromMediaAsset(t *testi
 		MIMEType:     "video/mp4",
 		SizeBytes:    4096,
 	}
-	svc := New(repo, Config{Now: fixedNow})
+	svc := newTestService(repo, Config{Now: fixedNow})
 	principal := authtypes.Principal{UserID: 7, Username: "reviewer"}
 
 	item, err := svc.CreateCommunitySubmission(context.Background(), model.CreateCommunitySubmissionRequest{
 		AllowComments: true,
 		AuthorName:    "Aoi Creator",
-		CategorySlug:  "design",
+		CategorySlug:  "unit-child",
 		ClientID:      "browser-client-1",
 		Description:   "A generated video from a controlled media asset.",
 		SourceName:    "review-source.mp4",
@@ -813,13 +820,13 @@ func TestServiceReviewCommunitySubmissionCanGenerateVideoFromMediaAsset(t *testi
 
 func TestServiceReviewCommunitySubmissionRejectsInvalidTransitions(t *testing.T) {
 	repo := newFakeRepository()
-	svc := New(repo, Config{Now: fixedNow})
+	svc := newTestService(repo, Config{Now: fixedNow})
 	principal := authtypes.Principal{UserID: 7}
 
 	item, err := svc.CreateCommunitySubmission(context.Background(), model.CreateCommunitySubmissionRequest{
 		AllowComments: true,
 		AuthorName:    "Aoi Creator",
-		CategorySlug:  "design",
+		CategorySlug:  "unit-child",
 		ClientID:      "browser-client-1",
 		SourceName:    "alpha-preview.mp4",
 		SourceSize:    1024,
@@ -841,12 +848,12 @@ func TestServiceReviewCommunitySubmissionRejectsInvalidTransitions(t *testing.T)
 }
 
 func TestServiceCommunitySubmissionRejectsInvalidInput(t *testing.T) {
-	svc := New(newFakeRepository(), Config{Now: fixedNow})
+	svc := newTestService(newFakeRepository(), Config{Now: fixedNow})
 
 	valid := model.CreateCommunitySubmissionRequest{
 		AllowComments: true,
 		AuthorName:    "Aoi Creator",
-		CategorySlug:  "design",
+		CategorySlug:  "unit-child",
 		ClientID:      "browser-client-1",
 		SourceName:    "alpha-preview.mp4",
 		SourceSize:    1024,
@@ -871,7 +878,7 @@ func TestServiceCommunitySubmissionRejectsInvalidInput(t *testing.T) {
 
 func TestServiceCommunityAccountSubmissionUsesPrincipalIdentity(t *testing.T) {
 	repo := newFakeRepository()
-	svc := New(repo, Config{
+	svc := newTestService(repo, Config{
 		NewID: func() string { return "account-submission" },
 		Now:   fixedNow,
 	})
@@ -883,7 +890,7 @@ func TestServiceCommunityAccountSubmissionUsesPrincipalIdentity(t *testing.T) {
 
 	item, err := svc.CreateCommunityAccountSubmission(context.Background(), principal, model.CreateCommunityAccountSubmissionRequest{
 		AllowComments: true,
-		CategorySlug:  "design",
+		CategorySlug:  "unit-child",
 		SourceName:    "account-preview.mp4",
 		SourceSize:    2048,
 		SourceType:    "video/mp4",
@@ -924,7 +931,7 @@ func TestServiceCommunityAccountSubmissionUsesPrincipalIdentity(t *testing.T) {
 
 func TestServiceVideoInteractionPersistsAndUpdatesLikeCount(t *testing.T) {
 	repo := newFakeRepository()
-	svc := New(repo, Config{Now: fixedNow})
+	svc := newTestService(repo, Config{Now: fixedNow})
 	req := model.VideoInteractionRequest{ClientID: "browser-client-1"}
 
 	state, err := svc.SetVideoInteraction(context.Background(), "aoi-alpha", model.VideoInteractionKindLike, req)
@@ -954,7 +961,7 @@ func TestServiceVideoInteractionPersistsAndUpdatesLikeCount(t *testing.T) {
 
 func TestServiceVideoLibraryCollectsFavoriteAndWatchLater(t *testing.T) {
 	repo := newFakeRepository()
-	svc := New(repo, Config{Now: fixedNow})
+	svc := newTestService(repo, Config{Now: fixedNow})
 	req := model.VideoInteractionRequest{ClientID: "browser-client-1"}
 
 	if _, err := svc.SetVideoInteraction(context.Background(), "aoi-alpha", model.VideoInteractionKindFavorite, req); err != nil {
@@ -982,7 +989,7 @@ func TestServiceVideoLibraryCollectsFavoriteAndWatchLater(t *testing.T) {
 func TestServiceVideoHistoryPersistsListsAndClearsProgress(t *testing.T) {
 	repo := newFakeRepository()
 	now := fixedNow()
-	svc := New(repo, Config{Now: func() time.Time { return now }})
+	svc := newTestService(repo, Config{Now: func() time.Time { return now }})
 	req := model.VideoHistoryRequest{ClientID: " browser-client-1 ", ProgressSeconds: 999}
 
 	item, err := svc.RecordVideoHistory(context.Background(), "aoi-alpha", req)
@@ -1024,7 +1031,7 @@ func TestServiceVideoHistoryPersistsListsAndClearsProgress(t *testing.T) {
 func TestServiceAccountVideoLibraryAndHistoryUsePrincipalIdentity(t *testing.T) {
 	repo := newFakeRepository()
 	now := fixedNow()
-	svc := New(repo, Config{Now: func() time.Time { return now }})
+	svc := newTestService(repo, Config{Now: func() time.Time { return now }})
 	principal := authtypes.Principal{
 		UserID:   42,
 		Username: "Rin Creator",
@@ -1085,7 +1092,7 @@ func TestServiceAccountVideoLibraryAndHistoryUsePrincipalIdentity(t *testing.T) 
 }
 
 func TestServiceVideoInteractionRejectsMissingClientID(t *testing.T) {
-	svc := New(newFakeRepository(), Config{Now: fixedNow})
+	svc := newTestService(newFakeRepository(), Config{Now: fixedNow})
 
 	if _, err := svc.SetVideoInteraction(context.Background(), "aoi-alpha", model.VideoInteractionKindFavorite, model.VideoInteractionRequest{}); err != ErrInvalidInput {
 		t.Fatalf("expected ErrInvalidInput, got %v", err)
@@ -1093,7 +1100,7 @@ func TestServiceVideoInteractionRejectsMissingClientID(t *testing.T) {
 }
 
 func TestServiceVideoHistoryRejectsMissingClientID(t *testing.T) {
-	svc := New(newFakeRepository(), Config{Now: fixedNow})
+	svc := newTestService(newFakeRepository(), Config{Now: fixedNow})
 
 	if _, err := svc.RecordVideoHistory(context.Background(), "aoi-alpha", model.VideoHistoryRequest{}); err != ErrInvalidInput {
 		t.Fatalf("expected ErrInvalidInput, got %v", err)
@@ -1102,7 +1109,7 @@ func TestServiceVideoHistoryRejectsMissingClientID(t *testing.T) {
 
 func TestServiceCreateVideoReportPersistsPendingReceipt(t *testing.T) {
 	repo := newFakeRepository()
-	svc := New(repo, Config{
+	svc := newTestService(repo, Config{
 		NewID: func() string { return "unit-report" },
 		Now:   fixedNow,
 	})
@@ -1127,7 +1134,7 @@ func TestServiceCreateVideoReportPersistsPendingReceipt(t *testing.T) {
 }
 
 func TestServiceCreateVideoReportRejectsInvalidInput(t *testing.T) {
-	svc := New(newFakeRepository(), Config{Now: fixedNow})
+	svc := newTestService(newFakeRepository(), Config{Now: fixedNow})
 
 	if _, err := svc.CreateVideoReport(context.Background(), "aoi-alpha", model.CreateVideoReportRequest{Reason: model.CommunityReportReasonSpam}); err != ErrInvalidInput {
 		t.Fatalf("expected ErrInvalidInput for missing client id, got %v", err)
@@ -1149,7 +1156,7 @@ func TestServiceCommunityNotificationsTrackAnonymousClientActions(t *testing.T) 
 		"unit-report-notification",
 	}
 	nextID := 0
-	svc := New(repo, Config{
+	svc := newTestService(repo, Config{
 		NewID: func() string {
 			id := ids[nextID]
 			nextID++
@@ -1270,27 +1277,26 @@ type fakeRepository struct {
 }
 
 func newFakeRepository() *fakeRepository {
-	description := "视觉与交互"
+	description := "测试分类说明"
 	bio := "关注设计和社区体验"
 	avatar := "https://example.invalid/avatar.png"
 	return &fakeRepository{
 		categories: []model.Category{
-			{ID: "cat-home", Slug: "home", Name: "首页", Order: 0},
-			{ID: "cat-creative", Slug: "creative", Name: "创作", Order: 10},
-			{ID: "cat-design", Slug: "design", Name: "设计", Description: &description, ParentSlug: strPtr("creative"), Order: 10},
-			{ID: "cat-motion", Slug: "motion", Name: "动效", ParentSlug: strPtr("design"), Order: 5},
+			{ID: "cat-unit-root", Slug: "unit-root", Name: "测试根类", Order: 10},
+			{ID: "cat-unit-child", Slug: "unit-child", Name: "测试子类", Description: &description, ParentSlug: strPtr("unit-root"), Order: 10},
+			{ID: "cat-unit-leaf", Slug: "unit-leaf", Name: "测试叶类", ParentSlug: strPtr("unit-child"), Order: 5},
 		},
 		creators: []model.Creator{
 			{UserSummary: model.UserSummary{ID: "user-rin", Handle: "rin721", DisplayName: "Rin721", AvatarURL: &avatar}, Bio: &bio, FollowerCount: 42, JoinedAt: fixedNow()},
 			{UserSummary: model.UserSummary{ID: "user-lab", Handle: "aoi-lab", DisplayName: "Aoi Lab"}, FollowerCount: 24, JoinedAt: fixedNow()},
 		},
 		videos: []model.Video{
-			{ID: "video-aoi-alpha", Slug: "aoi-alpha", Title: "Banyao Alpha 设计预览", Description: &description, ThumbnailURL: "gradient:aoi-alpha", DurationSeconds: 300, ViewCount: 1200, CommentCount: 12, LikeCount: 20, SourceURL: "https://example.invalid/a.mp4", PublishedAt: fixedNow(), UploaderID: "user-rin"},
+			{ID: "video-aoi-alpha", Slug: "aoi-alpha", Title: "Banyao Alpha 子类预览", Description: &description, ThumbnailURL: "gradient:aoi-alpha", DurationSeconds: 300, ViewCount: 1200, CommentCount: 12, LikeCount: 20, SourceURL: "https://example.invalid/a.mp4", PublishedAt: fixedNow(), UploaderID: "user-rin"},
 			{ID: "video-go-api", Slug: "go-api-ready", Title: "Community Notes", Description: strPtr("社区动线"), ThumbnailURL: "gradient:go-api", DurationSeconds: 240, ViewCount: 800, CommentCount: 8, LikeCount: 10, SourceURL: "https://example.invalid/b.mp4", PublishedAt: fixedNow().Add(-time.Hour), UploaderID: "user-lab"},
 		},
 		categorySlugs: map[string][]string{
-			"video-aoi-alpha": {"design"},
-			"video-go-api":    {"design"},
+			"video-aoi-alpha": {"unit-child"},
+			"video-go-api":    {"unit-child"},
 		},
 		comments: map[string][]model.VideoComment{
 			"video-aoi-alpha": {
@@ -1489,7 +1495,7 @@ func (r *fakeRepository) FindCommunityDynamic(_ context.Context, dynamicID strin
 	return nil, ErrNotFound
 }
 
-func (r *fakeRepository) ListCategories(context.Context) ([]model.Category, error) {
+func (r *fakeRepository) CommunityCategories(context.Context) ([]model.Category, error) {
 	return append([]model.Category(nil), r.categories...), nil
 }
 
@@ -1782,6 +1788,48 @@ func (r *fakeRepository) UpdateCommunityVideoJob(_ context.Context, job model.Co
 	return ErrNotFound
 }
 
+func (r *fakeRepository) ClaimCommunityVideoJobs(_ context.Context, workerID string, now time.Time, leaseTimeout time.Duration, limit int) ([]model.CommunityVideoJob, error) {
+	if limit <= 0 {
+		limit = 1
+	}
+	staleBefore := now.Add(-leaseTimeout)
+	claimed := []model.CommunityVideoJob{}
+	for index := range r.videoJobs {
+		job := &r.videoJobs[index]
+		if job.DeletedAt != nil {
+			continue
+		}
+		if job.Status == model.CommunityVideoJobStatusRunning && job.ProviderJobID == "" && (job.HeartbeatAt == nil || !job.HeartbeatAt.After(staleBefore)) && (job.MaxAttempts == 0 || job.Attempt < job.MaxAttempts) {
+			job.Status = model.CommunityVideoJobStatusQueued
+			job.Progress = 0
+			job.LockedBy = ""
+			job.LockedAt = nil
+			job.HeartbeatAt = nil
+			job.NextRunAt = &now
+			job.UpdatedAt = now
+		}
+		if job.Status != model.CommunityVideoJobStatusQueued || job.DeletedAt != nil {
+			continue
+		}
+		if job.NextRunAt != nil && job.NextRunAt.After(now) {
+			continue
+		}
+		job.Attempt++
+		if job.MaxAttempts <= 0 {
+			job.MaxAttempts = 3
+		}
+		job.LockedBy = workerID
+		job.LockedAt = &now
+		job.HeartbeatAt = &now
+		job.UpdatedAt = now
+		claimed = append(claimed, *job)
+		if len(claimed) >= limit {
+			break
+		}
+	}
+	return claimed, nil
+}
+
 func (r *fakeRepository) FindCommunityVideoJob(_ context.Context, jobID string) (*model.CommunityVideoJob, error) {
 	for index := range r.videoJobs {
 		if r.videoJobs[index].ID == jobID && r.videoJobs[index].DeletedAt == nil {
@@ -2014,6 +2062,22 @@ func (r *fakeRepository) ListTags(_ context.Context, videoID string) ([]string, 
 
 func (r *fakeRepository) ListVideos(_ context.Context, filter model.VideoFilter) ([]model.Video, error) {
 	items := append([]model.Video(nil), r.videos...)
+	if len(filter.CategorySlugs) > 0 {
+		allowedSlugs := make(map[string]struct{}, len(filter.CategorySlugs))
+		for _, slug := range filter.CategorySlugs {
+			allowedSlugs[slug] = struct{}{}
+		}
+		filtered := make([]model.Video, 0, len(items))
+		for _, video := range items {
+			for _, slug := range r.categorySlugs[video.ID] {
+				if _, ok := allowedSlugs[slug]; ok {
+					filtered = append(filtered, video)
+					break
+				}
+			}
+		}
+		items = filtered
+	}
 	if filter.Limit > 0 && len(items) > filter.Limit {
 		return items[:filter.Limit], nil
 	}

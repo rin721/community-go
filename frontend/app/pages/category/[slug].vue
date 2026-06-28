@@ -5,7 +5,7 @@ import { getCategorySelfAndDescendants } from "~~/shared/utils/categories"
 const { locale, t } = useI18n()
 const api = useAoiApi()
 const route = useRoute()
-const slug = computed(() => String(route.params.slug || "home"))
+const slug = computed(() => String(route.params.slug || ""))
 
 const { data, error, pending, refresh } = useAsyncData(() => `category-${slug.value}`, async () => {
   const [category, videos] = await Promise.all([

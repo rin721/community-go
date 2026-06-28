@@ -173,11 +173,12 @@ export function useAoiApi() {
   async function uploadCommunityAccountSubmissionSource(file: File): Promise<CommunitySubmissionUploadResult> {
     if (config.public.apiMock) {
       return {
+        displayName: file.name,
         mediaAssetId: `mock-asset-${Date.now()}`,
-        sourceName: file.name,
-        sourceSize: file.size,
-        sourceType: file.type || "video/*",
-        sourceUrl: `/api/mock/account/submissions/upload/${encodeURIComponent(file.name)}`
+        mimeType: file.type || "video/*",
+        originalName: file.name,
+        sizeBytes: file.size,
+        url: `/api/mock/account/submissions/upload/${encodeURIComponent(file.name)}`
       }
     }
 

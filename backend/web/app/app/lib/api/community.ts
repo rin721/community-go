@@ -57,6 +57,10 @@ export const communityApi = {
       query,
       signal: options.signal,
     }),
+  getVideoJob: (jobId: number | string, options: RequestOptions = {}) =>
+    apiClient.request<CommunityVideoJob>(API_ENDPOINTS.community.videoJob(jobId), {
+      signal: options.signal,
+    }),
   reviewReport: (
     reportId: number | string,
     body: CommunityReviewReportInput,

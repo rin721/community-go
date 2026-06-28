@@ -273,22 +273,33 @@ type CommunityMediaAsset struct {
 func (CommunityMediaAsset) TableName() string { return "system_media_assets" }
 
 type CommunityVideoJob struct {
-	ID               string     `gorm:"column:id;primaryKey;size:96" json:"id"`
-	SubmissionID     string     `gorm:"column:submission_id;size:96;not null;index" json:"submissionId"`
-	MediaAssetID     int64      `gorm:"column:media_asset_id;not null;default:0;index" json:"mediaAssetId,string,omitempty"`
-	VideoID          string     `gorm:"column:video_id;size:96;not null;default:'';index" json:"videoId,omitempty"`
-	Provider         string     `gorm:"column:provider;size:32;not null" json:"provider"`
-	Status           string     `gorm:"column:status;size:32;not null;index" json:"status"`
-	Progress         int        `gorm:"column:progress;not null;default:0" json:"progress"`
-	InputStorageKey  string     `gorm:"column:input_storage_key;size:512;not null;default:''" json:"inputStorageKey,omitempty"`
-	OutputStorageKey string     `gorm:"column:output_storage_key;size:512;not null;default:''" json:"outputStorageKey,omitempty"`
-	OutputPublicURL  string     `gorm:"column:output_public_url;size:512;not null;default:''" json:"outputPublicUrl,omitempty"`
-	ErrorMessage     string     `gorm:"column:error_message;type:text;not null" json:"errorMessage,omitempty"`
-	StartedAt        *time.Time `gorm:"column:started_at" json:"startedAt,omitempty"`
-	FinishedAt       *time.Time `gorm:"column:finished_at" json:"finishedAt,omitempty"`
-	CreatedAt        time.Time  `gorm:"column:created_at;not null" json:"createdAt"`
-	UpdatedAt        time.Time  `gorm:"column:updated_at;not null" json:"updatedAt"`
-	DeletedAt        *time.Time `gorm:"column:deleted_at" json:"-"`
+	ID                 string     `gorm:"column:id;primaryKey;size:96" json:"id"`
+	SubmissionID       string     `gorm:"column:submission_id;size:96;not null;index" json:"submissionId"`
+	MediaAssetID       int64      `gorm:"column:media_asset_id;not null;default:0;index" json:"mediaAssetId,string,omitempty"`
+	VideoID            string     `gorm:"column:video_id;size:96;not null;default:'';index" json:"videoId,omitempty"`
+	Provider           string     `gorm:"column:provider;size:32;not null" json:"provider"`
+	Status             string     `gorm:"column:status;size:32;not null;index" json:"status"`
+	Progress           int        `gorm:"column:progress;not null;default:0" json:"progress"`
+	Attempt            int        `gorm:"column:attempt;not null;default:0" json:"attempt"`
+	MaxAttempts        int        `gorm:"column:max_attempts;not null;default:3" json:"maxAttempts"`
+	LockedBy           string     `gorm:"column:locked_by;size:96;not null;default:''" json:"lockedBy,omitempty"`
+	LockedAt           *time.Time `gorm:"column:locked_at" json:"lockedAt,omitempty"`
+	HeartbeatAt        *time.Time `gorm:"column:heartbeat_at" json:"heartbeatAt,omitempty"`
+	NextRunAt          *time.Time `gorm:"column:next_run_at" json:"nextRunAt,omitempty"`
+	InputStorageKey    string     `gorm:"column:input_storage_key;size:512;not null;default:''" json:"inputStorageKey,omitempty"`
+	OutputStorageKey   string     `gorm:"column:output_storage_key;size:512;not null;default:''" json:"outputStorageKey,omitempty"`
+	OutputPublicURL    string     `gorm:"column:output_public_url;size:512;not null;default:''" json:"outputPublicUrl,omitempty"`
+	RequestPayload     string     `gorm:"column:request_payload;size:4096;not null;default:''" json:"requestPayload,omitempty"`
+	ProviderJobID      string     `gorm:"column:provider_job_id;size:160;not null;default:''" json:"providerJobId,omitempty"`
+	CallbackReceivedAt *time.Time `gorm:"column:callback_received_at" json:"callbackReceivedAt,omitempty"`
+	FailureCode        string     `gorm:"column:failure_code;size:96;not null;default:''" json:"failureCode,omitempty"`
+	CancelRequestedAt  *time.Time `gorm:"column:cancel_requested_at" json:"cancelRequestedAt,omitempty"`
+	ErrorMessage       string     `gorm:"column:error_message;type:text;not null" json:"errorMessage,omitempty"`
+	StartedAt          *time.Time `gorm:"column:started_at" json:"startedAt,omitempty"`
+	FinishedAt         *time.Time `gorm:"column:finished_at" json:"finishedAt,omitempty"`
+	CreatedAt          time.Time  `gorm:"column:created_at;not null" json:"createdAt"`
+	UpdatedAt          time.Time  `gorm:"column:updated_at;not null" json:"updatedAt"`
+	DeletedAt          *time.Time `gorm:"column:deleted_at" json:"-"`
 }
 
 func (CommunityVideoJob) TableName() string { return "community_video_jobs" }
@@ -308,21 +319,16 @@ type CommunityVideoRendition struct {
 
 func (CommunityVideoRendition) TableName() string { return "community_video_renditions" }
 
-// Category 是社区内容分类的扁平持久化模型。
+// Category 是社区内容分类的公开投影视图，生产数据由系统字典提供。
 type Category struct {
-	ID          string     `gorm:"column:id;primaryKey;size:96" json:"id"`
-	Slug        string     `gorm:"column:slug;size:96;not null;uniqueIndex" json:"slug"`
-	Name        string     `gorm:"column:name;size:120;not null" json:"name"`
-	Description *string    `gorm:"column:description;size:320" json:"description"`
-	AccentColor *string    `gorm:"column:accent_color;size:32" json:"accentColor"`
-	ParentSlug  *string    `gorm:"column:parent_slug;size:96;index" json:"parentSlug"`
-	Order       int        `gorm:"column:display_order;not null;default:0" json:"order"`
-	CreatedAt   time.Time  `gorm:"column:created_at;not null" json:"-"`
-	UpdatedAt   time.Time  `gorm:"column:updated_at;not null" json:"-"`
-	DeletedAt   *time.Time `gorm:"column:deleted_at" json:"-"`
+	ID          string  `json:"id"`
+	Slug        string  `json:"slug"`
+	Name        string  `json:"name"`
+	Description *string `json:"description"`
+	AccentColor *string `json:"accentColor"`
+	ParentSlug  *string `json:"parentSlug"`
+	Order       int     `json:"order"`
 }
-
-func (Category) TableName() string { return "community_categories" }
 
 // CategoryTreeNode 是前端分类导航使用的树节点。
 type CategoryTreeNode struct {
@@ -541,6 +547,19 @@ type CreateCommunityVideoJobRequest struct {
 	Slug            string `json:"slug,omitempty"`
 }
 
+type CommunityVideoJobCallbackRequest struct {
+	ProviderJobID    string                    `json:"providerJobId,omitempty"`
+	Status           string                    `json:"status"`
+	Progress         int                       `json:"progress,omitempty"`
+	MasterURL        string                    `json:"masterUrl,omitempty"`
+	ThumbnailURL     string                    `json:"thumbnailUrl,omitempty"`
+	DurationSeconds  int                       `json:"durationSeconds,omitempty"`
+	OutputStorageKey string                    `json:"outputStorageKey,omitempty"`
+	Renditions       []CommunityVideoRendition `json:"renditions,omitempty"`
+	ErrorMessage     string                    `json:"errorMessage,omitempty"`
+	FailureCode      string                    `json:"failureCode,omitempty"`
+}
+
 type ReviewCommunitySubmissionRequest struct {
 	Status           string `json:"status"`
 	ReviewNote       string `json:"reviewNote"`
@@ -707,22 +726,33 @@ type CommunitySubmissionPayload struct {
 }
 
 type CommunityVideoJobItem struct {
-	ID               string                    `json:"id"`
-	SubmissionID     string                    `json:"submissionId"`
-	MediaAssetID     int64                     `json:"mediaAssetId,string,omitempty"`
-	VideoID          string                    `json:"videoId,omitempty"`
-	Provider         string                    `json:"provider"`
-	Status           string                    `json:"status"`
-	Progress         int                       `json:"progress"`
-	InputStorageKey  string                    `json:"inputStorageKey,omitempty"`
-	OutputStorageKey string                    `json:"outputStorageKey,omitempty"`
-	OutputPublicURL  string                    `json:"outputPublicUrl,omitempty"`
-	ErrorMessage     string                    `json:"errorMessage,omitempty"`
-	Renditions       []CommunityVideoRendition `json:"renditions,omitempty"`
-	StartedAt        *time.Time                `json:"startedAt,omitempty"`
-	FinishedAt       *time.Time                `json:"finishedAt,omitempty"`
-	CreatedAt        time.Time                 `json:"createdAt"`
-	UpdatedAt        time.Time                 `json:"updatedAt"`
+	ID                 string                    `json:"id"`
+	SubmissionID       string                    `json:"submissionId"`
+	MediaAssetID       int64                     `json:"mediaAssetId,string,omitempty"`
+	VideoID            string                    `json:"videoId,omitempty"`
+	Provider           string                    `json:"provider"`
+	Status             string                    `json:"status"`
+	Progress           int                       `json:"progress"`
+	Attempt            int                       `json:"attempt"`
+	MaxAttempts        int                       `json:"maxAttempts"`
+	LockedBy           string                    `json:"lockedBy,omitempty"`
+	LockedAt           *time.Time                `json:"lockedAt,omitempty"`
+	HeartbeatAt        *time.Time                `json:"heartbeatAt,omitempty"`
+	NextRunAt          *time.Time                `json:"nextRunAt,omitempty"`
+	InputStorageKey    string                    `json:"inputStorageKey,omitempty"`
+	OutputStorageKey   string                    `json:"outputStorageKey,omitempty"`
+	OutputPublicURL    string                    `json:"outputPublicUrl,omitempty"`
+	RequestPayload     string                    `json:"requestPayload,omitempty"`
+	ProviderJobID      string                    `json:"providerJobId,omitempty"`
+	CallbackReceivedAt *time.Time                `json:"callbackReceivedAt,omitempty"`
+	FailureCode        string                    `json:"failureCode,omitempty"`
+	CancelRequestedAt  *time.Time                `json:"cancelRequestedAt,omitempty"`
+	ErrorMessage       string                    `json:"errorMessage,omitempty"`
+	Renditions         []CommunityVideoRendition `json:"renditions,omitempty"`
+	StartedAt          *time.Time                `json:"startedAt,omitempty"`
+	FinishedAt         *time.Time                `json:"finishedAt,omitempty"`
+	CreatedAt          time.Time                 `json:"createdAt"`
+	UpdatedAt          time.Time                 `json:"updatedAt"`
 }
 
 type CommunityVideoJobPayload struct {
@@ -939,10 +969,11 @@ type APIStatus struct {
 }
 
 type VideoFilter struct {
-	Category string
-	Cursor   string
-	Limit    int
-	Query    string
+	Category      string
+	CategorySlugs []string
+	Cursor        string
+	Limit         int
+	Query         string
 }
 
 type VideoInteractionFilter struct {

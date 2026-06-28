@@ -340,6 +340,7 @@ func registerCommunityRoutes(v1 ports.HTTPRouter, deps RouterDeps) []RouteContra
 	specs := []routeSpec{
 		routeSpecFor("community.hls.asset", deps.CommunityHandler.VideoAsset),
 		routeSpecFor("community.source.asset", deps.CommunityHandler.SourceAsset),
+		routeSpecFor("community.video-jobs.callback", deps.CommunityHandler.VideoJobCallback),
 		routeSpecFor("community.home", deps.CommunityHandler.Home),
 		routeSpecFor("community.dynamics.list", deps.CommunityHandler.Dynamics),
 		routeSpecFor("community.dynamics.create", deps.CommunityHandler.CreateDynamic),

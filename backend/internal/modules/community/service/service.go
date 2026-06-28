@@ -84,6 +84,9 @@ type Service interface {
 	ListCommunityVideoJobs(context.Context, model.CommunityVideoJobFilter) (model.CommunityVideoJobPayload, error)
 	GetCommunityVideoJob(context.Context, string) (model.CommunityVideoJobItem, error)
 	RetryCommunityVideoJob(context.Context, authtypes.Principal, string) (model.CommunityVideoJobItem, error)
+	ClaimCommunityVideoJobs(context.Context, VideoJobClaimInput) ([]string, error)
+	ProcessCommunityVideoJob(context.Context, VideoJobProcessInput) error
+	HandleCommunityVideoJobCallback(context.Context, string, VideoJobCallbackInput) (model.CommunityVideoJobItem, error)
 	GetCommunityVideoAsset(context.Context, string) (VideoAsset, error)
 	GetCommunitySourceAsset(context.Context, string) (VideoAsset, error)
 	FollowCreator(context.Context, string, model.CreatorFollowRequest) (model.CreatorFollowState, error)
@@ -149,6 +152,7 @@ type Repository interface {
 	UpdateCommunitySubmissionReview(context.Context, model.CommunitySubmission) error
 	CreateCommunityVideoJob(context.Context, model.CommunityVideoJob) error
 	UpdateCommunityVideoJob(context.Context, model.CommunityVideoJob) error
+	ClaimCommunityVideoJobs(context.Context, string, time.Time, time.Duration, int) ([]model.CommunityVideoJob, error)
 	FindCommunityVideoJob(context.Context, string) (*model.CommunityVideoJob, error)
 	ListCommunityVideoJobs(context.Context, model.CommunityVideoJobFilter) ([]model.CommunityVideoJob, error)
 	CreateCommunityVideoRenditions(context.Context, []model.CommunityVideoRendition) error
@@ -156,7 +160,6 @@ type Repository interface {
 	FollowCreator(context.Context, model.CreatorFollow) error
 	SetVideoInteraction(context.Context, model.VideoInteraction) error
 	SetVideoHistory(context.Context, model.VideoHistory) error
-	ListCategories(context.Context) ([]model.Category, error)
 	ListCategorySlugs(context.Context, string) ([]string, error)
 	ListCreatorFollows(context.Context, string, int) ([]model.CreatorFollow, error)
 	ListVideoInteractions(context.Context, model.VideoInteractionFilter) ([]model.VideoInteraction, error)
@@ -181,8 +184,15 @@ type HomeAnnouncementProvider interface {
 	HomeAnnouncement(context.Context) (*model.Announcement, error)
 }
 
+const VideoCategoryDictionaryCode = "community.video.category"
+
+type CategoryProvider interface {
+	CommunityCategories(context.Context) ([]model.Category, error)
+}
+
 type Config struct {
 	BasePath                 string
+	CategoryProvider         CategoryProvider
 	HomeAnnouncementProvider HomeAnnouncementProvider
 	NewID                    func() string
 	NewIntID                 func() int64
@@ -518,13 +528,22 @@ func (s *service) homeAnnouncement(ctx context.Context) (*model.Announcement, er
 	return s.cfg.HomeAnnouncementProvider.HomeAnnouncement(ctx)
 }
 
-func (s *service) ListCategories(ctx context.Context) ([]model.CategoryTreeNode, error) {
-	if s.repo == nil {
+func (s *service) listCategories(ctx context.Context) ([]model.Category, error) {
+	if s.cfg.CategoryProvider == nil {
 		return nil, ErrStorageUnavailable
 	}
-	categories, err := s.repo.ListCategories(ctx)
+	categories, err := s.cfg.CategoryProvider.CommunityCategories(ctx)
 	if err != nil {
 		return nil, mapStorageError(err)
+	}
+	sortCategories(categories)
+	return categories, nil
+}
+
+func (s *service) ListCategories(ctx context.Context) ([]model.CategoryTreeNode, error) {
+	categories, err := s.listCategories(ctx)
+	if err != nil {
+		return nil, err
 	}
 	return buildCategoryTree(categories), nil
 }
@@ -1070,9 +1089,9 @@ func (s *service) Search(ctx context.Context, query string, limit int) (model.Se
 	if err != nil {
 		return model.SearchPayload{}, err
 	}
-	categories, err := s.repo.ListCategories(ctx)
+	categories, err := s.listCategories(ctx)
 	if err != nil {
-		return model.SearchPayload{}, mapStorageError(err)
+		return model.SearchPayload{}, err
 	}
 	categoryMatches := make([]model.Category, 0)
 	needle := normalize(query)
@@ -2014,9 +2033,9 @@ func (s *service) decorateSubmissions(ctx context.Context, submissions []model.C
 	if len(submissions) == 0 {
 		return []model.CommunitySubmissionItem{}, nil
 	}
-	categories, err := s.repo.ListCategories(ctx)
+	categories, err := s.listCategories(ctx)
 	if err != nil {
-		return nil, mapStorageError(err)
+		return nil, err
 	}
 	categoryBySlug := make(map[string]model.Category, len(categories))
 	for _, category := range categories {
@@ -2063,9 +2082,9 @@ func (s *service) categoryForSlug(ctx context.Context, slug string) (*model.Cate
 	if slug == "" {
 		return nil, ErrInvalidInput
 	}
-	categories, err := s.repo.ListCategories(ctx)
+	categories, err := s.listCategories(ctx)
 	if err != nil {
-		return nil, mapStorageError(err)
+		return nil, err
 	}
 	for _, category := range categories {
 		if category.Slug == slug {
@@ -2145,7 +2164,11 @@ func (s *service) listVideoSummaries(ctx context.Context, filter model.VideoFilt
 	if s.repo == nil {
 		return nil, ErrStorageUnavailable
 	}
-	videos, err := s.repo.ListVideos(ctx, normalizeVideoFilter(filter))
+	normalized, err := s.normalizeVideoListFilter(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	videos, err := s.repo.ListVideos(ctx, normalized)
 	if err != nil {
 		return nil, mapStorageError(err)
 	}
@@ -2156,9 +2179,9 @@ func (s *service) decorateVideos(ctx context.Context, videos []model.Video) ([]m
 	if len(videos) == 0 {
 		return []model.VideoSummary{}, nil
 	}
-	categories, err := s.repo.ListCategories(ctx)
+	categories, err := s.listCategories(ctx)
 	if err != nil {
-		return nil, mapStorageError(err)
+		return nil, err
 	}
 	creators, err := s.repo.ListCreators(ctx, 0)
 	if err != nil {
@@ -2205,6 +2228,60 @@ func (s *service) decorateVideos(ctx context.Context, videos []model.Video) ([]m
 		})
 	}
 	return out, nil
+}
+
+func (s *service) normalizeVideoListFilter(ctx context.Context, filter model.VideoFilter) (model.VideoFilter, error) {
+	filter = normalizeVideoFilter(filter)
+	if filter.Category == "" {
+		return filter, nil
+	}
+	categories, err := s.listCategories(ctx)
+	if err != nil {
+		return model.VideoFilter{}, err
+	}
+	slugs := categorySelfAndChildren(categories, filter.Category)
+	if len(slugs) == 0 {
+		return model.VideoFilter{}, ErrInvalidInput
+	}
+	filter.CategorySlugs = slugs
+	return filter, nil
+}
+
+func categorySelfAndChildren(categories []model.Category, slug string) []string {
+	slug = strings.TrimSpace(slug)
+	if slug == "" {
+		return nil
+	}
+	childrenByParent := make(map[string][]string, len(categories))
+	known := make(map[string]struct{}, len(categories))
+	for _, category := range categories {
+		known[category.Slug] = struct{}{}
+		if category.ParentSlug != nil {
+			parent := strings.TrimSpace(*category.ParentSlug)
+			if parent != "" {
+				childrenByParent[parent] = append(childrenByParent[parent], category.Slug)
+			}
+		}
+	}
+	if _, ok := known[slug]; !ok {
+		return nil
+	}
+	seen := map[string]struct{}{}
+	out := []string{}
+	var walk func(string)
+	walk = func(current string) {
+		if _, ok := seen[current]; ok {
+			return
+		}
+		seen[current] = struct{}{}
+		out = append(out, current)
+		for _, child := range childrenByParent[current] {
+			walk(child)
+		}
+	}
+	walk(slug)
+	sort.Strings(out)
+	return out
 }
 
 func buildCategoryTree(categories []model.Category) []model.CategoryTreeNode {
@@ -2443,10 +2520,32 @@ func markOwnedVideoComments(items []model.VideoComment, clientID string) {
 
 func normalizeVideoFilter(filter model.VideoFilter) model.VideoFilter {
 	filter.Category = strings.TrimSpace(filter.Category)
+	filter.CategorySlugs = normalizeCategorySlugs(filter.CategorySlugs)
 	filter.Cursor = strings.TrimSpace(filter.Cursor)
 	filter.Query = strings.TrimSpace(filter.Query)
 	filter.Limit = normalizeLimit(filter.Limit, 24)
 	return filter
+}
+
+func normalizeCategorySlugs(values []string) []string {
+	if len(values) == 0 {
+		return nil
+	}
+	seen := map[string]struct{}{}
+	out := make([]string, 0, len(values))
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		if _, ok := seen[value]; ok {
+			continue
+		}
+		seen[value] = struct{}{}
+		out = append(out, value)
+	}
+	sort.Strings(out)
+	return out
 }
 
 func normalizeVideoCommentFilter(filter model.VideoCommentFilter) model.VideoCommentFilter {

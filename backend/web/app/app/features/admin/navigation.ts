@@ -11,6 +11,7 @@ import {
   ImageUp,
   KeyRound,
   LayoutDashboard,
+  ListTree,
   LockKeyhole,
   LogIn,
   Megaphone,
@@ -134,6 +135,12 @@ export const adminNavGroups: AdminNavGroup[] = [
         id: "community-submissions",
         labelKey: "admin.nav.communitySubmissions",
         to: "/admin/community/submissions",
+      },
+      {
+        icon: ListTree,
+        id: "community-categories",
+        labelKey: "admin.nav.communityCategories",
+        to: "/admin/community/categories",
       },
       {
         icon: Flag,

@@ -4,8 +4,10 @@ package initapp
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -54,9 +56,9 @@ func NewModules(core Core, infra Infrastructure) (Modules, error) {
 		core.Logger.Info("iam module disabled")
 	}
 
-	announcementsModule := NewAnnouncementsModule(core, infra)
-	communityModule := NewCommunityModule(core, infra, announcementsModule.Service)
 	systemModule := NewSystemModule(core, infra, iamModule)
+	announcementsModule := NewAnnouncementsModule(core, infra)
+	communityModule := NewCommunityModule(core, infra, announcementsModule.Service, systemModule.Service)
 	return Modules{
 		Announcements: announcementsModule,
 		Community:     communityModule,
@@ -248,7 +250,7 @@ func NewAnnouncementsModule(core Core, infra Infrastructure) AnnouncementsModule
 }
 
 // NewCommunityModule 装配视频社区公开读取模块。
-func NewCommunityModule(core Core, infra Infrastructure, announcements announcementservice.Service) CommunityModule {
+func NewCommunityModule(core Core, infra Infrastructure, announcements announcementservice.Service, system systemservice.Service) CommunityModule {
 	var repo communityrepository.Repository
 	if infra.Database != nil {
 		repo = communityrepository.New(adapters.NewDatabase(infra.Database))
@@ -261,13 +263,15 @@ func NewCommunityModule(core Core, infra Infrastructure, announcements announcem
 			core.Logger.Error("failed to create community password crypto", "error", err)
 		}
 	}
+	videoCfg := communityVideoServiceConfig(core.Config)
 	service := communityservice.New(repo, communityservice.Config{
 		BasePath:                 "/api/v1/public/community",
+		CategoryProvider:         communityCategoryDictionaryProvider{system: system},
 		HomeAnnouncementProvider: communityHomeAnnouncementProvider{announcements: announcements},
 		NewID:                    core.IDGenerator.NextIDString,
 		NewIntID:                 core.IDGenerator.NextID,
 		Storage:                  infra.Storage,
-		Video:                    communityVideoServiceConfig(core.Config),
+		Video:                    videoCfg,
 		Passwords:                passwords,
 		AccessTokenTTL:           time.Duration(communityCfg.Auth.AccessTokenTTLSeconds) * time.Second,
 		RefreshTokenTTL:          time.Duration(communityCfg.Auth.RefreshTokenTTLSeconds) * time.Second,
@@ -288,7 +292,129 @@ func NewCommunityModule(core Core, infra Infrastructure, announcements announcem
 			DefaultProduct:   normalizeSystemProductCode(core.Config.Brand.ProductCode),
 			DefaultClient:    communityCfg.Auth.DefaultClientType,
 		}),
+		Lifecycle: newCommunityVideoWorker(service, infra.Executor, core.Logger, videoCfg.Worker),
 	}
+}
+
+type communityCategoryDictionaryProvider struct {
+	system systemservice.Service
+}
+
+type communityCategoryExtra struct {
+	AccentColor string `json:"accentColor"`
+	Description string `json:"description"`
+	ParentSlug  string `json:"parentSlug"`
+}
+
+func (p communityCategoryDictionaryProvider) CommunityCategories(ctx context.Context) ([]communitymodel.Category, error) {
+	if p.system == nil {
+		return nil, communityservice.ErrStorageUnavailable
+	}
+	catalog, err := p.system.ListDictionaries(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if catalog.StorageStatus != "persisted" {
+		return nil, communityservice.ErrStorageUnavailable
+	}
+	for _, dictionary := range catalog.Items {
+		if dictionary.Code != communityservice.VideoCategoryDictionaryCode {
+			continue
+		}
+		if dictionary.Status != systemmodel.DictionaryStatusActive {
+			return []communitymodel.Category{}, nil
+		}
+		return communityCategoriesFromDictionaryItems(dictionary.Items)
+	}
+	return []communitymodel.Category{}, nil
+}
+
+func communityCategoriesFromDictionaryItems(items []systemmodel.DictionaryItem) ([]communitymodel.Category, error) {
+	categories := make([]communitymodel.Category, 0, len(items))
+	seen := make(map[string]struct{}, len(items))
+	for _, item := range items {
+		if item.Status != systemmodel.DictionaryStatusActive {
+			continue
+		}
+		slug := strings.TrimSpace(item.Value)
+		name := strings.TrimSpace(item.Label)
+		if !validCommunityCategorySlug(slug) || name == "" {
+			return nil, fmt.Errorf("%w: invalid community category dictionary item %d", communityservice.ErrDataInconsistent, item.ID)
+		}
+		if _, ok := seen[slug]; ok {
+			return nil, fmt.Errorf("%w: duplicate community category slug %s", communityservice.ErrDataInconsistent, slug)
+		}
+		seen[slug] = struct{}{}
+		extra, err := parseCommunityCategoryExtra(item.Extra)
+		if err != nil {
+			return nil, fmt.Errorf("%w: invalid community category extra for %s", communityservice.ErrDataInconsistent, slug)
+		}
+		category := communitymodel.Category{
+			ID:    strconv.FormatInt(item.ID, 10),
+			Slug:  slug,
+			Name:  name,
+			Order: item.Sort,
+		}
+		if extra.Description != "" {
+			category.Description = &extra.Description
+		}
+		if extra.AccentColor != "" {
+			category.AccentColor = &extra.AccentColor
+		}
+		if extra.ParentSlug != "" {
+			if !validCommunityCategorySlug(extra.ParentSlug) {
+				return nil, fmt.Errorf("%w: invalid parent category slug %s", communityservice.ErrDataInconsistent, extra.ParentSlug)
+			}
+			category.ParentSlug = &extra.ParentSlug
+		}
+		categories = append(categories, category)
+	}
+	for _, category := range categories {
+		if category.ParentSlug == nil {
+			continue
+		}
+		if _, ok := seen[*category.ParentSlug]; !ok {
+			return nil, fmt.Errorf("%w: category %s references missing parent %s", communityservice.ErrDataInconsistent, category.Slug, *category.ParentSlug)
+		}
+	}
+	sort.SliceStable(categories, func(i, j int) bool {
+		if categories[i].Order == categories[j].Order {
+			return categories[i].Slug < categories[j].Slug
+		}
+		return categories[i].Order < categories[j].Order
+	})
+	return categories, nil
+}
+
+func parseCommunityCategoryExtra(value string) (communityCategoryExtra, error) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return communityCategoryExtra{}, nil
+	}
+	var extra communityCategoryExtra
+	if err := json.Unmarshal([]byte(value), &extra); err != nil {
+		return communityCategoryExtra{}, err
+	}
+	extra.AccentColor = strings.TrimSpace(extra.AccentColor)
+	extra.Description = strings.TrimSpace(extra.Description)
+	extra.ParentSlug = strings.TrimSpace(extra.ParentSlug)
+	return extra, nil
+}
+
+func validCommunityCategorySlug(value string) bool {
+	if value == "" || len(value) > 96 {
+		return false
+	}
+	for index, char := range value {
+		switch {
+		case char >= 'a' && char <= 'z':
+		case char >= '0' && char <= '9':
+		case index > 0 && (char == '-' || char == '_'):
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 func communityVideoServiceConfig(cfg *config.Config) communityservice.VideoConfig {
@@ -308,6 +434,17 @@ func communityVideoServiceConfig(cfg *config.Config) communityservice.VideoConfi
 		Mode:          communityCfg.Video.Mode,
 		LocalBasePath: cfg.Storage.Local.BasePath,
 		LocalFSType:   cfg.Storage.Local.FSType,
+		Worker: communityservice.VideoWorkerConfig{
+			Enabled:         communityCfg.Video.Worker.EnabledValue(),
+			PollInterval:    time.Duration(communityCfg.Video.Worker.PollIntervalSeconds) * time.Second,
+			BatchSize:       communityCfg.Video.Worker.BatchSize,
+			LeaseTimeout:    time.Duration(communityCfg.Video.Worker.LeaseTimeoutSeconds) * time.Second,
+			MaxAttempts:     communityCfg.Video.Worker.MaxAttempts,
+			RetryDelay:      time.Duration(communityCfg.Video.Worker.RetryDelaySeconds) * time.Second,
+			ExecutorPool:    communityCfg.Video.Worker.ExecutorPool,
+			DispatchTimeout: time.Duration(communityCfg.Video.Worker.DispatchTimeoutSeconds) * time.Second,
+			CallbackMaxSkew: time.Duration(communityCfg.Video.Worker.CallbackMaxSkewSeconds) * time.Second,
+		},
 		Local: communityservice.VideoLocalConfig{
 			FFmpegPath:    communityCfg.Video.Local.FFmpegPath,
 			FFprobePath:   communityCfg.Video.Local.FFprobePath,
@@ -320,11 +457,14 @@ func communityVideoServiceConfig(cfg *config.Config) communityservice.VideoConfi
 			Renditions:     renditions,
 		},
 		Cloud: communityservice.VideoCloudConfig{
-			Provider:       communityCfg.Video.Cloud.Provider,
-			ObjectStorage:  communityCfg.Video.Cloud.ObjectStorage,
-			Bucket:         communityCfg.Video.Cloud.Bucket,
-			CDNBaseURL:     communityCfg.Video.Cloud.CDNBaseURL,
-			CallbackSecret: communityCfg.Video.Cloud.CallbackSecret,
+			Provider:        communityCfg.Video.Cloud.Provider,
+			ObjectStorage:   communityCfg.Video.Cloud.ObjectStorage,
+			Bucket:          communityCfg.Video.Cloud.Bucket,
+			CDNBaseURL:      communityCfg.Video.Cloud.CDNBaseURL,
+			DispatchURL:     communityCfg.Video.Cloud.DispatchURL,
+			DispatchSecret:  communityCfg.Video.Cloud.DispatchSecret,
+			CallbackBaseURL: communityCfg.Video.Cloud.CallbackBaseURL,
+			CallbackSecret:  communityCfg.Video.Cloud.CallbackSecret,
 		},
 	}
 }
@@ -797,6 +937,39 @@ func SystemConfigSnapshot(configSnapshot *config.Config) systemmodel.ConfigSnaps
 			},
 		},
 		{
+			Code:        "community",
+			Description: "社区账号和视频转码发布运行策略。",
+			Icon:        "file-video",
+			Label:       "视频社区",
+			Order:       78,
+			Items: []systemmodel.ConfigItem{
+				configItem("community.video.mode", "视频处理模式", cfg.Community.Video.Mode),
+				configItem("community.video.worker.enabled", "启用视频 worker", cfg.Community.Video.Worker.EnabledValue()),
+				configItem("community.video.worker.pollIntervalSeconds", "轮询间隔(秒)", cfg.Community.Video.Worker.PollIntervalSeconds),
+				configItem("community.video.worker.batchSize", "单次领取数量", cfg.Community.Video.Worker.BatchSize),
+				configItem("community.video.worker.leaseTimeoutSeconds", "任务锁超时(秒)", cfg.Community.Video.Worker.LeaseTimeoutSeconds),
+				configItem("community.video.worker.maxAttempts", "最大尝试次数", cfg.Community.Video.Worker.MaxAttempts),
+				configItem("community.video.worker.retryDelaySeconds", "失败重试延迟(秒)", cfg.Community.Video.Worker.RetryDelaySeconds),
+				configItem("community.video.worker.executorPool", "执行器池", cfg.Community.Video.Worker.ExecutorPool),
+				configItem("community.video.worker.dispatchTimeoutSeconds", "云调度超时(秒)", cfg.Community.Video.Worker.DispatchTimeoutSeconds),
+				configItem("community.video.worker.callbackMaxSkewSeconds", "回调时间偏移(秒)", cfg.Community.Video.Worker.CallbackMaxSkewSeconds),
+				configItem("community.video.local.ffmpegPath", "FFmpeg 路径", cfg.Community.Video.Local.FFmpegPath),
+				configItem("community.video.local.ffprobePath", "FFprobe 路径", cfg.Community.Video.Local.FFprobePath),
+				configItem("community.video.local.sourceRoot", "源文件根目录", cfg.Community.Video.Local.SourceRoot),
+				configItem("community.video.local.outputRoot", "HLS 输出根目录", cfg.Community.Video.Local.OutputRoot),
+				configItem("community.video.local.publicBaseUrl", "HLS 公开地址", cfg.Community.Video.Local.PublicBaseURL),
+				configItem("community.video.hls.segmentSeconds", "HLS 分片秒数", cfg.Community.Video.HLS.SegmentSeconds),
+				configItem("community.video.cloud.provider", "云服务提供方", cfg.Community.Video.Cloud.Provider),
+				configItem("community.video.cloud.objectStorage", "云对象存储", cfg.Community.Video.Cloud.ObjectStorage),
+				configItem("community.video.cloud.bucket", "云存储桶", cfg.Community.Video.Cloud.Bucket),
+				configItem("community.video.cloud.cdnBaseUrl", "云 CDN 地址", cfg.Community.Video.Cloud.CDNBaseURL),
+				configItem("community.video.cloud.dispatchUrl", "云调度地址", cfg.Community.Video.Cloud.DispatchURL),
+				secretConfigItem("community.video.cloud.dispatchSecret", "云调度密钥", cfg.Community.Video.Cloud.DispatchSecret),
+				configItem("community.video.cloud.callbackBaseUrl", "回调基础地址", cfg.Community.Video.Cloud.CallbackBaseURL),
+				secretConfigItem("community.video.cloud.callbackSecret", "回调验签密钥", cfg.Community.Video.Cloud.CallbackSecret),
+			},
+		},
+		{
 			Code:        "runtime",
 			Description: "跨域、国际化、迁移、执行器和 RPC 的运行策略。",
 			Icon:        "settings",
@@ -831,7 +1004,7 @@ func decorateSystemConfigItem(item *systemmodel.ConfigItem) {
 		item.Editor = "select"
 	}
 	switch item.Key {
-	case "database.driver", "cache.driver", "storage.driver", "auth.registration_mode", "auth.notification_driver":
+	case "database.driver", "cache.driver", "storage.driver", "auth.registration_mode", "auth.notification_driver", "community.video.mode":
 		item.Risk = "high"
 	}
 }
@@ -880,6 +1053,13 @@ func systemConfigGroups(sectionCode string, items []systemmodel.ConfigItem) []sy
 		return []systemmodel.ConfigGroup{
 			systemConfigGroup(sectionCode, "defaults", items, nil, false, "", "system.seed_defaults_on_start"),
 			systemConfigGroup(sectionCode, "maintenance", items, nil, false, "medium", "system.maintenance_cleanup_interval_seconds", "system.maintenance_cleanup_batch_size"),
+		}
+	case "community":
+		return []systemmodel.ConfigGroup{
+			systemConfigGroup(sectionCode, "video_mode", items, nil, false, "medium", "community.video.mode"),
+			systemConfigGroup(sectionCode, "video_worker", items, nil, false, "medium", "community.video.worker.enabled", "community.video.worker.pollIntervalSeconds", "community.video.worker.batchSize", "community.video.worker.leaseTimeoutSeconds", "community.video.worker.maxAttempts", "community.video.worker.retryDelaySeconds", "community.video.worker.executorPool", "community.video.worker.dispatchTimeoutSeconds", "community.video.worker.callbackMaxSkewSeconds"),
+			systemConfigGroup(sectionCode, "video_local", items, visibleInSystemConfig("community.video.mode", "local"), false, "medium", "community.video.local.ffmpegPath", "community.video.local.ffprobePath", "community.video.local.sourceRoot", "community.video.local.outputRoot", "community.video.local.publicBaseUrl", "community.video.hls.segmentSeconds"),
+			systemConfigGroup(sectionCode, "video_cloud", items, visibleInSystemConfig("community.video.mode", "cloud"), false, "high", "community.video.cloud.provider", "community.video.cloud.objectStorage", "community.video.cloud.bucket", "community.video.cloud.cdnBaseUrl", "community.video.cloud.dispatchUrl", "community.video.cloud.dispatchSecret", "community.video.cloud.callbackBaseUrl", "community.video.cloud.callbackSecret"),
 		}
 	case "runtime":
 		return []systemmodel.ConfigGroup{
@@ -979,6 +1159,8 @@ func systemConfigItemOptions(key string) []systemmodel.ConfigOption {
 		return systemConfigOptions(key, "pc_web", "mobile_web", "mobile_app")
 	case "auth.smtp.security":
 		return systemConfigOptions(key, config.SMTPSecurityNone, config.SMTPSecurityStartTLS, config.SMTPSecurityTLS)
+	case "community.video.mode":
+		return systemConfigOptions(key, "local", "cloud")
 	case "logger.level":
 		return systemConfigOptions(key, "debug", "info", "warn", "error")
 	case "logger.format", "logger.console_format", "logger.file_format":

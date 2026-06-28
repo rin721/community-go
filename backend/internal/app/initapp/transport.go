@@ -63,6 +63,9 @@ func NewTransport(core Core, infra Infrastructure, modules Modules, setupHandler
 	if modules.IAM.Lifecycle != nil {
 		background = append(background, modules.IAM.Lifecycle)
 	}
+	if modules.Community.Lifecycle != nil {
+		background = append(background, modules.Community.Lifecycle)
+	}
 	if modules.System.Lifecycle != nil {
 		background = append(background, modules.System.Lifecycle)
 	}

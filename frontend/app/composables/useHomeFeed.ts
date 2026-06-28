@@ -1,5 +1,6 @@
 import { getCategorySelfAndDescendants } from "~~/shared/utils/categories"
 import { isAoiSetupRequiredError } from "./useAoiApi"
+import { isCommunityAllCategory } from "~/utils/communityCategories"
 
 export function useHomeFeed() {
   const api = useAoiApi()
@@ -41,7 +42,7 @@ export function useHomeFeed() {
   const categories = computed(() => data.value.categories)
   const announcement = computed(() => data.value.announcement)
   const videos = computed(() => {
-    if (selectedCategory.value === "home") {
+    if (isCommunityAllCategory(selectedCategory.value)) {
       return data.value.latest.items
     }
 

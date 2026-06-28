@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -401,6 +402,20 @@ func (h *Handler) RetryVideoJob(c ports.HTTPContext) {
 		return
 	}
 	item, err := h.service.RetryCommunityVideoJob(c.RequestContext(), principal, c.Param("jobId"))
+	writeOK(c, item, err, h.writeError)
+}
+
+func (h *Handler) VideoJobCallback(c ports.HTTPContext) {
+	body, err := io.ReadAll(io.LimitReader(c.Request().Body, 1<<20))
+	if err != nil {
+		result.BadRequest(c, result.MessageKeyInvalidRequest)
+		return
+	}
+	item, err := h.service.HandleCommunityVideoJobCallback(c.RequestContext(), c.Param("jobId"), service.VideoJobCallbackInput{
+		Timestamp: c.GetHeader("X-Community-Video-Timestamp"),
+		Signature: c.GetHeader("X-Community-Video-Signature"),
+		Body:      body,
+	})
 	writeOK(c, item, err, h.writeError)
 }
 

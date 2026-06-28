@@ -4,10 +4,10 @@
 
 ## 当前阶段
 
-- 阶段编号：`P8`
-- 阶段主题：社区账号隔离、控制台社区管理与角色矩阵落地
-- 当前结论：`P1` 已完成社区 setup 边界与真实 API smoke；`P2` 已完成核心页面视觉 QA 与移动端导航避让；`P3` 已完成评论 / 动态本人编辑删除、投稿审核状态流转、审核发布生成社区视频记录和 system media 受控关联；`P4` 已完成少量真实内容视觉节奏与社区前端 Cookie / CSRF 凭证链路；`P5` 已完成后端社区 HTTP 返回面真实数据来源收敛；`P6` 已完成真实 API smoke 的登录注册与账号态页面覆盖；`P7` 已完成分端口直连模式下账号写请求 CORS / CSRF 修复；`P8` 将社区注册 / 登录从 IAM 控制台账号体系拆出，新增独立 `community_accounts` / `community_sessions`，新增 IAM `moderator` / `operator` 角色，落地后台“社区管理”WebUI，并从 Nuxt 首页移除社区动态区块。普通注册用户和内容创作者只使用社区前台，不能进入 `/admin`。
-- 影响范围：`backend/internal/modules/community/**`、`backend/internal/modules/iam/**`、`backend/internal/modules/system/**`、`backend/internal/config/**`、`backend/internal/migrations/**`、`backend/internal/transport/http/**`、`backend/web/app/**`、`frontend/**`、`scripts/check-frontend-community-*.ps1`、配置示例、OpenAPI、社区模块文档、权限矩阵、known gaps 和 `TASK_TREE.md`。
+- 阶段编号：`P10`
+- 阶段主题：后台控制台与前台上传播放的异步视频处理闭环
+- 当前结论：`P1` 已完成社区 setup 边界与真实 API smoke；`P2` 已完成核心页面视觉 QA 与移动端导航避让；`P3` 已完成评论 / 动态本人编辑删除、投稿审核状态流转、审核发布生成社区视频记录和 system media 受控关联；`P4` 已完成少量真实内容视觉节奏与社区前端 Cookie / CSRF 凭证链路；`P5` 已完成后端社区 HTTP 返回面真实数据来源收敛；`P6` 已完成真实 API smoke 的登录注册与账号态页面覆盖；`P7` 已完成分端口直连模式下账号写请求 CORS / CSRF 修复；`P8` 已完成社区注册 / 登录从 IAM 控制台账号体系拆出、独立 `community_accounts` / `community_sessions`、IAM `moderator` / `operator` 角色、后台“社区管理”WebUI 和 Nuxt 首页动态区块移除；`P9` 已将视频分类生产来源收敛到系统字典 `community.video.category`；`P10` 将投稿发布链路改为异步任务：后台只创建 queued 转码任务，社区视频 worker 通过数据库 lease 消费任务，本地模式执行 FFmpeg HLS，云模式通过通用 HMAC webhook dispatch / callback 完成发布，后台任务页可视化 attempt、锁定 worker、provider job、HLS 和 renditions，Nuxt 上传页消费真实上传 DTO 并展示待审核 / 处理中 / 已发布状态。
+- 影响范围：`backend/internal/modules/community/**`、`backend/internal/modules/system/**`、`backend/internal/app/initapp/**`、`backend/internal/migrations/**`、`backend/internal/transport/http/**`、`backend/web/app/**`、`frontend/**`、`scripts/check-frontend-community-*.ps1`、`scripts/frontend-community-page-smoke.cjs`、OpenAPI、社区模块文档、前端 README、`TASK_TREE.md` 和前端社区边界检查。
 
 ## 设计语言蒸馏
 
@@ -62,8 +62,8 @@
       [ ] 叶节点 B3.1.d：真实媒体上传、转码、视频记录生成和后台可视化审核页
         [x] 子叶节点 B3.1.d.1：审核发布时由投稿元数据与显式 source URL 生成社区视频记录
         [x] 子叶节点 B3.1.d.2：真实媒体上传与 system media / community submission 的受控关联
-        [ ] 子叶节点 B3.1.d.3：转码任务、播放源生成和媒体处理状态回写
-        [ ] 子叶节点 B3.1.d.4：后台可视化审核页与审核操作体验
+        [x] 子叶节点 B3.1.d.3：异步转码任务、HLS 播放源生成、云 webhook 回调和媒体处理状态回写
+        [x] 子叶节点 B3.1.d.4：后台投稿审核创建转码任务、视频任务详情可视化和失败重试体验
       [x] 叶节点 B3.1.e：后台社区管理 WebUI 覆盖社区账号、投稿审核和举报处理，页面只消费真实 `/api/v1/community/*` 契约
     [ ] 子分支 B3.2：登录态与匿名关系归并
     [ ] 子分支 B3.3：创作者后台、活动运营、批量评论治理和外部通知投递
@@ -108,6 +108,12 @@
       [x] 叶节点 C3.8.a：CORS 默认允许头包含平台真实联调必需头，并复用认证模块默认 CSRF header 名称
       [x] 叶节点 C3.8.b：HTTP 装配层按当前 `auth.csrf.header_name` 补齐 CORS allow headers，支持自定义 CSRF header
       [x] 叶节点 C3.8.c：配置示例与本地旧配置补齐 CSRF header，避免分端口直连真实联调时浏览器预检失败
+    [x] 子分支 C3.9：系统字典视频分类与 Mock 边界闭环
+      [x] 叶节点 C3.9.a：后端 `GET /categories`、视频分类校验、投稿校验和审核发布分类装饰统一读取系统字典 `community.video.category`
+      [x] 叶节点 C3.9.b：旧社区迁移不再写入 demo 分类、视频、动态、评论、弹幕、播放源、标签或相关派生记录
+      [x] 叶节点 C3.9.c：后台新增“社区分类”入口，复用系统字典 API、字典权限和 `community.video.category` item，不新增平行社区分类存储
+      [x] 叶节点 C3.9.d：Nuxt 真实模式不写死 `design` 或 `home` 分类值；“全部”是前端本地虚拟筛选，上传草稿默认分类为空
+      [x] 叶节点 C3.9.e：前端社区边界脚本阻止业务代码导入 mock、直接访问 `/api/mock` 或恢复生产分类默认值
 
 [ ] 主干 D：文档、规则与 Skill 同步
   [x] 分支 D1：任务树入口
@@ -118,6 +124,8 @@
     [x] 子分支 D2.2：更新 `backend/docs/modules/community.md` 的当前能力和 setup gate
     [x] 子分支 D2.3：同步 API 文档、权限矩阵和 OpenAPI 生成产物
     [x] 子分支 D2.4：同步 `frontend/README.md` 的 API Token、Cookie 会话、CORS credentials 与 CSRF 联调边界
+    [x] 子分支 D2.5：同步系统字典视频分类闭环、后台社区分类入口和真实 / mock 模式边界
+    [x] 子分支 D2.6：同步异步视频 worker、本地 FFmpeg、云 webhook、后台任务详情和 Nuxt 上传 DTO 边界
   [x] 分支 D3：Skill 同步
     [x] 子分支 D3.1：新增社区全栈协作 skill
     [x] 子分支 D3.2：运行 `scripts/check-agent-skills.ps1`
@@ -196,6 +204,20 @@
 - [x] 影响评估：需要调整 community service、handler、HTTP router、initapp 跨模块注入、模块测试、route 测试和文档；不改变 HTTP path、DTO 字段名、OpenAPI schema、数据库迁移或 Nuxt mock fixture。
 - [x] 实施原则：真实 HTTP 返回面只消费 route contract、setup provider、公告模块 service、社区持久化分类关联和真实创作者记录；缺失真实状态或数据引用时暴露错误，不在后端补 Mock fallback。
 - [x] 验证收敛：完成后端聚焦测试、后端全量 `go test ./...`、真实社区 API smoke、错误/result 边界检查、前端社区边界检查和 `git diff --check`；`go test ./internal/migrations` 因 SQL 目录无 Go package 无法作为测试入口，已用 setup center 集成测试补证迁移执行链路。
+
+## P9 实施计划
+
+- [x] 分析现状：旧社区迁移仍曾写入 demo 分类 / 视频 / 动态 / 评论等数据，`community_categories` 被当作生产分类来源；Nuxt 上传草稿默认写死 `design`，首页和分类页把 `home` 当作后端分类 slug；前端 `app/mocks` re-export 容易被业务代码误导入。
+- [x] 影响评估：需要调整社区迁移、社区 service/repository contract、系统字典 seed、initapp 跨模块注入、后台 React 路由与 i18n、Nuxt 分类状态、mock fixture、真实 API smoke、页面 smoke、边界脚本和文档；不新增平行社区分类存储，也不新增孤立菜单权限。
+- [x] 实施原则：系统字典 `community.video.category` 是生产视频分类唯一业务来源；后端真实接口禁止 mock/fixture/static 业务数据；分类缺失时公开分类接口返回空列表，投稿必须显式选择存在分类；前端 mock 只允许 `NUXT_PUBLIC_API_MOCK=true` 时经 API client 进入 `/api/mock`。
+- [x] 验证收敛：后端聚焦 / 全量测试、OpenAPI 生成、后台 WebUI i18n/typecheck/test/build、Nuxt typecheck/build、真实 API/page smoke、社区边界检查、agent skill 检查和 `git diff --check` 均已通过。
+
+## P10 实施计划
+
+- [x] 分析现状：`POST /api/v1/community/submissions/:submissionId/transcode` 在 HTTP 请求内同步执行 FFmpeg；云模式只有占位错误；Nuxt 上传结果仍按旧 `sourceName/sourceSize/sourceType/sourceUrl` DTO 映射；后台任务页只展示列表，缺少 worker lease、provider job、HLS 和 renditions 详情。
+- [x] 影响评估：需要新增 append-only 任务字段迁移、社区视频任务 claim/process/callback service、repository lease 更新、应用生命周期 worker、通用云 webhook dispatch / callback、route contract、系统配置页字段、后台 WebUI 任务详情、Nuxt 上传 DTO、OpenAPI、文档和 smoke 说明。
+- [x] 实施原则：HTTP 创建任务后立即返回 `CommunityVideoJobItem`，异步 worker 统一处理本地 FFmpeg 和云 webhook；云模式只实现通用 HMAC 签名 dispatch / callback，不绑定具体云厂商 SDK；前端不伪造转码结果，只展示后端 submission / job 返回状态。
+- [x] 验证收敛：已完成 Go 聚焦 / 全量测试、OpenAPI 生成、后台 WebUI typecheck / i18n / test / build、Nuxt typecheck / build、社区 API/page smoke、后台 WebUI 与前台页面桌面 / 移动端视觉 QA、agent skill 检查、社区边界检查、错误/result 边界检查、plugin-removal 检查和 `git diff --check`；本机 smoke 使用签名 callback 与临时 HLS 文件补足无 FFmpeg/FFprobe 环境下的逻辑闭环。
 
 ## 阶段验证记录
 
@@ -290,3 +312,16 @@
 - [x] Nuxt 首页移除 `CommunityPulse` 动态区，动态能力保留给动态页 / 关注流；页面 smoke 已断言桌面和移动首页 `pulse=0`。
 - [x] 后台社区页视觉 QA 已通过：`powershell -ExecutionPolicy Bypass -File backend/scripts/visual-qa.ps1 -Grep "admin community routes render backend community management"` 覆盖 desktop `1440x900` 与 mobile `390x844`。
 - [x] 全量后端、后台 WebUI、Nuxt 前台、真实 API smoke、页面 smoke、后端治理脚本、agent skill 检查和 `git diff --check` 均已在本阶段最终收口时通过。
+
+### P9：后端无 Mock 与系统字典视频分类闭环
+
+- [x] 后端分类来源已收敛到系统字典 `community.video.category`；公开分类、视频分类校验、投稿校验、审核发布和视频摘要装饰均不再读取 `community_categories` 生产表或 demo seed。
+- [x] 后台新增 `/admin/community/categories` 社区分类入口，复用 system dictionary API、`dictionary:*` 权限和系统字典 item 管理，不新增平行社区分类 API 或孤立权限码。
+- [x] Nuxt 真实模式移除 `design` / `home` 运行态分类默认值；上传草稿分类默认为空，“全部”使用本地虚拟筛选值，真实列表查询全部视频时不传 `category`。
+- [x] `frontend/app/mocks` 已删除；mock 数据保留在 `frontend/server/api/mock/**` 与 `frontend/shared/mocks/**`，并通过 `scripts/check-frontend-community-boundary.ps1` 阻止业务代码导入 mock、硬编码 `/api/mock` 或恢复生产分类默认值。
+- [x] `scripts/check-frontend-community-boundary.ps1` 追加后端生产扫描，覆盖 `backend/internal/modules/community/**`、`backend/internal/app/initapp/**` 和 `backend/internal/migrations/**` 的生产 Go / SQL，阻止恢复 `community_categories`、社区 demo seed、生产分类默认值或 mock / fixture / demo 业务分支。
+- [x] `backend/internal/modules/community/service/service_test.go` 的分类 fixture 已改为 `unit-root` / `unit-child` / `unit-leaf` 等中性测试 slug，避免测试数据看起来像生产默认分类。
+- [x] `powershell -ExecutionPolicy Bypass -File scripts/check-frontend-community-api-smoke.ps1` 通过；smoke 先通过系统字典 API 创建 `community.video.category` 测试分类，再用返回 slug 投稿、审核发布和查询视频，输出包含 `[home-initial] categories=1`、`[videos] count=1, category=smoke-video`、`[submissions] status=published`。
+- [x] `powershell -ExecutionPolicy Bypass -File scripts/check-frontend-community-page-smoke.ps1` 通过；桌面与移动端分类页均显示真实字典分类，输出 `category cards=1, maxCardWidth=260px`，截图输出到 `tmp/ai/frontend-community-page-smoke/screenshots`。
+- [x] 后端测试、OpenAPI 生成、后台 WebUI i18n/typecheck/test/build、Nuxt typecheck/build、错误/result 边界检查、社区边界检查、agent skill 检查和 `git diff --check` 均已通过。
+- [x] 本轮后端无 Mock 边界补强验证通过：`go test ./internal/modules/community/... -count=1 -mod=readonly`、`go test ./... -count=1 -mod=readonly`、`powershell -ExecutionPolicy Bypass -File scripts/check-frontend-community-boundary.ps1` 和 `git diff --check` 均已通过。

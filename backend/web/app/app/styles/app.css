@@ -2576,6 +2576,64 @@ a {
   gap: var(--console-space-2);
 }
 
+.console-community-job-detail {
+  display: grid;
+  gap: var(--console-space-4);
+}
+
+.console-community-job-detail dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--console-space-3);
+  margin: 0;
+}
+
+.console-community-job-detail dl > div,
+.console-community-job-renditions li {
+  min-width: 0;
+  border: 1px solid var(--console-color-border-subtle);
+  border-radius: var(--console-radius-card);
+  background: var(--console-color-surface-subtle);
+  padding: var(--console-space-3);
+}
+
+.console-community-job-detail dt {
+  color: var(--console-color-text-secondary);
+  font-size: var(--console-font-size-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.console-community-job-detail dd {
+  min-width: 0;
+  margin: var(--console-space-1) 0 0;
+  color: var(--console-color-text-primary);
+  overflow-wrap: anywhere;
+}
+
+.console-community-job-renditions {
+  display: grid;
+  gap: var(--console-space-2);
+}
+
+.console-community-job-renditions h3 {
+  margin: 0;
+  font-size: var(--console-font-size-sm);
+}
+
+.console-community-job-renditions ul {
+  display: grid;
+  gap: var(--console-space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.console-community-job-renditions li {
+  display: grid;
+  gap: var(--console-space-1);
+}
+
 .console-admin-pager {
   align-items: center;
   justify-content: flex-end;

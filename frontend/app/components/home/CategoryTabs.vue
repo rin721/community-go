@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { CategoryTreeNode } from "~/types/api"
+import { AOI_ALL_CATEGORY } from "~/utils/communityCategories"
 
 const { t } = useI18n()
 const props = defineProps<{
@@ -12,10 +13,16 @@ const emit = defineEmits<{
   change: [value: string]
 }>()
 
-const tabItems = computed(() => props.categories.map((category) => ({
-  value: category.slug,
-  label: category.name
-})))
+const tabItems = computed(() => [
+  {
+    value: AOI_ALL_CATEGORY,
+    label: t("home.allCategories")
+  },
+  ...props.categories.map((category) => ({
+    value: category.slug,
+    label: category.name
+  }))
+])
 
 function change(value: string) {
   emit("update:modelValue", value)

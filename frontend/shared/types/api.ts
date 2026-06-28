@@ -275,10 +275,11 @@ export type CreateCommunityAccountSubmissionRequest = Omit<CreateCommunitySubmis
 
 export interface CommunitySubmissionUploadResult {
   mediaAssetId: string
-  sourceName: string
-  sourceSize: number
-  sourceType: string
-  sourceUrl: string
+  displayName: string
+  originalName: string
+  url: string
+  mimeType: string
+  sizeBytes: number
 }
 
 export interface CommunitySubmissionItem {

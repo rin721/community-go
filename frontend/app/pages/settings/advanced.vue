@@ -18,7 +18,7 @@ const pendingAction = ref<{
   title: string
 } | null>(null)
 
-const activeBaseURL = computed(() => config.public.apiMock ? "/api/mock" : config.public.apiBaseURL)
+const activeBaseURL = computed(() => apiStatus.value?.basePath || (config.public.apiMock ? "pending" : config.public.apiBaseURL))
 const setupBlocked = computed(() => Boolean(apiStatus.value?.setup.required && !apiStatus.value.setup.completed))
 const communityAccessStatus = computed(() => {
   if (config.public.apiMock) {

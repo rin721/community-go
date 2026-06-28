@@ -2813,21 +2813,46 @@
                     "type": "integer"
                   "data":
                     "properties":
+                      "attempt":
+                        "format": "int32"
+                        "type": "integer"
+                      "callbackReceivedAt":
+                        "format": "date-time"
+                        "type": "string"
+                      "cancelRequestedAt":
+                        "format": "date-time"
+                        "type": "string"
                       "createdAt":
                         "format": "date-time"
                         "type": "string"
                       "errorMessage":
                         "type": "string"
+                      "failureCode":
+                        "type": "string"
                       "finishedAt":
+                        "format": "date-time"
+                        "type": "string"
+                      "heartbeatAt":
                         "format": "date-time"
                         "type": "string"
                       "id":
                         "type": "string"
                       "inputStorageKey":
                         "type": "string"
+                      "lockedAt":
+                        "format": "date-time"
+                        "type": "string"
+                      "lockedBy":
+                        "type": "string"
+                      "maxAttempts":
+                        "format": "int32"
+                        "type": "integer"
                       "mediaAssetId":
                         "format": "int64"
                         "type": "integer"
+                      "nextRunAt":
+                        "format": "date-time"
+                        "type": "string"
                       "outputPublicUrl":
                         "type": "string"
                       "outputStorageKey":
@@ -2836,6 +2861,8 @@
                         "format": "int32"
                         "type": "integer"
                       "provider":
+                        "type": "string"
+                      "providerJobId":
                         "type": "string"
                       "renditions":
                         "items":
@@ -2866,6 +2893,8 @@
                               "type": "integer"
                           "type": "object"
                         "type": "array"
+                      "requestPayload":
+                        "type": "string"
                       "startedAt":
                         "format": "date-time"
                         "type": "string"
@@ -2961,21 +2990,46 @@
                           "items":
                             "items":
                               "properties":
+                                "attempt":
+                                  "format": "int32"
+                                  "type": "integer"
+                                "callbackReceivedAt":
+                                  "format": "date-time"
+                                  "type": "string"
+                                "cancelRequestedAt":
+                                  "format": "date-time"
+                                  "type": "string"
                                 "createdAt":
                                   "format": "date-time"
                                   "type": "string"
                                 "errorMessage":
                                   "type": "string"
+                                "failureCode":
+                                  "type": "string"
                                 "finishedAt":
+                                  "format": "date-time"
+                                  "type": "string"
+                                "heartbeatAt":
                                   "format": "date-time"
                                   "type": "string"
                                 "id":
                                   "type": "string"
                                 "inputStorageKey":
                                   "type": "string"
+                                "lockedAt":
+                                  "format": "date-time"
+                                  "type": "string"
+                                "lockedBy":
+                                  "type": "string"
+                                "maxAttempts":
+                                  "format": "int32"
+                                  "type": "integer"
                                 "mediaAssetId":
                                   "format": "int64"
                                   "type": "integer"
+                                "nextRunAt":
+                                  "format": "date-time"
+                                  "type": "string"
                                 "outputPublicUrl":
                                   "type": "string"
                                 "outputStorageKey":
@@ -2984,6 +3038,8 @@
                                   "format": "int32"
                                   "type": "integer"
                                 "provider":
+                                  "type": "string"
+                                "providerJobId":
                                   "type": "string"
                                 "renditions":
                                   "items":
@@ -3014,6 +3070,8 @@
                                         "type": "integer"
                                     "type": "object"
                                   "type": "array"
+                                "requestPayload":
+                                  "type": "string"
                                 "startedAt":
                                   "format": "date-time"
                                   "type": "string"
@@ -3102,21 +3160,46 @@
                     "type": "integer"
                   "data":
                     "properties":
+                      "attempt":
+                        "format": "int32"
+                        "type": "integer"
+                      "callbackReceivedAt":
+                        "format": "date-time"
+                        "type": "string"
+                      "cancelRequestedAt":
+                        "format": "date-time"
+                        "type": "string"
                       "createdAt":
                         "format": "date-time"
                         "type": "string"
                       "errorMessage":
                         "type": "string"
+                      "failureCode":
+                        "type": "string"
                       "finishedAt":
+                        "format": "date-time"
+                        "type": "string"
+                      "heartbeatAt":
                         "format": "date-time"
                         "type": "string"
                       "id":
                         "type": "string"
                       "inputStorageKey":
                         "type": "string"
+                      "lockedAt":
+                        "format": "date-time"
+                        "type": "string"
+                      "lockedBy":
+                        "type": "string"
+                      "maxAttempts":
+                        "format": "int32"
+                        "type": "integer"
                       "mediaAssetId":
                         "format": "int64"
                         "type": "integer"
+                      "nextRunAt":
+                        "format": "date-time"
+                        "type": "string"
                       "outputPublicUrl":
                         "type": "string"
                       "outputStorageKey":
@@ -3125,6 +3208,8 @@
                         "format": "int32"
                         "type": "integer"
                       "provider":
+                        "type": "string"
+                      "providerJobId":
                         "type": "string"
                       "renditions":
                         "items":
@@ -3155,6 +3240,8 @@
                               "type": "integer"
                           "type": "object"
                         "type": "array"
+                      "requestPayload":
+                        "type": "string"
                       "startedAt":
                         "format": "date-time"
                         "type": "string"
@@ -3238,21 +3325,46 @@
                     "type": "integer"
                   "data":
                     "properties":
+                      "attempt":
+                        "format": "int32"
+                        "type": "integer"
+                      "callbackReceivedAt":
+                        "format": "date-time"
+                        "type": "string"
+                      "cancelRequestedAt":
+                        "format": "date-time"
+                        "type": "string"
                       "createdAt":
                         "format": "date-time"
                         "type": "string"
                       "errorMessage":
                         "type": "string"
+                      "failureCode":
+                        "type": "string"
                       "finishedAt":
+                        "format": "date-time"
+                        "type": "string"
+                      "heartbeatAt":
                         "format": "date-time"
                         "type": "string"
                       "id":
                         "type": "string"
                       "inputStorageKey":
                         "type": "string"
+                      "lockedAt":
+                        "format": "date-time"
+                        "type": "string"
+                      "lockedBy":
+                        "type": "string"
+                      "maxAttempts":
+                        "format": "int32"
+                        "type": "integer"
                       "mediaAssetId":
                         "format": "int64"
                         "type": "integer"
+                      "nextRunAt":
+                        "format": "date-time"
+                        "type": "string"
                       "outputPublicUrl":
                         "type": "string"
                       "outputStorageKey":
@@ -3261,6 +3373,8 @@
                         "format": "int32"
                         "type": "integer"
                       "provider":
+                        "type": "string"
+                      "providerJobId":
                         "type": "string"
                       "renditions":
                         "items":
@@ -3291,6 +3405,8 @@
                               "type": "integer"
                           "type": "object"
                         "type": "array"
+                      "requestPayload":
+                        "type": "string"
                       "startedAt":
                         "format": "date-time"
                         "type": "string"
@@ -12873,6 +12989,227 @@
           "description": "Internal server error"
       "security": []
       "summary": "查询社区创作者关注状态"
+      "tags":
+        - "Community"
+      "x-scope": "platform"
+  "/api/v1/public/community/video-jobs/{jobId}/callback":
+    "post":
+      "operationId": "community.video-jobs.callback"
+      "parameters":
+        -
+          "in": "path"
+          "name": "jobId"
+          "required": true
+          "schema":
+            "type": "string"
+      "requestBody":
+        "content":
+          "application/json":
+            "schema":
+              "properties":
+                "durationSeconds":
+                  "format": "int32"
+                  "type": "integer"
+                "errorMessage":
+                  "type": "string"
+                "failureCode":
+                  "type": "string"
+                "masterUrl":
+                  "type": "string"
+                "outputStorageKey":
+                  "type": "string"
+                "progress":
+                  "format": "int32"
+                  "type": "integer"
+                "providerJobId":
+                  "type": "string"
+                "renditions":
+                  "items":
+                    "properties":
+                      "bitrateKbps":
+                        "format": "int32"
+                        "type": "integer"
+                      "createdAt":
+                        "format": "date-time"
+                        "type": "string"
+                      "height":
+                        "format": "int32"
+                        "type": "integer"
+                      "id":
+                        "type": "string"
+                      "jobId":
+                        "type": "string"
+                      "playlistUrl":
+                        "type": "string"
+                      "qualityLabel":
+                        "type": "string"
+                      "storageKey":
+                        "type": "string"
+                      "videoId":
+                        "type": "string"
+                      "width":
+                        "format": "int32"
+                        "type": "integer"
+                    "type": "object"
+                  "type": "array"
+                "status":
+                  "type": "string"
+                "thumbnailUrl":
+                  "type": "string"
+              "type": "object"
+        "required": true
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "properties":
+                  "code":
+                    "format": "int32"
+                    "type": "integer"
+                  "data":
+                    "properties":
+                      "attempt":
+                        "format": "int32"
+                        "type": "integer"
+                      "callbackReceivedAt":
+                        "format": "date-time"
+                        "type": "string"
+                      "cancelRequestedAt":
+                        "format": "date-time"
+                        "type": "string"
+                      "createdAt":
+                        "format": "date-time"
+                        "type": "string"
+                      "errorMessage":
+                        "type": "string"
+                      "failureCode":
+                        "type": "string"
+                      "finishedAt":
+                        "format": "date-time"
+                        "type": "string"
+                      "heartbeatAt":
+                        "format": "date-time"
+                        "type": "string"
+                      "id":
+                        "type": "string"
+                      "inputStorageKey":
+                        "type": "string"
+                      "lockedAt":
+                        "format": "date-time"
+                        "type": "string"
+                      "lockedBy":
+                        "type": "string"
+                      "maxAttempts":
+                        "format": "int32"
+                        "type": "integer"
+                      "mediaAssetId":
+                        "format": "int64"
+                        "type": "integer"
+                      "nextRunAt":
+                        "format": "date-time"
+                        "type": "string"
+                      "outputPublicUrl":
+                        "type": "string"
+                      "outputStorageKey":
+                        "type": "string"
+                      "progress":
+                        "format": "int32"
+                        "type": "integer"
+                      "provider":
+                        "type": "string"
+                      "providerJobId":
+                        "type": "string"
+                      "renditions":
+                        "items":
+                          "properties":
+                            "bitrateKbps":
+                              "format": "int32"
+                              "type": "integer"
+                            "createdAt":
+                              "format": "date-time"
+                              "type": "string"
+                            "height":
+                              "format": "int32"
+                              "type": "integer"
+                            "id":
+                              "type": "string"
+                            "jobId":
+                              "type": "string"
+                            "playlistUrl":
+                              "type": "string"
+                            "qualityLabel":
+                              "type": "string"
+                            "storageKey":
+                              "type": "string"
+                            "videoId":
+                              "type": "string"
+                            "width":
+                              "format": "int32"
+                              "type": "integer"
+                          "type": "object"
+                        "type": "array"
+                      "requestPayload":
+                        "type": "string"
+                      "startedAt":
+                        "format": "date-time"
+                        "type": "string"
+                      "status":
+                        "type": "string"
+                      "submissionId":
+                        "type": "string"
+                      "updatedAt":
+                        "format": "date-time"
+                        "type": "string"
+                      "videoId":
+                        "type": "string"
+                    "type": "object"
+                  "message":
+                    "type": "string"
+                  "messageArgs":
+                    "additionalProperties": true
+                    "type": "object"
+                  "messageKey":
+                    "type": "string"
+                  "serverTime":
+                    "format": "int64"
+                    "type": "integer"
+                  "traceId":
+                    "type": "string"
+                "type": "object"
+          "description": "OK"
+        "400":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Bad request"
+        "401":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Unauthorized"
+        "403":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Forbidden"
+        "404":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Not found"
+        "500":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Internal server error"
+      "security": []
+      "summary": "接收社区云端视频处理回调"
       "tags":
         - "Community"
       "x-scope": "platform"

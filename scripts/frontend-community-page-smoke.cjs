@@ -1,4 +1,5 @@
 const { spawn, spawnSync } = require("child_process")
+const crypto = require("crypto")
 const fs = require("fs")
 const path = require("path")
 
@@ -20,6 +21,7 @@ const backendBaseUrl = `http://127.0.0.1:${backendPort}`
 const communityApiBaseUrl = `${backendBaseUrl}/api/v1/public/community`
 const frontendBaseUrl = `http://127.0.0.1:${frontendPort}`
 const runId = Date.now()
+const videoCallbackSecret = "frontend-page-smoke-video-callback-secret-32"
 
 let backendProcess = null
 let frontendProcess = null
@@ -65,7 +67,9 @@ async function main() {
       APP_AUTH_MFA_SECRET_KEY: "frontend-page-smoke-mfa-secret-key-32",
       AUTH_SIGNING_KEY: "frontend-page-smoke-signing-key-32",
       AUTH_REFRESH_TOKEN_PEPPER: "frontend-page-smoke-refresh-pepper-32",
-      AUTH_MFA_SECRET_KEY: "frontend-page-smoke-mfa-secret-key-32"
+      AUTH_MFA_SECRET_KEY: "frontend-page-smoke-mfa-secret-key-32",
+      COMMUNITY_VIDEO_CLOUD_CALLBACK_SECRET: videoCallbackSecret,
+      COMMUNITY_VIDEO_WORKER_ENABLED: "false"
     }),
     logFile: path.join(workPath, "backend.log")
   })
@@ -197,7 +201,8 @@ async function seedCommunityPageSmokeData(adminSession) {
   const apiRoot = `${backendBaseUrl}/api/v1`
   const clientId = `page-smoke-client-${runId}`
   const title = `Aoi page smoke real video ${runId}`
-  const sourceUrl = `https://example.invalid/page-smoke-${runId}.mp4`
+  const category = await ensureCommunitySmokeCategory(adminSession, "page-smoke-video")
+  const categorySlug = category.value
   const initialHome = await requestJson(`${communityApiBaseUrl}/home`)
 
   if (!Array.isArray(initialHome.data?.categories) || initialHome.data.categories.length < 1) {
@@ -210,18 +215,42 @@ async function seedCommunityPageSmokeData(adminSession) {
     throw new Error("Page smoke requires an admin session from initial setup before reviewing seeded submissions")
   }
 
-  const submission = await requestJson(`${communityApiBaseUrl}/submissions`, {
+  const accountSession = createCookieSession()
+  const accountUsername = `page_seed_${runId}`
+  await requestJson(`${communityApiBaseUrl}/auth/signup`, {
     method: "POST",
+    session: accountSession,
+    body: {
+      displayName: "Page Smoke Creator",
+      email: `page-seed-${runId}@example.com`,
+      password: "Password123!",
+      username: accountUsername
+    }
+  })
+  const accountCsrf = communityCsrfToken(accountSession)
+  if (!accountCsrf) {
+    throw new Error("Page smoke seed account did not receive community CSRF token")
+  }
+  const uploadedSource = await uploadCommunitySubmissionSource(
+    `${communityApiBaseUrl}/account/submissions/upload`,
+    accountSession,
+    accountCsrf,
+    `page-smoke-real-video-${runId}.mp4`
+  )
+
+  const submission = await requestJson(`${communityApiBaseUrl}/account/submissions`, {
+    method: "POST",
+    session: accountSession,
+    headers: { "X-Community-CSRF-Token": accountCsrf },
     body: {
       allowComments: true,
-      authorName: "Page Smoke Creator",
-      categorySlug: "design",
-      clientId,
+      categorySlug,
       description: "Real API seeded submission for frontend page smoke verification",
+      mediaAssetId: uploadedSource.data.mediaAssetId,
       sensitive: false,
-      sourceName: "page-smoke-real-video.mp4",
-      sourceSize: 2048000,
-      sourceType: "video/mp4",
+      sourceName: uploadedSource.data.displayName,
+      sourceSize: uploadedSource.data.sizeBytes,
+      sourceType: uploadedSource.data.mimeType,
       tags: ["page-smoke", "real-api"],
       title,
       visibility: "public"
@@ -250,24 +279,49 @@ async function seedCommunityPageSmokeData(adminSession) {
     }
   })
 
-  const published = await requestJson(`${apiRoot}/community/submissions/${encodeURIComponent(submission.data.id)}/review`, {
-    method: "PATCH",
+  const videoJob = await requestJson(`${apiRoot}/community/submissions/${encodeURIComponent(submission.data.id)}/transcode`, {
+    method: "POST",
     session: adminSession,
     headers: csrfHeaders(adminSession),
     body: {
       durationSeconds: 128,
-      sourceUrl,
-      status: "published",
       thumbnailUrl: "gradient:page-smoke-real-video"
     }
   })
 
-  if (published.data?.status !== "published" || !published.data?.publishedVideoId) {
-    throw new Error(`Community submission seed did not publish a video: ${JSON.stringify(published)}`)
+  if (videoJob.data?.status !== "queued" || !videoJob.data?.id) {
+    throw new Error(`Community submission seed did not create a queued video job: ${JSON.stringify(videoJob)}`)
   }
 
-  const detail = await requestJson(`${communityApiBaseUrl}/videos/${encodeURIComponent(published.data.publishedVideoId)}`)
-  if (detail.data?.title !== title || !detail.data?.slug || !detail.data?.uploader?.handle) {
+  const hlsMasterUrl = `/api/v1/public/community/hls/page-smoke/${videoJob.data.id}/master.m3u8`
+  writeSmokeHlsAssets("page-smoke", videoJob.data.id)
+  const completedJob = await invokeCommunityVideoJobCallback(`${communityApiBaseUrl}/video-jobs/${encodeURIComponent(videoJob.data.id)}/callback`, {
+    durationSeconds: 128,
+    masterUrl: hlsMasterUrl,
+    outputStorageKey: `community/videos/page-smoke/${videoJob.data.id}/master.m3u8`,
+    progress: 100,
+    providerJobId: `page-smoke-provider-${runId}`,
+    renditions: [
+      {
+        bitrateKbps: 2800,
+        height: 720,
+        id: `page-smoke-rendition-${videoJob.data.id}-720p`,
+        playlistUrl: `/api/v1/public/community/hls/page-smoke/${videoJob.data.id}/720p.m3u8`,
+        qualityLabel: "720p",
+        storageKey: `community/videos/page-smoke/${videoJob.data.id}/720p.m3u8`,
+        width: 1280
+      }
+    ],
+    status: "succeeded",
+    thumbnailUrl: "gradient:page-smoke-real-video"
+  })
+
+  if (completedJob.data?.status !== "succeeded" || !completedJob.data?.videoId || completedJob.data?.outputPublicUrl !== hlsMasterUrl) {
+    throw new Error(`Community video job callback did not publish a seeded video: ${JSON.stringify(completedJob)}`)
+  }
+
+  const detail = await requestJson(`${communityApiBaseUrl}/videos/${encodeURIComponent(completedJob.data.videoId)}`)
+  if (detail.data?.title !== title || !detail.data?.slug || !detail.data?.uploader?.handle || detail.data?.sourceUrl !== hlsMasterUrl) {
     throw new Error(`Seeded video detail did not match the published submission: ${JSON.stringify(detail)}`)
   }
 
@@ -292,13 +346,84 @@ async function seedCommunityPageSmokeData(adminSession) {
 
   return {
     clientId,
+    categoryLabel: category.label,
+    categorySlug,
     creatorHandle: detail.data.uploader.handle,
     creatorName: detail.data.uploader.displayName,
     searchQuery: "Aoi",
-    sourceUrl,
+    sourceUrl: hlsMasterUrl,
     videoId: detail.data.id,
     videoSlug: detail.data.slug,
     videoTitle: title
+  }
+}
+
+async function ensureCommunitySmokeCategory(adminSession, slug) {
+  const apiRoot = `${backendBaseUrl}/api/v1`
+  const catalog = await requestJson(`${apiRoot}/system/dictionaries`, {
+    session: adminSession
+  })
+  let dictionary = (catalog.data?.items || []).find((item) => item.code === "community.video.category")
+
+  if (!dictionary) {
+    dictionary = (await requestJson(`${apiRoot}/system/dictionaries`, {
+      body: {
+        code: "community.video.category",
+        description: "Community video category dictionary for real page smoke tests",
+        name: "Community video category",
+        status: "active"
+      },
+      headers: csrfHeaders(adminSession),
+      method: "POST",
+      session: adminSession
+    })).data
+  }
+
+  if (dictionary.status !== "active") {
+    dictionary = (await requestJson(`${apiRoot}/system/dictionaries/${encodeURIComponent(dictionary.id)}`, {
+      body: {
+        status: "active"
+      },
+      headers: csrfHeaders(adminSession),
+      method: "PATCH",
+      session: adminSession
+    })).data
+  }
+
+  const activeItems = (dictionary.items || []).filter((item) => item.status === "active" && item.value)
+  const existingItem = activeItems.find((item) => item.value === slug)
+  if (existingItem) {
+    return {
+      label: existingItem.label || existingItem.value,
+      value: existingItem.value
+    }
+  }
+  if (activeItems.length > 0) {
+    return {
+      label: activeItems[0].label || activeItems[0].value,
+      value: activeItems[0].value
+    }
+  }
+
+  const item = await requestJson(`${apiRoot}/system/dictionaries/${encodeURIComponent(dictionary.id)}/items`, {
+    body: {
+      extra: JSON.stringify({
+        accentColor: "#0f9fb7",
+        description: "Page smoke category created through system dictionary APIs"
+      }),
+      label: "Page Smoke Video",
+      sort: 10,
+      status: "active",
+      value: slug
+    },
+    headers: csrfHeaders(adminSession),
+    method: "POST",
+    session: adminSession
+  })
+
+  return {
+    label: item.data.label || item.data.value,
+    value: item.data.value
   }
 }
 
@@ -493,13 +618,14 @@ async function checkHomePage(page, viewport) {
 }
 
 async function checkCategoryPage(page, viewport) {
+  const seed = requireSeededCommunity()
   await page.goto(`${frontendBaseUrl}/category`, { waitUntil: "networkidle" })
   await page.waitForSelector(".category-card", { timeout: timeoutMs })
   await stabilizeScreenshotState(page)
   await capturePageScreenshot(page, viewport, "category")
   await verifySharedLayout(page, viewport, "category")
 
-  return await page.evaluate(() => {
+  return await page.evaluate((seeded) => {
     const text = document.body.innerText
     const cards = Array.from(document.querySelectorAll(".category-card")).map((element) => {
       const box = element.getBoundingClientRect()
@@ -511,14 +637,14 @@ async function checkCategoryPage(page, viewport) {
     const maxCategoryCardWidth = cards.reduce((max, item) => Math.max(max, item.width), 0)
     const category = {
       categoryCards: cards.length,
-      hasBackendCategory: text.includes("创作") || text.includes("知识"),
+      hasBackendCategory: text.includes(seeded.categoryLabel) || text.includes(seeded.categorySlug),
       maxCategoryCardWidth
     }
 
     if (document.querySelector(".page-state__title")?.textContent?.includes("失败")) {
       throw new Error("Category page rendered an API failure state")
     }
-    if (category.categoryCards < 5 || !category.hasBackendCategory) {
+    if (category.categoryCards < 1 || !category.hasBackendCategory) {
       throw new Error(`Category page did not render backend category data: ${JSON.stringify(category)}`)
     }
     if (window.innerWidth >= 640 && maxCategoryCardWidth > 270) {
@@ -526,7 +652,7 @@ async function checkCategoryPage(page, viewport) {
     }
 
     return category
-  })
+  }, seed)
 }
 
 async function checkSearchPage(page, viewport) {
@@ -820,6 +946,31 @@ async function checkCreatorAccountFlow(page, viewport) {
 }
 
 async function checkUploadPage(page, viewport) {
+  const seeded = requireSeededCommunity()
+  const uploadTitle = `aoi-community-draft-with-extra-long-mobile-title-${viewport.name}-${runId}`
+  await page.addInitScript(({ categorySlug, title }) => {
+    const now = new Date().toISOString()
+    const draftId = "page-smoke-upload-draft"
+    window.localStorage.setItem("aoi.uploadDrafts.v1", JSON.stringify({
+      activeDraftId: draftId,
+      drafts: {
+        [draftId]: {
+          allowComments: true,
+          categorySlug,
+          createdAt: now,
+          description: "Page smoke upload draft submits against the real account upload API.",
+          id: draftId,
+          sensitive: false,
+          source: null,
+          status: "draft",
+          tags: ["page-smoke", "upload"],
+          title,
+          updatedAt: now,
+          visibility: "public"
+        }
+      }
+    }))
+  }, { categorySlug: seeded.categorySlug, title: uploadTitle })
   await page.goto(`${frontendBaseUrl}/upload`, { waitUntil: "networkidle" })
   await page.waitForSelector(".upload-page", { timeout: timeoutMs })
   await page.waitForSelector(".upload-drop-zone", { timeout: timeoutMs })
@@ -830,6 +981,13 @@ async function checkUploadPage(page, viewport) {
     name: "aoi-community-draft-with-extra-long-mobile-title-and-readable-boundary.mp4"
   })
   await page.waitForFunction(() => document.body.innerText.includes("aoi-community-draft-with-extra-long-mobile-title"), { timeout: timeoutMs })
+  await clickVisibleElement(page, ".upload-workspace .aoi-button", "提交审核|Submit for review|審査へ送信")
+  await page.waitForSelector(".upload-workspace .aoi-status-message--success", { timeout: timeoutMs })
+  await page.waitForFunction((title) => {
+    return Array.from(document.querySelectorAll(".upload-submission-list__item")).some((item) =>
+      item.textContent?.includes(title)
+    )
+  }, uploadTitle, { timeout: timeoutMs })
   await stabilizeScreenshotState(page)
   await capturePageScreenshot(page, viewport, "upload")
   await verifySharedLayout(page, viewport, "upload")
@@ -845,7 +1003,7 @@ async function checkUploadPage(page, viewport) {
       submissionCards: document.querySelectorAll(".upload-submission-list__item").length
     }
 
-    if (!upload.hasLongFileName || upload.panels < 3 || upload.statCards < 4) {
+    if (!upload.hasLongFileName || upload.panels < 3 || upload.statCards < 4 || upload.submissionCards < 1) {
       throw new Error(`Upload page did not render draft workspace and API-backed categories: ${JSON.stringify(upload)}`)
     }
     if (window.innerWidth < 640 && upload.fileNameWhiteSpace === "nowrap") {
@@ -1225,6 +1383,98 @@ function csrfHeaders(session) {
     throw new Error("CSRF token cookie was not set")
   }
   return { "X-CSRF-Token": token }
+}
+
+function communityCsrfToken(session) {
+  return session.cookies.get("community_csrf") || ""
+}
+
+async function uploadCommunitySubmissionSource(url, session, communityCsrf, fileName) {
+  const form = new FormData()
+  form.append("file", new Blob([smokeVideoBytes()], { type: "video/mp4" }), fileName)
+  const headers = {
+    "X-Community-CSRF-Token": communityCsrf
+  }
+  const cookie = cookieHeader(session)
+  if (cookie) {
+    headers.cookie = cookie
+  }
+
+  const response = await fetch(url, {
+    body: form,
+    headers,
+    method: "POST"
+  })
+  mergeSetCookie(session, response)
+  const text = await response.text()
+  const json = text ? JSON.parse(text) : null
+  if (!response.ok || !json || json.code !== 0) {
+    throw new Error(`Unexpected community source upload response from ${url}: HTTP ${response.status} ${text.slice(0, 300)}`)
+  }
+  if (!json.data?.mediaAssetId || !json.data?.url || !json.data?.mimeType || !json.data?.sizeBytes) {
+    throw new Error(`Community source upload did not return the backend DTO fields: ${JSON.stringify(json)}`)
+  }
+  return json
+}
+
+async function invokeCommunityVideoJobCallback(url, body) {
+  const rawBody = JSON.stringify(body)
+  const timestamp = String(Math.floor(Date.now() / 1000))
+  const response = await fetch(url, {
+    body: rawBody,
+    headers: {
+      "content-type": "application/json",
+      "X-Community-Video-Timestamp": timestamp,
+      "X-Community-Video-Signature": signCommunityVideoCallback(timestamp, rawBody)
+    },
+    method: "POST"
+  })
+  const text = await response.text()
+  const json = text ? JSON.parse(text) : null
+  if (!response.ok || !json || json.code !== 0) {
+    throw new Error(`Unexpected community video callback response from ${url}: HTTP ${response.status} ${text.slice(0, 300)}`)
+  }
+  return json
+}
+
+function signCommunityVideoCallback(timestamp, body) {
+  const digest = crypto
+    .createHmac("sha256", videoCallbackSecret)
+    .update(`${timestamp}.${body}`)
+    .digest("hex")
+  return `sha256=${digest}`
+}
+
+function smokeVideoBytes() {
+  return Buffer.from([
+    0, 0, 0, 24, 0x66, 0x74, 0x79, 0x70,
+    0x69, 0x73, 0x6f, 0x6d, 0, 0, 0, 1,
+    0x69, 0x73, 0x6f, 0x6d, 0x6d, 0x70, 0x34, 0x32,
+    0, 0, 0, 8, 0x6d, 0x64, 0x61, 0x74, 0
+  ])
+}
+
+function writeSmokeHlsAssets(scope, jobId) {
+  const dir = path.join(workPath, "uploads", "community", "hls", scope, jobId)
+  fs.mkdirSync(dir, { recursive: true })
+  fs.writeFileSync(path.join(dir, "master.m3u8"), [
+    "#EXTM3U",
+    "#EXT-X-VERSION:3",
+    "#EXT-X-STREAM-INF:BANDWIDTH=2800000,RESOLUTION=1280x720",
+    "720p.m3u8",
+    ""
+  ].join("\n"))
+  fs.writeFileSync(path.join(dir, "720p.m3u8"), [
+    "#EXTM3U",
+    "#EXT-X-VERSION:3",
+    "#EXT-X-TARGETDURATION:1",
+    "#EXT-X-MEDIA-SEQUENCE:0",
+    "#EXTINF:1.0,",
+    "segment0.ts",
+    "#EXT-X-ENDLIST",
+    ""
+  ].join("\n"))
+  fs.writeFileSync(path.join(dir, "segment0.ts"), Buffer.alloc(188, 0xff))
 }
 
 async function waitForHtml(url) {

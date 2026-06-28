@@ -22,11 +22,5 @@ CREATE INDEX idx_community_dynamics_client_created
 CREATE INDEX idx_community_dynamics_video_created
     ON community_dynamics (video_id, created_at);
 
-INSERT INTO community_dynamics (id, client_id, creator_id, video_id, author_name, body, kind, status, created_at, updated_at) VALUES
-('dynamic-rin-alpha', '', 'user-rin', 'video-aoi-alpha', 'Rin721', '今天把首页动态整理成更轻的阅读节奏，短更新和关联视频会自然连在一起。', 'video_update', 'visible', '2026-06-26 10:00:00', '2026-06-26 10:00:00'),
-('dynamic-design-sakura', '', 'user-design', 'video-sakura-accent', 'Color Note', '这版视觉会保留 kirakira 式的细线、粉色强调和轻量动效，但内容密度会更适合长期视频社区。', 'video_update', 'visible', '2026-06-26 09:20:00', '2026-06-26 09:20:00'),
-('dynamic-backend-contract', '', 'user-backend', 'video-go-api', 'Aoi Curator', '从投稿到收藏这一段路径很顺，适合作为新用户的第一条浏览路线。', 'video_update', 'visible', '2026-06-26 08:40:00', '2026-06-26 08:40:00'),
-('dynamic-frontend-mobile', '', 'user-frontend', 'video-mobile-grid', 'Layout Notes', '手机上也能轻松阅读动态卡片，长句会自然换行，视频入口保持稳定比例。', 'video_update', 'visible', '2026-06-26 08:10:00', '2026-06-26 08:10:00');
-
 -- +goose Down
 DROP TABLE IF EXISTS community_dynamics;

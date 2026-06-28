@@ -80,8 +80,9 @@ type AnnouncementsModule struct {
 
 // CommunityModule 保存视频社区业务模块的服务和 HTTP 处理器。
 type CommunityModule struct {
-	Service communityservice.Service
-	Handler *communityhandler.Handler
+	Service   communityservice.Service
+	Handler   *communityhandler.Handler
+	Lifecycle BackgroundService
 }
 
 // SystemModule 保存系统管理模块的服务和 HTTP 处理器。

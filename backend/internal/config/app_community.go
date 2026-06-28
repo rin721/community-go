@@ -6,21 +6,29 @@ import (
 )
 
 const (
-	DefaultCommunityAuthAccessTokenTTLSeconds  = 900
-	DefaultCommunityAuthRefreshTokenTTLSeconds = 604800
-	DefaultCommunityAuthCookieNamePrefix       = "community"
-	DefaultCommunityAuthCookiePath             = "/"
-	DefaultCommunityAuthCookieSameSite         = "lax"
-	DefaultCommunityAuthCSRFCookieName         = "community_csrf"
-	DefaultCommunityAuthCSRFHeaderName         = "X-Community-CSRF-Token"
-	DefaultCommunityAuthClientType             = "community_web"
-	DefaultCommunityVideoMode                  = "local"
-	DefaultCommunityVideoLocalFFmpegPath       = "ffmpeg"
-	DefaultCommunityVideoLocalFFprobePath      = "ffprobe"
-	DefaultCommunityVideoLocalOutputRoot       = "community/hls"
-	DefaultCommunityVideoLocalSourceRoot       = "community/sources"
-	DefaultCommunityVideoLocalPublicBaseURL    = "/api/v1/public/community/hls"
-	DefaultCommunityVideoHLSSegmentSeconds     = 6
+	DefaultCommunityAuthAccessTokenTTLSeconds         = 900
+	DefaultCommunityAuthRefreshTokenTTLSeconds        = 604800
+	DefaultCommunityAuthCookieNamePrefix              = "community"
+	DefaultCommunityAuthCookiePath                    = "/"
+	DefaultCommunityAuthCookieSameSite                = "lax"
+	DefaultCommunityAuthCSRFCookieName                = "community_csrf"
+	DefaultCommunityAuthCSRFHeaderName                = "X-Community-CSRF-Token"
+	DefaultCommunityAuthClientType                    = "community_web"
+	DefaultCommunityVideoMode                         = "local"
+	DefaultCommunityVideoLocalFFmpegPath              = "ffmpeg"
+	DefaultCommunityVideoLocalFFprobePath             = "ffprobe"
+	DefaultCommunityVideoLocalOutputRoot              = "community/hls"
+	DefaultCommunityVideoLocalSourceRoot              = "community/sources"
+	DefaultCommunityVideoLocalPublicBaseURL           = "/api/v1/public/community/hls"
+	DefaultCommunityVideoHLSSegmentSeconds            = 6
+	DefaultCommunityVideoWorkerPollSeconds            = 5
+	DefaultCommunityVideoWorkerBatchSize              = 2
+	DefaultCommunityVideoWorkerLeaseSeconds           = 1800
+	DefaultCommunityVideoWorkerMaxAttempts            = 3
+	DefaultCommunityVideoWorkerRetryDelaySeconds      = 60
+	DefaultCommunityVideoWorkerExecutorPool           = "background"
+	DefaultCommunityVideoWorkerDispatchTimeoutSeconds = 30
+	DefaultCommunityVideoWorkerCallbackMaxSkewSeconds = 600
 )
 
 type CommunityConfig struct {
@@ -51,10 +59,23 @@ type CommunityAuthCSRFConfig struct {
 }
 
 type CommunityVideoConfig struct {
-	Mode  string                    `mapstructure:"mode" envname:"COMMUNITY_VIDEO_MODE" json:"mode" yaml:"mode" toml:"mode"`
-	Local CommunityVideoLocalConfig `mapstructure:"local" json:"local" yaml:"local" toml:"local"`
-	HLS   CommunityVideoHLSConfig   `mapstructure:"hls" json:"hls" yaml:"hls" toml:"hls"`
-	Cloud CommunityVideoCloudConfig `mapstructure:"cloud" json:"cloud" yaml:"cloud" toml:"cloud"`
+	Mode   string                     `mapstructure:"mode" envname:"COMMUNITY_VIDEO_MODE" json:"mode" yaml:"mode" toml:"mode"`
+	Worker CommunityVideoWorkerConfig `mapstructure:"worker" json:"worker" yaml:"worker" toml:"worker"`
+	Local  CommunityVideoLocalConfig  `mapstructure:"local" json:"local" yaml:"local" toml:"local"`
+	HLS    CommunityVideoHLSConfig    `mapstructure:"hls" json:"hls" yaml:"hls" toml:"hls"`
+	Cloud  CommunityVideoCloudConfig  `mapstructure:"cloud" json:"cloud" yaml:"cloud" toml:"cloud"`
+}
+
+type CommunityVideoWorkerConfig struct {
+	Enabled                *bool  `mapstructure:"enabled" envname:"COMMUNITY_VIDEO_WORKER_ENABLED" json:"enabled" yaml:"enabled" toml:"enabled"`
+	PollIntervalSeconds    int    `mapstructure:"pollIntervalSeconds" envname:"COMMUNITY_VIDEO_WORKER_POLL_INTERVAL_SECONDS" json:"pollIntervalSeconds" yaml:"pollIntervalSeconds" toml:"pollIntervalSeconds"`
+	BatchSize              int    `mapstructure:"batchSize" envname:"COMMUNITY_VIDEO_WORKER_BATCH_SIZE" json:"batchSize" yaml:"batchSize" toml:"batchSize"`
+	LeaseTimeoutSeconds    int    `mapstructure:"leaseTimeoutSeconds" envname:"COMMUNITY_VIDEO_WORKER_LEASE_TIMEOUT_SECONDS" json:"leaseTimeoutSeconds" yaml:"leaseTimeoutSeconds" toml:"leaseTimeoutSeconds"`
+	MaxAttempts            int    `mapstructure:"maxAttempts" envname:"COMMUNITY_VIDEO_WORKER_MAX_ATTEMPTS" json:"maxAttempts" yaml:"maxAttempts" toml:"maxAttempts"`
+	RetryDelaySeconds      int    `mapstructure:"retryDelaySeconds" envname:"COMMUNITY_VIDEO_WORKER_RETRY_DELAY_SECONDS" json:"retryDelaySeconds" yaml:"retryDelaySeconds" toml:"retryDelaySeconds"`
+	ExecutorPool           string `mapstructure:"executorPool" envname:"COMMUNITY_VIDEO_WORKER_EXECUTOR_POOL" json:"executorPool" yaml:"executorPool" toml:"executorPool"`
+	DispatchTimeoutSeconds int    `mapstructure:"dispatchTimeoutSeconds" envname:"COMMUNITY_VIDEO_WORKER_DISPATCH_TIMEOUT_SECONDS" json:"dispatchTimeoutSeconds" yaml:"dispatchTimeoutSeconds" toml:"dispatchTimeoutSeconds"`
+	CallbackMaxSkewSeconds int    `mapstructure:"callbackMaxSkewSeconds" envname:"COMMUNITY_VIDEO_WORKER_CALLBACK_MAX_SKEW_SECONDS" json:"callbackMaxSkewSeconds" yaml:"callbackMaxSkewSeconds" toml:"callbackMaxSkewSeconds"`
 }
 
 type CommunityVideoLocalConfig struct {
@@ -79,14 +100,24 @@ type CommunityVideoHLSRendition struct {
 }
 
 type CommunityVideoCloudConfig struct {
-	Provider       string `mapstructure:"provider" envname:"COMMUNITY_VIDEO_CLOUD_PROVIDER" json:"provider" yaml:"provider" toml:"provider"`
-	ObjectStorage  string `mapstructure:"objectStorage" envname:"COMMUNITY_VIDEO_CLOUD_OBJECT_STORAGE" json:"objectStorage" yaml:"objectStorage" toml:"objectStorage"`
-	Bucket         string `mapstructure:"bucket" envname:"COMMUNITY_VIDEO_CLOUD_BUCKET" json:"bucket" yaml:"bucket" toml:"bucket"`
-	CDNBaseURL     string `mapstructure:"cdnBaseUrl" envname:"COMMUNITY_VIDEO_CLOUD_CDN_BASE_URL" json:"cdnBaseUrl" yaml:"cdnBaseUrl" toml:"cdnBaseUrl"`
-	CallbackSecret string `mapstructure:"callbackSecret" envname:"COMMUNITY_VIDEO_CLOUD_CALLBACK_SECRET" json:"callbackSecret" yaml:"callbackSecret" toml:"callbackSecret"`
+	Provider        string `mapstructure:"provider" envname:"COMMUNITY_VIDEO_CLOUD_PROVIDER" json:"provider" yaml:"provider" toml:"provider"`
+	ObjectStorage   string `mapstructure:"objectStorage" envname:"COMMUNITY_VIDEO_CLOUD_OBJECT_STORAGE" json:"objectStorage" yaml:"objectStorage" toml:"objectStorage"`
+	Bucket          string `mapstructure:"bucket" envname:"COMMUNITY_VIDEO_CLOUD_BUCKET" json:"bucket" yaml:"bucket" toml:"bucket"`
+	CDNBaseURL      string `mapstructure:"cdnBaseUrl" envname:"COMMUNITY_VIDEO_CLOUD_CDN_BASE_URL" json:"cdnBaseUrl" yaml:"cdnBaseUrl" toml:"cdnBaseUrl"`
+	DispatchURL     string `mapstructure:"dispatchUrl" envname:"COMMUNITY_VIDEO_CLOUD_DISPATCH_URL" json:"dispatchUrl" yaml:"dispatchUrl" toml:"dispatchUrl"`
+	DispatchSecret  string `mapstructure:"dispatchSecret" envname:"COMMUNITY_VIDEO_CLOUD_DISPATCH_SECRET" json:"dispatchSecret" yaml:"dispatchSecret" toml:"dispatchSecret"`
+	CallbackBaseURL string `mapstructure:"callbackBaseUrl" envname:"COMMUNITY_VIDEO_CLOUD_CALLBACK_BASE_URL" json:"callbackBaseUrl" yaml:"callbackBaseUrl" toml:"callbackBaseUrl"`
+	CallbackSecret  string `mapstructure:"callbackSecret" envname:"COMMUNITY_VIDEO_CLOUD_CALLBACK_SECRET" json:"callbackSecret" yaml:"callbackSecret" toml:"callbackSecret"`
 }
 
 func (c CommunityAuthCSRFConfig) EnabledValue() bool {
+	if c.Enabled == nil {
+		return true
+	}
+	return *c.Enabled
+}
+
+func (c CommunityVideoWorkerConfig) EnabledValue() bool {
 	if c.Enabled == nil {
 		return true
 	}
@@ -138,8 +169,20 @@ func (c *CommunityConfig) Validate() error {
 		if strings.TrimSpace(c.Video.Cloud.Provider) == "" {
 			return fmt.Errorf("video.cloud.provider is required when video.mode is cloud")
 		}
+		if strings.TrimSpace(c.Video.Cloud.DispatchURL) == "" {
+			return fmt.Errorf("video.cloud.dispatchUrl is required when video.mode is cloud")
+		}
+		if strings.TrimSpace(c.Video.Cloud.DispatchSecret) == "" || strings.TrimSpace(c.Video.Cloud.CallbackSecret) == "" {
+			return fmt.Errorf("video.cloud dispatchSecret and callbackSecret are required when video.mode is cloud")
+		}
 	default:
 		return fmt.Errorf("video.mode must be one of: local, cloud")
+	}
+	if c.Video.Worker.PollIntervalSeconds <= 0 || c.Video.Worker.BatchSize <= 0 || c.Video.Worker.LeaseTimeoutSeconds <= 0 || c.Video.Worker.MaxAttempts <= 0 || c.Video.Worker.RetryDelaySeconds <= 0 || c.Video.Worker.DispatchTimeoutSeconds <= 0 || c.Video.Worker.CallbackMaxSkewSeconds <= 0 {
+		return fmt.Errorf("video.worker numeric values must be positive")
+	}
+	if strings.TrimSpace(c.Video.Worker.ExecutorPool) == "" {
+		return fmt.Errorf("video.worker.executorPool is required")
 	}
 	if c.Video.HLS.SegmentSeconds <= 0 {
 		return fmt.Errorf("video.hls.segmentSeconds must be positive")
@@ -184,6 +227,34 @@ func (c *CommunityConfig) ApplyDefaults() {
 	c.Video.Mode = strings.ToLower(strings.TrimSpace(c.Video.Mode))
 	if c.Video.Mode == "" {
 		c.Video.Mode = DefaultCommunityVideoMode
+	}
+	if c.Video.Worker.Enabled == nil {
+		enabled := true
+		c.Video.Worker.Enabled = &enabled
+	}
+	if c.Video.Worker.PollIntervalSeconds == 0 {
+		c.Video.Worker.PollIntervalSeconds = DefaultCommunityVideoWorkerPollSeconds
+	}
+	if c.Video.Worker.BatchSize == 0 {
+		c.Video.Worker.BatchSize = DefaultCommunityVideoWorkerBatchSize
+	}
+	if c.Video.Worker.LeaseTimeoutSeconds == 0 {
+		c.Video.Worker.LeaseTimeoutSeconds = DefaultCommunityVideoWorkerLeaseSeconds
+	}
+	if c.Video.Worker.MaxAttempts == 0 {
+		c.Video.Worker.MaxAttempts = DefaultCommunityVideoWorkerMaxAttempts
+	}
+	if c.Video.Worker.RetryDelaySeconds == 0 {
+		c.Video.Worker.RetryDelaySeconds = DefaultCommunityVideoWorkerRetryDelaySeconds
+	}
+	if strings.TrimSpace(c.Video.Worker.ExecutorPool) == "" {
+		c.Video.Worker.ExecutorPool = DefaultCommunityVideoWorkerExecutorPool
+	}
+	if c.Video.Worker.DispatchTimeoutSeconds == 0 {
+		c.Video.Worker.DispatchTimeoutSeconds = DefaultCommunityVideoWorkerDispatchTimeoutSeconds
+	}
+	if c.Video.Worker.CallbackMaxSkewSeconds == 0 {
+		c.Video.Worker.CallbackMaxSkewSeconds = DefaultCommunityVideoWorkerCallbackMaxSkewSeconds
 	}
 	if strings.TrimSpace(c.Video.Local.FFmpegPath) == "" {
 		c.Video.Local.FFmpegPath = DefaultCommunityVideoLocalFFmpegPath

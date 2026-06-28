@@ -391,6 +391,7 @@ func communityRouteContracts() []RouteContract {
 		publicRoute("community.status", http.MethodGet, appconstants.APIPath("public", "community", "status"), "Community", "查询社区公开 API 状态", nil, jsonType[communitymodel.APIStatus]()),
 		binaryPublicRoute("community.hls.asset", http.MethodGet, appconstants.APIPath("public", "community", "hls", "*assetPath"), "Community", "读取社区 HLS 静态资源", pathString("assetPath")),
 		binaryPublicRoute("community.source.asset", http.MethodGet, appconstants.APIPath("public", "community", "source-assets", ":assetId"), "Community", "读取社区投稿源视频", pathID("assetId")),
+		publicRoute("community.video-jobs.callback", http.MethodPost, appconstants.APIPath("public", "community", "video-jobs", ":jobId", "callback"), "Community", "接收社区云端视频处理回调", jsonType[communitymodel.CommunityVideoJobCallbackRequest](), jsonType[communitymodel.CommunityVideoJobItem](), pathString("jobId")),
 		publicRoute("community.home", http.MethodGet, appconstants.APIPath("public", "community", "home"), "Community", "查询社区首页聚合数据", nil, jsonType[communitymodel.HomePayload]()),
 		publicRoute("community.dynamics.list", http.MethodGet, appconstants.APIPath("public", "community", "dynamics"), "Community", "查询社区动态时间线", nil, jsonType[communitymodel.CommunityDynamicPayload](), queryParam("clientId", "string"), queryInt("limit")),
 		publicRoute("community.dynamics.create", http.MethodPost, appconstants.APIPath("public", "community", "dynamics"), "Community", "发布社区匿名动态", jsonType[communitymodel.CreateCommunityDynamicRequest](), jsonType[communitymodel.CommunityDynamicItem]()),

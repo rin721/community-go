@@ -55,7 +55,6 @@ type StoredVideoComment = VideoComment & {
 }
 
 export const mockCategoryTree: CategoryTreeNode[] = [
-  { id: "cat-home", slug: "home", name: "首页", description: "全部精选内容", accentColor: "#f2709c", parentSlug: null, order: 0, children: [] },
   {
     id: "cat-creative",
     slug: "creative",
@@ -700,11 +699,11 @@ export function listMockVideos(params: {
   q?: string
 } = {}) {
   const normalizedQuery = normalize(params.q)
-  const categorySlug = params.category || "home"
-  const categorySlugs = categorySlug === "home"
-    ? []
-    : getCategorySelfAndDescendants(mockCategoryTree, categorySlug).map((category) => category.slug)
-  let items = categorySlug === "home"
+  const categorySlug = params.category || ""
+  const categorySlugs = categorySlug
+    ? getCategorySelfAndDescendants(mockCategoryTree, categorySlug).map((category) => category.slug)
+    : []
+  let items = !categorySlug
     ? mockVideos
     : mockVideos.filter((video) => video.categories.some((category) => categorySlugs.includes(category.slug)))
 
@@ -739,7 +738,6 @@ export function searchMockCategories(q: string, limit?: number) {
   }
 
   return mockCategories
-    .filter((category) => category.slug !== "home")
     .filter((category) => matchesCategory(category, normalizedQuery))
     .slice(0, limit || undefined)
 }

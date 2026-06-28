@@ -82,6 +82,10 @@ import {
   createAoiAccentPresetCardOptions,
   normalizeAoiAccentPresetCards
 } from "~/utils/aoiAccentPresets"
+import {
+  AOI_ALL_CATEGORY,
+  normalizeCommunityCategorySelection
+} from "~/utils/communityCategories"
 
 export type AoiPreferredTheme = "system" | "light" | "dark"
 export type AoiAccentMode = "preset" | "custom"
@@ -242,7 +246,7 @@ function emptyState(): PersistedAppSettings {
     scrollSnapEnabled: defaults.scrollSnapEnabled,
     scrollSnapMode: defaults.scrollSnapMode as AoiScrollSnapMode,
     scrollSnapStrength: defaults.scrollSnapStrength,
-    selectedCategory: "home",
+    selectedCategory: AOI_ALL_CATEGORY,
     settingsDisplayDepth: defaults.settingsDisplayDepth,
     settingDerivationStrengths: normalizeAoiSettingDerivationStrengths(defaults.settingDerivationStrengths),
     smoothScrollDamping: defaults.smoothScrollDamping,
@@ -330,7 +334,7 @@ function coercePersistedState(value: unknown): PersistedAppSettings {
     scrollSnapEnabled: typeof candidate.scrollSnapEnabled === "boolean" ? candidate.scrollSnapEnabled : fallback.scrollSnapEnabled,
     scrollSnapMode: isAoiScrollSnapMode(candidate.scrollSnapMode) ? candidate.scrollSnapMode : fallback.scrollSnapMode,
     scrollSnapStrength: clampAoiScrollSetting(candidate.scrollSnapStrength, 0, 100, fallback.scrollSnapStrength),
-    selectedCategory: typeof candidate.selectedCategory === "string" && candidate.selectedCategory ? candidate.selectedCategory : fallback.selectedCategory,
+    selectedCategory: normalizeCommunityCategorySelection(candidate.selectedCategory),
     settingsDisplayDepth: isSettingsDisplayDepth(candidate.settingsDisplayDepth) ? candidate.settingsDisplayDepth : fallback.settingsDisplayDepth,
     settingDerivationStrengths: normalizeAoiSettingDerivationStrengths(candidate.settingDerivationStrengths, fallback.settingDerivationStrengths),
     smoothScrollDamping: clampAoiScrollSetting(candidate.smoothScrollDamping, 0.04, 0.22, fallback.smoothScrollDamping),
@@ -854,7 +858,7 @@ export const useAppSettingsStore = defineStore("app-settings", () => {
     scrollSnapEnabled.value = state.scrollSnapEnabled
     scrollSnapMode.value = state.scrollSnapMode
     scrollSnapStrength.value = state.scrollSnapStrength
-    selectedCategory.value = state.selectedCategory
+    selectedCategory.value = normalizeCommunityCategorySelection(state.selectedCategory)
     settingsDisplayDepth.value = state.settingsDisplayDepth
     Object.assign(settingDerivationStrengths, normalizeAoiSettingDerivationStrengths(state.settingDerivationStrengths))
     smoothScrollDamping.value = state.smoothScrollDamping
@@ -927,7 +931,7 @@ export const useAppSettingsStore = defineStore("app-settings", () => {
   }
 
   function setSelectedCategory(slug: string) {
-    selectedCategory.value = slug
+    selectedCategory.value = normalizeCommunityCategorySelection(slug)
     persist()
   }
 

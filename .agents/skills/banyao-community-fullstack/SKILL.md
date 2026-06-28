@@ -25,9 +25,10 @@ description: "Repository-specific workflow for banyao-web community frontend/bac
 
 - 后端社区生产能力以 `backend/internal/transport/http/contracts.go`、真实路由和 `backend/internal/modules/community` 为事实来源。
 - 发现后端社区 HTTP 接口存在硬编码数据、静态返回或伪造业务状态时，必须补齐 `backend/internal/modules/community` 内的 model、repository、service、handler 和真实持久化链路，并同步 route contract；不得在后端真实接口继续新增 Mock 分支或把 fixture 混入联调路径。
+- 视频分类生产来源是系统字典 `community.video.category`：字典 item 的 `value` 是分类 slug，`label` 是展示名，`sort` 是排序，`extra` JSON 可保存 `parentSlug`、`description`、`accentColor`。后端不得维护平行分类种子表或在真实接口硬编码分类；前端不得在真实模式写死 `design`、`home` 或其他生产分类默认值。
 - `GET /api/v1/public/community/status` 是前端判断真实 API、setup 状态和端点清单的入口。
 - 平台初始化未完成时，内容 API、社区账号 API 和账号路径应返回 503 result envelope，`messageKey=api.setup.required`，`data` 为 `CommunitySetupStatus`。
-- Nuxt mock 必须清楚标记为演示/调试能力；mock `/api/mock/status` 应返回 `mode=mock` 与 setup 已完成状态，避免伪装成真实联调。
+- Nuxt mock 必须清楚标记为演示/调试能力；mock `/api/mock/status` 应返回 `mode=mock` 与 setup 已完成状态，避免伪装成真实联调。mock 数据只允许放在 `frontend/server/api/mock/**` 与 `frontend/shared/mocks/**`，业务页面、store 和普通 composable 不得导入 mock fixture 或直接访问 `/api/mock`；真实模式只允许 API client 根据 `NUXT_PUBLIC_API_MOCK=true` 切入 mock。
 - 前端真实请求只通过 `useAoiApi()`、`useAoiAuthApi()` 与共享 DTO，不在页面散落 `/api/v1` 字符串。
 - 评论、动态、关注、收藏、历史、通知、投稿等用户范围数据必须以匿名或账号 `clientId` 为归属边界；评论和动态编辑 / 删除只能消费后端返回的 `ownedByCurrentClient`，不得通过作者名、列表位置或本地缓存推断权限。
 - 投稿审核入口位于主系统 `GET /api/v1/community/submissions` 与 `PATCH /api/v1/community/submissions/:submissionId/review`，必须走 route contract、OpenAPI、IAM 权限 `community_submission:review` 和 `backend/internal/modules/community` service 规则；`published` 可绑定既有 `publishedVideoId`，也可在请求携带受控 `mediaAssetId` 与 `durationSeconds` 时从 system media 资产生成社区视频记录，`sourceUrl` 仅作为过渡路径保留。不得把社区用户侧真实上传、转码或后台可视化审核页伪装成已完成。
@@ -56,6 +57,6 @@ powershell -ExecutionPolicy Bypass -File scripts/check-agent-skills.ps1
 git diff --check
 ```
 
-涉及评论编辑 / 删除、动态编辑 / 删除、互动写入、投稿审核、媒体资产关联或账号范围接口时，`scripts/check-frontend-community-api-smoke.ps1` 需覆盖真实后端创建、查询、更新、删除、system media 上传、审核状态流转或发布关联路径，不能只验证静态列表。
+涉及评论编辑 / 删除、动态编辑 / 删除、互动写入、投稿审核、媒体资产关联、账号范围接口或视频分类来源时，`scripts/check-frontend-community-api-smoke.ps1` 需覆盖真实后端创建、查询、更新、删除、system media 上传、审核状态流转、发布关联路径或通过系统字典 API 创建测试分类，不能只验证静态列表。
 
 运行失败时，先记录确切失败命令和错误，再修正或在最终输出说明未验证风险。

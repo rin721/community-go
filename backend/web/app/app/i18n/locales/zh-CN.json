@@ -6,6 +6,7 @@
     },
     "actions": {
       "backHome": "返回首页",
+      "close": "关闭",
       "goAdmin": "进入平台后台",
       "learnMore": "了解更多",
       "login": "登录",
@@ -520,6 +521,7 @@
       "notificationOutbox": "通知队列",
       "communityAccounts": "社区账号",
       "communitySubmissions": "投稿审核",
+      "communityCategories": "社区分类",
       "communityReports": "举报处理",
       "communityVideoJobs": "视频处理任务",
       "media": "媒体",
@@ -2620,6 +2622,94 @@
           "storageUnavailableDescription": "后端报告社区账号尚未持久化，请先运行社区账号迁移。"
         }
       },
+      "categories": {
+        "title": "社区分类",
+        "description": "通过系统字典 community.video.category 管理视频社区分类。前端真实模式只消费这里维护的字典项，不使用后端种子或前端硬编码分类。",
+        "badge": "系统字典",
+        "summaryLabel": "社区分类摘要",
+        "empty": "当前字典没有分类项。",
+        "dictionary": {
+          "name": "社区视频分类",
+          "description": "视频社区分类字典。字典项 value 为分类 slug，extra 可保存 parentSlug、description 和 accentColor。"
+        },
+        "actions": {
+          "cancel": "取消",
+          "cancelEdit": "取消编辑",
+          "confirmDelete": "确认删除",
+          "create": "创建分类",
+          "createDictionary": "创建分类字典",
+          "delete": "删除",
+          "edit": "编辑",
+          "new": "新分类",
+          "save": "保存分类"
+        },
+        "metrics": {
+          "total": "分类项",
+          "active": "启用",
+          "roots": "一级分类"
+        },
+        "controls": {
+          "accentColor": "强调色",
+          "description": "描述",
+          "label": "展示名称",
+          "noParent": "不设置父级",
+          "parent": "父级分类",
+          "slug": "分类 slug",
+          "sort": "排序",
+          "status": "状态"
+        },
+        "columns": {
+          "actions": "操作",
+          "category": "分类",
+          "parent": "父级",
+          "sort": "排序",
+          "status": "状态"
+        },
+        "form": {
+          "title": "分类项",
+          "description": "分类 slug 写入字典 item value；层级、描述和强调色写入 item extra JSON。"
+        },
+        "list": {
+          "title": "分类列表",
+          "description": "当前字典返回 {{count}} 个分类项。"
+        },
+        "delete": {
+          "title": "删除分类",
+          "description": "分类 {{name}} 会从系统字典删除。若已有视频仍引用该 slug，社区接口会暴露数据不一致错误。"
+        },
+        "messages": {
+          "createdTitle": "分类已创建",
+          "createdDescription": "{{name}} 已加入社区视频分类字典。",
+          "deletedTitle": "分类已删除",
+          "deletedDescription": "{{name}} 已从社区视频分类字典移除。",
+          "dictionaryCreatedTitle": "分类字典已创建",
+          "dictionaryCreatedDescription": "community.video.category 已创建，现在可以维护分类项。",
+          "dictionaryCreateFailedTitle": "分类字典创建失败",
+          "deleteFailedTitle": "分类删除失败",
+          "saveFailedTitle": "分类保存失败",
+          "updatedTitle": "分类已更新",
+          "updatedDescription": "{{name}} 的分类信息已保存。"
+        },
+        "states": {
+          "dictionaryMissingTitle": "缺少分类字典",
+          "dictionaryMissingDescription": "系统默认数据尚未创建 community.video.category。可以运行默认数据初始化，或使用本页创建字典壳。",
+          "emptyTitle": "没有分类项",
+          "emptyDescription": "创建至少一个启用分类后，前端上传和分类导航才能选择真实分类。",
+          "errorTitle": "社区分类不可用",
+          "loadingDescription": "正在读取社区分类字典。",
+          "permissionTitle": "需要字典读取权限",
+          "permissionDescription": "当前会话缺少平台级 dictionary:read 权限。",
+          "storageUnavailableTitle": "字典存储不可用",
+          "storageUnavailableDescription": "后端报告系统字典尚未持久化，请先运行系统模块迁移。",
+          "updatePermissionTitle": "只能查看，不能修改",
+          "updatePermissionDescription": "当前会话缺少平台级 dictionary:update 权限。"
+        },
+        "validation": {
+          "title": "分类字段需要修正",
+          "description": "分类 slug 必须以小写字母或数字开头，只能包含小写字母、数字、短横线或下划线；展示名称和排序必填。",
+          "parentDescription": "分类不能把自己设置为父级。"
+        }
+      },
       "submissions": {
         "title": "投稿审核",
         "description": "读取社区投稿审核队列，并通过真实审核接口保存通过或驳回结果。",
@@ -2629,7 +2719,7 @@
         "actions": {
           "approve": "通过",
           "reject": "驳回",
-          "publish": "转码并发布"
+          "publish": "创建转码任务"
         },
         "metrics": {
           "total": "当前返回",
@@ -2663,9 +2753,9 @@
           "reviewFailedTitle": "投稿《{{title}}》处理失败",
           "reviewSuccessTitle": "投稿状态已保存",
           "reviewSuccessDescription": "《{{title}}》已更新为 {{status}}。",
-          "publishFailedTitle": "投稿《{{title}}》发布失败",
+          "publishFailedTitle": "投稿《{{title}}》创建处理任务失败",
           "publishSuccessTitle": "视频处理任务已创建",
-          "publishSuccessDescription": "任务 {{id}} 当前状态为 {{status}}，成功后视频会出现在首页和视频详情页。"
+          "publishSuccessDescription": "任务 {{id}} 当前状态为 {{status}}，可进入视频处理任务页查看 worker 进度和 HLS 输出。"
         },
         "states": {
           "emptyTitle": "没有投稿数据",
@@ -2685,6 +2775,7 @@
         "summaryLabel": "视频处理任务摘要",
         "empty": "后端没有返回视频处理任务。",
         "actions": {
+          "details": "详情",
           "retry": "重试"
         },
         "metrics": {
@@ -2721,6 +2812,32 @@
         "list": {
           "title": "任务队列",
           "description": "当前筛选返回 {{count}} 个视频处理任务。"
+        },
+        "detail": {
+          "title": "任务详情",
+          "description": "查看所选任务的 worker lease、云端回调、HLS master、清晰度、错误和时间线。",
+          "loading": "正在读取视频任务详情。",
+          "renditions": "HLS 清晰度",
+          "fields": {
+            "id": "任务 ID",
+            "submissionId": "投稿 ID",
+            "videoId": "已发布视频",
+            "provider": "服务提供方",
+            "providerJobId": "云端任务",
+            "attempt": "尝试次数",
+            "lockedBy": "锁定 worker",
+            "lockedAt": "锁定时间",
+            "heartbeatAt": "心跳时间",
+            "nextRunAt": "下次执行",
+            "startedAt": "开始时间",
+            "finishedAt": "完成时间",
+            "callbackReceivedAt": "回调接收时间",
+            "inputStorageKey": "输入存储",
+            "outputStorageKey": "输出存储",
+            "outputPublicUrl": "HLS master",
+            "failureCode": "失败代码",
+            "errorMessage": "错误信息"
+          }
         },
         "messages": {
           "retryFailedTitle": "任务 {{id}} 重试失败",

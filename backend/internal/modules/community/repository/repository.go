@@ -84,12 +84,6 @@ func (e communityExecutor) WithTx(ctx context.Context, fn database.TxFunc) error
 	}))
 }
 
-func (r *repository) ListCategories(ctx context.Context) ([]model.Category, error) {
-	var categories []model.Category
-	err := r.db.Find(ctx, &categories, alive(), database.Order("display_order ASC, slug ASC"))
-	return categories, err
-}
-
 func (r *repository) ListCreators(ctx context.Context, limit int) ([]model.Creator, error) {
 	opts := []database.QueryOption{alive(), database.Order("follower_count DESC, joined_at ASC")}
 	if limit > 0 {
@@ -381,8 +375,8 @@ func (r *repository) ListVideos(ctx context.Context, filter model.VideoFilter) (
 		like := "%" + strings.ToLower(query) + "%"
 		opts = append(opts, database.Where("(LOWER(title) LIKE ? OR LOWER(description) LIKE ? OR LOWER(slug) LIKE ?)", like, like, like))
 	}
-	if category := strings.TrimSpace(filter.Category); category != "" && category != "home" {
-		videoIDs, err := r.videoIDsForCategory(ctx, category)
+	if len(filter.CategorySlugs) > 0 {
+		videoIDs, err := r.videoIDsForCategorySlugs(ctx, filter.CategorySlugs)
 		if err != nil {
 			return nil, err
 		}
@@ -632,16 +626,27 @@ func (r *repository) CreateCommunityVideoJob(ctx context.Context, job model.Comm
 
 func (r *repository) UpdateCommunityVideoJob(ctx context.Context, job model.CommunityVideoJob) error {
 	result, err := r.db.Update(ctx, &model.CommunityVideoJob{}, map[string]any{
-		"video_id":           job.VideoID,
-		"status":             job.Status,
-		"progress":           job.Progress,
-		"input_storage_key":  job.InputStorageKey,
-		"output_storage_key": job.OutputStorageKey,
-		"output_public_url":  job.OutputPublicURL,
-		"error_message":      job.ErrorMessage,
-		"started_at":         job.StartedAt,
-		"finished_at":        job.FinishedAt,
-		"updated_at":         job.UpdatedAt,
+		"video_id":             job.VideoID,
+		"status":               job.Status,
+		"progress":             job.Progress,
+		"attempt":              job.Attempt,
+		"max_attempts":         job.MaxAttempts,
+		"locked_by":            job.LockedBy,
+		"locked_at":            job.LockedAt,
+		"heartbeat_at":         job.HeartbeatAt,
+		"next_run_at":          job.NextRunAt,
+		"input_storage_key":    job.InputStorageKey,
+		"output_storage_key":   job.OutputStorageKey,
+		"output_public_url":    job.OutputPublicURL,
+		"request_payload":      job.RequestPayload,
+		"provider_job_id":      job.ProviderJobID,
+		"callback_received_at": job.CallbackReceivedAt,
+		"failure_code":         job.FailureCode,
+		"cancel_requested_at":  job.CancelRequestedAt,
+		"error_message":        job.ErrorMessage,
+		"started_at":           job.StartedAt,
+		"finished_at":          job.FinishedAt,
+		"updated_at":           job.UpdatedAt,
 	}, database.Where("id = ?", strings.TrimSpace(job.ID)), alive())
 	if err != nil {
 		return err
@@ -650,6 +655,70 @@ func (r *repository) UpdateCommunityVideoJob(ctx context.Context, job model.Comm
 		return communityservice.ErrNotFound
 	}
 	return nil
+}
+
+func (r *repository) ClaimCommunityVideoJobs(ctx context.Context, workerID string, now time.Time, leaseTimeout time.Duration, limit int) ([]model.CommunityVideoJob, error) {
+	workerID = strings.TrimSpace(workerID)
+	if workerID == "" {
+		return nil, communityservice.ErrInvalidInput
+	}
+	if limit <= 0 {
+		limit = 1
+	}
+	if leaseTimeout <= 0 {
+		leaseTimeout = time.Hour
+	}
+	staleBefore := now.Add(-leaseTimeout)
+	if _, err := r.db.Update(ctx, &model.CommunityVideoJob{}, map[string]any{
+		"status":       model.CommunityVideoJobStatusQueued,
+		"progress":     0,
+		"locked_by":    "",
+		"locked_at":    nil,
+		"heartbeat_at": nil,
+		"next_run_at":  now,
+		"updated_at":   now,
+	}, database.Where("status = ? AND provider_job_id = '' AND (heartbeat_at IS NULL OR heartbeat_at <= ?) AND (max_attempts = 0 OR attempt < max_attempts)", model.CommunityVideoJobStatusRunning, staleBefore), alive()); err != nil {
+		return nil, err
+	}
+	opts := []database.QueryOption{
+		database.Where("status = ?", model.CommunityVideoJobStatusQueued),
+		database.Where("(next_run_at IS NULL OR next_run_at <= ?)", now),
+		alive(),
+		database.Order("next_run_at ASC, created_at ASC, id ASC"),
+		database.Limit(limit),
+	}
+	var candidates []model.CommunityVideoJob
+	if err := r.db.Find(ctx, &candidates, opts...); err != nil {
+		return nil, err
+	}
+	claimed := make([]model.CommunityVideoJob, 0, len(candidates))
+	for _, job := range candidates {
+		attempt := job.Attempt + 1
+		if job.MaxAttempts <= 0 {
+			job.MaxAttempts = 3
+		}
+		result, err := r.db.Update(ctx, &model.CommunityVideoJob{}, map[string]any{
+			"attempt":      attempt,
+			"max_attempts": job.MaxAttempts,
+			"locked_by":    workerID,
+			"locked_at":    now,
+			"heartbeat_at": now,
+			"updated_at":   now,
+		}, database.Where("id = ? AND status = ? AND (locked_at IS NULL OR locked_at <= ? OR locked_by = '')", job.ID, model.CommunityVideoJobStatusQueued, staleBefore), alive())
+		if err != nil {
+			return nil, err
+		}
+		if result.RowsAffected == 0 {
+			continue
+		}
+		job.Attempt = attempt
+		job.LockedBy = workerID
+		job.LockedAt = &now
+		job.HeartbeatAt = &now
+		job.UpdatedAt = now
+		claimed = append(claimed, job)
+	}
+	return claimed, nil
 }
 
 func (r *repository) FindCommunityVideoJob(ctx context.Context, jobID string) (*model.CommunityVideoJob, error) {
@@ -865,11 +934,7 @@ func (r *repository) DeleteVideoComment(ctx context.Context, videoID string, com
 	return err
 }
 
-func (r *repository) videoIDsForCategory(ctx context.Context, category string) ([]string, error) {
-	categorySlugs, err := r.categorySelfAndChildren(ctx, category)
-	if err != nil {
-		return nil, err
-	}
+func (r *repository) videoIDsForCategorySlugs(ctx context.Context, categorySlugs []string) ([]string, error) {
 	if len(categorySlugs) == 0 {
 		return []string{}, nil
 	}
@@ -885,37 +950,6 @@ func (r *repository) videoIDsForCategory(ctx context.Context, category string) (
 		}
 		seen[link.VideoID] = struct{}{}
 		out = append(out, link.VideoID)
-	}
-	return out, nil
-}
-
-func (r *repository) categorySelfAndChildren(ctx context.Context, slug string) ([]string, error) {
-	categories, err := r.ListCategories(ctx)
-	if err != nil {
-		return nil, err
-	}
-	seen := map[string]struct{}{}
-	var walk func(string)
-	walk = func(current string) {
-		if _, ok := seen[current]; ok {
-			return
-		}
-		seen[current] = struct{}{}
-		for _, category := range categories {
-			if category.ParentSlug != nil && *category.ParentSlug == current {
-				walk(category.Slug)
-			}
-		}
-	}
-	for _, category := range categories {
-		if category.Slug == slug {
-			walk(slug)
-			break
-		}
-	}
-	out := make([]string, 0, len(seen))
-	for value := range seen {
-		out = append(out, value)
 	}
 	return out, nil
 }

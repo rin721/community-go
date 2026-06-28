@@ -233,6 +233,16 @@ community:
       header_name: X-Community-CSRF-Token
   video:
     mode: local
+    worker:
+      enabled: true
+      pollIntervalSeconds: 5
+      batchSize: 2
+      leaseTimeoutSeconds: 1800
+      maxAttempts: 3
+      retryDelaySeconds: 60
+      executorPool: background
+      dispatchTimeoutSeconds: 30
+      callbackMaxSkewSeconds: 600
     local:
       ffmpegPath: ffmpeg
       ffprobePath: ffprobe
@@ -262,6 +272,9 @@ community:
       objectStorage: ""
       bucket: ""
       cdnBaseUrl: ""
+      dispatchUrl: ""
+      dispatchSecret: ""
+      callbackBaseUrl: ""
       callbackSecret: ""
 
 migration:

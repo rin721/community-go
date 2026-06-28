@@ -1,6 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
-import { CheckCircle2, Clock3, FileVideo, RefreshCw, RotateCcw, RotateCw, Search, XCircle } from "lucide-react";
+import {
+  CheckCircle2,
+  Clock3,
+  Eye,
+  FileVideo,
+  RefreshCw,
+  RotateCcw,
+  RotateCw,
+  Search,
+  XCircle,
+} from "lucide-react";
 import { useMemo, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -55,6 +65,7 @@ export default function AdminCommunityVideoJobsRoute() {
   const [filters, setFilters] = useState<CommunityVideoJobQuery>({});
   const [limit, setLimit] = useState(defaultLimit);
   const [notice, setNotice] = useState<CommunityNotice | null>(null);
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
 
   const canReadJobs = hasSessionPermission(permissions, {
     code: "community_video:read",
@@ -72,6 +83,13 @@ export default function AdminCommunityVideoJobsRoute() {
     enabled: canReadJobs,
     queryFn: ({ signal }) => communityApi.listVideoJobs({ ...filters, limit }, { signal }),
     queryKey: jobsQueryKey,
+  });
+  const selectedJobQuery = useQuery({
+    enabled: canReadJobs && Boolean(selectedJobId),
+    queryFn: ({ signal }) => communityApi.getVideoJob(selectedJobId || "", { signal }),
+    queryKey: selectedJobId
+      ? queryKeys.community.videoJob(i18n.language, selectedJobId)
+      : queryKeys.community.videoJob(i18n.language, "__empty__"),
   });
 
   const retryMutation = useMutation({
@@ -169,15 +187,24 @@ export default function AdminCommunityVideoJobsRoute() {
       },
       {
         cell: ({ row }) => (
-          <Button
-            appearance="secondary"
-            disabled={!canRetryJobs || row.original.status !== "failed"}
-            icon={<RotateCw size={16} />}
-            loading={retryMutation.isPending && sameCommunityID(retryMutation.variables?.id, row.original.id)}
-            onClick={() => retryMutation.mutate(row.original)}
-          >
-            {t("admin.community.videoJobs.actions.retry")}
-          </Button>
+          <div className="console-community-row-actions">
+            <Button
+              appearance="secondary"
+              icon={<Eye size={16} />}
+              onClick={() => setSelectedJobId(String(row.original.id))}
+            >
+              {t("admin.community.videoJobs.actions.details")}
+            </Button>
+            <Button
+              appearance="secondary"
+              disabled={!canRetryJobs || row.original.status !== "failed"}
+              icon={<RotateCw size={16} />}
+              loading={retryMutation.isPending && sameCommunityID(retryMutation.variables?.id, row.original.id)}
+              onClick={() => retryMutation.mutate(row.original)}
+            >
+              {t("admin.community.videoJobs.actions.retry")}
+            </Button>
+          </div>
         ),
         header: t("admin.community.videoJobs.columns.actions"),
       },
@@ -274,6 +301,31 @@ export default function AdminCommunityVideoJobsRoute() {
           <StateBlock title={t("admin.community.videoJobs.states.emptyTitle")} description={t("admin.community.videoJobs.states.emptyDescription")} />
         )}
       </section>
+
+      {selectedJobId ? (
+        <section className="console-admin-panel" aria-labelledby="admin-community-video-job-detail-title">
+          <header className="console-admin-panel-header-row">
+            <div>
+              <h2 id="admin-community-video-job-detail-title">{t("admin.community.videoJobs.detail.title")}</h2>
+              <p>{t("admin.community.videoJobs.detail.description")}</p>
+            </div>
+            <Button appearance="ghost" icon={<XCircle size={16} />} onClick={() => setSelectedJobId(null)}>
+              {t("common.actions.close")}
+            </Button>
+          </header>
+          {selectedJobQuery.isLoading ? (
+            <TableSkeleton caption={t("admin.community.videoJobs.detail.loading")} columns={2} rows={6} />
+          ) : selectedJobQuery.error ? (
+            <StateBlock
+              intent="danger"
+              title={adminErrorTitle(selectedJobQuery.error, t, jobErrorCopy)}
+              description={adminErrorDescription(selectedJobQuery.error, t, jobErrorCopy)}
+            />
+          ) : selectedJobQuery.data ? (
+            <VideoJobDetail job={selectedJobQuery.data} locale={i18n.language} noneLabel={t("common.labels.none")} t={t} />
+          ) : null}
+        </section>
+      ) : null}
     </section>
   );
 }
@@ -296,4 +348,67 @@ function videoJobStatusLabel(status: string, t: (key: string) => string) {
   if (status === "succeeded") return t("admin.community.videoJobStatus.succeeded");
   if (status === "canceled") return t("admin.community.videoJobStatus.canceled");
   return t("admin.community.videoJobStatus.queued");
+}
+
+function VideoJobDetail({
+  job,
+  locale,
+  noneLabel,
+  t,
+}: {
+  job: CommunityVideoJob;
+  locale: string;
+  noneLabel: string;
+  t: (key: string) => string;
+}) {
+  const rows = [
+    [t("admin.community.videoJobs.detail.fields.id"), job.id],
+    [t("admin.community.videoJobs.detail.fields.submissionId"), job.submissionId],
+    [t("admin.community.videoJobs.detail.fields.videoId"), job.videoId],
+    [t("admin.community.videoJobs.detail.fields.provider"), job.provider],
+    [t("admin.community.videoJobs.detail.fields.providerJobId"), job.providerJobId],
+    [t("admin.community.videoJobs.detail.fields.attempt"), `${job.attempt}/${job.maxAttempts}`],
+    [t("admin.community.videoJobs.detail.fields.lockedBy"), job.lockedBy],
+    [t("admin.community.videoJobs.detail.fields.lockedAt"), formatCommunityDate(job.lockedAt, locale, noneLabel)],
+    [t("admin.community.videoJobs.detail.fields.heartbeatAt"), formatCommunityDate(job.heartbeatAt, locale, noneLabel)],
+    [t("admin.community.videoJobs.detail.fields.nextRunAt"), formatCommunityDate(job.nextRunAt, locale, noneLabel)],
+    [t("admin.community.videoJobs.detail.fields.startedAt"), formatCommunityDate(job.startedAt, locale, noneLabel)],
+    [t("admin.community.videoJobs.detail.fields.finishedAt"), formatCommunityDate(job.finishedAt, locale, noneLabel)],
+    [t("admin.community.videoJobs.detail.fields.callbackReceivedAt"), formatCommunityDate(job.callbackReceivedAt, locale, noneLabel)],
+    [t("admin.community.videoJobs.detail.fields.inputStorageKey"), job.inputStorageKey],
+    [t("admin.community.videoJobs.detail.fields.outputStorageKey"), job.outputStorageKey],
+    [t("admin.community.videoJobs.detail.fields.outputPublicUrl"), job.outputPublicUrl],
+    [t("admin.community.videoJobs.detail.fields.failureCode"), job.failureCode],
+    [t("admin.community.videoJobs.detail.fields.errorMessage"), job.errorMessage],
+  ];
+  return (
+    <div className="console-community-job-detail">
+      <dl>
+        {rows.map(([label, value]) => (
+          <div key={label}>
+            <dt>{label}</dt>
+            <dd>{value ? String(value) : noneLabel}</dd>
+          </div>
+        ))}
+      </dl>
+      <div className="console-community-job-renditions">
+        <h3>{t("admin.community.videoJobs.detail.renditions")}</h3>
+        {job.renditions?.length ? (
+          <ul>
+            {job.renditions.map((rendition) => (
+              <li key={rendition.id}>
+                <strong>{rendition.qualityLabel}</strong>
+                <span>
+                  {rendition.width}x{rendition.height} / {rendition.bitrateKbps}kbps
+                </span>
+                <code className="console-audit-code">{rendition.playlistUrl}</code>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="console-iam-muted">{noneLabel}</p>
+        )}
+      </div>
+    </div>
+  );
 }

@@ -68,6 +68,11 @@ var builtinDictionarySeeds = []dictionarySeed{
 			{Label: "失败", Sort: 20, Value: "failed"},
 		},
 	},
+	{
+		Code:        "community.video.category",
+		Description: "视频社区分类字典。字典项 value 为分类 slug，extra 可保存 parentSlug、description 和 accentColor。",
+		Name:        "社区视频分类",
+	},
 }
 
 var builtinParameterSeeds = []parameterSeed{

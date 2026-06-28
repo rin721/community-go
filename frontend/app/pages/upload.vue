@@ -49,7 +49,6 @@ const validation = computed<UploadDraftValidation>(() => activeDraft.value
   ? drafts.validateDraft(activeDraft.value)
   : { missing: ["upload.validation.createDraft"], ready: false, warnings: [] })
 const categoryOptions = computed(() => categories.value
-  .flatMap((category) => category.slug === "home" ? [] : [category])
   .flatMap((category) => getCategoryLeafNodes([category]))
   .map((category) => ({ label: formatCategoryPath(category), value: category.slug })))
 const visibilityOptions = computed(() => [
@@ -161,7 +160,7 @@ const draftDescription = computed({
   set: (value: string) => drafts.updateActiveDraft({ description: value })
 })
 const draftCategory = computed({
-  get: () => activeDraft.value?.categorySlug || "design",
+  get: () => activeDraft.value?.categorySlug || "",
   set: (value: string) => drafts.updateActiveDraft({ categorySlug: value })
 })
 const draftVisibility = computed({
@@ -189,6 +188,16 @@ watch(() => drafts.hydrated, (hydrated) => {
 
 watch(() => activeDraft.value?.id, () => {
   selectedSourceFile.value = null
+})
+
+watch([categoryOptions, categoriesPending, () => activeDraft.value?.categorySlug], ([options, pending, slug]) => {
+  if (!activeDraft.value || pending || !slug) {
+    return
+  }
+
+  if (!options.some((option) => option.value === slug)) {
+    drafts.updateActiveDraft({ categorySlug: "" })
+  }
 })
 
 onMounted(() => {
@@ -271,9 +280,9 @@ async function submitActiveDraft() {
       description: draft.description,
       mediaAssetId: uploadedSource.mediaAssetId,
       sensitive: draft.sensitive,
-      sourceName: uploadedSource.sourceName || source.name,
-      sourceSize: uploadedSource.sourceSize || source.size,
-      sourceType: uploadedSource.sourceType || source.type || "video/*",
+      sourceName: uploadedSource.displayName || uploadedSource.originalName || source.name,
+      sourceSize: uploadedSource.sizeBytes || source.size,
+      sourceType: uploadedSource.mimeType || source.type || "video/*",
       tags: draft.tags,
       title: draft.title,
       visibility: draft.visibility as CommunitySubmissionVisibility
@@ -363,25 +372,28 @@ function draftStatusLabel(status?: string) {
   return status ? t("upload.status.draft") : t("upload.status.none")
 }
 
-function submissionStatusLabel(status: string) {
-  if (status === "pending_review") {
+function submissionStatusLabel(item: CommunitySubmissionItem) {
+  if (item.status === "pending_review") {
     return t("upload.submissions.pendingReview")
   }
-  if (status === "approved") {
-    return t("upload.submissions.approved")
+  if (item.status === "approved") {
+    return item.mediaAssetId ? t("upload.submissions.processing") : t("upload.submissions.approved")
   }
-  if (status === "rejected") {
+  if (item.status === "rejected") {
     return t("upload.submissions.rejected")
   }
-  if (status === "published") {
+  if (item.status === "published") {
     return t("upload.submissions.published")
   }
 
-  return status
+  return item.status
 }
 
 function submissionReviewMessage(item: CommunitySubmissionItem) {
   if (item.status === "approved") {
+    if (item.mediaAssetId) {
+      return t("upload.submissions.processingHint")
+    }
     return item.reviewNote
       ? t("upload.submissions.reviewNote", { note: item.reviewNote })
       : t("upload.submissions.approvedHint")
@@ -785,7 +797,7 @@ useHead(() => ({
             >
               <div class="upload-submission-list__heading">
                 <strong>{{ item.title }}</strong>
-                <span :data-status="item.status">{{ submissionStatusLabel(item.status) }}</span>
+                <span :data-status="item.status">{{ submissionStatusLabel(item) }}</span>
               </div>
               <p>{{ item.description || t('upload.review.emptyDescription') }}</p>
               <dl class="upload-submission-list__meta">

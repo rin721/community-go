@@ -1,17 +1,19 @@
 # Community 模块
 
-`internal/modules/community` 为 `frontend/` Nuxt 视频社区提供公开社区数据接口，并为后台控制台提供社区账号、投稿审核和举报处理管理契约。当前阶段覆盖独立社区账号注册与会话、首页、分类、视频列表、视频详情、弹幕读取与轻量发布、视频评论读取 / 轻量发布 / 本人编辑删除、视频级举报提交与处理、投稿元数据待审核池、主系统审核队列、发布视频 ID 回写、审核发布时关联 system media 资产并生成社区视频记录、搜索、创作者资料、创作者关注、视频点赞 / 收藏 / 稍后看、观看历史、社区动态流查询 / 发布 / 本人编辑删除、关注动态和通知收件箱。首页公告来自公告模块的真实已发布公告；没有已发布公告时返回 `announcement=null`；首页不再展示社区动态，动态能力保留给动态页和关注流。
+`internal/modules/community` 为 `frontend/` Nuxt 视频社区提供公开社区数据接口，并为后台控制台提供社区分类、社区账号、投稿审核、视频处理任务和举报处理管理契约。当前阶段覆盖独立社区账号注册与会话、首页、分类、视频列表、视频详情、弹幕读取与轻量发布、视频评论读取 / 轻量发布 / 本人编辑删除、视频级举报提交与处理、投稿元数据待审核池、主系统审核队列、账号源文件上传、异步转码任务、本地 FFmpeg HLS 发布、通用云 webhook dispatch / callback、发布视频 ID 回写、搜索、创作者资料、创作者关注、视频点赞 / 收藏 / 稍后看、观看历史、社区动态流查询 / 发布 / 本人编辑删除、关注动态和通知收件箱。首页公告来自公告模块的真实已发布公告；没有已发布公告时返回 `announcement=null`；首页不再展示社区动态，动态能力保留给动态页和关注流。
 
 ## 职责
 
 - 提供 `/api/v1/public/community/*` 公开 API，供 Nuxt 前端在关闭 mock 后直接接入；`/status` 的 endpoint 清单由真实 route contract 注册结果派生。
 - 提供社区账号注册入口，浏览器提交用户名、显示名、邮箱和密码，响应只暴露社区会话和账号展示需要的最小字段；社区认证只读写 `community_accounts`、`community_sessions` 和 `community_*` Cookie，不创建 IAM 用户、`community-*` 组织、`owner` 角色或 `console_*` 控制台会话。
-- 维护社区分类、创作者、视频、视频源、标签、弹幕、公开评论、社区动态、关注关系、视频互动关系、观看历史和通知收件箱的持久化模型。
+- 通过系统字典 `community.video.category` 读取社区视频分类；字典 item 的 `value` 为分类 slug、`label` 为展示名、`sort` 为排序，`extra` JSON 可保存 `parentSlug`、`description`、`accentColor` 等展示元数据。
+- 维护社区创作者、视频、视频分类关联、视频源、标签、弹幕、公开评论、社区动态、关注关系、视频互动关系、观看历史和通知收件箱的持久化模型。
 - 支持视频弹幕列表读取和轻量公开发布。
 - 支持视频评论列表按 `sort=newest/oldest` 读取、轻量公开发布和本人编辑 / 删除；评论归属来自匿名或账号 `clientId`，列表可返回 `ownedByCurrentClient`，删除后同步视频 `comment_count`。
 - 支持视频级轻量举报提交，保存匿名 `clientId`、原因、补充说明和待处理状态。
 - 支持投稿元数据提交和查询，保存社区账号或匿名 `clientId`、作者名、标题、简介、分类、标签、可见性和文件元数据，不保存文件字节。
-- 支持主系统权限保护的投稿审核队列和审核状态流转：`community_submission:review` 可读取全部投稿、写入 `approved` / `rejected` / `published` 状态、审核备注、审核时间、受控 `mediaAssetId` 和发布视频 ID；`published` 可绑定既有视频 ID，也可在请求携带 `mediaAssetId` 与 `durationSeconds` 时从 `system_media_assets` 生成 `community_videos`、默认播放源、分类关联和标签记录；`sourceUrl` / `durationSeconds` 仍作为过渡发布路径保留。
+- 支持主系统权限保护的投稿审核队列和审核状态流转：`community_submission:review` 可读取全部投稿、写入 `approved` / `rejected` / `published` 状态、审核备注、审核时间、受控 `mediaAssetId` 和发布视频 ID；常规主流程在 `approved` 后由 `community_video:transcode` 创建异步转码发布任务，`published` 绑定既有视频 ID 或过渡直发路径仅作为兼容能力保留。
+- 支持异步视频处理任务：`community_video:transcode` 创建 queued 任务并立即返回；应用生命周期 worker 从数据库 claim queued job，本地模式复用 FFmpeg / FFprobe 生成 HLS master 与 renditions，云模式向 `community.video.cloud.dispatchUrl` 发送 HMAC 签名 dispatch，并由公开签名回调发布视频。
 - 支持主系统权限保护的社区账号管理：`community_account:read` 读取社区账号列表，`community_account:update` 管理社区角色 `registered/creator` 和状态 `active/disabled`，不授予控制台 IAM 角色。
 - 支持主系统权限保护的举报处理：`community_report:review` 读取举报队列，并将举报保存为 `resolved` 或 `rejected`。
 - 支持社区账号或匿名 `clientId` 关注 / 取消关注创作者，并同步创作者 `follower_count`。
@@ -25,7 +27,7 @@
 
 ## 非职责
 
-- 社区用户侧真实文件上传、视频转码、评论 / 弹幕审核、创作者中心、活动运营、批量评论治理和外部通知投递属于独立能力范围；当前普通投稿创建仍只保存浏览器草稿文件元数据，真实文件字节通过主系统 system media 上传入口进入平台，并由审核发布请求用 `mediaAssetId` 受控关联。
+- 评论 / 弹幕审核、创作者中心、活动运营、批量评论治理、登录态与匿名关系归并和外部通知投递属于独立能力范围；当前普通投稿创建仍只保存投稿元数据，真实源文件字节通过社区账号上传入口进入受控媒体资产，再由后台审核和异步视频任务发布。
 - 生产交付面聚焦 `/api/v1/public/community/*` 与模块化扩展链路。
 - Nuxt 页面展示的生产写入能力以当前社区公开 API 为准；评论写入失败必须显式反馈，弹幕写入失败只能降级到浏览器缓存，浏览器本地状态只保存显示名称、匿名 clientId、观看历史和必要降级缓存。
 
@@ -60,6 +62,7 @@
 - `POST /account/notifications/read`
 - `GET /account/submissions`
 - `POST /account/submissions`
+- `POST /account/submissions/upload`
 - `GET /account/users/:handle/follow-state`
 - `POST /account/users/:handle/follow`
 - `DELETE /account/users/:handle/follow`
@@ -107,10 +110,17 @@
 - `GET /history`
 - `POST /history/clear`
 - `POST /videos/:idOrSlug/history`
+- `POST /api/v1/community/submissions/:submissionId/transcode`（主系统权限 `community_video:transcode`）
+- `GET /api/v1/community/video-jobs`（主系统权限 `community_video:read`）
+- `GET /api/v1/community/video-jobs/:jobId`（主系统权限 `community_video:read`）
+- `POST /api/v1/community/video-jobs/:jobId/retry`（主系统权限 `community_video:retry`）
+- `POST /api/v1/public/community/video-jobs/:jobId/callback`（云端视频处理 HMAC 回调）
 
 ## 数据
 
-社区数据表覆盖社区账号、社区会话、分类、创作者、视频、视频源、标签、弹幕、公开评论、关注关系、视频互动、举报、通知、动态、投稿元数据和观看历史。平台初始化完成后，公开接口读取这些表并返回真实社区内容；平台初始化未完成时，`/status` 只返回接口清单和 setup 状态，内容接口保持统一的初始化响应。真实运行路径只保留中性的社区分类 taxonomy；早期迁移写入的演示视频、创作者、动态、评论、弹幕、播放源、标签和相关派生记录由 `internal/migrations/20260627000200_remove_community_demo_content.sql` 按固定 demo ID 清理，Nuxt mock 继续保留演示内容。社区账号与匿名客户端通过 `client_id` 统一区分数据范围；视频评论和社区动态的 `client_id` 用于本人编辑 / 删除。投稿元数据额外保存 `review_note`、`reviewer_id`、`reviewed_at`、`media_asset_id`、`published_video_id` 和 `published_at`，用于主系统审核队列、system media 资产关联和发布状态回写；审核发布生成视频时会写入 `community_videos`、`community_video_sources`、`community_video_categories`、`community_video_tags` 和基于投稿作者名生成的社区创作者资料，不写入演示型 bio 或默认展示名。`20260627000400_create_community_accounts.sql` 还会迁移仅属于 `community-*` 组织的历史错误 IAM 社区用户，撤销其控制台会话并移出 IAM 控制台身份。
+社区数据表覆盖社区账号、社区会话、创作者、视频、视频分类关联、视频源、标签、弹幕、公开评论、关注关系、视频互动、举报、通知、动态、投稿元数据和观看历史。视频分类不再由独立 `community_categories` 生产表维护，`GET /categories`、视频列表分类筛选、投稿分类校验和审核发布分类装饰统一读取系统字典 `community.video.category`；字典缺失或没有 active item 时分类接口返回空列表，提交投稿必须显式选择存在的分类。平台初始化完成后，公开接口读取真实社区表和系统字典并返回真实社区内容；平台初始化未完成时，`/status` 只返回接口清单和 setup 状态，内容接口保持统一的初始化响应。旧社区迁移不再写入 demo 分类、创作者、视频、动态、评论、弹幕、播放源、标签或相关派生记录，后续 demo 清理迁移保留版本链但为空操作说明；Nuxt mock 继续只在 `NUXT_PUBLIC_API_MOCK=true` 的边界内保留演示内容。`scripts/check-frontend-community-boundary.ps1` 同时扫描后端社区生产 Go / SQL 路径，阻止恢复 `community_categories` 生产分类表、社区 demo seed、生产分类默认值或 mock / fixture / demo 业务分支；后端 `_test.go` 中的中性 fixture 只服务单元测试，不代表生产分类。社区账号与匿名客户端通过 `client_id` 统一区分数据范围；视频评论和社区动态的 `client_id` 用于本人编辑 / 删除。投稿元数据额外保存 `review_note`、`reviewer_id`、`reviewed_at`、`media_asset_id`、`published_video_id` 和 `published_at`，用于主系统审核队列、system media 资产关联和发布状态回写；审核发布生成视频时会写入 `community_videos`、`community_video_sources`、`community_video_categories`、`community_video_tags` 和基于投稿作者名生成的社区创作者资料，不写入演示型 bio 或默认展示名。`20260627000400_create_community_accounts.sql` 还会迁移仅属于 `community-*` 组织的历史错误 IAM 社区用户，撤销其控制台会话并移出 IAM 控制台身份。
+
+视频处理任务由 `community_video_jobs` 和 `community_video_renditions` 承载。`20260628000100_create_community_video_jobs.sql` 创建基础任务与清晰度表，`20260628000200_extend_community_video_jobs_worker.sql` 追加 `attempt`、`max_attempts`、`locked_by`、`locked_at`、`heartbeat_at`、`next_run_at`、`request_payload`、`provider_job_id`、`callback_received_at`、`failure_code` 和 `cancel_requested_at`，用于数据库 lease、失败重试、云 provider 回调和后台任务详情展示。成功任务会发布 HLS source、原始 source 和 renditions；失败任务保留真实错误信息与 failure code，供后台重试。
 
 ## 验证
 

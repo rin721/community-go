@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { AOI_ALL_CATEGORY } from "~/utils/communityCategories"
+
 const config = useRuntimeConfig()
 const { t } = useI18n()
 const {
@@ -80,7 +82,7 @@ function resolveSetupUrl(apiBaseURL: string) {
           :title="t('home.emptyCategoryTitle')"
           action-icon="rotate-ccw"
           :action-label="t('home.backHome')"
-          @action="selectCategory('home')"
+          @action="selectCategory(AOI_ALL_CATEGORY)"
         />
 
         <VideoGrid v-else-if="videos.length > 0" :videos="videos" />

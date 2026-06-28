@@ -228,17 +228,28 @@ export type CommunityVideoRendition = {
 };
 
 export type CommunityVideoJob = {
+  attempt: number;
+  callbackReceivedAt?: string | null;
+  cancelRequestedAt?: string | null;
   createdAt: string;
   errorMessage?: string;
+  failureCode?: string;
   finishedAt?: string | null;
+  heartbeatAt?: string | null;
   id: string;
   inputStorageKey?: string;
+  lockedAt?: string | null;
+  lockedBy?: string;
+  maxAttempts: number;
   mediaAssetId?: number | string;
+  nextRunAt?: string | null;
   outputPublicUrl?: string;
   outputStorageKey?: string;
   progress: number;
   provider: string;
+  providerJobId?: string;
   renditions?: CommunityVideoRendition[];
+  requestPayload?: string;
   startedAt?: string | null;
   status: CommunityVideoJobStatus;
   submissionId: string;

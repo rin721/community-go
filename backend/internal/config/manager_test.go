@@ -34,6 +34,7 @@ func TestCopyConfigCoversAllFieldsAndDeepCopiesSlices(t *testing.T) {
 	got.CORS.AllowMethods[0] = "PATCH"
 	got.CORS.AllowHeaders[0] = "X-Changed"
 	got.CORS.ExposeHeaders[0] = "X-Changed-Expose"
+	*got.Community.Video.Worker.Enabled = false
 	*got.WebUI.Enabled = false
 	got.EnvOverride.DisabledPaths[0] = "auth.refresh_token_pepper"
 
@@ -63,6 +64,9 @@ func TestCopyConfigCoversAllFieldsAndDeepCopiesSlices(t *testing.T) {
 	}
 	if src.CORS.ExposeHeaders[0] == got.CORS.ExposeHeaders[0] {
 		t.Fatal("copyConfig() shares CORS.ExposeHeaders slice with source")
+	}
+	if *src.Community.Video.Worker.Enabled == *got.Community.Video.Worker.Enabled {
+		t.Fatal("copyConfig() shares Community.Video.Worker.Enabled pointer with source")
 	}
 	if *src.WebUI.Enabled == *got.WebUI.Enabled {
 		t.Fatal("copyConfig() shares WebUI.Enabled pointer with source")
@@ -952,6 +956,17 @@ func testCompleteConfig() *Config {
 			},
 			Video: CommunityVideoConfig{
 				Mode: DefaultCommunityVideoMode,
+				Worker: CommunityVideoWorkerConfig{
+					Enabled:                boolPtr(true),
+					PollIntervalSeconds:    DefaultCommunityVideoWorkerPollSeconds,
+					BatchSize:              DefaultCommunityVideoWorkerBatchSize,
+					LeaseTimeoutSeconds:    DefaultCommunityVideoWorkerLeaseSeconds,
+					MaxAttempts:            DefaultCommunityVideoWorkerMaxAttempts,
+					RetryDelaySeconds:      DefaultCommunityVideoWorkerRetryDelaySeconds,
+					ExecutorPool:           DefaultCommunityVideoWorkerExecutorPool,
+					DispatchTimeoutSeconds: DefaultCommunityVideoWorkerDispatchTimeoutSeconds,
+					CallbackMaxSkewSeconds: DefaultCommunityVideoWorkerCallbackMaxSkewSeconds,
+				},
 				Local: CommunityVideoLocalConfig{
 					FFmpegPath:    DefaultCommunityVideoLocalFFmpegPath,
 					FFprobePath:   DefaultCommunityVideoLocalFFprobePath,

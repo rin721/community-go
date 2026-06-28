@@ -36,7 +36,7 @@ function createBlankDraft(): UploadDraft {
 
   return {
     allowComments: true,
-    categorySlug: "design",
+    categorySlug: "",
     createdAt: timestamp,
     description: "",
     id: createId(),

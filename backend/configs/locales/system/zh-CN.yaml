@@ -50,6 +50,8 @@ config.sections.storage.label: 文件存储
 config.sections.storage.description: 存储驱动、本地路径和对象存储配置。
 config.sections.system.label: 系统管理
 config.sections.system.description: 系统默认数据和后台维护清理策略。
+config.sections.community.label: 视频社区
+config.sections.community.description: 社区视频 worker、本地 FFmpeg 和云端 webhook 配置。
 config.sections.runtime.label: 运行策略
 config.sections.runtime.description: CORS、国际化、迁移、执行器和 RPC 的运行策略。
 
@@ -117,6 +119,14 @@ config.groups.system.defaults.label: 默认数据
 config.groups.system.defaults.description: 控制启动时是否幂等补齐平台运行所需默认数据。
 config.groups.system.maintenance.label: 后台维护清理
 config.groups.system.maintenance.description: 控制媒体上传残留和探针历史裁剪的后台补偿清理策略。
+config.groups.community.video_mode.label: 视频处理模式
+config.groups.community.video_mode.description: 选择本地 FFmpeg worker 或通用云端 webhook 模式。
+config.groups.community.video_worker.label: 视频 worker
+config.groups.community.video_worker.description: 控制轮询、任务锁恢复、重试、执行器池和 webhook 时间窗口。
+config.groups.community.video_local.label: 本地 FFmpeg
+config.groups.community.video_local.description: 本地源文件、HLS 输出、FFmpeg/FFprobe 路径和 HLS 分片配置。
+config.groups.community.video_cloud.label: 云端 webhook
+config.groups.community.video_cloud.description: 通用调度地址、HMAC 密钥、回调基础地址和云端输出边界。
 config.groups.runtime.cors.label: CORS
 config.groups.runtime.cors.description: 跨域来源、方法、请求头和凭证策略。
 config.groups.runtime.i18n.label: 国际化
@@ -127,6 +137,9 @@ config.groups.runtime.executor.label: 执行器
 config.groups.runtime.executor.description: 后台执行池和工作池参数。
 config.groups.runtime.rpc.label: RPC
 config.groups.runtime.rpc.description: RPC 服务入口、监听地址和超时。
+
+config.options.community.video.mode.local.label: 本地 FFmpeg
+config.options.community.video.mode.cloud.label: 云端 webhook
 
 config.items.brand.productName.label: 产品名称
 config.items.brand.productName.description: 官网和后台展示的公开产品名称。
@@ -336,5 +349,6 @@ dictionary.system.status.disabled: 禁用
 menus.groups.community.label: 社区管理
 menus.items.communityAccounts.label: 社区账号
 menus.items.communitySubmissions.label: 投稿审核
+menus.items.communityCategories.label: 社区分类
 menus.items.communityReports.label: 举报处理
 menus.items.communityVideoJobs.label: 视频处理任务

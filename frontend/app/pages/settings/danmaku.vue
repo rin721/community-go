@@ -56,10 +56,10 @@ const hasDanmakuSettings = computed(() => {
     || settings.settingDerivationStrengths.danmaku !== 100
 })
 const danmakuStats = computed(() => [
-  { label: "降级弹幕", value: danmaku.totalCount },
-  { label: "透明度", value: `${Math.round(settings.effectiveDanmakuRuntimeSettings.opacity * 100)}%` },
-  { label: "字号", value: `${Math.round(settings.effectiveDanmakuRuntimeSettings.fontScale * 100)}%` },
-  { label: "速度", value: `${Math.round(settings.effectiveDanmakuRuntimeSettings.speed * 100)}%` }
+  { label: t("settings.danmaku.stats.fallback"), value: danmaku.totalCount },
+  { label: t("settings.danmaku.stats.opacity"), value: `${Math.round(settings.effectiveDanmakuRuntimeSettings.opacity * 100)}%` },
+  { label: t("settings.danmaku.stats.fontScale"), value: `${Math.round(settings.effectiveDanmakuRuntimeSettings.fontScale * 100)}%` },
+  { label: t("settings.danmaku.stats.speed"), value: `${Math.round(settings.effectiveDanmakuRuntimeSettings.speed * 100)}%` }
 ])
 
 function setSettingDerivationStrength(key: string, value: number) {
@@ -70,14 +70,14 @@ function setSettingDerivationStrength(key: string, value: number) {
 <template>
   <div class="settings-page">
     <SettingsPageHeader
-      title="弹幕"
-      description="调整播放器弹幕的显示、运动、模式和屏蔽词。设置会写入当前浏览器，并立即作用于 Aoi 播放器。"
+      :title="t('settings.danmaku.page.title')"
+      :description="t('settings.danmaku.page.description')"
     />
 
     <SettingsPanel
       icon="message-square-text"
-      title="显示与模式"
-      description="控制弹幕总开关，以及滚动、顶部、底部三种弹幕模式。"
+      :title="t('settings.danmaku.display.title')"
+      :description="t('settings.danmaku.display.description')"
     >
       <template #actions>
         <AoiButton tone="accent"
@@ -87,35 +87,35 @@ function setSettingDerivationStrength(key: string, value: number) {
           :disabled="!settings.hydrated || !hasDanmakuSettings"
           @click="settings.resetDanmakuSettings()"
         >
-          重置弹幕
+          {{ t("settings.danmaku.display.reset") }}
         </AoiButton>
       </template>
 
       <template v-if="settings.hydrated">
         <SettingsRow
-          title="启用弹幕"
-          description="关闭后，播放器不会显示弹幕，也不会允许发送新弹幕。"
+          :title="t('settings.danmaku.display.enabledTitle')"
+          :description="t('settings.danmaku.display.enabledDescription')"
         >
           <AoiSwitch v-model="settings.danmakuEnabled" />
         </SettingsRow>
 
         <SettingsRow
-          title="滚动弹幕"
-          description="允许弹幕从右向左穿过画面。"
+          :title="t('settings.danmaku.display.scrollTitle')"
+          :description="t('settings.danmaku.display.scrollDescription')"
         >
           <AoiSwitch v-model="settings.danmakuScrollModeEnabled" />
         </SettingsRow>
 
         <SettingsRow
-          title="顶部弹幕"
-          description="允许弹幕固定显示在画面顶部。"
+          :title="t('settings.danmaku.display.topTitle')"
+          :description="t('settings.danmaku.display.topDescription')"
         >
           <AoiSwitch v-model="settings.danmakuTopModeEnabled" />
         </SettingsRow>
 
         <SettingsRow
-          title="底部弹幕"
-          description="允许弹幕固定显示在画面底部。"
+          :title="t('settings.danmaku.display.bottomTitle')"
+          :description="t('settings.danmaku.display.bottomDescription')"
         >
           <AoiSwitch v-model="settings.danmakuBottomModeEnabled" />
         </SettingsRow>
@@ -125,33 +125,33 @@ function setSettingDerivationStrength(key: string, value: number) {
     <SettingsPanel
       v-if="settings.hydrated"
       icon="sliders-horizontal"
-      title="视觉与运动"
-      description="调整弹幕的不透明度、字号、速度和可占用画面区域。"
+      :title="t('settings.danmaku.visual.title')"
+      :description="t('settings.danmaku.visual.description')"
     >
       <SettingsRow
-        title="不透明度"
-        :description="`当前 ${opacityModel}%`"
+        :title="t('settings.danmaku.visual.opacityTitle')"
+        :description="t('settings.danmaku.visual.currentPercent', { value: opacityModel })"
       >
         <AoiSlider v-model="opacityModel" :min="20" :max="100" :step="1" />
       </SettingsRow>
 
       <SettingsRow
-        title="字号倍率"
-        :description="`当前 ${fontScaleModel}%`"
+        :title="t('settings.danmaku.visual.fontScaleTitle')"
+        :description="t('settings.danmaku.visual.currentPercent', { value: fontScaleModel })"
       >
         <AoiSlider v-model="fontScaleModel" :min="70" :max="160" :step="5" />
       </SettingsRow>
 
       <SettingsRow
-        title="速度倍率"
-        :description="`当前 ${speedModel}%`"
+        :title="t('settings.danmaku.visual.speedTitle')"
+        :description="t('settings.danmaku.visual.currentPercent', { value: speedModel })"
       >
         <AoiSlider v-model="speedModel" :min="50" :max="200" :step="5" />
       </SettingsRow>
 
       <SettingsRow
-        title="显示区域"
-        :description="`弹幕最多占用画面上方 ${visibleAreaModel}% 区域`"
+        :title="t('settings.danmaku.visual.visibleAreaTitle')"
+        :description="t('settings.danmaku.visual.visibleAreaDescription', { value: visibleAreaModel })"
       >
         <AoiSlider v-model="visibleAreaModel" :min="20" :max="100" :step="1" />
       </SettingsRow>
@@ -166,13 +166,13 @@ function setSettingDerivationStrength(key: string, value: number) {
     <SettingsPanel
       v-if="settings.hydrated"
       icon="ban"
-      title="屏蔽词"
-      description="每行或用逗号分隔一个屏蔽词；命中后不会显示在弹幕层和弹幕列表。"
+      :title="t('settings.danmaku.blocklist.title')"
+      :description="t('settings.danmaku.blocklist.description')"
     >
       <AoiTextField
         v-model="blocklistModel"
-        label="屏蔽词"
-        placeholder="例如：剧透&#10;刷屏"
+        :label="t('settings.danmaku.blocklist.label')"
+        :placeholder="t('settings.danmaku.blocklist.placeholder')"
         appearance="outlined"
         multiline
         :rows="5"
@@ -182,8 +182,8 @@ function setSettingDerivationStrength(key: string, value: number) {
     <SettingsPanel
       v-if="settings.hydrated"
       icon="activity"
-      title="弹幕降级缓存"
-      description="这里显示社区暂时不可用时保存在当前浏览器里的发送弹幕，不包含已同步弹幕。"
+      :title="t('settings.danmaku.cache.title')"
+      :description="t('settings.danmaku.cache.description')"
     >
       <AoiStatGrid :items="danmakuStats" />
     </SettingsPanel>

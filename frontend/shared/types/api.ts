@@ -253,6 +253,8 @@ export interface DeleteCommunityDynamicResult {
 
 export type CommunitySubmissionStatus = "pending_review" | "approved" | "rejected" | "published"
 
+export type CommunitySubmissionVideoJobStatus = "queued" | "running" | "succeeded" | "failed" | "canceled"
+
 export type CommunitySubmissionVisibility = "public" | "unlisted" | "private"
 
 export interface CreateCommunitySubmissionRequest {
@@ -282,6 +284,20 @@ export interface CommunitySubmissionUploadResult {
   sizeBytes: number
 }
 
+export interface CommunitySubmissionVideoJobSummary {
+  id: string
+  status: CommunitySubmissionVideoJobStatus
+  progress: number
+  videoId?: string
+  failureCode?: string
+  errorMessage?: string
+  outputPublicUrl?: string
+  startedAt?: string | null
+  finishedAt?: string | null
+  createdAt: string
+  updatedAt: string
+}
+
 export interface CommunitySubmissionItem {
   id: string
   clientId: string
@@ -304,6 +320,7 @@ export interface CommunitySubmissionItem {
   mediaAssetId?: string
   publishedVideoId?: string
   publishedAt?: string | null
+  latestVideoJob?: CommunitySubmissionVideoJobSummary | null
   createdAt: string
   updatedAt: string
 }

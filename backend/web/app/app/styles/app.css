@@ -2542,6 +2542,96 @@ a {
   align-items: center;
 }
 
+.console-community-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--console-space-4);
+}
+
+.console-community-overview-card {
+  display: grid;
+  min-width: 0;
+  gap: var(--console-space-3);
+  border: 1px solid var(--console-color-border-subtle);
+  border-radius: var(--console-radius-card);
+  background: var(--console-color-surface-default);
+  padding: var(--console-space-4);
+}
+
+.console-community-overview-card[data-disabled="true"] {
+  opacity: 0.68;
+}
+
+.console-community-overview-card--wide {
+  grid-column: 1 / -1;
+}
+
+.console-community-overview-card__title {
+  display: flex;
+  min-width: 0;
+  gap: var(--console-space-3);
+  align-items: flex-start;
+}
+
+.console-community-overview-card__title > span {
+  display: inline-grid;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--console-radius-control);
+  background: var(--console-color-surface-subtle);
+  color: var(--console-color-brand-primary);
+  place-items: center;
+}
+
+.console-community-overview-card h2,
+.console-community-overview-card p {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.console-community-overview-card h2 {
+  font-size: var(--console-font-size-sm);
+}
+
+.console-community-overview-card > strong {
+  min-width: 0;
+  color: var(--console-color-text-primary);
+  font-size: clamp(1.65rem, 2vw, 2.2rem);
+  line-height: 1;
+  overflow-wrap: anywhere;
+}
+
+.console-community-overview-card p {
+  color: var(--console-color-text-secondary);
+  line-height: 1.6;
+}
+
+.console-community-overview-flow {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: var(--console-space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.console-community-overview-flow li {
+  display: inline-flex;
+  min-width: 0;
+  gap: var(--console-space-2);
+  align-items: center;
+  border: 1px solid var(--console-color-border-subtle);
+  border-radius: var(--console-radius-pill);
+  background: var(--console-color-surface-subtle);
+  color: var(--console-color-text-primary);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+  padding: var(--console-space-2) var(--console-space-3);
+}
+
 .console-community-identity {
   display: grid;
   min-width: 0;
@@ -2579,6 +2669,17 @@ a {
 .console-community-job-detail {
   display: grid;
   gap: var(--console-space-4);
+}
+
+.console-community-job-drawer {
+  position: fixed;
+  z-index: var(--console-z-index-overlay);
+  top: calc(var(--console-space-6) + 68px);
+  right: var(--console-space-6);
+  bottom: var(--console-space-6);
+  width: min(620px, calc(100vw - (var(--console-space-6) * 2)));
+  overflow: auto;
+  box-shadow: var(--console-shadow-overlay);
 }
 
 .console-community-job-detail dl {
@@ -2632,6 +2733,24 @@ a {
 .console-community-job-renditions li {
   display: grid;
   gap: var(--console-space-1);
+}
+
+.console-community-job-internals {
+  min-width: 0;
+  border: 1px solid var(--console-color-border-subtle);
+  border-radius: var(--console-radius-card);
+  background: var(--console-color-surface-subtle);
+  padding: var(--console-space-3);
+}
+
+.console-community-job-internals summary {
+  cursor: pointer;
+  color: var(--console-color-text-primary);
+  font-weight: 800;
+}
+
+.console-community-job-internals dl {
+  margin-top: var(--console-space-3);
 }
 
 .console-admin-pager {
@@ -6449,17 +6568,20 @@ a {
     align-items: flex-start;
     flex-direction: column;
     min-height: auto;
-    padding: var(--console-space-4);
+    gap: var(--console-space-3);
+    padding: var(--console-space-3) var(--console-space-4);
   }
 
   .console-admin-topbar__actions {
     width: 100%;
-    justify-content: flex-start;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    justify-content: stretch;
   }
 
   .console-admin-org-trigger,
   .console-admin-user-trigger {
-    width: 100%;
+    width: auto;
     max-width: none;
   }
 
@@ -6493,24 +6615,43 @@ a {
     overflow: hidden;
     border-right: 0;
     border-bottom: 1px solid var(--console-color-border-subtle);
+    padding: var(--console-space-3) var(--console-space-4);
   }
 
   .console-admin-nav {
-    display: grid;
+    display: flex;
     width: 100%;
     max-width: 100%;
     min-width: 0;
-    margin-top: var(--console-space-4);
-    overflow: visible;
+    gap: var(--console-space-2);
+    margin-top: var(--console-space-2);
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .console-admin-nav-group {
+    flex: 0 0 min(320px, 78vw);
+  }
+
+  .console-admin-nav-group[data-active="true"] {
+    flex-basis: min(420px, 88vw);
   }
 
   .console-admin-nav-group__content {
-    padding-left: var(--console-space-2);
+    display: flex;
+    gap: var(--console-space-1);
+    overflow-x: auto;
+    padding: var(--console-space-1) 0;
   }
 
   .console-admin-nav-group__trigger,
   .console-admin-nav__link {
-    min-height: 44px;
+    min-height: 38px;
+  }
+
+  .console-admin-nav__link {
+    flex: 0 0 auto;
+    white-space: nowrap;
   }
 
   .console-admin-main {
@@ -6519,6 +6660,16 @@ a {
 
   .console-admin-page-header {
     flex-direction: column;
+  }
+
+  .console-community-job-drawer {
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    max-height: 82vh;
+    border-radius: var(--console-radius-card) var(--console-radius-card) 0 0;
   }
 
   .console-admin-panel-header-row {

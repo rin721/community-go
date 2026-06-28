@@ -686,6 +686,15 @@ try {
         throw "Community transcode endpoint did not create an asynchronous queued video job"
     }
 
+    $accountSubmissionsQueued = Invoke-JsonEnvelope -Url "$baseUrl/account/submissions?limit=8" -WebSession $accountSession -Headers $accountHeaders
+    $queuedSubmissionSummary = $accountSubmissionsQueued.data.items.items | Where-Object { $_.id -eq $submission.data.id } | Select-Object -First 1
+    if ($null -eq $queuedSubmissionSummary -or $queuedSubmissionSummary.latestVideoJob.id -ne $videoJob.data.id -or $queuedSubmissionSummary.latestVideoJob.status -ne "queued") {
+        throw "Community account submission list did not expose the queued latestVideoJob summary"
+    }
+    if ($queuedSubmissionSummary.latestVideoJob.PSObject.Properties.Name -contains "providerJobId" -or $queuedSubmissionSummary.latestVideoJob.PSObject.Properties.Name -contains "lockedBy" -or $queuedSubmissionSummary.latestVideoJob.PSObject.Properties.Name -contains "requestPayload") {
+        throw "Community account latestVideoJob summary leaked internal video job fields"
+    }
+
     $queuedJobs = Invoke-JsonEnvelope -Url "$apiRoot/community/video-jobs?status=queued&limit=8" -WebSession $adminSession -Headers $adminHeaders
     $queuedJob = $queuedJobs.data.items.items | Where-Object { $_.id -eq $videoJob.data.id } | Select-Object -First 1
     if ($null -eq $queuedJob) {
@@ -695,6 +704,21 @@ try {
     $jobDetailBeforeCallback = Invoke-JsonEnvelope -Url "$apiRoot/community/video-jobs/$($videoJob.data.id)" -WebSession $adminSession -Headers $adminHeaders
     if ($jobDetailBeforeCallback.data.id -ne $videoJob.data.id -or -not $jobDetailBeforeCallback.data.requestPayload) {
         throw "Community video job detail did not expose the queued job request payload"
+    }
+
+    $runningJob = Invoke-CommunityVideoJobCallback -Url "$baseUrl/video-jobs/$($videoJob.data.id)/callback" -Secret $videoCallbackSecret -Body @{
+        progress = 42
+        providerJobId = "smoke-provider-$runId"
+        status = "running"
+    }
+    if ($runningJob.data.status -ne "running" -or $runningJob.data.progress -ne 42 -or $runningJob.data.providerJobId -ne "smoke-provider-$runId") {
+        throw "Community video job running callback did not update progress"
+    }
+
+    $accountSubmissionsRunning = Invoke-JsonEnvelope -Url "$baseUrl/account/submissions?limit=8" -WebSession $accountSession -Headers $accountHeaders
+    $runningSubmissionSummary = $accountSubmissionsRunning.data.items.items | Where-Object { $_.id -eq $submission.data.id } | Select-Object -First 1
+    if ($null -eq $runningSubmissionSummary -or $runningSubmissionSummary.latestVideoJob.id -ne $videoJob.data.id -or $runningSubmissionSummary.latestVideoJob.status -ne "running" -or $runningSubmissionSummary.latestVideoJob.progress -ne 42) {
+        throw "Community account submission list did not expose the running latestVideoJob summary"
     }
 
     $hlsMasterUrl = "/api/v1/public/community/hls/smoke/$($videoJob.data.id)/master.m3u8"
@@ -720,6 +744,58 @@ try {
     }
     if ($callbackJob.data.status -ne "succeeded" -or -not $callbackJob.data.videoId -or $callbackJob.data.outputPublicUrl -ne $hlsMasterUrl -or $callbackJob.data.providerJobId -ne "smoke-provider-$runId" -or @($callbackJob.data.renditions).Count -lt 1) {
         throw "Community video job callback did not publish a succeeded HLS job"
+    }
+
+    $accountSubmissionsSucceeded = Invoke-JsonEnvelope -Url "$baseUrl/account/submissions?limit=8" -WebSession $accountSession -Headers $accountHeaders
+    $succeededSubmissionSummary = $accountSubmissionsSucceeded.data.items.items | Where-Object { $_.id -eq $submission.data.id } | Select-Object -First 1
+    if ($null -eq $succeededSubmissionSummary -or $succeededSubmissionSummary.latestVideoJob.id -ne $videoJob.data.id -or $succeededSubmissionSummary.latestVideoJob.status -ne "succeeded" -or $succeededSubmissionSummary.latestVideoJob.videoId -ne $callbackJob.data.videoId -or $succeededSubmissionSummary.latestVideoJob.outputPublicUrl -ne $hlsMasterUrl) {
+        throw "Community account submission list did not expose the succeeded latestVideoJob summary"
+    }
+
+    $failedSubmission = Invoke-JsonEnvelope -Url "$baseUrl/account/submissions" -Method "POST" -WebSession $accountSession -Headers $accountHeaders -Body @{
+        allowComments = $true
+        categorySlug = $smokeCategorySlug
+        description = "Smoke submission for failed transcode summary verification"
+        mediaAssetId = $uploadedMediaAssetId
+        sensitive = $false
+        sourceName = $uploadedMedia.data.displayName
+        sourceSize = $uploadedMedia.data.sizeBytes
+        sourceType = $uploadedMedia.data.mimeType
+        tags = @("smoke", "failed-job")
+        title = "Community smoke failed transcode submission"
+        visibility = "public"
+    }
+    if ($failedSubmission.data.status -ne "pending_review" -or -not $failedSubmission.data.id) {
+        throw "Community failed-job submission create endpoint did not return a pending review item"
+    }
+    $approvedFailedSubmission = Invoke-JsonEnvelope -Url "$apiRoot/community/submissions/$($failedSubmission.data.id)/review" -Method "PATCH" -WebSession $adminSession -Headers $adminHeaders -Body @{
+        reviewNote = "Smoke failed transcode approved"
+        status = "approved"
+    }
+    if ($approvedFailedSubmission.data.status -ne "approved") {
+        throw "Community failed-job submission review endpoint did not persist approval state"
+    }
+    $failedVideoJob = Invoke-JsonEnvelope -Url "$apiRoot/community/submissions/$($failedSubmission.data.id)/transcode" -Method "POST" -WebSession $adminSession -Headers $adminHeaders -Body @{
+        durationSeconds = 64
+        thumbnailUrl = "gradient:community-smoke-failed"
+    }
+    if (-not $failedVideoJob.data.id -or $failedVideoJob.data.status -ne "queued") {
+        throw "Community failed-job transcode endpoint did not create a queued video job"
+    }
+    $failedCallbackJob = Invoke-CommunityVideoJobCallback -Url "$baseUrl/video-jobs/$($failedVideoJob.data.id)/callback" -Secret $videoCallbackSecret -Body @{
+        errorMessage = "Smoke provider rejected the source for failure summary verification"
+        failureCode = "smoke_provider_failed"
+        progress = 73
+        providerJobId = "smoke-failed-provider-$runId"
+        status = "failed"
+    }
+    if ($failedCallbackJob.data.status -ne "failed" -or $failedCallbackJob.data.failureCode -ne "smoke_provider_failed" -or -not $failedCallbackJob.data.errorMessage) {
+        throw "Community failed video job callback did not persist failure metadata"
+    }
+    $accountSubmissionsFailed = Invoke-JsonEnvelope -Url "$baseUrl/account/submissions?limit=8" -WebSession $accountSession -Headers $accountHeaders
+    $failedSubmissionSummary = $accountSubmissionsFailed.data.items.items | Where-Object { $_.id -eq $failedSubmission.data.id } | Select-Object -First 1
+    if ($null -eq $failedSubmissionSummary -or $failedSubmissionSummary.latestVideoJob.id -ne $failedVideoJob.data.id -or $failedSubmissionSummary.latestVideoJob.status -ne "failed" -or $failedSubmissionSummary.latestVideoJob.failureCode -ne "smoke_provider_failed" -or -not $failedSubmissionSummary.latestVideoJob.errorMessage) {
+        throw "Community account submission list did not expose the failed latestVideoJob summary"
     }
 
     $publishedVideo = Invoke-JsonEnvelope -Url "$baseUrl/videos/$($callbackJob.data.videoId)"
@@ -924,7 +1000,7 @@ try {
         [pscustomobject]@{ Name = "comments"; Url = "$baseUrl/videos/$($firstVideo.slug)/comments"; Detail = "updated=$($updatedComment.data.body), deleted=$($deletedComment.data.deleted)" }
         [pscustomobject]@{ Name = "dynamics"; Url = "$baseUrl/dynamics"; Detail = "updated=$($updatedDynamic.data.body), deleted=$($deletedDynamic.data.deleted)" }
         [pscustomobject]@{ Name = "account-media-upload"; Url = "$baseUrl/account/submissions/upload"; Detail = "asset=$uploadedMediaAssetId, mime=$($uploadedMedia.data.mimeType), size=$($uploadedMedia.data.sizeBytes)" }
-        [pscustomobject]@{ Name = "submissions"; Url = "$apiRoot/community/submissions/$($submission.data.id)/review"; Detail = "status=$($approvedSubmission.data.status), mediaAsset=$($submission.data.mediaAssetId)" }
+        [pscustomobject]@{ Name = "submissions"; Url = "$apiRoot/community/submissions/$($submission.data.id)/review"; Detail = "status=$($approvedSubmission.data.status), latest=$($succeededSubmissionSummary.latestVideoJob.status), failedLatest=$($failedSubmissionSummary.latestVideoJob.status), mediaAsset=$($submission.data.mediaAssetId)" }
         [pscustomobject]@{ Name = "video-job"; Url = "$apiRoot/community/video-jobs/$($videoJob.data.id)"; Detail = "status=$($callbackJob.data.status), video=$($callbackJob.data.videoId), hls=$($callbackJob.data.outputPublicUrl), renditions=$(@($callbackJob.data.renditions).Count)" }
         [pscustomobject]@{ Name = "notifications"; Url = "$baseUrl/notifications?clientId=$clientId&limit=8"; Detail = "count=$(@($notifications.data.items.items).Count), clientId=$($notifications.data.clientId)" }
         [pscustomobject]@{ Name = "search"; Url = "$baseUrl/search?q=Community%20smoke&limit=8"; Detail = "videos=$(@($search.data.videos.items).Count)" }

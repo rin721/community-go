@@ -125,6 +125,13 @@ export const adminNavGroups: AdminNavGroup[] = [
     id: "community",
     items: [
       {
+        end: true,
+        icon: LayoutDashboard,
+        id: "community-overview",
+        labelKey: "admin.nav.communityOverview",
+        to: "/admin/community",
+      },
+      {
         icon: UsersRound,
         id: "community-accounts",
         labelKey: "admin.nav.communityAccounts",
@@ -313,16 +320,19 @@ const iconBySystemName: Record<string, LucideIcon> = {
 
 export function adminNavGroupsFromSystemMenus(
   groups: readonly SystemMenuGroup[] | null | undefined,
+  pathname?: string,
 ): AdminNavGroup[] {
-  if (!groups?.length) {
-    return minimalAdminNavGroups;
+  let mappedGroups = minimalAdminNavGroups;
+
+  if (groups?.length) {
+    const mapped = groups
+      .map(systemMenuGroupToAdminNavGroup)
+      .filter((group): group is AdminNavGroup => group !== null);
+
+    mappedGroups = mapped.length > 0 ? mapped : minimalAdminNavGroups;
   }
 
-  const mapped = groups
-    .map(systemMenuGroupToAdminNavGroup)
-    .filter((group): group is AdminNavGroup => group !== null);
-
-  return mapped.length > 0 ? mapped : minimalAdminNavGroups;
+  return ensureActiveAdminNavRoute(mappedGroups, pathname);
 }
 
 export function adminNavLabel(
@@ -403,6 +413,34 @@ function systemMenuGroupToAdminNavGroup(group: SystemMenuGroup): AdminNavGroup |
     label: group.label,
     labelKey: fallback?.labelKey ?? `admin.navGroups.${group.code}`,
   };
+}
+
+function ensureActiveAdminNavRoute(groups: AdminNavGroup[], pathname?: string): AdminNavGroup[] {
+  if (!pathname || hasAdminNavItemForPath(pathname, groups)) {
+    return groups;
+  }
+
+  const fallbackGroup = findAdminNavGroup(pathname, adminNavGroups);
+  if (!fallbackGroup) {
+    return groups;
+  }
+
+  const existingIndex = groups.findIndex((group) => group.id === fallbackGroup.id);
+  if (existingIndex === -1) {
+    return [...groups, fallbackGroup];
+  }
+
+  const existing = groups[existingIndex];
+  const existingItemIds = new Set(existing.items.map((item) => item.id));
+  const mergedGroup: AdminNavGroup = {
+    ...existing,
+    items: [
+      ...existing.items,
+      ...fallbackGroup.items.filter((item) => !existingItemIds.has(item.id)),
+    ],
+  };
+
+  return groups.map((group, index) => (index === existingIndex ? mergedGroup : group));
 }
 
 function systemMenuItemToAdminNavItem(item: SystemMenuItem): AdminNavItem | null {

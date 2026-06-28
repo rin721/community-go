@@ -162,6 +162,24 @@ export type CommunitySubmissionStatus = BackendString<
   "approved" | "pending_review" | "published" | "rejected"
 >;
 
+export type CommunityVideoJobStatus = BackendString<
+  "canceled" | "failed" | "queued" | "running" | "succeeded"
+>;
+
+export type CommunitySubmissionVideoJobSummary = {
+  createdAt: string;
+  errorMessage?: string;
+  failureCode?: string;
+  finishedAt?: string | null;
+  id: string;
+  outputPublicUrl?: string;
+  progress: number;
+  startedAt?: string | null;
+  status: CommunityVideoJobStatus;
+  updatedAt: string;
+  videoId?: string;
+};
+
 export type CommunitySubmission = {
   allowComments: boolean;
   authorName: string;
@@ -185,6 +203,7 @@ export type CommunitySubmission = {
   title: string;
   updatedAt: string;
   visibility: string;
+  latestVideoJob?: CommunitySubmissionVideoJobSummary | null;
 };
 
 export type CommunitySubmissionPayload = {
@@ -209,10 +228,6 @@ export type CommunityCreateVideoJobInput = {
   slug?: string;
   thumbnailUrl?: string;
 };
-
-export type CommunityVideoJobStatus = BackendString<
-  "canceled" | "failed" | "queued" | "running" | "succeeded"
->;
 
 export type CommunityVideoRendition = {
   bitrateKbps: number;

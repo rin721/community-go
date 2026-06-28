@@ -155,6 +155,7 @@ type Repository interface {
 	ClaimCommunityVideoJobs(context.Context, string, time.Time, time.Duration, int) ([]model.CommunityVideoJob, error)
 	FindCommunityVideoJob(context.Context, string) (*model.CommunityVideoJob, error)
 	ListCommunityVideoJobs(context.Context, model.CommunityVideoJobFilter) ([]model.CommunityVideoJob, error)
+	ListLatestCommunityVideoJobsBySubmissionIDs(context.Context, []string) ([]model.CommunityVideoJob, error)
 	CreateCommunityVideoRenditions(context.Context, []model.CommunityVideoRendition) error
 	ListCommunityVideoRenditions(context.Context, string) ([]model.CommunityVideoRendition, error)
 	FollowCreator(context.Context, model.CreatorFollow) error
@@ -2041,12 +2042,28 @@ func (s *service) decorateSubmissions(ctx context.Context, submissions []model.C
 	for _, category := range categories {
 		categoryBySlug[category.Slug] = category
 	}
+	submissionIDs := make([]string, 0, len(submissions))
+	for _, submission := range submissions {
+		submissionIDs = append(submissionIDs, submission.ID)
+	}
+	jobs, err := s.repo.ListLatestCommunityVideoJobsBySubmissionIDs(ctx, submissionIDs)
+	if err != nil {
+		return nil, mapStorageError(err)
+	}
+	jobBySubmissionID := make(map[string]model.CommunitySubmissionVideoJobSummary, len(jobs))
+	for _, job := range jobs {
+		jobBySubmissionID[job.SubmissionID] = summarizeCommunityVideoJob(job)
+	}
 	items := make([]model.CommunitySubmissionItem, 0, len(submissions))
 	for _, submission := range submissions {
 		var category *model.Category
 		if match, ok := categoryBySlug[submission.CategorySlug]; ok {
 			item := match
 			category = &item
+		}
+		var latestVideoJob *model.CommunitySubmissionVideoJobSummary
+		if job, ok := jobBySubmissionID[submission.ID]; ok {
+			latestVideoJob = &job
 		}
 		items = append(items, model.CommunitySubmissionItem{
 			ID:               submission.ID,
@@ -2070,11 +2087,28 @@ func (s *service) decorateSubmissions(ctx context.Context, submissions []model.C
 			MediaAssetID:     submission.MediaAssetID,
 			PublishedVideoID: submission.PublishedVideoID,
 			PublishedAt:      submission.PublishedAt,
+			LatestVideoJob:   latestVideoJob,
 			CreatedAt:        submission.CreatedAt,
 			UpdatedAt:        submission.UpdatedAt,
 		})
 	}
 	return items, nil
+}
+
+func summarizeCommunityVideoJob(job model.CommunityVideoJob) model.CommunitySubmissionVideoJobSummary {
+	return model.CommunitySubmissionVideoJobSummary{
+		ID:              job.ID,
+		Status:          job.Status,
+		Progress:        job.Progress,
+		VideoID:         job.VideoID,
+		FailureCode:     job.FailureCode,
+		ErrorMessage:    job.ErrorMessage,
+		OutputPublicURL: job.OutputPublicURL,
+		StartedAt:       job.StartedAt,
+		FinishedAt:      job.FinishedAt,
+		CreatedAt:       job.CreatedAt,
+		UpdatedAt:       job.UpdatedAt,
+	}
 }
 
 func (s *service) categoryForSlug(ctx context.Context, slug string) (*model.Category, error) {

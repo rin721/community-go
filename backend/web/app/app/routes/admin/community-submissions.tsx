@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useMemo, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router";
 
 import { DataTable } from "~/components/console/patterns/DataTable";
 import { FormField } from "~/components/console/patterns/FormField";
@@ -130,7 +131,7 @@ export default function AdminCommunitySubmissionsRoute() {
       setNotice({
         description: adminErrorDescription(error, t, submissionErrorCopy),
         intent: "danger",
-        title: t("admin.community.submissions.messages.publishFailedTitle", {
+        title: t("admin.community.submissions.messages.createTranscodeFailedTitle", {
           title: submission.title,
         }),
       });
@@ -140,11 +141,11 @@ export default function AdminCommunitySubmissionsRoute() {
     },
     onSuccess: (job) => {
       setNotice({
-        description: t("admin.community.submissions.messages.publishSuccessDescription", {
+        description: t("admin.community.submissions.messages.createTranscodeSuccessDescription", {
           id: job.id,
           status: videoJobStatusLabel(job.status, t),
         }),
-        title: t("admin.community.submissions.messages.publishSuccessTitle"),
+        title: t("admin.community.submissions.messages.createTranscodeSuccessTitle"),
       });
     },
   });
@@ -185,9 +186,24 @@ export default function AdminCommunitySubmissionsRoute() {
       },
       {
         cell: ({ row }) => (
-          <span className="console-iam-status" data-status={row.original.status}>
-            {submissionStatusLabel(row.original.status, t)}
-          </span>
+          <div className="console-community-identity">
+            <span className="console-iam-status" data-status={row.original.status}>
+              {submissionStatusLabel(row.original.status, t)}
+            </span>
+            {row.original.latestVideoJob ? (
+              <Link
+                to={`/admin/community/video-jobs?jobId=${encodeURIComponent(String(row.original.latestVideoJob.id))}`}
+              >
+                {videoJobStatusLabel(row.original.latestVideoJob.status, t)}
+                {" · "}
+                {row.original.latestVideoJob.progress}%
+              </Link>
+            ) : (
+              <span className="console-iam-muted">
+                {t("admin.community.submissions.columns.noVideoJob")}
+              </span>
+            )}
+          </div>
         ),
         header: t("admin.community.submissions.columns.status"),
       },
@@ -412,8 +428,10 @@ function SubmissionReviewControls({
   const published = submission.status === "published";
   const disabled = !canReview || isSaving || published;
   const rejectDisabled = disabled || reviewNote.trim().length === 0;
-  const canPublish =
-    canTranscode && submission.status === "approved" && Boolean(submission.mediaAssetId);
+  const hasActiveJob =
+    submission.latestVideoJob?.status === "queued" || submission.latestVideoJob?.status === "running";
+  const canCreateTranscodeJob =
+    canTranscode && submission.status === "approved" && Boolean(submission.mediaAssetId) && !hasActiveJob;
 
   return (
     <div className="console-community-review-actions">
@@ -464,13 +482,13 @@ function SubmissionReviewControls({
         </Button>
         <Button
           appearance="secondary"
-          disabled={!canPublish || isTranscoding}
+          disabled={!canCreateTranscodeJob || isTranscoding}
           icon={<FileVideo size={16} />}
           loading={isTranscoding}
           title={!canTranscode ? permissionTitle : undefined}
           onClick={() => onTranscode(submission)}
         >
-          {t("admin.community.submissions.actions.publish")}
+          {t("admin.community.submissions.actions.createTranscodeJob")}
         </Button>
       </div>
     </div>

@@ -911,6 +911,24 @@ func TestServiceCommunityAccountSubmissionUsesPrincipalIdentity(t *testing.T) {
 	if !payload.Authenticated || payload.ClientID == nil || *payload.ClientID != "account:42" || len(payload.Items.Items) != 1 {
 		t.Fatalf("expected authenticated account submissions, got %#v", payload)
 	}
+	repo.videoJobs = append(repo.videoJobs, model.CommunityVideoJob{
+		ID:              "job-account-preview",
+		SubmissionID:    item.ID,
+		Status:          model.CommunityVideoJobStatusRunning,
+		Progress:        47,
+		FailureCode:     "",
+		OutputPublicURL: "",
+		CreatedAt:       fixedNow().Add(time.Minute),
+		UpdatedAt:       fixedNow().Add(2 * time.Minute),
+	})
+	payloadWithJob, err := svc.ListCommunityAccountSubmissions(context.Background(), principal, 12)
+	if err != nil {
+		t.Fatalf("ListCommunityAccountSubmissions(with job) error = %v", err)
+	}
+	latestJob := payloadWithJob.Items.Items[0].LatestVideoJob
+	if latestJob == nil || latestJob.ID != "job-account-preview" || latestJob.Progress != 47 {
+		t.Fatalf("expected latest video job summary on account submission, got %#v", latestJob)
+	}
 
 	notifications, err := svc.CommunityAccountNotifications(context.Background(), principal, 12)
 	if err != nil {
@@ -1852,6 +1870,31 @@ func (r *fakeRepository) ListCommunityVideoJobs(_ context.Context, filter model.
 	}
 	if filter.Limit > 0 && len(items) > filter.Limit {
 		return items[:filter.Limit], nil
+	}
+	return items, nil
+}
+
+func (r *fakeRepository) ListLatestCommunityVideoJobsBySubmissionIDs(_ context.Context, submissionIDs []string) ([]model.CommunityVideoJob, error) {
+	wanted := make(map[string]struct{}, len(submissionIDs))
+	for _, id := range submissionIDs {
+		if trimmed := strings.TrimSpace(id); trimmed != "" {
+			wanted[trimmed] = struct{}{}
+		}
+	}
+	items := make([]model.CommunityVideoJob, 0, len(wanted))
+	seen := make(map[string]struct{}, len(wanted))
+	for _, job := range r.videoJobs {
+		if job.DeletedAt != nil {
+			continue
+		}
+		if _, ok := wanted[job.SubmissionID]; !ok {
+			continue
+		}
+		if _, ok := seen[job.SubmissionID]; ok {
+			continue
+		}
+		seen[job.SubmissionID] = struct{}{}
+		items = append(items, job)
 	}
 	return items, nil
 }

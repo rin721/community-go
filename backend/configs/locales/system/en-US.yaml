@@ -347,6 +347,7 @@ dictionary.system.status.name: System status
 dictionary.system.status.enabled: Enabled
 dictionary.system.status.disabled: Disabled
 menus.groups.community.label: Community Management
+menus.items.communityOverview.label: Community Overview
 menus.items.communityAccounts.label: Community Accounts
 menus.items.communitySubmissions.label: Submission Review
 menus.items.communityCategories.label: Community Categories

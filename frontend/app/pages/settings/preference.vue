@@ -17,31 +17,31 @@ const resetPreferenceConfirmOpen = ref(false)
 const resettingPreference = ref(false)
 const showAdvancedSettings = computed(() => settings.settingsDisplayDepth === "all")
 
-const dataModes: Array<{
+const dataModes = computed<Array<{
   description: string
   icon: string
   label: string
   value: AoiDataMode
-}> = [
+}>>(() => [
   {
-    description: "减少非必要加载，适合移动网络和弱网。",
+    description: t("settings.preference.dataMode.options.economy.description"),
     icon: "leaf",
-    label: "省流模式",
+    label: t("settings.preference.dataMode.options.economy.label"),
     value: "economy"
   },
   {
-    description: "平衡加载速度和信息完整度。",
+    description: t("settings.preference.dataMode.options.standard.description"),
     icon: "gauge",
-    label: "标准模式",
+    label: t("settings.preference.dataMode.options.standard.label"),
     value: "standard"
   },
   {
-    description: "优先更快展示更多内容，适合稳定网络。",
+    description: t("settings.preference.dataMode.options.turbo.description"),
     icon: "zap",
-    label: "极速模式",
+    label: t("settings.preference.dataMode.options.turbo.label"),
     value: "turbo"
   }
-]
+])
 
 const revealEffectOptions = computed(() => [
   { label: t("settings.preference.reveal.effect.contextual"), value: "contextual" },
@@ -329,8 +329,8 @@ async function confirmResetPreference() {
 <template>
   <div class="settings-page">
     <SettingsPageHeader
-      title="偏好"
-      description="管理浏览、隐私和搜索相关的本地偏好。"
+      :title="t('settings.preference.page.title')"
+      :description="t('settings.preference.page.description')"
     >
       <template #actions>
         <AoiButton tone="accent"
@@ -347,8 +347,8 @@ async function confirmResetPreference() {
 
     <SettingsPanel
       icon="radio"
-      title="流量模式"
-      description="当前版本先保存为本地偏好，后续接入真实分页和预加载策略。"
+      :title="t('settings.preference.dataMode.title')"
+      :description="t('settings.preference.dataMode.description')"
     >
       <SettingsOptionGrid>
         <AoiChoiceCard
@@ -367,19 +367,19 @@ async function confirmResetPreference() {
 
     <SettingsPanel
       icon="mouse-pointer-click"
-      title="浏览"
-      description="这些设置会影响现有视频卡片和元信息。"
+      :title="t('settings.preference.browsing.title')"
+      :description="t('settings.preference.browsing.description')"
     >
       <SettingsRow
-        title="在新标签页打开视频"
-        description="首页、搜索和历史中的视频卡片将使用新标签打开。"
+        :title="t('settings.preference.browsing.openNewTabTitle')"
+        :description="t('settings.preference.browsing.openNewTabDescription')"
       >
         <AoiSwitch v-model="settings.openVideosInNewTab" />
       </SettingsRow>
 
       <SettingsRow
-        title="使用相对日期"
-        description="视频发布时间显示为“刚刚 / x 天前”等相对文本。"
+        :title="t('settings.preference.browsing.relativeDatesTitle')"
+        :description="t('settings.preference.browsing.relativeDatesDescription')"
       >
         <AoiSwitch v-model="settings.useRelativeDates" />
       </SettingsRow>
@@ -784,19 +784,19 @@ async function confirmResetPreference() {
 
     <SettingsPanel
       icon="shield-check"
-      title="隐私"
-      description="只影响当前浏览器的本地行为和本地存储。"
+      :title="t('settings.preference.privacy.title')"
+      :description="t('settings.preference.privacy.description')"
     >
       <SettingsRow
-        title="停用观看历史"
-        description="打开后视频页不再写入历史，也不会继续更新播放进度。"
+        :title="t('settings.preference.privacy.disableHistoryTitle')"
+        :description="t('settings.preference.privacy.disableHistoryDescription')"
       >
         <AoiSwitch v-model="settings.disableWatchHistory" />
       </SettingsRow>
 
       <SettingsRow
-        title="隐藏最近搜索"
-        description="当前项目尚未保存最近搜索；此项会作为未来搜索历史的默认隐私偏好。"
+        :title="t('settings.preference.privacy.hideRecentSearchesTitle')"
+        :description="t('settings.preference.privacy.hideRecentSearchesDescription')"
       >
         <AoiSwitch v-model="settings.hideRecentSearches" />
       </SettingsRow>
@@ -804,19 +804,19 @@ async function confirmResetPreference() {
 
     <SettingsPanel
       icon="focus"
-      title="专注"
-      description="保留为本地偏好，给后续推荐模块接入使用。"
+      :title="t('settings.preference.focus.title')"
+      :description="t('settings.preference.focus.description')"
     >
       <SettingsRow
-        title="禁用搜索推荐"
-        description="未来搜索推荐接入后会默认关闭推荐提示。"
+        :title="t('settings.preference.focus.noSearchRecommendationsTitle')"
+        :description="t('settings.preference.focus.noSearchRecommendationsDescription')"
       >
         <AoiSwitch v-model="settings.noSearchRecommendations" />
       </SettingsRow>
 
       <SettingsRow
-        title="禁用相关视频"
-        description="未来视频相关推荐接入后会默认隐藏相关列表。"
+        :title="t('settings.preference.focus.noRelatedVideosTitle')"
+        :description="t('settings.preference.focus.noRelatedVideosDescription')"
       >
         <AoiSwitch v-model="settings.noRelatedVideos" />
       </SettingsRow>

@@ -18,16 +18,16 @@ interface SettingsCatalogItem {
 }
 
 const settingsCatalog = computed<SettingsCatalogItem[]>(() => [
-  { id: "appearance", depth: "basic", group: "app", icon: "palette", label: "外观", description: "主题、色板、背景和规格单位。", keywords: "主题 色板 背景 DIY 自定义 规格 尺寸 单位 间距 圆角 导航宽度 卡片宽度 派生 强度", to: "/settings/appearance" },
-  { id: "player", depth: "basic", group: "app", icon: "play-circle", label: "播放器", description: "音量、静音、倍速和剧场模式。", keywords: "音量 静音 倍速 剧场", to: "/settings/player" },
-  { id: "danmaku", depth: "basic", group: "app", icon: "message-square-text", label: "弹幕", description: "弹幕显示、运动、模式和屏蔽词。", keywords: "弹幕 占位 屏蔽 速度 字号 透明度", to: "/settings/danmaku" },
-  { id: "preference", depth: "basic", group: "app", icon: "sliders-horizontal", label: "偏好", description: "浏览、隐私、动效、滚动和搜索偏好。", keywords: "省流 隐私 新标签 日期 搜索 进度条 NProgress loading reveal scroll snap", to: "/settings/preference" },
-  { id: "language", depth: "basic", group: "app", icon: "languages", label: "语言", description: "界面语言和本地化。", keywords: "中文 English 日本語 i18n", to: "/settings/language" },
-  { id: "experimental", depth: "all", group: "app", icon: "flask-conical", label: "实验", description: "功能预览和交互实验。", keywords: "实验 功能预览 富文本 lightbox scroll scene", to: "/settings/experimental" },
-  { id: "shortcut-key", depth: "all", group: "app", icon: "keyboard", label: "快捷键", description: "键盘操作预留。", keywords: "键盘 播放 评论", to: "/settings/shortcut-key" },
-  { id: "about", depth: "basic", group: "project", icon: "info", label: "关于", description: "版本、技术栈和项目说明。", keywords: "版本 技术栈 仓库", to: "/settings/about" },
-  { id: "acknowledgement", depth: "basic", group: "project", icon: "heart-handshake", label: "鸣谢", description: "链接、友情链接和致谢。", keywords: "链接 友情链接 致谢", to: "/settings/acknowledgement" },
-  { id: "advanced", depth: "all", group: "project", icon: "activity", label: "高级", description: "连接状态、本地缓存和重置。", keywords: "连接 错误 本地缓存 重置 数据", to: "/settings/advanced" }
+  settingsCatalogItem("appearance", "basic", "app", "palette", "/settings/appearance"),
+  settingsCatalogItem("player", "basic", "app", "play-circle", "/settings/player"),
+  settingsCatalogItem("danmaku", "basic", "app", "message-square-text", "/settings/danmaku"),
+  settingsCatalogItem("preference", "basic", "app", "sliders-horizontal", "/settings/preference"),
+  settingsCatalogItem("language", "basic", "app", "languages", "/settings/language"),
+  settingsCatalogItem("experimental", "all", "app", "flask-conical", "/settings/experimental"),
+  settingsCatalogItem("shortcut-key", "all", "app", "keyboard", "/settings/shortcut-key"),
+  settingsCatalogItem("about", "basic", "project", "info", "/settings/about"),
+  settingsCatalogItem("acknowledgement", "basic", "project", "heart-handshake", "/settings/acknowledgement"),
+  settingsCatalogItem("advanced", "all", "project", "activity", "/settings/advanced")
 ])
 
 const depthOptions = computed(() => [
@@ -89,8 +89,29 @@ watch([availableItems, () => route.path, () => settings.hydrated], () => {
 }, { immediate: true })
 
 useHead(() => ({
-  title: activeItem.value ? `${activeItem.value.label} - 设置 - Aoi` : "设置 - Aoi"
+  title: activeItem.value
+    ? t("settings.shell.headTitleWithPage", { page: activeItem.value.label })
+    : t("settings.shell.headTitle")
 }))
+
+function settingsCatalogItem(
+  id: string,
+  depth: AoiSettingsDisplayDepth,
+  group: "app" | "project",
+  icon: string,
+  to: string
+): SettingsCatalogItem {
+  return {
+    depth,
+    description: t(`settings.shell.catalog.${id}.description`),
+    group,
+    icon,
+    id,
+    keywords: t(`settings.shell.catalog.${id}.keywords`),
+    label: t(`settings.shell.catalog.${id}.label`),
+    to
+  }
+}
 </script>
 
 <template>

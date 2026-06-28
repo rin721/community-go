@@ -11,8 +11,9 @@ import {
   Search,
   XCircle,
 } from "lucide-react";
-import { useMemo, useState, type FormEvent } from "react";
+import { useCallback, useMemo, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router";
 
 import { DataTable } from "~/components/console/patterns/DataTable";
 import { FormField } from "~/components/console/patterns/FormField";
@@ -65,7 +66,8 @@ export default function AdminCommunityVideoJobsRoute() {
   const [filters, setFilters] = useState<CommunityVideoJobQuery>({});
   const [limit, setLimit] = useState(defaultLimit);
   const [notice, setNotice] = useState<CommunityNotice | null>(null);
-  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedJobId = searchParams.get("jobId");
 
   const canReadJobs = hasSessionPermission(permissions, {
     code: "community_video:read",
@@ -127,6 +129,18 @@ export default function AdminCommunityVideoJobsRoute() {
     ],
     [t],
   );
+
+  const openJobDetail = useCallback((jobId: number | string) => {
+    const next = new URLSearchParams(searchParams);
+    next.set("jobId", String(jobId));
+    setSearchParams(next);
+  }, [searchParams, setSearchParams]);
+
+  const closeJobDetail = useCallback(() => {
+    const next = new URLSearchParams(searchParams);
+    next.delete("jobId");
+    setSearchParams(next);
+  }, [searchParams, setSearchParams]);
 
   const columns = useMemo<ColumnDef<CommunityVideoJob>[]>(
     () => [
@@ -191,7 +205,7 @@ export default function AdminCommunityVideoJobsRoute() {
             <Button
               appearance="secondary"
               icon={<Eye size={16} />}
-              onClick={() => setSelectedJobId(String(row.original.id))}
+              onClick={() => openJobDetail(row.original.id)}
             >
               {t("admin.community.videoJobs.actions.details")}
             </Button>
@@ -209,7 +223,7 @@ export default function AdminCommunityVideoJobsRoute() {
         header: t("admin.community.videoJobs.columns.actions"),
       },
     ],
-    [canRetryJobs, i18n.language, retryMutation, t],
+    [canRetryJobs, i18n.language, retryMutation, t, openJobDetail],
   );
 
   const submitFilters = (event: FormEvent<HTMLFormElement>) => {
@@ -303,13 +317,13 @@ export default function AdminCommunityVideoJobsRoute() {
       </section>
 
       {selectedJobId ? (
-        <section className="console-admin-panel" aria-labelledby="admin-community-video-job-detail-title">
+        <section className="console-admin-panel console-community-job-drawer" aria-labelledby="admin-community-video-job-detail-title">
           <header className="console-admin-panel-header-row">
             <div>
               <h2 id="admin-community-video-job-detail-title">{t("admin.community.videoJobs.detail.title")}</h2>
               <p>{t("admin.community.videoJobs.detail.description")}</p>
             </div>
-            <Button appearance="ghost" icon={<XCircle size={16} />} onClick={() => setSelectedJobId(null)}>
+            <Button appearance="ghost" icon={<XCircle size={16} />} onClick={closeJobDetail}>
               {t("common.actions.close")}
             </Button>
           </header>
@@ -361,30 +375,35 @@ function VideoJobDetail({
   noneLabel: string;
   t: (key: string) => string;
 }) {
-  const rows = [
+  const primaryRows = [
     [t("admin.community.videoJobs.detail.fields.id"), job.id],
+    [t("admin.community.videoJobs.detail.fields.status"), videoJobStatusLabel(job.status, t)],
+    [t("admin.community.videoJobs.detail.fields.progress"), `${job.progress}%`],
     [t("admin.community.videoJobs.detail.fields.submissionId"), job.submissionId],
     [t("admin.community.videoJobs.detail.fields.videoId"), job.videoId],
-    [t("admin.community.videoJobs.detail.fields.provider"), job.provider],
-    [t("admin.community.videoJobs.detail.fields.providerJobId"), job.providerJobId],
     [t("admin.community.videoJobs.detail.fields.attempt"), `${job.attempt}/${job.maxAttempts}`],
-    [t("admin.community.videoJobs.detail.fields.lockedBy"), job.lockedBy],
-    [t("admin.community.videoJobs.detail.fields.lockedAt"), formatCommunityDate(job.lockedAt, locale, noneLabel)],
-    [t("admin.community.videoJobs.detail.fields.heartbeatAt"), formatCommunityDate(job.heartbeatAt, locale, noneLabel)],
-    [t("admin.community.videoJobs.detail.fields.nextRunAt"), formatCommunityDate(job.nextRunAt, locale, noneLabel)],
     [t("admin.community.videoJobs.detail.fields.startedAt"), formatCommunityDate(job.startedAt, locale, noneLabel)],
     [t("admin.community.videoJobs.detail.fields.finishedAt"), formatCommunityDate(job.finishedAt, locale, noneLabel)],
     [t("admin.community.videoJobs.detail.fields.callbackReceivedAt"), formatCommunityDate(job.callbackReceivedAt, locale, noneLabel)],
-    [t("admin.community.videoJobs.detail.fields.inputStorageKey"), job.inputStorageKey],
-    [t("admin.community.videoJobs.detail.fields.outputStorageKey"), job.outputStorageKey],
     [t("admin.community.videoJobs.detail.fields.outputPublicUrl"), job.outputPublicUrl],
     [t("admin.community.videoJobs.detail.fields.failureCode"), job.failureCode],
     [t("admin.community.videoJobs.detail.fields.errorMessage"), job.errorMessage],
   ];
+  const internalRows = [
+    [t("admin.community.videoJobs.detail.fields.provider"), job.provider],
+    [t("admin.community.videoJobs.detail.fields.providerJobId"), job.providerJobId],
+    [t("admin.community.videoJobs.detail.fields.lockedBy"), job.lockedBy],
+    [t("admin.community.videoJobs.detail.fields.lockedAt"), formatCommunityDate(job.lockedAt, locale, noneLabel)],
+    [t("admin.community.videoJobs.detail.fields.heartbeatAt"), formatCommunityDate(job.heartbeatAt, locale, noneLabel)],
+    [t("admin.community.videoJobs.detail.fields.nextRunAt"), formatCommunityDate(job.nextRunAt, locale, noneLabel)],
+    [t("admin.community.videoJobs.detail.fields.inputStorageKey"), job.inputStorageKey],
+    [t("admin.community.videoJobs.detail.fields.outputStorageKey"), job.outputStorageKey],
+    [t("admin.community.videoJobs.detail.fields.requestPayload"), job.requestPayload],
+  ];
   return (
     <div className="console-community-job-detail">
       <dl>
-        {rows.map(([label, value]) => (
+        {primaryRows.map(([label, value]) => (
           <div key={label}>
             <dt>{label}</dt>
             <dd>{value ? String(value) : noneLabel}</dd>
@@ -409,6 +428,17 @@ function VideoJobDetail({
           <p className="console-iam-muted">{noneLabel}</p>
         )}
       </div>
+      <details className="console-community-job-internals">
+        <summary>{t("admin.community.videoJobs.detail.internals")}</summary>
+        <dl>
+          {internalRows.map(([label, value]) => (
+            <div key={label}>
+              <dt>{label}</dt>
+              <dd>{value ? String(value) : noneLabel}</dd>
+            </div>
+          ))}
+        </dl>
+      </details>
     </div>
   );
 }

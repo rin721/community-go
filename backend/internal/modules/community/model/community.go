@@ -671,6 +671,20 @@ type CommunityVideoJobFilter struct {
 	Limit  int
 }
 
+type CommunitySubmissionVideoJobSummary struct {
+	ID              string     `json:"id"`
+	Status          string     `json:"status"`
+	Progress        int        `json:"progress"`
+	VideoID         string     `json:"videoId,omitempty"`
+	FailureCode     string     `json:"failureCode,omitempty"`
+	ErrorMessage    string     `json:"errorMessage,omitempty"`
+	OutputPublicURL string     `json:"outputPublicUrl,omitempty"`
+	StartedAt       *time.Time `json:"startedAt,omitempty"`
+	FinishedAt      *time.Time `json:"finishedAt,omitempty"`
+	CreatedAt       time.Time  `json:"createdAt"`
+	UpdatedAt       time.Time  `json:"updatedAt"`
+}
+
 type CommunityDynamicItem struct {
 	ID         string        `json:"id"`
 	Kind       string        `json:"kind"`
@@ -693,29 +707,30 @@ type CommunityDynamicPayload struct {
 }
 
 type CommunitySubmissionItem struct {
-	ID               string     `json:"id"`
-	ClientID         string     `json:"clientId"`
-	AuthorName       string     `json:"authorName"`
-	Title            string     `json:"title"`
-	Description      string     `json:"description"`
-	CategorySlug     string     `json:"categorySlug"`
-	Category         *Category  `json:"category,omitempty"`
-	Tags             []string   `json:"tags"`
-	Visibility       string     `json:"visibility"`
-	SourceName       string     `json:"sourceName"`
-	SourceSize       int64      `json:"sourceSize"`
-	SourceType       string     `json:"sourceType"`
-	AllowComments    bool       `json:"allowComments"`
-	Sensitive        bool       `json:"sensitive"`
-	Status           string     `json:"status"`
-	ReviewNote       string     `json:"reviewNote,omitempty"`
-	ReviewerID       string     `json:"reviewerId,omitempty"`
-	ReviewedAt       *time.Time `json:"reviewedAt,omitempty"`
-	MediaAssetID     int64      `json:"mediaAssetId,string,omitempty"`
-	PublishedVideoID string     `json:"publishedVideoId,omitempty"`
-	PublishedAt      *time.Time `json:"publishedAt,omitempty"`
-	CreatedAt        time.Time  `json:"createdAt"`
-	UpdatedAt        time.Time  `json:"updatedAt"`
+	ID               string                              `json:"id"`
+	ClientID         string                              `json:"clientId"`
+	AuthorName       string                              `json:"authorName"`
+	Title            string                              `json:"title"`
+	Description      string                              `json:"description"`
+	CategorySlug     string                              `json:"categorySlug"`
+	Category         *Category                           `json:"category,omitempty"`
+	Tags             []string                            `json:"tags"`
+	Visibility       string                              `json:"visibility"`
+	SourceName       string                              `json:"sourceName"`
+	SourceSize       int64                               `json:"sourceSize"`
+	SourceType       string                              `json:"sourceType"`
+	AllowComments    bool                                `json:"allowComments"`
+	Sensitive        bool                                `json:"sensitive"`
+	Status           string                              `json:"status"`
+	ReviewNote       string                              `json:"reviewNote,omitempty"`
+	ReviewerID       string                              `json:"reviewerId,omitempty"`
+	ReviewedAt       *time.Time                          `json:"reviewedAt,omitempty"`
+	MediaAssetID     int64                               `json:"mediaAssetId,string,omitempty"`
+	PublishedVideoID string                              `json:"publishedVideoId,omitempty"`
+	PublishedAt      *time.Time                          `json:"publishedAt,omitempty"`
+	LatestVideoJob   *CommunitySubmissionVideoJobSummary `json:"latestVideoJob,omitempty"`
+	CreatedAt        time.Time                           `json:"createdAt"`
+	UpdatedAt        time.Time                           `json:"updatedAt"`
 }
 
 type CommunitySubmissionPayload struct {

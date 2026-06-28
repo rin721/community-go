@@ -15,9 +15,9 @@
 | 视频互动 | `GET /videos/:idOrSlug/interaction-state`、`POST/DELETE /videos/:idOrSlug/interactions/:kind` | 匿名 `clientId` 或社区账号范围写入点赞、收藏、稍后看状态 |
 | 观看历史 | `GET /history`、`POST /history/clear`、`POST /videos/:idOrSlug/history` | 匿名或社区账号范围记录最近观看时间和播放进度 |
 | 资料库 | `GET /library`、`GET /account/library` | 读取收藏和稍后看列表 |
-| 投稿元数据 | `GET/POST /submissions`、`GET/POST /account/submissions`、`POST /account/submissions/upload` | 保存作者、标题、简介、分类、标签、可见性和文件元数据；账号源文件上传返回后端真实 DTO：`mediaAssetId/displayName/originalName/url/mimeType/sizeBytes`，投稿创建再映射为 `sourceName/sourceSize/sourceType` |
+| 投稿元数据 | `GET/POST /submissions`、`GET/POST /account/submissions`、`POST /account/submissions/upload` | 保存作者、标题、简介、分类、标签、可见性和文件元数据；账号源文件上传返回后端真实 DTO：`mediaAssetId/displayName/originalName/url/mimeType/sizeBytes`，投稿创建再映射为 `sourceName/sourceSize/sourceType`；列表响应带 `latestVideoJob` 最小摘要，供前台展示待审核、已通过、排队中、处理中、已发布、失败和已取消状态 |
 | 投稿审核 | `GET /api/v1/community/submissions`、`PATCH /api/v1/community/submissions/:submissionId/review` | 主系统 IAM 权限 `community_submission:review` 保护；支持 `approved`、`rejected`、`published` 状态，写入审核备注、审核人、审核时间、受控 `mediaAssetId` 和发布视频 ID；审核通过后由 `community_video:transcode` 创建转码发布任务，保留 `published` 绑定既有视频 ID 的兼容路径，不再让常规审核请求执行长时间转码 |
-| 视频处理任务 | `POST /api/v1/community/submissions/:submissionId/transcode`、`GET /api/v1/community/video-jobs`、`GET /api/v1/community/video-jobs/:jobId`、`POST /api/v1/community/video-jobs/:jobId/retry`、`POST /api/v1/public/community/video-jobs/:jobId/callback` | 主系统 IAM 权限 `community_video:transcode/read/retry` 管理任务；创建接口只写入 queued job 并立即返回。生命周期 worker 使用数据库 lease claim 任务，本地模式调用 FFmpeg / FFprobe 生成 HLS master 和 renditions，云模式向 `community.video.cloud.dispatchUrl` 发送 HMAC 签名 dispatch，并由公开签名 callback 补齐视频、source 和 rendition 数据 |
+| 视频处理任务 | `POST /api/v1/community/submissions/:submissionId/transcode`、`GET /api/v1/community/video-jobs`、`GET /api/v1/community/video-jobs/:jobId`、`POST /api/v1/community/video-jobs/:jobId/retry`、`POST /api/v1/public/community/video-jobs/:jobId/callback` | 主系统 IAM 权限 `community_video:transcode/read/retry` 管理任务；创建接口只写入 queued job 并立即返回。生命周期 worker 使用数据库 lease claim 任务，本地模式调用 FFmpeg / FFprobe 生成 HLS master 和 renditions，云模式向 `community.video.cloud.dispatchUrl` 发送 HMAC 签名 dispatch，并由公开签名 callback 补齐视频、source 和 rendition 数据；后台任务页支持 `?jobId=` 深链详情和失败重试 |
 | 社区账号管理 | `GET /api/v1/community/accounts`、`PATCH /api/v1/community/accounts/:accountId` | 主系统 IAM 权限 `community_account:read` / `community_account:update` 保护；后台 `/admin/community/accounts` 只管理社区账号角色 `registered/creator` 与状态 `active/disabled`，不授予控制台角色 |
 | 举报 | `POST /videos/:idOrSlug/reports` | 保存匿名 `clientId`、原因、补充说明和待处理状态 |
 | 举报处理 | `GET /api/v1/community/reports`、`PATCH /api/v1/community/reports/:reportId` | 主系统 IAM 权限 `community_report:review` 保护；后台 `/admin/community/reports` 可将举报标记为 `resolved` 或 `rejected` 并写入处理备注 |
@@ -37,7 +37,7 @@
 
 - 社区公开接口不提供 IAM 权限码，也不写入 `system_apis` 的受保护权限目录；它们仍通过 route contract 生成 OpenAPI。
 - 社区账号用于普通观看、创作者互动和投稿流程，不暴露后台组织、角色、权限或控制台身份字段；普通注册用户和内容创作者不能凭社区账号进入 `/admin`。
-- 当前评论、弹幕、动态、投稿、视频处理任务和举报是轻量生产接口；评论和动态支持本人编辑 / 删除，投稿支持主系统权限保护的审核状态流转、账号源文件上传、发布视频 ID 回写和异步 HLS 发布。普通社区投稿创建只保存文件元数据，真实源文件由账号上传接口写入社区媒体资产；后台社区 WebUI 当前覆盖社区分类、社区账号、投稿审核、视频任务详情和举报处理。创作者中心、活动运营、批量评论治理、登录态与匿名关系归并、外部通知投递仍属于后续任务，不在当前控制台伪造入口。
+- 当前评论、弹幕、动态、投稿、视频处理任务和举报是轻量生产接口；评论和动态支持本人编辑 / 删除，投稿支持主系统权限保护的审核状态流转、账号源文件上传、发布视频 ID 回写和异步 HLS 发布。普通社区投稿创建只保存文件元数据，真实源文件由账号上传接口写入社区媒体资产；后台社区 WebUI 当前覆盖 `/admin/community` 社区总览、社区分类、社区账号、投稿审核、视频任务详情深链和举报处理。创作者中心、活动运营、批量评论治理、登录态与匿名关系归并、外部通知投递仍属于后续任务，不在当前控制台伪造入口。
 - 视频分类是后台可管理系统字典数据，不是后端固定 taxonomy，也不是 Nuxt 页面/store 中的硬编码枚举；后台“社区分类”页面复用字典权限和字典 API 管理 `community.video.category` 的 item。
 - `scripts/check-frontend-community-boundary.ps1` 同时守住前端 mock 边界和后端社区生产 Go / SQL 边界；后端生产路径不得恢复 `community_categories` 分类表、社区 demo seed、生产分类默认值或 mock / fixture / demo 业务分支，`_test.go` 中的中性 fixture 不代表生产分类。
 - 浏览器本地状态只保存匿名 `clientId`、显示偏好、必要降级缓存和上传草稿文件元数据；不得保存文件字节、后台权限 payload 或不可恢复的大对象。
@@ -87,4 +87,4 @@ powershell -ExecutionPolicy Bypass -File scripts/check-frontend-community-api-sm
 node scripts/frontend-community-page-smoke.cjs
 ```
 
-`check-frontend-community-api-smoke.ps1` 和 `frontend-community-page-smoke.cjs` 使用账号源文件上传、审核通过、创建视频任务和签名回调发布来覆盖无本机 FFmpeg / FFprobe 环境下的核心闭环；需要验证本地真实转码时，保持 `community.video.worker.enabled=true` 并确保 `ffmpeg` / `ffprobe` 可执行文件在 PATH 或配置路径中。
+`check-frontend-community-api-smoke.ps1` 和 `frontend-community-page-smoke.cjs` 使用账号源文件上传、审核通过、创建视频任务和签名回调发布来覆盖无本机 FFmpeg / FFprobe 环境下的核心闭环；API smoke 断言账号投稿 `latestVideoJob` 的 queued / running / succeeded / failed 摘要，页面 smoke 断言上传页的处理进度、失败码和发布入口可见。需要验证本地真实转码时，保持 `community.video.worker.enabled=true` 并确保 `ffmpeg` / `ffprobe` 可执行文件在 PATH 或配置路径中。

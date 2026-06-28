@@ -4,9 +4,9 @@
 
 ## 当前阶段
 
-- 阶段编号：`P10`
-- 阶段主题：后台控制台与前台上传播放的异步视频处理闭环
-- 当前结论：`P1` 已完成社区 setup 边界与真实 API smoke；`P2` 已完成核心页面视觉 QA 与移动端导航避让；`P3` 已完成评论 / 动态本人编辑删除、投稿审核状态流转、审核发布生成社区视频记录和 system media 受控关联；`P4` 已完成少量真实内容视觉节奏与社区前端 Cookie / CSRF 凭证链路；`P5` 已完成后端社区 HTTP 返回面真实数据来源收敛；`P6` 已完成真实 API smoke 的登录注册与账号态页面覆盖；`P7` 已完成分端口直连模式下账号写请求 CORS / CSRF 修复；`P8` 已完成社区注册 / 登录从 IAM 控制台账号体系拆出、独立 `community_accounts` / `community_sessions`、IAM `moderator` / `operator` 角色、后台“社区管理”WebUI 和 Nuxt 首页动态区块移除；`P9` 已将视频分类生产来源收敛到系统字典 `community.video.category`；`P10` 将投稿发布链路改为异步任务：后台只创建 queued 转码任务，社区视频 worker 通过数据库 lease 消费任务，本地模式执行 FFmpeg HLS，云模式通过通用 HMAC webhook dispatch / callback 完成发布，后台任务页可视化 attempt、锁定 worker、provider job、HLS 和 renditions，Nuxt 上传页消费真实上传 DTO 并展示待审核 / 处理中 / 已发布状态。
+- 阶段编号：`P11`
+- 阶段主题：社区平台与控制台社区管理设计收敛
+- 当前结论：`P1` 已完成社区 setup 边界与真实 API smoke；`P2` 已完成核心页面视觉 QA 与移动端导航避让；`P3` 已完成评论 / 动态本人编辑删除、投稿审核状态流转、审核发布生成社区视频记录和 system media 受控关联；`P4` 已完成少量真实内容视觉节奏与社区前端 Cookie / CSRF 凭证链路；`P5` 已完成后端社区 HTTP 返回面真实数据来源收敛；`P6` 已完成真实 API smoke 的登录注册与账号态页面覆盖；`P7` 已完成分端口直连模式下账号写请求 CORS / CSRF 修复；`P8` 已完成社区注册 / 登录从 IAM 控制台账号体系拆出、独立 `community_accounts` / `community_sessions`、IAM `moderator` / `operator` 角色、后台“社区管理”WebUI 和 Nuxt 首页动态区块移除；`P9` 已将视频分类生产来源收敛到系统字典 `community.video.category`；`P10` 将投稿发布链路改为异步任务：后台只创建 queued 转码任务，社区视频 worker 通过数据库 lease 消费任务，本地模式执行 FFmpeg HLS，云模式通过通用 HMAC webhook dispatch / callback 完成发布；`P11` 补齐投稿 `latestVideoJob` 前台最小摘要、Nuxt 上传页真实状态时间线、后台 `/admin/community` 总览、社区导航上下文兜底、视频任务 `?jobId=` 深链详情和设置页 i18n 漂移收敛。
 - 影响范围：`backend/internal/modules/community/**`、`backend/internal/modules/system/**`、`backend/internal/app/initapp/**`、`backend/internal/migrations/**`、`backend/internal/transport/http/**`、`backend/web/app/**`、`frontend/**`、`scripts/check-frontend-community-*.ps1`、`scripts/frontend-community-page-smoke.cjs`、OpenAPI、社区模块文档、前端 README、`TASK_TREE.md` 和前端社区边界检查。
 
 ## 设计语言蒸馏
@@ -63,8 +63,10 @@
         [x] 子叶节点 B3.1.d.1：审核发布时由投稿元数据与显式 source URL 生成社区视频记录
         [x] 子叶节点 B3.1.d.2：真实媒体上传与 system media / community submission 的受控关联
         [x] 子叶节点 B3.1.d.3：异步转码任务、HLS 播放源生成、云 webhook 回调和媒体处理状态回写
-        [x] 子叶节点 B3.1.d.4：后台投稿审核创建转码任务、视频任务详情可视化和失败重试体验
+      [x] 子叶节点 B3.1.d.4：后台投稿审核创建转码任务、视频任务详情可视化和失败重试体验
+      [x] 子叶节点 B3.1.d.5：投稿列表装饰 `latestVideoJob` 最小摘要，前台上传页按后端任务状态展示待审核、排队、处理、发布、失败和取消时间线
       [x] 叶节点 B3.1.e：后台社区管理 WebUI 覆盖社区账号、投稿审核和举报处理，页面只消费真实 `/api/v1/community/*` 契约
+      [x] 叶节点 B3.1.f：后台 `/admin/community` 社区总览、社区菜单首项、系统菜单缺失兜底和视频任务 `?jobId=` 深链详情收敛
     [ ] 子分支 B3.2：登录态与匿名关系归并
     [ ] 子分支 B3.3：创作者后台、活动运营、批量评论治理和外部通知投递
     [x] 子分支 B3.4：社区账号与 IAM 控制台身份隔离
@@ -126,6 +128,7 @@
     [x] 子分支 D2.4：同步 `frontend/README.md` 的 API Token、Cookie 会话、CORS credentials 与 CSRF 联调边界
     [x] 子分支 D2.5：同步系统字典视频分类闭环、后台社区分类入口和真实 / mock 模式边界
     [x] 子分支 D2.6：同步异步视频 worker、本地 FFmpeg、云 webhook、后台任务详情和 Nuxt 上传 DTO 边界
+    [x] 子分支 D2.7：同步前台 `latestVideoJob` 摘要、后台社区总览、菜单来源和视频任务深链详情说明
   [x] 分支 D3：Skill 同步
     [x] 子分支 D3.1：新增社区全栈协作 skill
     [x] 子分支 D3.2：运行 `scripts/check-agent-skills.ps1`

@@ -373,27 +373,69 @@ function draftStatusLabel(status?: string) {
 }
 
 function submissionStatusLabel(item: CommunitySubmissionItem) {
+  if (item.status === "published") {
+    return t("upload.submissions.published")
+  }
+  if (item.latestVideoJob?.status === "queued") {
+    return t("upload.submissions.queued")
+  }
+  if (item.latestVideoJob?.status === "running") {
+    return t("upload.submissions.running")
+  }
+  if (item.latestVideoJob?.status === "succeeded") {
+    return t("upload.submissions.succeeded")
+  }
+  if (item.latestVideoJob?.status === "failed") {
+    return t("upload.submissions.failed")
+  }
+  if (item.latestVideoJob?.status === "canceled") {
+    return t("upload.submissions.canceled")
+  }
   if (item.status === "pending_review") {
     return t("upload.submissions.pendingReview")
   }
   if (item.status === "approved") {
-    return item.mediaAssetId ? t("upload.submissions.processing") : t("upload.submissions.approved")
+    return t("upload.submissions.approved")
   }
   if (item.status === "rejected") {
     return t("upload.submissions.rejected")
-  }
-  if (item.status === "published") {
-    return t("upload.submissions.published")
   }
 
   return item.status
 }
 
+function submissionStatusBadge(item: CommunitySubmissionItem) {
+  if (item.status === "published") {
+    return "published"
+  }
+  return item.latestVideoJob?.status || item.status
+}
+
 function submissionReviewMessage(item: CommunitySubmissionItem) {
-  if (item.status === "approved") {
-    if (item.mediaAssetId) {
-      return t("upload.submissions.processingHint")
+  if (item.latestVideoJob) {
+    if (item.latestVideoJob.status === "queued") {
+      return t("upload.submissions.jobQueuedHint")
     }
+    if (item.latestVideoJob.status === "running") {
+      return t("upload.submissions.jobRunningHint", {
+        progress: formatJobProgress(item.latestVideoJob.progress)
+      })
+    }
+    if (item.latestVideoJob.status === "succeeded") {
+      return t("upload.submissions.jobSucceededHint", {
+        videoId: submissionPublishedVideoId(item) || t("upload.submissions.pendingVideoId")
+      })
+    }
+    if (item.latestVideoJob.status === "failed") {
+      return t("upload.submissions.jobFailedHint", {
+        reason: submissionJobFailure(item)
+      })
+    }
+    if (item.latestVideoJob.status === "canceled") {
+      return t("upload.submissions.jobCanceledHint")
+    }
+  }
+  if (item.status === "approved") {
     return item.reviewNote
       ? t("upload.submissions.reviewNote", { note: item.reviewNote })
       : t("upload.submissions.approvedHint")
@@ -411,8 +453,64 @@ function submissionReviewMessage(item: CommunitySubmissionItem) {
   return ""
 }
 
+function submissionPublishedVideoId(item: CommunitySubmissionItem) {
+  return item.publishedVideoId || item.latestVideoJob?.videoId || ""
+}
+
 function submissionPublishedPath(item: CommunitySubmissionItem) {
-  return item.publishedVideoId ? `/video/${encodeURIComponent(item.publishedVideoId)}` : ""
+  const videoId = submissionPublishedVideoId(item)
+  return videoId ? `/video/${encodeURIComponent(videoId)}` : ""
+}
+
+function formatJobProgress(value?: number) {
+  const progress = Math.min(100, Math.max(0, Number(value || 0)))
+  return t("upload.submissions.progressPercent", { progress })
+}
+
+function submissionJobFailure(item: CommunitySubmissionItem) {
+  const job = item.latestVideoJob
+  if (!job) {
+    return t("upload.submissions.unknownFailure")
+  }
+  if (job.failureCode && job.errorMessage) {
+    return `${job.failureCode}: ${job.errorMessage}`
+  }
+  return job.failureCode || job.errorMessage || t("upload.submissions.unknownFailure")
+}
+
+function submissionTimelineState(item: CommunitySubmissionItem, stage: "review" | "queue" | "process" | "publish") {
+  const jobStatus = item.latestVideoJob?.status
+  if (stage === "review") {
+    if (item.status === "rejected") {
+      return "failed"
+    }
+    return item.status === "pending_review" ? "active" : "done"
+  }
+  if (stage === "queue") {
+    if (!jobStatus) {
+      return item.status === "approved" ? "active" : "pending"
+    }
+    if (jobStatus === "queued") {
+      return "active"
+    }
+    return jobStatus === "failed" || jobStatus === "canceled" ? "failed" : "done"
+  }
+  if (stage === "process") {
+    if (jobStatus === "running") {
+      return "active"
+    }
+    if (jobStatus === "failed" || jobStatus === "canceled") {
+      return "failed"
+    }
+    return jobStatus === "succeeded" || item.status === "published" ? "done" : "pending"
+  }
+  if (item.status === "published" || (jobStatus === "succeeded" && submissionPublishedVideoId(item))) {
+    return "done"
+  }
+  if (jobStatus === "failed" || jobStatus === "canceled") {
+    return "failed"
+  }
+  return "pending"
 }
 
 function visibilityLabelFor(value: string) {
@@ -797,8 +895,14 @@ useHead(() => ({
             >
               <div class="upload-submission-list__heading">
                 <strong>{{ item.title }}</strong>
-                <span :data-status="item.status">{{ submissionStatusLabel(item) }}</span>
+                <span :data-status="submissionStatusBadge(item)">{{ submissionStatusLabel(item) }}</span>
               </div>
+              <ol class="upload-submission-list__timeline" :aria-label="t('upload.submissions.timelineAria')">
+                <li :data-state="submissionTimelineState(item, 'review')">{{ t('upload.submissions.timelineReview') }}</li>
+                <li :data-state="submissionTimelineState(item, 'queue')">{{ t('upload.submissions.timelineQueue') }}</li>
+                <li :data-state="submissionTimelineState(item, 'process')">{{ t('upload.submissions.timelineProcess') }}</li>
+                <li :data-state="submissionTimelineState(item, 'publish')">{{ t('upload.submissions.timelinePublish') }}</li>
+              </ol>
               <p>{{ item.description || t('upload.review.emptyDescription') }}</p>
               <dl class="upload-submission-list__meta">
                 <div>
@@ -817,6 +921,22 @@ useHead(() => ({
                   <dt>{{ t('upload.submissions.mediaAsset') }}</dt>
                   <dd>{{ item.mediaAssetId }}</dd>
                 </div>
+                <div v-if="item.latestVideoJob">
+                  <dt>{{ t('upload.submissions.videoJob') }}</dt>
+                  <dd>{{ item.latestVideoJob.id }}</dd>
+                </div>
+                <div v-if="item.latestVideoJob">
+                  <dt>{{ t('upload.submissions.jobProgress') }}</dt>
+                  <dd>{{ formatJobProgress(item.latestVideoJob.progress) }}</dd>
+                </div>
+                <div v-if="item.latestVideoJob?.failureCode">
+                  <dt>{{ t('upload.submissions.jobFailureCode') }}</dt>
+                  <dd>{{ item.latestVideoJob.failureCode }}</dd>
+                </div>
+                <div v-if="item.latestVideoJob?.outputPublicUrl">
+                  <dt>{{ t('upload.submissions.jobOutput') }}</dt>
+                  <dd>{{ item.latestVideoJob.outputPublicUrl }}</dd>
+                </div>
                 <div>
                   <dt>{{ t('upload.submissions.createdAt') }}</dt>
                   <dd>{{ formatDate(item.createdAt) }}</dd>
@@ -825,18 +945,18 @@ useHead(() => ({
                   <dt>{{ t('upload.submissions.reviewedAt') }}</dt>
                   <dd>{{ formatDate(item.reviewedAt) }}</dd>
                 </div>
-                <div v-if="item.publishedVideoId">
+                <div v-if="submissionPublishedVideoId(item)">
                   <dt>{{ t('upload.submissions.publishedVideo') }}</dt>
                   <dd>
                     <AoiLink :to="submissionPublishedPath(item)">
-                      {{ item.publishedVideoId }}
+                      {{ submissionPublishedVideoId(item) }}
                     </AoiLink>
                   </dd>
                 </div>
               </dl>
               <div v-if="submissionReviewMessage(item)" class="upload-submission-list__review">
                 <span>{{ submissionReviewMessage(item) }}</span>
-                <AoiLink v-if="item.publishedVideoId" :to="submissionPublishedPath(item)">
+                <AoiLink v-if="submissionPublishedVideoId(item)" :to="submissionPublishedPath(item)">
                   {{ t('upload.submissions.openPublished') }}
                 </AoiLink>
               </div>
@@ -1114,7 +1234,21 @@ useHead(() => ({
   color: var(--aoi-success);
 }
 
+.upload-submission-list__heading span[data-status="queued"],
+.upload-submission-list__heading span[data-status="running"] {
+  border-color: var(--aoi-intent-warning-border);
+  background: var(--aoi-intent-warning-soft-bg);
+  color: var(--aoi-warning);
+}
+
 .upload-submission-list__heading span[data-status="rejected"] {
+  border-color: var(--aoi-intent-danger-border);
+  background: var(--aoi-intent-danger-soft-bg);
+  color: var(--aoi-danger);
+}
+
+.upload-submission-list__heading span[data-status="failed"],
+.upload-submission-list__heading span[data-status="canceled"] {
   border-color: var(--aoi-intent-danger-border);
   background: var(--aoi-intent-danger-soft-bg);
   color: var(--aoi-danger);
@@ -1124,6 +1258,53 @@ useHead(() => ({
   border-color: var(--aoi-intent-warning-border);
   background: var(--aoi-intent-warning-soft-bg);
   color: var(--aoi-warning);
+}
+
+.upload-submission-list__heading span[data-status="succeeded"] {
+  border-color: var(--aoi-intent-success-border);
+  background: var(--aoi-intent-success-soft-bg);
+  color: var(--aoi-success);
+}
+
+.upload-submission-list__timeline {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.upload-submission-list__timeline li {
+  min-width: 0;
+  border: 1px solid var(--aoi-surface-border);
+  border-radius: var(--aoi-radius-control);
+  background: color-mix(in srgb, var(--aoi-surface-solid) 78%, transparent);
+  color: var(--aoi-text-muted);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  padding: 5px 6px;
+  text-align: center;
+}
+
+.upload-submission-list__timeline li[data-state="done"] {
+  border-color: var(--aoi-intent-success-border);
+  background: var(--aoi-intent-success-soft-bg);
+  color: var(--aoi-success);
+}
+
+.upload-submission-list__timeline li[data-state="active"] {
+  border-color: var(--aoi-intent-warning-border);
+  background: var(--aoi-intent-warning-soft-bg);
+  color: var(--aoi-warning);
+}
+
+.upload-submission-list__timeline li[data-state="failed"] {
+  border-color: var(--aoi-intent-danger-border);
+  background: var(--aoi-intent-danger-soft-bg);
+  color: var(--aoi-danger);
 }
 
 .upload-submission-list__item strong,
@@ -1227,6 +1408,10 @@ useHead(() => ({
   .upload-tags__input,
   .upload-submission-list__heading {
     grid-template-columns: 1fr;
+  }
+
+  .upload-submission-list__timeline {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .upload-tags__input :deep(.aoi-button),

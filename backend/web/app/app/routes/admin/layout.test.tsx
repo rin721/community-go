@@ -92,6 +92,21 @@ describe("AdminSidebarNav", () => {
     expect(screen.queryByRole("link", { name: zhCN.admin.nav.users })).toBeNull();
   });
 
+  it("restores the active community context when backend menus are incomplete", () => {
+    const fallbackGroups = adminNavGroupsFromSystemMenus([], "/admin/community/video-jobs");
+
+    renderSidebar("/admin/community/video-jobs", fallbackGroups);
+
+    expect(screen.getByRole("button", { name: zhCN.admin.navGroups.community })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    expect(screen.getByRole("link", { name: zhCN.admin.nav.communityVideoJobs })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+  });
+
   it("does not expand unknown backend menu groups into the full static navigation", () => {
     const fallbackGroups = adminNavGroupsFromSystemMenus([
       {

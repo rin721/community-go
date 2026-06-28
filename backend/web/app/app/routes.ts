@@ -33,6 +33,7 @@ export default [
     route("security", "./routes/admin/security.tsx"),
     route("traffic-hijack", "./routes/admin/traffic-hijack.tsx"),
     route("api-tokens", "./routes/admin/api-tokens.tsx"),
+    route("community", "./routes/admin/community-overview.tsx"),
     route("community/accounts", "./routes/admin/community-accounts.tsx"),
     route("community/categories", "./routes/admin/community-categories.tsx"),
     route("community/submissions", "./routes/admin/community-submissions.tsx"),

@@ -334,6 +334,60 @@
       "searchLabel": "Search settings",
       "searchPlaceholder": "Theme, background, player...",
       "emptyText": "No matching settings.",
+      "headTitle": "Settings - Aoi",
+      "headTitleWithPage": "{page} - Settings - Aoi",
+      "catalog": {
+        "appearance": {
+          "label": "Appearance",
+          "description": "Theme, palette, background, and specification units.",
+          "keywords": "theme palette background DIY custom spec size unit spacing radius navigation width card width derivation strength"
+        },
+        "player": {
+          "label": "Player",
+          "description": "Volume, mute, playback speed, and theater mode.",
+          "keywords": "volume mute speed theater"
+        },
+        "danmaku": {
+          "label": "Danmaku",
+          "description": "Danmaku display, motion, modes, and blocklist.",
+          "keywords": "danmaku overlay block speed font opacity"
+        },
+        "preference": {
+          "label": "Preferences",
+          "description": "Browsing, privacy, motion, scrolling, and search preferences.",
+          "keywords": "data saver privacy new tab date search progress NProgress loading reveal scroll snap"
+        },
+        "language": {
+          "label": "Language",
+          "description": "Interface language and localization.",
+          "keywords": "Chinese English Japanese i18n"
+        },
+        "experimental": {
+          "label": "Experiments",
+          "description": "Feature previews and interaction experiments.",
+          "keywords": "experiment preview rich text lightbox scroll scene"
+        },
+        "shortcut-key": {
+          "label": "Shortcuts",
+          "description": "Reserved keyboard operations.",
+          "keywords": "keyboard playback comments"
+        },
+        "about": {
+          "label": "About",
+          "description": "Version, tech stack, and project notes.",
+          "keywords": "version tech stack repository"
+        },
+        "acknowledgement": {
+          "label": "Acknowledgement",
+          "description": "Links, friendly links, and acknowledgements.",
+          "keywords": "links friendly links thanks"
+        },
+        "advanced": {
+          "label": "Advanced",
+          "description": "Connection status, local cache, and resets.",
+          "keywords": "connection errors local cache reset data"
+        }
+      },
       "groups": {
         "app": "App settings",
         "project": "Project"
@@ -670,7 +724,134 @@
         }
       }
     },
+    "danmaku": {
+      "page": {
+        "title": "Danmaku",
+        "description": "Adjust player danmaku display, motion, modes, and blocklist. Settings are saved in this browser and apply to the Aoi player immediately."
+      },
+      "display": {
+        "title": "Display and modes",
+        "description": "Control the global danmaku switch plus scroll, top, and bottom modes.",
+        "reset": "Reset danmaku",
+        "enabledTitle": "Enable danmaku",
+        "enabledDescription": "When off, the player hides danmaku and does not allow sending new danmaku.",
+        "scrollTitle": "Scrolling danmaku",
+        "scrollDescription": "Allow danmaku to move from right to left across the video.",
+        "topTitle": "Top danmaku",
+        "topDescription": "Allow danmaku to stay fixed at the top of the video.",
+        "bottomTitle": "Bottom danmaku",
+        "bottomDescription": "Allow danmaku to stay fixed at the bottom of the video."
+      },
+      "visual": {
+        "title": "Visuals and motion",
+        "description": "Adjust opacity, font size, speed, and occupied screen area.",
+        "opacityTitle": "Opacity",
+        "fontScaleTitle": "Font scale",
+        "speedTitle": "Speed scale",
+        "visibleAreaTitle": "Visible area",
+        "currentPercent": "Current {value}%",
+        "visibleAreaDescription": "Danmaku may occupy up to {value}% of the upper video area"
+      },
+      "blocklist": {
+        "title": "Blocklist",
+        "description": "Use one blocked term per line or separate terms with commas; matches are hidden from the layer and list.",
+        "label": "Blocked terms",
+        "placeholder": "Example: spoiler\nspam"
+      },
+      "cache": {
+        "title": "Danmaku fallback cache",
+        "description": "Shows danmaku saved in this browser while the community service is unavailable; synced danmaku is not included."
+      },
+      "stats": {
+        "fallback": "Fallback danmaku",
+        "opacity": "Opacity",
+        "fontScale": "Font size",
+        "speed": "Speed"
+      }
+    },
+    "advanced": {
+      "page": {
+        "title": "Advanced",
+        "description": "Inspect connection status, local cache statistics, and reset actions."
+      },
+      "dataSource": {
+        "title": "Data source",
+        "description": "Read-only view of the current runtime configuration.",
+        "source": "Data source",
+        "mock": "Frontend mock data mode",
+        "real": "Real backend data mode",
+        "mockSwitch": "Mock switch",
+        "enabled": "Enabled",
+        "disabled": "Disabled",
+        "apiStatus": "API status"
+      },
+      "connection": {
+        "title": "Connection status",
+        "description": "Confirm available endpoints for the current runtime data source.",
+        "refresh": "Refresh",
+        "retry": "Retry",
+        "mockReady": "Mock data API available",
+        "realReady": "Real community API available",
+        "setupBlocked": "Setup in progress: {step}",
+        "setupPending": "waiting",
+        "mode": "Mode",
+        "setup": "Setup",
+        "completed": "Complete",
+        "inProgress": "In progress",
+        "updatedAt": "Updated at",
+        "errorTitle": "Connection status unavailable",
+        "errorDescription": "The connection status probe failed.",
+        "setupBlockedDescription": "Platform setup is incomplete, so community content APIs return setup state; once setup completes, real community data is used.",
+        "endpointsAria": "Implemented connection endpoints"
+      }
+    },
     "preference": {
+      "page": {
+        "title": "Preferences",
+        "description": "Manage local browsing, privacy, and search preferences."
+      },
+      "dataMode": {
+        "title": "Data mode",
+        "description": "Control content loading density and prefetch preference for this browser.",
+        "options": {
+          "economy": {
+            "label": "Economy mode",
+            "description": "Reduce nonessential loading for mobile or weak networks."
+          },
+          "standard": {
+            "label": "Standard mode",
+            "description": "Balance loading speed and information density."
+          },
+          "turbo": {
+            "label": "Turbo mode",
+            "description": "Prefer faster access to more content on stable networks."
+          }
+        }
+      },
+      "browsing": {
+        "title": "Browsing",
+        "description": "These settings affect current video cards and metadata.",
+        "openNewTabTitle": "Open videos in a new tab",
+        "openNewTabDescription": "Video cards on home, search, and history pages open in a new tab.",
+        "relativeDatesTitle": "Use relative dates",
+        "relativeDatesDescription": "Video publish times render as relative text such as just now or days ago."
+      },
+      "privacy": {
+        "title": "Privacy",
+        "description": "Only affects local browser behavior and local storage.",
+        "disableHistoryTitle": "Disable watch history",
+        "disableHistoryDescription": "Video pages stop writing history and playback progress.",
+        "hideRecentSearchesTitle": "Hide recent searches",
+        "hideRecentSearchesDescription": "Recent searches stay local to this browser; enabling this hides those local entries."
+      },
+      "focus": {
+        "title": "Focus",
+        "description": "Control auxiliary recommendation areas on search and video pages.",
+        "noSearchRecommendationsTitle": "Disable search recommendations",
+        "noSearchRecommendationsDescription": "Hide recommendation hints on the search page.",
+        "noRelatedVideosTitle": "Disable related videos",
+        "noRelatedVideosDescription": "Hide the related videos area on video pages."
+      },
       "routeProgress": {
         "title": "Route progress bar",
         "description": "Use NProgress for route navigation feedback while keeping Nuxt's built-in loading lifecycle.",
@@ -1177,15 +1358,37 @@
       "processing": "Processing",
       "rejected": "Rejected",
       "published": "Published",
+      "queued": "Queued",
+      "running": "Processing",
+      "succeeded": "Published",
+      "failed": "Failed",
+      "canceled": "Canceled",
       "approvedHint": "Approved and waiting for the media publishing step.",
       "processingHint": "Approved and waiting for background transcoding or HLS publishing to finish.",
+      "jobQueuedHint": "Approved. The video processing job is queued.",
+      "jobRunningHint": "The video processing job is running. Current progress is {progress}.",
+      "jobSucceededHint": "Video processing is complete. Public video {videoId} is available.",
+      "jobFailedHint": "Video processing failed: {reason}",
+      "jobCanceledHint": "The video processing job was canceled. Wait for a new job to be created.",
       "rejectedHint": "Rejected. Update the draft based on the review note before submitting again.",
       "publishedHint": "Linked to public video {videoId}.",
       "reviewNote": "Review note: {note}",
+      "progressPercent": "{progress}%",
+      "pendingVideoId": "pending",
+      "unknownFailure": "No failure reason returned",
+      "timelineAria": "Submission processing timeline",
+      "timelineReview": "Review",
+      "timelineQueue": "Queue",
+      "timelineProcess": "Process",
+      "timelinePublish": "Publish",
       "reviewedAt": "Reviewed",
       "publishedVideo": "Published video",
       "openPublished": "Open video",
       "mediaAsset": "Media asset",
+      "videoJob": "Video job",
+      "jobProgress": "Job progress",
+      "jobFailureCode": "Failure code",
+      "jobOutput": "Output URL",
       "fileSize": "File size",
       "createdAt": "Submitted"
     }

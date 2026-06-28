@@ -520,6 +520,7 @@
       "errorLogs": "错误日志",
       "notificationOutbox": "通知队列",
       "communityAccounts": "社区账号",
+      "communityOverview": "社区总览",
       "communitySubmissions": "投稿审核",
       "communityCategories": "社区分类",
       "communityReports": "举报处理",
@@ -2562,6 +2563,65 @@
         "misinformation": "虚假信息",
         "spam": "垃圾信息"
       },
+      "overview": {
+        "title": "社区总览",
+        "description": "集中查看社区账号、分类、投稿审核、举报处理和视频处理任务状态。入口复用现有接口，不新增平行数据源。",
+        "badge": "社区管理",
+        "summaryLabel": "社区管理关键指标",
+        "metrics": {
+          "pendingSubmissions": "待审核投稿",
+          "runningJobs": "处理中任务",
+          "failedJobs": "失败任务",
+          "pendingReports": "待处理举报"
+        },
+        "cards": {
+          "accounts": {
+            "title": "社区账号",
+            "description": "{{active}} 个活跃账号，{{creators}} 个创作者。",
+            "permission": "当前会话缺少租户级 community_account:read 权限。",
+            "action": "查看账号"
+          },
+          "submissions": {
+            "title": "投稿审核",
+            "description": "{{pending}} 条待审核，{{approved}} 条已通过待处理。",
+            "permission": "当前会话缺少租户级 community_submission:review 权限。",
+            "action": "进入审核"
+          },
+          "jobs": {
+            "title": "视频处理任务",
+            "description": "{{running}} 个排队或处理中，{{failed}} 个失败。",
+            "permission": "当前会话缺少租户级 community_video:read 权限。",
+            "action": "查看任务"
+          },
+          "reports": {
+            "title": "举报处理",
+            "description": "{{pending}} 条待处理，{{resolved}} 条已处理。",
+            "permission": "当前会话缺少租户级 community_report:review 权限。",
+            "action": "处理举报"
+          },
+          "categories": {
+            "title": "社区分类",
+            "description": "{{active}} 个启用分类，{{disabled}} 个停用分类。",
+            "permission": "当前会话缺少平台级 dictionary:read 权限。",
+            "action": "维护分类"
+          },
+          "workflow": {
+            "title": "闭环路径",
+            "description": "前台投稿、后台审核、转码任务、HLS 发布和举报治理共享同一社区管理上下文。",
+            "aria": "社区管理闭环路径",
+            "review": "投稿审核",
+            "transcode": "异步转码发布",
+            "report": "举报处理"
+          }
+        },
+        "states": {
+          "errorTitle": "社区总览不可用",
+          "permissionTitle": "需要社区管理权限",
+          "permissionDescription": "当前会话没有任何社区管理相关权限，卡片将保持不可操作。",
+          "storageUnavailableTitle": "社区存储不可用",
+          "storageUnavailableDescription": "后端报告社区模块数据尚未持久化，请先运行社区模块迁移。"
+        }
+      },
       "accounts": {
         "title": "社区账号",
         "description": "管理普通社区注册身份。这里不会创建或授予 IAM 控制台角色，普通注册用户和内容创作者都不能凭社区账号进入后台控制台。",
@@ -2718,6 +2778,7 @@
         "empty": "后端没有返回投稿记录。",
         "actions": {
           "approve": "通过",
+          "createTranscodeJob": "创建转码任务",
           "reject": "驳回",
           "publish": "创建转码任务"
         },
@@ -2737,6 +2798,7 @@
           "submission": "投稿",
           "author": "作者 / 分类",
           "status": "状态",
+          "noVideoJob": "未创建视频任务",
           "source": "源文件",
           "reviewNote": "审核备注",
           "createdAt": "提交时间",
@@ -2753,6 +2815,9 @@
           "reviewFailedTitle": "投稿《{{title}}》处理失败",
           "reviewSuccessTitle": "投稿状态已保存",
           "reviewSuccessDescription": "《{{title}}》已更新为 {{status}}。",
+          "createTranscodeFailedTitle": "投稿《{{title}}》创建转码任务失败",
+          "createTranscodeSuccessTitle": "视频处理任务已创建",
+          "createTranscodeSuccessDescription": "任务 {{id}} 当前状态为 {{status}}，可通过任务状态链接查看 worker 进度和 HLS 输出。",
           "publishFailedTitle": "投稿《{{title}}》创建处理任务失败",
           "publishSuccessTitle": "视频处理任务已创建",
           "publishSuccessDescription": "任务 {{id}} 当前状态为 {{status}}，可进入视频处理任务页查看 worker 进度和 HLS 输出。"
@@ -2818,8 +2883,11 @@
           "description": "查看所选任务的 worker lease、云端回调、HLS master、清晰度、错误和时间线。",
           "loading": "正在读取视频任务详情。",
           "renditions": "HLS 清晰度",
+          "internals": "内部调度字段",
           "fields": {
             "id": "任务 ID",
+            "status": "任务状态",
+            "progress": "处理进度",
             "submissionId": "投稿 ID",
             "videoId": "已发布视频",
             "provider": "服务提供方",
@@ -2834,6 +2902,7 @@
             "callbackReceivedAt": "回调接收时间",
             "inputStorageKey": "输入存储",
             "outputStorageKey": "输出存储",
+            "requestPayload": "请求载荷",
             "outputPublicUrl": "HLS master",
             "failureCode": "失败代码",
             "errorMessage": "错误信息"

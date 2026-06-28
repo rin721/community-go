@@ -334,6 +334,60 @@
       "searchLabel": "搜索设置",
       "searchPlaceholder": "主题、背景、播放器...",
       "emptyText": "没有匹配的设置项。",
+      "headTitle": "设置 - Aoi",
+      "headTitleWithPage": "{page} - 设置 - Aoi",
+      "catalog": {
+        "appearance": {
+          "label": "外观",
+          "description": "主题、色板、背景和规格单位。",
+          "keywords": "主题 色板 背景 DIY 自定义 规格 尺寸 单位 间距 圆角 导航宽度 卡片宽度 派生 强度"
+        },
+        "player": {
+          "label": "播放器",
+          "description": "音量、静音、倍速和剧场模式。",
+          "keywords": "音量 静音 倍速 剧场"
+        },
+        "danmaku": {
+          "label": "弹幕",
+          "description": "弹幕显示、运动、模式和屏蔽词。",
+          "keywords": "弹幕 占位 屏蔽 速度 字号 透明度"
+        },
+        "preference": {
+          "label": "偏好",
+          "description": "浏览、隐私、动效、滚动和搜索偏好。",
+          "keywords": "省流 隐私 新标签 日期 搜索 进度条 NProgress loading reveal scroll snap"
+        },
+        "language": {
+          "label": "语言",
+          "description": "界面语言和本地化。",
+          "keywords": "中文 English 日本語 i18n"
+        },
+        "experimental": {
+          "label": "实验",
+          "description": "功能预览和交互实验。",
+          "keywords": "实验 功能预览 富文本 lightbox scroll scene"
+        },
+        "shortcut-key": {
+          "label": "快捷键",
+          "description": "键盘操作预留。",
+          "keywords": "键盘 播放 评论"
+        },
+        "about": {
+          "label": "关于",
+          "description": "版本、技术栈和项目说明。",
+          "keywords": "版本 技术栈 仓库"
+        },
+        "acknowledgement": {
+          "label": "鸣谢",
+          "description": "链接、友情链接和致谢。",
+          "keywords": "链接 友情链接 致谢"
+        },
+        "advanced": {
+          "label": "高级",
+          "description": "连接状态、本地缓存和重置。",
+          "keywords": "连接 错误 本地缓存 重置 数据"
+        }
+      },
       "groups": {
         "app": "应用设置",
         "project": "项目"
@@ -670,7 +724,134 @@
         }
       }
     },
+    "danmaku": {
+      "page": {
+        "title": "弹幕",
+        "description": "调整播放器弹幕的显示、运动、模式和屏蔽词。设置会写入当前浏览器，并立即作用于 Aoi 播放器。"
+      },
+      "display": {
+        "title": "显示与模式",
+        "description": "控制弹幕总开关，以及滚动、顶部、底部三种弹幕模式。",
+        "reset": "重置弹幕",
+        "enabledTitle": "启用弹幕",
+        "enabledDescription": "关闭后，播放器不会显示弹幕，也不会允许发送新弹幕。",
+        "scrollTitle": "滚动弹幕",
+        "scrollDescription": "允许弹幕从右向左穿过画面。",
+        "topTitle": "顶部弹幕",
+        "topDescription": "允许弹幕固定显示在画面顶部。",
+        "bottomTitle": "底部弹幕",
+        "bottomDescription": "允许弹幕固定显示在画面底部。"
+      },
+      "visual": {
+        "title": "视觉与运动",
+        "description": "调整弹幕的不透明度、字号、速度和可占用画面区域。",
+        "opacityTitle": "不透明度",
+        "fontScaleTitle": "字号倍率",
+        "speedTitle": "速度倍率",
+        "visibleAreaTitle": "显示区域",
+        "currentPercent": "当前 {value}%",
+        "visibleAreaDescription": "弹幕最多占用画面上方 {value}% 区域"
+      },
+      "blocklist": {
+        "title": "屏蔽词",
+        "description": "每行或用逗号分隔一个屏蔽词；命中后不会显示在弹幕层和弹幕列表。",
+        "label": "屏蔽词",
+        "placeholder": "例如：剧透\n刷屏"
+      },
+      "cache": {
+        "title": "弹幕降级缓存",
+        "description": "这里显示社区暂时不可用时保存在当前浏览器里的发送弹幕，不包含已同步弹幕。"
+      },
+      "stats": {
+        "fallback": "降级弹幕",
+        "opacity": "透明度",
+        "fontScale": "字号",
+        "speed": "速度"
+      }
+    },
+    "advanced": {
+      "page": {
+        "title": "高级",
+        "description": "查看连接状态、本地缓存统计和重置操作。"
+      },
+      "dataSource": {
+        "title": "数据源",
+        "description": "当前运行时配置只读展示。",
+        "source": "数据源",
+        "mock": "前端 Mock 数据模式",
+        "real": "真实后端数据模式",
+        "mockSwitch": "Mock 开关",
+        "enabled": "已启用",
+        "disabled": "未启用",
+        "apiStatus": "接口状态"
+      },
+      "connection": {
+        "title": "连接状态",
+        "description": "确认当前运行时数据源的可用端点。",
+        "refresh": "刷新",
+        "retry": "重试",
+        "mockReady": "Mock 数据接口可用",
+        "realReady": "真实社区接口可用",
+        "setupBlocked": "初始化中：{step}",
+        "setupPending": "等待处理",
+        "mode": "模式",
+        "setup": "初始化",
+        "completed": "完成",
+        "inProgress": "进行中",
+        "updatedAt": "更新时间",
+        "errorTitle": "连接状态不可用",
+        "errorDescription": "当前连接状态探测失败。",
+        "setupBlockedDescription": "平台初始化未完成，当前社区内容接口会返回初始化状态；完成初始化后会读取真实社区数据。",
+        "endpointsAria": "已实现连接端点"
+      }
+    },
     "preference": {
+      "page": {
+        "title": "偏好",
+        "description": "管理浏览、隐私和搜索相关的本地偏好。"
+      },
+      "dataMode": {
+        "title": "流量模式",
+        "description": "控制当前浏览器的内容加载密度和预取倾向。",
+        "options": {
+          "economy": {
+            "label": "省流模式",
+            "description": "减少非必要加载，适合移动网络和弱网。"
+          },
+          "standard": {
+            "label": "标准模式",
+            "description": "平衡加载速度和信息完整度。"
+          },
+          "turbo": {
+            "label": "极速模式",
+            "description": "优先更快展示更多内容，适合稳定网络。"
+          }
+        }
+      },
+      "browsing": {
+        "title": "浏览",
+        "description": "这些设置会影响现有视频卡片和元信息。",
+        "openNewTabTitle": "在新标签页打开视频",
+        "openNewTabDescription": "首页、搜索和历史中的视频卡片将使用新标签打开。",
+        "relativeDatesTitle": "使用相对日期",
+        "relativeDatesDescription": "视频发布时间显示为“刚刚 / x 天前”等相对文本。"
+      },
+      "privacy": {
+        "title": "隐私",
+        "description": "只影响当前浏览器的本地行为和本地存储。",
+        "disableHistoryTitle": "停用观看历史",
+        "disableHistoryDescription": "打开后视频页不再写入历史，也不会继续更新播放进度。",
+        "hideRecentSearchesTitle": "隐藏最近搜索",
+        "hideRecentSearchesDescription": "最近搜索仅保存在当前浏览器；开启后界面不展示这些本地记录。"
+      },
+      "focus": {
+        "title": "专注",
+        "description": "控制搜索页和视频页的辅助推荐区显示。",
+        "noSearchRecommendationsTitle": "禁用搜索推荐",
+        "noSearchRecommendationsDescription": "搜索页不展示推荐提示区。",
+        "noRelatedVideosTitle": "禁用相关视频",
+        "noRelatedVideosDescription": "视频页不展示相关视频区域。"
+      },
       "routeProgress": {
         "title": "路由进度条",
         "description": "使用 NProgress 提供页面跳转反馈，同时保留 Nuxt 内置加载生命周期。",
@@ -1177,15 +1358,37 @@
       "processing": "处理中",
       "rejected": "未通过",
       "published": "已发布",
+      "queued": "排队中",
+      "running": "处理中",
+      "succeeded": "已发布",
+      "failed": "处理失败",
+      "canceled": "已取消",
       "approvedHint": "审核已通过，等待后续媒体发布处理。",
       "processingHint": "审核已通过，正在等待媒体处理服务转码或 HLS 发布完成。",
+      "jobQueuedHint": "审核已通过，视频处理任务正在排队。",
+      "jobRunningHint": "视频处理任务正在执行，当前进度 {progress}。",
+      "jobSucceededHint": "视频处理完成，公开视频 {videoId} 已可用。",
+      "jobFailedHint": "视频处理失败：{reason}",
+      "jobCanceledHint": "视频处理任务已取消，请等待重新创建任务。",
       "rejectedHint": "审核未通过，请根据审核意见调整后重新提交。",
       "publishedHint": "已关联公开视频 {videoId}。",
       "reviewNote": "审核意见：{note}",
+      "progressPercent": "{progress}%",
+      "pendingVideoId": "待回填",
+      "unknownFailure": "未返回失败原因",
+      "timelineAria": "投稿处理时间线",
+      "timelineReview": "审核",
+      "timelineQueue": "排队",
+      "timelineProcess": "处理",
+      "timelinePublish": "发布",
       "reviewedAt": "审核时间",
       "publishedVideo": "发布视频",
       "openPublished": "查看视频",
       "mediaAsset": "媒体资产",
+      "videoJob": "视频任务",
+      "jobProgress": "任务进度",
+      "jobFailureCode": "失败码",
+      "jobOutput": "输出地址",
       "fileSize": "文件大小",
       "createdAt": "提交时间"
     }

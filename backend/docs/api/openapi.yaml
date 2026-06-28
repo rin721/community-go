@@ -2518,6 +2518,36 @@
                                   "type": "string"
                                 "id":
                                   "type": "string"
+                                "latestVideoJob":
+                                  "properties":
+                                    "createdAt":
+                                      "format": "date-time"
+                                      "type": "string"
+                                    "errorMessage":
+                                      "type": "string"
+                                    "failureCode":
+                                      "type": "string"
+                                    "finishedAt":
+                                      "format": "date-time"
+                                      "type": "string"
+                                    "id":
+                                      "type": "string"
+                                    "outputPublicUrl":
+                                      "type": "string"
+                                    "progress":
+                                      "format": "int32"
+                                      "type": "integer"
+                                    "startedAt":
+                                      "format": "date-time"
+                                      "type": "string"
+                                    "status":
+                                      "type": "string"
+                                    "updatedAt":
+                                      "format": "date-time"
+                                      "type": "string"
+                                    "videoId":
+                                      "type": "string"
+                                  "type": "object"
                                 "mediaAssetId":
                                   "format": "int64"
                                   "type": "integer"
@@ -2691,6 +2721,36 @@
                         "type": "string"
                       "id":
                         "type": "string"
+                      "latestVideoJob":
+                        "properties":
+                          "createdAt":
+                            "format": "date-time"
+                            "type": "string"
+                          "errorMessage":
+                            "type": "string"
+                          "failureCode":
+                            "type": "string"
+                          "finishedAt":
+                            "format": "date-time"
+                            "type": "string"
+                          "id":
+                            "type": "string"
+                          "outputPublicUrl":
+                            "type": "string"
+                          "progress":
+                            "format": "int32"
+                            "type": "integer"
+                          "startedAt":
+                            "format": "date-time"
+                            "type": "string"
+                          "status":
+                            "type": "string"
+                          "updatedAt":
+                            "format": "date-time"
+                            "type": "string"
+                          "videoId":
+                            "type": "string"
+                        "type": "object"
                       "mediaAssetId":
                         "format": "int64"
                         "type": "integer"
@@ -7989,6 +8049,36 @@
                                   "type": "string"
                                 "id":
                                   "type": "string"
+                                "latestVideoJob":
+                                  "properties":
+                                    "createdAt":
+                                      "format": "date-time"
+                                      "type": "string"
+                                    "errorMessage":
+                                      "type": "string"
+                                    "failureCode":
+                                      "type": "string"
+                                    "finishedAt":
+                                      "format": "date-time"
+                                      "type": "string"
+                                    "id":
+                                      "type": "string"
+                                    "outputPublicUrl":
+                                      "type": "string"
+                                    "progress":
+                                      "format": "int32"
+                                      "type": "integer"
+                                    "startedAt":
+                                      "format": "date-time"
+                                      "type": "string"
+                                    "status":
+                                      "type": "string"
+                                    "updatedAt":
+                                      "format": "date-time"
+                                      "type": "string"
+                                    "videoId":
+                                      "type": "string"
+                                  "type": "object"
                                 "mediaAssetId":
                                   "format": "int64"
                                   "type": "integer"
@@ -8161,6 +8251,36 @@
                         "type": "string"
                       "id":
                         "type": "string"
+                      "latestVideoJob":
+                        "properties":
+                          "createdAt":
+                            "format": "date-time"
+                            "type": "string"
+                          "errorMessage":
+                            "type": "string"
+                          "failureCode":
+                            "type": "string"
+                          "finishedAt":
+                            "format": "date-time"
+                            "type": "string"
+                          "id":
+                            "type": "string"
+                          "outputPublicUrl":
+                            "type": "string"
+                          "progress":
+                            "format": "int32"
+                            "type": "integer"
+                          "startedAt":
+                            "format": "date-time"
+                            "type": "string"
+                          "status":
+                            "type": "string"
+                          "updatedAt":
+                            "format": "date-time"
+                            "type": "string"
+                          "videoId":
+                            "type": "string"
+                        "type": "object"
                       "mediaAssetId":
                         "format": "int64"
                         "type": "integer"
@@ -12274,6 +12394,36 @@
                                   "type": "string"
                                 "id":
                                   "type": "string"
+                                "latestVideoJob":
+                                  "properties":
+                                    "createdAt":
+                                      "format": "date-time"
+                                      "type": "string"
+                                    "errorMessage":
+                                      "type": "string"
+                                    "failureCode":
+                                      "type": "string"
+                                    "finishedAt":
+                                      "format": "date-time"
+                                      "type": "string"
+                                    "id":
+                                      "type": "string"
+                                    "outputPublicUrl":
+                                      "type": "string"
+                                    "progress":
+                                      "format": "int32"
+                                      "type": "integer"
+                                    "startedAt":
+                                      "format": "date-time"
+                                      "type": "string"
+                                    "status":
+                                      "type": "string"
+                                    "updatedAt":
+                                      "format": "date-time"
+                                      "type": "string"
+                                    "videoId":
+                                      "type": "string"
+                                  "type": "object"
                                 "mediaAssetId":
                                   "format": "int64"
                                   "type": "integer"
@@ -12451,6 +12601,36 @@
                         "type": "string"
                       "id":
                         "type": "string"
+                      "latestVideoJob":
+                        "properties":
+                          "createdAt":
+                            "format": "date-time"
+                            "type": "string"
+                          "errorMessage":
+                            "type": "string"
+                          "failureCode":
+                            "type": "string"
+                          "finishedAt":
+                            "format": "date-time"
+                            "type": "string"
+                          "id":
+                            "type": "string"
+                          "outputPublicUrl":
+                            "type": "string"
+                          "progress":
+                            "format": "int32"
+                            "type": "integer"
+                          "startedAt":
+                            "format": "date-time"
+                            "type": "string"
+                          "status":
+                            "type": "string"
+                          "updatedAt":
+                            "format": "date-time"
+                            "type": "string"
+                          "videoId":
+                            "type": "string"
+                        "type": "object"
                       "mediaAssetId":
                         "format": "int64"
                         "type": "integer"

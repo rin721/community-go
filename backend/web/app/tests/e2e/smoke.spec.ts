@@ -11,6 +11,7 @@ import type {
   CommunityAccount,
   CommunityReport,
   CommunitySubmission,
+  CommunityVideoJob,
   IAMAPIToken,
   IAMInvitation,
   IAMNotificationOutboxItem,
@@ -807,6 +808,29 @@ type CommunityAdminTestMessages = {
   accounts: {
     title: string;
   };
+  categories: {
+    title: string;
+  };
+  overview: {
+    cards: {
+      categories: {
+        title: string;
+      };
+      jobs: {
+        title: string;
+      };
+      workflow: {
+        title: string;
+      };
+    };
+    metrics: {
+      failedJobs: string;
+      pendingReports: string;
+      pendingSubmissions: string;
+      runningJobs: string;
+    };
+    title: string;
+  };
   reports: {
     actions: {
       resolve: string;
@@ -819,6 +843,20 @@ type CommunityAdminTestMessages = {
   submissions: {
     actions: {
       approve: string;
+      createTranscodeJob: string;
+    };
+    title: string;
+  };
+  videoJobs: {
+    actions: {
+      retry: string;
+    };
+    detail: {
+      internals: string;
+      title: string;
+    };
+    messages: {
+      retrySuccessTitle: string;
     };
     title: string;
   };
@@ -1071,6 +1109,9 @@ function sessionSnapshot(
       { code: "community_account:read", productCode, scope: "tenant" },
       { code: "community_account:update", productCode, scope: "tenant" },
       { code: "community_submission:review", productCode, scope: "tenant" },
+      { code: "community_video:read", productCode, scope: "tenant" },
+      { code: "community_video:retry", productCode, scope: "tenant" },
+      { code: "community_video:transcode", productCode, scope: "tenant" },
       { code: "community_report:review", productCode, scope: "tenant" },
       { code: "session:read", productCode, scope: "tenant" },
       { code: "session:revoke", productCode, scope: "tenant" },
@@ -9594,6 +9635,110 @@ test("admin community routes render backend community management", async ({ page
       updatedAt: "2026-06-27T08:00:00Z",
     },
   ];
+  const categoryDictionary: SystemDictionary = {
+    code: "community.video.category",
+    createdAt: "2026-06-27T07:00:00Z",
+    description: "Community video categories",
+    id: "dict-community-video-category",
+    items: [
+      {
+        createdAt: "2026-06-27T07:00:00Z",
+        dictionaryId: "dict-community-video-category",
+        extra: '{"description":"Music videos","accentColor":"#2563eb"}',
+        id: "cat-music",
+        label: "Music",
+        sort: 10,
+        status: "active",
+        updatedAt: "2026-06-27T07:00:00Z",
+        value: "music",
+      },
+      {
+        createdAt: "2026-06-27T07:00:00Z",
+        dictionaryId: "dict-community-video-category",
+        extra: "",
+        id: "cat-archive",
+        label: "Archive",
+        sort: 20,
+        status: "disabled",
+        updatedAt: "2026-06-27T07:00:00Z",
+        value: "archive",
+      },
+    ],
+    name: "Community video category",
+    status: "active",
+    updatedAt: "2026-06-27T07:00:00Z",
+  };
+  let videoJobs: CommunityVideoJob[] = [
+    {
+      attempt: 1,
+      callbackReceivedAt: "2026-06-27T08:35:00Z",
+      createdAt: "2026-06-27T08:30:00Z",
+      errorMessage: "",
+      failureCode: "",
+      finishedAt: null,
+      heartbeatAt: "2026-06-27T08:36:00Z",
+      id: "job-201",
+      inputStorageKey: "community/sources/901/summer-night.mp4",
+      lockedAt: "2026-06-27T08:34:00Z",
+      lockedBy: "worker-a",
+      maxAttempts: 3,
+      mediaAssetId: "901",
+      nextRunAt: "2026-06-27T08:45:00Z",
+      outputPublicUrl: "/api/v1/public/community/hls/job-201/master.m3u8",
+      outputStorageKey: "community/videos/job-201/master.m3u8",
+      progress: 44,
+      provider: "cloud",
+      providerJobId: "provider-job-201",
+      renditions: [
+        {
+          bitrateKbps: 1800,
+          createdAt: "2026-06-27T08:36:00Z",
+          height: 540,
+          id: "rendition-201",
+          jobId: "job-201",
+          playlistUrl: "/api/v1/public/community/hls/job-201/540p.m3u8",
+          qualityLabel: "540p",
+          storageKey: "community/videos/job-201/540p.m3u8",
+          videoId: "vid-201",
+          width: 960,
+        },
+      ],
+      requestPayload: '{"durationSeconds":128}',
+      startedAt: "2026-06-27T08:34:00Z",
+      status: "running",
+      submissionId: "sub-202",
+      updatedAt: "2026-06-27T08:36:00Z",
+      videoId: "vid-201",
+    },
+    {
+      attempt: 2,
+      callbackReceivedAt: "2026-06-27T08:50:00Z",
+      createdAt: "2026-06-27T08:45:00Z",
+      errorMessage: "Cloud provider rejected source",
+      failureCode: "cloud_failed",
+      finishedAt: "2026-06-27T08:50:00Z",
+      heartbeatAt: null,
+      id: "job-202",
+      inputStorageKey: "community/sources/902/failed.mp4",
+      lockedAt: null,
+      lockedBy: "",
+      maxAttempts: 3,
+      mediaAssetId: "902",
+      nextRunAt: null,
+      outputPublicUrl: "",
+      outputStorageKey: "",
+      progress: 100,
+      provider: "cloud",
+      providerJobId: "provider-job-202",
+      renditions: [],
+      requestPayload: '{"durationSeconds":64}',
+      startedAt: "2026-06-27T08:46:00Z",
+      status: "failed",
+      submissionId: "sub-203",
+      updatedAt: "2026-06-27T08:50:00Z",
+      videoId: "",
+    },
+  ];
   const submissions: CommunitySubmission[] = [
     {
       allowComments: true,
@@ -9613,6 +9758,35 @@ test("admin community routes render backend community management", async ({ page
       tags: ["music", "demo"],
       title: "夏夜投稿",
       updatedAt: "2026-06-27T08:20:00Z",
+      visibility: "public",
+    },
+    {
+      allowComments: true,
+      authorName: "Rin Community",
+      categorySlug: "music",
+      clientId: "account:201",
+      createdAt: "2026-06-27T08:25:00Z",
+      description: "Approved submission with a visible video job summary.",
+      id: "sub-202",
+      latestVideoJob: {
+        createdAt: "2026-06-27T08:30:00Z",
+        id: "job-201",
+        outputPublicUrl: "/api/v1/public/community/hls/job-201/master.m3u8",
+        progress: 44,
+        status: "running",
+        updatedAt: "2026-06-27T08:36:00Z",
+        videoId: "vid-201",
+      },
+      mediaAssetId: "901",
+      publishedAt: null,
+      sensitive: false,
+      sourceName: "summer-night.mp4",
+      sourceSize: 7340032,
+      sourceType: "video/mp4",
+      status: "approved",
+      tags: ["music", "task"],
+      title: "Task-backed submission",
+      updatedAt: "2026-06-27T08:36:00Z",
       visibility: "public",
     },
   ];
@@ -9710,6 +9884,74 @@ test("admin community routes render backend community management", async ({ page
     });
   });
 
+  await page.route("**/api/v1/community/video-jobs**", async (route) => {
+    const { request, url } = recordProtectedRequest(route);
+    const pathParts = url.pathname.split("/").filter(Boolean);
+    if (request.method() === "POST" && url.pathname.endsWith("/retry")) {
+      const jobId = pathParts.at(-2);
+      const current = videoJobs.find((job) => job.id === jobId);
+      const retried: CommunityVideoJob = {
+        ...(current || videoJobs[1]),
+        attempt: 0,
+        errorMessage: "",
+        failureCode: "",
+        finishedAt: null,
+        id: jobId || "job-202",
+        progress: 0,
+        status: "queued",
+        updatedAt: "2026-06-27T09:30:00Z",
+      };
+      videoJobs = videoJobs.map((job) => (job.id === retried.id ? retried : job));
+      await route.fulfill({
+        body: JSON.stringify({ code: 0, data: retried }),
+        contentType: "application/json",
+      });
+      return;
+    }
+    if (request.method() === "GET" && url.pathname !== "/api/v1/community/video-jobs") {
+      const jobId = pathParts.at(-1);
+      const job = videoJobs.find((item) => item.id === jobId);
+      await route.fulfill({
+        body: JSON.stringify(job ? { code: 0, data: job } : { code: 404, message: "not found" }),
+        contentType: "application/json",
+        status: job ? 200 : 404,
+      });
+      return;
+    }
+    const status = url.searchParams.get("status");
+    const filteredJobs = status ? videoJobs.filter((job) => job.status === status) : videoJobs;
+    await route.fulfill({
+      body: JSON.stringify({
+        code: 0,
+        data: { items: { items: filteredJobs, nextCursor: null } },
+      }),
+      contentType: "application/json",
+    });
+  });
+
+  await page.route("**/api/v1/system/dictionaries**", async (route) => {
+    recordProtectedRequest(route);
+    await route.fulfill({
+      body: JSON.stringify({
+        code: 0,
+        data: { items: [categoryDictionary], nextCursor: null },
+      }),
+      contentType: "application/json",
+    });
+  });
+
+  await page.goto("/admin/community");
+  await expect(
+    page.getByRole("heading", { level: 1, name: zhCommunity.overview.title }),
+  ).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(zhCommunity.overview.metrics.pendingSubmissions)).toBeVisible();
+  await expect(page.getByText(zhCommunity.overview.metrics.runningJobs)).toBeVisible();
+  await expect(page.getByText(zhCommunity.overview.metrics.failedJobs)).toBeVisible();
+  await expect(page.getByText(zhCommunity.overview.metrics.pendingReports)).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: zhCommunity.overview.cards.jobs.title })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: zhCommunity.overview.cards.categories.title })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: zhCommunity.overview.cards.workflow.title })).toBeVisible();
+
   await page.goto("/admin/community/accounts");
   await expect(
     page.getByRole("heading", { level: 1, name: zhCommunity.accounts.title }),
@@ -9725,6 +9967,33 @@ test("admin community routes render backend community management", async ({ page
   await expect(
     page.getByRole("button", { name: zhCommunity.submissions.actions.approve }).first(),
   ).toBeVisible();
+  await expect(page.locator("a[href*='jobId=job-201']")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: zhCommunity.submissions.actions.createTranscodeJob }).first(),
+  ).toBeVisible();
+
+  await page.goto("/admin/community/categories");
+  await expect(
+    page.getByRole("heading", { level: 1, name: zhCommunity.categories.title }),
+  ).toBeVisible();
+  await expect(page.getByText("Music", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("Archive", { exact: true }).first()).toBeVisible();
+
+  await page.goto("/admin/community/video-jobs");
+  await expect(
+    page.getByRole("heading", { level: 1, name: zhCommunity.videoJobs.title }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: zhCommunity.videoJobs.actions.retry }).nth(1).click();
+  await expect(page.getByText(zhCommunity.videoJobs.messages.retrySuccessTitle)).toBeVisible();
+
+  await page.goto("/admin/community/video-jobs?jobId=job-201");
+  await expect(
+    page.getByRole("heading", { level: 2, name: zhCommunity.videoJobs.detail.title }),
+  ).toBeVisible();
+  await expect(page.getByText("job-201").first()).toBeVisible();
+  await expect(page.getByText("/api/v1/public/community/hls/job-201/master.m3u8").first()).toBeVisible();
+  await page.getByText(zhCommunity.videoJobs.detail.internals).click();
+  await expect(page.getByText("provider-job-201")).toBeVisible();
 
   await page.goto("/admin/community/reports");
   await expect(
@@ -9755,6 +10024,30 @@ test("admin community routes render backend community management", async ({ page
         locale: "zh-CN",
         method: "GET",
         path: "/api/v1/community/reports",
+      }),
+      expect.objectContaining({
+        authorization: `Bearer ${accessToken}`,
+        locale: "zh-CN",
+        method: "GET",
+        path: "/api/v1/community/video-jobs",
+      }),
+      expect.objectContaining({
+        authorization: `Bearer ${accessToken}`,
+        locale: "zh-CN",
+        method: "GET",
+        path: "/api/v1/community/video-jobs/job-201",
+      }),
+      expect.objectContaining({
+        authorization: `Bearer ${accessToken}`,
+        locale: "zh-CN",
+        method: "POST",
+        path: "/api/v1/community/video-jobs/job-202/retry",
+      }),
+      expect.objectContaining({
+        authorization: `Bearer ${accessToken}`,
+        locale: "zh-CN",
+        method: "GET",
+        path: "/api/v1/system/dictionaries",
       }),
     ]),
   );

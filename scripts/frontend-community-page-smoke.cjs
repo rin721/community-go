@@ -172,7 +172,7 @@ async function main() {
       const history = await checkHistoryPage(page, viewport)
       const collections = await checkCollectionsPage(page, viewport)
       const notifications = await checkNotificationsPage(page, viewport)
-      const upload = await checkUploadPage(page, viewport)
+      const upload = await checkUploadPage(page, viewport, adminSession)
       const settings = await checkSettingsPage(page, viewport)
       await context.close()
 
@@ -945,9 +945,10 @@ async function checkCreatorAccountFlow(page, viewport) {
   return accountFollow
 }
 
-async function checkUploadPage(page, viewport) {
+async function checkUploadPage(page, viewport, adminSession) {
   const seeded = requireSeededCommunity()
   const uploadTitle = `aoi-community-draft-with-extra-long-mobile-title-${viewport.name}-${runId}`
+  const publishedTitle = `aoi-community-published-upload-summary-${viewport.name}-${runId}`
   await page.addInitScript(({ categorySlug, title }) => {
     const now = new Date().toISOString()
     const draftId = "page-smoke-upload-draft"
@@ -988,6 +989,67 @@ async function checkUploadPage(page, viewport) {
       item.textContent?.includes(title)
     )
   }, uploadTitle, { timeout: timeoutMs })
+
+  const submitted = await waitForAdminSubmissionByTitle(adminSession, uploadTitle, "pending_review")
+  await reviewAdminSubmission(adminSession, submitted.id, "Page smoke failed-state review")
+  const failedVideoJob = await createAdminVideoJob(adminSession, submitted.id, `gradient:page-smoke-failed-${viewport.name}`)
+
+  const runningJob = await invokeCommunityVideoJobCallback(`${communityApiBaseUrl}/video-jobs/${encodeURIComponent(failedVideoJob.id)}/callback`, {
+    progress: 44,
+    providerJobId: `page-smoke-running-provider-${viewport.name}-${runId}`,
+    status: "running"
+  })
+  if (runningJob.data?.status !== "running" || runningJob.data?.progress !== 44) {
+    throw new Error(`Page smoke running video job callback did not update progress: ${JSON.stringify(runningJob)}`)
+  }
+
+  const failedJob = await invokeCommunityVideoJobCallback(`${communityApiBaseUrl}/video-jobs/${encodeURIComponent(failedVideoJob.id)}/callback`, {
+    errorMessage: "Page smoke provider failure for upload timeline verification",
+    failureCode: "page_smoke_failed",
+    progress: 73,
+    providerJobId: `page-smoke-failed-provider-${viewport.name}-${runId}`,
+    status: "failed"
+  })
+  if (failedJob.data?.status !== "failed" || failedJob.data?.failureCode !== "page_smoke_failed") {
+    throw new Error(`Page smoke failed video job callback did not persist failure metadata: ${JSON.stringify(failedJob)}`)
+  }
+
+  const publishedSubmission = await createBrowserAccountSubmission(page, {
+    categorySlug: seeded.categorySlug,
+    title: publishedTitle
+  })
+  await reviewAdminSubmission(adminSession, publishedSubmission.id, "Page smoke published-state review")
+  const publishedVideoJob = await createAdminVideoJob(adminSession, publishedSubmission.id, `gradient:page-smoke-published-${viewport.name}`)
+  const publishedHlsMasterUrl = `/api/v1/public/community/hls/page-smoke-upload/${publishedVideoJob.id}/master.m3u8`
+  writeSmokeHlsAssets("page-smoke-upload", publishedVideoJob.id)
+  const succeededJob = await invokeCommunityVideoJobCallback(`${communityApiBaseUrl}/video-jobs/${encodeURIComponent(publishedVideoJob.id)}/callback`, {
+    durationSeconds: 96,
+    masterUrl: publishedHlsMasterUrl,
+    outputStorageKey: `community/videos/page-smoke-upload/${publishedVideoJob.id}/master.m3u8`,
+    progress: 100,
+    providerJobId: `page-smoke-succeeded-provider-${viewport.name}-${runId}`,
+    renditions: [
+      {
+        bitrateKbps: 1800,
+        height: 540,
+        id: `page-smoke-upload-rendition-${publishedVideoJob.id}-540p`,
+        playlistUrl: `/api/v1/public/community/hls/page-smoke-upload/${publishedVideoJob.id}/540p.m3u8`,
+        qualityLabel: "540p",
+        storageKey: `community/videos/page-smoke-upload/${publishedVideoJob.id}/540p.m3u8`,
+        width: 960
+      }
+    ],
+    status: "succeeded",
+    thumbnailUrl: `gradient:page-smoke-published-${viewport.name}`
+  })
+  if (succeededJob.data?.status !== "succeeded" || !succeededJob.data?.videoId || succeededJob.data?.outputPublicUrl !== publishedHlsMasterUrl) {
+    throw new Error(`Page smoke succeeded video job callback did not publish upload summary video: ${JSON.stringify(succeededJob)}`)
+  }
+
+  await reloadUploadPage(page)
+  await assertUploadSubmissionStatus(page, uploadTitle, "failed", { failureCode: "page_smoke_failed", jobId: failedVideoJob.id })
+  await assertUploadSubmissionStatus(page, publishedTitle, "published", { expectPublishedLink: true, jobId: publishedVideoJob.id, text: "100%" })
+
   await stabilizeScreenshotState(page)
   await capturePageScreenshot(page, viewport, "upload")
   await verifySharedLayout(page, viewport, "upload")
@@ -1000,11 +1062,21 @@ async function checkUploadPage(page, viewport) {
       hasLongFileName: document.body.innerText.includes("aoi-community-draft-with-extra-long-mobile-title"),
       panels: document.querySelectorAll(".upload-panel").length,
       statCards: document.querySelectorAll(".upload-page__stats .aoi-stat-grid__item").length,
-      submissionCards: document.querySelectorAll(".upload-submission-list__item").length
+      submissionCards: document.querySelectorAll(".upload-submission-list__item").length,
+      submissionStatuses: Array.from(document.querySelectorAll(".upload-submission-list__heading span"))
+        .map((element) => element.getAttribute("data-status") || ""),
+      publishedLinks: document.querySelectorAll(".upload-submission-list__review a[href*='/video/']").length,
+      leakedProviderFields: /providerJobId|lockedBy|requestPayload/.test(document.body.innerText)
     }
 
     if (!upload.hasLongFileName || upload.panels < 3 || upload.statCards < 4 || upload.submissionCards < 1) {
       throw new Error(`Upload page did not render draft workspace and API-backed categories: ${JSON.stringify(upload)}`)
+    }
+    if (!upload.submissionStatuses.includes("failed") || !upload.submissionStatuses.includes("published") || upload.publishedLinks < 1) {
+      throw new Error(`Upload page did not render latestVideoJob failed and published states: ${JSON.stringify(upload)}`)
+    }
+    if (upload.leakedProviderFields) {
+      throw new Error(`Upload page leaked internal video job fields: ${JSON.stringify(upload)}`)
     }
     if (window.innerWidth < 640 && upload.fileNameWhiteSpace === "nowrap") {
       throw new Error(`Upload page long file name is still forced to one line on mobile: ${JSON.stringify(upload)}`)
@@ -1012,6 +1084,150 @@ async function checkUploadPage(page, viewport) {
 
     return upload
   })
+}
+
+async function reloadUploadPage(page) {
+  await page.goto(`${frontendBaseUrl}/upload`, { waitUntil: "networkidle" })
+  await page.waitForSelector(".upload-page", { timeout: timeoutMs })
+  await page.waitForSelector(".upload-submission-list__item", { timeout: timeoutMs })
+}
+
+async function assertUploadSubmissionStatus(page, title, status, options = {}) {
+  const matched = await page.waitForFunction(({ title, status, jobId, failureCode, text, expectPublishedLink }) => {
+    const item = Array.from(document.querySelectorAll(".upload-submission-list__item"))
+      .find((element) => element.textContent?.includes(title))
+    if (!item) {
+      return false
+    }
+    const badge = item.querySelector(".upload-submission-list__heading span")
+    if (badge?.getAttribute("data-status") !== status) {
+      return false
+    }
+    const itemText = item.textContent || ""
+    if (jobId && !itemText.includes(jobId)) {
+      return false
+    }
+    if (failureCode && !itemText.includes(failureCode)) {
+      return false
+    }
+    if (text && !itemText.includes(text)) {
+      return false
+    }
+    if (expectPublishedLink && !item.querySelector("a[href*='/video/']")) {
+      return false
+    }
+    return true
+  }, { title, status, ...options }, { timeout: timeoutMs })
+
+  if (!matched) {
+    throw new Error(`Upload submission ${title} did not reach visible status ${status}`)
+  }
+}
+
+async function waitForAdminSubmissionByTitle(adminSession, title, status) {
+  const apiRoot = `${backendBaseUrl}/api/v1`
+  const deadline = Date.now() + timeoutMs
+  while (Date.now() < deadline) {
+    const response = await requestJson(`${apiRoot}/community/submissions?status=${encodeURIComponent(status)}&limit=48`, {
+      session: adminSession
+    })
+    const found = response.data?.items?.items?.find((item) => item.title === title)
+    if (found) {
+      return found
+    }
+    await delay(500)
+  }
+  throw new Error(`Admin submission queue did not include ${title} with status ${status}`)
+}
+
+async function reviewAdminSubmission(adminSession, submissionId, note) {
+  const apiRoot = `${backendBaseUrl}/api/v1`
+  const reviewed = await requestJson(`${apiRoot}/community/submissions/${encodeURIComponent(submissionId)}/review`, {
+    method: "PATCH",
+    session: adminSession,
+    headers: csrfHeaders(adminSession),
+    body: {
+      reviewNote: note,
+      status: "approved"
+    }
+  })
+  if (reviewed.data?.status !== "approved") {
+    throw new Error(`Admin review did not approve submission ${submissionId}: ${JSON.stringify(reviewed)}`)
+  }
+  return reviewed.data
+}
+
+async function createAdminVideoJob(adminSession, submissionId, thumbnailUrl) {
+  const apiRoot = `${backendBaseUrl}/api/v1`
+  const videoJob = await requestJson(`${apiRoot}/community/submissions/${encodeURIComponent(submissionId)}/transcode`, {
+    method: "POST",
+    session: adminSession,
+    headers: csrfHeaders(adminSession),
+    body: {
+      durationSeconds: 96,
+      thumbnailUrl
+    }
+  })
+  if (videoJob.data?.status !== "queued" || !videoJob.data?.id) {
+    throw new Error(`Admin transcode did not create queued video job for ${submissionId}: ${JSON.stringify(videoJob)}`)
+  }
+  return videoJob.data
+}
+
+async function createBrowserAccountSubmission(page, input) {
+  return await page.evaluate(async ({ categorySlug, title }) => {
+    function cookieValue(name) {
+      const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+      const match = document.cookie.match(new RegExp(`(?:^|; )${escaped}=([^;]*)`))
+      return match ? decodeURIComponent(match[1]) : ""
+    }
+
+    const csrf = cookieValue("community_csrf")
+    if (!csrf) {
+      throw new Error("Browser community CSRF token was not available")
+    }
+    const bytes = new Uint8Array(32 * 1024)
+    bytes.set([0, 0, 0, 24, 0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6f, 0x6d])
+    const form = new FormData()
+    form.append("file", new Blob([bytes], { type: "video/mp4" }), `${title}.mp4`)
+    const uploadResponse = await fetch("/api/v1/public/community/account/submissions/upload", {
+      body: form,
+      credentials: "include",
+      headers: { "X-Community-CSRF-Token": csrf },
+      method: "POST"
+    })
+    const uploadJson = await uploadResponse.json()
+    if (!uploadResponse.ok || uploadJson.code !== 0 || !uploadJson.data?.mediaAssetId) {
+      throw new Error(`Browser upload failed: ${JSON.stringify(uploadJson)}`)
+    }
+
+    const createResponse = await fetch("/api/v1/public/community/account/submissions", {
+      body: JSON.stringify({
+        allowComments: true,
+        categorySlug,
+        description: "Page smoke account submission for published latest video job summary.",
+        mediaAssetId: uploadJson.data.mediaAssetId,
+        sensitive: false,
+        sourceName: uploadJson.data.displayName,
+        sourceSize: uploadJson.data.sizeBytes,
+        sourceType: uploadJson.data.mimeType,
+        tags: ["page-smoke", "published-job"],
+        title,
+        visibility: "public"
+      }),
+      credentials: "include",
+      headers: {
+        "content-type": "application/json",
+        "X-Community-CSRF-Token": csrf
+      },
+      method: "POST"
+    })
+    const createJson = await createResponse.json()
+    if (!createResponse.ok || createJson.code !== 0 || createJson.data?.status !== "pending_review") {
+      throw new Error(`Browser submission create failed: ${JSON.stringify(createJson)}`)
+    }
+    return createJson.data
+  }, input)
 }
 
 async function checkSettingsPage(page, viewport) {

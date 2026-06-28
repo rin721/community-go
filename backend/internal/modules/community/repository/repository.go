@@ -746,6 +746,34 @@ func (r *repository) ListCommunityVideoJobs(ctx context.Context, filter model.Co
 	return jobs, err
 }
 
+func (r *repository) ListLatestCommunityVideoJobsBySubmissionIDs(ctx context.Context, submissionIDs []string) ([]model.CommunityVideoJob, error) {
+	ids := compactStrings(submissionIDs)
+	if len(ids) == 0 {
+		return []model.CommunityVideoJob{}, nil
+	}
+	var jobs []model.CommunityVideoJob
+	err := r.db.Find(
+		ctx,
+		&jobs,
+		database.Where("submission_id IN ?", ids),
+		alive(),
+		database.Order("submission_id ASC, created_at DESC, id DESC"),
+	)
+	if err != nil {
+		return nil, err
+	}
+	latest := make([]model.CommunityVideoJob, 0, len(ids))
+	seen := make(map[string]struct{}, len(ids))
+	for _, job := range jobs {
+		if _, ok := seen[job.SubmissionID]; ok {
+			continue
+		}
+		seen[job.SubmissionID] = struct{}{}
+		latest = append(latest, job)
+	}
+	return latest, nil
+}
+
 func (r *repository) CreateCommunityVideoRenditions(ctx context.Context, renditions []model.CommunityVideoRendition) error {
 	for _, rendition := range renditions {
 		if err := r.db.Create(ctx, &rendition); err != nil {
@@ -1012,6 +1040,23 @@ func communityDynamicWhere(dynamicID string, clientID string) database.QueryOpti
 
 func alive() database.QueryOption {
 	return database.Where("deleted_at IS NULL")
+}
+
+func compactStrings(values []string) []string {
+	seen := make(map[string]struct{}, len(values))
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		trimmed := strings.TrimSpace(value)
+		if trimmed == "" {
+			continue
+		}
+		if _, ok := seen[trimmed]; ok {
+			continue
+		}
+		seen[trimmed] = struct{}{}
+		result = append(result, trimmed)
+	}
+	return result
 }
 
 func withDeleted() database.QueryOption {

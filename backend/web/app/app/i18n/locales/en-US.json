@@ -520,6 +520,7 @@
       "errorLogs": "Error logs",
       "notificationOutbox": "Notification queue",
       "communityAccounts": "Community accounts",
+      "communityOverview": "Community overview",
       "communitySubmissions": "Submission review",
       "communityCategories": "Community categories",
       "communityVideoJobs": "Video processing jobs",
@@ -2562,6 +2563,65 @@
         "misinformation": "Misinformation",
         "spam": "Spam"
       },
+      "overview": {
+        "title": "Community overview",
+        "description": "Review community accounts, categories, submission review, report handling, and video processing job state in one place. This page reuses existing APIs and does not introduce a parallel data source.",
+        "badge": "Community management",
+        "summaryLabel": "Community management key metrics",
+        "metrics": {
+          "pendingSubmissions": "Pending submissions",
+          "runningJobs": "Processing jobs",
+          "failedJobs": "Failed jobs",
+          "pendingReports": "Pending reports"
+        },
+        "cards": {
+          "accounts": {
+            "title": "Community accounts",
+            "description": "{{active}} active accounts and {{creators}} creators.",
+            "permission": "The current session does not have the tenant community_account:read grant.",
+            "action": "View accounts"
+          },
+          "submissions": {
+            "title": "Submission review",
+            "description": "{{pending}} pending review and {{approved}} approved for processing.",
+            "permission": "The current session does not have the tenant community_submission:review grant.",
+            "action": "Open review"
+          },
+          "jobs": {
+            "title": "Video processing jobs",
+            "description": "{{running}} queued or running and {{failed}} failed.",
+            "permission": "The current session does not have the tenant community_video:read grant.",
+            "action": "View jobs"
+          },
+          "reports": {
+            "title": "Report handling",
+            "description": "{{pending}} pending and {{resolved}} resolved.",
+            "permission": "The current session does not have the tenant community_report:review grant.",
+            "action": "Handle reports"
+          },
+          "categories": {
+            "title": "Community categories",
+            "description": "{{active}} active categories and {{disabled}} disabled categories.",
+            "permission": "The current session does not have the platform dictionary:read grant.",
+            "action": "Manage categories"
+          },
+          "workflow": {
+            "title": "Closed-loop path",
+            "description": "Frontend submission, backend review, transcode jobs, HLS publishing, and report governance share the same community management context.",
+            "aria": "Community management closed-loop path",
+            "review": "Submission review",
+            "transcode": "Async transcode publishing",
+            "report": "Report handling"
+          }
+        },
+        "states": {
+          "errorTitle": "Community overview unavailable",
+          "permissionTitle": "Community management permission required",
+          "permissionDescription": "The current session has no community management grants, so the cards stay read-only.",
+          "storageUnavailableTitle": "Community storage unavailable",
+          "storageUnavailableDescription": "The backend reports that community module data is not persisted yet. Run the community module migration first."
+        }
+      },
       "accounts": {
         "title": "Community accounts",
         "description": "Manage ordinary community identities. This page does not create or grant IAM console roles; registered users and creators cannot enter the backend console with community accounts.",
@@ -2718,6 +2778,7 @@
         "empty": "No submissions returned.",
         "actions": {
           "approve": "Approve",
+          "createTranscodeJob": "Create transcode job",
           "publish": "Create transcode job",
           "reject": "Reject"
         },
@@ -2737,6 +2798,7 @@
           "submission": "Submission",
           "author": "Author / category",
           "status": "Status",
+          "noVideoJob": "No video job",
           "source": "Source file",
           "reviewNote": "Review note",
           "createdAt": "Submitted at",
@@ -2750,6 +2812,9 @@
           "description": "Current filters returned {{count}} submissions."
         },
         "messages": {
+          "createTranscodeFailedTitle": "Failed to create transcode job for \"{{title}}\"",
+          "createTranscodeSuccessTitle": "Video processing job created",
+          "createTranscodeSuccessDescription": "Job {{id}} is {{status}}. Use the job status link to inspect worker progress and HLS output.",
           "publishFailedTitle": "Failed to create processing job for \"{{title}}\"",
           "publishSuccessTitle": "Video processing job created",
           "publishSuccessDescription": "Job {{id}} is {{status}}. Open Video processing jobs to watch worker progress and HLS output.",
@@ -2818,8 +2883,11 @@
           "description": "Inspect worker lease, cloud provider callback, HLS master output, renditions, and failure evidence for the selected job.",
           "loading": "Reading video job detail.",
           "renditions": "HLS renditions",
+          "internals": "Internal dispatch fields",
           "fields": {
             "id": "Job ID",
+            "status": "Job status",
+            "progress": "Progress",
             "submissionId": "Submission ID",
             "videoId": "Published video",
             "provider": "Provider",
@@ -2834,6 +2902,7 @@
             "callbackReceivedAt": "Callback received at",
             "inputStorageKey": "Input storage",
             "outputStorageKey": "Output storage",
+            "requestPayload": "Request payload",
             "outputPublicUrl": "HLS master",
             "failureCode": "Failure code",
             "errorMessage": "Error"

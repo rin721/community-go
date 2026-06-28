@@ -82,8 +82,8 @@ function AdminThemeShell() {
     queryKey: queryKeys.system.menus(i18n.language),
   });
   const navGroups = useMemo(
-    () => adminNavGroupsFromSystemMenus(menusQuery.data),
-    [menusQuery.data],
+    () => adminNavGroupsFromSystemMenus(menusQuery.data, location.pathname),
+    [location.pathname, menusQuery.data],
   );
 
   return (

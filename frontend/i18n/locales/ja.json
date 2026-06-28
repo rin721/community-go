@@ -334,6 +334,60 @@
       "searchLabel": "設定を検索",
       "searchPlaceholder": "テーマ、背景、プレイヤー...",
       "emptyText": "一致する設定項目はありません。",
+      "headTitle": "設定 - Aoi",
+      "headTitleWithPage": "{page} - 設定 - Aoi",
+      "catalog": {
+        "appearance": {
+          "label": "外観",
+          "description": "テーマ、パレット、背景、仕様単位。",
+          "keywords": "テーマ パレット 背景 DIY カスタム 仕様 サイズ 単位 余白 角丸 ナビ幅 カード幅 派生 強度"
+        },
+        "player": {
+          "label": "プレイヤー",
+          "description": "音量、ミュート、再生速度、シアターモード。",
+          "keywords": "音量 ミュート 速度 シアター"
+        },
+        "danmaku": {
+          "label": "弾幕",
+          "description": "弾幕の表示、動き、モード、ブロック語。",
+          "keywords": "弾幕 表示 ブロック 速度 文字 透明度"
+        },
+        "preference": {
+          "label": "設定",
+          "description": "閲覧、プライバシー、モーション、スクロール、検索設定。",
+          "keywords": "省データ プライバシー 新規タブ 日付 検索 進捗 NProgress loading reveal scroll snap"
+        },
+        "language": {
+          "label": "言語",
+          "description": "表示言語とローカライズ。",
+          "keywords": "中文 English 日本語 i18n"
+        },
+        "experimental": {
+          "label": "実験",
+          "description": "機能プレビューと操作実験。",
+          "keywords": "実験 プレビュー リッチテキスト lightbox scroll scene"
+        },
+        "shortcut-key": {
+          "label": "ショートカット",
+          "description": "キーボード操作の予約項目。",
+          "keywords": "キーボード 再生 コメント"
+        },
+        "about": {
+          "label": "概要",
+          "description": "バージョン、技術スタック、プロジェクト説明。",
+          "keywords": "バージョン 技術スタック リポジトリ"
+        },
+        "acknowledgement": {
+          "label": "謝辞",
+          "description": "リンク、友好リンク、謝辞。",
+          "keywords": "リンク 友好リンク 謝辞"
+        },
+        "advanced": {
+          "label": "詳細",
+          "description": "接続状態、ローカルキャッシュ、リセット。",
+          "keywords": "接続 エラー ローカルキャッシュ リセット データ"
+        }
+      },
       "groups": {
         "app": "アプリ設定",
         "project": "プロジェクト"
@@ -670,7 +724,134 @@
         }
       }
     },
+    "danmaku": {
+      "page": {
+        "title": "弾幕",
+        "description": "プレイヤー弾幕の表示、動き、モード、ブロック語を調整します。設定はこのブラウザに保存され、Aoi プレイヤーへすぐ反映されます。"
+      },
+      "display": {
+        "title": "表示とモード",
+        "description": "弾幕の全体スイッチと、スクロール、上部、下部の各モードを制御します。",
+        "reset": "弾幕をリセット",
+        "enabledTitle": "弾幕を有効化",
+        "enabledDescription": "オフにすると、プレイヤーは弾幕を表示せず、新しい弾幕も送信できません。",
+        "scrollTitle": "スクロール弾幕",
+        "scrollDescription": "弾幕が右から左へ画面を横切ることを許可します。",
+        "topTitle": "上部弾幕",
+        "topDescription": "弾幕を画面上部に固定表示できます。",
+        "bottomTitle": "下部弾幕",
+        "bottomDescription": "弾幕を画面下部に固定表示できます。"
+      },
+      "visual": {
+        "title": "見た目と動き",
+        "description": "弾幕の不透明度、文字サイズ、速度、占有エリアを調整します。",
+        "opacityTitle": "不透明度",
+        "fontScaleTitle": "文字サイズ倍率",
+        "speedTitle": "速度倍率",
+        "visibleAreaTitle": "表示エリア",
+        "currentPercent": "現在 {value}%",
+        "visibleAreaDescription": "弾幕は画面上部の最大 {value}% まで占有できます"
+      },
+      "blocklist": {
+        "title": "ブロック語",
+        "description": "1 行に 1 語、またはカンマ区切りで指定します。一致した弾幕はレイヤーとリストに表示されません。",
+        "label": "ブロック語",
+        "placeholder": "例：ネタバレ\n連投"
+      },
+      "cache": {
+        "title": "弾幕フォールバックキャッシュ",
+        "description": "コミュニティサービスが利用できない間にこのブラウザへ保存された送信弾幕を表示します。同期済み弾幕は含みません。"
+      },
+      "stats": {
+        "fallback": "フォールバック弾幕",
+        "opacity": "不透明度",
+        "fontScale": "文字サイズ",
+        "speed": "速度"
+      }
+    },
+    "advanced": {
+      "page": {
+        "title": "詳細",
+        "description": "接続状態、ローカルキャッシュ統計、リセット操作を確認します。"
+      },
+      "dataSource": {
+        "title": "データソース",
+        "description": "現在の実行時設定を読み取り専用で表示します。",
+        "source": "データソース",
+        "mock": "フロントエンド Mock データモード",
+        "real": "実バックエンドデータモード",
+        "mockSwitch": "Mock スイッチ",
+        "enabled": "有効",
+        "disabled": "無効",
+        "apiStatus": "API 状態"
+      },
+      "connection": {
+        "title": "接続状態",
+        "description": "現在の実行時データソースで利用できるエンドポイントを確認します。",
+        "refresh": "更新",
+        "retry": "再試行",
+        "mockReady": "Mock データ API が利用できます",
+        "realReady": "実コミュニティ API が利用できます",
+        "setupBlocked": "初期化中：{step}",
+        "setupPending": "待機中",
+        "mode": "モード",
+        "setup": "初期化",
+        "completed": "完了",
+        "inProgress": "進行中",
+        "updatedAt": "更新時刻",
+        "errorTitle": "接続状態を利用できません",
+        "errorDescription": "接続状態の確認に失敗しました。",
+        "setupBlockedDescription": "プラットフォーム初期化が未完了のため、コミュニティコンテンツ API は初期化状態を返します。完了後は実コミュニティデータを読み込みます。",
+        "endpointsAria": "実装済み接続エンドポイント"
+      }
+    },
     "preference": {
+      "page": {
+        "title": "設定",
+        "description": "閲覧、プライバシー、検索に関するローカル設定を管理します。"
+      },
+      "dataMode": {
+        "title": "通信モード",
+        "description": "このブラウザでのコンテンツ読み込み密度とプリフェッチ傾向を調整します。",
+        "options": {
+          "economy": {
+            "label": "省データモード",
+            "description": "不要な読み込みを減らし、モバイル回線や弱い回線に向きます。"
+          },
+          "standard": {
+            "label": "標準モード",
+            "description": "読み込み速度と情報量のバランスを取ります。"
+          },
+          "turbo": {
+            "label": "高速モード",
+            "description": "安定した回線でより多くの内容を素早く表示します。"
+          }
+        }
+      },
+      "browsing": {
+        "title": "閲覧",
+        "description": "現在の動画カードとメタ情報に反映されます。",
+        "openNewTabTitle": "動画を新しいタブで開く",
+        "openNewTabDescription": "ホーム、検索、履歴の動画カードを新しいタブで開きます。",
+        "relativeDatesTitle": "相対日付を使う",
+        "relativeDatesDescription": "動画公開時刻を「たった今」「数日前」などの相対表記で表示します。"
+      },
+      "privacy": {
+        "title": "プライバシー",
+        "description": "現在のブラウザのローカル動作とローカル保存だけに影響します。",
+        "disableHistoryTitle": "視聴履歴を無効化",
+        "disableHistoryDescription": "動画ページで履歴と再生位置を書き込まなくなります。",
+        "hideRecentSearchesTitle": "最近の検索を隠す",
+        "hideRecentSearchesDescription": "最近の検索はこのブラウザ内だけに保存されます。オンにするとローカル記録を表示しません。"
+      },
+      "focus": {
+        "title": "集中",
+        "description": "検索ページと動画ページの補助推薦エリアを制御します。",
+        "noSearchRecommendationsTitle": "検索推薦を無効化",
+        "noSearchRecommendationsDescription": "検索ページの推薦ヒントを表示しません。",
+        "noRelatedVideosTitle": "関連動画を無効化",
+        "noRelatedVideosDescription": "動画ページの関連動画エリアを表示しません。"
+      },
       "routeProgress": {
         "title": "ルート進捗バー",
         "description": "Nuxt の組み込み読み込みライフサイクルを保ちながら、NProgress でページ遷移のフィードバックを表示します。",
@@ -1177,15 +1358,37 @@
       "processing": "処理中",
       "rejected": "差し戻し",
       "published": "公開済み",
+      "queued": "待機中",
+      "running": "処理中",
+      "succeeded": "公開済み",
+      "failed": "処理失敗",
+      "canceled": "キャンセル済み",
       "approvedHint": "審査を通過し、メディア公開処理を待っています。",
       "processingHint": "承認済みで、バックグラウンドのトランスコードまたは HLS 公開を待っています。",
+      "jobQueuedHint": "承認済みです。動画処理ジョブは待機中です。",
+      "jobRunningHint": "動画処理ジョブを実行中です。現在の進捗は {progress} です。",
+      "jobSucceededHint": "動画処理が完了しました。公開動画 {videoId} を利用できます。",
+      "jobFailedHint": "動画処理に失敗しました：{reason}",
+      "jobCanceledHint": "動画処理ジョブはキャンセルされました。新しいジョブの作成を待ってください。",
       "rejectedHint": "審査を通過できませんでした。指摘内容を反映して再送信してください。",
       "publishedHint": "公開動画 {videoId} に関連付けられました。",
       "reviewNote": "審査メモ：{note}",
+      "progressPercent": "{progress}%",
+      "pendingVideoId": "反映待ち",
+      "unknownFailure": "失敗理由は返されていません",
+      "timelineAria": "投稿処理タイムライン",
+      "timelineReview": "審査",
+      "timelineQueue": "待機",
+      "timelineProcess": "処理",
+      "timelinePublish": "公開",
       "reviewedAt": "審査日時",
       "publishedVideo": "公開動画",
       "openPublished": "動画を見る",
       "mediaAsset": "メディアアセット",
+      "videoJob": "動画ジョブ",
+      "jobProgress": "ジョブ進捗",
+      "jobFailureCode": "失敗コード",
+      "jobOutput": "出力 URL",
       "fileSize": "ファイルサイズ",
       "createdAt": "送信日時"
     }

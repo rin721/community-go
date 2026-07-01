@@ -36,7 +36,7 @@ RUN --mount=type=cache,target=/go/pkg/mod,sharing=locked \
 FROM debian:bookworm-slim AS runtime
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates curl tzdata \
+    && apt-get install -y --no-install-recommends ca-certificates curl tzdata git \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd --system --gid 10001 app \
     && useradd --system --uid 10001 --gid app --home-dir /app --shell /usr/sbin/nologin app

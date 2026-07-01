@@ -2,7 +2,6 @@
 import type { AccountProfileResponse } from "~/types/api"
 
 const api = useAoiApi()
-const authSession = useAuthSessionStore()
 const { t } = useI18n()
 
 const { profile, loadProfile } = inject("meProfile") as {
@@ -10,6 +9,7 @@ const { profile, loadProfile } = inject("meProfile") as {
   loadProfile: () => Promise<void>
 }
 
+// Display Name State
 const editingDisplayName = ref(false)
 const displayNameInput = ref("")
 const displayNameSaving = ref(false)
@@ -40,81 +40,46 @@ async function saveDisplayName() {
   }
 }
 
-const editingCreatorProfile = ref(false)
-const creatorBioInput = ref("")
-const creatorAvatarInput = ref("")
-const creatorSaving = ref(false)
-const creatorMessage = ref<{ type: "success" | "error"; text: string } | null>(null)
-const isCreator = computed(() => profile.value?.role === "creator")
-const uploadingAvatar = ref(false)
+// Bio State
+const editingBio = ref(false)
+const bioInput = ref("")
+const bioSaving = ref(false)
+const bioMessage = ref<{ type: "success" | "error"; text: string } | null>(null)
 
-function startEditCreatorProfile() {
-  creatorBioInput.value = profile.value?.bio ?? ""
-  creatorAvatarInput.value = profile.value?.avatarUrl ?? ""
-  editingCreatorProfile.value = true
-  creatorMessage.value = null
+function startEditBio() {
+  bioInput.value = profile.value?.bio ?? ""
+  editingBio.value = true
+  bioMessage.value = null
 }
-function cancelEditCreatorProfile() {
-  editingCreatorProfile.value = false
-  creatorMessage.value = null
+function cancelEditBio() {
+  editingBio.value = false
+  bioMessage.value = null
 }
-async function saveCreatorProfile() {
-  if (creatorSaving.value) return
-  creatorSaving.value = true
-  creatorMessage.value = null
+async function saveBio() {
+  if (bioSaving.value) return
+  bioSaving.value = true
+  bioMessage.value = null
   try {
-    profile.value = await api.updateAccountCreatorProfile({
-      bio: creatorBioInput.value.trim() || null,
-      avatarUrl: creatorAvatarInput.value.trim() || null
+    const updated = await api.updateAccountCreatorProfile({
+      bio: bioInput.value.trim() || null,
+      avatarUrl: profile.value?.avatarUrl || null
     })
-    editingCreatorProfile.value = false
-    creatorMessage.value = { type: "success", text: t("me.saveSuccess") }
+    if (profile.value) {
+      profile.value.bio = updated.bio
+    }
+    editingBio.value = false
+    bioMessage.value = { type: "success", text: t("me.saveSuccess") }
   } catch (err) {
-    creatorMessage.value = { type: "error", text: t("me.saveError") }
+    bioMessage.value = { type: "error", text: t("me.saveError") }
   } finally {
-    creatorSaving.value = false
+    bioSaving.value = false
   }
 }
 
-async function onAvatarCropped(result: any) {
-  const file = new File([result.blob], "avatar.webp", { type: "image/webp" })
-  uploadingAvatar.value = true
-  creatorMessage.value = null
-  try {
-    const res = await api.uploadAccountAvatar(file)
-    creatorAvatarInput.value = res.avatarUrl
-    if (profile.value) {
-      profile.value.avatarUrl = res.avatarUrl
-    }
-    if (authSession.session && authSession.session.account) {
-      (authSession.session.account as any).avatarUrl = res.avatarUrl
-    }
-    creatorMessage.value = { type: "success", text: "头像上传并保存成功" }
-  } catch (err) {
-    creatorMessage.value = { type: "error", text: "头像上传失败，请重试" }
-  } finally {
-    uploadingAvatar.value = false
-  }
-}
-
-async function deleteAvatar() {
-  if (uploadingAvatar.value) return
-  uploadingAvatar.value = true
-  creatorMessage.value = null
-  try {
-    const res = await api.deleteAccountAvatar()
-    creatorAvatarInput.value = ""
-    if (profile.value) {
-      profile.value.avatarUrl = ""
-    }
-    if (authSession.session && authSession.session.account) {
-      (authSession.session.account as any).avatarUrl = ""
-    }
-    creatorMessage.value = { type: "success", text: "头像已成功删除" }
-  } catch (err) {
-    creatorMessage.value = { type: "error", text: "头像删除失败，请重试" }
-  } finally {
-    uploadingAvatar.value = false
+function onProfileUpdate(updated: AccountProfileResponse) {
+  if (profile.value) {
+    profile.value.avatarUrl = updated.avatarUrl
+    profile.value.bio = updated.bio
   }
 }
 </script>
@@ -177,78 +142,63 @@ async function deleteAvatar() {
       </AoiStatusMessage>
     </AoiSurface>
 
-    <!-- Edit Creator Profile -->
+    <!-- Avatar & Bio Section -->
     <AoiSurface surface="panel" padding="lg">
       <h2 class="me-pane-title">
         <AoiIcon name="sparkles" :size="18" decorative />
         {{ t("me.avatarAndBio") }}
       </h2>
-      <div v-if="!editingCreatorProfile" class="me-trigger-row">
-        <div class="me-trigger-desc">
-          <p><strong>{{ t("me.bio") }}:</strong> {{ profile.bio || "-" }}</p>
-          <p class="me-avatar-url-desc">
-            <strong>{{ t("me.avatarUrl") }}:</strong> <span class="me-url-text">{{ profile.avatarUrl || "-" }}</span>
-          </p>
-        </div>
-        <div class="me-profile-action-group">
-          <AoiButton variant="outlined" tone="accent" @click="startEditCreatorProfile">
-            {{ t("me.editAvatarAndBio") }}
-          </AoiButton>
-          <AoiButton
-            v-if="profile.avatarUrl"
-            variant="outlined"
-            tone="danger"
-            :disabled="uploadingAvatar"
-            @click="deleteAvatar"
-          >
-            {{ uploadingAvatar ? "删除中..." : "删除头像" }}
-          </AoiButton>
-        </div>
+
+      <!-- Avatar Manager -->
+      <div class="me-avatar-section">
+        <AoiAvatarManager
+          :profile="profile"
+          @update="onProfileUpdate"
+        />
       </div>
-      <div v-else class="me-edit-form-content">
-        <div class="me-avatar-uploader">
-          <AoiImageClipboard
-            label="剪切并上传头像 (WebP)"
-            aspect-ratio="1:1"
-            :aspect-ratios="[{ value: '1:1', label: '1:1 正方形' }]"
-            @result="onAvatarCropped"
-          />
+
+      <div class="me-divider"></div>
+
+      <!-- Bio Section -->
+      <div class="me-bio-section">
+        <span class="me-field-name">{{ t("me.bio") }}</span>
+        <div v-if="!editingBio" class="me-trigger-row">
+          <span class="me-field-value me-bio-text">{{ profile.bio || "暂无简介" }}</span>
+          <AoiButton variant="outlined" tone="accent" @click="startEditBio">
+            修改简介
+          </AoiButton>
         </div>
-        <AoiTextField
-          v-model="creatorBioInput"
-          appearance="outlined"
-          :label="t('me.bio')"
-          multiline
-          :rows="3"
-          :max-length="640"
-        />
-        <AoiTextField
-          v-model="creatorAvatarInput"
-          appearance="outlined"
-          :label="t('me.avatarUrl')"
-          :max-length="512"
-        />
-        <div class="me-form-actions">
-          <AoiButton
-            variant="filled"
-            tone="accent"
-            :disabled="creatorSaving"
-            @click="saveCreatorProfile"
-          >
-            {{ creatorSaving ? t("me.saving") : t("me.saveChanges") }}
-          </AoiButton>
-          <AoiButton variant="plain" tone="neutral" @click="cancelEditCreatorProfile">
-            {{ t("me.cancel") }}
-          </AoiButton>
+        <div v-else class="me-edit-form-content">
+          <AoiTextField
+            v-model="bioInput"
+            appearance="outlined"
+            :label="t('me.bio')"
+            multiline
+            :rows="3"
+            :max-length="640"
+          />
+          <div class="me-form-actions">
+            <AoiButton
+              variant="filled"
+              tone="accent"
+              :disabled="bioSaving"
+              @click="saveBio"
+            >
+              {{ bioSaving ? t("me.saving") : t("me.saveChanges") }}
+            </AoiButton>
+            <AoiButton variant="plain" tone="neutral" @click="cancelEditBio">
+              {{ t("me.cancel") }}
+            </AoiButton>
+          </div>
         </div>
       </div>
       <AoiStatusMessage
-        v-if="creatorMessage"
-        :intent="creatorMessage.type === 'success' ? 'success' : 'danger'"
+        v-if="bioMessage"
+        :intent="bioMessage.type === 'success' ? 'success' : 'danger'"
         icon="info"
         class="me-form-feedback"
       >
-        {{ creatorMessage.text }}
+        {{ bioMessage.text }}
       </AoiStatusMessage>
     </AoiSurface>
   </div>
@@ -275,35 +225,24 @@ async function deleteAvatar() {
 .me-field-name {
   font-size: 0.8rem;
   color: var(--aoi-text-muted);
+  margin-bottom: 4px;
 }
 .me-field-value {
   font-size: 1rem;
   color: var(--aoi-text);
   word-break: break-all;
 }
+.me-bio-text {
+  line-height: 1.6;
+  white-space: pre-wrap;
+  flex: 1;
+  margin-right: 16px;
+}
 .me-trigger-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 16px;
-}
-.me-profile-action-group {
-  display: flex;
-  gap: 8px;
-}
-.me-trigger-desc {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  flex: 1;
-}
-.me-avatar-url-desc {
-  font-size: 0.85rem;
-  color: var(--aoi-text-muted);
-}
-.me-url-text {
-  font-family: monospace;
-  word-break: break-all;
 }
 .me-edit-form-content {
   display: flex;
@@ -318,13 +257,17 @@ async function deleteAvatar() {
 .me-form-feedback {
   margin-top: 16px;
 }
-.me-avatar-uploader {
-  display: grid;
-  gap: 12px;
-  border: 1px dashed var(--aoi-border);
-  padding: 16px;
-  border-radius: var(--aoi-radius-sm);
-  background: var(--aoi-surface-muted);
+.me-avatar-section {
+  padding: 8px 0;
+}
+.me-divider {
+  height: 1px;
+  background: var(--aoi-border);
+  margin: 24px 0;
+}
+.me-bio-section {
+  display: flex;
+  flex-direction: column;
 }
 @media (max-width: 760px) {
   .me-info-grid {

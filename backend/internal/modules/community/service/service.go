@@ -3239,18 +3239,17 @@ func (s *service) submissionVideoCreator(ctx context.Context, submission model.C
 		if id, err := strconv.ParseInt(idStr, 10, 64); err == nil {
 			account, err := s.repo.FindCommunityAccountByID(ctx, id)
 			if err == nil && account != nil {
-				var avatarURL *string
 				if cr, err := s.repo.FindCreatorByHandle(ctx, account.Handle); err == nil && cr != nil {
-					avatarURL = cr.UserSummary.AvatarURL
+					return *cr, nil
 				}
-				hash := shortHash(seed + ":" + account.Handle)
+				hash := shortHash(account.Handle + ":" + strconv.FormatInt(account.ID, 10))
 				creatorID := trimRunes("creator-"+hash, 96)
 				return model.Creator{
 					UserSummary: model.UserSummary{
 						ID:          creatorID,
 						Handle:      account.Handle,
 						DisplayName: account.DisplayName,
-						AvatarURL:   avatarURL,
+						AvatarURL:   nil,
 					},
 					FollowerCount: 0,
 					JoinedAt:      account.CreatedAt,

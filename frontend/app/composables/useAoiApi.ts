@@ -62,6 +62,7 @@ type RequestOptions = {
   method?: "DELETE" | "GET" | "PATCH" | "POST"
   query?: Record<string, unknown>
   signal?: AbortSignal
+  direct?: boolean
 }
 
 type RequestControlOptions = Pick<RequestOptions, "signal">
@@ -70,11 +71,13 @@ export function useAoiApi() {
   const config = useRuntimeConfig()
   const telemetry = useAoiApiTelemetry()
   const baseURL = computed(() => config.public.apiMock ? "/api/mock" : config.public.apiBaseURL)
+  const directBaseURL = computed(() => config.public.apiMock ? "/api/mock" : config.public.directApiBaseURL)
 
   async function request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
     try {
+      const targetBaseURL = options.direct ? directBaseURL.value : baseURL.value
       const response = await $fetch<unknown>(endpoint, {
-        baseURL: baseURL.value,
+        baseURL: targetBaseURL,
         body: options.body as BodyInit | Record<string, unknown> | null | undefined,
         credentials: "include",
         headers: createAoiCredentialHeaders(options.method, config),
@@ -193,7 +196,8 @@ export function useAoiApi() {
 
     return await request<CommunitySubmissionUploadResult>("/account/submissions/upload", {
       body: formData,
-      method: "POST"
+      method: "POST",
+      direct: true
     })
   }
 
@@ -527,7 +531,8 @@ export function useAoiApi() {
     formData.append("file", safeFile)
     return await request<AccountAvatarResult>("/account/avatar/upload", {
       body: formData,
-      method: "POST"
+      method: "POST",
+      direct: true
     })
   }
 
@@ -575,7 +580,8 @@ export function useAoiApi() {
     formData.append("file", safeFile)
     return await request<AccountBannerResult>("/account/banner/upload", {
       body: formData,
-      method: "POST"
+      method: "POST",
+      direct: true
     })
   }
 

@@ -10,9 +10,15 @@ const developmentCommunityApiBaseURL = process.env.NODE_ENV === "development"
 const communityApiBaseURL = shouldProxyBackend
   ? "/api/v1/public/community"
   : process.env.NUXT_PUBLIC_API_BASE_URL || developmentCommunityApiBaseURL
+const directCommunityApiBaseURL = shouldProxyBackend
+  ? `${backendOrigin}/api/v1/public/community`
+  : process.env.NUXT_PUBLIC_API_BASE_URL || developmentCommunityApiBaseURL
 const authApiBaseURL = shouldProxyBackend
   ? "/api/v1"
   : process.env.NUXT_PUBLIC_AUTH_API_BASE_URL || communityApiBaseURL.replace(/\/public\/community\/?$/, "")
+const directAuthApiBaseURL = shouldProxyBackend
+  ? `${backendOrigin}/api/v1`
+  : process.env.NUXT_PUBLIC_AUTH_API_BASE_URL || authApiBaseURL
 const csrfCookieName = process.env.NUXT_PUBLIC_AUTH_CSRF_COOKIE_NAME || "community_csrf"
 const csrfHeaderName = process.env.NUXT_PUBLIC_AUTH_CSRF_HEADER_NAME || "X-Community-CSRF-Token"
 const backendRouteRules = shouldProxyBackend
@@ -52,7 +58,9 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       apiBaseURL: communityApiBaseURL,
+      directApiBaseURL: directCommunityApiBaseURL,
       authApiBaseURL,
+      directAuthApiBaseURL,
       apiMock,
       csrfCookieName,
       csrfHeaderName

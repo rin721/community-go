@@ -39,6 +39,7 @@ const props = withDefaults(defineProps<{
   replace?: boolean
   target?: LinkTarget | null
   to?: RouteLocationRaw
+  ripple?: boolean
 }>(), {
   activeClass: undefined,
   ariaCurrentValue: undefined,
@@ -53,7 +54,8 @@ const props = withDefaults(defineProps<{
   rel: undefined,
   replace: false,
   target: undefined,
-  to: undefined
+  to: undefined,
+  ripple: false
 })
 
 defineSlots<{
@@ -85,7 +87,8 @@ const resolvedLinkAttrs = computed(() => ({
   class: [
     { "aoi-link": !hasUserClass.value },
     attrs.class,
-    { "aoi-link--url": shouldFormatUrl.value }
+    { "aoi-link--url": shouldFormatUrl.value },
+    { "aoi-link--has-ripple": props.ripple }
   ]
 }))
 
@@ -130,6 +133,7 @@ function parseAbsoluteUrl(value?: string): UrlParts | undefined {
     v-else
     v-bind="resolvedLinkAttrs"
   >
+    <AoiRipple v-if="ripple" class="aoi-link__ripple" />
     <template v-if="shouldFormatUrl && urlParts">
       <span class="aoi-link__url-derived">{{ urlParts.protocol }}</span>
       <span class="aoi-link__url-host">{{ urlParts.host }}</span>
@@ -168,5 +172,17 @@ function parseAbsoluteUrl(value?: string): UrlParts | undefined {
 .aoi-link__url-host {
   color: var(--aoi-accent-60);
   font-weight: 850;
+}
+
+.aoi-link--has-ripple {
+  position: relative;
+  overflow: clip;
+}
+
+.aoi-link__ripple {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
 }
 </style>

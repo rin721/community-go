@@ -39,7 +39,10 @@ type Service interface {
 	SignupCommunityAccount(context.Context, model.CommunitySignupRequest, SessionIssueInput) (model.CommunityAuthSessionSnapshot, SessionTokens, error)
 	LoginCommunityAccount(context.Context, model.CommunityLoginRequest, SessionIssueInput) (model.CommunityAuthSessionSnapshot, SessionTokens, error)
 	CommunityAuthSession(context.Context, authtypes.Principal) (model.CommunityAuthSessionSnapshot, error)
+	RefreshCommunitySession(context.Context, string, SessionIssueInput) (model.CommunityAuthSessionSnapshot, SessionTokens, error)
 	LogoutCommunityAccount(context.Context, authtypes.Principal) error
+	ListAccountSessions(context.Context, authtypes.Principal) (model.AccountSessionPayload, error)
+	UploadAccountAvatar(context.Context, authtypes.Principal, UploadSourceInput) (model.AccountAvatarResult, error)
 	ListCommunityAccounts(context.Context, model.CommunityAccountFilter) (model.CommunityAccountPayload, error)
 	UpdateCommunityAccount(context.Context, string, model.UpdateCommunityAccountRequest) (model.CommunityAccountItem, error)
 	ListCommunityReports(context.Context, model.CommunityReportFilter) (model.CommunityReportPayload, error)
@@ -128,8 +131,10 @@ type Repository interface {
 	UpdateCommunityAccount(context.Context, model.CommunityAccount) error
 	CreateCommunitySession(context.Context, model.CommunitySession) error
 	FindCommunitySessionByAccessTokenHash(context.Context, string, time.Time) (*model.CommunitySession, error)
+	FindCommunitySessionByRefreshTokenHash(context.Context, string, time.Time) (*model.CommunitySession, error)
 	FindCommunitySessionByID(context.Context, int64) (*model.CommunitySession, error)
 	RevokeCommunitySession(context.Context, int64, time.Time) error
+	ListCommunitySessionsByAccountID(context.Context, int64, int) ([]model.CommunitySession, error)
 	ListCommunityAccounts(context.Context, model.CommunityAccountFilter) ([]model.CommunityAccount, error)
 	ListCommunityReports(context.Context, model.CommunityReportFilter) ([]model.CommunityReport, error)
 	FindCommunityReport(context.Context, string) (*model.CommunityReport, error)
@@ -396,6 +401,107 @@ func (s *service) LogoutCommunityAccount(ctx context.Context, principal authtype
 		return ErrUnauthorized
 	}
 	return mapStorageError(s.repo.RevokeCommunitySession(ctx, principal.SessionID, s.now()))
+}
+
+func (s *service) RefreshCommunitySession(ctx context.Context, refreshToken string, input SessionIssueInput) (model.CommunityAuthSessionSnapshot, SessionTokens, error) {
+	if s.repo == nil {
+		return model.CommunityAuthSessionSnapshot{}, SessionTokens{}, ErrStorageUnavailable
+	}
+	refreshToken = strings.TrimSpace(refreshToken)
+	if refreshToken == "" {
+		return model.CommunityAuthSessionSnapshot{}, SessionTokens{}, ErrUnauthorized
+	}
+	now := s.now()
+	oldSession, err := s.repo.FindCommunitySessionByRefreshTokenHash(ctx, hashToken(refreshToken), now)
+	if err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return model.CommunityAuthSessionSnapshot{}, SessionTokens{}, ErrUnauthorized
+		}
+		return model.CommunityAuthSessionSnapshot{}, SessionTokens{}, mapStorageError(err)
+	}
+	account, err := s.repo.FindCommunityAccountByID(ctx, oldSession.AccountID)
+	if err != nil {
+		return model.CommunityAuthSessionSnapshot{}, SessionTokens{}, mapStorageError(err)
+	}
+	if account.Status != model.CommunityAccountStatusActive {
+		return model.CommunityAuthSessionSnapshot{}, SessionTokens{}, ErrForbidden
+	}
+	// Revoke old session before issuing new one.
+	if rErr := s.repo.RevokeCommunitySession(ctx, oldSession.ID, now); rErr != nil {
+		return model.CommunityAuthSessionSnapshot{}, SessionTokens{}, mapStorageError(rErr)
+	}
+	// Carry over IP/UserAgent from old session when not provided in new input.
+	if input.IPAddress == "" {
+		input.IPAddress = oldSession.IPAddress
+	}
+	if input.UserAgent == "" {
+		input.UserAgent = oldSession.UserAgent
+	}
+	if input.ProductCode == "" {
+		input.ProductCode = oldSession.ProductCode
+	}
+	if input.ClientType == "" {
+		input.ClientType = oldSession.ClientType
+	}
+	return s.issueCommunitySession(ctx, account, input)
+}
+
+func (s *service) ListAccountSessions(ctx context.Context, principal authtypes.Principal) (model.AccountSessionPayload, error) {
+	if s.repo == nil {
+		return model.AccountSessionPayload{}, ErrStorageUnavailable
+	}
+	sessions, err := s.repo.ListCommunitySessionsByAccountID(ctx, principal.UserID, 20)
+	if err != nil {
+		return model.AccountSessionPayload{}, mapStorageError(err)
+	}
+	items := make([]model.AccountSessionItem, 0, len(sessions))
+	for _, s := range sessions {
+		items = append(items, model.AccountSessionItem{
+			ID:               strconv.FormatInt(s.ID, 10),
+			ProductCode:      s.ProductCode,
+			ClientType:       s.ClientType,
+			IPAddress:        s.IPAddress,
+			UserAgent:        s.UserAgent,
+			AccessExpiresAt:  s.AccessExpiresAt,
+			RefreshExpiresAt: s.RefreshExpiresAt,
+			CreatedAt:        s.CreatedAt,
+		})
+	}
+	return model.AccountSessionPayload{Items: items}, nil
+}
+
+func (s *service) UploadAccountAvatar(ctx context.Context, principal authtypes.Principal, input UploadSourceInput) (model.AccountAvatarResult, error) {
+	if s.video == nil {
+		return model.AccountAvatarResult{}, ErrStorageUnavailable
+	}
+	// Reuse submission upload infra to store the avatar file.
+	uploadResult, err := s.video.UploadSource(ctx, principal, input)
+	if err != nil {
+		return model.AccountAvatarResult{}, err
+	}
+	avatarURL := uploadResult.URL
+	// Update creator profile avatar URL.
+	account, err := s.repo.FindCommunityAccountByID(ctx, principal.UserID)
+	if err != nil {
+		return model.AccountAvatarResult{}, mapStorageError(err)
+	}
+	creator, creatorErr := s.repo.FindCreatorByHandle(ctx, account.Handle)
+	if creatorErr == nil && creator != nil {
+		now := s.now()
+		creator.UserSummary.AvatarURL = &avatarURL
+		creator.UpdatedAt = now
+		if uErr := s.repo.UpdateCreator(ctx, *creator); uErr != nil {
+			return model.AccountAvatarResult{}, mapStorageError(uErr)
+		}
+	}
+	profile, err := s.GetCommunityAccountProfile(ctx, principal)
+	if err != nil {
+		return model.AccountAvatarResult{}, err
+	}
+	return model.AccountAvatarResult{
+		AvatarURL: avatarURL,
+		Profile:   profile,
+	}, nil
 }
 
 func (s *service) ListCommunityAccounts(ctx context.Context, filter model.CommunityAccountFilter) (model.CommunityAccountPayload, error) {

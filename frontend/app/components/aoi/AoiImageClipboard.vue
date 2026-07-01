@@ -541,6 +541,7 @@ defineExpose({
       :disabled="disabled || undefined"
       @click="open"
     >
+      <AoiRipple v-if="!disabled" />
       <span class="aoi-image-clipboard__drop-icon">
         <AoiIcon name="image-up" :size="28" decorative />
       </span>
@@ -693,6 +694,8 @@ defineExpose({
 }
 
 .aoi-image-clipboard__dropzone {
+  position: relative;
+  overflow: clip;
   display: grid;
   min-width: 0;
   grid-template-columns: auto minmax(0, 1fr);

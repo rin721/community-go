@@ -669,6 +669,7 @@ function formatBytes(value: number) {
             @click="selectPresetPersona(preset)"
           >
             <span class="settings-persona-card__hero">
+              <AoiRipple />
               <span class="settings-persona-card__art" aria-hidden="true" />
               <span class="settings-persona-card__copy">
                 <strong>{{ preset.cardTitle }}</strong>
@@ -700,6 +701,7 @@ function formatBytes(value: number) {
           @click="selectCustomPersona"
         >
           <span class="settings-persona-card__hero">
+            <AoiRipple />
             <span class="settings-persona-card__art" aria-hidden="true" />
             <span class="settings-persona-card__copy">
               <strong>{{ t("settings.appearance.palette.persona.customTitle") }}</strong>

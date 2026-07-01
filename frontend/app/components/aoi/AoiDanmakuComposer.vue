@@ -116,6 +116,7 @@ defineExpose({
       :disabled="disabled || undefined"
       @click="toggleEnabled"
     >
+      <AoiRipple />
       <AoiIcon :name="enabled && !disabled ? 'message-square-text' : 'message-square-off'" :size="15" decorative />
       <span>{{ statusText }}</span>
       <small>{{ countText }}</small>
@@ -144,6 +145,7 @@ defineExpose({
       :disabled="disabled || undefined"
       @click="toggleSettings"
     >
+      <AoiRipple />
       <AoiIcon name="sliders-horizontal" :size="16" decorative />
     </button>
 
@@ -176,6 +178,7 @@ defineExpose({
             :disabled="disabled || undefined"
             @click="selectMode(item.value)"
           >
+            <AoiRipple />
             <AoiIcon :name="item.value === modeModel ? 'check' : item.icon" :size="14" decorative />
             {{ item.label }}
           </button>
@@ -196,7 +199,9 @@ defineExpose({
             :style="{ backgroundColor: item }"
             :disabled="disabled || undefined"
             @click="color = item"
-          />
+          >
+            <AoiRipple />
+          </button>
         </div>
       </div>
     </div>
@@ -219,6 +224,8 @@ defineExpose({
 }
 
 .aoi-danmaku-composer__status {
+  position: relative;
+  overflow: clip;
   display: inline-flex;
   min-height: 30px;
   align-items: center;
@@ -291,6 +298,8 @@ defineExpose({
 }
 
 .aoi-danmaku-composer__settings-button {
+  position: relative;
+  overflow: clip;
   display: grid;
   width: 32px;
   height: 32px;
@@ -383,6 +392,8 @@ defineExpose({
 }
 
 .aoi-danmaku-composer__choice {
+  position: relative;
+  overflow: clip;
   display: inline-flex;
   min-height: 28px;
   align-items: center;
@@ -406,6 +417,8 @@ defineExpose({
 }
 
 .aoi-danmaku-composer__color {
+  position: relative;
+  overflow: clip;
   width: 20px;
   height: 20px;
   border: 2px solid var(--aoi-player-surface);

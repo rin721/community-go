@@ -48,6 +48,7 @@ function change(value: string) {
         :aria-pressed="item.value === modelValue"
         @click="change(item.value)"
       >
+        <AoiRipple />
         {{ item.label }}
       </button>
     </div>
@@ -73,6 +74,8 @@ function change(value: string) {
 }
 
 .category-tabs__item {
+  position: relative;
+  overflow: clip;
   display: inline-flex;
   min-width: 82px;
   height: 38px;

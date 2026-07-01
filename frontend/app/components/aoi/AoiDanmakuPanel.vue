@@ -88,6 +88,7 @@ function formatDate(value?: string) {
         role="row"
         @click="emit('seek', item.timeSeconds)"
       >
+        <AoiRipple />
         <span role="cell">{{ formatTime(item.timeSeconds) }}</span>
         <strong role="cell">{{ item.body }}</strong>
         <span role="cell">{{ formatDate(item.createdAt) }}</span>
@@ -155,6 +156,8 @@ function formatDate(value?: string) {
 }
 
 .aoi-danmaku-panel__row {
+  position: relative;
+  overflow: clip;
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr) 76px;
   align-items: center;

@@ -6525,6 +6525,108 @@
       "tags":
         - "Announcements"
       "x-scope": "platform"
+  "/api/v1/public/community/account/avatar/upload":
+    "post":
+      "operationId": "community.account.avatar.upload"
+      "requestBody":
+        "content":
+          "multipart/form-data":
+            "schema":
+              "properties":
+                "file":
+                  "format": "binary"
+                  "type": "string"
+              "required":
+                - "file"
+              "type": "object"
+        "required": true
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "properties":
+                  "code":
+                    "format": "int32"
+                    "type": "integer"
+                  "data":
+                    "properties":
+                      "avatarUrl":
+                        "type": "string"
+                      "profile":
+                        "properties":
+                          "avatarUrl":
+                            "type": "string"
+                          "bio":
+                            "type": "string"
+                          "createdAt":
+                            "format": "date-time"
+                            "type": "string"
+                          "displayName":
+                            "type": "string"
+                          "email":
+                            "type": "string"
+                          "handle":
+                            "type": "string"
+                          "id":
+                            "type": "string"
+                          "lastLoginAt":
+                            "format": "date-time"
+                            "type": "string"
+                          "role":
+                            "type": "string"
+                          "status":
+                            "type": "string"
+                        "type": "object"
+                    "type": "object"
+                  "message":
+                    "type": "string"
+                  "messageArgs":
+                    "additionalProperties": true
+                    "type": "object"
+                  "messageKey":
+                    "type": "string"
+                  "serverTime":
+                    "format": "int64"
+                    "type": "integer"
+                  "traceId":
+                    "type": "string"
+                "type": "object"
+          "description": "OK"
+        "400":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Bad request"
+        "401":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Unauthorized"
+        "403":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Forbidden"
+        "404":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Not found"
+        "500":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Internal server error"
+      "summary": "上传并更新当前社区账号头像"
+      "tags":
+        - "Community"
+      "x-scope": "tenant"
   "/api/v1/public/community/account/change-password":
     "post":
       "operationId": "community.account.change-password"
@@ -8333,6 +8435,93 @@
       "tags":
         - "Community"
       "x-scope": "tenant"
+  "/api/v1/public/community/account/sessions":
+    "get":
+      "operationId": "community.account.sessions"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "properties":
+                  "code":
+                    "format": "int32"
+                    "type": "integer"
+                  "data":
+                    "properties":
+                      "items":
+                        "items":
+                          "properties":
+                            "accessExpiresAt":
+                              "format": "date-time"
+                              "type": "string"
+                            "clientType":
+                              "type": "string"
+                            "createdAt":
+                              "format": "date-time"
+                              "type": "string"
+                            "id":
+                              "type": "string"
+                            "ipAddress":
+                              "type": "string"
+                            "productCode":
+                              "type": "string"
+                            "refreshExpiresAt":
+                              "format": "date-time"
+                              "type": "string"
+                            "userAgent":
+                              "type": "string"
+                          "type": "object"
+                        "type": "array"
+                    "type": "object"
+                  "message":
+                    "type": "string"
+                  "messageArgs":
+                    "additionalProperties": true
+                    "type": "object"
+                  "messageKey":
+                    "type": "string"
+                  "serverTime":
+                    "format": "int64"
+                    "type": "integer"
+                  "traceId":
+                    "type": "string"
+                "type": "object"
+          "description": "OK"
+        "400":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Bad request"
+        "401":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Unauthorized"
+        "403":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Forbidden"
+        "404":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Not found"
+        "500":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Internal server error"
+      "summary": "查询当前社区账号活跃设备会话"
+      "tags":
+        - "Community"
+      "x-scope": "tenant"
   "/api/v1/public/community/account/submissions":
     "get":
       "operationId": "community.account.submissions.list"
@@ -10026,6 +10215,131 @@
       "tags":
         - "Community"
       "x-scope": "tenant"
+  "/api/v1/public/community/auth/refresh":
+    "post":
+      "operationId": "community.auth.refresh"
+      "responses":
+        "200":
+          "content":
+            "application/json":
+              "schema":
+                "properties":
+                  "code":
+                    "format": "int32"
+                    "type": "integer"
+                  "data":
+                    "properties":
+                      "accessExpiresAt":
+                        "format": "date-time"
+                        "type": "string"
+                      "account":
+                        "properties":
+                          "createdAt":
+                            "format": "date-time"
+                            "type": "string"
+                          "displayName":
+                            "type": "string"
+                          "email":
+                            "type": "string"
+                          "handle":
+                            "type": "string"
+                          "id":
+                            "type": "string"
+                          "lastLoginAt":
+                            "format": "date-time"
+                            "type": "string"
+                          "role":
+                            "type": "string"
+                          "status":
+                            "type": "string"
+                        "type": "object"
+                      "authenticated":
+                        "type": "boolean"
+                      "csrfToken":
+                        "type": "string"
+                      "expiresAt":
+                        "format": "date-time"
+                        "type": "string"
+                      "message":
+                        "type": "string"
+                      "refreshExpiresAt":
+                        "format": "date-time"
+                        "type": "string"
+                      "sessionId":
+                        "type": "string"
+                      "user":
+                        "properties":
+                          "createdAt":
+                            "format": "date-time"
+                            "type": "string"
+                          "displayName":
+                            "type": "string"
+                          "email":
+                            "type": "string"
+                          "handle":
+                            "type": "string"
+                          "id":
+                            "type": "string"
+                          "lastLoginAt":
+                            "format": "date-time"
+                            "type": "string"
+                          "role":
+                            "type": "string"
+                          "status":
+                            "type": "string"
+                        "type": "object"
+                      "userId":
+                        "type": "string"
+                    "type": "object"
+                  "message":
+                    "type": "string"
+                  "messageArgs":
+                    "additionalProperties": true
+                    "type": "object"
+                  "messageKey":
+                    "type": "string"
+                  "serverTime":
+                    "format": "int64"
+                    "type": "integer"
+                  "traceId":
+                    "type": "string"
+                "type": "object"
+          "description": "OK"
+        "400":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Bad request"
+        "401":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Unauthorized"
+        "403":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Forbidden"
+        "404":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Not found"
+        "500":
+          "content":
+            "application/json":
+              "schema":
+                "$ref": "#/components/schemas/ErrorResult"
+          "description": "Internal server error"
+      "security": []
+      "summary": "无感刷新社区账号登录会话"
+      "tags":
+        - "Community"
+      "x-scope": "platform"
   "/api/v1/public/community/auth/session":
     "get":
       "operationId": "community.auth.session"

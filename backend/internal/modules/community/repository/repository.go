@@ -188,6 +188,18 @@ func (r *repository) FindCommunitySessionByAccessTokenHash(ctx context.Context, 
 	return &session, nil
 }
 
+func (r *repository) FindCommunitySessionByRefreshTokenHash(ctx context.Context, tokenHash string, now time.Time) (*model.CommunitySession, error) {
+	var session model.CommunitySession
+	err := r.db.First(ctx, &session,
+		database.Where("refresh_token_hash = ? AND revoked_at IS NULL AND refresh_expires_at > ?", strings.TrimSpace(tokenHash), now),
+		alive(),
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &session, nil
+}
+
 func (r *repository) FindCommunitySessionByID(ctx context.Context, id int64) (*model.CommunitySession, error) {
 	var session model.CommunitySession
 	err := r.db.First(ctx, &session, database.Where("id = ? AND revoked_at IS NULL", id), alive())
@@ -210,6 +222,21 @@ func (r *repository) RevokeCommunitySession(ctx context.Context, sessionID int64
 	}
 	return nil
 }
+
+func (r *repository) ListCommunitySessionsByAccountID(ctx context.Context, accountID int64, limit int) ([]model.CommunitySession, error) {
+	opts := []database.QueryOption{
+		database.Where("account_id = ? AND revoked_at IS NULL", accountID),
+		alive(),
+		database.Order("created_at DESC"),
+	}
+	if limit > 0 {
+		opts = append(opts, database.Limit(limit))
+	}
+	var sessions []model.CommunitySession
+	err := r.db.Find(ctx, &sessions, opts...)
+	return sessions, err
+}
+
 
 func (r *repository) FindCreatorByHandle(ctx context.Context, handle string) (*model.Creator, error) {
 	var creator model.Creator

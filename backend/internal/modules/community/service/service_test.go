@@ -1453,6 +1453,34 @@ func (r *fakeRepository) RevokeCommunitySession(_ context.Context, sessionID int
 	return ErrNotFound
 }
 
+func (r *fakeRepository) FindCommunitySessionByRefreshTokenHash(_ context.Context, tokenHash string, now time.Time) (*model.CommunitySession, error) {
+	for index := range r.sessions {
+		session := &r.sessions[index]
+		if session.RefreshTokenHash == tokenHash && session.RevokedAt == nil && session.DeletedAt == nil && session.RefreshExpiresAt.After(now) {
+			return session, nil
+		}
+	}
+	return nil, ErrNotFound
+}
+
+func (r *fakeRepository) ListCommunitySessionsByAccountID(_ context.Context, accountID int64, limit int) ([]model.CommunitySession, error) {
+	var items []model.CommunitySession
+	for index := range r.sessions {
+		session := r.sessions[index]
+		if session.AccountID == accountID && session.RevokedAt == nil && session.DeletedAt == nil {
+			items = append(items, session)
+		}
+	}
+	sort.Slice(items, func(i, j int) bool {
+		return items[i].CreatedAt.After(items[j].CreatedAt)
+	})
+	if limit > 0 && len(items) > limit {
+		return items[:limit], nil
+	}
+	return items, nil
+}
+
+
 func (r *fakeRepository) FindCreatorByHandle(_ context.Context, handle string) (*model.Creator, error) {
 	for _, creator := range r.creators {
 		if creator.Handle == handle {

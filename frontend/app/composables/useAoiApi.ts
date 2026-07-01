@@ -472,6 +472,52 @@ export function useAoiApi() {
     return await request<CommunitySubmissionItem>(`/account/submissions/${encodeURIComponent(submissionId)}`)
   }
 
+  async function getAccountSessions(): Promise<AccountSessionPayload> {
+    if (config.public.apiMock) {
+      return {
+        items: [
+          {
+            id: "mock-session-1",
+            productCode: "platform",
+            clientType: "community_web",
+            ipAddress: "127.0.0.1",
+            userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            accessExpiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+            refreshExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+            createdAt: new Date().toISOString()
+          }
+        ]
+      }
+    }
+    return await request<AccountSessionPayload>("/account/sessions")
+  }
+
+  async function uploadAccountAvatar(file: File): Promise<AccountAvatarResult> {
+    if (config.public.apiMock) {
+      const mockUrl = `/api/mock/account/avatar/${encodeURIComponent(file.name)}`
+      return {
+        avatarUrl: mockUrl,
+        profile: {
+          id: "mock-user-id",
+          handle: "mockuser",
+          email: "mockuser@example.com",
+          displayName: "Mock User",
+          role: "creator",
+          status: "active",
+          createdAt: new Date().toISOString(),
+          avatarUrl: mockUrl
+        }
+      }
+    }
+    const formData = new FormData()
+    formData.append("file", file)
+    return await request<AccountAvatarResult>("/account/avatar/upload", {
+      body: formData,
+      method: "POST"
+    })
+  }
+
+
   async function getCategory(slug: string): Promise<CategoryTreeNode | null> {
     const categories = await listCategories()
 
@@ -538,7 +584,9 @@ export function useAoiApi() {
     updateAccountProfile,
     updateAccountCreatorProfile,
     changeAccountPassword,
-    getAccountSubmission
+    getAccountSubmission,
+    getAccountSessions,
+    uploadAccountAvatar
   }
 }
 

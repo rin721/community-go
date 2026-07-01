@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import type { AoiApiErrorPayload } from "~/types/api"
 
+definePageMeta({
+  layout: "auth"
+})
+
 const { t } = useI18n()
 const authApi = useAoiAuthApi()
 const authSession = useAuthSessionStore()
@@ -33,7 +37,7 @@ async function submitLogin() {
     })
 
     authSession.acceptSession(session)
-    successMessage.value = t("auth.login.success")
+    navigateTo("/me")
   } catch (error) {
     errorMessage.value = authErrorMessage(error, t("auth.errors.default"))
   } finally {

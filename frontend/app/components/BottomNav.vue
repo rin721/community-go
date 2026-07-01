@@ -12,6 +12,7 @@ const { mobilePrimaryItems } = useAoiNavigation()
       :to="item.to"
       :aria-current="item.active ? 'page' : undefined"
       :aria-label="item.label"
+      ripple
     >
       <span class="bottom-nav__icon-wrap" aria-hidden="true">
         <AoiIcon :name="item.icon" size="var(--aoi-bottom-nav-icon-size)" decorative />

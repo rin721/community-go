@@ -117,6 +117,7 @@ function onClick(event: MouseEvent) {
     :rel="rel"
     :target="target"
     :to="to"
+    ripple
     @click="onClick"
   >
     <component
@@ -186,6 +187,9 @@ function onClick(event: MouseEvent) {
 }
 
 .aoi-button-link {
+  position: relative;
+  overflow: clip;
+  border-radius: var(--aoi-radius-control);
   display: inline-flex;
   color: inherit;
   text-decoration: none;

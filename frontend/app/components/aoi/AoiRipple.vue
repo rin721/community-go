@@ -37,5 +37,9 @@ onBeforeUnmount(() => {
   z-index: var(--aoi-ripple-z-index, 0);
   border-radius: inherit;
   pointer-events: none;
+  --md-ripple-hover-color: currentColor;
+  --md-ripple-hover-opacity: 0.08;
+  --md-ripple-pressed-color: currentColor;
+  --md-ripple-pressed-opacity: 0.12;
 }
 </style>

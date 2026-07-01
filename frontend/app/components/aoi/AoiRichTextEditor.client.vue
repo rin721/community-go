@@ -805,7 +805,9 @@ function isSafeImageUrl(value: string | undefined) {
           :disabled="disabled || readonly"
           :style="{ '--aoi-rich-text-swatch': color.value }"
           @click="setTextColor(color.value)"
-        />
+        >
+          <AoiRipple />
+        </button>
         <AoiIconButton
           icon="paintbrush-vertical"
           label="Remove text color"
@@ -826,7 +828,9 @@ function isSafeImageUrl(value: string | undefined) {
           :disabled="disabled || readonly"
           :style="{ '--aoi-rich-text-swatch': color.value }"
           @click="setHighlight(color.value)"
-        />
+        >
+          <AoiRipple />
+        </button>
         <AoiIconButton
           icon="eraser"
           label="Remove highlight"
@@ -945,7 +949,9 @@ function isSafeImageUrl(value: string | undefined) {
 }
 
 .aoi-rich-text-editor__swatch {
-  display: inline-grid;
+  position: relative;
+  overflow: clip;
+  display: grid;
   width: var(--aoi-control-height-sm);
   height: var(--aoi-control-height-sm);
   place-items: center;

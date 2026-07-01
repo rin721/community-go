@@ -71,5 +71,8 @@ export type {
   VideoReportReason,
   VideoSourceKind,
   VideoSourceOption,
-  VideoSummary
+  VideoSummary,
+  AccountSessionItem,
+  AccountSessionPayload,
+  AccountAvatarResult
 } from "~~/shared/types/api"

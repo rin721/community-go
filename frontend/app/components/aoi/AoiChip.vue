@@ -50,6 +50,7 @@ function remove() {
       :disabled="disabled || undefined"
       @click="remove"
     >
+      <AoiRipple />
       <AoiIcon name="x" :size="14" decorative />
     </button>
   </span>
@@ -143,6 +144,8 @@ function remove() {
 }
 
 .aoi-chip__remove {
+  position: relative;
+  overflow: clip;
   display: inline-grid;
   width: 22px;
   height: 22px;

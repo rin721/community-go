@@ -86,7 +86,11 @@
     "tabs": {
       "profile": "Profile",
       "security": "Password & Security",
-      "submissions": "Submissions"
+      "submissions": "Submissions",
+      "following": "Following",
+      "collections": "Collections",
+      "history": "History",
+      "sessions": "Sessions"
     }
   },
   "auth": {

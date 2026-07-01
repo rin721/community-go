@@ -174,6 +174,7 @@ onBeforeUnmount(() => {
             @click="select(item)"
             @focus="activeSubmenu = item.value"
           >
+            <AoiRipple v-if="!item.disabled" />
             <span class="aoi-player-context-menu__item-icon">
               <AoiIcon
                 v-if="item.checked"
@@ -220,6 +221,7 @@ onBeforeUnmount(() => {
               :disabled="child.disabled || undefined"
               @click.stop="select(child)"
             >
+              <AoiRipple v-if="!child.disabled" />
               <span class="aoi-player-context-menu__item-icon">
                 <AoiIcon
                   v-if="child.checked"
@@ -286,6 +288,8 @@ onBeforeUnmount(() => {
 }
 
 .aoi-player-context-menu__item {
+  position: relative;
+  overflow: clip;
   display: grid;
   min-height: 28px;
   grid-template-columns: 20px minmax(0, 1fr) auto auto;

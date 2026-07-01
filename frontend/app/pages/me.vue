@@ -4,8 +4,9 @@ import type { AoiSegmentedItem } from "~/components/aoi/AoiSegmentedControl.vue"
 
 const api = useAoiApi()
 const authSession = useAuthSessionStore()
-const { t } = useI18n()
+const { locale, t } = useI18n()
 const router = useRouter()
+const library = useLibraryStore()
 
 const authenticated = computed(() => authSession.authenticated)
 
@@ -17,7 +18,7 @@ watchEffect(() => {
 
 useHead({ title: `${t("me.headTitle")} - Aoi` })
 
-type MeTab = "profile" | "security" | "submissions"
+type MeTab = "profile" | "following" | "collections" | "history" | "submissions" | "security" | "sessions"
 const activeTab = ref<MeTab>("profile")
 
 const profile = ref<AccountProfileResponse | null>(null)
@@ -27,6 +28,26 @@ const profilePending = ref(false)
 const submissionsList = ref<CommunitySubmissionItem[] | null>(null)
 const submissionsError = ref<string | null>(null)
 const submissionsPending = ref(false)
+
+const followingList = ref<any[] | null>(null)
+const followingPending = ref(false)
+const followingError = ref<string | null>(null)
+
+const sessionsList = ref<any[] | null>(null)
+const sessionsPending = ref(false)
+const sessionsError = ref<string | null>(null)
+
+const collectionsPending = ref(false)
+const collectionsError = ref<string | null>(null)
+
+const historyPending = ref(false)
+const historyError = ref<string | null>(null)
+
+const dateLocale = computed(() => {
+  if (locale.value === "ja") return "ja-JP"
+  if (locale.value === "en") return "en-US"
+  return "zh-CN"
+})
 
 async function loadProfile() {
   if (!authenticated.value) return
@@ -79,6 +100,7 @@ const creatorAvatarInput = ref("")
 const creatorSaving = ref(false)
 const creatorMessage = ref<{ type: "success" | "error"; text: string } | null>(null)
 const isCreator = computed(() => profile.value?.role === "creator")
+const uploadingAvatar = ref(false)
 
 function startEditCreatorProfile() {
   creatorBioInput.value = profile.value?.bio ?? ""
@@ -105,6 +127,28 @@ async function saveCreatorProfile() {
     creatorMessage.value = { type: "error", text: t("me.saveError") }
   } finally {
     creatorSaving.value = false
+  }
+}
+
+async function onAvatarCropped(result: any) {
+  const file = new File([result.blob], "avatar.webp", { type: "image/webp" })
+  uploadingAvatar.value = true
+  creatorMessage.value = null
+  try {
+    const res = await api.uploadAccountAvatar(file)
+    creatorAvatarInput.value = res.avatarUrl
+    if (profile.value) {
+      profile.value.avatarUrl = res.avatarUrl
+    }
+    // Update local session cache if applicable
+    if (authSession.session && authSession.session.account) {
+      (authSession.session.account as any).avatarUrl = res.avatarUrl
+    }
+    creatorMessage.value = { type: "success", text: "头像上传并保存成功" }
+  } catch (err) {
+    creatorMessage.value = { type: "error", text: "头像上传失败，请重试" }
+  } finally {
+    uploadingAvatar.value = false
   }
 }
 
@@ -165,9 +209,69 @@ async function loadSubmissions() {
   }
 }
 
+async function loadFollowing() {
+  if (!authenticated.value) return
+  followingPending.value = true
+  followingError.value = null
+  try {
+    const payload = await api.getAccountFollowingFeed()
+    followingList.value = payload.creators || []
+  } catch {
+    followingError.value = t("me.loadError")
+  } finally {
+    followingPending.value = false
+  }
+}
+
+async function loadSessions() {
+  if (!authenticated.value) return
+  sessionsPending.value = true
+  sessionsError.value = null
+  try {
+    const payload = await api.getAccountSessions()
+    sessionsList.value = payload.items || []
+  } catch {
+    sessionsError.value = t("me.loadError")
+  } finally {
+    sessionsPending.value = false
+  }
+}
+
+async function loadCollections() {
+  collectionsPending.value = true
+  collectionsError.value = null
+  try {
+    await library.syncWithBackend()
+  } catch {
+    collectionsError.value = t("me.loadError")
+  } finally {
+    collectionsPending.value = false
+  }
+}
+
+async function loadHistory() {
+  historyPending.value = true
+  historyError.value = null
+  try {
+    await library.syncHistoryWithBackend()
+  } catch {
+    historyError.value = t("me.loadError")
+  } finally {
+    historyPending.value = false
+  }
+}
+
 watch(activeTab, (tab) => {
   if (tab === "submissions" && !submissionsList.value) {
     void loadSubmissions()
+  } else if (tab === "following" && !followingList.value) {
+    void loadFollowing()
+  } else if (tab === "sessions" && !sessionsList.value) {
+    void loadSessions()
+  } else if (tab === "history") {
+    void loadHistory()
+  } else if (tab === "collections") {
+    void loadCollections()
   }
 })
 
@@ -193,10 +297,37 @@ function statusText(status: string): string {
   return "审核中"
 }
 
+function formatViewedAt(entry: any) {
+  return new Intl.DateTimeFormat(dateLocale.value, {
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    month: "2-digit"
+  }).format(new Date(entry.lastViewedAt))
+}
+
+function progressPercent(entry: any) {
+  if (!entry.video || entry.video.durationSeconds <= 0) return 0
+  return Math.min(100, Math.round(entry.progressSeconds / entry.video.durationSeconds * 100))
+}
+
+function formatProgress(entry: any) {
+  const percent = progressPercent(entry)
+  if (percent >= 95) return t("history.progress.done")
+  if (entry.progressSeconds <= 0) return t("history.progress.opened")
+  const minutes = Math.floor(entry.progressSeconds / 60)
+  const seconds = String(entry.progressSeconds % 60).padStart(2, "0")
+  return t("history.progress.continue", { time: `${minutes}:${seconds}` })
+}
+
 const tabItems = computed<AoiSegmentedItem[]>(() => [
   { value: "profile", label: t("me.tabs.profile"), icon: "circle-user-round" },
+  { value: "following", label: t("me.tabs.following"), icon: "users" },
+  { value: "collections", label: t("me.tabs.collections"), icon: "star" },
+  { value: "history", label: t("me.tabs.history"), icon: "clock-3" },
+  { value: "submissions", label: t("me.tabs.submissions"), icon: "upload" },
   { value: "security", label: t("me.tabs.security"), icon: "shield-alert" },
-  { value: "submissions", label: t("me.tabs.submissions"), icon: "upload" }
+  { value: "sessions", label: t("me.tabs.sessions"), icon: "smartphone" }
 ])
 </script>
 
@@ -365,6 +496,14 @@ const tabItems = computed<AoiSegmentedItem[]>(() => [
               </AoiButton>
             </div>
             <div v-else class="me-edit-form-content">
+              <div class="me-avatar-uploader">
+                <AoiImageClipboard
+                  label="剪切并上传头像 (WebP)"
+                  aspect-ratio="1:1"
+                  :aspect-ratios="[{ value: '1:1', label: '1:1 正方形' }]"
+                  @result="onAvatarCropped"
+                />
+              </div>
               <AoiTextField
                 v-model="creatorBioInput"
                 appearance="outlined"
@@ -402,6 +541,115 @@ const tabItems = computed<AoiSegmentedItem[]>(() => [
               {{ creatorMessage.text }}
             </AoiStatusMessage>
           </AoiSurface>
+        </div>
+
+        <!-- Tab: Following -->
+        <div v-else-if="activeTab === 'following'" class="me-tab-pane">
+          <div v-if="followingPending" class="me-loading-wrapper">
+            <AoiProgress indeterminate />
+            <span class="me-loading-text">正在加载关注列表...</span>
+          </div>
+          <div v-else-if="followingError" class="me-error-wrapper">
+            <AoiStatusMessage intent="danger" icon="alert-circle">
+              {{ followingError }}
+            </AoiStatusMessage>
+            <AoiButton variant="filled" tone="accent" @click="loadFollowing">
+              重新加载
+            </AoiButton>
+          </div>
+          <template v-else>
+            <div v-if="followingList && followingList.length > 0" class="me-creators-grid">
+              <CreatorCard
+                v-for="creator in followingList"
+                :key="creator.id"
+                :creator="creator"
+                density="compact"
+              />
+            </div>
+            <AoiSurface v-else surface="panel" padding="lg">
+              <PageState
+                icon="users"
+                title="暂无关注"
+                description="你还没关注任何社区创作者。去首页发现有趣的创作团队吧。"
+                action-icon="search"
+                action-label="发现创作者"
+                @action="navigateTo('/')"
+              />
+            </AoiSurface>
+          </template>
+        </div>
+
+        <!-- Tab: Collections -->
+        <div v-else-if="activeTab === 'collections'" class="me-tab-pane">
+          <div v-if="collectionsPending" class="me-loading-wrapper">
+            <AoiProgress indeterminate />
+            <span class="me-loading-text">正在同步收藏列表...</span>
+          </div>
+          <div v-else-if="collectionsError" class="me-error-wrapper">
+            <AoiStatusMessage intent="danger" icon="alert-circle">
+              {{ collectionsError }}
+            </AoiStatusMessage>
+            <AoiButton variant="filled" tone="accent" @click="loadCollections">
+              重新同步
+            </AoiButton>
+          </div>
+          <template v-else>
+            <div v-if="library.favoriteList && library.favoriteList.length > 0" class="me-collections-list">
+              <VideoGrid :videos="library.favoriteList" />
+            </div>
+            <AoiSurface v-else surface="panel" padding="lg">
+              <PageState
+                icon="star"
+                title="暂无收藏"
+                description="你的收藏列表是空的。在播放视频时点击收藏，内容就会出现在这里。"
+                action-icon="search"
+                action-label="浏览视频"
+                @action="navigateTo('/')"
+              />
+            </AoiSurface>
+          </template>
+        </div>
+
+        <!-- Tab: History -->
+        <div v-else-if="activeTab === 'history'" class="me-tab-pane">
+          <div v-if="historyPending" class="me-loading-wrapper">
+            <AoiProgress indeterminate />
+            <span class="me-loading-text">正在加载历史记录...</span>
+          </div>
+          <div v-else-if="historyError" class="me-error-wrapper">
+            <AoiStatusMessage intent="danger" icon="alert-circle">
+              {{ historyError }}
+            </AoiStatusMessage>
+            <AoiButton variant="filled" tone="accent" @click="loadHistory">
+              重新加载
+            </AoiButton>
+          </div>
+          <template v-else>
+            <div v-if="library.history && library.history.length > 0" class="me-history-grid">
+              <AoiContentGrid min-width="224px" gap="video" :mobile-columns="2">
+                <HistoryEntryCard
+                  v-for="(entry, index) in library.history"
+                  :key="entry.video.id"
+                  :entry="entry"
+                  :index="index"
+                  :viewed-label="formatViewedAt(entry)"
+                  :progress-label="formatProgress(entry)"
+                  :progress-percent="progressPercent(entry)"
+                  :progress-aria-label="t('history.progress.aria')"
+                />
+              </AoiContentGrid>
+            </div>
+            <AoiSurface v-else surface="panel" padding="lg">
+              <PageState
+                icon="clock"
+                title="没有播放历史"
+                description="最近播放过的视频会记录在这里，方便你随时继续观看。"
+                action-icon="search"
+                action-label="去播放视频"
+                @action="navigateTo('/')"
+              />
+            </AoiSurface>
+          </template>
         </div>
 
         <!-- Tab: Security -->
@@ -444,6 +692,55 @@ const tabItems = computed<AoiSegmentedItem[]>(() => [
               {{ passwordMessage.text }}
             </AoiStatusMessage>
           </AoiSurface>
+        </div>
+
+        <!-- Tab: Sessions -->
+        <div v-else-if="activeTab === 'sessions'" class="me-tab-pane">
+          <div v-if="sessionsPending" class="me-loading-wrapper">
+            <AoiProgress indeterminate />
+            <span class="me-loading-text">正在加载活跃会话...</span>
+          </div>
+          <div v-else-if="sessionsError" class="me-error-wrapper">
+            <AoiStatusMessage intent="danger" icon="alert-circle">
+              {{ sessionsError }}
+            </AoiStatusMessage>
+            <AoiButton variant="filled" tone="accent" @click="loadSessions">
+              重新加载
+            </AoiButton>
+          </div>
+          <template v-else>
+            <div v-if="sessionsList && sessionsList.length > 0" class="me-sessions-list">
+              <AoiSurface
+                v-for="s in sessionsList"
+                :key="s.id"
+                surface="card"
+                padding="md"
+                class="me-session-card"
+              >
+                <div class="me-session-card__header">
+                  <div class="me-session-card__title">
+                    <AoiIcon :name="s.clientType.includes('mobile') ? 'smartphone' : 'monitor'" :size="18" decorative />
+                    <strong>{{ s.clientType }}</strong>
+                    <span v-if="s.id === authSession.session?.sessionId" class="me-current-session-badge">当前设备</span>
+                  </div>
+                  <span class="me-session-card__date">创建于 {{ formatDate(s.createdAt) }}</span>
+                </div>
+                <div class="me-session-card__body">
+                  <div class="me-session-detail">
+                    <span>IP 地址:</span>
+                    <strong>{{ s.ipAddress }}</strong>
+                  </div>
+                  <div class="me-session-detail">
+                    <span>User Agent:</span>
+                    <span class="me-ua-text">{{ s.userAgent }}</span>
+                  </div>
+                </div>
+              </AoiSurface>
+            </div>
+            <div v-else class="me-empty-sessions">
+              没有找到活跃会话记录。
+            </div>
+          </template>
         </div>
 
         <!-- Tab: Submissions -->
@@ -849,6 +1146,86 @@ const tabItems = computed<AoiSegmentedItem[]>(() => [
   justify-content: flex-end;
   border-top: 1px solid var(--aoi-border);
   padding-top: 8px;
+}
+
+.me-creators-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--aoi-grid-gap);
+}
+
+.me-sessions-list {
+  display: grid;
+  gap: var(--aoi-grid-gap-compact);
+}
+
+.me-session-card {
+  display: grid;
+  gap: 8px;
+}
+
+.me-session-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.me-session-card__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--aoi-text);
+}
+
+.me-current-session-badge {
+  font-size: 11px;
+  background: var(--aoi-accent-10);
+  color: var(--aoi-accent-60);
+  padding: 2px 8px;
+  border-radius: var(--aoi-radius-round);
+  font-weight: 750;
+}
+
+.me-session-card__date {
+  font-size: 12px;
+  color: var(--aoi-text-muted);
+}
+
+.me-session-card__body {
+  font-size: 13px;
+  display: grid;
+  gap: 4px;
+  border-top: 1px solid var(--aoi-border);
+  padding-top: 8px;
+}
+
+.me-session-detail {
+  display: flex;
+  gap: 8px;
+}
+
+.me-session-detail span {
+  color: var(--aoi-text-muted);
+}
+
+.me-session-detail strong {
+  color: var(--aoi-text);
+}
+
+.me-ua-text {
+  color: var(--aoi-text-muted);
+  font-family: monospace;
+  font-size: 11px;
+  word-break: break-all;
+}
+
+.me-avatar-uploader {
+  display: grid;
+  gap: 12px;
+  border: 1px dashed var(--aoi-border);
+  padding: 16px;
+  border-radius: var(--aoi-radius-sm);
+  background: var(--aoi-surface-muted);
 }
 
 @media (max-width: 760px) {

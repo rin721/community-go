@@ -86,7 +86,11 @@
     "tabs": {
       "profile": "资料",
       "security": "密码与安全",
-      "submissions": "投稿"
+      "submissions": "投稿",
+      "following": "关注",
+      "collections": "收藏",
+      "history": "历史",
+      "sessions": "设备管理"
     }
   },
   "auth": {

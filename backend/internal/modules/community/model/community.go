@@ -638,6 +638,29 @@ type CommunityAccountPayload struct {
 	Items PageResult[CommunityAccountItem] `json:"items"`
 }
 
+// AccountSessionItem 是账号活跃会话的摘要视图。
+type AccountSessionItem struct {
+	ID               string     `json:"id"`
+	ProductCode      string     `json:"productCode"`
+	ClientType       string     `json:"clientType"`
+	IPAddress        string     `json:"ipAddress"`
+	UserAgent        string     `json:"userAgent"`
+	AccessExpiresAt  time.Time  `json:"accessExpiresAt"`
+	RefreshExpiresAt time.Time  `json:"refreshExpiresAt"`
+	CreatedAt        time.Time  `json:"createdAt"`
+}
+
+type AccountSessionPayload struct {
+	Items []AccountSessionItem `json:"items"`
+}
+
+// AccountAvatarResult 是头像上传成功后返回的 URL 和更新的账号资料。
+type AccountAvatarResult struct {
+	AvatarURL string               `json:"avatarUrl"`
+	Profile   AccountProfileResponse `json:"profile"`
+}
+
+
 type UpdateCommunityAccountRequest struct {
 	Role   string `json:"role,omitempty"`
 	Status string `json:"status,omitempty"`

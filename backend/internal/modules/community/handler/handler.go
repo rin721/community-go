@@ -206,6 +206,67 @@ func (h *Handler) AuthLogout(c ports.HTTPContext) {
 	writeOK(c, map[string]bool{"loggedOut": true}, err, h.writeError)
 }
 
+func (h *Handler) AuthRefresh(c ports.HTTPContext) {
+	refreshToken := ""
+	if cookie, err := c.Cookie(h.config.RefreshCookieName()); err == nil {
+		refreshToken = cookie
+	}
+	if strings.TrimSpace(refreshToken) == "" {
+		h.clearAuthCookies(c)
+		result.Unauthorized(c, result.MessageKeyUnauthorized)
+		return
+	}
+	productCode, clientType := h.requestSessionContext(c)
+	snapshot, tokens, err := h.service.RefreshCommunitySession(c.RequestContext(), refreshToken, service.SessionIssueInput{
+		UserAgent:   c.GetHeader("User-Agent"),
+		IPAddress:   c.ClientIP(),
+		ProductCode: productCode,
+		ClientType:  clientType,
+	})
+	if err != nil {
+		h.clearAuthCookies(c)
+		h.writeError(c, err)
+		return
+	}
+	h.setAuthCookies(c, tokens, &snapshot)
+	result.OK(c, snapshot)
+}
+
+func (h *Handler) AccountSessions(c ports.HTTPContext) {
+	principal, ok := requirePrincipal(c)
+	if !ok {
+		return
+	}
+	payload, err := h.service.ListAccountSessions(c.RequestContext(), principal)
+	writeOK(c, payload, err, h.writeError)
+}
+
+func (h *Handler) AccountAvatarUpload(c ports.HTTPContext) {
+	principal, ok := requirePrincipal(c)
+	if !ok {
+		return
+	}
+	req := c.Request()
+	if err := req.ParseMultipartForm(8 << 20); err != nil {
+		result.BadRequest(c, result.MessageKeyInvalidRequest)
+		return
+	}
+	file, header, err := req.FormFile("file")
+	if err != nil {
+		result.BadRequest(c, result.MessageKeyInvalidRequest)
+		return
+	}
+	defer file.Close()
+	item, err := h.service.UploadAccountAvatar(c.RequestContext(), principal, service.UploadSourceInput{
+		Filename:    header.Filename,
+		ContentType: header.Header.Get("Content-Type"),
+		Size:        header.Size,
+		Reader:      file,
+	})
+	writeOK(c, item, err, h.writeError)
+}
+
+
 func (h *Handler) Home(c ports.HTTPContext) {
 	payload, err := h.service.GetHomePayload(c.RequestContext())
 	writeOK(c, payload, err, h.writeError)

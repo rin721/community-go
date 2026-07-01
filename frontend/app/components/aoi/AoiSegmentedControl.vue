@@ -58,6 +58,7 @@ function select(item: AoiSegmentedItem) {
       :style="{ '--aoi-segment-accent': item.accent || 'var(--aoi-accent-60)' }"
       @click="select(item)"
     >
+      <AoiRipple v-if="!item.disabled" />
       <AoiIcon v-if="item.icon" :name="item.icon" :size="18" decorative />
       <span>{{ item.label }}</span>
       <small v-if="item.description">{{ item.description }}</small>
@@ -84,6 +85,8 @@ function select(item: AoiSegmentedItem) {
 }
 
 .aoi-segmented__item {
+  position: relative;
+  overflow: clip;
   display: grid;
   min-width: 0;
   min-height: calc(var(--aoi-control-height-lg) + 30px);

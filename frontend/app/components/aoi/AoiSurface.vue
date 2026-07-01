@@ -35,6 +35,7 @@ const props = withDefaults(defineProps<{
       }
     ]"
   >
+    <AoiRipple v-if="props.interactive" />
     <slot />
   </component>
 </template>
@@ -148,6 +149,9 @@ const props = withDefaults(defineProps<{
 }
 
 .aoi-surface--interactive {
+  position: relative;
+  overflow: clip;
+  cursor: pointer;
   transition:
     border-color var(--aoi-motion-fast) var(--aoi-ease-out),
     background-color var(--aoi-motion-fast) var(--aoi-ease-out),

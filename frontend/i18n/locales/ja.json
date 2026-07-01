@@ -86,7 +86,11 @@
     "tabs": {
       "profile": "プロフィール",
       "security": "パスワード・セキュリティ",
-      "submissions": "投稿"
+      "submissions": "投稿",
+      "following": "フォロー",
+      "collections": "コレクション",
+      "history": "履歴",
+      "sessions": "セッション管理"
     }
   },
   "auth": {

@@ -199,9 +199,14 @@ useHead(() => ({
             :key="item.id"
             v-aoi-reveal="{ delay: index * 32 }"
             class="notification-card"
-            :class="{ 'notification-card--unread': !item.readAt }"
+            :class="{
+              'notification-card--unread': !item.readAt,
+              'notification-card--interactive': item.link
+            }"
             role="listitem"
           >
+            <AoiRipple v-if="item.link" />
+            <AoiLink v-if="item.link" :to="item.link" class="notification-card__cover-link" aria-hidden="true" tabindex="-1" />
             <div class="notification-card__icon" aria-hidden="true">
               <AoiIcon :name="iconFor(item)" :size="18" decorative />
             </div>
@@ -402,6 +407,7 @@ useHead(() => ({
 
 .notification-card {
   position: relative;
+  overflow: clip;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   gap: 12px;
@@ -415,6 +421,16 @@ useHead(() => ({
     border-color var(--aoi-motion-fast) var(--aoi-ease-out),
     background-color var(--aoi-motion-fast) var(--aoi-ease-out),
     transform var(--aoi-motion-fast) var(--aoi-ease-out);
+}
+
+.notification-card--interactive {
+  cursor: pointer;
+}
+
+.notification-card__cover-link {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
 }
 
 .notification-card--unread {

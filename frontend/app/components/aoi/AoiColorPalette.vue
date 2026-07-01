@@ -327,6 +327,7 @@ function fieldValue(value: number) {
         :disabled="disabled || undefined"
         @click="resetColor"
       >
+        <AoiRipple />
         <AoiIcon name="rotate-ccw" :size="16" decorative />
         {{ resetLabel || t("components.colorPalette.reset") }}
       </button>
@@ -402,6 +403,7 @@ function fieldValue(value: number) {
         :disabled="disabled || undefined"
         @click="selectMode(item.value)"
       >
+        <AoiRipple />
         {{ item.label }}
       </button>
     </div>
@@ -487,6 +489,8 @@ function fieldValue(value: number) {
 }
 
 .aoi-color-palette__reset {
+  position: relative;
+  overflow: clip;
   min-height: 32px;
   border: 0;
   border-radius: var(--aoi-radius-control);
@@ -608,6 +612,8 @@ function fieldValue(value: number) {
 }
 
 .aoi-color-palette__mode {
+  position: relative;
+  overflow: clip;
   min-width: 0;
   min-height: 38px;
   border: 0;

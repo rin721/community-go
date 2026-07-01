@@ -279,6 +279,7 @@ func registerCommunityAuthRoutes(v1 ports.HTTPRouter, deps RouterDeps) []RouteCo
 		routeSpecFor("community.auth.login", deps.CommunityHandler.AuthLogin),
 		routeSpecFor("community.auth.session", deps.CommunityHandler.AuthSession),
 		routeSpecFor("community.auth.signup", deps.CommunityHandler.AuthSignup),
+		routeSpecFor("community.auth.refresh", deps.CommunityHandler.AuthRefresh),
 	}
 	registerRouteSpecs(auth, appconstants.APIPath("public", "community", "auth"), specs)
 	registered := routeContractsFromSpecs(specs)
@@ -403,11 +404,12 @@ func registerCommunityRoutes(v1 ports.HTTPRouter, deps RouterDeps) []RouteContra
 		routeSpecFor("community.account.videos.history.record", deps.CommunityHandler.RecordAccountHistory),
 		routeSpecFor("community.account.videos.comments.update", deps.CommunityHandler.UpdateAccountVideoComment),
 		routeSpecFor("community.account.videos.comments.delete", deps.CommunityHandler.DeleteAccountVideoComment),
-		// account profile management
 		routeSpecFor("community.account.profile.get", deps.CommunityHandler.AccountProfile),
 		routeSpecFor("community.account.profile.update", deps.CommunityHandler.UpdateAccountProfile),
 		routeSpecFor("community.account.creator-profile.update", deps.CommunityHandler.UpdateAccountCreatorProfile),
 		routeSpecFor("community.account.change-password", deps.CommunityHandler.ChangeAccountPassword),
+		routeSpecFor("community.account.sessions", deps.CommunityHandler.AccountSessions),
+		routeSpecFor("community.account.avatar.upload", deps.CommunityHandler.AccountAvatarUpload),
 		routeSpecFor("community.account.submissions.get", deps.CommunityHandler.AccountSubmission),
 	}
 	registerRouteSpecs(account, appconstants.APIPath("public", "community", "account"), accountSpecs)

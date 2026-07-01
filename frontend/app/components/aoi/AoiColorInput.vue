@@ -23,6 +23,7 @@ function update(event: Event) {
 
 <template>
   <label class="aoi-color-input">
+    <AoiRipple v-if="!disabled" />
     <span class="aoi-color-input__swatch" :style="{ backgroundColor: modelValue }" />
     <input
       class="aoi-color-input__control"

@@ -53,6 +53,7 @@ onBeforeUnmount(clearClickTimer)
     @dblclick="onDoubleClick"
   >
     <span class="aoi-media-overlay-button__control">
+      <AoiRipple v-if="!disabled" />
       <AoiIcon :name="icon" :size="32" decorative />
     </span>
   </button>
@@ -79,6 +80,8 @@ onBeforeUnmount(clearClickTimer)
 }
 
 .aoi-media-overlay-button__control {
+  position: relative;
+  overflow: clip;
   display: grid;
   width: 72px;
   height: 72px;

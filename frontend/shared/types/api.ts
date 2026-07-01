@@ -535,3 +535,23 @@ export interface ChangeAccountPasswordRequest {
   currentPassword: string
   newPassword: string
 }
+
+export interface AccountSessionItem {
+  id: string
+  productCode: string
+  clientType: string
+  ipAddress: string
+  userAgent: string
+  accessExpiresAt: string
+  refreshExpiresAt: string
+  createdAt: string
+}
+
+export interface AccountSessionPayload {
+  items: AccountSessionItem[]
+}
+
+export interface AccountAvatarResult {
+  avatarUrl: string
+  profile: AccountProfileResponse
+}

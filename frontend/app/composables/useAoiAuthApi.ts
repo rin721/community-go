@@ -79,13 +79,21 @@ export function useAoiAuthApi() {
     })
   }
 
+  async function refresh(): Promise<CommunityAuthSession> {
+    return await request<CommunityAuthSession>(`${authPath.value}/refresh`, {
+      method: "POST"
+    })
+  }
+
   return {
     getSession,
     login,
     logout,
-    signup
+    signup,
+    refresh
   }
 }
+
 
 function unwrapAuthResponse<T>(response: unknown, endpoint: string): T {
   if (!isApiResultEnvelope<T>(response)) {

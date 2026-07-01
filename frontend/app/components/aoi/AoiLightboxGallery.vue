@@ -814,6 +814,7 @@ defineExpose({
           :aria-label="item.title || item.alt || resolvedLabels.media"
           @click="openAt(index)"
         >
+          <AoiRipple />
           <slot name="thumbnail" :item="item" :index="index" :active="index === currentIndex">
             <AoiLazyImage
               class="aoi-lightbox-gallery__tile-image"
@@ -1086,6 +1087,7 @@ defineExpose({
 
 .aoi-lightbox-gallery__tile {
   position: relative;
+  overflow: clip;
   display: grid;
   min-width: 0;
   gap: 8px;

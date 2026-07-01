@@ -22,6 +22,7 @@ function formatDuration(totalSeconds: number) {
 
 <template>
   <article class="video-card">
+    <AoiRipple />
     <div class="video-card__media">
       <AoiLink
         class="video-card__cover-link"
@@ -45,6 +46,9 @@ function formatDuration(totalSeconds: number) {
 
 <style scoped>
 .video-card {
+  position: relative;
+  overflow: clip;
+  cursor: pointer;
   display: grid;
   min-width: 0;
   border: 1px solid transparent;
@@ -80,6 +84,13 @@ function formatDuration(totalSeconds: number) {
   display: block;
   position: relative;
   border-radius: var(--aoi-radius-card);
+}
+
+.video-card__cover-link::after {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  content: "";
 }
 
 .video-card__cover {
@@ -121,6 +132,11 @@ function formatDuration(totalSeconds: number) {
   text-overflow: ellipsis;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+  transition: color var(--aoi-motion-fast) var(--aoi-ease-out);
+}
+
+.video-card:hover .video-card__title {
+  color: var(--aoi-accent-60);
 }
 
 @media (max-width: 639px) {

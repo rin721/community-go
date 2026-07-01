@@ -39,6 +39,7 @@ function select() {
     :disabled="disabled || undefined"
     @click="select"
   >
+    <AoiRipple v-if="!disabled" />
     <span v-if="$slots.preview" class="aoi-choice-card__preview">
       <slot name="preview" />
     </span>
@@ -53,6 +54,8 @@ function select() {
 
 <style scoped>
 .aoi-choice-card {
+  position: relative;
+  overflow: clip;
   display: grid;
   width: 100%;
   min-width: 0;

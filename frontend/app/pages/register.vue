@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import type { AoiApiErrorPayload } from "~/types/api"
 
+definePageMeta({
+  layout: "auth"
+})
+
 const { t } = useI18n()
 const authApi = useAoiAuthApi()
 const authSession = useAuthSessionStore()
@@ -36,10 +40,12 @@ async function submitRegister() {
       username: username.value.trim()
     })
 
-    successMessage.value = result.status === "verification_pending"
-      ? t("auth.register.verificationPending")
-      : t("auth.register.success")
     authSession.acceptSignupResult(result)
+    if (result.status === "authenticated") {
+      navigateTo("/me")
+    } else {
+      successMessage.value = t("auth.register.verificationPending")
+    }
   } catch (error) {
     errorMessage.value = authErrorMessage(error, t("auth.errors.default"))
   } finally {

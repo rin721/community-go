@@ -239,11 +239,14 @@ func (v *configuredVideoService) UploadSource(ctx context.Context, principal aut
 	}
 	ext := strings.ToLower(filepath.Ext(filename))
 	contentType := normalizeUploadedVideoMIME(input.ContentType, data)
-	if !strings.HasPrefix(contentType, "video/") {
-		contentType = videoMIMEFromExtension(ext)
-	}
-	if !strings.HasPrefix(contentType, "video/") {
-		return model.CommunitySubmissionUploadResult{}, ErrInvalidInput
+	isImage := strings.HasPrefix(contentType, "image/") || strings.HasPrefix(input.ContentType, "image/")
+	if !isImage {
+		if !strings.HasPrefix(contentType, "video/") {
+			contentType = videoMIMEFromExtension(ext)
+		}
+		if !strings.HasPrefix(contentType, "video/") {
+			return model.CommunitySubmissionUploadResult{}, ErrInvalidInput
+		}
 	}
 	now := v.app.now()
 	id := v.app.newMediaAssetID()

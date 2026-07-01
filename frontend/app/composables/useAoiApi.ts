@@ -511,8 +511,10 @@ export function useAoiApi() {
         }
       }
     }
+    const ext = file.name.split(".").pop() || "png"
+    const safeFile = new File([file], `avatar.${ext}`, { type: file.type })
     const formData = new FormData()
-    formData.append("file", file)
+    formData.append("file", safeFile)
     return await request<AccountAvatarResult>("/account/avatar/upload", {
       body: formData,
       method: "POST"

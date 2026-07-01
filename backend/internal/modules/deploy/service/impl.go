@@ -5,22 +5,19 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"runtime"
 	"strings"
-	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/open-console/console-platform/internal/modules/deploy/model"
+	"github.com/open-console/console-platform/internal/modules/deploy/orchestrator"
+	"github.com/open-console/console-platform/internal/modules/deploy/queue"
 )
-
-// ErrDeployBusy 表示已有另一个部署任务正在进行，拒绝并发触发。
-var ErrDeployBusy = errors.New("another deployment is already in progress")
 
 // impl 是 Service 接口的内部实现。
 type impl struct {
@@ -28,11 +25,12 @@ type impl struct {
 	verifier SignatureVerifier
 	logger   Logger
 
-	// mu 保证任何时刻最多只有一个部署流水线在运行。
-	mu sync.Mutex
-
 	// latest 保存最近一次部署记录的原子快照，供无锁读取。
 	latest atomic.Pointer[model.DeployRecord]
+
+	// orchestrator 管理部署流水线和进程切换状态机。
+	orchestrator   *orchestrator.Orchestrator
+	customLauncher orchestrator.Launcher
 }
 
 // New 创建并返回 Service 实现。
@@ -47,11 +45,52 @@ func New(cfg Config, logger Logger) (Service, error) {
 		return nil, fmt.Errorf("deploy service: create verifier: %w", err)
 	}
 
-	return &impl{
+	s := &impl{
 		cfg:      cfg,
 		verifier: verifier,
 		logger:   logger,
-	}, nil
+	}
+
+	oCfg := orchestrator.Config{
+		WorkDir:           cfg.WorkDir,
+		Branch:            cfg.Branch,
+		BuildCmd:          cfg.BuildCmd,
+		BinaryPath:        cfg.BinaryPath,
+		HeartbeatInterval: time.Duration(cfg.HeartbeatIntervalSeconds) * time.Second,
+		GateBuffer:        time.Duration(cfg.GateBufferSeconds) * time.Second,
+	}
+	if oCfg.HeartbeatInterval <= 0 {
+		oCfg.HeartbeatInterval = 10 * time.Second
+	}
+	if oCfg.GateBuffer <= 0 {
+		oCfg.GateBuffer = 15 * time.Second
+	}
+
+	q := queue.New()
+	orch, err := orchestrator.NewOrchestrator(
+		oCfg,
+		q,
+		s, // Builder
+		s, // Launcher (default, will use customLauncher if set)
+		logger,
+		s.storeRecord,
+		s.newRecordFromCommit,
+		appendLog,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("deploy service: create orchestrator: %w", err)
+	}
+
+	s.orchestrator = orch
+	orch.Start(context.Background())
+
+	return s, nil
+}
+
+// SetLauncher 用于注入外部进程管理器（如 cliapp 托管的 Launcher）。
+func (s *impl) SetLauncher(l orchestrator.Launcher) {
+	s.customLauncher = l
+	s.orchestrator.SetLauncher(s)
 }
 
 // ─── Service interface ────────────────────────────────────────────────────────
@@ -60,11 +99,18 @@ func (s *impl) Env() string {
 	return s.cfg.Env
 }
 
+func (s *impl) State() string {
+	if s.orchestrator == nil {
+		return string(model.StateIdle)
+	}
+	return string(s.orchestrator.State())
+}
+
 func (s *impl) LatestStatus() *model.DeployRecord {
 	return s.latest.Load()
 }
 
-// HandleWebhook 校验签名 → 解析 payload → 按环境决策 → 异步执行部署。
+// HandleWebhook 校验签名 → 解析 payload → 按环境决策 → 触发部署状态机。
 func (s *impl) HandleWebhook(ctx context.Context, rawBody []byte, headers map[string]string) (*model.DeployRecord, error) {
 	// 1. 签名校验
 	if err := s.verifier.Verify(rawBody, headers); err != nil {
@@ -108,65 +154,36 @@ func (s *impl) HandleWebhook(ctx context.Context, rawBody []byte, headers map[st
 		return record, nil
 	}
 
-	// 7. 尝试获取并发锁
-	if !s.mu.TryLock() {
-		return nil, ErrDeployBusy
-	}
-
-	// 8. 创建 pending 记录，立即返回给 handler（异步部署）
+	// 7. 创建 pending 记录并返回，通过状态机触发异步部署
 	record := s.newRecord(payload, branch, model.DeployStatusPending)
 	s.storeRecord(record)
 
-	// 9. 异步执行部署流水线
-	go func() {
-		defer s.mu.Unlock()
-		s.runPipeline(record)
-	}()
+	oRecord := oRecordFromDeployRecord(record)
+	s.orchestrator.Trigger(oRecord.CommitID)
 
 	return record, nil
 }
 
-// ─── Pipeline ─────────────────────────────────────────────────────────────────
+// ─── orchestrator.Builder interface ──────────────────────────────────────────
 
-func (s *impl) runPipeline(record *model.DeployRecord) {
-	record.Status = model.DeployStatusRunning
-	s.storeRecord(record)
-	s.logInfo("deploy: pipeline started", "commit", record.CommitID, "branch", record.Branch)
-
-	// 逐步执行，任意步骤失败立即终止
-	steps := []struct {
-		name string
-		fn   func(*model.DeployRecord) error
-	}{
-		{string(model.DeployStepGitSync), s.stepGitSync},
-		{string(model.DeployStepBuild), s.stepBuild},
-		{string(model.DeployStepStop), s.stepStop},
-		{string(model.DeployStepStart), s.stepStart},
-	}
-
-	var pipelineErr error
-	for _, step := range steps {
-		appendLog(record, fmt.Sprintf("[step:%s] starting", step.name))
-		if err := step.fn(record); err != nil {
-			appendLog(record, fmt.Sprintf("[step:%s] failed: %v", step.name, err))
-			pipelineErr = fmt.Errorf("step %s: %w", step.name, err)
-			break
-		}
-		appendLog(record, fmt.Sprintf("[step:%s] done", step.name))
-	}
-
-	now := time.Now()
-	record.EndedAt = &now
-	if pipelineErr != nil {
-		record.Status = model.DeployStatusFailed
-		record.Error = pipelineErr.Error()
-		s.logError("deploy: pipeline failed", "error", pipelineErr, "commit", record.CommitID)
-	} else {
-		record.Status = model.DeployStatusSuccess
-		s.logInfo("deploy: pipeline succeeded", "commit", record.CommitID)
-	}
-	s.storeRecord(record)
+func (s *impl) Sync(ctx context.Context, record *model.DeployRecord) error {
+	return s.stepGitSync(record)
 }
+
+func (s *impl) Build(ctx context.Context, record *model.DeployRecord) error {
+	return s.stepBuild(record)
+}
+
+// ─── orchestrator.Launcher interface ─────────────────────────────────────────
+
+func (s *impl) Launch(ctx context.Context, record *model.DeployRecord, ipcAddr string) error {
+	if s.customLauncher != nil {
+		return s.customLauncher.Launch(ctx, record, ipcAddr)
+	}
+	return s.stepStart(record)
+}
+
+// ─── Pipeline steps ──────────────────────────────────────────────────────────
 
 // stepGitSync 执行 git clone（首次）或 git fetch + reset（已有目录）。
 func (s *impl) stepGitSync(record *model.DeployRecord) error {
@@ -203,6 +220,19 @@ func (s *impl) stepBuild(record *model.DeployRecord) error {
 	return s.runShell(record, buildCmd)
 }
 
+// stepStart 执行启动命令（可选，默认的 fallback 启动方式）。
+func (s *impl) stepStart(record *model.DeployRecord) error {
+	// 在启动新进程前，我们需要先优雅停止旧进程（若配置了 stop_cmd 且使用 legacy 启动）
+	_ = s.stepStop(record)
+
+	startCmd := strings.TrimSpace(s.cfg.StartCmd)
+	if startCmd == "" {
+		appendLog(record, "[start] start_cmd is empty, skipping")
+		return nil
+	}
+	return s.runShell(record, startCmd)
+}
+
 // stepStop 执行停止命令（可选）。
 func (s *impl) stepStop(record *model.DeployRecord) error {
 	stopCmd := strings.TrimSpace(s.cfg.StopCmd)
@@ -217,20 +247,9 @@ func (s *impl) stepStop(record *model.DeployRecord) error {
 	return nil
 }
 
-// stepStart 执行启动命令（可选）。
-func (s *impl) stepStart(record *model.DeployRecord) error {
-	startCmd := strings.TrimSpace(s.cfg.StartCmd)
-	if startCmd == "" {
-		appendLog(record, "[start] start_cmd is empty, skipping")
-		return nil
-	}
-	return s.runShell(record, startCmd)
-}
-
 // ─── Command execution ────────────────────────────────────────────────────────
 
 // runCmd 执行指定命令及参数，超时受 cfg.TimeoutSeconds 控制。
-// stdout/stderr 均追加到 record.Logs。
 func (s *impl) runCmd(record *model.DeployRecord, name string, args ...string) error {
 	timeout := time.Duration(s.cfg.TimeoutSeconds) * time.Second
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
@@ -242,7 +261,6 @@ func (s *impl) runCmd(record *model.DeployRecord, name string, args ...string) e
 }
 
 // runShell 通过 sh -c（Linux/macOS）执行 shell 命令字符串。
-// Windows 环境下自动切换为 cmd /C。
 func (s *impl) runShell(record *model.DeployRecord, command string) error {
 	timeout := time.Duration(s.cfg.TimeoutSeconds) * time.Second
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
@@ -307,8 +325,25 @@ func (s *impl) newRecord(payload *model.PushPayload, branch string, status model
 	}
 }
 
+func (s *impl) newRecordFromCommit(commitID string) *model.DeployRecord {
+	latest := s.latest.Load()
+	var branch, pusher string
+	if latest != nil {
+		branch = latest.Branch
+		pusher = latest.Pusher
+	}
+	return &model.DeployRecord{
+		ID:        fmt.Sprintf("%d", time.Now().UnixMilli()),
+		CommitID:  commitID,
+		Branch:    branch,
+		Pusher:    pusher,
+		Status:    model.DeployStatusPending,
+		StartedAt: time.Now(),
+		Logs:      make([]string, 0, 8),
+	}
+}
+
 func (s *impl) storeRecord(record *model.DeployRecord) {
-	// 截断超出上限的日志
 	if s.cfg.LogMaxLines > 0 && len(record.Logs) > s.cfg.LogMaxLines {
 		overflow := len(record.Logs) - s.cfg.LogMaxLines
 		record.Logs = record.Logs[overflow:]
@@ -328,10 +363,12 @@ func (s *impl) logError(msg string, keysAndValues ...any) {
 	}
 }
 
-// appendLog 向部署记录追加一条带时间戳的日志行。
-// 作为独立函数定义（而非方法），避免跨包扩展非本包类型的编译错误。
 func appendLog(record *model.DeployRecord, line string) {
 	record.Logs = append(record.Logs, fmt.Sprintf("[%s] %s", time.Now().Format("15:04:05"), line))
+}
+
+func oRecordFromDeployRecord(r *model.DeployRecord) *model.DeployRecord {
+	return r
 }
 
 // ─── Payload parsing ──────────────────────────────────────────────────────────

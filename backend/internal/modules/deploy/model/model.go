@@ -17,6 +17,22 @@ const (
 	DeployStatusFailed DeployStatus = "failed"
 	// DeployStatusSkipped 当前环境为 development，跳过部署，不执行任何操作。
 	DeployStatusSkipped DeployStatus = "skipped"
+	// DeployStatusWaiting 新进程正在等待 StartupGate 确认。
+	DeployStatusWaiting DeployStatus = "waiting"
+	// DeployStatusHandingOff 正在进行心跳广播和流量切换。
+	DeployStatusHandingOff DeployStatus = "handing_off"
+)
+
+// OrchestratorState 描述热启动状态机的当前状态。
+type OrchestratorState string
+
+const (
+	StateIdle       OrchestratorState = "idle"
+	StateSyncing    OrchestratorState = "syncing"
+	StateBuilding   OrchestratorState = "building"
+	StateLaunching  OrchestratorState = "launching"
+	StateHandingOff OrchestratorState = "handing_off"
+	StateFailed     OrchestratorState = "failed"
 )
 
 // DeployStep 描述部署流水线中的单个步骤。
@@ -68,7 +84,8 @@ type DeployRecord struct {
 
 // WebhookStatusResponse 是 GET /webhook/status 接口的响应体。
 type WebhookStatusResponse struct {
-	Enabled  bool          `json:"enabled"`
-	Env      string        `json:"env"`
-	Latest   *DeployRecord `json:"latest,omitempty"`
+	Enabled bool              `json:"enabled"`
+	Env     string            `json:"env"`
+	State   OrchestratorState `json:"state"` // 状态机当前状态
+	Latest  *DeployRecord     `json:"latest,omitempty"`
 }

@@ -15,19 +15,32 @@ import (
 
 // StartServer 后台启动 server 服务。
 func (m *Manager) StartServer(ctx context.Context, configPath string) (ServiceState, error) {
+	return m.StartHotServer(ctx, configPath, "")
+}
+
+// StartHotServer 是热启动专用入口，在标准 StartServer 基础上注入 IPC 地址。
+// ipcAddr 为空时行为等同于 StartServer。
+func (m *Manager) StartHotServer(ctx context.Context, configPath string, ipcAddr string) (ServiceState, error) {
 	if err := ctx.Err(); err != nil {
 		return ServiceState{}, err
 	}
-	if configPath == "" {
-		configPath = constants.AppDefaultConfigPath
-	}
-	configPath = filepath.Clean(configPath)
 
 	current, err := m.Status(ctx, ServiceServer)
 	if err != nil {
 		return current, err
 	}
-	if current.Status == StatusRunning || current.Status == StatusStarting || current.Status == StatusRestarting || current.Status == StatusUnmanaged {
+
+	if configPath == "" {
+		configPath = current.ConfigPath
+	}
+	if configPath == "" {
+		configPath = constants.AppDefaultConfigPath
+	}
+	configPath = filepath.Clean(configPath)
+	// 在热启动场景下，由于新进程是在旧进程仍运行的情况下启动的，
+	// 我们允许在 status 是 Running 的情况下启动新进程（避免 already running 报错）。
+	// 只有非热启动（ipcAddr == ""）时才严格校验不能处于运行状态。
+	if ipcAddr == "" && (current.Status == StatusRunning || current.Status == StatusStarting || current.Status == StatusRestarting || current.Status == StatusUnmanaged) {
 		return current, fmt.Errorf("%s service is already %s", ServiceServer, current.Status)
 	}
 
@@ -79,15 +92,20 @@ func (m *Manager) StartServer(ctx context.Context, configPath string) (ServiceSt
 		return state, managedStateWriteError(nil, err)
 	}
 
+	env := []string{
+		cliappadapters.ManagedServiceEnvName + "=1",
+		cliappadapters.ManagedServiceNameEnvKey + "=" + ServiceServer,
+		cliappadapters.RuntimeDirEnvName + "=" + runtimeDir,
+	}
+	if ipcAddr != "" {
+		env = append(env, cliappadapters.DeployIPCAddrEnvKey+"="+ipcAddr)
+	}
+
 	info, err := m.runner().StartProcess(cliappadapters.ProcessStartRequest{
 		Executable: executablePath,
 		Args:       []string{constants.AppServerCommandName, "--config", configPath},
 		WorkDir:    m.workDir(),
-		Env: []string{
-			cliappadapters.ManagedServiceEnvName + "=1",
-			cliappadapters.ManagedServiceNameEnvKey + "=" + ServiceServer,
-			cliappadapters.RuntimeDirEnvName + "=" + runtimeDir,
-		},
+		Env:        env,
 		StdoutPath: state.StdoutLogPath,
 		StderrPath: state.StderrLogPath,
 	})

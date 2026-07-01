@@ -74,6 +74,12 @@ type DeployConfig struct {
 
 	// LogMaxLines 是内存中保留的最近部署日志行数上限；超出后滚动丢弃最早的行。
 	LogMaxLines int `mapstructure:"log_max_lines" envname:"DEPLOY_LOG_MAX_LINES" json:"log_max_lines" yaml:"log_max_lines" toml:"log_max_lines"`
+
+	// HeartbeatIntervalSeconds 是旧进程向新进程发送心跳的间隔（秒）。
+	HeartbeatIntervalSeconds int `mapstructure:"heartbeat_interval_seconds" envname:"DEPLOY_HEARTBEAT_INTERVAL_SECONDS" json:"heartbeat_interval_seconds" yaml:"heartbeat_interval_seconds" toml:"heartbeat_interval_seconds"`
+
+	// GateBufferSeconds 是新进程等待窗口的额外缓冲（秒）。
+	GateBufferSeconds int `mapstructure:"gate_buffer_seconds" envname:"DEPLOY_GATE_BUFFER_SECONDS" json:"gate_buffer_seconds" yaml:"gate_buffer_seconds" toml:"gate_buffer_seconds"`
 }
 
 // DeployWebhookConfig 控制 Webhook 接收端的鉴权配置。
@@ -130,6 +136,12 @@ func (c *DeployConfig) Validate() error {
 	if c.LogMaxLines <= 0 {
 		return fmt.Errorf("log_max_lines must be positive")
 	}
+	if c.HeartbeatIntervalSeconds < 0 {
+		return fmt.Errorf("heartbeat_interval_seconds must be non-negative")
+	}
+	if c.GateBufferSeconds < 0 {
+		return fmt.Errorf("gate_buffer_seconds must be non-negative")
+	}
 	return nil
 }
 
@@ -152,6 +164,12 @@ func (c *DeployConfig) ApplyDefaults() {
 	}
 	if c.LogMaxLines <= 0 {
 		c.LogMaxLines = DefaultDeployLogMaxLines
+	}
+	if c.HeartbeatIntervalSeconds <= 0 {
+		c.HeartbeatIntervalSeconds = 10
+	}
+	if c.GateBufferSeconds <= 0 {
+		c.GateBufferSeconds = 15
 	}
 	if strings.TrimSpace(c.Webhook.Path) == "" {
 		c.Webhook.Path = DefaultDeployWebhookPath

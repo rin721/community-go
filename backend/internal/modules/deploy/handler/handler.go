@@ -68,6 +68,7 @@ func (h *Handler) Status(c ports.HTTPContext) {
 	resp := &model.WebhookStatusResponse{
 		Enabled: true,
 		Env:     h.svc.Env(),
+		State:   model.OrchestratorState(h.svc.State()),
 		Latest:  h.svc.LatestStatus(),
 	}
 	result.OK(c, resp)

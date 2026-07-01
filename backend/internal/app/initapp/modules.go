@@ -32,6 +32,9 @@ import (
 	systemmodel "github.com/open-console/console-platform/internal/modules/system/model"
 	systemrepository "github.com/open-console/console-platform/internal/modules/system/repository"
 	systemservice "github.com/open-console/console-platform/internal/modules/system/service"
+	"github.com/open-console/console-platform/internal/app/cliapp/services/managed"
+	deploymodel "github.com/open-console/console-platform/internal/modules/deploy/model"
+	"github.com/open-console/console-platform/internal/modules/deploy/orchestrator"
 	"github.com/open-console/console-platform/pkg/authorization"
 	"github.com/open-console/console-platform/pkg/crypto"
 	mailpkg "github.com/open-console/console-platform/pkg/mail"
@@ -1326,6 +1329,15 @@ func configItemValueType(value any) string {
 	}
 }
 
+type managedLauncher struct {
+	manager *managed.Manager
+}
+
+func (l *managedLauncher) Launch(ctx context.Context, record *deploymodel.DeployRecord, ipcAddr string) error {
+	_, err := l.manager.StartHotServer(ctx, "", ipcAddr)
+	return err
+}
+
 // NewDeployModule 根据配置装配 Git Webhook 自动部署模块。
 //
 // 当 deploy.enabled 为 false 时返回空模块（Handler 为 nil），传输层会跳过路由注册。
@@ -1342,19 +1354,21 @@ func NewDeployModule(core Core) DeployModule {
 	}
 
 	svcCfg := deployservice.Config{
-		Env:            cfg.Env,
-		Provider:       cfg.Webhook.Provider,
-		Secret:         cfg.Webhook.Secret,
-		RequireSecret:  cfg.RequireSecretValue(),
-		Branch:         cfg.Branch,
-		RepoURL:        cfg.RepoURL,
-		WorkDir:        cfg.WorkDir,
-		BuildCmd:       cfg.BuildCmd,
-		BinaryPath:     cfg.BinaryPath,
-		StopCmd:        cfg.StopCmd,
-		StartCmd:       cfg.StartCmd,
-		TimeoutSeconds: cfg.TimeoutSeconds,
-		LogMaxLines:    cfg.LogMaxLines,
+		Env:                      cfg.Env,
+		Provider:                 cfg.Webhook.Provider,
+		Secret:                   cfg.Webhook.Secret,
+		RequireSecret:            cfg.RequireSecretValue(),
+		Branch:                   cfg.Branch,
+		RepoURL:                  cfg.RepoURL,
+		WorkDir:                  cfg.WorkDir,
+		BuildCmd:                 cfg.BuildCmd,
+		BinaryPath:               cfg.BinaryPath,
+		StopCmd:                  cfg.StopCmd,
+		StartCmd:                 cfg.StartCmd,
+		TimeoutSeconds:           cfg.TimeoutSeconds,
+		LogMaxLines:              cfg.LogMaxLines,
+		HeartbeatIntervalSeconds: cfg.HeartbeatIntervalSeconds,
+		GateBufferSeconds:        cfg.GateBufferSeconds,
 	}
 
 	svc, err := deployservice.New(svcCfg, core.Logger)
@@ -1363,6 +1377,14 @@ func NewDeployModule(core Core) DeployModule {
 			core.Logger.Error("deploy module init failed, module disabled", "error", err)
 		}
 		return DeployModule{}
+	}
+
+	type launcherReloader interface {
+		SetLauncher(l orchestrator.Launcher)
+	}
+
+	if reloader, ok := svc.(launcherReloader); ok {
+		reloader.SetLauncher(&managedLauncher{manager: managed.NewManager()})
 	}
 
 	if core.Logger != nil {

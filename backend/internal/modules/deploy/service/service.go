@@ -3,9 +3,13 @@ package service
 
 import (
 	"context"
+	"errors"
 
 	"github.com/open-console/console-platform/internal/modules/deploy/model"
 )
+
+// ErrDeployBusy 表示已有另一个部署任务正在进行，拒绝并发触发。
+var ErrDeployBusy = errors.New("another deployment is already in progress")
 
 // Logger 是 service 层声明的最小日志接口，避免直接依赖 internal/ports 基础设施包。
 // 装配层通过类型兼容注入实际日志实现（如 ports.Logger 满足此接口）。
@@ -35,6 +39,9 @@ type Service interface {
 
 	// Env 返回当前配置的部署环境标识（development / staging / production）。
 	Env() string
+
+	// State 返回部署状态机的当前状态。
+	State() string
 }
 
 // Config 是服务层初始化所需的配置快照，由装配层从 config.DeployConfig 映射而来。
@@ -78,4 +85,10 @@ type Config struct {
 
 	// LogMaxLines 是内存中保留的最近日志行数上限。
 	LogMaxLines int
+
+	// HeartbeatIntervalSeconds 是旧进程发送心跳的间隔（秒）。
+	HeartbeatIntervalSeconds int
+
+	// GateBufferSeconds 是新进程等待窗口的额外缓冲时间（秒）。
+	GateBufferSeconds int
 }

@@ -6,6 +6,7 @@ const (
 	RuntimeDirEnvName        = "RIN_CLI_RUNTIME_DIR"
 	ManagedServiceEnvName    = "RIN_CLI_MANAGED"
 	ManagedServiceNameEnvKey = "RIN_CLI_SERVICE"
+	DeployIPCAddrEnvKey      = "DEPLOY_IPC_ADDR"
 
 	ControlActionStop = "stop"
 )

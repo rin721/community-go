@@ -241,6 +241,20 @@ func (h *Handler) AccountSessions(c ports.HTTPContext) {
 	writeOK(c, payload, err, h.writeError)
 }
 
+func (h *Handler) RevokeAccountSession(c ports.HTTPContext) {
+	principal, ok := requirePrincipal(c)
+	if !ok {
+		return
+	}
+	id, err := strconv.ParseInt(c.Param("sessionId"), 10, 64)
+	if err != nil {
+		result.BadRequest(c, result.MessageKeyInvalidRequest)
+		return
+	}
+	err = h.service.RevokeAccountSession(c.RequestContext(), principal, id)
+	writeOK(c, map[string]any{"success": err == nil}, err, h.writeError)
+}
+
 func (h *Handler) AccountAvatarUpload(c ports.HTTPContext) {
 	principal, ok := requirePrincipal(c)
 	if !ok {
@@ -1071,6 +1085,8 @@ func (h *Handler) writeError(c ports.HTTPContext, err error) {
 		result.Unauthorized(c, result.MessageKeyUnauthorized)
 	case errors.Is(err, service.ErrForbidden):
 		result.Forbidden(c, result.MessageKeyForbidden)
+	case errors.Is(err, service.ErrCooldownActive):
+		result.Fail(c, http.StatusTooManyRequests, "api.community.cooldownActive")
 	case errors.Is(err, service.ErrDataInconsistent):
 		result.InternalError(c, result.MessageKeyInternalError)
 	case errors.Is(err, service.ErrNotFound):

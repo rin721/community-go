@@ -494,6 +494,16 @@ export function useAoiApi() {
     return await request<AccountSessionPayload>("/account/sessions")
   }
 
+  async function revokeAccountSession(sessionId: string): Promise<boolean> {
+    if (config.public.apiMock) {
+      return true
+    }
+    const res = await request<{ success: boolean }>(`/account/sessions/${encodeURIComponent(sessionId)}`, {
+      method: "DELETE"
+    })
+    return res.success
+  }
+
   async function uploadAccountAvatar(file: File): Promise<AccountAvatarResult> {
     if (config.public.apiMock) {
       const mockUrl = `/api/mock/account/avatar/${encodeURIComponent(file.name)}`
@@ -624,6 +634,7 @@ export function useAoiApi() {
     changeAccountPassword,
     getAccountSubmission,
     getAccountSessions,
+    revokeAccountSession,
     uploadAccountAvatar,
     deleteAccountAvatar,
     deleteAccountSubmission

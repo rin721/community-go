@@ -28,6 +28,7 @@ var (
 	ErrUnauthorized       = errors.New("community unauthorized")
 	ErrDuplicate          = errors.New("community duplicate")
 	ErrForbidden          = errors.New("community forbidden")
+	ErrCooldownActive     = errors.New("avatar update cooldown active")
 )
 
 var danmakuColorPattern = regexp.MustCompile(`^#[0-9A-Fa-f]{6}$`)
@@ -42,6 +43,7 @@ type Service interface {
 	RefreshCommunitySession(context.Context, string, SessionIssueInput) (model.CommunityAuthSessionSnapshot, SessionTokens, error)
 	LogoutCommunityAccount(context.Context, authtypes.Principal) error
 	ListAccountSessions(context.Context, authtypes.Principal) (model.AccountSessionPayload, error)
+	RevokeAccountSession(context.Context, authtypes.Principal, int64) error
 	UploadAccountAvatar(context.Context, authtypes.Principal, UploadSourceInput) (model.AccountAvatarResult, error)
 	DeleteAccountAvatar(context.Context, authtypes.Principal) (model.AccountAvatarResult, error)
 	ListCommunityAccounts(context.Context, model.CommunityAccountFilter) (model.CommunityAccountPayload, error)
@@ -474,17 +476,25 @@ func (s *service) ListAccountSessions(ctx context.Context, principal authtypes.P
 	return model.AccountSessionPayload{Items: items}, nil
 }
 
+func (s *service) RevokeAccountSession(ctx context.Context, principal authtypes.Principal, sessionID int64) error {
+	if s.repo == nil {
+		return ErrStorageUnavailable
+	}
+	session, err := s.repo.FindCommunitySessionByID(ctx, sessionID)
+	if err != nil {
+		return mapStorageError(err)
+	}
+	// Security verification: session belongs to requesting account
+	if session.AccountID != principal.UserID {
+		return ErrForbidden
+	}
+	return mapStorageError(s.repo.RevokeCommunitySession(ctx, sessionID, s.now()))
+}
+
 func (s *service) UploadAccountAvatar(ctx context.Context, principal authtypes.Principal, input UploadSourceInput) (model.AccountAvatarResult, error) {
-	if s.video == nil {
+	if s.video == nil || s.repo == nil {
 		return model.AccountAvatarResult{}, ErrStorageUnavailable
 	}
-	// Reuse submission upload infra to store the avatar file.
-	uploadResult, err := s.video.UploadSource(ctx, principal, input)
-	if err != nil {
-		return model.AccountAvatarResult{}, err
-	}
-	avatarURL := uploadResult.URL
-	// Update creator profile avatar URL.
 	account, err := s.repo.FindCommunityAccountByID(ctx, principal.UserID)
 	if err != nil {
 		return model.AccountAvatarResult{}, mapStorageError(err)
@@ -494,6 +504,18 @@ func (s *service) UploadAccountAvatar(ctx context.Context, principal authtypes.P
 		return model.AccountAvatarResult{}, err
 	}
 	now := s.now()
+	// Rate limit avatar change cooldown (30 seconds) to prevent spamming upload resources
+	if creator.UserSummary.AvatarURL != nil && creator.UpdatedAt.Add(30 * time.Second).After(now) {
+		return model.AccountAvatarResult{}, ErrCooldownActive
+	}
+
+	// Reuse submission upload infra to store the avatar file.
+	uploadResult, err := s.video.UploadSource(ctx, principal, input)
+	if err != nil {
+		return model.AccountAvatarResult{}, err
+	}
+	avatarURL := uploadResult.URL
+
 	creator.UserSummary.AvatarURL = &avatarURL
 	creator.UpdatedAt = now
 	if uErr := s.repo.UpdateCreator(ctx, *creator); uErr != nil {

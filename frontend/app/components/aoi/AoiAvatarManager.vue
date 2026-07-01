@@ -64,6 +64,57 @@ function triggerFileSelect() {
   fileInputRef.value?.click()
 }
 
+function processImageToWebp(file: File): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const img = new Image()
+      img.onload = () => {
+        const canvas = document.createElement("canvas")
+        const ctx = canvas.getContext("2d")
+        if (!ctx) {
+          reject(new Error("无法创建图片上下文"))
+          return
+        }
+
+        // Standard avatar dimensions: 256x256
+        const targetSize = 256
+        canvas.width = targetSize
+        canvas.height = targetSize
+
+        // Center crop calculation
+        const minDim = Math.min(img.width, img.height)
+        const sx = (img.width - minDim) / 2
+        const sy = (img.height - minDim) / 2
+
+        // Draw centered square crop to target size
+        ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, targetSize, targetSize)
+
+        // Convert to WebP blob (quality 0.85)
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const processedFile = new File([blob], "avatar.webp", {
+                type: "image/webp",
+                lastModified: Date.now()
+              })
+              resolve(processedFile)
+            } else {
+              reject(new Error("图片处理失败"))
+            }
+          },
+          "image/webp",
+          0.85
+        )
+      }
+      img.onerror = () => reject(new Error("图片加载失败"))
+      img.src = e.target?.result as string
+    }
+    reader.onerror = () => reject(new Error("读取图片失败"))
+    reader.readAsDataURL(file)
+  })
+}
+
 async function handleFileChange(event: Event) {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
@@ -75,7 +126,7 @@ async function handleFileChange(event: Event) {
     return
   }
 
-  // Max 5MB
+  // Max 5MB raw size
   if (file.size > 5 * 1024 * 1024) {
     errorMessage.value = "图片大小不能超过 5MB"
     return
@@ -86,7 +137,10 @@ async function handleFileChange(event: Event) {
   successMessage.value = null
 
   try {
-    const res = await api.uploadAccountAvatar(file)
+    // Process, crop, and compress image client-side to saving bandwidth/storage cost
+    const webpFile = await processImageToWebp(file)
+
+    const res = await api.uploadAccountAvatar(webpFile)
     // Add current avatar to history first if it exists
     if (props.profile.avatarUrl) {
       addToHistory(props.profile.avatarUrl)
@@ -103,9 +157,14 @@ async function handleFileChange(event: Event) {
 
     // Add new avatar to history
     addToHistory(res.avatarUrl)
-    successMessage.value = "头像上传并更新成功"
+    successMessage.value = "头像已自动裁剪并压缩上传成功"
   } catch (err: any) {
-    errorMessage.value = err.message || "头像上传失败，请重试"
+    // Check if error is rate limit (429)
+    if (err.statusCode === 429 || err.message?.includes("cooldown")) {
+      errorMessage.value = "操作过于频繁，头像修改冷却中(30秒)，请稍后再试"
+    } else {
+      errorMessage.value = err.message || "头像上传失败，请重试"
+    }
   } finally {
     uploading.value = false
     // Clear input

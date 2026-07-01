@@ -6,6 +6,7 @@ const { t } = useI18n()
 const sessionsList = ref<any[] | null>(null)
 const sessionsPending = ref(false)
 const sessionsError = ref<string | null>(null)
+const revokingId = ref<string | null>(null)
 
 async function loadSessions() {
   sessionsPending.value = true
@@ -17,6 +18,24 @@ async function loadSessions() {
     sessionsError.value = t("me.loadError")
   } finally {
     sessionsPending.value = false
+  }
+}
+
+async function revokeSession(sessionId: string) {
+  if (revokingId.value) return
+  revokingId.value = sessionId
+  try {
+    await api.revokeAccountSession(sessionId)
+    if (sessionId === authSession.session?.sessionId) {
+      authSession.clearSession()
+      navigateTo("/login")
+    } else {
+      await loadSessions()
+    }
+  } catch {
+    // Fail silently or show message
+  } finally {
+    revokingId.value = null
   }
 }
 
@@ -51,6 +70,7 @@ onMounted(() => {
     <template v-else>
       <div v-if="sessionsList && sessionsList.length > 0" class="me-sessions-list">
         <AoiSurface
+          v-slot="sessionProps"
           v-for="s in sessionsList"
           :key="s.id"
           surface="card"
@@ -63,7 +83,17 @@ onMounted(() => {
               <strong>{{ s.clientType }}</strong>
               <span v-if="s.id === authSession.session?.sessionId" class="me-current-session-badge">当前设备</span>
             </div>
-            <span class="me-session-card__date">创建于 {{ formatDate(s.createdAt) }}</span>
+            <div class="me-session-card__actions">
+              <AoiButton
+                variant="outlined"
+                tone="danger"
+                :loading="revokingId === s.id"
+                :disabled="!!revokingId"
+                @click="revokeSession(s.id)"
+              >
+                {{ s.id === authSession.session?.sessionId ? '安全退出' : '强制下线' }}
+              </AoiButton>
+            </div>
           </div>
           <div class="me-session-card__body">
             <div class="me-session-detail">
@@ -73,6 +103,10 @@ onMounted(() => {
             <div class="me-session-detail">
               <span>User Agent:</span>
               <span class="me-ua-text">{{ s.userAgent }}</span>
+            </div>
+            <div class="me-session-detail">
+              <span>创建时间:</span>
+              <span class="me-session-card__date">{{ formatDate(s.createdAt) }}</span>
             </div>
           </div>
         </AoiSurface>

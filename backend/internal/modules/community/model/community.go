@@ -1017,6 +1017,7 @@ type VideoFilter struct {
 	Cursor        string
 	Limit         int
 	Query         string
+	UploaderID    string
 }
 
 type VideoInteractionFilter struct {

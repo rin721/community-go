@@ -422,6 +422,9 @@ func (r *repository) ListVideos(ctx context.Context, filter model.VideoFilter) (
 		like := "%" + strings.ToLower(query) + "%"
 		opts = append(opts, database.Where("(LOWER(title) LIKE ? OR LOWER(description) LIKE ? OR LOWER(slug) LIKE ?)", like, like, like))
 	}
+	if strings.TrimSpace(filter.UploaderID) != "" {
+		opts = append(opts, database.Where("uploader_id = ?", strings.TrimSpace(filter.UploaderID)))
+	}
 	if len(filter.CategorySlugs) > 0 {
 		videoIDs, err := r.videoIDsForCategorySlugs(ctx, filter.CategorySlugs)
 		if err != nil {

@@ -1217,6 +1217,22 @@ export function createMockCommunitySubmission(payload: CreateCommunitySubmission
 		return null
 	}
 
+  // Register the user to mockUsers dynamically if they don't exist
+  const normalizedAuthor = authorName.toLowerCase().replace(/\s+/g, "")
+  let uploader = Object.values(mockUsers).find((item) => item.id === clientId || normalize(item.handle) === normalize(normalizedAuthor))
+  if (!uploader) {
+    uploader = {
+      id: clientId,
+      handle: normalizedAuthor,
+      displayName: authorName,
+      avatarUrl: `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(authorName)}`
+    }
+    mockUsers[normalizedAuthor] = uploader
+  }
+
+  const submissionId = `submission-${clientId}-${Date.now().toString(36)}`
+  const videoId = `video-${submissionId}`
+
   const item: CommunitySubmissionItem = {
 		allowComments: Boolean(payload.allowComments),
 		authorName,
@@ -1225,29 +1241,46 @@ export function createMockCommunitySubmission(payload: CreateCommunitySubmission
 		clientId,
 		createdAt: now,
 		description: payload.description.trim().slice(0, 720),
-		id: `submission-${clientId}-${Date.now().toString(36)}`,
+		id: submissionId,
 		sensitive: Boolean(payload.sensitive),
 		sourceName,
 		sourceSize: payload.sourceSize,
     sourceType: payload.sourceType.trim().slice(0, 120),
-		status: "pending_review",
+		status: "published",
+		publishedVideoId: videoId,
 		tags: normalizeMockSubmissionTags(payload.tags),
 		title,
 		updatedAt: now,
 		visibility
 	}
 
+  // Push to mockVideos so it immediately shows up in latest submissions and search
+  const videoItem: VideoSummary = {
+    id: videoId,
+    slug: submissionId,
+    title: item.title,
+    description: item.description,
+    thumbnailUrl: "gradient:default",
+    durationSeconds: 215,
+    viewCount: 0,
+    commentCount: 0,
+    publishedAt: now,
+    uploader,
+    categories: [category]
+  }
+  mockVideos.unshift(videoItem)
+
   mockCommunitySubmissions[clientId] = [
     item,
     ...(mockCommunitySubmissions[clientId] || [])
   ]
   pushMockCommunityNotification(clientId, {
-    body: `《${item.title}》已进入待审核池，当前只保存标题、分区、标签和文件元数据。`,
+    body: `《${item.title}》已成功发布，可通过播放视频或创作者主页查看。`,
     kind: "submission",
-    link: "/upload",
+    link: `/video/${videoId}`,
     targetId: item.id,
     targetKind: "submission",
-    title: "投稿已进入待审核"
+    title: "投稿发布成功"
   })
 
 	return item

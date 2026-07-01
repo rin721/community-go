@@ -111,8 +111,16 @@ useHead(() => ({
     <article v-else-if="creator" class="creator-profile">
       <section v-aoi-reveal="'rise'" class="creator-profile__hero">
         <div class="creator-profile__identity">
-          <div class="creator-profile__avatar" aria-hidden="true">
-            {{ creator.displayName.slice(0, 1).toUpperCase() }}
+          <div class="creator-profile__avatar-container">
+            <img
+              v-if="creator.avatarUrl"
+              :src="creator.avatarUrl"
+              :alt="creator.displayName"
+              class="creator-profile__avatar creator-profile__avatar--img"
+            />
+            <div v-else class="creator-profile__avatar" aria-hidden="true">
+              {{ creator.displayName.slice(0, 1).toUpperCase() }}
+            </div>
           </div>
           <span class="creator-profile__handle" :title="`@${creator.handle}`">@{{ creator.handle }}</span>
         </div>
@@ -305,6 +313,11 @@ useHead(() => ({
   color: white;
   font-size: 30px;
   font-weight: 900;
+}
+
+.creator-profile__avatar--img {
+  object-fit: cover;
+  border-radius: var(--aoi-radius-round);
 }
 
 .creator-profile__handle,

@@ -1135,24 +1135,18 @@ func (s *service) GetCreatorProfile(ctx context.Context, handle string) (model.C
 	if err != nil {
 		return model.CreatorProfile{}, mapStorageError(err)
 	}
-	latest, err := s.listVideoSummaries(ctx, model.VideoFilter{Limit: 24})
+	latest, err := s.listVideoSummaries(ctx, model.VideoFilter{UploaderID: creator.ID, Limit: 100})
 	if err != nil {
 		return model.CreatorProfile{}, err
-	}
-	creatorVideos := make([]model.VideoSummary, 0)
-	for _, video := range latest {
-		if video.Uploader.Handle == creator.Handle {
-			creatorVideos = append(creatorVideos, video)
-		}
 	}
 	return model.CreatorProfile{
 		UserSummary:   creator.UserSummary,
 		Bio:           creator.Bio,
-		Categories:    uniqueCategoriesFromVideos(creatorVideos),
+		Categories:    uniqueCategoriesFromVideos(latest),
 		FollowerCount: creator.FollowerCount,
 		JoinedAt:      creator.JoinedAt,
-		Latest:        model.PageResult[model.VideoSummary]{Items: creatorVideos},
-		VideoCount:    len(creatorVideos),
+		Latest:        model.PageResult[model.VideoSummary]{Items: latest},
+		VideoCount:    len(latest),
 	}, nil
 }
 
@@ -2728,6 +2722,7 @@ func normalizeVideoFilter(filter model.VideoFilter) model.VideoFilter {
 	filter.Cursor = strings.TrimSpace(filter.Cursor)
 	filter.Query = strings.TrimSpace(filter.Query)
 	filter.Limit = normalizeLimit(filter.Limit, 24)
+	filter.UploaderID = strings.TrimSpace(filter.UploaderID)
 	return filter
 }
 

@@ -37,7 +37,8 @@ async function submitLogin() {
     })
 
     authSession.acceptSession(session)
-    navigateTo("/me")
+    const redirectTo = sessionStorage.getItem("last_non_auth_route") || "/me"
+    navigateTo(redirectTo)
   } catch (error) {
     errorMessage.value = authErrorMessage(error, t("auth.errors.default"))
   } finally {

@@ -70,8 +70,8 @@ WORKDIR /app
 # 1. 解决宿主机空目录挂载覆盖容器内产物的问题
 # 2. 优雅启动 Go 后端主服务进程
 RUN echo '#!/bin/bash\n\
-if [ -z "$(ls -A /app)" ]; then\n\
-    echo "[Init] Detected empty /app directory. Copying built artifacts from workspace..."\n\
+if [ ! -f "/app/backend/aoi" ]; then\n\
+    echo "[Init] Detected missing executable or empty /app directory. Copying built artifacts from workspace..."\n\
     cp -r /workspace/. /app/\n\
 fi\n\
 \n\

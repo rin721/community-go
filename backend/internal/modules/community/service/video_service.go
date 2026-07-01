@@ -370,7 +370,7 @@ func (v *configuredVideoService) publishTranscodedSubmission(ctx context.Context
 	if description != "" {
 		descriptionPtr = &description
 	}
-	creator, err := submissionVideoCreator(submission, now)
+	creator, err := v.app.submissionVideoCreator(ctx, submission, now)
 	if err != nil {
 		return "", err
 	}

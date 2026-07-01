@@ -3040,7 +3040,7 @@ func (s *service) resolvePublishedSubmissionVideo(ctx context.Context, submissio
 	if description != "" {
 		descriptionPtr = &description
 	}
-	creator, err := submissionVideoCreator(submission, now)
+	creator, err := s.submissionVideoCreator(ctx, submission, now)
 	if err != nil {
 		return submissionPublishResult{}, err
 	}
@@ -3229,8 +3229,35 @@ func submissionVideoSlug(submission model.CommunitySubmission, value string) str
 	return trimRunes(base+"-"+shortHash(submission.ID), 160)
 }
 
-func submissionVideoCreator(submission model.CommunitySubmission, now time.Time) (model.Creator, error) {
+func (s *service) submissionVideoCreator(ctx context.Context, submission model.CommunitySubmission, now time.Time) (model.Creator, error) {
 	seed := strings.TrimSpace(submission.ClientID)
+	if strings.HasPrefix(seed, "account:") {
+		idStr := strings.TrimPrefix(seed, "account:")
+		if id, err := strconv.ParseInt(idStr, 10, 64); err == nil {
+			account, err := s.repo.FindCommunityAccountByID(ctx, id)
+			if err == nil && account != nil {
+				var avatarURL *string
+				if cr, err := s.repo.FindCreatorByHandle(ctx, account.Handle); err == nil && cr != nil {
+					avatarURL = cr.UserSummary.AvatarURL
+				}
+				hash := shortHash(seed + ":" + account.Handle)
+				creatorID := trimRunes("creator-"+hash, 96)
+				return model.Creator{
+					UserSummary: model.UserSummary{
+						ID:          creatorID,
+						Handle:      account.Handle,
+						DisplayName: account.DisplayName,
+						AvatarURL:   avatarURL,
+					},
+					FollowerCount: 0,
+					JoinedAt:      account.CreatedAt,
+					CreatedAt:     account.CreatedAt,
+					UpdatedAt:     now,
+				}, nil
+			}
+		}
+	}
+
 	hash := shortHash(seed + ":" + submission.AuthorName)
 	handleBase := safeASCIIIdentifier(seed)
 	if handleBase == "" {

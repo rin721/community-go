@@ -75,4 +75,19 @@ docker run -d \
   deploy:
     work_dir: "/app"  # 或者是你容器内拥有 .git 文件夹的项目根目录绝对路径
   ```
-  配置为绝对路径 `/app` 后，程序就会正确检测到 `/app/.git`存在，后续的 Webhook 就会正确走 `git fetch` 和 `git reset --hard` 流程了。
+  配置为绝对路径 `/app` 后，程序就会正确检测到 `/app/.git`存在，后续的 Webhook 就会正确走 `git fetch` 和 `git reset --hard` 流程了。
+
+### 2. 编译失败 (go build ... exit status 1) 但手动执行编译正常
+
+* **根本原因**：Go 编译执行路径与 `go.mod` 所在目录不匹配。
+  在聚合仓库中，Go 的核心代码和 `go.mod` 位于子目录 `backend/` 下。如果部署配置中的 `workDir` 设为根目录 `/app`，而配置的编译命令为 `go build -mod=readonly -o ./console-server ./cmd/console`，Go 将因为在根目录下找不到 `go.mod` 文件而编译失败并返回 `exit status 1`。
+
+* **🛠️ 解决方案**：
+  在部署配置文件（如 `config.yaml` 的 `deploy` 部分，或对应的环境变量 `APP_DEPLOY_BUILD_CMD`）中修改 `buildCmd` 编译命令，在执行构建前先切换到 `backend/` 目录下：
+  ```yaml
+  deploy:
+    # 切换到 backend 目录后再执行 go build
+    build_cmd: "cd backend && go build -mod=readonly -o ./console-server ./cmd/console"
+  ```
+  或者将 `work_dir` 直接指定为包含 `go.mod` 的主目录（例如 `/app/backend`）。
+

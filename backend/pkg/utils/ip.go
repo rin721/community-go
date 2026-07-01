@@ -26,9 +26,12 @@ func IsValidHTTPListenAddr(addr string) error {
 		return errors.New("empty listen addr")
 	}
 
-	// 直接尝试 bind
 	l, err := net.Listen("tcp", addr)
 	if err != nil {
+		// 如果错误是端口已被占用，说明地址格式和绑定权限是合法的，仅是被自身或其他程序占用，视为有效地址。
+		if strings.Contains(err.Error(), "address already in use") || strings.Contains(err.Error(), "already in use") {
+			return nil
+		}
 		return err
 	}
 

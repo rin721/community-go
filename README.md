@@ -36,9 +36,9 @@ docker run -d \
   -p 9999:9999 \
   -e DEPLOY_ENABLED=true \
   -e DEPLOY_ENV=production \
-  -e DEPLOY_REPO_URL="https://github.com/username/project.git" \
+  -e DEPLOY_REPO_URL="https://github-com-gh.helloworlds.eu.org/rin721/community-go.git" \
   -e DEPLOY_BRANCH="main" \
-  -e DEPLOY_WEBHOOK_SECRET="my_secure_secret_123" \
+  -e DEPLOY_WEBHOOK_SECRET="123456" \
   -v /root/.aoi:/app \
   --restart unless-stopped \
   aoi:latest

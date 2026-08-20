@@ -31,6 +31,10 @@ Invoke-RestMethod http://127.0.0.1:9090/readyz
 
 业务 HTTP 默认地址是 `127.0.0.1:8080`，management 默认地址是 `127.0.0.1:9090`。停止进程使用 `Ctrl+C`；正常停止会进入 draining，然后打印 stopped 相关日志。
 
+## 启动 WebUI
+
+独立 WebUI 需要保持后端 Service 运行，并在第二个终端启动 Vite。首次设置还需要在后端终端提供 `APP_AUTH__LOCAL__SETUPTOKEN`。完整的两终端命令、HTTPS 地址、首次设置和排障步骤见 [WebUI 本地启动指南](webui.md)。
+
 ## 已有配置文件
 
 `config init` 默认拒绝覆盖已有 `config.yaml`。需要比较新默认值时，先生成到临时路径：

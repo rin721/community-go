@@ -4,12 +4,15 @@
 
 ## 运行与生成
 
+本地启动后端、Vite 与首次设置的完整步骤见 [WebUI 本地启动指南](../getting-started/webui.md)。以下命令用于开发前检查 registry 和前端构建，不替代启动顺序。
+
 在仓库根目录执行：
 
 ```powershell
 go run ./cmd/app admin generate
 cd webui
 pnpm install
+pnpm lint
 pnpm typecheck
 pnpm build
 pnpm generate:check

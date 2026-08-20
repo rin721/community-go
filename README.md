@@ -20,6 +20,8 @@ Invoke-RestMethod http://127.0.0.1:9090/readyz
 
 停止服务使用 `Ctrl+C`，正常退出会打印 draining/stopped 相关日志。
 
+需要同时启动浏览器 WebUI 时，后端还要提供首次设置 Token，并在第二个终端运行 Vite；完整命令见 [WebUI 本地启动指南](docs/getting-started/webui.md)。
+
 如果本地已经存在 `config.yaml`，`config init` 会拒绝覆盖。不要为了“重新生成”随手使用 `--force`；需要对比时先输出到临时路径，详细关系见 [本地启动指南](docs/getting-started/local-development.md) 与 [配置说明](docs/configuration/README.md)。
 
 ## 项目手册

@@ -13,6 +13,7 @@
 ## 2. 启动项目
 
 - [本地启动指南](getting-started/local-development.md)：`config init`、数据库迁移、Service 启动、readiness 和常见启动错误。
+- [WebUI 本地启动指南](getting-started/webui.md)：后端与 Vite 双终端启动、Setup Token、首次设置、HTTPS Session 和排障。
 - [配置说明](configuration/README.md)：配置来源、环境变量覆盖、owner、strict binding、reload 与密钥边界。
 - [数据库迁移与回滚](operations/migration-and-rollback.md)：迁移状态、前滚、回滚和 dirty 处理。
 

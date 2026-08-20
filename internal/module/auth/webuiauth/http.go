@@ -180,6 +180,10 @@ func (s *Service) allowsOrigin(request *http.Request) bool {
 }
 func writeServiceError(writer http.ResponseWriter, request *http.Request, err error) {
 	switch {
+	case errors.Is(err, errUsernameInvalid):
+		writeAuthError(writer, request, http.StatusBadRequest, "username_invalid")
+	case errors.Is(err, errPasswordLengthInvalid):
+		writeAuthError(writer, request, http.StatusBadRequest, "password_length_invalid")
 	case errors.Is(err, ErrWebUILocked):
 		writeAuthError(writer, request, http.StatusTooManyRequests, "account_locked")
 	case errors.Is(err, ErrSetupClosed):

@@ -28,10 +28,12 @@ const (
 )
 
 var (
-	ErrSetupClosed        = errors.New("webui setup is closed")
-	ErrInvalidCredentials = errors.New("invalid webui credentials")
-	ErrWebUILocked        = errors.New("webui account is locked")
-	ErrSessionInvalid     = errors.New("webui session is invalid")
+	ErrSetupClosed           = errors.New("webui setup is closed")
+	ErrInvalidCredentials    = errors.New("invalid webui credentials")
+	errUsernameInvalid       = errors.New("webui username is invalid")
+	errPasswordLengthInvalid = errors.New("webui password length is invalid")
+	ErrWebUILocked           = errors.New("webui account is locked")
+	ErrSessionInvalid        = errors.New("webui session is invalid")
 )
 
 // Access 是 Auth 使用方提供的短生命周期数据库租约。
@@ -365,14 +367,14 @@ func repositories(client database.Client, tx database.Tx) (*database.BaseReposit
 func normalizeUsername(value string) (string, error) {
 	value = strings.TrimSpace(value)
 	if value == "" || len([]rune(value)) > maxUsernameRunes {
-		return "", fmt.Errorf("webui username is invalid")
+		return "", errUsernameInvalid
 	}
 	return value, nil
 }
 func validatePassword(value string) error {
 	size := len([]rune(value))
 	if size < minPasswordRunes || size > maxPasswordRunes {
-		return fmt.Errorf("webui password length is invalid")
+		return errPasswordLengthInvalid
 	}
 	return nil
 }

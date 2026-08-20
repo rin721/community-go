@@ -47,6 +47,7 @@
 - [042 Admin WebUI 模块化宿主](042-admin-webui-foundation/README.md)：保留为历史实施证据；项目自有 Admin 技术命名已由 043 单轨取代。
 - [043 WebUI 契约命名单轨迁移](043-webui-contract-naming/README.md)：已完成；文件夹、契约、路由、CLI、Session、数据库对象和前端标识统一为 `webui`。
 - [044 WebUI 本地启动闭环](044-webui-local-startup-closure/README.md)：已完成路由 prefix 与本地 HTTPS 修复；旧路径记录仅为历史证据。
-- [045 WebUI Origin 策略闭环](045-webui-origin-policy/README.md)：研究与计划已完成，待确认后修复 CORS、Auth Origin、Vite 本地配置和 Setup Token 输入遮罩。
+- [045 WebUI Origin 策略闭环](045-webui-origin-policy/README.md)：已完成 CORS、Auth Origin、Vite 本地配置和 Setup Token 输入遮罩修复。
+- [046 WebUI Setup 输入校验错误闭环](046-webui-setup-validation-errors/README.md)：已把用户名/密码输入错误从 500 收敛为稳定 400，并补齐页面约束、中文提示和前端测试。
 
-下一个任务序号为 `046`。已完成记录只保存历史证据；当前行为必须回到根 [README](../../README.md) 和对应主题文档确认。
+下一个任务序号为 `047`。已完成记录只保存历史证据；当前行为必须回到根 [README](../../README.md) 和对应主题文档确认。

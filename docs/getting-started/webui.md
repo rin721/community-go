@@ -95,6 +95,8 @@ Remove-Item Env:APP_AUTH__LOCAL__SETUPTOKEN
 | --- | --- |
 | 页面一直显示 manifest 或装配错误 | 先确认后端已 ready，再检查 Vite 终端的 `/api/v1` 代理请求。 |
 | Setup Token 返回 `invalid_credentials` | 确认环境变量与后端在同一终端启动，并使用完全一致的 Token。 |
+| `username_invalid` | 用户名不能为空且不能超过 128 个字符。 |
+| `password_length_invalid` | 密码必须为 15 至 128 个字符；页面约束只用于即时提示，最终以后端校验为准。 |
 | `cors_origin_denied` | 在 `http.cors.allowedOrigins` 中加入实际 Vite HTTPS Origin并重启后端；本地默认只允许 5173。 |
 | `origin_rejected` | 确认 Auth 使用的同一候选配置已经包含 Vite Origin，并确认没有连接到未重启的旧后端。 |
 | `setup_closed` | 数据库已经存在本地用户；使用 `/login`，忘记密码时运行当前 `webui reset-password` CLI。 |

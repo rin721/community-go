@@ -24,11 +24,12 @@ const moduleID module.ID = "auth"
 
 // Dependencies 是 Auth module 实际使用的稳定能力和 authority inventory。
 type Dependencies struct {
-	Clock       clock.Clock
-	Logger      logger.Logger
-	Config      configbinding.Config
-	Policies    []model.Policy
-	WebUIAccess webuiauth.Access
+	Clock               clock.Clock
+	Logger              logger.Logger
+	Config              configbinding.Config
+	Policies            []model.Policy
+	WebUIAccess         webuiauth.Access
+	WebUIAllowedOrigins []string
 }
 
 // Module 是 Auth 局部装配后交给 composition root 的完成品。
@@ -108,7 +109,7 @@ func NewHTTP(dependencies Dependencies) (Module, error) {
 	if dependencies.WebUIAccess != nil {
 		webuiAuth, err = webuiauth.New(dependencies.WebUIAccess, dependencies.Clock, webuiauth.Config{
 			SetupToken: dependencies.Config.Local.SetupToken, IdleTimeout: dependencies.Config.Local.IdleTimeout,
-			AbsoluteTimeout: dependencies.Config.Local.AbsoluteTimeout,
+			AbsoluteTimeout: dependencies.Config.Local.AbsoluteTimeout, AllowedOrigins: dependencies.WebUIAllowedOrigins,
 		})
 		if err != nil {
 			return Module{}, fmt.Errorf("compose webui auth service: %w", err)

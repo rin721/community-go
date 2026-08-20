@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/rin721/go-scaffold-template/internal/module/auth/model"
+	"github.com/rin721/go-scaffold-template/pkg/httpx"
 )
 
 // NewHTTPHandler 绑定 WebUI/Auth setup、login、session 和 logout operation。
@@ -21,7 +22,7 @@ func NewHTTPHandler(service *Service) (http.Handler, error) {
 			writer.WriteHeader(http.StatusNoContent)
 			return
 		}
-		if request.Method != http.MethodGet && !sameOrigin(request) {
+		if request.Method != http.MethodGet && !service.allowsOrigin(request) {
 			writeAuthError(writer, request, http.StatusForbidden, "origin_rejected")
 			return
 		}
@@ -166,16 +167,16 @@ func cookieValue(request *http.Request) (string, error) {
 	}
 	return cookie.Value, nil
 }
-func sameOrigin(request *http.Request) bool {
+func (s *Service) allowsOrigin(request *http.Request) bool {
 	origin := strings.TrimSpace(request.Header.Get("Origin"))
 	if origin == "" {
 		return false
 	}
-	expectedScheme := "http"
-	if request.TLS != nil {
-		expectedScheme = "https"
+	if httpx.SameOrigin(request, origin) {
+		return true
 	}
-	return origin == expectedScheme+"://"+request.Host
+	_, allowed := s.allowedOrigins[origin]
+	return allowed
 }
 func writeServiceError(writer http.ResponseWriter, request *http.Request, err error) {
 	switch {

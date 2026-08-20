@@ -10,6 +10,7 @@ export default defineConfig({
   server: {
     fs: { allow: [".."] },
     https: true,
+    strictPort: true,
     proxy: {
       "/api/v1": "http://127.0.0.1:8080",
       "/management": { target: "http://127.0.0.1:9090", rewrite: (path) => path.replace(/^\/management/, "") }

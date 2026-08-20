@@ -284,6 +284,10 @@ func (f *applicationGenerationFactory) Prepare(
 	if err != nil {
 		return abort(err)
 	}
+	httpConfig, err := kernelcomposition.HTTPServerConfig(snapshot)
+	if err != nil {
+		return abort(err)
+	}
 	databaseAccess, err := adaptDatabaseAccess(generation.database.value())
 	if err != nil {
 		return abort(err)
@@ -293,7 +297,8 @@ func (f *applicationGenerationFactory) Prepare(
 		return abort(err)
 	}
 	generation.authModule, err = auth.NewHTTP(auth.Dependencies{
-		Clock: clock.System(), Logger: generation.logger.value(), Config: authConfig, Policies: policies, WebUIAccess: databaseAccess,
+		Clock: clock.System(), Logger: generation.logger.value(), Config: authConfig, Policies: policies,
+		WebUIAccess: databaseAccess, WebUIAllowedOrigins: httpConfig.CORS.AllowedOrigins,
 	})
 	if err != nil {
 		return abort(err)
@@ -438,10 +443,6 @@ func (f *applicationGenerationFactory) Prepare(
 		generation.participants = append(generation.participants, participant)
 	}
 
-	httpConfig, err := kernelcomposition.HTTPServerConfig(snapshot)
-	if err != nil {
-		return abort(err)
-	}
 	dispatcher, err := newContractDispatcher(generation.module.Operations)
 	if err != nil {
 		return abort(err)

@@ -45,14 +45,16 @@ type Config struct {
 	SetupToken      string
 	IdleTimeout     time.Duration
 	AbsoluteTimeout time.Duration
+	AllowedOrigins  []string
 }
 
 // Service 拥有 WebUI user/session 的业务语义，不拥有数据库连接关闭权。
 type Service struct {
-	access    Access
-	clock     clock.Clock
-	config    Config
-	dummyHash string
+	access         Access
+	clock          clock.Clock
+	config         Config
+	dummyHash      string
+	allowedOrigins map[string]struct{}
 }
 
 // User 是不含密码哈希的安全输出。
@@ -84,7 +86,12 @@ func New(access Access, currentClock clock.Clock, config Config) (*Service, erro
 	if err != nil {
 		return nil, fmt.Errorf("create webui password verifier: %w", err)
 	}
-	return &Service{access: access, clock: currentClock, config: config, dummyHash: dummy}, nil
+	allowedOrigins := make(map[string]struct{}, len(config.AllowedOrigins))
+	for _, origin := range config.AllowedOrigins {
+		allowedOrigins[origin] = struct{}{}
+	}
+	config.AllowedOrigins = append([]string(nil), config.AllowedOrigins...)
+	return &Service{access: access, clock: currentClock, config: config, dummyHash: dummy, allowedOrigins: allowedOrigins}, nil
 }
 
 // Setup 原子创建唯一初始 WebUI 用户；成功后 setup token 永久失效。

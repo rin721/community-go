@@ -115,6 +115,24 @@ func TestCORSDefaultsDenyAndExplicitPreflightAllows(t *testing.T) {
 	}
 }
 
+func TestCORSAllowsSameOriginPostWithoutCrossOriginAllowlist(t *testing.T) {
+	router := NewRouter(nil)
+	router.Use(CORS(DefaultServerConfig().CORS))
+	router.Handle(MethodPost, "/api/v1/webui/auth/setup", func(ctx *Context) error {
+		return ctx.NoContent(http.StatusNoContent)
+	})
+	request := httptest.NewRequest(http.MethodPost, "http://127.0.0.1:8080/api/v1/webui/auth/setup", nil)
+	request.Header.Set("Origin", "http://127.0.0.1:8080")
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusNoContent {
+		t.Fatalf("status = %d, want %d; body = %s", recorder.Code, http.StatusNoContent, recorder.Body.String())
+	}
+	if recorder.Header().Get("Access-Control-Allow-Origin") != "" {
+		t.Fatalf("same-origin response unexpectedly emitted CORS header %q", recorder.Header().Get("Access-Control-Allow-Origin"))
+	}
+}
+
 func TestProtocolBudgetsReturnStableProblems(t *testing.T) {
 	tests := []struct {
 		name string

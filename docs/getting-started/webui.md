@@ -44,6 +44,18 @@ Invoke-RestMethod http://127.0.0.1:9090/readyz
 
 默认业务 HTTP 地址是 `127.0.0.1:8080`，management 地址是 `127.0.0.1:9090`。后端终端需要持续运行。
 
+本地 WebUI 的 `http.cors.allowedOrigins` 必须精确包含以下两个固定 Origin，并在修改后重启后端：
+
+```yaml
+http:
+  cors:
+    allowedOrigins:
+      - https://localhost:5173
+      - https://127.0.0.1:5173
+```
+
+CORS 与 WebUI Auth 的 CSRF Origin 校验共用该列表。不要改成 `*`，生产配置应替换为真实部署 Origin。
+
 ## 3. 启动 WebUI
 
 在第二个 PowerShell 终端中执行：
@@ -55,7 +67,7 @@ pnpm generate:check
 pnpm dev
 ```
 
-`pnpm install` 只需在首次拉取或依赖锁变化后执行。Vite 会打印浏览器访问地址；必须使用它输出的 `https://` 地址，不能改用 HTTP，否则带 `Secure` 属性的 Session Cookie 不会生效。端口被占用时 Vite 可能选择其他端口，因此不要硬编码端口。
+`pnpm install` 只需在首次拉取或依赖锁变化后执行。Vite 固定使用 5173；端口被占用时会明确启动失败，避免静默切换到未被 Origin allowlist 授权的端口。必须使用它输出的 `https://` 地址，不能改用 HTTP，否则带 `Secure` 属性的 Session Cookie 不会生效。
 
 Vite 使用项目配置的本地自签名证书。浏览器首次访问会提示证书不受信任；确认访问的是终端打印的本机 `127.0.0.1`/`localhost` 地址后，选择继续访问。证书只用于本地开发，不用于生产部署。
 
@@ -83,6 +95,8 @@ Remove-Item Env:APP_AUTH__LOCAL__SETUPTOKEN
 | --- | --- |
 | 页面一直显示 manifest 或装配错误 | 先确认后端已 ready，再检查 Vite 终端的 `/api/v1` 代理请求。 |
 | Setup Token 返回 `invalid_credentials` | 确认环境变量与后端在同一终端启动，并使用完全一致的 Token。 |
+| `cors_origin_denied` | 在 `http.cors.allowedOrigins` 中加入实际 Vite HTTPS Origin并重启后端；本地默认只允许 5173。 |
+| `origin_rejected` | 确认 Auth 使用的同一候选配置已经包含 Vite Origin，并确认没有连接到未重启的旧后端。 |
 | `setup_closed` | 数据库已经存在本地用户；使用 `/login`，忘记密码时运行当前 `webui reset-password` CLI。 |
 | 浏览器提示证书不受信任 | 确认地址是 Vite 打印的本机地址后继续访问；不要把该开发证书用于生产。 |
 | 登录成功但 Cookie 不生效 | 必须打开 Vite 输出的 HTTPS 地址，不要使用 HTTP，并确认浏览器已接受本地证书。 |

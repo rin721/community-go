@@ -203,6 +203,9 @@ func CORS(cfg CORSConfig) Middleware {
 			if origin == "" {
 				return next(ctx)
 			}
+			if SameOrigin(ctx.Request, origin) {
+				return next(ctx)
+			}
 			if _, allowed := origins[origin]; !allowed {
 				return &StatusError{StatusCode: http.StatusForbidden, Code: "cors_origin_denied", Message: "cross-origin request is not allowed"}
 			}
@@ -230,6 +233,22 @@ func CORS(cfg CORSConfig) Middleware {
 			return next(ctx)
 		}
 	}
+}
+
+// SameOrigin 判断 Origin 是否与服务端当前看到的请求 scheme 和 Host 精确一致。
+func SameOrigin(request *http.Request, origin string) bool {
+	if request == nil || request.Host == "" {
+		return false
+	}
+	origin = strings.TrimSpace(origin)
+	if origin == "" {
+		return false
+	}
+	scheme := "http"
+	if request.TLS != nil {
+		scheme = "https"
+	}
+	return origin == scheme+"://"+request.Host
 }
 
 func stringSet(values []string, uppercase bool) map[string]struct{} {

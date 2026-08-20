@@ -242,8 +242,8 @@ http:
     requestsPerSecond: 100
     burst: 200
   cors:
-    # 空列表拒绝跨域；同源和非浏览器请求不需要加入。
-    allowedOrigins: []
+    # 本地 WebUI 只允许固定 Vite HTTPS Origin；生产配置应替换为真实部署 Origin。
+    allowedOrigins: [https://localhost:5173, https://127.0.0.1:5173]
     allowedMethods: [GET, POST, PATCH, OPTIONS]
     allowedHeaders: [Authorization, Content-Type, X-Request-ID]
 

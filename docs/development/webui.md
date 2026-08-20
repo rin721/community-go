@@ -28,6 +28,7 @@ WebUI 用户密码可通过 `go run ./cmd/app webui reset-password --username <�
 - Cookie 名为 `__Host-community-go_webui_session`，固定 `Secure`、`HttpOnly`、`SameSite=Lax`、`Path=/`，不设置 `Domain`。
 - Session ID 和 CSRF token 使用 CSPRNG；数据库保存 SHA-256 摘要，浏览器只在内存保留 CSRF token。
 - setup、login、logout 的不安全请求必须通过 `Origin` 校验；logout 还要求 `X-CSRF-Token`。
+- CORS 与 WebUI Auth 必须消费同一候选中的 `http.cors.allowedOrigins`；空列表继续拒绝跨域，不能为本地开发建立通配例外。
 - 页面菜单和 manifest 访问状态不构成授权；实际 operation 仍由服务端 Auth policy 决定。
 
 模块页面只能依赖宿主公开契约和自身 API，不得导入宿主 Router、菜单、Session Store 或内部全局状态。新增页面时先修改模块 WebUI Binding，再运行生成检查。

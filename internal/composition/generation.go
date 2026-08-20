@@ -9,6 +9,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	admincontract "github.com/rin721/go-scaffold-template/internal/admin"
 	"github.com/rin721/go-scaffold-template/internal/kernel"
 	cacheapp "github.com/rin721/go-scaffold-template/internal/kernel/app/cache"
 	databaseapp "github.com/rin721/go-scaffold-template/internal/kernel/app/database"
@@ -83,6 +84,7 @@ type applicationGeneration struct {
 	module            todo.HTTPModule
 	authModule        auth.Module
 	opsModule         ops.Module
+	adminCatalog      admincontract.Catalog
 	participants      []supervisor.Participant
 	route             *httpx.PreparedRoute
 	server            *httpx.Server
@@ -282,12 +284,16 @@ func (f *applicationGenerationFactory) Prepare(
 	if err != nil {
 		return abort(err)
 	}
+	databaseAccess, err := adaptDatabaseAccess(generation.database.value())
+	if err != nil {
+		return abort(err)
+	}
 	policies, err := operationPolicies()
 	if err != nil {
 		return abort(err)
 	}
 	generation.authModule, err = auth.NewHTTP(auth.Dependencies{
-		Clock: clock.System(), Logger: generation.logger.value(), Config: authConfig, Policies: policies,
+		Clock: clock.System(), Logger: generation.logger.value(), Config: authConfig, Policies: policies, AdminAccess: databaseAccess,
 	})
 	if err != nil {
 		return abort(err)
@@ -302,10 +308,6 @@ func (f *applicationGenerationFactory) Prepare(
 	}
 
 	todoConfig, err := configbinding.Decode(snapshot)
-	if err != nil {
-		return abort(err)
-	}
-	databaseAccess, err := adaptDatabaseAccess(generation.database.value())
 	if err != nil {
 		return abort(err)
 	}
@@ -392,6 +394,10 @@ func (f *applicationGenerationFactory) Prepare(
 	if err := module.ValidateContributions(generation.authModule.Contribution, generation.module.Contribution, generation.opsModule.Contribution); err != nil {
 		return abort(fmt.Errorf("validate application module contributions: %w", err))
 	}
+	generation.adminCatalog, err = applicationAdminCatalog()
+	if err != nil {
+		return abort(fmt.Errorf("compose Admin catalog: %w", err))
+	}
 	messages, err := module.MessageBindings(generation.authModule.Contribution, generation.module.Contribution, generation.opsModule.Contribution)
 	if err != nil {
 		return abort(fmt.Errorf("collect application module messages: %w", err))
@@ -444,11 +450,20 @@ func (f *applicationGenerationFactory) Prepare(
 	if err != nil {
 		return abort(err)
 	}
+	manifestHandler := newAdminManifestHandler(generation.adminCatalog, generation.authModule.Service)
+	adminHandler := http.NewServeMux()
+	if generation.authModule.Admin != nil {
+		manifestHandler = generation.authModule.Admin.WithOptionalSession(manifestHandler)
+	}
+	adminHandler.Handle("/manifest", manifestHandler)
+	if generation.authModule.AdminHTTP != nil {
+		adminHandler.Handle("/auth/", generation.authModule.AdminHTTP)
+	}
 	router, err := applicationRouter(kernelcomposition.Capabilities{
 		Logger: generation.logger.value(), Clock: clock.System(), IDGenerator: idgen.UUID(), Validator: validation.New(),
 		Database: generation.database.value(), Cache: generation.cache.value(),
 		I18n: generation.i18n.value(), Storage: generation.storage.value(),
-	}, httpConfig, generation.authModule.HTTPMiddleware, apiRoutes)
+	}, httpConfig, generation.authModule.HTTPMiddleware, adminHandler, apiRoutes)
 	if err != nil {
 		return abort(err)
 	}

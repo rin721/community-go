@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"syscall"
@@ -32,9 +33,46 @@ func main() {
 }
 
 func runMain(stdin io.Reader, stdout, stderr io.Writer, args []string) int {
+	if len(args) >= 2 && args[0] == "admin" && args[1] == "generate" {
+		return generateAdminRegistry(stdout, stderr, len(args) > 2 && args[2] == "--check")
+	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	return execute(ctx, newProcess(stdin, stdout, stderr), args)
+}
+
+func generateAdminRegistry(stdout, stderr io.Writer, check bool) int {
+	content, err := applicationcomposition.GenerateAdminRegistry()
+	if err != nil {
+		_, _ = fmt.Fprintf(stderr, "admin registry: %v\n", err)
+		return applicationcomposition.ExitError
+	}
+	outputPath := "webui/src/generated/admin-registry.ts"
+	if _, err := os.Stat("webui"); err != nil {
+		outputPath = "src/generated/admin-registry.ts"
+	}
+	if check {
+		actual, readErr := os.ReadFile(outputPath)
+		if readErr != nil {
+			_, _ = fmt.Fprintf(stderr, "admin registry: %v\n", readErr)
+			return applicationcomposition.ExitError
+		}
+		if string(actual) != content {
+			_, _ = fmt.Fprintln(stderr, "admin registry: generated file is stale")
+			return applicationcomposition.ExitError
+		}
+		_, _ = fmt.Fprintln(stdout, "admin registry is current")
+		return applicationcomposition.ExitSuccess
+	}
+	if err := os.MkdirAll(filepath.Dir(outputPath), 0o755); err != nil {
+		_, _ = fmt.Fprintf(stderr, "admin registry: %v\n", err)
+		return applicationcomposition.ExitError
+	}
+	if err := os.WriteFile(outputPath, []byte(content), 0o644); err != nil {
+		_, _ = fmt.Fprintf(stderr, "admin registry: %v\n", err)
+		return applicationcomposition.ExitError
+	}
+	return applicationcomposition.ExitSuccess
 }
 
 // process 保存应用入口拥有的固定装配参数和标准流。

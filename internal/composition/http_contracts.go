@@ -1,6 +1,9 @@
 package composition
 
 import (
+	admincontract "github.com/rin721/go-scaffold-template/internal/admin"
+	authadmin "github.com/rin721/go-scaffold-template/internal/module/auth/binding/admin"
+	opsadmin "github.com/rin721/go-scaffold-template/internal/module/ops/binding/admin"
 	todohttp "github.com/rin721/go-scaffold-template/internal/module/todo/binding/http"
 	"github.com/rin721/go-scaffold-template/pkg/httpx/contract"
 )
@@ -16,4 +19,24 @@ func applicationHTTPModules() []contract.Module {
 	return []contract.Module{
 		todohttp.ModuleContract(),
 	}
+}
+
+// applicationAdminCatalog 是 Admin runtime 与前端生成器共享的唯一声明汇总点。
+func applicationAdminCatalog() (admincontract.Catalog, error) {
+	catalog, err := admincontract.BuildCatalog(authadmin.Binding(), opsadmin.Binding())
+	if err != nil {
+		return admincontract.Catalog{}, err
+	}
+	operations := make(map[string]struct{})
+	for _, module := range applicationHTTPModules() {
+		for _, operation := range module.Operations {
+			operations[string(operation.ID)] = struct{}{}
+		}
+	}
+	operations["ops.diagnostics"] = struct{}{}
+	operations["ops.metrics"] = struct{}{}
+	if err := catalog.ValidateOperationReferences(operations); err != nil {
+		return admincontract.Catalog{}, err
+	}
+	return catalog, nil
 }

@@ -10,7 +10,7 @@ import (
 
 const (
 	// CurrentVersion 是当前 Todo 二进制唯一兼容的 schema 版本。
-	CurrentVersion uint = 3
+	CurrentVersion uint = 4
 	// TableName 是 Todo migration set 的版本表。
 	TableName = "schema_migrations"
 )
@@ -26,6 +26,12 @@ func Set() dbmigrate.Set {
 			database.DriverSQLite: "sqlite", database.DriverPostgres: "postgres", database.DriverMySQL: "mysql",
 		},
 		SHA256ByFile: map[string]string{
+			"sqlite/000004_create_admin_auth.up.sql":         "02a22ca3f8ef1c99e9c96e2b23683a36539d4ac62874b5646d0749cf2423174b",
+			"sqlite/000004_create_admin_auth.down.sql":       "810703b21dc982d8646dd568dca60687f123c7564c7a23e95a05949de7ac5ed8",
+			"postgres/000004_create_admin_auth.up.sql":       "ee08c9c371f2c21ab0c90526d2748c1fa2d29e4b0e10f22639f811d214d496a2",
+			"postgres/000004_create_admin_auth.down.sql":     "810703b21dc982d8646dd568dca60687f123c7564c7a23e95a05949de7ac5ed8",
+			"mysql/000004_create_admin_auth.up.sql":          "4aedabd500642cef70e0f84a07fad21addc5318975e83efdaf0cc6f172971aeb",
+			"mysql/000004_create_admin_auth.down.sql":        "810703b21dc982d8646dd568dca60687f123c7564c7a23e95a05949de7ac5ed8",
 			"sqlite/000001_create_todos.up.sql":              "4d1fb6b5e9fcfb9c70c029e1a15eca6aa3bf637328812088ab134cc4826eaa1a",
 			"sqlite/000001_create_todos.down.sql":            "d90654d38441d45165907144d4b536f44f904dbf5f9a547b33288dd33343f9be",
 			"sqlite/000002_add_owner_subject.up.sql":         "9ad9993b564caf40862c9ca01b208a32180fe59c577284a07b0cc63614cb5a03",

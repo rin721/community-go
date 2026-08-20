@@ -18,7 +18,7 @@ import (
 type opsAccessAdapter struct{ auth auth.Module }
 
 func (a opsAccessAdapter) Authenticate(next http.Handler) http.Handler {
-	return a.auth.HTTPMiddleware(next)
+	return a.auth.ManagementMiddleware(next)
 }
 func (a opsAccessAdapter) Authorize(ctx context.Context, operation string) error {
 	principal, ok := authmodel.PrincipalFromContext(ctx)

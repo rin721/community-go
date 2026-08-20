@@ -10,6 +10,7 @@ import (
 	"github.com/rin721/go-scaffold-template/internal/module"
 	auditadapter "github.com/rin721/go-scaffold-template/internal/module/auth/adapter/audit"
 	jwtadapter "github.com/rin721/go-scaffold-template/internal/module/auth/adapter/jwt"
+	adminservice "github.com/rin721/go-scaffold-template/internal/module/auth/adminservice"
 	configbinding "github.com/rin721/go-scaffold-template/internal/module/auth/binding/config"
 	"github.com/rin721/go-scaffold-template/internal/module/auth/middleware"
 	"github.com/rin721/go-scaffold-template/internal/module/auth/model"
@@ -23,10 +24,11 @@ const moduleID module.ID = "auth"
 
 // Dependencies 是 Auth module 实际使用的稳定能力和 authority inventory。
 type Dependencies struct {
-	Clock    clock.Clock
-	Logger   logger.Logger
-	Config   configbinding.Config
-	Policies []model.Policy
+	Clock       clock.Clock
+	Logger      logger.Logger
+	Config      configbinding.Config
+	Policies    []model.Policy
+	AdminAccess adminservice.Access
 }
 
 // Module 是 Auth 局部装配后交给 composition root 的完成品。
@@ -34,6 +36,25 @@ type Module struct {
 	Service        *service.Service
 	HTTPMiddleware func(http.Handler) http.Handler
 	Contribution   module.Contribution
+	Admin          *adminservice.Service
+	AdminHTTP      http.Handler
+}
+
+// ManagementMiddleware 允许 management 使用 Bearer 或 Admin Session，普通 API 不走此入口。
+func (m Module) ManagementMiddleware(next http.Handler) http.Handler {
+	if next == nil {
+		return http.NotFoundHandler()
+	}
+	if m.Admin == nil {
+		return m.HTTPMiddleware(next)
+	}
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if cookie, err := request.Cookie(adminservice.SessionCookieName); err == nil && cookie.Value != "" {
+			m.Admin.WithSession(next).ServeHTTP(writer, request)
+			return
+		}
+		m.HTTPMiddleware(next).ServeHTTP(writer, request)
+	})
 }
 
 // NewHTTP 按已校验配置构造 HTTP Auth profile；构造阶段不执行网络 I/O。
@@ -83,6 +104,23 @@ func NewHTTP(dependencies Dependencies) (Module, error) {
 	if err != nil {
 		return Module{}, fmt.Errorf("compose auth service: %w", err)
 	}
+	var adminAuth *adminservice.Service
+	if dependencies.AdminAccess != nil {
+		adminAuth, err = adminservice.New(dependencies.AdminAccess, dependencies.Clock, adminservice.Config{
+			SetupToken: dependencies.Config.Local.SetupToken, IdleTimeout: dependencies.Config.Local.IdleTimeout,
+			AbsoluteTimeout: dependencies.Config.Local.AbsoluteTimeout,
+		})
+		if err != nil {
+			return Module{}, fmt.Errorf("compose admin auth service: %w", err)
+		}
+	}
+	var adminHTTP http.Handler
+	if adminAuth != nil {
+		adminHTTP, err = adminservice.NewHTTPHandler(adminAuth)
+		if err != nil {
+			return Module{}, fmt.Errorf("compose admin auth HTTP: %w", err)
+		}
+	}
 	httpMiddleware, err := middleware.HTTP(authService)
 	if err != nil {
 		return Module{}, fmt.Errorf("compose auth HTTP middleware: %w", err)
@@ -91,7 +129,7 @@ func NewHTTP(dependencies Dependencies) (Module, error) {
 	if err := module.ValidateContributions(contribution); err != nil {
 		return Module{}, fmt.Errorf("validate auth contribution: %w", err)
 	}
-	return Module{Service: authService, HTTPMiddleware: httpMiddleware, Contribution: contribution}, nil
+	return Module{Service: authService, HTTPMiddleware: httpMiddleware, Admin: adminAuth, AdminHTTP: adminHTTP, Contribution: contribution}, nil
 }
 
 // NewLocal 构造 CLI profile；operator 必须由命令执行边界显式提供。
@@ -104,11 +142,21 @@ func NewLocal(dependencies Dependencies) (Module, error) {
 	if err != nil {
 		return Module{}, fmt.Errorf("compose local auth service: %w", err)
 	}
+	var adminAuth *adminservice.Service
+	if dependencies.AdminAccess != nil {
+		adminAuth, err = adminservice.New(dependencies.AdminAccess, dependencies.Clock, adminservice.Config{
+			SetupToken: dependencies.Config.Local.SetupToken, IdleTimeout: dependencies.Config.Local.IdleTimeout,
+			AbsoluteTimeout: dependencies.Config.Local.AbsoluteTimeout,
+		})
+		if err != nil {
+			return Module{}, fmt.Errorf("compose local admin auth service: %w", err)
+		}
+	}
 	contribution := module.Contribution{ID: moduleID}
 	if err := module.ValidateContributions(contribution); err != nil {
 		return Module{}, fmt.Errorf("validate auth contribution: %w", err)
 	}
-	return Module{Service: authService, Contribution: contribution}, nil
+	return Module{Service: authService, Admin: adminAuth, Contribution: contribution}, nil
 }
 
 func loopbackURL(raw string) bool {

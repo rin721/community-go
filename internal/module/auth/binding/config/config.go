@@ -36,11 +36,19 @@ type JWT struct {
 	MaxResponseBodyBytes int64         `mapstructure:"maxResponseBodyBytes"`
 }
 
+// Local 保存 WebUI 本地管理员入口的受控参数。
+type Local struct {
+	SetupToken      string        `mapstructure:"setupToken"`
+	IdleTimeout     time.Duration `mapstructure:"idleTimeout"`
+	AbsoluteTimeout time.Duration `mapstructure:"absoluteTimeout"`
+}
+
 // Config 是 Auth module 唯一配置契约。
 type Config struct {
 	Mode             Mode     `mapstructure:"mode"`
 	AnonymousSubject string   `mapstructure:"anonymousSubject"`
 	AnonymousScopes  []string `mapstructure:"anonymousScopes"`
+	Local            Local    `mapstructure:"local"`
 	JWT              JWT      `mapstructure:"jwt"`
 }
 
@@ -50,6 +58,7 @@ func Default() Config {
 		Mode:             ModeDevelopmentAnonymous,
 		AnonymousSubject: "development-loopback",
 		AnonymousScopes:  []string{"management:read", "todos:read", "todos:write"},
+		Local:            Local{IdleTimeout: 30 * time.Minute, AbsoluteTimeout: 12 * time.Hour},
 		JWT: JWT{
 			Algorithms: []string{"RS256"}, ScopesClaim: "scope",
 			RequestTimeout: 5 * time.Second, RefreshInterval: 15 * time.Minute,
@@ -123,6 +132,9 @@ func validate(resolved Config, environment, httpAddress string) error {
 	if environment == "production" && resolved.Mode != ModeJWT {
 		return fmt.Errorf("production requires JWT auth mode")
 	}
+	if resolved.Local.IdleTimeout <= 0 || resolved.Local.AbsoluteTimeout <= resolved.Local.IdleTimeout {
+		return fmt.Errorf("local admin session timeouts are invalid")
+	}
 	return nil
 }
 
@@ -179,6 +191,11 @@ func (defaults) Defaults(ctx context.Context) (config.Object, config.Control, er
 		config.FieldOf("mode", config.String(string(value.Mode))),
 		config.FieldOf("anonymousSubject", config.String(value.AnonymousSubject)),
 		config.FieldOf("anonymousScopes", stringsList(value.AnonymousScopes)),
+		config.FieldOf("local", config.ObjectValue(config.Object{
+			config.FieldOf("setupToken", config.String(value.Local.SetupToken)),
+			config.FieldOf("idleTimeout", config.Duration(value.Local.IdleTimeout)),
+			config.FieldOf("absoluteTimeout", config.Duration(value.Local.AbsoluteTimeout)),
+		})),
 		config.FieldOf("jwt", config.ObjectValue(config.Object{
 			config.FieldOf("issuer", config.String(value.JWT.Issuer)),
 			config.FieldOf("audience", config.String(value.JWT.Audience)),

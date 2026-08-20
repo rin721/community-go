@@ -19,6 +19,8 @@ go.work.sum
 # 构建和发布目录
 /bin/
 /build/
+/webui/node_modules/
+/webui/dist/
 /dist/
 /.tools/
 

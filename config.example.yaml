@@ -1,0 +1,275 @@
+# go-scaffold-template 全量配置示例。
+#
+# 本文件是带注释的字段参考，不是第二套启动权威。
+# 首次本地启动推荐：
+#   go run ./cmd/app config init
+#   go run ./cmd/app db migrate up
+#   go run ./cmd/app
+#
+# 如果手工复制本文件为 config.yaml，仍需先执行 db migrate up 再启动 Service。
+# 详细关系见 docs/configuration/README.md 与 docs/getting-started/local-development.md。
+#
+# 环境变量使用 APP_ 前缀，并以双下划线分隔嵌套字段。
+# 例如 APP_DATABASE__DRIVER、APP_DATABASE__DSN、APP_LOGGER__LEVEL。
+
+logger:
+  # 运行环境：development（开发）或 production（生产）。
+  environment: development
+  # environment: production
+
+  # 最低日志级别：debug、info、warn 或 error。删除本项时 development 默认 debug、production 默认 info；切换 production 时建议显式使用 info。
+  level: debug
+  # level: info
+  # level: warn
+  # level: error
+
+  # encoding 默认由 environment 推导：development 使用 console，production 使用 json。
+  # 只有需要覆盖环境默认值时才取消注释并保留一个选项。
+  # encoding: console
+  # encoding: json
+
+  # 普通日志输出目标；可使用 stdout 或文件路径。
+  outputPaths:
+    - stdout
+    # - ./logs/app.log
+
+  # Logger 内部错误输出目标；可使用 stderr 或文件路径。
+  errorOutputPaths:
+    - stderr
+    # - ./logs/app-error.log
+
+  # addCaller 默认由 environment 推导，当前 development 和 production 均为 true。
+  # addCaller: true
+  # addCaller: false
+
+  # addStacktrace 默认由 environment 推导：development 为 false，production 为 true。
+  # addStacktrace: false
+  # addStacktrace: true
+
+database:
+  # GORM 由 internal/kernel/app/database 在代码中明确选择；配置不切换底层实现。
+  # Driver 选择数据库协议：sqlite、postgres 或 mysql。
+  driver: sqlite
+  # driver: postgres
+  # driver: mysql
+
+  # SQLite 默认路径可直接用于本地启动；目录和文件权限、foreign keys、busy timeout 与 WAL 由包内治理。
+  dsn: .data/app.db
+
+  # PostgreSQL/MySQL 的 DSN 不应写入配置文件，改用环境变量，例如：
+  # PostgreSQL:
+  #   $env:APP_DATABASE__DSN = 'postgres://<user>:<password>@localhost:5432/<database>?sslmode=disable'
+  # MySQL:
+  #   $env:APP_DATABASE__DSN = '<user>:<password>@tcp(localhost:3306)/<database>?parseTime=true'
+
+  pool:
+    # 最大打开连接数；0 使用 database 包默认值，负数非法。
+    maxOpenConns: 25
+    # 最大空闲连接数；0 使用 database 包默认值，负数非法。
+    maxIdleConns: 5
+    # 单连接最大生命周期；0 使用 database 包默认值，负数非法。
+    connMaxLifetime: 30m0s
+    # 空闲连接最大保留时间；0 使用 database 包默认值，负数非法。
+    connMaxIdleTime: 5m0s
+
+  # 构造和就绪检查的超时时间；0 使用 database 包默认值，负数非法。
+  pingTimeout: 5s
+
+# Migration 只由 `go run ./cmd/app db migrate status|up` 使用；修改后需显式重新执行命令。
+migration:
+  lockTimeout: 15s
+  operationTimeout: 2m0s
+
+cache:
+  # 默认显式禁用，因此本地启动不依赖 Redis。启用后只允许 redis。
+  # 长期 Service 在完整 Application Generation 中重建 typed Client、L1 与 tag index；
+  # backend 或 namespace 变化只影响新 generation，旧请求排空后再释放旧代。
+  driver: disabled
+  # driver: redis
+
+  redis:
+    address: 127.0.0.1:6379
+    username: ""
+    # 密码不要写入配置文件，使用 APP_CACHE__REDIS__PASSWORD。
+    password: ""
+    database: 0
+    dialTimeout: 5s
+    readTimeout: 3s
+    writeTimeout: 3s
+    # 0 使用 go-redis 默认连接池计算；负数非法。
+    poolSize: 0
+    minIdleConns: 0
+    tagPrefix: "cache:tag:"
+    pingTimeout: 5s
+
+i18n:
+  # 未配置默认语言时使用 kernel/app/i18n 组件集中声明的默认语言 zh-CN。
+  defaultLanguage: zh-CN
+  # 消息文件目录统一为 ./locales，路径相对进程工作目录，支持 JSON、YAML 和 YML。
+  # 业务模块自有的 i18n 语言资源（如 Todo)经 i18n binding 声明并在此聚合。
+  # 新增或修改语言内容在对应业务模块 binding/i18n 或全局 ./locales 下维护。
+  messageFiles:
+    - ./internal/module/todo/binding/i18n/locales/messages.zh-CN.yaml
+    - ./locales/messages.zh-CN.yaml
+    # - ./locales/messages.en.json
+  # 缺失翻译策略：error 或 use-id。
+  missingBehavior: error
+  # missingBehavior: use-id
+
+storage:
+  # 默认使用受控本地目录；也可选择 disabled、s3、minio、local+s3 或 local+minio。
+  driver: local
+  local:
+    basePath: .data/storage
+    publicUrl: ""
+
+  s3:
+    # provider 可选 s3 或 r2。
+    provider: s3
+    endpoint: ""
+    region: us-east-1
+    bucket: ""
+    # 凭据不要写入配置文件，使用 APP_STORAGE__S3__ACCESSKEYID 和
+    # APP_STORAGE__S3__SECRETACCESSKEY。
+    accessKeyId: ""
+    secretAccessKey: ""
+    usePathStyle: false
+    publicBaseUrl: ""
+
+  minio:
+    provider: minio
+    endpoint: ""
+    region: us-east-1
+    bucket: ""
+    # 使用 APP_STORAGE__MINIO__ACCESSKEYID 和 APP_STORAGE__MINIO__SECRETACCESSKEY。
+    accessKeyId: ""
+    secretAccessKey: ""
+    usePathStyle: true
+    publicBaseUrl: ""
+
+todo:
+  # 标题按 Unicode 字符数校验，不能只包含空白。
+  titleMaxRunes: 120
+  # list 未显式指定 limit 时使用的数量。
+  defaultListLimit: 20
+  # list 单次查询允许的最大数量。
+  maxListLimit: 100
+
+execution:
+  # 后台任务执行能力（幂等 / 重试 / 执行记录）；当前默认 memory backend，自带降级 + 恢复治理 + 异步记录。
+  driver: memory
+  policies:
+    # 按模块命名策略：业务模块以 Execution.PolicyName 引用，实现模块间策略隔离。
+    # Todo「完成」用例使用 "todo"。
+    todo:
+      retryMaxAttempts: 3
+      retryInitialWaitMs: 50
+      retryMaxWaitMs: 500
+      timeoutMs: 2000
+
+scheduler:
+  # 调度默认关闭；只有模块通过 Contribution.Schedules 声明的任务才会被统一装配。
+  enabled: false
+  # cron 未单独声明时区时使用此 IANA 时区。
+  timezone: UTC
+  # 当前 Application Generation 内所有任务共享的并发上限。
+  maxConcurrency: 32
+  shutdownTimeout: 30s
+  # occurrence 的幂等占用与完成去重窗口。
+  occurrenceRetention: 24h0m0s
+  coordination:
+    # namespace + application identity + Task ID 组成 Redis 协调键；日志不输出原始 token。
+    namespace: go-scaffold-template:scheduler
+    leaseTTL: 30s
+    # renewInterval 必须至少留下两个续租安全窗口，即 renewInterval * 3 <= leaseTTL。
+    renewInterval: 10s
+    acquireTimeout: 2s
+    retryMin: 500ms
+    retryMax: 10s
+  # 这里只能覆盖代码已经声明的稳定 Task ID；未知 ID 会让候选 Generation 失败。
+  # tasks:
+  #   billing.reconcile:
+  #     enabled: true
+  #     unavailablePolicy: pause
+
+messaging:
+  # 默认关闭；业务模块只能通过 Contribution.Messages 声明 Contract/Binding。
+  enabled: false
+  publishConfirmTimeout: 5s
+  handoffTimeout: 30s
+  shutdownTimeout: 30s
+  recovery:
+    connectTimeout: 3s
+    initialBackoff: 500ms
+    maxBackoff: 30s
+  # 启用时由命名 providers 与逻辑 routes 显式映射；URI 通过环境配置注入，不写入示例。
+  providers: {}
+  routes: {}
+
+# development-anonymous 只允许 development + loopback HTTP；production 必须改用 jwt。
+auth:
+  mode: development-anonymous
+  anonymousSubject: development-loopback
+  anonymousScopes: [management:read, todos:read, todos:write]
+  jwt:
+    issuer: ""
+    audience: ""
+    jwksURL: ""
+    algorithms: [RS256]
+    scopesClaim: scope
+    requestTimeout: 5s
+    refreshInterval: 15m0s
+    refreshTimeout: 5s
+    leeway: 30s
+    maxResponseBodyBytes: 1048576
+
+http:
+  # HTTP listener 在进程 ready 前同步绑定；端口占用会使启动失败。
+  addr: 127.0.0.1:8080
+  readHeaderTimeout: 5s
+  readTimeout: 15s
+  writeTimeout: 30s
+  idleTimeout: 1m0s
+  maxHeaderBytes: 1048576
+  # 单个业务请求的 application deadline，不替代 socket timeout。
+  requestTimeout: 10s
+  maxRequestBodyBytes: 1048576
+  # 单进程并发上限；超出返回 503 和受控 Retry-After。
+  maxInFlight: 128
+  # 默认不信任 X-Forwarded-For；只有直连 peer 命中 CIDR 时才采用转发地址。
+  trustedProxyCIDRs: []
+  rateLimit:
+    requestsPerSecond: 100
+    burst: 200
+  cors:
+    # 空列表拒绝跨域；同源和非浏览器请求不需要加入。
+    allowedOrigins: []
+    allowedMethods: [GET, POST, PATCH, OPTIONS]
+    allowedHeaders: [Authorization, Content-Type, X-Request-ID]
+
+# management 使用独立 listener；业务 Router 不挂载这些路径。
+management:
+  addr: 127.0.0.1:9090
+  readHeaderTimeout: 2s
+  readTimeout: 3s
+  writeTimeout: 3s
+  idleTimeout: 15s
+  requestTimeout: 2s
+  maxHeaderBytes: 16384
+  maxRequestBodyBytes: 4096
+  maxInFlight: 16
+  # disabled、public 或 protected；diagnostics 始终要求 management:read。
+  metricsAccess: public
+
+observability:
+  serviceName: go-scaffold-template
+  tracing:
+    enabled: false
+    endpoint: ""
+    insecure: false
+    sampleRatio: 0.1
+    queueSize: 2048
+    batchSize: 256
+    batchTimeout: 5s
+    exportTimeout: 3s
+    shutdownTimeout: 5s

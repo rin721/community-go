@@ -1,217 +1,213 @@
-# Agent Rules：聚合项目级规则
+# Agents AI 辅助开发守则
 
-本文件是当前 `banyao-web` 聚合仓库的项目级长期规则。仓库包含 `backend/` 后台管理 / 控制台平台代码和 `frontend/` Nuxt 视频社区前端代码；所有开发、重构、修复、初始化、配置、WebUI、runtime、文档、测试、技能和工程治理任务都必须先遵守本文件。
+## 1. 定位
 
-## 适用范围
+本文件只约束 AI Agent 在本仓库中的工作行为，以及所有实现都应遵守的最低工程底线。
 
-- 本规则适用于根目录、`backend/`、`frontend/`、`.agents/skills`、脚本、文档、示例、测试、构建、部署和运行态资料。
-- 根目录 `AGENTS.md` 是本聚合仓库唯一项目级 Agent Rules 入口；子目录中的补充说明、工具提示或上游源码自带文件只能作为来源材料，不得覆盖、削弱或绕开本文件。
-- 后端规则由本文件的后端章节和根目录 `.agents/skills` 共同约束；路径、命令和验证必须按当前聚合目录定位到 `backend/...`。
-- 前端专项规则只在任务触碰 `frontend/**`、`backend/web/app/**`、前端构建/视觉/i18n/API client/组件体系，或用户明确要求开发前端时生效。
-- 若任务要求与本规则冲突，必须先指出冲突并确认处理方式。
+具体架构、模块划分、技术选型、接口设计和运行机制属于项目文档，统一从根目录 [README.md](README.md) 进入。`AGENTS.md` 不复制文档目录，不展开架构方案，也不代替 ADR。
 
-## 仓库定位
+当前项目处于早期代码落地阶段。以下规则是所有新增和修改代码必须守住的底线，但不代表蓝图中的目录、接口或能力已经全部实现。
 
-- `backend/` 是可运行、可扩展、可二次开发的开源后台管理 / 控制台平台底座。
-- `backend/` 主平台统一承载账号、权限、组织租户、配置、审计日志、API catalog、媒体、版本、系统管理、初始化和基础运营能力。
-- `frontend/` 是 Nuxt 4 前端优先的视频社区应用，覆盖首页发现、分类浏览、搜索、关注动态、视频播放、用户页、观看记录/收藏、上传草稿和设置中心。
-- 未来业务扩展优先通过 `backend/internal/modules` 新增模块，并通过后端 contract、前端 API client、页面、i18n、测试和文档同步落地。
-- 不得在任一前端凭空实现后端尚未暴露的生产能力；mock、fixture 和本地状态必须清楚标记为前端体验或开发辅助。
+## 2. 基本工作原则
 
-## 前后端协作边界
+- 先理解目标、现有事实和验收条件，再修改文件。
+- 先检查仓库状态，保护用户已有修改，不顺手处理无关内容。
+- 只修改完成当前任务必需的范围，不借机大规模重构。
+- 不猜测不存在的代码、接口、命令、测试结果或运行状态。
+- 不用占位实现、假数据、空分支或 TODO 冒充完成。
+- 对不可逆、破坏兼容或改变既有决策的事项，先说明影响并获得确认。
+- 文档、注释和交付说明以中文为主；标识符、协议名和第三方名称保留英文。
 
-- 前后端开发应保持并行推进，并通过清晰职责边界协作：后端负责社区业务模块实现、接口能力建设、数据结构定义、接口文档维护和 OpenAPI 契约输出；前端负责页面实现、组件封装、交互体验、响应式适配、接口封装、类型映射和数据展示对齐。
-- 前后端不得通过具体代码实现细节相互耦合；协作边界必须落在统一接口契约上，包括 OpenAPI 规范、接口文档、字段协议、状态码约定、错误结构、分页规则、鉴权规则和数据模型定义。
-- 后端新增或修改社区能力时，必须先让 route contract、稳定 DTO、错误/result、权限或鉴权规则、分页与状态语义、接口文档和 OpenAPI 输出形成可消费契约，再由前端进行 API client 封装、共享类型映射、数据绑定和页面状态对齐。
-- 前端不得依赖后端 service、repository、model 或数据库实现细节推断行为；后端也不得以页面局部实现替代公开协议定义。Mock、fixture 和本地状态只能模拟已声明或计划中的契约，并必须清楚标记为演示或开发辅助。
-- 前端必须通过环境变量支持“前端 Mock 数据模式”和“真实后端数据模式”切换；当前 Nuxt 入口以 `NUXT_PUBLIC_API_MOCK` 控制 mock API，以 `NUXT_PUBLIC_API_BASE_URL`、`NUXT_PUBLIC_AUTH_API_BASE_URL` 和 `NUXT_BACKEND_ORIGIN` 控制真实后端接入，不得在页面或 store 中散落不可配置的数据源切换逻辑。
-- 如果发现后端 HTTP 接口中存在硬编码数据、静态返回或伪造业务状态，应优先实现对应的真实业务模块、真实数据模型和真实持久化逻辑，而不是在后端继续实现 Mock。Mock 仅作为前端在尚未完成真实后端接入时的演示与调试能力存在，不应替代后端业务实现，也不应混入真实业务接口中影响联调判断。
-- 前后端真实联调以协议和文档为准完成数据对接，确保开发过程可并行推进、边界清晰、依赖可控，并最终让后端真实数据、OpenAPI 契约、前端类型和页面展示保持一致。
+## 3. 必要的代码红线
 
-## 强制规则
+本节只规定长期稳定的工程底线。具体边界和实现方式必须以项目文档及实际代码为准。
 
-- 交付面只保留当前架构需要的产物、入口、字段、示例、文档、逻辑和运行路径。
-- 发现与当前设计不一致的实现后，必须收敛到当前设计，并让交付面保持单一运行路径。
-- CLI、WebUI、runtime、配置加载和初始化流程不得各自维护重复逻辑；共享行为必须收敛到统一实现。
-- 修改代码前必须分析现状、调用链、依赖关系和影响边界；不得基于猜测修改代码。
-- 新增或改造能力前，必须先调研并优先复用 GitHub、npm registry、Go modules、Nuxt/Vue/React 生态和项目既有依赖中的成熟开源方案；只有在现有方案不满足架构边界、许可、安全、维护性、体积、性能或本仓库统一入口要求时，才可自研，并在实现或说明中写明取舍。
-- 复用第三方开源方案时，必须通过本仓库既有封装、配置、API client、route contract、i18n、错误/result、依赖锁和验证流程接入；不得用外部库绕开项目统一入口或复制一套平行实现。
-- 修改后必须同步更新代码、配置、文档、示例、测试、构建脚本和运行手册中的相关引用。
-- 修改后必须运行与变更范围匹配的构建、测试或静态检查；无法运行时必须说明原因和风险。
-- 大规模重构、发布候选或拆分 PR 前必须运行工作树收敛检查，确认没有本地配置、根级运行态目录、生成目录或测试报告混入交付面。
+### 3.1 依赖必须清晰
 
-## 配置优先
+- 依赖必须显式声明，不得通过全局变量、隐式初始化或运行时随意查找隐藏。
+- 高层业务规则不得直接依赖低层具体实现；抽象应由使用方根据需要定义，具体实现依赖并实现该抽象。
+- 禁止循环依赖，包括包之间、模块之间和运行时组件之间的循环。
+- 禁止反向依赖，即稳定的上层代码反过来导入易变的下层实现。
+- 禁止跨边界穿透，即绕过公开契约直接访问其他模块内部实现或基础设施细节。
+- 禁止为了绕过依赖问题而引入万能容器、巨型依赖对象、共享可变全局状态或无业务语义的事件转发。
 
-- 可变业务策略、品牌标识、产品维度、平台维度、认证安全策略、会话并发策略、Cookie/CSRF/header 名称、缓存开关、缓存 TTL、运行时默认值和部署差异不得硬编码在业务代码、前端页面、store、handler 或 service 中。
-- 上述可变项必须进入配置结构、默认配置、示例配置、环境变量覆盖、route contract、受控注册表或系统配置管理。
-- 排查初始化、联调、运行态问题或切换真实数据源时，如果 `.env`、`config.local.yaml`、`backend/configs/config.local.yaml` 等本地配置文件阻碍当前真实运行路径，且判断其可能来自历史旧配置，可以按当前配置结构和示例配置直接修正；修改前后必须说明原因、影响范围和不纳入提交的本地边界。
-- 根目录 README、项目 Logo 和仓库叙事可以保留项目代号；该例外不适用于运行时代码、配置默认值、API、日志、错误信息、前端生产文案或模块命名。
-- 后端新增或修改配置项时，必须同步 `backend/internal/config`、配置默认值、`backend/configs/*.example.yaml`、`backend/configs/examples/*.example.yaml`、`backend/deploy/config.production.example.yaml`、后端 system locale、相关文档和测试。
-- `backend` 的 `brand.productCode` 是主平台默认产品码来源；产品线、客户端类型、平台类型、组织上下文和缓存 key 维度必须通过配置、请求上下文或 contract 传递。
-- 稳定协议值、HTTP 方法、数据库列名、迁移回填值、枚举类型、错误码、编译期 contract 标识和包内私有常量可以保留在代码中，但不得承载可运营、可部署、可品牌化或可按产品线变化的策略。
+如果项目尚未定义相关边界，AI Agent 不得自行虚构分层和目录；应先在项目文档中提出边界方案并等待确认。
 
-## 后端架构边界
+### 3.2 成熟技术优先并经过边界封装
 
-- `backend/cmd/console` 是进程入口和命令声明，应保持轻薄。
-- `backend/internal/app` 是应用装配根，负责生命周期、重载、启动和依赖注入。
-- `backend/internal/modules` 是业务模块目录；现有模块保持 `model`、`repository`、`service`、`handler` 包名。
-- `service` 定义自己需要的最小接口，不导入 `pkg` 具体实现、`internal/app` 或同模块 `repository` 实现。
-- `handler` 只做输入输出适配，不承载业务规则。
-- `repository` 和模块 `infrastructure` 实现 service-local contract，并隔离 ORM、SQL、缓存、存储和外部协议细节。
-- 新增后端模块必须显式接入 `backend/internal/app/initapp`、HTTP route contract、前端 API client、页面、i18n、测试和文档；执行步骤以 `backend/docs/extension/module-blueprint.md` 为准。
-- `backend/pkg` 只封装可复用基础设施能力，不能依赖 `backend/internal/app` 或 `backend/internal/modules`。
-- `backend/types` 只承载平台级常量、错误和结果封装；业务 DTO、缓存 key、executor pool 名称和模块枚举应留在对应模块或基础设施包内。
+- 实现通用能力或接入外部系统前，必须先调研 Go 标准库、项目现有能力和维护成熟的第三方技术栈；存在合适方案时不得无理由重复造轮子。
+- 技术选型至少评估维护活跃度、许可证、安全记录、Go 版本兼容性、API 稳定性、可测试性、可观测性和替换成本，不能只依据流行度或示例代码多少。
+- 第三方库必须经过项目自有的薄封装或 Adapter 接入；业务调用方依赖项目定义的能力契约，不得直接依赖易变的第三方具体类型。
+- 封装必须职责单一、接口收敛并可独立测试，只暴露项目实际需要的能力；禁止把第三方 API 原样复制一遍，或制造无边界的万能 Wrapper。
+- 封装必须统一处理配置、错误转换、超时取消、资源释放和必要诊断，不能把这些责任重新泄漏给每个调用方。
+- 能力契约由使用方需求驱动，实现方依赖并满足该契约；禁止为了复用实现而让稳定调用方反向依赖具体技术包。
+- 新能力应通过明确的构造或装配位置注入使用，禁止调用方绕过封装自行创建第二套客户端、连接或实现。
+- 没有合适成熟方案时才允许自研；自研前必须说明现有方案不适用的证据、维护责任、风险边界和验证计划，重要能力应记录设计决策。
+- 禁止把独立能力堆入 `common`、`utils`、`helpers` 等无明确所有权的杂物包；包名和公开契约必须体现能力语义。
 
-## 错误、结果与状态
+“优先封装”不等于机械抽象。纯局部、语义简单、没有复用或替换需求且不跨技术边界的逻辑可以直接实现；不得为每个结构体强制创建只有一个实现、没有边界价值的接口。
 
-- 后端 API 使用 `backend/types/result` 的统一响应结构；handler 不得返回散落格式或裸字符串错误。
-- 用户可见错误必须使用稳定 i18n `messageKey`，字段级错误必须通过 `messageArgs` 保留字段上下文。
-- service 和 `pkg` 必须返回错误、结果和状态，由上层决定重试、降级、日志或响应；日志不能替代错误返回。
-- best-effort 清理、缓存降级或输出失败可以不阻断主流程，但必须不影响业务正确性，并在代码或文档中说明影响边界。
-- 生产 Go 代码中显式忽略错误、关闭、删除、写入、同步、发送或停止等结果时，必须优先返回错误或状态；确属 best-effort 的例外必须进入 `backend/scripts/check-error-result-boundaries.ps1` allowlist 并写明业务影响。
-- `backend/types/errors` 只允许平台级通用错误码；用户、角色、菜单、公告等模块私有错误必须留在模块内，通过 handler 映射为通用错误码和稳定 `messageKey`。
-- 前端统一通过所属项目的 API client 和错误归一化逻辑消费请求错误，不得在页面里重复实现不一致的错误处理。
+### 3.3 错误必须完整向上导出
 
-## HTTP 与 OpenAPI
+- 每个错误必须被当前层完整处理，或者保留原始原因并向上返回。
+- 禁止忽略错误、记录日志后返回成功、用默认值掩盖失败或只保留错误字符串。
+- 添加上下文时必须保留错误链，使调用方仍能识别原始错误类型。
+- 取消、超时和业务错误不得被统一改写成无法区分的内部错误。
+- 多项操作或资源清理同时失败时，必须保留主要错误和清理错误，不能只返回最后一个错误。
+- 错误、日志和诊断信息不得泄露密码、Token、密钥、完整 DSN 等敏感内容。
+- 只有真正决定处理策略的边界负责记录错误日志，避免同一错误被逐层重复打印。
 
-- `backend/internal/transport/http/contracts.go` 是主系统 HTTP route contract registry，是真实路由注册、`system_apis` catalog、权限同步和 `backend/docs/api/openapi.yaml` 生成的单一事实来源。
-- 新增或修改主系统 HTTP API 时，必须在同一份 route contract 中声明 method、Gin 风格 path、访问级别、权限、summary、请求/响应 DTO 和参数。
-- 新增或修改后台菜单项时，如果菜单项配置 `permission`，必须同时配置合法 `scope`，并确保该权限能从 route contract 派生的 API catalog 中找到同 `productCode + scope + permission` 的声明；不得只在菜单中孤立添加权限码。
-- 主系统 API handler 使用的请求体 DTO 必须是稳定 Go 类型；普通新增 API 不得使用匿名请求结构或随意的 `map[string]any`。
-- `backend/docs/api/openapi.yaml` 是生成产物，禁止手写维护；变更 route contract 后必须在 `backend/` 内运行 `go run ./cmd/console api openapi --output docs/api/openapi.yaml`。
-- `GET /openapi.yaml` 是公开运行时契约接口，不进入 `/api/v1` API catalog、权限同步、操作记录或 SPA fallback。
+### 3.4 资源和并发必须可控
 
-## 后台 React 前端
+- 创建资源的代码必须明确谁负责关闭；使用者不得擅自释放共享资源。
+- 启动的 goroutine 必须有所有者、停止信号和等待退出的方式。
+- I/O 和阻塞操作必须能够接收取消与超时信号。
+- 共享可变状态必须有明确的同步策略，不得依赖调用时序“碰巧安全”。
+- 启动、停止、重载和重试行为必须有确定边界，不得无限等待或无限重试。
 
-本节只在任务触碰 `backend/web/app/**` 或后端 React WebUI 交付面时生效。
+### 3.5 禁止硬编码和魔法值
 
-- `backend/web/app` 是 React 统一前端，覆盖公开页面、首次安装向导和 `/admin` 后台。
-- React 后台 API 统一通过 `backend/web/app/app/lib/api` 的 endpoint 表和 API client，不要散落新的 `/api/v1` 字符串。
-- 首次安装向导必须位于 `/setup/*`，安装步骤、字段、驱动、选项、测试能力和完成状态必须来自后端 setup schema 与 status API。
-- 用户可见文案必须维护在 locale 资源中，不要在页面、组件、store、配置、表单 schema、表格列或 SEO helper 中硬编码展示文本。
-- 前后端 canonical locale 统一为 `zh-CN`、`en-US`；API client 直接透传当前 locale 到 `X-Locale`。locale 入口负责把浏览器语言、本地存储值和外部输入归一化到 canonical locale，资源目录、后端 locale 和 API 传递保持单线。
-- 可见 UI 变更必须保持响应式、可访问焦点、键盘操作、触控尺寸、文本对比度和 `prefers-reduced-motion` 支持。
+- 密码、Token、密钥和私有证书不得写入源码、测试数据、日志或提交历史。
+- 地址、端口、路径、超时、重试次数、容量限制和环境差异值应通过受控配置提供，不得散落在业务代码中。
+- 业务状态、事件名称、错误码、协议字段、Header、Context Key 等具有稳定语义的值必须使用有归属的命名常量或专用类型。
+- 同一语义不得在多个位置复制字符串或数字；公共值由其业务所有者统一定义，使用方通过公开契约引用。
+- 默认值必须集中声明、经过校验并能被文档说明；禁止在读取失败时偷偷回退到代码中的隐藏默认值。
+- 有限取值集合优先使用专用类型和常量，并在边界进行合法性校验，避免依赖任意字符串约定。
+- 禁止建立无归属的全局 `constants` 包收纳所有常量；常量应靠近拥有该语义的模块。
 
-## Nuxt 前端规则
+“禁止魔法值”不等于禁止所有字面量。局部且语义显然的 `0`、`1`、空字符串、布尔值和只使用一次的格式文本可以直接保留；只有承载业务规则、协议约定、配置含义或被重复使用的值才需要命名和集中管理。
 
-本节只在任务触碰 `frontend/**`、前端视觉/交互/i18n/API/mock/构建，或用户明确要求开发前端时生效。
+### 3.6 语义必须明确
 
-- `frontend/` 使用 Nuxt 4、Vue 3、TypeScript、Pinia、`@nuxtjs/i18n`、`@nuxt/icon`、Material Web、本地 Aoi wrapper 和 pnpm；页面路由以社区产品体验、内容消费和用户业务流程为主。
-- `frontend/` 的登录、注册、资料库、通知、上传和设置只使用普通社区账号语义；账号 DTO、Pinia store、mock fixture、页面文案和 i18n 只暴露 `userId`、`sessionId`、`account`、`handle`、`displayName` 等社区字段。
-- 包管理器只能使用 pnpm，版本由 `frontend/package.json` 的 `packageManager` 固定；不得引入 npm、Yarn 或 Bun lockfile。
-- 业务页面和功能组件不得直接使用 `md-*` Material Web 元素；需要新能力时先扩展 `frontend/app/components/aoi/`。
-- Material Web 的注册与行为必须保持在 Aoi wrapper 和 `frontend/app/plugins` 后面，不得在业务页面散落实现细节。
-- 普通文本链接、卡片链接、标签链接和导航链接统一使用 `AoiLink`；按钮式链接使用 `AoiButton` 或 `AoiIconButton` 的 `to` / `href`。
-- 样式优先使用 `frontend/app/assets/css/tokens.css` 中的 CSS 变量和 `frontend/app/assets/css/main.css` 中的共享布局规则；不要在页面里制造孤立色值、尺寸或动效。
-- `frontend/app/composables/useAoiApi.ts`、`useAoiAuthApi()` 和 `useAoiApiTelemetry()` 是前端 API 与诊断入口；mock API、shared DTO 和 fixture 应贴近未来后端契约并清楚标记 mock 边界，真实模式必须能通过 status、setup 状态、端点清单和接口响应追踪到后端数据来源。
-- 浏览器本地 store 必须只在客户端安全 hydrate，并能从损坏的 `localStorage` 恢复；不得把凭据、私有 payload、文件字节或不可恢复的大对象写入持久化存储。
-- 上传草稿状态不要持久化文件字节，只保存文件元数据。
-- 新增共享用户可见文案时，同步维护 `frontend/i18n/locales/zh-CN.json`、`frontend/i18n/locales/en.json` 和 `frontend/i18n/locales/ja.json`。
-- 项目说明、开发约定和架构资料分别维护在根 `AGENTS.md`、后端 `backend/docs/**` 或对应 README；`frontend/` 只维护运行态页面、组件、样式、状态、API 接入和测试资料。
-- 可见 UI 变更必须检查桌面和移动端，至少覆盖 `1440x900` 与 `390x844` 或说明无法检查的原因。
-- 当前 `frontend/` 没有提交 lint 脚本；除非后续新增脚本或明确提供命令，不得声称已完成 lint 验证。
+- 命名必须表达业务含义和职责，禁止使用 `data`、`info`、`tmp`、`obj`、`flag` 等无法说明用途的模糊名称。
+- 时间、大小、数量和比例必须明确单位，优先使用能表达单位的类型；仅用基础数字时名称必须包含单位。
+- 禁止使用含义不清的布尔参数控制多个行为；应改为命名选项、专用类型或拆分后的明确操作。
+- `nil`、零值、空集合、缺失和禁用不得混为同一含义；输入、输出和配置必须定义各自语义。
+- 禁止用 `map[string]any`、无类型字符串或反射绕开本可明确表达的核心业务契约。
+- 公共接口必须让调用方能够判断成功、失败和边界情况，不能依赖阅读内部实现或猜测注释外的隐式约定。
+- 注释用于解释原因、约束和取舍，不得用长篇注释掩盖模糊命名、过度复杂或职责混乱的代码。
 
-## 前端视觉与组件体系
+### 3.7 注释必须准确且以中文为主
 
-本节只在任务触碰 `frontend/**` 或 `backend/web/app/**` 的可见 UI、组件、样式、设计 token、交互和视觉 QA 时生效。
+- 人工编写的源码注释、Go Doc、测试场景说明和维护备注必须以中文为主。
+- Go 标识符保持符合社区惯例的英文命名；导出符号的 Go Doc 应以符号名开头，再用中文说明职责，例如 `// ConfigLoader 负责加载配置候选。`
+- 注释应解释设计原因、业务约束、不变量、单位、边界条件、并发规则、资源所有权和异常处理，不得逐行复述显而易见的代码动作。
+- 协议名、标准术语、配置键、命令和第三方 API 可以保留英文；首次出现且含义不直观时应补充中文解释。
+- 修改代码行为时必须同步更新相关注释；已经失效、与实现矛盾或没有信息价值的注释必须删除。
+- TODO、FIXME 等临时标记必须说明原因、完成条件和可追踪的责任人或任务编号；不得用无归属 TODO 掩盖未完成实现。
+- 许可证声明、上游原文、协议固定文本和生成代码注释保持原样；禁止为了中文化而修改生成文件或法律文本。
+- 注释、示例和测试说明同样不得包含凭据、内部地址或其他敏感信息。
 
-- 后台页面使用密度适中的管理界面：稳定导航、标题区、筛选、表格、分页、弹窗/抽屉和明确状态。
-- 视频社区前端使用清晰内容层级、稳定媒体比例、可扫描的信息布局、低干扰动效和可靠的播放器/弹幕/富文本交互。
-- 不使用装饰性渐变球、玻璃拟态堆叠、大型营销卡片或后台工作流里的 stock-like 图片。
-- 文本必须安全适配中文、英文和日文；长英文单词、URL、代码片段和按钮文案要安全换行。
-- 图标控件必须有可访问名称；交互元素支持键盘、`:focus-visible`、触控尺寸和 `prefers-reduced-motion`。
-- 对话框、菜单、浮层、播放器控制、上传、裁剪、富文本和设置页必须具备加载、空状态、错误、禁用和恢复路径。
+### 3.8 单轨演进，禁止留存废弃实现
 
-## 模块化扩展边界
+- 新方案替换旧方案时，必须完成调用方迁移并删除旧代码、旧入口、旧配置、旧测试和失效文档；禁止默认保留新旧两套实现并行运行。
+- 禁止以 `old`、`legacy`、`deprecated`、`backup`、`copy` 等目录或文件名保存历史副本，也禁止用大段注释代码保留已废弃逻辑；代码历史由 Git 管理。
+- 禁止保留已经没有调用方的接口、Adapter、Feature Flag、配置键、环境变量、脚本、依赖和兼容分支。
+- 禁止新实现失败时静默回退旧实现；降级行为必须是当前设计中明确、可观测且经过验证的能力，不能成为旧代码长期存活的理由。
+- 架构和开发文档只描述当前有效设计；旧方案说明、过期示例和重复文档必须删除或更新。需要保留的决策历史进入 ADR，不得与当前规范并列成为第二套权威。
+- 替换完成后必须搜索旧符号、旧配置键、旧路径和旧依赖，确认没有残留引用，并通过当前实现对应的测试和检查。
+- 滚动发布、外部协议兼容或数据迁移确需短期双轨时，必须先明确兼容范围、责任人、截止条件、可观测指标和删除计划；未经确认不得自行增加永久兼容层。
+- 本规则只约束仓库内的实现和文档演进，不授权删除用户数据、审计记录、数据库迁移历史或任务范围之外的文件。
 
-- 后端业务扩展统一落在 `backend/internal/modules`、`backend/internal/app/initapp`、route contract、API catalog、权限、前端 API client、页面、i18n、测试和文档同步链路。
-- 受控配置示例、部署示例、前端生产 API 和文档教程只描述模块化扩展入口、系统配置和公开 HTTP contract。
-- 跨模块共享能力先沉淀到稳定基础设施、平台 contract 或受控注册表，不在业务模块之间复制运行时协议、权限模型或管理页面。
+### 3.9 日志必须可诊断且低敏
 
-## 文档约定
+- Service 生命周期、外部 I/O 边界、状态转换、可恢复异常和最终失败策略必须有结构化日志设计与验证；纯 Model、值对象和无副作用算法不要求机械打印。
+- Logger 必须通过项目自有契约和 composition 显式注入。production 不得使用 Noop 掩盖缺失依赖，不得直接创建 zap、标准全局 logger、第二套 sink 或共享可变全局 Logger。
+- Debug、Info、Warn、Error 必须按真实结果分级；development 默认允许 Debug 及以上，健康路径不得伪造 Warn/Error，取消和正常关停不得误记为 Error。
+- 只有决定退出、保留旧代、进入 degraded 或呈现协议结果的边界记录错误；下层保留错误链并向上返回，不逐层重复打印完整错误。
+- 日志只记录受控的 owner、phase、generation、稳定错误类型/代码和关联 ID；禁止记录凭据、完整 DSN、Authorization、Cookie、原始参数、完整 URL/query、body、配置快照、subject 或未经审查的错误文本。
+- 具体级别、字段、开发步骤与测试要求以 [开发日志规范](docs/development/logging.md) 为唯一当前 authority。
 
-- 文档应描述当前行为，而不是未来愿望。未来能力或缺失能力写入合适的 backlog、known gaps 或任务计划文档。
-- 文档、注释、README 和长期规则以中文为主；保留具体命令、文件路径和已验证事实。
-- 文档、规则、skill 和说明统一采用当前架构态表达；约束边界时直接写当前入口、模块路径、配置来源、数据来源和验证命令，避免把来源回溯式说明写成长期规则。
-- 如果终端输出出现乱码，先用 UTF-8 或原始字节检查文件，再重写文档。
-- 所有关键代码实现应具备 README 或说明文档，方便未来开发者快速理解和使用。
-- `frontend/` 的长期前端规则统一维护在本文件；前端目录内只保留与运行态实现直接相关的页面、组件、样式、状态、API 与测试资料。
+本节不规定具体生命周期框架和组件模型；这些内容由项目架构文档定义。
 
-## Skill 与 Agent 配置
+## 4. 研究、计划与变更确认
 
-- 根目录 `.agents/skills` 是本聚合仓库的主 skill 入口，覆盖后端维护、构建 CI、文档治理、模块开发、API 契约、WebUI/i18n、视觉 QA、提交规范和通用前端/设计技能。
-- `backend/.agents/skills` 是导入后端源码自带的上游副本；在本聚合仓库执行任务时优先使用根目录 `.agents/skills`。
-- README/AGENTS/docs/skill 元数据治理使用 `.agents/skills/aoi-admin-docs-governance`；阶段任务计划、进度追踪、验收证据索引和 PR 拆分计划使用 `.agents/skills/aoi-admin-task-planning`。
-- 后端平台化重构、最终验收审计、模块化扩展、扩展边界治理、README/AGENTS/docs 同步或发布前 readiness 任务，优先使用 `.agents/skills/aoi-admin-platform-maintenance`。
-- 构建系统、GitHub Actions、Dockerfile、发布包脚本、`backend/scripts/check-*.ps1`、`backend/scripts/release-preflight.ps1` 和质量门禁变更使用 `.agents/skills/aoi-admin-build-ci-governance`。
-- 新增业务模块使用 `.agents/skills/aoi-admin-module-development`；IAM 认证、权限、菜单、会话、审计和通知链路变更使用 `.agents/skills/aoi-admin-iam-governance`；HTTP API/权限/OpenAPI 变更使用 `.agents/skills/aoi-admin-api-contract-sync`。
-- React WebUI/i18n 变更使用 `.agents/skills/aoi-admin-webui-i18n`；可见 UI 截图、视觉 QA、响应式验收和页面证据使用 `.agents/skills/aoi-admin-visual-qa-governance`。
-- `frontend/` 的 Nuxt/Vue 页面、组件、交互、视觉和内容工作可使用 `.agents/skills/frontend-implementation`、`.agents/skills/design-system`、`.agents/skills/web-quality-check`、`.agents/skills/soft-modular-product-ui`、`.agents/skills/saas-dashboard-ux`、`.agents/skills/seo-content` 或 `.agents/skills/testing-qa`，但必须先遵守本文件的 `frontend/` 条件规则。
-- 新增或修改 `.agents/skills`、skill 元数据或 Agent 规则时，必须运行 `powershell -ExecutionPolicy Bypass -File scripts/check-agent-skills.ps1`。
+- 文档入口固定为 `AGENTS.md -> README.md -> docs/README.md -> 主题文档`。本文件只保留长期稳定的协作规则和工程红线，不承载具体架构、技术栈、目录清单或实现方案。
+- 一个主题只能有一个当前权威文档，其他位置只使用链接引用，不复制大段正文。
+- 当前有效的架构、技术栈和开发流程放在对应的 `docs/` 主题文档中；任务级变更记录统一放在 `docs/changes/<seq-num-name>/`。
+- `<seq-num-name>` 使用仓库内递增三位序号和语义名称。每项新变更固定包含 `README.md`、`research/`、`requirements.md`、`design.md` 和 `tasks.md`：
+  - `README.md` 标明变更范围、当前状态和阅读顺序。
+  - `research/` 保存本任务可检索、可复核的结构化研究档案，格式与复用方式见 [研究档案与报告](docs/research/README.md)。
+  - `requirements.md` 记录产品目标、范围、约束、非目标和验收标准。
+  - `design.md` 记录实现方式、接口与数据流、文件影响、失败语义和验证方案。
+  - `tasks.md` 使用稳定任务 ID，记录工作量、依赖、完成条件、确认状态、逐轮证据、Commit 和剩余风险。
+- 已完成变更仍保留在 `docs/changes/` 作为历史证据，但当前有效结论必须同步到权威主题文档；变更记录不得成为第二套现行规范。
+- 难以逆转的技术决策使用 ADR 记录，后续通过新 ADR 取代，不重写历史结论。
+- 必须区分目标设计、已确认决策和当前实现，不得把蓝图写成已完成功能。
 
-## 运行、构建、测试与检查
+### 4.1 统一门禁状态机
 
-后端常用命令在 `backend/` 内运行：
+所有仓库任务都必须先研究、再计划，不得把研究、计划和实现合并成一次未经审阅的动作：
 
-```powershell
-Push-Location backend
-go run ./cmd/console server --config=configs/config.example.yaml
-go build -mod=readonly -o ./tmp/console-server ./cmd/console
-go run ./cmd/console api openapi --output docs/api/openapi.yaml
-go test ./internal/config -count=1 -mod=readonly
-go test ./internal/transport/http -count=1 -mod=readonly
-go test ./... -count=1 -mod=readonly
-go vet ./...
-powershell -ExecutionPolicy Bypass -File scripts/check-local-tooling.ps1
-powershell -ExecutionPolicy Bypass -File scripts/check-open-source-readiness.ps1
-powershell -ExecutionPolicy Bypass -File scripts/check-doc-readmes.ps1
-powershell -ExecutionPolicy Bypass -File scripts/check-doc-links.ps1
-powershell -ExecutionPolicy Bypass -File scripts/check-entry-brand-convergence.ps1
-powershell -ExecutionPolicy Bypass -File scripts/check-plugin-removal.ps1
-powershell -ExecutionPolicy Bypass -File scripts/check-error-result-boundaries.ps1
-powershell -ExecutionPolicy Bypass -File scripts/check-worktree-convergence.ps1
-Pop-Location
+```text
+研究中 -> 研究门禁通过 -> 计划中
+  -> 纯文档实施 -> 验证 -> 完成
+  -> 待确认 -> 已确认 -> 非文档实施 -> 验证 -> 完成
 ```
 
-后端 React 前端命令从聚合根运行：
+- 用户初始请求即使包含“实现”“直接执行”“启动项目”等措辞，也只授权完成研究和计划，不能同时视为对尚未形成计划的确认。
+- 研究回答“事实和可选路径是什么”，计划回答“本任务准备改变什么”，实现只执行已经确认的任务 ID；三者的证据和状态不得混写。
+- 研究发现证据不足时继续研究；计划或实现发现会实质改变目标、公共接口、依赖选择、模块边界、数据迁移或外部副作用的新事实时，必须退回研究阶段，更新计划并重新确认。
+- 最终交付物只有文档、规则或文档目录调整的纯文档任务，可以在研究和计划门禁通过后直接完成并提交，不要求人为增加第二次确认。无副作用的只读分析可以只交付研究报告，不必创建变更目录。
 
-```powershell
-pnpm --dir backend/web/app typecheck
-pnpm --dir backend/web/app lint:i18n
-pnpm --dir backend/web/app test
-pnpm --dir backend/web/app test:e2e
-pnpm --dir backend/web/app build
-```
+除纯文档交付和无副作用的只读分析外，以下事项一律进入完整门禁并等待确认：
 
-Nuxt 前端命令从聚合根运行：
+- 新增、修改或删除源码、配置、脚本、依赖声明、生成物和测试实现。
+- 执行会改变工作区、Git、进程、数据库、部署环境或外部系统状态的命令，包括生成、迁移、启动、停止、部署和外部写入。
 
-```powershell
-pnpm --dir frontend typecheck
-pnpm --dir frontend build
-pnpm --dir frontend dev
-pnpm --dir frontend preview
-powershell -ExecutionPolicy Bypass -File scripts/check-frontend-community-boundary.ps1
-```
+不修改仓库和外部状态的读取、搜索、静态检查、构建或测试可以用于补充研究事实，但不得借此提前实施任务。
 
-聚合仓库规则与 skill 检查：
+### 4.2 研究阶段
 
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/check-agent-skills.ps1
-git diff --check
-```
+1. 从根 `README.md`、当前代码、配置、测试、运行入口、Git 状态和既有任务事实开始，先明确需要回答的研究问题，不以文档声明代替代码证据。
+2. 开始新研究前，先检索 `docs/**/research/**/metadata.yaml`；命中记录时检查 `status`、版本或 Commit 快照、验证日期、适用场景、失效触发器和替代关系，再决定复用、复核或新增记录。
+3. 研究围绕当前问题展开。内部事实优先追踪实际 composition root、定义、调用方、错误语义、资源所有权和验证；外部研究只在确有选型或语义缺口时开展，并优先使用官方源码、官方文档、标准、测试和维护中的主源。
+4. 当任务新增业务或应用模块、通用能力或外部系统接入时，必须先按项目文档识别现有能力、依赖边界、资源所有权、生命周期与基础契约适配性；项目没有可验证的接入路径，或现有契约无法表达真实需求时，停留在研究和计划阶段，先补齐项目级设计。具体组件、目录、策略和门禁由项目文档定义，本文件不展开。
+5. 每个变更至少建立一份 `research/Rxxx-<semantic-name>/metadata.yaml` 与 `report.md`。记录必须包含研究问题、证据定位与快照、事实、推断、适用与不适用场景、局限、有效期或刷新触发器，以及对本任务的影响；不得把框架能力、目标方案或个人判断写成项目已实现事实。
+6. 研究门禁只有在关键问题已有可复核证据、事实与推断明确分离、冲突证据已经解释、剩余未知不妨碍形成计划时才能标记通过。证据不足、易漂移事实未复核或关键边界未知时，不得进入计划阶段。
 
-聚焦变更时，先运行最近包或子系统的测试；跨 package、配置、HTTP、数据库、共享类型、WebUI 静态托管或构建路径时运行完整测试套件。
+研究档案是特定快照的证据，不是第二套当前规范。过时记录通过 `supersedes`/`superseded_by` 保留历史并单轨替代，不直接抹除；当前行为仍以代码和权威主题文档为准。
 
-## 提交前与发布前检查
+### 4.3 计划阶段
 
-- 提交或创建 PR 前必须运行 `git status --short` 和 `git diff`，确认没有混入无关文件、用户改动、运行态数据、本地配置或生成目录。
-- 自动提交前必须只暂存本次任务相关文件，不得使用未经审查的 `git add .`；若存在无关用户改动、验证失败、密钥/本地配置/运行态数据混入、合并冲突或用户要求不提交，必须停止自动提交并说明原因。
-- 提交信息必须遵循 Conventional Commits：`<type>(<scope>): <subject>`。允许的 `type` 包括 `feat`、`fix`、`refactor`、`docs`、`test`、`build`、`chore`、`style`；`subject` 使用英文祈使句，不以句号结尾。
-- 涉及入口、模块路径、二进制名、Docker、CI、发布包、部署脚本或品牌默认值时，必须运行 `backend/scripts/check-entry-brand-convergence.ps1`。
-- 涉及模块扩展边界、受控配置示例、前端后台入口或生产交付面 API 路径时，必须运行 `backend/scripts/check-plugin-removal.ps1`。
-- 涉及 service、repository、infrastructure、`pkg`、CLI 运行态、清理逻辑或错误/结果返回规则时，必须运行 `backend/scripts/check-error-result-boundaries.ps1`，确认没有新增无说明的吞错或忽略状态。
-- 当前机器无法运行 Docker 或 Bash 时，不得宣称容器构建和容器烟测已完成；必须在目标环境或 CI 使用后端 smoke 脚本或 CI 补证。
+1. 研究门禁通过后，在 `docs/changes/<seq-num-name>/` 完成 `requirements.md`、`design.md` 和 `tasks.md`，并在需求、设计和任务中引用支撑结论的研究 ID；非纯文档任务把状态标为“待确认”，纯文档任务明确记录其例外和直接实施范围。
+2. 计划阶段只允许修改该任务文档和必要的文档导航；不得修改实现文件，不得执行状态变更命令，也不得暂存或提交计划文档。
+3. 对非纯文档任务，Agent 必须向用户提交计划报告，明确研究结论、目标、验收标准、范围、接口与文件影响、风险、未决项和任务清单，然后停止工作并等待确认；纯文档任务可以按 4.1 的例外继续完成。
+4. 计划报告之前的请求、其他任务的确认、历史消息中的概括授权都不能跨任务复用。
 
-## 输出要求
+### 4.4 确认与实施阶段
 
-完成涉及修改的任务后，最终输出必须包含：问题原因、修改文件、删除内容、最终设计、验证结果。不得只说明“已修复”或“已完成”。
+- 只有研究门禁已经通过，且用户在计划报告之后的后续消息中明确确认当前任务及当前计划，才能把任务状态改为“已确认”并开始实施。
+- 用户要求调整计划时，先更新任务文档并重新提交报告；不得把修改意见本身视为实施确认。
+- 新证据推翻研究结论时必须先返回研究阶段；需求目标、公共接口、依赖选择、模块边界、数据迁移或外部副作用发生实质变化时，必须回到“待确认”状态并重新获得确认。已确认范围内的普通实现细节不重复确认。
+- 实施只能覆盖已确认的任务 ID。发现范围外问题时记录风险，不顺手实施。
+- 用户已选择计划阶段不单独提交：确认后，任务文档、实现、测试和权威文档同步结果作为同一任务变更提交；用户明确要求不提交时除外。
+- 纯文档任务如果最终交付物只有研究、文档、规则或文档目录调整，可以按 4.1 的例外完成并提交；一旦包含非文档实现，必须使用完整门禁。
+- 文档必须随真实实现同步演进；实现已经替换时，不得继续保留旧设计作为当前使用说明。
+
+## 5. AI Agent 执行纪律
+
+- 从根 `README.md` 进入项目文档，按当前任务读取必要内容。
+- 修改前检查 Git 状态、目标文件、既有研究、现有计划和用户已有改动。
+- 执行非纯文档变更前，必须确认当前任务目录存在、研究门禁已通过、计划状态为“已确认”，且本轮动作属于已确认任务 ID；任一条件不满足都返回对应的研究或计划阶段。
+- 保持变更聚焦；发现依赖、边界或错误处理问题时解决根因，不继续叠加临时补丁。
+- 替换现有能力时先识别全部调用方和配套资产，迁移完成后在同一任务中清理旧实现。
+- 架构或长期技术选择发生变化时更新项目文档或 ADR，不扩写本文件。
+- 修改后审阅完整 Diff，并执行与实际变更相匹配的验证。
+- 尚无代码时只执行适用的文档验证，不得宣称 Go 构建或测试已经通过。
+- 如实报告验证结果、未执行项和剩余风险。
+- 只提交本任务涉及的文件；用户明确要求不提交时除外。
+
+## 6. 完成标准
+
+只有当需求已满足、必要验证已完成且没有隐瞒失败或未决事项时，AI Agent 才能声明任务完成。
+
+发现以下任一情况时不得声明完成：
+
+- 通过隐藏依赖、跨边界调用或全局状态临时跑通。
+- 存在循环依赖或依赖方向与已确认边界冲突。
+- 错误、取消或资源清理结果被忽略。
+- 新实现已经启用但旧代码、旧入口、旧配置或失效文档仍无明确理由地留在仓库中。
+- 只验证成功路径，或把未执行的检查描述为已通过。
+- 文档声称的能力在代码中尚不存在。
+- 未完成研究档案、研究门禁未通过、未建立任务文档、未获得当前计划确认或越过确认范围就开始非文档实施。

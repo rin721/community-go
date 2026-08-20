@@ -1,93 +1,64 @@
-# 部署与自动化热重启指南
+# go-scaffold-template
 
-本项目支持通过 Docker 容器化部署，并且集成了 Git Webhook 自动部署与零停机热重启机制。
+`go-scaffold-template` 是一个 Go HTTP 服务脚手架，用显式 composition root 串联配置、日志、数据库、迁移、HTTP、management、后台任务、定时调度、消息系统和业务模块。当前默认应用包含 Todo 垂直切片，可作为本地开发、模块扩展和交付流程的参考实现。
 
-## 一、 构建 Docker 镜像
+## 五分钟本地启动
 
-在项目根目录下执行以下命令构建全栈镜像：
+前置条件：安装仓库要求的 Go 版本，并在仓库根目录执行命令：
 
-```bash
-# 1. 克隆项目到 /tmp/aoi 目录
-git clone https://github-com-gh.helloworlds.eu.org/rin721/community-go.git /tmp/aoi
-
-# 2. 进入目录并执行 Docker 构建
-cd /tmp/aoi && docker build -t aoi:latest .
-
-# 3. 构建成功后，删除临时目录
-rm -rf /tmp/aoi
+```powershell
+go run ./cmd/app config init
+go run ./cmd/app db migrate up
+go run ./cmd/app
 ```
 
----
+启动成功后，日志中应能看到 `application generation started` 与 `application ready`。默认 management readiness 地址：
 
-## 二、 部署与运行容器（动态注入环境变量）
-
-启动容器时，您可以通过 `-e` 参数动态传入部署相关的环境变量，程序将自动覆盖默认配置文件中的对应选项。
-
-### 1. 核心部署环境变量说明
-
-| 环境变量名 | 作用描述 | 示例值 |
-| :--- | :--- | :--- |
-| **`DEPLOY_ENABLED`** | 是否启用自动部署与热启动模块 | `true` (启用) / `false` (禁用) |
-| **`DEPLOY_ENV`** | 部署环境 | `production` (执行部署) / `development` (仅记录日志) |
-| **`DEPLOY_REPO_URL`** | 部署拉取的公开/私有 Git 仓库克隆地址 | `https://github.com/username/project.git` |
-| **`DEPLOY_BRANCH`** | 监听并同步的 Git 目标分支 | `main` / `master` |
-| **`DEPLOY_WEBHOOK_SECRET`** | Webhook 校验签名密钥（安全校验使用） | `your_webhook_secure_secret_string` |
-
-### 2. 容器启动命令示例
-
-运行以下命令部署容器：
-
-```bash
-docker run -d \
-  --name aoi \
-  -p 9999:9999 \
-  -e DEPLOY_ENABLED=true \
-  -e DEPLOY_ENV=production \
-  -e DEPLOY_REPO_URL="https://github-com-gh.helloworlds.eu.org/rin721/community-go.git" \
-  -e DEPLOY_BRANCH="main" \
-  -e DEPLOY_WEBHOOK_SECRET="123456" \
-  -v /root/.aoi:/app \
-  --restart unless-stopped \
-  aoi:latest
+```powershell
+Invoke-RestMethod http://127.0.0.1:9090/readyz
 ```
 
-> [!NOTE]
-> * `-v /root/.aoi:/app`：将宿主机的目录挂载到容器中，使得 Git pull 同步的代码和编译出的新二进制能够持久化，并且支持热重载和状态文件落盘。
+停止服务使用 `Ctrl+C`，正常退出会打印 draining/stopped 相关日志。
 
----
+如果本地已经存在 `config.yaml`，`config init` 会拒绝覆盖。不要为了“重新生成”随手使用 `--force`；需要对比时先输出到临时路径，详细关系见 [本地启动指南](docs/getting-started/local-development.md) 与 [配置说明](docs/configuration/README.md)。
 
-## 三、 自动部署常见问题
+## 项目手册
 
-### 1. Git 同步失败 (exit status 128)
+完整文档从 [docs/README.md](docs/README.md) 进入，按项目真实使用路径连续组织：认识项目、启动项目、使用能力、开发业务、接入基础设施、理解架构、扩展能力、调试排障、运行维护和深入底层设计。
 
-* **根本原因**：运行工作路径（Working Directory）不匹配。
-  后端服务在寻找 `.git` 目录时，是用配置的 `workDir` + `/.git` 去判断的。如果配置的 `workDir` 是 `.` 或空，程序会以后端服务进程当前的启动工作目录为准：
-  * **如果后端服务是在 `backend` 目录下启动的**（例如当前工作目录是 `/app/backend`）：
-    程序会去检测是否存在 `/app/backend/.git`。但实际上你的 `.git` 存放在根目录 `/app/.git`。
-    结果：程序判定该目录没有 `.git`，决定执行 `git clone` 到当前目录 `/app/backend`，由于 `/app/backend` 已经有文件，导致 Git 报错退出。
-  * **如果后端是在 `/app` 启动的**：
-    请检查你在 `config.yaml`（或环境变量）中配置的 `workDir` 到底指向了哪里。如果配置成了相对路径或者指向了错误的子目录，也会导致判定失败。
+| 阅读节点 | 入口 |
+| --- | --- |
+| 本地启动与首次迁移 | [本地启动指南](docs/getting-started/local-development.md) |
+| 配置来源、环境变量和默认配置生成 | [配置说明](docs/configuration/README.md) |
+| 应用模块、日志、执行、调度和消息开发 | [开发指南](docs/development/README.md) |
+| Kernel、Application Generation 和模块边界 | [架构说明](docs/architecture/README.md) |
+| API 路由与契约生成结果 | [API 文档](api/README.md) |
+| 构建、迁移、发布、复制、安全、排障和运行维护 | [运维文档](docs/operations/README.md) |
+| 研究快照与任务证据 | [研究档案](docs/research/README.md)、[变更记录](docs/changes/README.md) |
 
-* **🛠️ 解决方案**：
-  请检查并修改自动部署的配置文件（通常在 `config.yaml` 的 `deploy` 部分，或对应的环境变量 `APP_DEPLOY_WORK_DIR`）：
-  将 `workDir` (工作目录) 修改为容器内项目的根目录绝对路径：
-  ```yaml
-  deploy:
-    work_dir: "/app"  # 或者是你容器内拥有 .git 文件夹的项目根目录绝对路径
-  ```
-  配置为绝对路径 `/app` 后，程序就会正确检测到 `/app/.git`存在，后续的 Webhook 就会正确走 `git fetch` 和 `git reset --hard` 流程了。
+## 架构摘要
 
-### 2. 编译失败 (go build ... exit status 1) 但手动执行编译正常
+应用入口 `cmd/app` 只负责进程 I/O、基线日志和信号处理；`internal/composition` 显式装配 Bootstrap CLI、migration one-shot 与长期 Service。长期 Service 使用 Application Generation 管理配置快照、资源复用、listener、定时任务与消息 Consumer 准入交接、ready 状态和优雅停止。
 
-* **根本原因**：Go 编译执行路径与 `go.mod` 所在目录不匹配。
-  在聚合仓库中，Go 的核心代码和 `go.mod` 位于子目录 `backend/` 下。如果部署配置中的 `workDir` 设为根目录 `/app`，而配置的编译命令为 `go build -mod=readonly -o ./console-server ./cmd/console`，Go 将因为在根目录下找不到 `go.mod` 文件而编译失败并返回 `exit status 1`。
+配置严格按 owner 注册，未知配置节会在资源副作用前失败；`config init`、`db migrate` 和长期 Service 必须识别同一套应用配置节，避免“生成的配置自己不能启动”的漂移。
 
-* **🛠️ 解决方案**：
-  在部署配置文件（如 `config.yaml` 的 `deploy` 部分，或对应的环境变量 `APP_DEPLOY_BUILD_CMD`）中修改 `buildCmd` 编译命令，在执行构建前先切换到 `backend/` 目录下：
-  ```yaml
-  deploy:
-    # 切换到 backend 目录后再执行 go build
-    build_cmd: "cd backend && go build -mod=readonly -o ./console-server ./cmd/console"
-  ```
-  或者将 `work_dir` 直接指定为包含 `go.mod` 的主目录（例如 `/app/backend`）。
-
+日志是开发必备能力。开发阶段默认可见 debug 级别日志，业务和基础设施代码必须遵守 [开发日志规范](docs/development/logging.md)，在真正决定处理策略的边界记录，避免泄露凭据或重复打印同一错误链。
+
+## 文档权威边界
+
+- 当前怎么启动、配置、开发和运维，以根 README 与 [项目手册](docs/README.md) 下的主题文档为准。
+- `docs/changes/**` 保存任务级研究、计划、实施和验证证据，不替代当前主题文档。
+- `docs/research/**` 保存阶段性研究快照，不把目标设计写成已经实现的能力。
+- `pkg/**/README.md` 与 `internal/**/README.md` 是局部包说明，由主题文档链接进入，不作为全局阅读入口。
+- 新增或修改能力时，先更新对应主题 authority；局部 README 只保留本包或本模块的实现边界和到 authority 的链接。
+
+## License
+
+Copyright 2026 Rin721.
+
+This project is licensed under the Apache License 2.0.
+
+You are free to use, modify, distribute, and use this project
+for commercial purposes subject to the terms of the license.
+
+See [LICENSE](./LICENSE) and [NOTICE](./NOTICE) for details.

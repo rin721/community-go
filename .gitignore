@@ -1,93 +1,55 @@
-# Binaries
+# Go 编译产物
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
+
+# Go 测试产物
+*.test
+*.out
+coverage/
+coverage.*
+profile.*
+
+# Go 工作区文件
+go.work
+go.work.sum
+
+# 构建和发布目录
 /bin/
 /build/
+/dist/
+/.tools/
 
-# Test binary
-*.test
+# 临时文件和缓存
+/tmp/
+/temp/
+*.tmp
+*.log
 
-# Output of the go coverage tool
-*.out
-*.tsbuildinfo
-coverage.html
+# 本地环境配置
+.env
+.env.*
+!.env.example
 
-# Dependency directories
-/vendor/
-
-# Python bytecode
-__pycache__/
-*.py[cod]
-
-# Go workspace file
-go.work
+# 本地配置文件
+/config.yaml
+/config.yml
+/config.json
+/.data/
+!config.example.yaml
 
 # IDE
 .idea/
 .vscode/
 *.swp
 *.swo
-*~
 
-# OS
+# Visual Studio Code 本地调试配置
+__debug_bin*
+
+# 操作系统生成文件
 .DS_Store
 Thumbs.db
-
-# Logs
-*/logs/
-*.log
-
-# Environment files
-*/.env
-*/.env.local
-*/.env.*.local
-
-# Config overrides
-*/configs/config.local.yaml
-*/configs/config.yaml
-
-# Temporary files
-/tmp/
-*/tmp/
-*/data/
-*.tmp
-
-# ide
-.idea
-
-# git push
-commit.txt
-
-# ai ide
-.kiro
-.trae
-
-# React web app
-*/web/app/node_modules/
-# */web/app/build/
-*/web/app/dist/
-*/web/app/.react-router/
-*/web/app/coverage/
-*/web/app/playwright-report/
-*/web/app/test-results/
-
-
-
-*/node_modules
-*/.nuxt
-*/.output
-.data
-.cache
-dist
-coverage
-*.local
-.env
-.env.*
-!.env.example
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
+Desktop.ini

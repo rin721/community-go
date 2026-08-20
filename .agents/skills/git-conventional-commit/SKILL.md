@@ -1,6 +1,6 @@
 ---
 name: git-conventional-commit
-description: "Use this skill at the end of every repository task that changes files, before the final response, to review the worktree, run scope-appropriate validation, stage only intended files, and create a Conventional Commits git commit. Triggers on task completion, git commit, commit message, Conventional Commits, finishing implementation, documentation changes, refactors, fixes, tests, and project-maintenance work."
+description: "Use this skill at the end of every repository task that changes files, before the final response, to review the worktree, run scope-appropriate validation based on the project's technology stack, stage only intended files, and create a Conventional Commits git commit. Trigger this skill whenever a task is completed, finished, done, or ready to commit. Keywords: git commit, git add, git push, conventional commits, commit changes, stage files, save changes, task completion, finishing implementation, documentation changes, refactoring, fixing bugs, testing, final response, ending turn."
 ---
 
 # Git Conventional Commit
@@ -9,24 +9,34 @@ description: "Use this skill at the end of every repository task that changes fi
 
 ## 收尾流程
 
-1. 读取当前状态：
+1. **读取当前状态**：
    - `git status --branch --short`
    - `git diff --stat`
-   - `git diff --check`
-2. 按变更范围运行验证：
-   - 仅文档 / Agent 规则 / skill：至少运行 `git diff --check`；涉及发布、入口、插件、品牌或 readiness 文档时追加对应检查脚本。
-   - Go 代码：运行受影响包测试；跨配置、HTTP、模块、types 或 app 装配时运行 `go test ./... -count=1 -mod=readonly`。
-   - 前端代码：运行 `pnpm --dir web/app typecheck`；用户可见文案追加 `pnpm --dir web/app lint:i18n`；可见 UI 或流程变更按风险追加测试、构建或视觉 QA。
-   - 发布候选、阶段收口、大规模重构：运行 `powershell -ExecutionPolicy Bypass -File scripts/release-preflight.ps1`。
-3. 审查 diff，确认没有混入：
+   - `git diff --check` (检查是否有悬挂空格、合并冲突标记等)
+
+2. **按项目技术栈动态运行验证**：
+   识别当前工作区的主要配置文件并运行相应的构建、测试或格式化检查：
+   - **Rust (Cargo.toml)**: 运行 `cargo check`；如果是核心热路径或业务修改，运行 `cargo test`。
+   - **Go (go.mod)**: 运行 `go test ./...` 校验受影响的包或全量测试。
+   - **Node.js (package.json)**: 运行适用的 `npm/pnpm/yarn test` 或 `typecheck` / `lint` 校验。
+   - **Python (pyproject.toml/requirements.txt)**: 运行对应的 pytest / linter。
+   - **其他技术栈**: 运行该技术栈对应的标准构建、单元测试或格式化工具。
+   - **仅文档 / 规则变更**: 至少运行 `git diff --check`，无需进行复杂的编译 and 测试验证。
+
+3. **审查 diff，确认没有混入**：
    - 用户未要求的文件。
-   - `.env`、本地配置、运行态数据、生成目录、测试报告。
-   - 未验证的依赖锁文件、构建产物或临时文件。
-4. 只暂存本次任务相关文件：
-   - 使用显式路径 `git add <path...>`。
-   - 不使用 `git add .`，除非本次任务明确覆盖整个工作树且已审查全部 diff。
-5. 生成 Conventional Commits 信息并提交。
-6. 提交后复查：
+   - 敏感信息（如 `.env`、密码、密钥、个人凭证等）。
+   - 本地配置、运行态临时数据、构建生成目录或测试报告。
+   - 未经验证的依赖锁文件、编译产物或编辑器临时文件。
+
+4. **只暂存本次任务相关文件**：
+   - 使用显式路径 `git add <path...>` 进行精确暂存。
+   - 避免直接使用 `git add .` 或 `git add -A`，除非任务明确覆盖整个工作树且已逐行审查所有 diff。
+
+5. **生成 Conventional Commits 信息并提交**：
+   - 执行 `git commit -m "<message>"`。
+
+6. **提交后复查**：
    - `git status --branch --short`
    - `git log -1 --oneline`
 
@@ -40,65 +50,52 @@ description: "Use this skill at the end of every repository task that changes fi
 
 允许的 `type`：
 
-- `feat`：新增用户可见能力、模块、API、页面或脚本能力。
-- `fix`：修复缺陷、漂移、错误行为或验证失败。
-- `refactor`：不改变外部行为的结构调整。
-- `docs`：仅文档、README、AGENTS 或注释说明。
-- `test`：新增或调整测试。
-- `build`：构建、依赖、CI、发布包或 Docker 相关。
-- `chore`：维护性任务、脚本清理、仓库治理。
-- `style`：格式化或纯样式调整，不改变行为。
+- `feat`：新增用户可见能力、模块、API、页面或核心业务脚本。
+- `fix`：修复缺陷、错误行为或验证失败。
+- `refactor`：不改变外部行为的代码结构调整、重构。
+- `docs`：仅文档、README、AGENTS.md、注释或设计说明的变更。
+- `test`：新增、调整或修复测试用例。
+- `build`：构建系统、依赖管理、编译选项、Docker、CI 或流水线配置变更。
+- `chore`：例行维护、脚本清理、辅助工具升级、仓库治理。
+- `style`：格式化、空白字符修正、纯样式调整（不改变代码逻辑）。
+- `perf`：提升性能或优化资源占用的变更。
+- `ci`：持续集成配置与脚本变更（如 GitHub Actions、GitLab CI）。
 
-`scope` 使用稳定目录或能力名，例如：
+`scope` 使用受影响的稳定目录、模块名或特性名称，例如：
+- `core`, `api`, `web`, `config`, `docs`, `agents`, `skill`, `types`, `auth`, `infra` 等。
+- 应尽量精简，且为英文小写。
 
-- `docs`
-- `agents`
-- `skill`
-- `api`
-- `web`
-- `iam`
-- `system`
-- `announcements`
-- `release`
-- `config`
-- `types`
-
-`subject` 使用英文祈使句，首字母小写，不以句号结尾，长度尽量控制在 72 个字符内。
+`subject` 规则：
+- 使用英文祈使句（如 `add feature` 而非 `added feature` 或 `adds feature`）。
+- 首字母小写，结尾不加句号。
+- 长度尽量控制在 72 个字符以内。
 
 示例：
-
-```text
-docs(release): clarify evidence capture workflow
-feat(announcements): add public announcement listing
-fix(api): return validation errors with field context
-chore(skill): add conventional commit workflow
-```
+- `docs(agents): update dynamic backpressure guidelines`
+- `feat(auth): support token-based session expiration`
+- `fix(infra): prevent resource leak in pool destruction`
+- `refactor(core): decouple connection manager ports`
 
 ## 自动提交边界
 
 必须自动提交：
-
-- 本次任务修改了文件。
-- 验证已按风险范围完成，或无法运行的原因已经明确记录。
+- 本次任务确实修改了文件且需要保存。
+- 验证已按风险范围完成，或无法运行的原因（如环境缺口）已经明确记录。
 - diff 只包含本次任务相关内容。
 
 不得自动提交：
+- 用户明确要求不要提交、只查看、只分析或只给出方案。
+- 工作区存在与本次任务无关的用户本地修改，且无法可靠分离。
+- 自动化验证失败，且失败不是已知可接受的环境问题。
+- diff 中包含敏感数据（密钥）、本地配置或临时生成文件。
+- 当前处于未完成的合并（merge）、变基（rebase）或冲突未解决状态。
 
-- 用户明确要求不要提交、只查看、只分析或只给方案。
-- 工作区存在与本次任务无关的用户改动，且无法可靠分离。
-- 验证失败且失败不是已明确接受的环境缺口。
-- diff 中包含密钥、本地配置、运行态数据、生成目录或未解释的大型产物。
-- 当前处于未完成的合并、rebase、cherry-pick 或冲突状态。
-
-遇到不得自动提交的情况时，停止提交并在最终回复中说明原因、已验证内容和建议的下一步。
+当符合“不得自动提交”的条件时，请停止提交操作，并在最终回复中说明原因、已验证的内容以及建议的后续操作。
 
 ## 最终回复要求
 
-完成提交后，最终回复必须包含：
-
-- 提交 hash 与提交信息。
-- 主要修改文件。
-- 已运行验证命令和结果。
-- 如果仍有未提交变更，说明原因。
-
-在 Codex 桌面环境中，成功暂存和提交后按宿主规则输出对应 `::git-stage{...}` 与 `::git-commit{...}` 指令。
+完成提交后，回复中必须包含：
+- 提交的 commit hash 与完整的 commit message。
+- 主要修改的文件列表。
+- 已运行的验证命令及结果。
+- 如果仍有未暂存或未提交的变更，清晰说明原因。

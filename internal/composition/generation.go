@@ -9,7 +9,6 @@ import (
 	"sync"
 	"sync/atomic"
 
-	admincontract "github.com/rin721/go-scaffold-template/internal/admin"
 	"github.com/rin721/go-scaffold-template/internal/kernel"
 	cacheapp "github.com/rin721/go-scaffold-template/internal/kernel/app/cache"
 	databaseapp "github.com/rin721/go-scaffold-template/internal/kernel/app/database"
@@ -31,6 +30,7 @@ import (
 	configbinding "github.com/rin721/go-scaffold-template/internal/module/todo/binding/config"
 	migrationbinding "github.com/rin721/go-scaffold-template/internal/module/todo/binding/migration"
 	httptransport "github.com/rin721/go-scaffold-template/internal/transport/http"
+	webuicontract "github.com/rin721/go-scaffold-template/internal/webui"
 	"github.com/rin721/go-scaffold-template/pkg/clock"
 	"github.com/rin721/go-scaffold-template/pkg/httpx"
 	"github.com/rin721/go-scaffold-template/pkg/i18n"
@@ -84,7 +84,7 @@ type applicationGeneration struct {
 	module            todo.HTTPModule
 	authModule        auth.Module
 	opsModule         ops.Module
-	adminCatalog      admincontract.Catalog
+	webuiCatalog      webuicontract.Catalog
 	participants      []supervisor.Participant
 	route             *httpx.PreparedRoute
 	server            *httpx.Server
@@ -293,7 +293,7 @@ func (f *applicationGenerationFactory) Prepare(
 		return abort(err)
 	}
 	generation.authModule, err = auth.NewHTTP(auth.Dependencies{
-		Clock: clock.System(), Logger: generation.logger.value(), Config: authConfig, Policies: policies, AdminAccess: databaseAccess,
+		Clock: clock.System(), Logger: generation.logger.value(), Config: authConfig, Policies: policies, WebUIAccess: databaseAccess,
 	})
 	if err != nil {
 		return abort(err)
@@ -394,9 +394,9 @@ func (f *applicationGenerationFactory) Prepare(
 	if err := module.ValidateContributions(generation.authModule.Contribution, generation.module.Contribution, generation.opsModule.Contribution); err != nil {
 		return abort(fmt.Errorf("validate application module contributions: %w", err))
 	}
-	generation.adminCatalog, err = applicationAdminCatalog()
+	generation.webuiCatalog, err = applicationWebUICatalog()
 	if err != nil {
-		return abort(fmt.Errorf("compose Admin catalog: %w", err))
+		return abort(fmt.Errorf("compose WebUI catalog: %w", err))
 	}
 	messages, err := module.MessageBindings(generation.authModule.Contribution, generation.module.Contribution, generation.opsModule.Contribution)
 	if err != nil {
@@ -450,20 +450,20 @@ func (f *applicationGenerationFactory) Prepare(
 	if err != nil {
 		return abort(err)
 	}
-	manifestHandler := newAdminManifestHandler(generation.adminCatalog, generation.authModule.Service)
-	adminHandler := http.NewServeMux()
-	if generation.authModule.Admin != nil {
-		manifestHandler = generation.authModule.Admin.WithOptionalSession(manifestHandler)
+	manifestHandler := newWebUIManifestHandler(generation.webuiCatalog, generation.authModule.Service)
+	webuiHandler := http.NewServeMux()
+	if generation.authModule.WebUI != nil {
+		manifestHandler = generation.authModule.WebUI.WithOptionalSession(manifestHandler)
 	}
-	adminHandler.Handle("/manifest", manifestHandler)
-	if generation.authModule.AdminHTTP != nil {
-		adminHandler.Handle("/auth/", generation.authModule.AdminHTTP)
+	webuiHandler.Handle("/manifest", manifestHandler)
+	if generation.authModule.WebUIHTTP != nil {
+		webuiHandler.Handle("/auth/", generation.authModule.WebUIHTTP)
 	}
 	router, err := applicationRouter(kernelcomposition.Capabilities{
 		Logger: generation.logger.value(), Clock: clock.System(), IDGenerator: idgen.UUID(), Validator: validation.New(),
 		Database: generation.database.value(), Cache: generation.cache.value(),
 		I18n: generation.i18n.value(), Storage: generation.storage.value(),
-	}, httpConfig, generation.authModule.HTTPMiddleware, adminHandler, apiRoutes)
+	}, httpConfig, generation.authModule.HTTPMiddleware, webuiHandler, apiRoutes)
 	if err != nil {
 		return abort(err)
 	}

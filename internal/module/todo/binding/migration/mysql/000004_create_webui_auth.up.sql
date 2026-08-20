@@ -1,4 +1,4 @@
-CREATE TABLE admin_users (
+CREATE TABLE webui_users (
     id VARCHAR(128) PRIMARY KEY,
     username VARCHAR(128) NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
@@ -9,7 +9,7 @@ CREATE TABLE admin_users (
     updated_at DATETIME(6) NOT NULL
 );
 
-CREATE TABLE admin_sessions (
+CREATE TABLE webui_sessions (
     id_hash VARBINARY(32) PRIMARY KEY,
     user_id VARCHAR(128) NOT NULL,
     csrf_hash VARBINARY(32) NOT NULL,
@@ -18,5 +18,5 @@ CREATE TABLE admin_sessions (
     idle_expires_at DATETIME(6) NOT NULL,
     absolute_expires_at DATETIME(6) NOT NULL,
     revoked_at DATETIME(6) NULL,
-    CONSTRAINT fk_admin_session_user FOREIGN KEY (user_id) REFERENCES admin_users(id) ON DELETE CASCADE
+    CONSTRAINT fk_webui_session_user FOREIGN KEY (user_id) REFERENCES webui_users(id) ON DELETE CASCADE
 );

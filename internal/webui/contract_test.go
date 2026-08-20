@@ -1,4 +1,4 @@
-package admin
+package webui
 
 import (
 	"encoding/json"

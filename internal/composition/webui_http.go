@@ -5,31 +5,31 @@ import (
 	"errors"
 	"net/http"
 
-	admincontract "github.com/rin721/go-scaffold-template/internal/admin"
 	authmodel "github.com/rin721/go-scaffold-template/internal/module/auth/model"
+	webuicontract "github.com/rin721/go-scaffold-template/internal/webui"
 )
 
-// newAdminManifestHandler 把 Auth policy 接到纯 Admin Catalog，不让 Catalog 反向依赖业务模块。
-func newAdminManifestHandler(catalog admincontract.Catalog, authorizer operationAuthorizer) http.Handler {
+// newWebUIManifestHandler 把 Auth policy 接到纯 WebUI Catalog，不让 Catalog 反向依赖业务模块。
+func newWebUIManifestHandler(catalog webuicontract.Catalog, authorizer operationAuthorizer) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		manifest := catalog.ManifestFor(func(operation string) admincontract.Access {
+		manifest := catalog.ManifestFor(func(operation string) webuicontract.Access {
 			if operation == "" {
-				return admincontract.AccessAllowed
+				return webuicontract.AccessAllowed
 			}
 			principal, authenticated := authmodel.PrincipalFromContext(request.Context())
 			if !authenticated {
-				return admincontract.AccessAuthenticationRequired
+				return webuicontract.AccessAuthenticationRequired
 			}
 			if authorizer == nil {
-				return admincontract.AccessDenied
+				return webuicontract.AccessDenied
 			}
 			if err := authorizer.EnforceOperation(request.Context(), principal, operation); err != nil {
 				if errors.Is(err, authmodel.ErrUnauthenticated) {
-					return admincontract.AccessAuthenticationRequired
+					return webuicontract.AccessAuthenticationRequired
 				}
-				return admincontract.AccessDenied
+				return webuicontract.AccessDenied
 			}
-			return admincontract.AccessAllowed
+			return webuicontract.AccessAllowed
 		})
 		writer.Header().Set("Cache-Control", "no-store")
 		writer.Header().Set("Content-Type", "application/json")

@@ -1,4 +1,4 @@
-CREATE TABLE admin_users (
+CREATE TABLE webui_users (
     id TEXT PRIMARY KEY,
     username TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
@@ -9,9 +9,9 @@ CREATE TABLE admin_users (
     updated_at TIMESTAMPTZ NOT NULL
 );
 
-CREATE TABLE admin_sessions (
+CREATE TABLE webui_sessions (
     id_hash BYTEA PRIMARY KEY,
-    user_id TEXT NOT NULL REFERENCES admin_users(id) ON DELETE CASCADE,
+    user_id TEXT NOT NULL REFERENCES webui_users(id) ON DELETE CASCADE,
     csrf_hash BYTEA NOT NULL,
     created_at TIMESTAMPTZ NOT NULL,
     last_seen_at TIMESTAMPTZ NOT NULL,

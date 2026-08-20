@@ -1,5 +1,5 @@
 {
-  "name": "community-go-admin",
+  "name": "community-go-webui",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,8 +9,8 @@
     "test": "vitest run",
     "build": "vite build",
     "e2e": "playwright test",
-    "generate": "go run ../cmd/app admin generate",
-    "generate:check": "go run ../cmd/app admin generate --check"
+    "generate": "go run ../cmd/app webui generate",
+    "generate:check": "go run ../cmd/app webui generate --check"
   },
   "dependencies": {
     "@heroui/react": "^3.0.0",

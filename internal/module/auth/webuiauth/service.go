@@ -1,5 +1,5 @@
-// Package adminservice 实现 Auth module 的本地管理员与有状态 Admin Session。
-package adminservice
+// Package webuiauth 实现 Auth module 的本地 WebUI 用户与有状态 Session。
+package webuiauth
 
 import (
 	"context"
@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	SessionCookieName = "__Host-community-go_admin_session"
+	SessionCookieName = "__Host-community-go_webui_session"
 	maxUsernameRunes  = 128
 	minPasswordRunes  = 15
 	maxPasswordRunes  = 128
@@ -28,10 +28,10 @@ const (
 )
 
 var (
-	ErrSetupClosed        = errors.New("admin setup is closed")
-	ErrInvalidCredentials = errors.New("invalid admin credentials")
-	ErrAdminLocked        = errors.New("admin account is locked")
-	ErrSessionInvalid     = errors.New("admin session is invalid")
+	ErrSetupClosed        = errors.New("webui setup is closed")
+	ErrInvalidCredentials = errors.New("invalid webui credentials")
+	ErrWebUILocked        = errors.New("webui account is locked")
+	ErrSessionInvalid     = errors.New("webui session is invalid")
 )
 
 // Access 是 Auth 使用方提供的短生命周期数据库租约。
@@ -40,14 +40,14 @@ type Access interface {
 	WithinTx(context.Context, func(context.Context, database.Client, database.Tx) error) error
 }
 
-// Config 保存 Admin Session 和首次设置的安全输入。
+// Config 保存 WebUI Session 和首次设置的安全输入。
 type Config struct {
 	SetupToken      string
 	IdleTimeout     time.Duration
 	AbsoluteTimeout time.Duration
 }
 
-// Service 拥有 Admin user/session 的业务语义，不拥有数据库连接关闭权。
+// Service 拥有 WebUI user/session 的业务语义，不拥有数据库连接关闭权。
 type Service struct {
 	access    Access
 	clock     clock.Clock
@@ -72,22 +72,22 @@ type Session struct {
 	AbsoluteExpiresAt time.Time
 }
 
-// New 创建 Auth Admin service；不打开连接、不打印任何机密。
+// New 创建 Auth WebUI service；不打开连接、不打印任何机密。
 func New(access Access, currentClock clock.Clock, config Config) (*Service, error) {
 	if access == nil || currentClock == nil {
-		return nil, fmt.Errorf("admin auth dependencies are incomplete")
+		return nil, fmt.Errorf("webui auth dependencies are incomplete")
 	}
 	if config.IdleTimeout <= 0 || config.AbsoluteTimeout <= config.IdleTimeout {
-		return nil, fmt.Errorf("admin session timeouts are invalid")
+		return nil, fmt.Errorf("webui session timeouts are invalid")
 	}
 	dummy, err := passwordadapter.Hash("dummy-password-for-fixed-cost-check")
 	if err != nil {
-		return nil, fmt.Errorf("create admin password verifier: %w", err)
+		return nil, fmt.Errorf("create webui password verifier: %w", err)
 	}
 	return &Service{access: access, clock: currentClock, config: config, dummyHash: dummy}, nil
 }
 
-// Setup 原子创建唯一初始管理员；成功后 setup token 永久失效。
+// Setup 原子创建唯一初始 WebUI 用户；成功后 setup token 永久失效。
 func (s *Service) Setup(ctx context.Context, setupToken, username, password string) (Session, error) {
 	if subtle.ConstantTimeCompare([]byte(setupToken), []byte(s.config.SetupToken)) != 1 || strings.TrimSpace(s.config.SetupToken) == "" {
 		return Session{}, ErrInvalidCredentials
@@ -101,7 +101,7 @@ func (s *Service) Setup(ctx context.Context, setupToken, username, password stri
 	}
 	hash, err := passwordadapter.Hash(password)
 	if err != nil {
-		return Session{}, fmt.Errorf("hash admin password: %w", err)
+		return Session{}, fmt.Errorf("hash webui password: %w", err)
 	}
 	var result Session
 	err = s.access.WithinTx(ctx, func(txCtx context.Context, client database.Client, tx database.Tx) error {
@@ -147,7 +147,7 @@ func (s *Service) Login(ctx context.Context, username, password string) (Session
 		now := s.clock.Now().UTC()
 		if user.LockedUntil != nil && now.Before(*user.LockedUntil) {
 			_ = passwordadapter.Compare(user.PasswordHash, password)
-			return ErrAdminLocked
+			return ErrWebUILocked
 		}
 		if !passwordadapter.Compare(user.PasswordHash, password) {
 			user.FailedAttempts++
@@ -162,7 +162,7 @@ func (s *Service) Login(ctx context.Context, username, password string) (Session
 				return updateErr
 			}
 			if user.LockedUntil != nil {
-				return ErrAdminLocked
+				return ErrWebUILocked
 			}
 			return ErrInvalidCredentials
 		}
@@ -234,18 +234,32 @@ func (s *Service) Logout(ctx context.Context, sessionID string) error {
 	})
 }
 
-// ResetPassword 更新本地管理员密码并撤销该用户的全部 Session。
+// ResetPassword 更新本地 WebUI 用户密码并撤销该用户的全部 Session。
 func (s *Service) ResetPassword(ctx context.Context, username, password string) error {
 	username, err := normalizeUsername(username)
-	if err != nil { return err }
-	if err := validatePassword(password); err != nil { return err }
+	if err != nil {
+		return err
+	}
+	if err := validatePassword(password); err != nil {
+		return err
+	}
 	hash, err := passwordadapter.Hash(password)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 	return s.access.WithinTx(ctx, func(txCtx context.Context, client database.Client, tx database.Tx) error {
-		users, sessions, err := repositories(client, tx); if err != nil { return err }
-		user, err := users.First(txCtx, database.Query{Filters: []database.Filter{{Field: "Username", Operator: database.OpEqual, Value: username}}}); if err != nil { return ErrInvalidCredentials }
+		users, sessions, err := repositories(client, tx)
+		if err != nil {
+			return err
+		}
+		user, err := users.First(txCtx, database.Query{Filters: []database.Filter{{Field: "Username", Operator: database.OpEqual, Value: username}}})
+		if err != nil {
+			return ErrInvalidCredentials
+		}
 		now := s.clock.Now().UTC()
-		if _, err := users.Update(txCtx, database.Query{Filters: []database.Filter{{Field: "ID", Operator: database.OpEqual, Value: user.ID}}}, database.Changes{"PasswordHash": hash, "FailedAttempts": 0, "LockedUntil": (*time.Time)(nil), "UpdatedAt": now}); err != nil { return err }
+		if _, err := users.Update(txCtx, database.Query{Filters: []database.Filter{{Field: "ID", Operator: database.OpEqual, Value: user.ID}}}, database.Changes{"PasswordHash": hash, "FailedAttempts": 0, "LockedUntil": (*time.Time)(nil), "UpdatedAt": now}); err != nil {
+			return err
+		}
 		_, err = sessions.Update(txCtx, database.Query{Filters: []database.Filter{{Field: "UserID", Operator: database.OpEqual, Value: user.ID}}}, database.Changes{"RevokedAt": &now})
 		return err
 	})
@@ -344,14 +358,14 @@ func repositories(client database.Client, tx database.Tx) (*database.BaseReposit
 func normalizeUsername(value string) (string, error) {
 	value = strings.TrimSpace(value)
 	if value == "" || len([]rune(value)) > maxUsernameRunes {
-		return "", fmt.Errorf("admin username is invalid")
+		return "", fmt.Errorf("webui username is invalid")
 	}
 	return value, nil
 }
 func validatePassword(value string) error {
 	size := len([]rune(value))
 	if size < minPasswordRunes || size > maxPasswordRunes {
-		return fmt.Errorf("admin password length is invalid")
+		return fmt.Errorf("webui password length is invalid")
 	}
 	return nil
 }
@@ -414,8 +428,8 @@ type sessionRecord struct {
 }
 
 func userSchema() database.Schema {
-	return database.Schema{Table: "admin_users", Fields: []database.Field{{Name: "ID", Column: "id", Type: database.FieldString, PrimaryKey: true, Length: 128}, {Name: "Username", Column: "username", Type: database.FieldString, Length: 128}, {Name: "PasswordHash", Column: "password_hash", Type: database.FieldString}, {Name: "Scopes", Column: "scopes", Type: database.FieldString}, {Name: "FailedAttempts", Column: "failed_attempts", Type: database.FieldInt}, {Name: "LockedUntil", Column: "locked_until", Type: database.FieldTime, Nullable: true}, {Name: "CreatedAt", Column: "created_at", Type: database.FieldTime}, {Name: "UpdatedAt", Column: "updated_at", Type: database.FieldTime}}, Indexes: []database.Index{{Name: "ux_admin_users_username", Fields: []string{"Username"}, Unique: true}}}
+	return database.Schema{Table: "webui_users", Fields: []database.Field{{Name: "ID", Column: "id", Type: database.FieldString, PrimaryKey: true, Length: 128}, {Name: "Username", Column: "username", Type: database.FieldString, Length: 128}, {Name: "PasswordHash", Column: "password_hash", Type: database.FieldString}, {Name: "Scopes", Column: "scopes", Type: database.FieldString}, {Name: "FailedAttempts", Column: "failed_attempts", Type: database.FieldInt}, {Name: "LockedUntil", Column: "locked_until", Type: database.FieldTime, Nullable: true}, {Name: "CreatedAt", Column: "created_at", Type: database.FieldTime}, {Name: "UpdatedAt", Column: "updated_at", Type: database.FieldTime}}, Indexes: []database.Index{{Name: "ux_webui_users_username", Fields: []string{"Username"}, Unique: true}}}
 }
 func sessionSchema() database.Schema {
-	return database.Schema{Table: "admin_sessions", Fields: []database.Field{{Name: "IDHash", Column: "id_hash", Type: database.FieldBytes, PrimaryKey: true}, {Name: "UserID", Column: "user_id", Type: database.FieldString, Length: 128}, {Name: "CSRFHash", Column: "csrf_hash", Type: database.FieldBytes}, {Name: "CreatedAt", Column: "created_at", Type: database.FieldTime}, {Name: "LastSeenAt", Column: "last_seen_at", Type: database.FieldTime}, {Name: "IdleExpiresAt", Column: "idle_expires_at", Type: database.FieldTime}, {Name: "AbsoluteExpiresAt", Column: "absolute_expires_at", Type: database.FieldTime}, {Name: "RevokedAt", Column: "revoked_at", Type: database.FieldTime, Nullable: true}}, References: []database.Reference{{Field: "UserID", Table: "admin_users", ReferenceField: "ID", OnDelete: database.ReferenceCascade}}}
+	return database.Schema{Table: "webui_sessions", Fields: []database.Field{{Name: "IDHash", Column: "id_hash", Type: database.FieldBytes, PrimaryKey: true}, {Name: "UserID", Column: "user_id", Type: database.FieldString, Length: 128}, {Name: "CSRFHash", Column: "csrf_hash", Type: database.FieldBytes}, {Name: "CreatedAt", Column: "created_at", Type: database.FieldTime}, {Name: "LastSeenAt", Column: "last_seen_at", Type: database.FieldTime}, {Name: "IdleExpiresAt", Column: "idle_expires_at", Type: database.FieldTime}, {Name: "AbsoluteExpiresAt", Column: "absolute_expires_at", Type: database.FieldTime}, {Name: "RevokedAt", Column: "revoked_at", Type: database.FieldTime, Nullable: true}}, References: []database.Reference{{Field: "UserID", Table: "webui_users", ReferenceField: "ID", OnDelete: database.ReferenceCascade}}}
 }

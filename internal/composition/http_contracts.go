@@ -1,10 +1,10 @@
 package composition
 
 import (
-	admincontract "github.com/rin721/go-scaffold-template/internal/admin"
-	authadmin "github.com/rin721/go-scaffold-template/internal/module/auth/binding/admin"
-	opsadmin "github.com/rin721/go-scaffold-template/internal/module/ops/binding/admin"
+	authwebui "github.com/rin721/go-scaffold-template/internal/module/auth/binding/webui"
+	opswebui "github.com/rin721/go-scaffold-template/internal/module/ops/binding/webui"
 	todohttp "github.com/rin721/go-scaffold-template/internal/module/todo/binding/http"
+	webuicontract "github.com/rin721/go-scaffold-template/internal/webui"
 	"github.com/rin721/go-scaffold-template/pkg/httpx/contract"
 )
 
@@ -21,11 +21,11 @@ func applicationHTTPModules() []contract.Module {
 	}
 }
 
-// applicationAdminCatalog 是 Admin runtime 与前端生成器共享的唯一声明汇总点。
-func applicationAdminCatalog() (admincontract.Catalog, error) {
-	catalog, err := admincontract.BuildCatalog(authadmin.Binding(), opsadmin.Binding())
+// applicationWebUICatalog 是 WebUI runtime 与前端生成器共享的唯一声明汇总点。
+func applicationWebUICatalog() (webuicontract.Catalog, error) {
+	catalog, err := webuicontract.BuildCatalog(authwebui.Binding(), opswebui.Binding())
 	if err != nil {
-		return admincontract.Catalog{}, err
+		return webuicontract.Catalog{}, err
 	}
 	operations := make(map[string]struct{})
 	for _, module := range applicationHTTPModules() {
@@ -36,7 +36,7 @@ func applicationAdminCatalog() (admincontract.Catalog, error) {
 	operations["ops.diagnostics"] = struct{}{}
 	operations["ops.metrics"] = struct{}{}
 	if err := catalog.ValidateOperationReferences(operations); err != nil {
-		return admincontract.Catalog{}, err
+		return webuicontract.Catalog{}, err
 	}
 	return catalog, nil
 }

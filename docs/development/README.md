@@ -5,7 +5,7 @@
 ## 开发闭环
 
 1. [应用模块开发指南](application-module-development.md)：新增业务模块的研究问题、能力评估、目录职责、binding、composition 接入和完成标准。
-2. [Admin WebUI 开发指南](admin-webui.md)：Admin Binding、manifest、Session、CSRF、生成 registry 和 WebUI 宿主边界。
+2. [WebUI 开发指南](webui.md)：WebUI Binding、manifest、Session、CSRF、生成 registry 和宿主边界。
 3. [API 文档](../../api/README.md)：公开 HTTP operation 的 code-first 契约、生成器注册点、OpenAPI 产物和 breaking 约束。
 4. [开发日志规范](logging.md)：Service 生命周期、外部 I/O、状态转换、错误边界和低敏结构化日志。
 5. [业务模块接入 execution 能力](execution-capability.md)：幂等、失败重试、执行记录、Trace、恢复治理和多实例边界。
@@ -23,7 +23,7 @@
 | CLI | [CLI 契约](../../pkg/cli/README.md) 与模块自己的 `binding/cli` |
 | Migration | [数据库迁移与回滚](../operations/migration-and-rollback.md) 与模块自己的 `binding/migration` |
 | I18n | [应用模块开发指南](application-module-development.md) 与模块自己的 `binding/i18n` |
-| Admin | [Admin WebUI 开发指南](admin-webui.md) 与模块自己的 `binding/admin` |
+| WebUI | [WebUI 开发指南](webui.md) 与模块自己的 `binding/webui` |
 | Schedule | [定时调度能力](scheduled-task-capability.md) |
 | Message | [消息系统适配能力](messaging-capability.md) |
 

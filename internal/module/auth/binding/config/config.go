@@ -36,7 +36,7 @@ type JWT struct {
 	MaxResponseBodyBytes int64         `mapstructure:"maxResponseBodyBytes"`
 }
 
-// Local 保存 WebUI 本地管理员入口的受控参数。
+// Local 保存 WebUI 本地用户入口的受控参数。
 type Local struct {
 	SetupToken      string        `mapstructure:"setupToken"`
 	IdleTimeout     time.Duration `mapstructure:"idleTimeout"`
@@ -133,7 +133,7 @@ func validate(resolved Config, environment, httpAddress string) error {
 		return fmt.Errorf("production requires JWT auth mode")
 	}
 	if resolved.Local.IdleTimeout <= 0 || resolved.Local.AbsoluteTimeout <= resolved.Local.IdleTimeout {
-		return fmt.Errorf("local admin session timeouts are invalid")
+		return fmt.Errorf("local webui session timeouts are invalid")
 	}
 	return nil
 }

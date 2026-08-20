@@ -25,6 +25,8 @@ go run ./cmd/app db migrate up
 
 已有 `config.yaml` 时不要重复执行 `config init`，也不要使用 `--force` 覆盖本地配置。
 
+043 在尚未发布的早期基线上把 000004 migration 单轨改成了 `webui_users`/`webui_sessions`。如果当前本地数据库曾执行旧版 000004，它虽然显示 version 4，但不会自动获得新表名。无保留价值的开发数据应先备份数据库文件，再重建本地数据库并重新执行 `db migrate up`；需要保留数据时不要直接删除数据库，应先制定一次性表重命名操作。Agent 不会自动修改或删除现有本地数据。
+
 ## 2. 启动后端
 
 在第一个 PowerShell 终端中设置仅供首次创建用户使用的高熵 Token，然后启动 Service：
@@ -57,7 +59,7 @@ pnpm dev
 
 Vite 使用项目配置的本地自签名证书。浏览器首次访问会提示证书不受信任；确认访问的是终端打印的本机 `127.0.0.1`/`localhost` 地址后，选择继续访问。证书只用于本地开发，不用于生产部署。
 
-当前实现的生成命令仍为 `admin generate`，已经封装在 `pnpm generate` 与 `pnpm generate:check` 中；043 完成单轨命名迁移后再同步为 `webui` 命令。日常启动只需要执行 clean check，不要手工编辑 `src/generated/admin-registry.ts`。
+生成命令为 `webui generate`，已经封装在 `pnpm generate` 与 `pnpm generate:check` 中。日常启动只需要执行 clean check，不要手工编辑 `src/generated/webui-registry.ts`。
 
 ## 4. 首次设置与登录
 
@@ -81,10 +83,10 @@ Remove-Item Env:APP_AUTH__LOCAL__SETUPTOKEN
 | --- | --- |
 | 页面一直显示 manifest 或装配错误 | 先确认后端已 ready，再检查 Vite 终端的 `/api/v1` 代理请求。 |
 | Setup Token 返回 `invalid_credentials` | 确认环境变量与后端在同一终端启动，并使用完全一致的 Token。 |
-| `setup_closed` | 数据库已经存在本地用户；使用 `/login`，忘记密码时运行当前 `admin reset-password` CLI。 |
+| `setup_closed` | 数据库已经存在本地用户；使用 `/login`，忘记密码时运行当前 `webui reset-password` CLI。 |
 | 浏览器提示证书不受信任 | 确认地址是 Vite 打印的本机地址后继续访问；不要把该开发证书用于生产。 |
 | 登录成功但 Cookie 不生效 | 必须打开 Vite 输出的 HTTPS 地址，不要使用 HTTP，并确认浏览器已接受本地证书。 |
-| `admin registry is stale` | 在 `webui/` 执行 `pnpm generate`，审查生成差异后再运行 `pnpm generate:check`。 |
+| `webui registry is stale` | 在 `webui/` 执行 `pnpm generate`，审查生成差异后再运行 `pnpm generate:check`。 |
 | management 卡片请求失败 | 检查 `http://127.0.0.1:9090/readyz`，并确认 Vite `/management` 代理没有被本地代理软件拦截。 |
 
-WebUI 的模块 Binding、Session、CSRF 和 registry 开发边界见 [WebUI 开发指南](../development/admin-webui.md)。
+WebUI 的模块 Binding、Session、CSRF 和 registry 开发边界见 [WebUI 开发指南](../development/webui.md)。

@@ -1,4 +1,4 @@
-package adminservice
+package webuiauth
 
 import (
 	"encoding/json"
@@ -11,10 +11,10 @@ import (
 	"github.com/rin721/go-scaffold-template/internal/module/auth/model"
 )
 
-// NewHTTPHandler 绑定 Admin/Auth setup、login、session 和 logout operation。
+// NewHTTPHandler 绑定 WebUI/Auth setup、login、session 和 logout operation。
 func NewHTTPHandler(service *Service) (http.Handler, error) {
 	if service == nil {
-		return nil, fmt.Errorf("admin auth service is nil")
+		return nil, fmt.Errorf("webui auth service is nil")
 	}
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		if request.Method == http.MethodOptions {
@@ -26,7 +26,7 @@ func NewHTTPHandler(service *Service) (http.Handler, error) {
 			return
 		}
 		path := request.URL.Path
-		path = strings.TrimPrefix(path, "/api/v1/admin/auth")
+		path = strings.TrimPrefix(path, "/api/v1/webui/auth")
 		path = strings.TrimPrefix(path, "/auth")
 		switch {
 		case request.Method == http.MethodPost && path == "/setup":
@@ -104,7 +104,7 @@ func NewHTTPHandler(service *Service) (http.Handler, error) {
 	}), nil
 }
 
-// WithSession 将有效 Admin Session 转换成 request Principal；无效 Session fail closed。
+// WithSession 将有效 WebUI Session 转换成 request Principal；无效 Session fail closed。
 func (s *Service) WithSession(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		sessionID, err := cookieValue(request)
@@ -179,7 +179,7 @@ func sameOrigin(request *http.Request) bool {
 }
 func writeServiceError(writer http.ResponseWriter, request *http.Request, err error) {
 	switch {
-	case errors.Is(err, ErrAdminLocked):
+	case errors.Is(err, ErrWebUILocked):
 		writeAuthError(writer, request, http.StatusTooManyRequests, "account_locked")
 	case errors.Is(err, ErrSetupClosed):
 		writeAuthError(writer, request, http.StatusConflict, "setup_closed")

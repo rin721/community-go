@@ -1,5 +1,5 @@
-// Package admin 定义 Admin WebUI 的项目自有声明与运行时 manifest 契约。
-package admin
+// Package webui 定义 WebUI 的项目自有声明与运行时 manifest 契约。
+package webui
 
 import (
 	"crypto/sha256"
@@ -30,7 +30,7 @@ const (
 	AccessDenied                 Access = "denied"
 )
 
-// Binding 是模块拥有的不可变 Admin 声明。SourcePath 只用于构建期生成。
+// Binding 是模块拥有的不可变 WebUI 声明。SourcePath 只用于构建期生成。
 type Binding struct {
 	ModuleID   string
 	Entries    []Entry
@@ -119,7 +119,7 @@ func BuildCatalog(bindings ...Binding) (Catalog, error) {
 	sort.Slice(copyBindings, func(i, j int) bool { return copyBindings[i].ModuleID < copyBindings[j].ModuleID })
 	canonical, err := json.Marshal(copyBindings)
 	if err != nil {
-		return Catalog{}, fmt.Errorf("marshal admin catalog: %w", err)
+		return Catalog{}, fmt.Errorf("marshal webui catalog: %w", err)
 	}
 	digest := sha256.Sum256(canonical)
 	return Catalog{Bindings: copyBindings, Revision: hex.EncodeToString(digest[:])}, nil
@@ -169,40 +169,40 @@ func validateBindings(bindings []Binding) error {
 	operations := map[string]struct{}{}
 	for _, binding := range bindings {
 		if strings.TrimSpace(binding.ModuleID) == "" {
-			return fmt.Errorf("admin module id is required")
+			return fmt.Errorf("webui module id is required")
 		}
 		if _, exists := modules[binding.ModuleID]; exists {
-			return fmt.Errorf("admin module %q is duplicated", binding.ModuleID)
+			return fmt.Errorf("webui module %q is duplicated", binding.ModuleID)
 		}
 		modules[binding.ModuleID] = struct{}{}
 		defaultRoutes := 0
 		for _, entry := range binding.Entries {
 			if entry.ID == "" || strings.TrimSpace(entry.SourcePath) == "" {
-				return fmt.Errorf("admin module %q entry is incomplete", binding.ModuleID)
+				return fmt.Errorf("webui module %q entry is incomplete", binding.ModuleID)
 			}
 			if _, exists := entries[entry.ID]; exists {
-				return fmt.Errorf("admin entry %q is duplicated", entry.ID)
+				return fmt.Errorf("webui entry %q is duplicated", entry.ID)
 			}
 			entries[entry.ID] = binding.ModuleID
 		}
 		for _, route := range binding.Routes {
 			if route.ID == "" || route.EntryID == "" || route.TitleMessageID == "" {
-				return fmt.Errorf("admin module %q route is incomplete", binding.ModuleID)
+				return fmt.Errorf("webui module %q route is incomplete", binding.ModuleID)
 			}
 			if !validPath(route.Path) {
-				return fmt.Errorf("admin route %q has invalid path", route.ID)
+				return fmt.Errorf("webui route %q has invalid path", route.ID)
 			}
 			if _, exists := routes[route.ID]; exists {
-				return fmt.Errorf("admin route %q is duplicated", route.ID)
+				return fmt.Errorf("webui route %q is duplicated", route.ID)
 			}
 			if owner, exists := paths[route.Path]; exists {
-				return fmt.Errorf("admin route path %q is shared by %s and %s", route.Path, owner, binding.ModuleID)
+				return fmt.Errorf("webui route path %q is shared by %s and %s", route.Path, owner, binding.ModuleID)
 			}
 			if owner, exists := entries[route.EntryID]; !exists || owner != binding.ModuleID {
-				return fmt.Errorf("admin route %q references unknown entry %q", route.ID, route.EntryID)
+				return fmt.Errorf("webui route %q references unknown entry %q", route.ID, route.EntryID)
 			}
 			if route.State != StateAvailable && route.State != StatePreview {
-				return fmt.Errorf("admin route %q has unsupported state %q", route.ID, route.State)
+				return fmt.Errorf("webui route %q has unsupported state %q", route.ID, route.State)
 			}
 			if route.ViewOperationID != "" {
 				operations[route.ViewOperationID] = struct{}{}
@@ -214,34 +214,34 @@ func validateBindings(bindings []Binding) error {
 			paths[route.Path] = binding.ModuleID
 		}
 		if defaultRoutes > 1 {
-			return fmt.Errorf("admin module %q declares multiple default routes", binding.ModuleID)
+			return fmt.Errorf("webui module %q declares multiple default routes", binding.ModuleID)
 		}
 		for _, item := range binding.Navigation {
 			if item.ID == "" || item.RouteID == "" || item.TitleMessageID == "" || item.IconID == "" {
-				return fmt.Errorf("admin module %q navigation is incomplete", binding.ModuleID)
+				return fmt.Errorf("webui module %q navigation is incomplete", binding.ModuleID)
 			}
 			if _, exists := navigation[item.ID]; exists {
-				return fmt.Errorf("admin navigation %q is duplicated", item.ID)
+				return fmt.Errorf("webui navigation %q is duplicated", item.ID)
 			}
 			owner, exists := routes[item.RouteID]
 			if !exists || owner.ModuleID != binding.ModuleID {
-				return fmt.Errorf("admin navigation %q references unknown route %q", item.ID, item.RouteID)
+				return fmt.Errorf("webui navigation %q references unknown route %q", item.ID, item.RouteID)
 			}
 			navigation[item.ID] = binding.ModuleID
 		}
 		for _, item := range binding.Navigation {
 			if item.ParentID != "" {
 				if owner, exists := navigation[item.ParentID]; !exists || owner != binding.ModuleID {
-					return fmt.Errorf("admin navigation %q references unknown parent %q", item.ID, item.ParentID)
+					return fmt.Errorf("webui navigation %q references unknown parent %q", item.ID, item.ParentID)
 				}
 			}
 		}
 		for _, locale := range binding.Locales {
 			if locale.Namespace == "" || strings.TrimSpace(locale.SourcePath) == "" {
-				return fmt.Errorf("admin module %q locale is incomplete", binding.ModuleID)
+				return fmt.Errorf("webui module %q locale is incomplete", binding.ModuleID)
 			}
 			if _, err := language.Parse(locale.Language); err != nil {
-				return fmt.Errorf("admin locale %q is invalid: %w", locale.Language, err)
+				return fmt.Errorf("webui locale %q is invalid: %w", locale.Language, err)
 			}
 		}
 	}
@@ -261,7 +261,7 @@ func (c Catalog) ValidateOperationReferences(operations map[string]struct{}) err
 		for _, route := range binding.Routes {
 			if route.ViewOperationID != "" {
 				if _, ok := operations[route.ViewOperationID]; !ok {
-					return fmt.Errorf("admin route %q references unknown operation %q", route.ID, route.ViewOperationID)
+					return fmt.Errorf("webui route %q references unknown operation %q", route.ID, route.ViewOperationID)
 				}
 			}
 		}
@@ -288,7 +288,7 @@ func validateNavigationCycles(bindings []Binding) error {
 		current := node
 		for current != "" {
 			if _, ok := seen[current]; ok {
-				return fmt.Errorf("admin navigation contains a parent cycle at %q", node)
+				return fmt.Errorf("webui navigation contains a parent cycle at %q", node)
 			}
 			seen[current] = struct{}{}
 			current = parents[current]

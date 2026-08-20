@@ -16,8 +16,8 @@
 
 疑似凭据泄露时应先轮换/撤销，再调查使用记录；删除 Git 文件不能撤销已经暴露的 secret。发现 artifact、checksum、SBOM 或签名不一致时停止发布并重新从固定 source commit 构建，不允许覆盖证据继续发布。
 
-## Admin Session 当前约束
+## WebUI Session 当前约束
 
-042 的本地 Admin 使用服务端有状态 Session。首次设置要求 `APP_AUTH__LOCAL__SETUPTOKEN`，密码使用 Argon2id（19 MiB、2 次、并行度 1），连续 5 次失败锁定 15 分钟；Session 默认空闲 30 分钟、绝对 12 小时。Session 不得作为普通业务 API 的 Bearer/JWT 替代凭据。
+042 的本地 WebUI 使用服务端有状态 Session。首次设置要求 `APP_AUTH__LOCAL__SETUPTOKEN`，密码使用 Argon2id（19 MiB、2 次、并行度 1），连续 5 次失败锁定 15 分钟；Session 默认空闲 30 分钟、绝对 12 小时。Session 不得作为普通业务 API 的 Bearer/JWT 替代凭据。
 
-浏览器请求使用 `__Host-community-go_admin_session` 安全 Cookie；不安全请求必须同时满足同源校验和绑定 Session 的 `X-CSRF-Token`。密码、setup token、Session ID、CSRF token 和 Authorization 不进入日志、Web Storage 或错误详情。
+浏览器请求使用 `__Host-community-go_webui_session` 安全 Cookie；不安全请求必须同时满足同源校验和绑定 Session 的 `X-CSRF-Token`。密码、setup token、Session ID、CSRF token 和 Authorization 不进入日志、Web Storage 或错误详情。

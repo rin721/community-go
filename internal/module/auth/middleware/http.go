@@ -17,7 +17,7 @@ func HTTP(authenticator service.Authenticator) (func(http.Handler) http.Handler,
 	}
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-			if strings.HasPrefix(request.URL.Path, "/api/v1/admin") {
+			if strings.HasPrefix(request.URL.Path, "/api/v1/webui") {
 				next.ServeHTTP(writer, request)
 				return
 			}

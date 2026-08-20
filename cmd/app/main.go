@@ -33,43 +33,43 @@ func main() {
 }
 
 func runMain(stdin io.Reader, stdout, stderr io.Writer, args []string) int {
-	if len(args) >= 2 && args[0] == "admin" && args[1] == "generate" {
-		return generateAdminRegistry(stdout, stderr, len(args) > 2 && args[2] == "--check")
+	if len(args) >= 2 && args[0] == "webui" && args[1] == "generate" {
+		return generateWebUIRegistry(stdout, stderr, len(args) > 2 && args[2] == "--check")
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	return execute(ctx, newProcess(stdin, stdout, stderr), args)
 }
 
-func generateAdminRegistry(stdout, stderr io.Writer, check bool) int {
-	content, err := applicationcomposition.GenerateAdminRegistry()
+func generateWebUIRegistry(stdout, stderr io.Writer, check bool) int {
+	content, err := applicationcomposition.GenerateWebUIRegistry()
 	if err != nil {
-		_, _ = fmt.Fprintf(stderr, "admin registry: %v\n", err)
+		_, _ = fmt.Fprintf(stderr, "webui registry: %v\n", err)
 		return applicationcomposition.ExitError
 	}
-	outputPath := "webui/src/generated/admin-registry.ts"
+	outputPath := "webui/src/generated/webui-registry.ts"
 	if _, err := os.Stat("webui"); err != nil {
-		outputPath = "src/generated/admin-registry.ts"
+		outputPath = "src/generated/webui-registry.ts"
 	}
 	if check {
 		actual, readErr := os.ReadFile(outputPath)
 		if readErr != nil {
-			_, _ = fmt.Fprintf(stderr, "admin registry: %v\n", readErr)
+			_, _ = fmt.Fprintf(stderr, "webui registry: %v\n", readErr)
 			return applicationcomposition.ExitError
 		}
 		if string(actual) != content {
-			_, _ = fmt.Fprintln(stderr, "admin registry: generated file is stale")
+			_, _ = fmt.Fprintln(stderr, "webui registry: generated file is stale")
 			return applicationcomposition.ExitError
 		}
-		_, _ = fmt.Fprintln(stdout, "admin registry is current")
+		_, _ = fmt.Fprintln(stdout, "webui registry is current")
 		return applicationcomposition.ExitSuccess
 	}
 	if err := os.MkdirAll(filepath.Dir(outputPath), 0o755); err != nil {
-		_, _ = fmt.Fprintf(stderr, "admin registry: %v\n", err)
+		_, _ = fmt.Fprintf(stderr, "webui registry: %v\n", err)
 		return applicationcomposition.ExitError
 	}
 	if err := os.WriteFile(outputPath, []byte(content), 0o644); err != nil {
-		_, _ = fmt.Fprintf(stderr, "admin registry: %v\n", err)
+		_, _ = fmt.Fprintf(stderr, "webui registry: %v\n", err)
 		return applicationcomposition.ExitError
 	}
 	return applicationcomposition.ExitSuccess

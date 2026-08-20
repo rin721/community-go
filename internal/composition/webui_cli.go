@@ -14,13 +14,13 @@ import (
 	"github.com/rin721/go-scaffold-template/pkg/supervisor"
 )
 
-type adminExecutor struct{ application *Application }
+type webuiExecutor struct{ application *Application }
 
-func (e adminExecutor) ResetPassword(ctx context.Context, username, password string) error {
-	return e.application.executeAdminResetPassword(ctx, username, password)
+func (e webuiExecutor) ResetPassword(ctx context.Context, username, password string) error {
+	return e.application.executeWebUIResetPassword(ctx, username, password)
 }
 
-func (a *Application) executeAdminResetPassword(ctx context.Context, username, password string) error {
+func (a *Application) executeWebUIResetPassword(ctx context.Context, username, password string) error {
 	if a == nil {
 		return fmt.Errorf("application is nil")
 	}
@@ -75,28 +75,28 @@ func (a *Application) executeAdminResetPassword(ctx context.Context, username, p
 	}
 	authModule, err := auth.NewLocal(auth.Dependencies{
 		Clock: capabilities.Clock, Logger: capabilities.Logger, Config: authConfig,
-		Policies: policies, AdminAccess: databaseAccess,
+		Policies: policies, WebUIAccess: databaseAccess,
 	})
 	if err != nil {
 		return fmt.Errorf("compose local auth module: %w", err)
 	}
-	if authModule.Admin == nil {
-		return fmt.Errorf("local admin service is unavailable")
+	if authModule.WebUI == nil {
+		return fmt.Errorf("local webui service is unavailable")
 	}
 	owner, err := newTodoOperationSupervisor([]supervisor.Participant{coordinator})
 	if err != nil {
-		return fmt.Errorf("create admin operation supervisor: %w", err)
+		return fmt.Errorf("create webui operation supervisor: %w", err)
 	}
 	if err := owner.RunOperation(ctx, func(operationCtx context.Context) error {
 		if err := compatibility.Check(operationCtx); err != nil {
-			return fmt.Errorf("verify admin migration compatibility: %w", err)
+			return fmt.Errorf("verify webui migration compatibility: %w", err)
 		}
 		if err := completion.Verify(operationCtx); err != nil {
-			return fmt.Errorf("verify admin migration completion: %w", err)
+			return fmt.Errorf("verify webui migration completion: %w", err)
 		}
-		return authModule.Admin.ResetPassword(operationCtx, username, password)
+		return authModule.WebUI.ResetPassword(operationCtx, username, password)
 	}); err != nil {
-		return fmt.Errorf("execute admin password reset: %w", err)
+		return fmt.Errorf("execute webui password reset: %w", err)
 	}
 	return nil
 }

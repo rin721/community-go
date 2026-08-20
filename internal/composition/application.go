@@ -141,7 +141,7 @@ func (a *Application) Run(ctx context.Context, args []string) error {
 	if err != nil {
 		return fmt.Errorf("compose migration CLI contract: %w", err)
 	}
-	authContract, err := authcli.New(adminExecutor{application: a})
+	authContract, err := authcli.New(webuiExecutor{application: a})
 	if err != nil {
 		return fmt.Errorf("compose auth CLI contract: %w", err)
 	}

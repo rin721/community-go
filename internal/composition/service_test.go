@@ -21,15 +21,15 @@ import (
 	"github.com/rin721/go-scaffold-template/pkg/supervisor"
 )
 
-func TestApplicationRouterStripsAdminPrefixForStandardHandlers(t *testing.T) {
-	adminHandler := http.NewServeMux()
-	adminHandler.HandleFunc("/manifest", func(writer http.ResponseWriter, request *http.Request) {
+func TestApplicationRouterStripsWebUIPrefixForStandardHandlers(t *testing.T) {
+	webuiHandler := http.NewServeMux()
+	webuiHandler.HandleFunc("/manifest", func(writer http.ResponseWriter, request *http.Request) {
 		if request.URL.Path != "/manifest" {
 			t.Fatalf("manifest handler path = %q", request.URL.Path)
 		}
 		writer.WriteHeader(http.StatusOK)
 	})
-	adminHandler.HandleFunc("/auth/session", func(writer http.ResponseWriter, request *http.Request) {
+	webuiHandler.HandleFunc("/auth/session", func(writer http.ResponseWriter, request *http.Request) {
 		if request.URL.Path != "/auth/session" {
 			t.Fatalf("auth handler path = %q", request.URL.Path)
 		}
@@ -39,7 +39,7 @@ func TestApplicationRouterStripsAdminPrefixForStandardHandlers(t *testing.T) {
 		kernelcomposition.Capabilities{Logger: logger.NewTestLogger(), IDGenerator: idgen.UUID()},
 		httpx.DefaultServerConfig(),
 		func(next http.Handler) http.Handler { return next },
-		adminHandler,
+		webuiHandler,
 		http.NotFoundHandler(),
 	)
 	if err != nil {
@@ -49,8 +49,8 @@ func TestApplicationRouterStripsAdminPrefixForStandardHandlers(t *testing.T) {
 		path string
 		want int
 	}{
-		{path: adminHTTPPrefix + "/manifest", want: http.StatusOK},
-		{path: adminHTTPPrefix + "/auth/session", want: http.StatusUnauthorized},
+		{path: webuiHTTPPrefix + "/manifest", want: http.StatusOK},
+		{path: webuiHTTPPrefix + "/auth/session", want: http.StatusUnauthorized},
 	}
 	for _, test := range tests {
 		recorder := httptest.NewRecorder()

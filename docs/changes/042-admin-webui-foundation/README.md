@@ -1,6 +1,6 @@
 # 042 Admin WebUI 模块化宿主与可选 Admin Binding
 
-> 命名说明：本变更保留为历史实施证据；其中项目自有 `Admin` 技术命名已被 [043 WebUI 契约命名单轨迁移](../043-webui-contract-naming/README.md) 确定为待替换项。当前实现仍记录在 042，目标命名以 043 为准，实施完成后再同步当前权威主题文档。
+> 历史命名说明：本变更保留为实施证据；其中项目自有 `Admin` 技术命名已经被 [043 WebUI 契约命名单轨迁移](../043-webui-contract-naming/README.md) 单轨取代，不代表当前实现或当前使用方式。
 
 状态：研究门禁已通过，计划已确认；核心 Admin Catalog、manifest、Auth Session、reset-password CLI、Ops Dashboard 和独立 WebUI 已实施，完整验收仍有未完成项。
 

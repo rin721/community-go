@@ -44,5 +44,9 @@
 - [039 文档体系闭环整理](039-documentation-system-closure/README.md)：已完成；根 README、项目手册总目录、开发入口、架构入口和运维入口按项目生命周期形成闭环，并明确当前主题文档、研究快照与任务证据的 authority 边界。
 - [040 项目文档体系系统重构](040-documentation-system-rebuild/README.md)：已完成；系统审计正式与历史文档、建立审计矩阵，按真实使用路径重构项目手册和 architecture/development/operations 入口，补齐 `pkg/execution` 局部说明，并修正 Kernel 局部 README 的过期阶段边界。
 - [041 日志体系补齐与治理](041-logging-observability-governance/README.md)：已完成；在既有 Logger、Tracing、Execution Record、Health、Diagnostics 与 Observability 能力上补齐 migration、execution、messaging、management、scheduler 的低敏结构化日志、测试门禁和开发规范，避免重复建设平行观测体系。
+- [042 Admin WebUI 模块化宿主](042-admin-webui-foundation/README.md)：保留为历史实施证据；项目自有 Admin 技术命名已由 043 单轨取代。
+- [043 WebUI 契约命名单轨迁移](043-webui-contract-naming/README.md)：已完成；文件夹、契约、路由、CLI、Session、数据库对象和前端标识统一为 `webui`。
+- [044 WebUI 本地启动闭环](044-webui-local-startup-closure/README.md)：已完成路由 prefix 与本地 HTTPS 修复；旧路径记录仅为历史证据。
+- [045 WebUI Origin 策略闭环](045-webui-origin-policy/README.md)：研究与计划已完成，待确认后修复 CORS、Auth Origin、Vite 本地配置和 Setup Token 输入遮罩。
 
-下一个任务序号为 `042`。已完成记录只保存历史证据；当前行为必须回到根 [README](../../README.md) 和对应主题文档确认。
+下一个任务序号为 `046`。已完成记录只保存历史证据；当前行为必须回到根 [README](../../README.md) 和对应主题文档确认。

@@ -55,6 +55,8 @@ pnpm dev
 
 `pnpm install` 只需在首次拉取或依赖锁变化后执行。Vite 会打印浏览器访问地址；必须使用它输出的 `https://` 地址，不能改用 HTTP，否则带 `Secure` 属性的 Session Cookie 不会生效。端口被占用时 Vite 可能选择其他端口，因此不要硬编码端口。
 
+Vite 使用项目配置的本地自签名证书。浏览器首次访问会提示证书不受信任；确认访问的是终端打印的本机 `127.0.0.1`/`localhost` 地址后，选择继续访问。证书只用于本地开发，不用于生产部署。
+
 当前实现的生成命令仍为 `admin generate`，已经封装在 `pnpm generate` 与 `pnpm generate:check` 中；043 完成单轨命名迁移后再同步为 `webui` 命令。日常启动只需要执行 clean check，不要手工编辑 `src/generated/admin-registry.ts`。
 
 ## 4. 首次设置与登录
@@ -80,7 +82,8 @@ Remove-Item Env:APP_AUTH__LOCAL__SETUPTOKEN
 | 页面一直显示 manifest 或装配错误 | 先确认后端已 ready，再检查 Vite 终端的 `/api/v1` 代理请求。 |
 | Setup Token 返回 `invalid_credentials` | 确认环境变量与后端在同一终端启动，并使用完全一致的 Token。 |
 | `setup_closed` | 数据库已经存在本地用户；使用 `/login`，忘记密码时运行当前 `admin reset-password` CLI。 |
-| 登录成功但 Cookie 不生效 | 必须打开 Vite 输出的 HTTPS 地址，不要使用 HTTP。 |
+| 浏览器提示证书不受信任 | 确认地址是 Vite 打印的本机地址后继续访问；不要把该开发证书用于生产。 |
+| 登录成功但 Cookie 不生效 | 必须打开 Vite 输出的 HTTPS 地址，不要使用 HTTP，并确认浏览器已接受本地证书。 |
 | `admin registry is stale` | 在 `webui/` 执行 `pnpm generate`，审查生成差异后再运行 `pnpm generate:check`。 |
 | management 卡片请求失败 | 检查 `http://127.0.0.1:9090/readyz`，并确认 Vite `/management` 代理没有被本地代理软件拦截。 |
 

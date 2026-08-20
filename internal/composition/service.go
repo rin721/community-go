@@ -16,6 +16,8 @@ import (
 	"github.com/rin721/go-scaffold-template/pkg/supervisor"
 )
 
+const adminHTTPPrefix = "/api/v1/admin"
+
 func (a *Application) runService(ctx context.Context) error {
 	logging := a.config.Logging.Logger()
 	logging.Debug("application service selected",
@@ -133,7 +135,10 @@ func applicationRouter(
 		overload.Middleware(),
 	)
 	router.UseHTTP(authMiddleware)
-	router.Mount("/api/v1/admin", adminHandler)
+	// Chi Mount 为子 Router 维护 RoutePath，但不会改写普通 http.Handler 看到的
+	// request.URL.Path。Admin handler 使用标准库 ServeMux 声明相对路径，因此在
+	// Composition 边界统一剥离公开前缀，避免 manifest/Auth 落入 404。
+	router.Mount(adminHTTPPrefix, http.StripPrefix(adminHTTPPrefix, adminHandler))
 	router.Mount("/", apiRoutes)
 	return router, nil
 }

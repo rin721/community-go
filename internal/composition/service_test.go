@@ -5,16 +5,62 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/rin721/go-scaffold-template/internal/kernel"
+	kernelcomposition "github.com/rin721/go-scaffold-template/internal/kernel/composition"
 	kernellogging "github.com/rin721/go-scaffold-template/internal/kernel/logging"
 	"github.com/rin721/go-scaffold-template/internal/module/migration"
+	"github.com/rin721/go-scaffold-template/pkg/httpx"
+	"github.com/rin721/go-scaffold-template/pkg/idgen"
 	"github.com/rin721/go-scaffold-template/pkg/logger"
 	"github.com/rin721/go-scaffold-template/pkg/supervisor"
 )
+
+func TestApplicationRouterStripsAdminPrefixForStandardHandlers(t *testing.T) {
+	adminHandler := http.NewServeMux()
+	adminHandler.HandleFunc("/manifest", func(writer http.ResponseWriter, request *http.Request) {
+		if request.URL.Path != "/manifest" {
+			t.Fatalf("manifest handler path = %q", request.URL.Path)
+		}
+		writer.WriteHeader(http.StatusOK)
+	})
+	adminHandler.HandleFunc("/auth/session", func(writer http.ResponseWriter, request *http.Request) {
+		if request.URL.Path != "/auth/session" {
+			t.Fatalf("auth handler path = %q", request.URL.Path)
+		}
+		writer.WriteHeader(http.StatusUnauthorized)
+	})
+	router, err := applicationRouter(
+		kernelcomposition.Capabilities{Logger: logger.NewTestLogger(), IDGenerator: idgen.UUID()},
+		httpx.DefaultServerConfig(),
+		func(next http.Handler) http.Handler { return next },
+		adminHandler,
+		http.NotFoundHandler(),
+	)
+	if err != nil {
+		t.Fatalf("applicationRouter() error = %v", err)
+	}
+	tests := []struct {
+		path string
+		want int
+	}{
+		{path: adminHTTPPrefix + "/manifest", want: http.StatusOK},
+		{path: adminHTTPPrefix + "/auth/session", want: http.StatusUnauthorized},
+	}
+	for _, test := range tests {
+		recorder := httptest.NewRecorder()
+		request := httptest.NewRequest(http.MethodGet, test.path, nil)
+		router.ServeHTTP(recorder, request)
+		if recorder.Code != test.want {
+			t.Fatalf("GET %s status = %d, want %d", test.path, recorder.Code, test.want)
+		}
+	}
+}
 
 func TestExampleConfigSatisfiesApplicationBindings(t *testing.T) {
 	manager, err := kernellogging.New(logger.Noop())

@@ -3,6 +3,7 @@ import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { Button, CapabilityBanner, PageHeader, Skeleton, StatusPill, Surface, Toast } from "@webui/ui";
 import { useWebUITranslation, type CapabilityState } from "@webui/contracts";
 import { booleanCapabilityState, healthCapabilityState, readBuildSnapshot, readRuntimeSnapshot, type RuntimeSnapshot } from "./dashboard-data";
+import { readMetricsSnapshot, type MetricsSnapshot } from "./metrics-data";
 import { opsOperations, operationCapabilityState, refreshNoticeTone } from "./operations";
 
 export { operationCapabilityState, refreshNoticeTone } from "./operations";
@@ -34,6 +35,21 @@ function BuildSummaryCard({ build, state, t }: { build: ReturnType<typeof readBu
 function HealthSummaryCard({ runtime, state, t }: { runtime?: RuntimeSnapshot; state: CapabilityState; t: (key: string) => string }) {
   const healthState = (value: string | undefined) => healthCapabilityState(value);
   return <Surface className="ops-overview-card"><div className="ops-overview-heading"><div><span className="ops-overview-kicker">{t("webui.ops.dashboard.health.eyebrow")}</span><h3>{t("webui.ops.dashboard.health.title")}</h3></div><StatusPill state={state}>{statusLabel(t, state)}</StatusPill></div><div className="ops-health-list"><HealthRow label={t("webui.ops.dashboard.health.auth")} state={booleanCapabilityState(runtime?.authReady)} detail={statusLabel(t, booleanCapabilityState(runtime?.authReady))} /><HealthRow label={t("webui.ops.dashboard.health.database")} state={booleanCapabilityState(runtime?.databaseReady)} detail={statusLabel(t, booleanCapabilityState(runtime?.databaseReady))} /><HealthRow label={t("webui.ops.dashboard.health.scheduler")} state={healthState(runtime?.schedulerHealth)} detail={statusLabel(t, healthState(runtime?.schedulerHealth))} /><HealthRow label={t("webui.ops.dashboard.health.messaging")} state={healthState(runtime?.messagingHealth)} detail={statusLabel(t, healthState(runtime?.messagingHealth))} /></div></Surface>;
+}
+
+function metricValue(value: number | undefined, missing: string): string {
+  return value === undefined ? missing : value.toLocaleString();
+}
+
+function MetricsSummaryCard({ metrics, state, t }: { metrics?: MetricsSnapshot; state: CapabilityState; t: (key: string) => string }) {
+  const missing = t("webui.ops.dashboard.metrics.missing");
+  const values = [
+    ["requests", metrics?.requestCount],
+    ["inFlight", metrics?.inFlightRequests],
+    ["exported", metrics?.exportedSpans],
+    ["dropped", metrics?.droppedSpans],
+  ] as const;
+  return <Surface className="ops-metrics-card"><div className="ops-overview-heading"><div><span className="ops-overview-kicker">{t("webui.ops.dashboard.metrics.eyebrow")}</span><h3>{t("webui.ops.dashboard.metrics.title")}</h3></div><StatusPill state={state}>{statusLabel(t, state)}</StatusPill></div><p className="ops-overview-detail">{t("webui.ops.dashboard.metrics.detail")}</p><div className="ops-metric-grid">{values.map(([key, value]) => <div className={`ops-metric-tile ops-metric-${key}`} key={key}><strong>{metricValue(value, missing)}</strong><span>{t(`webui.ops.dashboard.metrics.${key}`)}</span></div>)}</div></Surface>;
 }
 
 export default function DashboardPage() {
@@ -69,14 +85,18 @@ export default function DashboardPage() {
   ] as const;
   const buildIndex = operations.findIndex((operation) => operation.name === "build");
   const diagnosticsIndex = operations.findIndex((operation) => operation.name === "diagnostics");
+  const metricsIndex = operations.findIndex((operation) => operation.name === "metrics");
   const buildQuery = queries[buildIndex];
   const diagnosticsQuery = queries[diagnosticsIndex];
+  const metricsQuery = queries[metricsIndex];
   const build = readBuildSnapshot(buildQuery?.data);
   const runtime = readRuntimeSnapshot(diagnosticsQuery?.data);
+  const metrics = readMetricsSnapshot(metricsQuery?.data);
   const buildState = operationCapabilityState(true, Boolean(buildQuery?.isPending), Boolean(buildQuery?.isError));
   const diagnosticsState = operationCapabilityState(false, Boolean(diagnosticsQuery?.isPending), Boolean(diagnosticsQuery?.isError));
+  const metricsState = operationCapabilityState(false, Boolean(metricsQuery?.isPending), Boolean(metricsQuery?.isError));
 
-  const renderOverview = () => <section className="ops-overview"><header className="diagnostic-group-heading"><div><h2>{t("webui.ops.dashboard.overview.title")}</h2><p>{t("webui.ops.dashboard.overview.detail")}</p></div></header><div className="ops-overview-grid"><BuildSummaryCard build={build} state={buildState} t={t} /><RuntimeSnapshotCard runtime={runtime} state={diagnosticsState} t={t} /><HealthSummaryCard runtime={runtime} state={diagnosticsState} t={t} /></div></section>;
+  const renderOverview = () => <section className="ops-overview"><header className="diagnostic-group-heading"><div><h2>{t("webui.ops.dashboard.overview.title")}</h2><p>{t("webui.ops.dashboard.overview.detail")}</p></div></header><div className="ops-overview-grid"><BuildSummaryCard build={build} state={buildState} t={t} /><RuntimeSnapshotCard runtime={runtime} state={diagnosticsState} t={t} /><HealthSummaryCard runtime={runtime} state={diagnosticsState} t={t} /></div><MetricsSummaryCard metrics={metrics} state={metricsState} t={t} /></section>;
 
   const renderGroup = (required: boolean) => {
     const groupOperations = operations.filter((operation) => operation.required === required);

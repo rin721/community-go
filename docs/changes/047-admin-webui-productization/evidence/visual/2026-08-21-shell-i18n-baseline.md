@@ -141,6 +141,7 @@
 - 当前项目没有天气、待办、消息或项目活动后端，因此不复制这些示例数据。Ops Dashboard 将同一“先总览、后详情”关系映射到现有真实 management 查询：Build 信息、Diagnostics 运行快照和依赖健康状态位于原始诊断卡片之前。
 - 运行快照只读取 `processState`、`generation`、`phase`、活动请求/连接；依赖健康只读取服务端 diagnostics 的 `authReady`、`databaseReady`、`schedulerHealth`、`messagingHealth`。字段缺失显示 `—` 并标记 `Unavailable`，不会由浏览器推断状态。
 - 原有六个查询、核心/可选四态、重试和原始结果详情保留；这次只是增加真实数据的结构化 Surface，不新增后端 wire contract。
+- Soybean `/home` 视觉快照还显示四张高对比指标卡和后续图表。当前项目只有一次性 Prometheus metrics 快照，没有历史序列，因此实现四张真实指标卡（HTTP 请求、活动请求、导出 Span、丢弃 Span），不伪造折线趋势；卡片继续放在概览之后、原始诊断之前。
 
 ## 主题抽屉分层补充校准
 

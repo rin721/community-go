@@ -131,6 +131,7 @@ HeroUI 作为可访问交互原语，宿主在其上定义项目 Token 和语义
 - 能力清单页由 Ops Binding 按需贡献，复用六个查询作为真实行数据，提供搜索、核心/可选筛选、状态列、结果摘要、单项重试和分页；不引入用户管理示例数据或新的后端 wire contract。
 - 能力清单的“查看详情”使用公共 `Drawer` 承载完整查询结果；Drawer 只接收模块当前行的真实快照，关闭、焦点和遮罩由公共层处理，失败行仍保留模块注入的重试动作。
 - Dashboard 概览层按“真实构建 → 运行快照 → 依赖健康 → 原始诊断详情”组织信息；Build 与 Diagnostics 只读取已有 management 响应字段，缺失字段显示 Unavailable，不补造天气、待办、活动或示例统计。
+- Metrics 概览复用已有 `/management/metrics` 文本响应，只投影稳定的 HTTP 请求、in-flight、导出 Span 和丢弃 Span 指标；没有历史样本时不绘制趋势图，原始 Prometheus 文本仍保留在诊断详情。
 
 ### 6.3 宿主页面
 

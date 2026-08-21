@@ -15,15 +15,15 @@ Linux 使用 `scripts/install-tools.sh` 与 `scripts/release-local.sh`。输出�
 
 ## 正式发布
 
-正式流程只接受受保护的 `v*` tag，并进入 GitHub `release` environment 审批。workflow 使用固定工具版本，运行 `scripts/verify-quality.sh` 所定义的 Go/生成物/仓库产物门禁，以 GoReleaser 创建 draft release，再使用 GitHub OIDC keyless identity 签名并验证 checksum bundle。该 job 当前不安装 Node/pnpm，也不执行 WebUI 门禁；不得把它描述成已经重新跑过项目全部质量检查。
+正式流程只接受受保护的 `v*` tag，并进入 GitHub `release` environment 审批。workflow 使用固定工具版本，先运行 `scripts/verify-webui.sh` 的 WebUI 静态门禁，再运行 `scripts/verify-quality.sh` 定义的 Go/生成物/仓库产物门禁，以 GoReleaser 创建 draft release，再使用 GitHub OIDC keyless identity 签名并验证 checksum bundle。该静态 WebUI 门禁不启动 Go 服务或 Playwright；不得把 release job 描述成已经完成 E2E、视觉或外部协议验收。
 
 审批者必须按同一 tag/source commit 核对独立 workflow 与任务证据，而不是只看 release job 自身：
 
 - tag、source commit、`/build` 返回值和 archive build info 一致；
 - Windows/Linux Go quality、SQLite/PostgreSQL/MySQL 和 container jobs 全部通过，并确认这些独立 workflow 对应同一 commit；
-- 如果该 commit 影响 WebUI，按 [WebUI 开发指南](../development/webui.md) 保存 lint、module/i18n/architecture 覆盖、typecheck、unit、build、registry、E2E 与视觉证据；当前 CI/release workflow 不会替审批者生成这些证据；
+- 如果该 commit 影响 WebUI，按 [WebUI 开发指南](../development/webui.md) 保存 lint、module/i18n/architecture 覆盖、typecheck、unit、build 和 registry 证据；quality/release workflow 会执行对应静态链，但 E2E 与视觉证据仍需单独保存；
 - checksum、SPDX SBOM 和 Sigstore bundle 都随 draft 提供；
 - OpenAPI breaking 结论、migration/rollback 说明和已知限制已审阅；
-- 项目源码当前已通过根 `LICENSE`、`NOTICE` 和 README 声明 Apache License 2.0；但 Dockerfile 的 OCI `org.opencontainers.image.licenses` 仍是 `NOASSERTION`。在该 label 通过独立非文档变更与源码许可证单轨对齐前，正式容器发布门禁未通过，不得声称镜像 license metadata 已闭环。
+- 项目源码和 Dockerfile 的 OCI `org.opencontainers.image.licenses` 均声明 `Apache-2.0`，与根 `LICENSE`、`NOTICE` 和 README 对齐；仍应在发布验收中确认最终镜像携带该 label。
 
 workflow 只生成 draft，不替审批者发布。发布或撤销 release、tag、registry image 仍是外部副作用，必须另有明确授权。

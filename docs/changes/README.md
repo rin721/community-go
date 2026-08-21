@@ -52,5 +52,6 @@
 - [047 Admin WebUI 产品化与模块化装配闭环](047-admin-webui-productization/README.md)：已停止继续实施；已提交代码作为当前事实和历史证据保留，未完成路线由 048 取代。
 - [048 业务模块自有 WebUI 与通用 SDK 重构](048-full-stack-webui-modules/README.md)：已完成 SDK、模块边界、Binding/生成门禁、CSS Modules、资源加载隔离与 E2E/视觉验收；页面继续由 `internal/module/<id>` 持有，普通模块 core 零修改，只有真实新宿主能力才单独增加 SDK interface/adapter。
 - [049 项目规范门禁语境核验](049-project-rule-gate-context/README.md)：已完成；核验模块、配置、日志、WebUI、质量、发布与许可证规范的真实覆盖，修复“命令通过但目标未被扫描”和“Go 门禁冒充全项目门禁”的项目文档语境。
+- [050 项目门禁缺口实施](050-project-gate-implementation/README.md)：已确认并实施；WebUI 门禁改为动态发现模块，静态质量链接入本地脚本、CI 与 release，容器许可证标签与源码声明对齐。
 
-下一个任务序号为 `050`。已完成记录只保存历史证据；当前行为必须回到根 [README](../../README.md) 和对应主题文档确认。
+下一个任务序号为 `051`。已完成记录只保存历史证据；当前行为必须回到根 [README](../../README.md) 和对应主题文档确认。

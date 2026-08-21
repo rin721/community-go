@@ -34,7 +34,7 @@ LABEL org.opencontainers.image.title="go-scaffold-template" \
       org.opencontainers.image.revision="${COMMIT}" \
       org.opencontainers.image.created="${BUILD_TIME}" \
       org.opencontainers.image.source="${SOURCE}" \
-      org.opencontainers.image.licenses="NOASSERTION"
+      org.opencontainers.image.licenses="Apache-2.0"
 
 WORKDIR /app
 COPY --chown=nonroot:nonroot --from=build /out/go-scaffold-template /app/go-scaffold-template

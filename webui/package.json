@@ -2,6 +2,7 @@
   "name": "community-go-webui",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@10.22.0",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "lint": "eslint . && pnpm lint:i18n && pnpm lint:architecture",

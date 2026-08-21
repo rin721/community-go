@@ -1,10 +1,10 @@
 import { readFile, readdir } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { discoverWebUIModuleRoots } from "./module-roots.mjs";
 
 const webuiRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const repositoryRoot = resolve(webuiRoot, "..");
-const moduleRoot = join(repositoryRoot, "internal", "module");
 const errors = [];
 
 const platformStyles = await readFile(join(webuiRoot, "src", "styles.css"), "utf8");
@@ -26,8 +26,7 @@ async function sourceFiles(directory) {
   return files;
 }
 
-for (const moduleID of ["auth", "ops"]) {
-  const root = join(moduleRoot, moduleID, "binding", "webui", "web");
+for (const { moduleID, root } of await discoverWebUIModuleRoots(repositoryRoot)) {
   for (const file of await sourceFiles(root)) {
     const relativeFile = relative(repositoryRoot, file).replaceAll("\\", "/");
     const source = await readFile(file, "utf8");

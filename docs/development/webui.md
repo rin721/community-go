@@ -11,12 +11,12 @@ WebUI 基线由 `internal/composition` 统一装配，模块只在确有浏览�
 | 规范 | 当前证据 | 能证明什么 | 不能证明什么 |
 | --- | --- | --- | --- |
 | Binding、Activation、Delivery、SourcePath、locale coverage 与 registry | Go Catalog/生成器测试和 `pnpm generate:check` | composition 已选择的模块及独立 fixture 能通过通用 Go 契约 | 未进入 composition 的目录自动成为模块 |
-| SDK import、宿主/模块 import 与全局样式 | `pnpm lint:architecture` | 当前脚本显式枚举的 Auth/Ops 与宿主目录 | 新增第三个模块自动被枚举；未知业务 selector 自动被识别 |
-| 模块 ESLint | `pnpm lint:modules` | 当前脚本显式枚举的 Auth/Ops Web 源码 | 任意新增模块目录自动进入 ESLint |
-| 强制 i18n | `pnpm lint:i18n`、Go locale 校验、前端测试 | Auth/Ops 页面源码和已注册 locale 的当前约束 | 新模块页面源码在未扩展扫描范围时自动受检 |
+| SDK import、宿主/模块 import 与全局样式 | `pnpm lint:architecture` | 宿主目录与所有实际存在的 WebUI 模块目录 | 未执行 E2E、视觉或外部服务验收 |
+| 模块 ESLint | `pnpm lint:modules` | 所有实际存在的 `binding/webui/web` 源码 | 运行时页面状态与浏览器兼容性 |
+| 强制 i18n | `pnpm lint:i18n`、Go locale 校验、前端测试 | 所有实际存在的 WebUI 模块页面源码和已注册 locale | 未执行 E2E、视觉或外部服务验收 |
 | 运行时 access/availability/资源隔离 | Vitest 与 Playwright E2E | 测试包含的状态、页面和请求 | 未执行 E2E、未查看截图或未覆盖的新页面已经验收 |
 
-因此，新增 `internal/module/<name>/binding/webui/web` 时，完成条件不仅是现有命令返回 0；还必须先让 architecture、module lint、i18n 扫描和测试发现该模块，提供一个故意违规会失败的反向 fixture 或等价证据，再运行完整检查。当前三个 Node 扫描脚本只覆盖 Auth/Ops，这是已知覆盖边界，不得把通过结果描述成对未来任意模块的项目级保证。
+因此，新增 `internal/module/<name>/binding/webui/web` 时，三个 Node 扫描脚本会自动发现该目录并纳入检查；仍必须提供一个故意违规会失败的反向 fixture 或等价证据，再运行完整检查。命令通过只证明静态检查覆盖了当前目录，不替代运行时、E2E 或视觉验收。
 
 ## 运行与生成
 
@@ -36,6 +36,8 @@ pnpm e2e -- --workers=1
 pnpm generate:check
 ```
 
+跨平台静态质量总入口为仓库根的 `./scripts/Verify-WebUI.ps1` 或 `bash scripts/verify-webui.sh`，它固定执行生成检查、冻结安装、lint、模块 lint、typecheck、test 和 build；不启动 Go 服务或 Playwright。
+
 `webui/` 是独立 React/Vite 宿主，开发服务器使用 HTTPS，并将 `/api/v1` 与 `/management` 代理到 Go 服务。生成 registry 的唯一来源是 `internal/composition` 的 WebUI Catalog；不要直接编辑 `src/generated/webui-registry.ts`。
 
 WebUI 用户密码可通过 `go run ./cmd/app webui reset-password --username <用户名>` 重置；未传 `--password` 时由 CLI 的安全输入接口读取。命令先验证 migration 兼容性，再更新密码并撤销该用户全部 Session。
@@ -51,7 +53,7 @@ WebUI 用户密码可通过 `go run ./cmd/app webui reset-password --username <�
 
 模块页面只能依赖 `@webui/sdk/*` 和自身 API，不得导入宿主 Router、菜单、Session Store 或内部全局状态。新增页面时先修改模块 WebUI Binding，再运行生成检查。SDK 公开面按 runtime、http、i18n、query、navigation、ui、feedback 分包；禁止 `resolve/get`、万能 Context 和第三方 client 穿透。
 
-模块样式必须放在模块自己的 `binding/webui/web/*.module.css`，页面根节点使用模块 CSS Module scope；宿主 `webui/src/styles.css` 只允许保留 reset、design token、Shell/platform 和公共 SDK UI 规则。业务 selector 不得回流宿主全局 CSS。当前 `pnpm lint:architecture` 只扫描已列出的 Auth/Ops selector 与模块目录；新增模块时必须同步扩展或改造成可发现该模块的门禁，不能把现有通过结果当成自动覆盖。
+模块样式必须放在模块自己的 `binding/webui/web/*.module.css`，页面根节点使用模块 CSS Module scope；宿主 `webui/src/styles.css` 只允许保留 reset、design token、Shell/platform 和公共 SDK UI 规则。业务 selector 不得回流宿主全局 CSS。`pnpm lint:architecture` 会按目录动态发现所有模块，但通过结果仍只覆盖当前源码和静态规则。
 
 ## 强制 i18n 契约
 
@@ -78,6 +80,6 @@ const setupErrorMessageIDs: Record<string, string> = {
 1. Binding、locale registry 和资源文件完整且 namespace/language 唯一；
 2. 页面源码只使用公开翻译契约，用户可见文本没有硬编码；
 3. error code 映射只产生 message ID，缺失 key/namespace/language 时 fail closed 或展示低敏诊断；
-4. architecture、module lint 与 i18n 扫描已实际枚举本次模块；新增模块必须先补覆盖证据，不能只复用 Auth/Ops 的通过结果；
+4. architecture、module lint 与 i18n 扫描已实际枚举本次模块；动态发现不会替代新增模块的反向违规证据；
 5. `pnpm generate:check`、`pnpm typecheck`、`pnpm test`、`pnpm lint` 和 `pnpm lint:modules` 均通过；其中 `pnpm lint` 已包含 i18n 与 architecture，但不包含 `lint:modules`、typecheck、test、build、E2E 或 generate check；
 6. `pnpm e2e -- --workers=1` 覆盖真实状态门禁。至少检查 setup/login/logout/session、denied/unavailable/degraded 与 management 请求数量；Auth/Ops 桌面、移动和主题截图在 Playwright `test-results/` 中人工复核。未启动浏览器测试或未查看截图时必须明确标为未验证。

@@ -1,13 +1,11 @@
 import { readFile, readdir } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { discoverWebUIModuleRoots } from "./module-roots.mjs";
 
 const webuiRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const repositoryRoot = resolve(webuiRoot, "..");
-const moduleRoots = [
-  join(repositoryRoot, "internal/module/auth/binding/webui/web"),
-  join(repositoryRoot, "internal/module/ops/binding/webui/web"),
-];
+const moduleRoots = (await discoverWebUIModuleRoots(repositoryRoot)).map(({ root }) => root);
 const userProps = /\b(?:aria-label|alt|description|eyebrow|hint|label|placeholder|title)=(["'`])([^"'`\n]+)\1/g;
 const userPropExpressions = /\b(?:aria-label|alt|description|eyebrow|hint|label|placeholder|title)=\{(["'`])([^"'`\n]+)\1\}/g;
 const textNodes = />\s*([A-Za-z][^<{\n]*)\s*</g;

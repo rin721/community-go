@@ -16,9 +16,9 @@ bash scripts/verify-quality.sh
 
 两个入口都会验证格式、`go.mod`、生成物、test、race、vet、CGO-free build 和禁止跟踪的产物。安全扫描由 CI 的独立门禁执行，避免把“本机没有扫描器”静默视为通过。
 
-这两个 `Verify-Quality` 入口是 Go 后端与仓库产物门禁，不安装 Node/pnpm，也不执行 WebUI 的 lint、typecheck、unit、build、E2E 或 registry clean check。涉及 `webui/`、模块 `binding/webui/web`、WebUI Binding/locale 或生成 registry 的变更，还必须按 [WebUI 开发指南](../development/webui.md) 单独运行 WebUI 门禁并核对扫描器确实覆盖本次模块。只运行 `Verify-Quality` 不得表述为“项目全部质量门禁通过”。
+这两个 `Verify-Quality` 入口是 Go 后端与仓库产物门禁，不安装 Node/pnpm，也不执行 WebUI 的 lint、typecheck、unit、build、E2E 或 registry clean check。WebUI 另有 `./scripts/Verify-WebUI.ps1` 与 `bash scripts/verify-webui.sh`，固定执行生成检查、冻结安装、lint、模块 lint、typecheck、test 和 build；它们不启动 Go 服务或 Playwright。只运行任一单一入口不得表述为“项目全部质量门禁通过”。
 
-当前 `.github/workflows/quality.yml` 与正式 release job 同样只调用上述 Go 质量入口；它们没有 Node setup 或 WebUI job。WebUI 变更在补齐 CI 聚合前，需要保留本地命令证据，并把未执行的 build/E2E/视觉检查明确标为未验证，不能由 Go workflow 成功替代。
+`.github/workflows/quality.yml` 已分别提供 Windows/Linux WebUI 静态 job，正式 release job 也在 Go release gate 前运行 Linux WebUI 静态入口。Playwright E2E、视觉、外部协议和容器 runtime 仍是独立验收，不因这些静态 job 通过而自动完成。
 
 ## OCI image
 

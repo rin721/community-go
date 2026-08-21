@@ -25,6 +25,14 @@ jobs:
         with:
           go-version-file: go.mod
           cache-dependency-path: go.sum
+      - name: Set up Node
+        uses: actions/setup-node@1e60f620b9541dca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24.11.1
+      - name: Set up pnpm
+        run: |
+          corepack enable
+          corepack install --global pnpm@10.22.0
       - name: Install pinned release tools
         env:
           GOBIN: ${{ github.workspace }}/.tools/bin
@@ -35,7 +43,9 @@ jobs:
           go install github.com/sigstore/cosign/v2/cmd/cosign@v2.6.5
           echo "${GOBIN}" >> "${GITHUB_PATH}"
       - name: Verify release gates
-        run: bash scripts/verify-quality.sh
+        run: |
+          bash scripts/verify-webui.sh
+          bash scripts/verify-quality.sh
       - name: Build draft release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

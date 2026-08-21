@@ -39,6 +39,42 @@ jobs:
       - name: Run bounded fuzz gate
         run: go test ./internal/kernel/config -run '^$' -fuzz '^FuzzJSONObject$' -fuzztime 15s
 
+  webui-windows:
+    name: Windows WebUI quality gates
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Set up Node
+        uses: actions/setup-node@1e60f620b9541dca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24.11.1
+      - name: Set up pnpm
+        shell: pwsh
+        run: |
+          corepack enable
+          corepack install --global pnpm@10.22.0
+      - name: Run WebUI quality gates
+        shell: pwsh
+        run: ./scripts/Verify-WebUI.ps1
+
+  webui-linux:
+    name: Linux WebUI quality gates
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Set up Node
+        uses: actions/setup-node@1e60f620b9541dca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24.11.1
+      - name: Set up pnpm
+        run: |
+          corepack enable
+          corepack install --global pnpm@10.22.0
+      - name: Run WebUI quality gates
+        run: bash scripts/verify-webui.sh
+
   openapi-breaking:
     name: OpenAPI breaking gate
     if: github.event_name == 'pull_request'

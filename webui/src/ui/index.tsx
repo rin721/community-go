@@ -111,6 +111,49 @@ export function InlineAlert({ tone = "info", title, detail, action }: { tone?: "
   return <div className={`inline-alert inline-alert-${tone}`} role="status"><div><strong>{title}</strong>{detail && <p>{detail}</p>}</div>{action && <div className="inline-alert-action">{action}</div>}</div>;
 }
 
+export function Toast({ open, tone = "info", title, detail, closeLabel, onClose, action }: { open: boolean; tone?: "info" | "success" | "warning" | "danger"; title: string; detail?: string; closeLabel: string; onClose: () => void; action?: ReactNode }) {
+  if (!open) return null;
+  return <div className={`ui-toast ui-toast-${tone}`} role={tone === "danger" ? "alert" : "status"} aria-live={tone === "danger" ? "assertive" : "polite"}><div className="ui-toast-copy"><strong>{title}</strong>{detail && <p>{detail}</p>}</div><div className="ui-toast-actions">{action}{<button type="button" className="icon-button" onClick={onClose} aria-label={closeLabel}>×</button>}</div></div>;
+}
+
+export function ConfirmDialog({ open, title, description, confirmLabel, cancelLabel, closeLabel, onConfirm, onCancel }: { open: boolean; title: string; description?: string; confirmLabel: string; cancelLabel: string; closeLabel: string; onConfirm: () => void; onCancel: () => void }) {
+  const dialogRef = useRef<HTMLElement>(null);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
+  const titleID = `webui-confirm-title-${useId().replaceAll(":", "")}`;
+  const descriptionID = `${titleID}-description`;
+
+  useEffect(() => {
+    if (!open) return;
+    restoreFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const focusFrame = requestAnimationFrame(() => dialogRef.current?.querySelector<HTMLElement>("[data-confirm-initial-focus]")?.focus());
+    return () => {
+      cancelAnimationFrame(focusFrame);
+      const target = restoreFocusRef.current;
+      restoreFocusRef.current = null;
+      target?.focus();
+    };
+  }, [open]);
+
+  const handleDialogKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      onCancel();
+      return;
+    }
+    if (event.key !== "Tab") return;
+    const focusable = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>("button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex=\"-1\"])") ?? []);
+    if (focusable.length === 0) return;
+    const currentIndex = focusable.indexOf(document.activeElement as HTMLElement);
+    const nextIndex = event.shiftKey
+      ? currentIndex <= 0 ? focusable.length - 1 : currentIndex - 1
+      : currentIndex === focusable.length - 1 ? 0 : currentIndex + 1;
+    event.preventDefault();
+    focusable[nextIndex]?.focus();
+  };
+
+  return <><button type="button" aria-hidden={!open} aria-label={closeLabel} className={`confirm-backdrop ${open ? "visible" : ""}`} disabled={!open} tabIndex={open ? 0 : -1} onClick={onCancel} /><section ref={dialogRef} className={`confirm-dialog ${open ? "open" : ""}`} role="dialog" aria-modal="true" aria-hidden={!open} aria-labelledby={titleID} aria-describedby={description ? descriptionID : undefined} inert={!open} onKeyDown={handleDialogKeyDown}><header className="confirm-dialog-header"><h2 id={titleID}>{title}</h2><button type="button" className="icon-button" onClick={onCancel} aria-label={closeLabel}>×</button></header>{description && <p id={descriptionID} className="confirm-dialog-description">{description}</p>}<footer className="confirm-dialog-footer"><Button type="button" variant="secondary" onClick={onCancel} data-confirm-initial-focus>{cancelLabel}</Button><Button type="button" variant="danger" onClick={onConfirm}>{confirmLabel}</Button></footer></section></>;
+}
+
 export function Drawer({ open, title, description, closeLabel, onClose, children, footer }: { open: boolean; title: string; description?: string; closeLabel: string; onClose: () => void; children: ReactNode; footer?: ReactNode }) {
   const drawerRef = useRef<HTMLElement>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);

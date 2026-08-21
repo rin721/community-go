@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { CapabilityBanner, DataTable, DataToolbar, Drawer, EmptyState, FilterPanel, Pagination, createPaginationItems, getDataTableSelectionState } from "./ui";
+import { CapabilityBanner, ConfirmDialog, DataTable, DataToolbar, Drawer, EmptyState, FilterPanel, Pagination, Toast, createPaginationItems, getDataTableSelectionState } from "./ui";
 
 describe("公共管理 UI 模式", () => {
   it("renders a selectable data table with an empty state", () => {
@@ -62,6 +62,35 @@ describe("公共管理 UI 模式", () => {
 
   it("isolates a closed shared drawer from pointer and keyboard focus", () => {
     const markup = renderToStaticMarkup(createElement(Drawer, { open: false, title: "Create", closeLabel: "Close", onClose: () => undefined, children: null }));
+
+    expect(markup).toContain('aria-hidden="true"');
+    expect(markup).toContain('disabled=""');
+    expect(markup).toContain('inert=""');
+  });
+
+  it("keeps toast feedback controlled by module-provided i18n labels", () => {
+    const markup = renderToStaticMarkup(createElement(Toast, { open: true, tone: "success", title: "Saved", detail: "The record is ready.", closeLabel: "Dismiss", onClose: () => undefined }));
+
+    expect(markup).toContain('role="status"');
+    expect(markup).toContain('aria-live="polite"');
+    expect(markup).toContain('aria-label="Dismiss"');
+    expect(markup).toContain("The record is ready.");
+    expect(renderToStaticMarkup(createElement(Toast, { open: false, title: "Hidden", closeLabel: "Dismiss", onClose: () => undefined }))).toBe("");
+  });
+
+  it("provides a focus-managed confirmation dialog with localized actions", () => {
+    const markup = renderToStaticMarkup(createElement(ConfirmDialog, { open: true, title: "Delete record?", description: "This action cannot be undone.", confirmLabel: "Delete", cancelLabel: "Cancel", closeLabel: "Close", onConfirm: () => undefined, onCancel: () => undefined }));
+
+    expect(markup).toContain('role="dialog"');
+    expect(markup).toContain('aria-modal="true"');
+    expect(markup).toContain('aria-describedby=');
+    expect(markup).toContain('data-confirm-initial-focus="true"');
+    expect(markup).toContain("Delete");
+    expect(markup).toContain("Cancel");
+  });
+
+  it("isolates a closed confirmation dialog from pointer and keyboard focus", () => {
+    const markup = renderToStaticMarkup(createElement(ConfirmDialog, { open: false, title: "Delete record?", confirmLabel: "Delete", cancelLabel: "Cancel", closeLabel: "Close", onConfirm: () => undefined, onCancel: () => undefined }));
 
     expect(markup).toContain('aria-hidden="true"');
     expect(markup).toContain('disabled=""');

@@ -13,6 +13,8 @@
 
 结论：Organization 定义最窄 AccountDirectory port，由 composition 适配 IAM；两个业务操作分开，首版明确不实现数据权限。
 
+2026-08-22 在 054 完成提交 `7b73ea36c88469a97a3c61a1d03df3d62590a2d5` 上复核：IAM 已拥有稳定 Account ID、active/disabled 状态和模块内 Repository；composition 可用仅返回错误的窄 Adapter 回答账号是否可分配，无需暴露 IAM DTO。054 的 Catalog 对账会把 Organization 新增权限补入 system owner，并使旧 owner Session 失效。原结论保持有效。
+
 ## 3. 能力与所有权
 
 复用 Database、Clock、ID、Logger、053 Permission/Migration/HTTP/WebUI 契约。Organization 不新增 Kernel Capability、goroutine 或外部系统。schema、API、WebUI 和权限键全部由 Organization 拥有。

@@ -79,8 +79,13 @@ func TestProcessGeneratedConfigurationSupportsMigrationAndServiceStartup(t *test
 		} `json:"sets"`
 		Compatible bool `json:"compatible"`
 	}
-	if err := json.Unmarshal(stdout.Bytes(), &beforeMigration); err != nil || len(beforeMigration.Sets) != 2 || !beforeMigration.Sets[0].Empty || !beforeMigration.Sets[1].Empty || beforeMigration.Compatible {
-		t.Fatalf("status before migration = %q, parsed=%#v, err=%v", stdout.String(), beforeMigration, err)
+	decodeErr := json.Unmarshal(stdout.Bytes(), &beforeMigration)
+	allEmpty := decodeErr == nil
+	for _, set := range beforeMigration.Sets {
+		allEmpty = allEmpty && set.Empty
+	}
+	if decodeErr != nil || len(beforeMigration.Sets) != 3 || !allEmpty || beforeMigration.Compatible {
+		t.Fatalf("status before migration = %q, parsed=%#v, err=%v", stdout.String(), beforeMigration, decodeErr)
 	}
 
 	stdout.Reset()
@@ -95,8 +100,13 @@ func TestProcessGeneratedConfigurationSupportsMigrationAndServiceStartup(t *test
 		} `json:"sets"`
 		Compatible bool `json:"compatible"`
 	}
-	if err := json.Unmarshal(stdout.Bytes(), &afterMigration); err != nil || len(afterMigration.Sets) != 2 || afterMigration.Sets[0].Empty || afterMigration.Sets[1].Empty || !afterMigration.Sets[0].Compatible || !afterMigration.Sets[1].Compatible || !afterMigration.Compatible {
-		t.Fatalf("status after migration = %q, parsed=%#v, err=%v", stdout.String(), afterMigration, err)
+	decodeErr = json.Unmarshal(stdout.Bytes(), &afterMigration)
+	allCompatible := decodeErr == nil
+	for _, set := range afterMigration.Sets {
+		allCompatible = allCompatible && !set.Empty && set.Compatible
+	}
+	if decodeErr != nil || len(afterMigration.Sets) != 3 || !allCompatible || !afterMigration.Compatible {
+		t.Fatalf("status after migration = %q, parsed=%#v, err=%v", stdout.String(), afterMigration, decodeErr)
 	}
 
 	serviceContext, cancelService := context.WithCancel(t.Context())

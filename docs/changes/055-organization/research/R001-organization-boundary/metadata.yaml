@@ -17,9 +17,9 @@ evidence:
       snapshot: "current research evidence, 2026-08-21"
     - title: "当前应用模块边界"
       locator: "internal/module/README.md; internal/composition; pkg/database/types.go"
-      snapshot: "based on commit 5927f2a116ba6b689473fde49e7790b03773c675; verified 2026-08-21"
+      snapshot: "refreshed against 054 completion commit 7b73ea36c88469a97a3c61a1d03df3d62590a2d5; verified 2026-08-22"
 researched_at: "2026-08-21"
-verified_at: "2026-08-21"
+verified_at: "2026-08-22"
 validity:
   mode: dependency-bound
   review_after: "054 contract completion"

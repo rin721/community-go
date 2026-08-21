@@ -19,7 +19,7 @@
 dirty/incompatible 等需要人工动作的完成态为 Warn，最终失败为 Error。CLI 的 JSON 结果仍只写 stdout；运行日志写入
 配置 logger 或入口基线 stderr，不得与机器可解析输出混在一起。
 
-CLI 输出 `sets[]`，每项保留 `moduleId`、`setName`、current/target/dirty/empty/compatible。当前 IAM 使用 `iam_schema_migrations` 000001，Todo 使用 `todo_schema_migrations` 000001；两个 set 必须分别精确兼容。
+CLI 输出 `sets[]`，每项保留 `moduleId`、`setName`、current/target/dirty/empty/compatible。当前 IAM 使用 `iam_schema_migrations` 000001，Organization 使用 `organization_schema_migrations` 000001，Todo 使用 `todo_schema_migrations` 000001；三个 set 必须分别精确兼容。
 
 若检测到已退休的 `schema_migrations`、`webui_users` 或 `webui_sessions`，`status/up` 会在创建 runner 或执行 SQL 前返回 `pre_release_baseline_reset_required`。项目不会自动删除、改写或迁移本地数据；先停止操作，确认是否保留数据并制定显式方案。
 

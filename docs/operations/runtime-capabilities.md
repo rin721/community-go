@@ -5,7 +5,7 @@
 | 能力 | 当前入口 | 资源/生命周期 owner | 当前验证 | 未覆盖边界 |
 | --- | --- | --- | --- | --- |
 | Config | `config init`、配置说明、环境变量 | Application 配置集合与 generation | Go 测试、启动和 reload 相关检查 | 外部部署平台注入策略 |
-| Database/Migration | `db migrate status/up`、database/migration 文档 | 多 Set Migration Catalog、one-shot runner 与数据库组件 | IAM/Todo SQLite baseline、Catalog/错误门禁；Postgres/MySQL SQL/checksum 静态校验 | 生产数据库协议需配置外部 DSN 独立验证 |
+| Database/Migration | `db migrate status/up`、database/migration 文档 | 多 Set Migration Catalog、one-shot runner 与数据库组件 | IAM/Organization/Todo SQLite baseline、Catalog/错误门禁；Postgres/MySQL SQL/checksum 静态校验 | 生产数据库协议需配置外部 DSN 独立验证 |
 | Cache/Coordination | 配置中的 cache/Redis 节 | Kernel App 连接与 lease/close owner | 单元测试、模拟依赖 | 真实 Redis、多实例故障恢复 |
 | Storage | storage 配置节、Storage Capability | Kernel App Manager 与对象存储资源 owner | Go 测试、契约边界 | 真实 S3 兼容服务和生产凭据 |
 | Observability | logger、diagnostics、metrics、OTLP 配置 | Kernel App observability 与注入 Logger | Go 测试、低敏日志检查 | 外部 collector/后端接收验证 |

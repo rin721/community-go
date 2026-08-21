@@ -12,6 +12,8 @@ import (
 	authmodel "github.com/rin721/go-scaffold-template/internal/module/auth/model"
 	"github.com/rin721/go-scaffold-template/internal/module/iam"
 	iamhttp "github.com/rin721/go-scaffold-template/internal/module/iam/binding/http"
+	"github.com/rin721/go-scaffold-template/internal/module/organization"
+	organizationhttp "github.com/rin721/go-scaffold-template/internal/module/organization/binding/http"
 	todohttp "github.com/rin721/go-scaffold-template/internal/module/todo/binding/http"
 	todohandler "github.com/rin721/go-scaffold-template/internal/module/todo/handler"
 	httptransport "github.com/rin721/go-scaffold-template/internal/transport/http"
@@ -128,12 +130,13 @@ func newContractDispatcher(runtimeModules ...runtimeHTTPModule) (*contractDispat
 	return &contractDispatcher{modules: contracts, operations: operations, handlers: handlers}, nil
 }
 
-func newApplicationContractDispatcher(todoOperations todohandler.Operations, iamModule iam.HTTPModule) (*contractDispatcher, error) {
-	if nilDependency(todoOperations) || iamModule.Handler == nil {
+func newApplicationContractDispatcher(todoOperations todohandler.Operations, iamModule iam.HTTPModule, organizationModule organization.HTTPModule) (*contractDispatcher, error) {
+	if nilDependency(todoOperations) || iamModule.Handler == nil || nilDependency(organizationModule.Operations) {
 		return nil, fmt.Errorf("application HTTP runtime dependencies are incomplete")
 	}
 	return newContractDispatcher(
 		runtimeHTTPModule{Contract: iamhttp.ModuleContract(), Handlers: iamhttp.RuntimeHandlers(iamModule.Handler)},
+		runtimeHTTPModule{Contract: organizationhttp.ModuleContract(), Handlers: organizationhttp.RuntimeHandlers(organizationModule.Operations)},
 		runtimeHTTPModule{Contract: todohttp.ModuleContract(), Handlers: todohttp.RuntimeHandlers(todoOperations)},
 	)
 }

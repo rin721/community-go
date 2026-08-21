@@ -11,6 +11,7 @@ import (
 	iammigration "github.com/rin721/go-scaffold-template/internal/module/iam/binding/migration"
 	"github.com/rin721/go-scaffold-template/internal/module/migration"
 	migrationconfig "github.com/rin721/go-scaffold-template/internal/module/migration/binding/config"
+	organizationmigration "github.com/rin721/go-scaffold-template/internal/module/organization/binding/migration"
 	todomigration "github.com/rin721/go-scaffold-template/internal/module/todo/binding/migration"
 	pkgdatabase "github.com/rin721/go-scaffold-template/pkg/database"
 	"github.com/rin721/go-scaffold-template/pkg/logger"
@@ -32,16 +33,20 @@ func (e migrationExecutor) MigrationUp(ctx context.Context) (migration.Status, e
 
 // applicationMigrationCatalog 是当前应用中“哪些模块贡献 migration set”的唯一显式汇总点。
 func applicationMigrationCatalog() (migration.Catalog, error) {
-	return migration.BuildCatalog(migration.Registration{ModuleID: "iam", Source: "internal/module/iam/binding/migration", Set: iammigration.Set()}, migration.Registration{
-		ModuleID: "todo",
-		Source:   "internal/module/todo/binding/migration",
-		Set:      todomigration.Set(),
-		RetiredTables: []string{
-			"schema_migrations",
-			"webui_sessions",
-			"webui_users",
+	return migration.BuildCatalog(
+		migration.Registration{ModuleID: "iam", Source: "internal/module/iam/binding/migration", Set: iammigration.Set()},
+		migration.Registration{ModuleID: "organization", Source: "internal/module/organization/binding/migration", Set: organizationmigration.Set()},
+		migration.Registration{
+			ModuleID: "todo",
+			Source:   "internal/module/todo/binding/migration",
+			Set:      todomigration.Set(),
+			RetiredTables: []string{
+				"schema_migrations",
+				"webui_sessions",
+				"webui_users",
+			},
 		},
-	})
+	)
 }
 
 func applicationMigrationService(snapshot config.Snapshot, databaseConfig pkgdatabase.Config) (*migration.Service, error) {

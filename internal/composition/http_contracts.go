@@ -7,6 +7,9 @@ import (
 	iampermission "github.com/rin721/go-scaffold-template/internal/module/iam/binding/permission"
 	iamwebui "github.com/rin721/go-scaffold-template/internal/module/iam/binding/webui"
 	opswebui "github.com/rin721/go-scaffold-template/internal/module/ops/binding/webui"
+	organizationhttp "github.com/rin721/go-scaffold-template/internal/module/organization/binding/http"
+	organizationpermission "github.com/rin721/go-scaffold-template/internal/module/organization/binding/permission"
+	organizationwebui "github.com/rin721/go-scaffold-template/internal/module/organization/binding/webui"
 	todohttp "github.com/rin721/go-scaffold-template/internal/module/todo/binding/http"
 	todopermission "github.com/rin721/go-scaffold-template/internal/module/todo/binding/permission"
 	permissioncatalog "github.com/rin721/go-scaffold-template/internal/permission"
@@ -24,6 +27,7 @@ import (
 func applicationHTTPModules() []contract.Module {
 	return []contract.Module{
 		iamhttp.ModuleContract(),
+		organizationhttp.ModuleContract(),
 		todohttp.ModuleContract(),
 	}
 }
@@ -31,6 +35,7 @@ func applicationHTTPModules() []contract.Module {
 // applicationPermissionCatalog 是当前应用中“哪些模块贡献权限定义”的唯一显式汇总点。
 func applicationPermissionCatalog() (permissioncatalog.Catalog, error) {
 	definitions := append(authpermission.Definitions(), iampermission.Definitions()...)
+	definitions = append(definitions, organizationpermission.Definitions()...)
 	definitions = append(definitions, todopermission.Definitions()...)
 	return permissioncatalog.BuildCatalog(definitions...)
 }
@@ -40,6 +45,7 @@ func applicationPermissionCatalog() (permissioncatalog.Catalog, error) {
 func applicationWebUIModules() []webuicontract.ModuleRegistration {
 	return []webuicontract.ModuleRegistration{
 		{Binding: iamwebui.Binding(), Activation: webuicontract.ActivationEnabled},
+		{Binding: organizationwebui.Binding(), Activation: webuicontract.ActivationEnabled},
 		{Binding: opswebui.Binding(), Activation: webuicontract.ActivationEnabled},
 	}
 }

@@ -2,7 +2,7 @@
 
 构建期仓库布局由 `.scaffold/layout.json` 统一声明；WebUI、代码生成、工具和 release 脚本不得各自复制路径约定。
 
-当前仓库 remote 是 `rin721/community-go`，根 Go module 和构建产物仍使用 `go-scaffold-template` 身份；这个身份差异已记录在[项目范围与当前状态](docs/repository-scope.md)，最终身份迁移不在本次文档治理中。根 Go 工程使用显式 composition root 串联配置、日志、数据库、迁移、HTTP、management、后台任务、定时调度、消息系统和业务模块；当前默认应用包含 Todo 垂直切片。
+当前仓库 remote 是 `rin721/community-go`，根 Go module 和构建产物仍使用 `go-scaffold-template` 身份；这个身份差异已记录在[项目范围与当前状态](docs/repository-scope.md)，最终身份迁移不在本次文档治理中。根 Go 工程使用显式 composition root 串联配置、日志、数据库、迁移、HTTP、management、后台任务、定时调度、消息系统和业务模块；当前默认应用包含 IAM、Organization 与 Todo 垂直切片。
 
 ## 当前项目目标语境（Agent 必读）
 
@@ -56,7 +56,7 @@ pnpm generate:check
 pnpm dev
 ```
 
-浏览器访问 `https://127.0.0.1:5173` 可检查当前宿主、manifest 和 IAM/Ops 页面。IAM 已拥有本地账号、凭据、Session、Core RBAC、用户/角色/权限管理及独立 migration set；Auth 只保留通用 Principal、JWT、operation decision 和审计。Vite 开发服务器使用本地 HTTPS；完整启动步骤见 [WebUI 本地启动指南](docs/getting-started/webui.md)。
+浏览器访问 `https://127.0.0.1:5173` 可检查当前宿主、manifest 和 IAM/Organization/Ops 页面。IAM 已拥有本地账号、凭据、Session、Core RBAC、用户/角色/权限管理及独立 migration set；Organization 已拥有部门、岗位和账号组织分配及独立 migration set，但组织关系不进入权限决策；Auth 只保留通用 Principal、JWT、operation decision 和审计。Vite 开发服务器使用本地 HTTPS；完整启动步骤见 [WebUI 本地启动指南](docs/getting-started/webui.md)。
 
 启动后可按 [首次使用与最小验收](docs/getting-started/first-use.md) 验证当前可用的 WebUI 宿主、Todo CLI/API 和 management readiness。当前 Docker/release 尚未打包或托管 `webui/dist`，不能把本地 Vite 启动当作生产静态交付。
 

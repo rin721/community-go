@@ -28,6 +28,7 @@ import (
 	"github.com/rin721/go-scaffold-template/internal/module/ops"
 	opsconfig "github.com/rin721/go-scaffold-template/internal/module/ops/binding/config"
 	opsmodel "github.com/rin721/go-scaffold-template/internal/module/ops/model"
+	"github.com/rin721/go-scaffold-template/internal/module/organization"
 	"github.com/rin721/go-scaffold-template/internal/module/todo"
 	configbinding "github.com/rin721/go-scaffold-template/internal/module/todo/binding/config"
 	httptransport "github.com/rin721/go-scaffold-template/internal/transport/http"
@@ -82,20 +83,21 @@ type applicationGeneration struct {
 	scheduler *immutableComponent[scheduleapp.Access]
 	messaging *immutableComponent[messagingapp.Output]
 
-	module            todo.HTTPModule
-	authModule        auth.Module
-	iamModule         iam.HTTPModule
-	opsModule         ops.Module
-	webuiCatalog      webuicontract.Catalog
-	participants      []supervisor.Participant
-	route             *httpx.PreparedRoute
-	server            *httpx.Server
-	runDone           chan struct{}
-	runErr            error
-	managementRoute   *httpx.PreparedRoute
-	managementServer  *httpx.Server
-	managementRunDone chan struct{}
-	managementRunErr  error
+	module             todo.HTTPModule
+	authModule         auth.Module
+	iamModule          iam.HTTPModule
+	organizationModule organization.HTTPModule
+	opsModule          ops.Module
+	webuiCatalog       webuicontract.Catalog
+	participants       []supervisor.Participant
+	route              *httpx.PreparedRoute
+	server             *httpx.Server
+	runDone            chan struct{}
+	runErr             error
+	managementRoute    *httpx.PreparedRoute
+	managementServer   *httpx.Server
+	managementRunDone  chan struct{}
+	managementRunErr   error
 
 	activeRequests      atomic.Int64
 	resourceStats       kernel.GenerationResourceStats
@@ -312,6 +314,14 @@ func (f *applicationGenerationFactory) Prepare(
 	if err != nil {
 		return abort(err)
 	}
+	accountDirectory, err := newOrganizationAccountDirectory(generation.iamModule.Service)
+	if err != nil {
+		return abort(err)
+	}
+	generation.organizationModule, err = organization.NewHTTP(organization.Dependencies{Database: databaseAccess, Clock: clock.System(), IDGenerator: idgen.UUID(), AccountDirectory: accountDirectory})
+	if err != nil {
+		return abort(err)
+	}
 	sessionSource, err := newIAMSessionAuthAdapter(generation.iamModule.Service)
 	if err != nil {
 		return abort(err)
@@ -415,21 +425,21 @@ func (f *applicationGenerationFactory) Prepare(
 		return abort(err)
 	}
 
-	if err := module.ValidateContributions(generation.authModule.Contribution, generation.iamModule.Contribution, generation.module.Contribution, generation.opsModule.Contribution); err != nil {
+	if err := module.ValidateContributions(generation.authModule.Contribution, generation.iamModule.Contribution, generation.organizationModule.Contribution, generation.module.Contribution, generation.opsModule.Contribution); err != nil {
 		return abort(fmt.Errorf("validate application module contributions: %w", err))
 	}
 	generation.webuiCatalog, err = applicationWebUICatalog()
 	if err != nil {
 		return abort(fmt.Errorf("compose WebUI catalog: %w", err))
 	}
-	messages, err := module.MessageBindings(generation.authModule.Contribution, generation.iamModule.Contribution, generation.module.Contribution, generation.opsModule.Contribution)
+	messages, err := module.MessageBindings(generation.authModule.Contribution, generation.iamModule.Contribution, generation.organizationModule.Contribution, generation.module.Contribution, generation.opsModule.Contribution)
 	if err != nil {
 		return abort(fmt.Errorf("collect application module messages: %w", err))
 	}
 	if err := generation.messaging.output.Control.Freeze(messages); err != nil {
 		return abort(fmt.Errorf("freeze messaging candidate: %w", err))
 	}
-	schedules, err := module.ScheduleBindings(generation.authModule.Contribution, generation.iamModule.Contribution, generation.module.Contribution, generation.opsModule.Contribution)
+	schedules, err := module.ScheduleBindings(generation.authModule.Contribution, generation.iamModule.Contribution, generation.organizationModule.Contribution, generation.module.Contribution, generation.opsModule.Contribution)
 	if err != nil {
 		return abort(fmt.Errorf("collect application module schedules: %w", err))
 	}
@@ -453,6 +463,7 @@ func (f *applicationGenerationFactory) Prepare(
 	generation.resourceStats.Built = append(generation.resourceStats.Built, "scheduler")
 	generation.resourceStats.Built = append(generation.resourceStats.Built, "auth")
 	generation.resourceStats.Built = append(generation.resourceStats.Built, "iam")
+	generation.resourceStats.Built = append(generation.resourceStats.Built, "organization")
 	generation.resourceStats.Built = append(generation.resourceStats.Built, "ops")
 	participants := append(append([]supervisor.Participant(nil), generation.module.Contribution.Participants...), generation.authModule.Contribution.Participants...)
 	participants = append(participants, generation.opsModule.Contribution.Participants...)
@@ -463,7 +474,7 @@ func (f *applicationGenerationFactory) Prepare(
 		generation.participants = append(generation.participants, participant)
 	}
 
-	dispatcher, err := newApplicationContractDispatcher(generation.module.Operations, generation.iamModule)
+	dispatcher, err := newApplicationContractDispatcher(generation.module.Operations, generation.iamModule, generation.organizationModule)
 	if err != nil {
 		return abort(err)
 	}

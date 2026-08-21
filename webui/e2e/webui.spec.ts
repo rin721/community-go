@@ -26,6 +26,9 @@ function manifest(authenticated: boolean, availability: "available" | "degraded"
       { moduleId: "iam", id: "iam.accounts", path: "/admin/accounts", entryId: "iam.accounts", titleMessageId: "webui.iam.accounts.title", layout: "app", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
       { moduleId: "iam", id: "iam.roles", path: "/admin/roles", entryId: "iam.roles", titleMessageId: "webui.iam.roles.title", layout: "app", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
       { moduleId: "iam", id: "iam.permissions", path: "/admin/permissions", entryId: "iam.permissions", titleMessageId: "webui.iam.permissions.title", layout: "app", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
+      { moduleId: "organization", id: "organization.departments", path: "/admin/departments", entryId: "organization.departments", titleMessageId: "webui.organization.departments.title", layout: "app", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
+      { moduleId: "organization", id: "organization.positions", path: "/admin/positions", entryId: "organization.positions", titleMessageId: "webui.organization.positions.title", layout: "app", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
+      { moduleId: "organization", id: "organization.assignments", path: "/admin/account-organization", entryId: "organization.assignments", titleMessageId: "webui.organization.assignments.title", layout: "app", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
       { moduleId: "ops", id: "ops.dashboard", path: "/dashboard", entryId: "ops.dashboard", titleMessageId: "webui.ops.dashboard.title", layout: "app", deliveryState: "implemented", default: true, unauthenticatedDefault: false, access, availability, availableCapabilities: availability === "unavailable" ? [] : ["diagnostics", "metrics"] },
       { moduleId: "ops", id: "ops.capabilities", path: "/dashboard/capabilities", entryId: "ops.capabilities", titleMessageId: "webui.ops.capabilities.title", layout: "app", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability, availableCapabilities: availability === "unavailable" ? [] : ["diagnostics"] },
     ],
@@ -36,6 +39,9 @@ function manifest(authenticated: boolean, availability: "available" | "degraded"
       { moduleId: "iam", id: "iam.accounts", routeId: "iam.accounts", titleMessageId: "webui.iam.accounts.title", iconId: "users", order: 40 },
       { moduleId: "iam", id: "iam.roles", routeId: "iam.roles", titleMessageId: "webui.iam.roles.title", iconId: "shield", order: 50 },
       { moduleId: "iam", id: "iam.permissions", routeId: "iam.permissions", titleMessageId: "webui.iam.permissions.title", iconId: "key", order: 60 },
+      { moduleId: "organization", id: "organization.departments", routeId: "organization.departments", titleMessageId: "webui.organization.departments.title", iconId: "building", order: 70 },
+      { moduleId: "organization", id: "organization.positions", routeId: "organization.positions", titleMessageId: "webui.organization.positions.title", iconId: "briefcase", order: 80 },
+      { moduleId: "organization", id: "organization.assignments", routeId: "organization.assignments", titleMessageId: "webui.organization.assignments.title", iconId: "users", order: 90 },
     ] : [],
   };
 }
@@ -74,6 +80,10 @@ test.beforeEach(async ({ page }) => {
   });
   await page.route("**/api/v1/iam/roles/role-owner/permissions", async (route) => { await route.fulfill({ json: ["iam:account:read"] }); });
   await page.route("**/api/v1/iam/permissions", async (route) => { await route.fulfill({ json: [{ key: "iam:account:read", ownerModuleId: "iam", descriptionMessageId: "permission.iam.account.read" }] }); });
+  await page.route("**/api/v1/organization/departments?*", async (route) => { await route.fulfill({ json: { items: [{ id: "dept-root", code: "engineering", name: "Engineering", active: true, archived: false, version: 1 }], offset: 0, limit: 100, total: 1 } }); });
+  await page.route("**/api/v1/organization/departments/tree", async (route) => { await route.fulfill({ json: [{ id: "dept-root", code: "engineering", name: "Engineering", active: true, archived: false, version: 1, children: [{ id: "dept-child", code: "platform", name: "Platform", parentId: "dept-root", active: true, archived: false, version: 1, children: [] }] }] }); });
+  await page.route("**/api/v1/organization/positions?*", async (route) => { await route.fulfill({ json: { items: [{ id: "position-manager", code: "manager", name: "Manager", active: true, archived: false, version: 1 }], offset: 0, limit: 100, total: 1 } }); });
+  await page.route("**/api/v1/organization/accounts/user-1/assignment", async (route) => { await route.fulfill({ json: { accountId: "user-1", departmentId: "dept-root", positionIds: ["position-manager"] } }); });
   await page.route("**/management/**", async (route) => {
     managementRequestCount += 1;
     const path = new URL(route.request().url()).pathname;
@@ -184,4 +194,20 @@ test("account role and permission management pages render module-owned evidence"
   await expect(page.getByRole("heading", { name: "Permissions" })).toBeVisible();
   await expect(page.getByText("iam:account:read", { exact: true })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("iam-permissions.png"), fullPage: true });
+});
+
+test("organization management pages render tree, position and assignment evidence", async ({ page }, testInfo) => {
+  (page as unknown as { setWebUIState: (state: { authenticated: boolean }) => void }).setWebUIState({ authenticated: true });
+  await page.goto("/admin/departments");
+  await expect(page.getByRole("heading", { name: "Departments" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Platform" })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("organization-departments.png"), fullPage: true });
+  await page.goto("/admin/positions");
+  await expect(page.getByRole("heading", { name: "Positions" })).toBeVisible();
+  await expect(page.getByText("Manager", { exact: true })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("organization-positions.png"), fullPage: true });
+  await page.goto("/admin/account-organization");
+  await expect(page.getByRole("heading", { name: "Account organization" })).toBeVisible();
+  await expect(page.getByLabel("Primary department")).toHaveValue("dept-root");
+  await page.screenshot({ path: testInfo.outputPath("organization-assignment.png"), fullPage: true });
 });

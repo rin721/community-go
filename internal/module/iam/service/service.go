@@ -819,6 +819,21 @@ func permissionsFor(ctx context.Context, r *repo.Unit, accountID string) ([]perm
 func accountByID(ctx context.Context, r *repo.Unit, id string) (repo.AccountRecord, error) {
 	return r.AccountByID(ctx, id)
 }
+
+// RequireAssignableAccount 验证账号存在且当前可承载组织目录关系。
+// 该窄方法供 composition 适配为 Organization 的 AccountDirectory 端口，避免模块互相导入。
+func (s *Service) RequireAssignableAccount(ctx context.Context, accountID string) error {
+	return s.store.Use(ctx, func(r *repo.Unit) error {
+		account, err := r.AccountByID(ctx, accountID)
+		if err != nil {
+			return err
+		}
+		if account.Status != string(model.AccountActive) {
+			return ErrAccountDisabled
+		}
+		return nil
+	})
+}
 func ownerRole(ctx context.Context, r *repo.Unit) (repo.RoleRecord, error) {
 	return r.OwnerRole(ctx)
 }

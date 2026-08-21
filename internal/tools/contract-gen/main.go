@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 
 	iamhttp "github.com/rin721/go-scaffold-template/internal/module/iam/binding/http"
+	organizationhttp "github.com/rin721/go-scaffold-template/internal/module/organization/binding/http"
 	todohttp "github.com/rin721/go-scaffold-template/internal/module/todo/binding/http"
 	"github.com/rin721/go-scaffold-template/internal/projectlayout"
 	"github.com/rin721/go-scaffold-template/pkg/httpx/contract"
@@ -105,6 +106,7 @@ func writeFile(path string, content []byte) error {
 func registeredModules() []contract.Module {
 	return []contract.Module{
 		iamhttp.ModuleContract(),
+		organizationhttp.ModuleContract(),
 		todohttp.ModuleContract(),
 	}
 }

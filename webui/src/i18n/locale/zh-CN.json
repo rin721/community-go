@@ -3,6 +3,7 @@
   "webui.host.brandSymbol": "CG",
   "webui.host.product": "管理后台",
   "webui.host.search": "搜索页面",
+  "webui.host.search.close": "关闭搜索",
   "webui.host.search.shortcut": "Ctrl K",
   "webui.host.search.placeholder": "输入页面名称或路径",
   "webui.host.search.empty": "没有匹配的可访问页面",

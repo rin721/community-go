@@ -65,3 +65,9 @@
 
 - Soybean 工作区页签行右侧保留宿主级刷新/显示操作，页签本身仍由宿主统一承载；业务页面不直接控制这组动作。
 - 本项目新增“刷新当前页面”宿主入口，调用当前 route 的既有导航语义，不新增模块 API、缓存策略或全局状态；按钮文案来自 `webui.host.tabs.refresh`。
+
+## 搜索交互补充观察
+
+- Soybean Header 的搜索入口在同一组全局工具中，并提供明确 tooltip；本次会话未展开其搜索面板，因此不推断其内部结果组织。
+- 当前项目 RouteSearch 保持“只搜索 manifest 可访问 route”的契约，本轮补充 ArrowUp/ArrowDown 选择、Enter 导航、Escape 关闭、ARIA `listbox/option` 选中态和 host-owned 关闭文案。
+- 搜索仍不扫描模块源码、不新增第二套路由注册，选中结果只调用宿主已有 `navigate(path)`。

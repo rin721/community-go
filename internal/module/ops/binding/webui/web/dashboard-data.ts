@@ -1,4 +1,4 @@
-import type { CapabilityState } from "@webui/contracts";
+import type { CapabilityState } from "@webui/sdk/runtime";
 
 export type BuildSnapshot = {
   version?: string;

@@ -28,8 +28,8 @@ for (const root of moduleRoots) {
     const relative = file.slice(repositoryRoot.length + 1).replaceAll("\\", "/");
     const source = await readFile(file, "utf8");
     const isComponent = file.endsWith(".tsx");
-    if (/from\s+["']react-i18next["']/.test(source) || /from\s+["'][^"']*\/i18n["']/.test(source)) {
-      errors.push(`${relative}: 模块页面不得直接依赖 i18n singleton，必须使用 @webui/contracts 的 useWebUITranslation`);
+    if (/from\s+["']react-i18next["']/.test(source)) {
+      errors.push(`${relative}: 模块页面不得直接依赖 i18n singleton，必须使用 @webui/sdk/i18n 的 useWebUITranslation`);
     }
     if (/setupErrorMessages\b/.test(source)) {
       errors.push(`${relative}: 禁止使用直接返回展示文本的 setupErrorMessages 映射`);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ManifestMenu, ManifestRoute } from "@webui/contracts";
+import type { ManifestMenu, ManifestRoute } from "@webui/sdk/runtime";
 import { buildMenuTree, getWorkspaceTabTargetIndex, isWorkspaceTabClosable, shouldIsolateMobileSidebar } from "./components/AppShell";
 
 const route = (id: string): ManifestRoute => ({

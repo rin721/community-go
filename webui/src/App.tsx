@@ -1,10 +1,10 @@
 import { Component, lazy, Suspense, useCallback, useEffect, useState, type ComponentType, type ReactNode } from "react";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
-import { HostRuntimeProvider, type HostRuntime, type Manifest, type ManifestRoute, type WebUISession } from "@webui/contracts";
+import { HostRuntimeProvider, type HostRuntime, type Manifest, type ManifestRoute, type PrincipalView } from "@webui/sdk/runtime";
+import { ensureRouteLocale, translateMessage } from "./i18n";
 import { AppShell, BlankLayout } from "./components/AppShell";
 import { webuiEntryRegistry, webuiRevision } from "./generated/webui-registry";
-import { translateMessage } from "./i18n";
-import { loadManifest, loadSession, logout } from "./api";
+import { loadManifest, loadSession, logout, type WebUISession } from "./api";
 import { SystemStatePage } from "./pages/SystemStatePage";
 
 type EntryModule = { default: ComponentType };
@@ -15,6 +15,7 @@ export function App() {
   const navigate = useNavigate();
   const [manifest, setManifest] = useState<Manifest>();
   const [webuiSession, setWebUISession] = useState<WebUISession>();
+  const [principal, setPrincipal] = useState<PrincipalView>();
   const [error, setError] = useState<string>();
   const refreshManifest = useCallback(async () => {
     const value = await loadManifest();
@@ -22,15 +23,17 @@ export function App() {
     return value;
   }, []);
   useEffect(() => {
-    void Promise.all([refreshManifest(), loadSession().then(setWebUISession).catch(() => undefined)]).catch((reason: Error) => setError(reason.message));
+    void Promise.all([refreshManifest(), loadSession().then((value) => { setWebUISession(value); setPrincipal(toPrincipal(value)); }).catch(() => undefined)]).catch((reason: Error) => setError(reason.message));
   }, [refreshManifest]);
   const navigateToDefault = useCallback((catalog = manifest) => {
     const route = catalog?.routes.find((candidate) => candidate.default && candidate.access === "allowed" && candidate.deliveryState === "implemented")
       ?? catalog?.routes.find((candidate) => candidate.unauthenticatedDefault && candidate.deliveryState === "implemented");
     navigate(route?.path ?? "/404", { replace: true });
   }, [manifest, navigate]);
-  const completeAuthentication = useCallback(async (value: WebUISession) => {
-    setWebUISession(value);
+  const completeAuthentication = useCallback(async (value: PrincipalView) => {
+    setPrincipal(value);
+    const session = await loadSession();
+    setWebUISession(session);
     const nextManifest = await refreshManifest();
     navigateToDefault(nextManifest);
   }, [navigateToDefault, refreshManifest]);
@@ -43,8 +46,24 @@ export function App() {
   if (error) return <StartupState title={translateMessage("webui.host.assembly.title")} detail={translateMessage("webui.host.assembly.detail")} />;
   if (!manifest) return <StartupState title={translateMessage("webui.host.loading.title")} detail={translateMessage("webui.host.loading.detail")} />;
   if (manifest.revision !== webuiRevision) return <StartupState title={translateMessage("webui.host.revision.title")} detail={translateMessage("webui.host.revision.detail")} />;
-  const runtime: HostRuntime = { manifest, session: webuiSession, completeAuthentication, navigateToDefault: () => navigateToDefault() };
-  return <HostRuntimeProvider value={runtime}><Routes><Route element={<BlankLayout />}>{manifest.routes.filter((route) => route.layout === "blank").map((route) => <Route key={route.id} path={route.path} element={<ManifestPage route={route} manifest={manifest} />} />)}</Route><Route element={<AppShell manifest={manifest} session={webuiSession} onLogout={handleLogout} />}>{manifest.routes.filter((route) => route.layout === "app").map((route) => <Route key={route.id} path={route.path} element={<ManifestPage route={route} manifest={manifest} />} />)}<Route path="/403" element={<SystemStatePage kind="forbidden" />} /><Route path="/404" element={<SystemStatePage kind="notFound" />} /></Route><Route path="/" element={<RootRedirect manifest={manifest} />} /><Route path="*" element={<StandaloneNotFound />} /></Routes></HostRuntimeProvider>;
+  const runtime: HostRuntime = { manifest, principal, completeAuthentication, navigateToDefault: () => navigateToDefault() };
+  return <HostRuntimeProvider value={runtime}><ManifestLocaleGate manifest={manifest}><Routes><Route element={<BlankLayout />}>{manifest.routes.filter((route) => route.layout === "blank").map((route) => <Route key={route.id} path={route.path} element={<ManifestPage route={route} manifest={manifest} />} />)}</Route><Route element={<AppShell manifest={manifest} principal={principal} onLogout={handleLogout} />}>{manifest.routes.filter((route) => route.layout === "app").map((route) => <Route key={route.id} path={route.path} element={<ManifestPage route={route} manifest={manifest} />} />)}<Route path="/403" element={<SystemStatePage kind="forbidden" />} /><Route path="/404" element={<SystemStatePage kind="notFound" />} /></Route><Route path="/" element={<RootRedirect manifest={manifest} />} /><Route path="*" element={<StandaloneNotFound />} /></Routes></ManifestLocaleGate></HostRuntimeProvider>;
+}
+
+function toPrincipal(session: WebUISession): PrincipalView {
+  return { id: session.user.id, username: session.user.username, scopes: [...session.user.scopes] };
+}
+
+function ManifestLocaleGate({ manifest, children }: { manifest: Manifest; children: ReactNode }) {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    let active = true;
+    setReady(false);
+    const eligibleRoutes = manifest.routes.filter((route) => route.access === "allowed" && route.deliveryState === "implemented" && route.availability !== "unavailable");
+    void Promise.allSettled(eligibleRoutes.map((route) => ensureRouteLocale(route))).then(() => { if (active) setReady(true); });
+    return () => { active = false; };
+  }, [manifest]);
+  return ready ? <>{children}</> : <PageLoading />;
 }
 
 function ManifestPage({ route, manifest }: { route: ManifestRoute; manifest: Manifest }) {
@@ -54,9 +73,23 @@ function ManifestPage({ route, manifest }: { route: ManifestRoute; manifest: Man
   }
   if (route.access === "denied") return <Navigate to="/403" replace />;
   if (route.deliveryState === "not-implemented") return <SystemStatePage kind="notImplemented" />;
+  if (route.availability === "unavailable") return <SystemStatePage kind="unavailable" />;
   const Page = entryComponents[route.entryId];
   if (!Page) return <SystemStatePage kind="missingEntry" />;
-  return <RouteErrorBoundary key={route.id}><Suspense fallback={<PageLoading />}><Page /></Suspense></RouteErrorBoundary>;
+  return <RouteResourceBoundary route={route}><RouteErrorBoundary key={route.id}><Suspense fallback={<PageLoading />}><Page /></Suspense></RouteErrorBoundary></RouteResourceBoundary>;
+}
+
+function RouteResourceBoundary({ route, children }: { route: ManifestRoute; children: ReactNode }) {
+  const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  useEffect(() => {
+    let active = true;
+    setState("loading");
+    void ensureRouteLocale(route).then(() => { if (active) setState("ready"); }).catch(() => { if (active) setState("error"); });
+    return () => { active = false; };
+  }, [route]);
+  if (state === "loading") return <PageLoading />;
+  if (state === "error") return <SystemStatePage kind="routeError" />;
+  return <>{children}</>;
 }
 
 type RouteErrorBoundaryState = { hasError: boolean };

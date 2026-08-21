@@ -51,11 +51,10 @@ func TestApplicationWebUICatalogProtectsAuthSessionAndExposesNavigation(t *testi
 		t.Fatalf("auth session route is not protected: %#v", sessionRoute)
 	}
 	for _, item := range manifest.Menu {
-		if item.ID == "auth.session" && item.RouteID == "auth.session" && item.IconID == "user" {
-			return
+		if item.ID == "auth.session" {
+			t.Fatalf("authentication-required route must not enter navigation: %#v", manifest.Menu)
 		}
 	}
-	t.Fatalf("auth session navigation is missing: %#v", manifest.Menu)
 }
 
 func TestOperationPoliciesIncludeWebUISessionAuthorization(t *testing.T) {

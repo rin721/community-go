@@ -28,5 +28,11 @@ func Binding() webui.Binding {
 			{Language: "en-US", Namespace: "webui.auth", SourcePath: "internal/module/auth/binding/webui/web/locale/en-US.json"},
 			{Language: "zh-CN", Namespace: "webui.auth", SourcePath: "internal/module/auth/binding/webui/web/locale/zh-CN.json"},
 		},
+		Requires: []webui.SDKRequirement{
+			{ID: "runtime", MajorVersion: 1},
+			{ID: "http", MajorVersion: 1},
+			{ID: "i18n", MajorVersion: 1},
+			{ID: "ui", MajorVersion: 1},
+		},
 	}
 }

@@ -1,5 +1,5 @@
 import { loadBuild, loadDiagnostics, loadLiveness, loadMetrics, loadReadiness, loadStartup } from "./api";
-import type { CapabilityState } from "@webui/contracts";
+import type { CapabilityState } from "@webui/sdk/runtime";
 
 export type OpsOperation = {
   name: string;

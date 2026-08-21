@@ -10,9 +10,9 @@ import (
 )
 
 // newWebUIManifestHandler 把 Auth policy 接到纯 WebUI Catalog，不让 Catalog 反向依赖业务模块。
-func newWebUIManifestHandler(catalog webuicontract.Catalog, authorizer operationAuthorizer) http.Handler {
+func newWebUIManifestHandler(catalog webuicontract.Catalog, authorizer operationAuthorizer, availabilityLookup func(string) webuicontract.Availability) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		manifest := catalog.ManifestFor(func(operation string) webuicontract.Access {
+		manifest := catalog.ManifestForWithAvailability(func(operation string) webuicontract.Access {
 			if operation == "" {
 				return webuicontract.AccessAllowed
 			}
@@ -30,7 +30,7 @@ func newWebUIManifestHandler(catalog webuicontract.Catalog, authorizer operation
 				return webuicontract.AccessDenied
 			}
 			return webuicontract.AccessAllowed
-		})
+		}, availabilityLookup)
 		writer.Header().Set("Cache-Control", "no-store")
 		writer.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(writer).Encode(manifest)

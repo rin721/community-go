@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -39,6 +40,44 @@ const (
 	AccessDenied                 Access = "denied"
 )
 
+// ActivationState 表示应用是否发布模块。它不表示页面是否已实现或运行时是否可用。
+type ActivationState string
+
+const (
+	ActivationEnabled  ActivationState = "enabled"
+	ActivationDisabled ActivationState = "disabled"
+)
+
+// AvailabilityState 表示服务端为某个 route 提供的运行时能力快照。
+type AvailabilityState string
+
+const (
+	AvailabilityAvailable   AvailabilityState = "available"
+	AvailabilityDegraded    AvailabilityState = "degraded"
+	AvailabilityUnavailable AvailabilityState = "unavailable"
+)
+
+// Availability 是安全 manifest 中的 route 级运行时能力视图。
+type Availability struct {
+	State        AvailabilityState
+	Capabilities []string
+}
+
+// SDKRequirement 是模块对项目自有 WebUI SDK 主版本的构建期声明。
+type SDKRequirement struct {
+	ID           string
+	MajorVersion uint
+}
+
+// SDKInventory 是 composition 当前实际提供的 SDK capability 主版本清单。
+type SDKInventory map[string]uint
+
+// ModuleRegistration 是应用 composition 对模块选择和发布状态的显式声明。
+type ModuleRegistration struct {
+	Binding    Binding
+	Activation ActivationState
+}
+
 // Binding 是模块拥有的不可变 WebUI 声明。声明 Entry 的模块必须同时声明 locale；SourcePath 只用于构建期生成。
 type Binding struct {
 	ModuleID   string
@@ -46,6 +85,7 @@ type Binding struct {
 	Routes     []Route
 	Navigation []Navigation
 	Locales    []Locale
+	Requires   []SDKRequirement
 }
 
 // Entry 是一个可延迟加载的页面入口。
@@ -63,6 +103,7 @@ type Route struct {
 	ViewOperationID        string
 	Layout                 RouteLayout
 	DeliveryState          DeliveryState
+	DegradedCapabilities   []string
 	Default                bool
 	UnauthenticatedDefault bool
 }
@@ -99,17 +140,19 @@ type Manifest struct {
 
 // ManifestRoute 是剥离构建期字段后的路由。
 type ManifestRoute struct {
-	ModuleID               string        `json:"moduleId"`
-	ID                     string        `json:"id"`
-	Path                   string        `json:"path"`
-	EntryID                string        `json:"entryId"`
-	TitleMessageID         string        `json:"titleMessageId"`
-	ViewOperationID        string        `json:"viewOperationId,omitempty"`
-	Layout                 RouteLayout   `json:"layout"`
-	DeliveryState          DeliveryState `json:"deliveryState"`
-	Default                bool          `json:"default"`
-	UnauthenticatedDefault bool          `json:"unauthenticatedDefault"`
-	Access                 Access        `json:"access"`
+	ModuleID               string            `json:"moduleId"`
+	ID                     string            `json:"id"`
+	Path                   string            `json:"path"`
+	EntryID                string            `json:"entryId"`
+	TitleMessageID         string            `json:"titleMessageId"`
+	ViewOperationID        string            `json:"viewOperationId,omitempty"`
+	Layout                 RouteLayout       `json:"layout"`
+	DeliveryState          DeliveryState     `json:"deliveryState"`
+	Default                bool              `json:"default"`
+	UnauthenticatedDefault bool              `json:"unauthenticatedDefault"`
+	Access                 Access            `json:"access"`
+	Availability           AvailabilityState `json:"availability"`
+	AvailableCapabilities  []string          `json:"availableCapabilities,omitempty"`
 }
 
 // ManifestMenu 是剥离构建期字段后的菜单节点。
@@ -138,26 +181,82 @@ func BuildCatalog(bindings ...Binding) (Catalog, error) {
 	return Catalog{Bindings: copyBindings, Revision: hex.EncodeToString(digest[:])}, nil
 }
 
+// BuildApplicationCatalog 根据显式 registration 生成可部署 Catalog。
+// disabled 模块和 not-implemented route 在投影阶段被完全移除，不会进入生成器或 runtime manifest。
+func BuildApplicationCatalog(registrations []ModuleRegistration, inventory SDKInventory) (Catalog, error) {
+	bindings := make([]Binding, 0, len(registrations))
+	for index, registration := range registrations {
+		if err := validateBindings([]Binding{registration.Binding}); err != nil {
+			return Catalog{}, fmt.Errorf("validate webui module registration %d: %w", index, err)
+		}
+		switch registration.Activation {
+		case ActivationEnabled:
+		case ActivationDisabled:
+			continue
+		default:
+			return Catalog{}, fmt.Errorf("webui module registration %d has invalid activation %q", index, registration.Activation)
+		}
+		if err := validateSDKRequirements(registration.Binding, inventory); err != nil {
+			return Catalog{}, err
+		}
+		projected, err := projectImplementedRoutes(registration.Binding)
+		if err != nil {
+			return Catalog{}, err
+		}
+		if len(projected.Routes) == 0 {
+			continue
+		}
+		bindings = append(bindings, projected)
+	}
+	return BuildCatalog(bindings...)
+}
+
 // ManifestFor 返回当前主体的安全 manifest；accessLookup 只接收 operation ID。
 func (c Catalog) ManifestFor(accessLookup func(string) Access) Manifest {
+	return c.ManifestForWithAvailability(accessLookup, func(string) Availability {
+		return Availability{State: AvailabilityAvailable}
+	})
+}
+
+// ManifestForWithAvailability 返回 access 和 availability 门禁后的安全 manifest。
+// unavailable route 仍可作为宿主状态呈现，但不会出现在可加载菜单中。
+func (c Catalog) ManifestForWithAvailability(accessLookup func(string) Access, availabilityLookup func(string) Availability) Manifest {
 	if accessLookup == nil {
 		accessLookup = func(string) Access { return AccessAuthenticationRequired }
 	}
+	if availabilityLookup == nil {
+		availabilityLookup = func(string) Availability { return Availability{State: AvailabilityUnavailable} }
+	}
 	manifest := Manifest{Revision: c.Revision}
+	loadableRoutes := map[string]bool{}
 	for _, binding := range c.Bindings {
 		for _, route := range binding.Routes {
+			if route.DeliveryState != DeliveryImplemented {
+				continue
+			}
 			access := AccessAllowed
 			if route.ViewOperationID != "" {
 				access = accessLookup(route.ViewOperationID)
+			}
+			if access != AccessAllowed && access != AccessAuthenticationRequired && access != AccessDenied {
+				access = AccessDenied
+			}
+			availability := normalizeAvailability(route, availabilityLookup(route.ID))
+			if access == AccessAllowed && (availability.State == AvailabilityAvailable || availability.State == AvailabilityDegraded) {
+				loadableRoutes[route.ID] = true
 			}
 			manifest.Routes = append(manifest.Routes, ManifestRoute{
 				ModuleID: binding.ModuleID, ID: route.ID, Path: route.Path, EntryID: route.EntryID,
 				TitleMessageID: route.TitleMessageID, ViewOperationID: route.ViewOperationID,
 				Layout: route.Layout, DeliveryState: route.DeliveryState, Default: route.Default,
 				UnauthenticatedDefault: route.UnauthenticatedDefault, Access: access,
+				Availability: availability.State, AvailableCapabilities: availability.Capabilities,
 			})
 		}
 		for _, item := range binding.Navigation {
+			if !loadableRoutes[item.RouteID] {
+				continue
+			}
 			manifest.Menu = append(manifest.Menu, ManifestMenu{
 				ModuleID: binding.ModuleID, ID: item.ID, ParentID: item.ParentID, RouteID: item.RouteID,
 				TitleMessageID: item.TitleMessageID, IconID: item.IconID, Order: item.Order,
@@ -174,6 +273,165 @@ func (c Catalog) ManifestFor(accessLookup func(string) Access) Manifest {
 	return manifest
 }
 
+func validateSDKRequirements(binding Binding, inventory SDKInventory) error {
+	seen := map[string]struct{}{}
+	for _, requirement := range binding.Requires {
+		if strings.TrimSpace(requirement.ID) == "" || requirement.MajorVersion == 0 {
+			return fmt.Errorf("webui module %q has incomplete SDK requirement", binding.ModuleID)
+		}
+		if _, exists := seen[requirement.ID]; exists {
+			return fmt.Errorf("webui module %q SDK requirement %q is duplicated", binding.ModuleID, requirement.ID)
+		}
+		seen[requirement.ID] = struct{}{}
+		provided, exists := inventory[requirement.ID]
+		if !exists {
+			return fmt.Errorf("webui module %q requires unknown SDK capability %q", binding.ModuleID, requirement.ID)
+		}
+		if provided != requirement.MajorVersion {
+			return fmt.Errorf("webui module %q requires SDK capability %q major %d, provided %d", binding.ModuleID, requirement.ID, requirement.MajorVersion, provided)
+		}
+	}
+	return nil
+}
+
+func projectImplementedRoutes(binding Binding) (Binding, error) {
+	projected := cloneBindings([]Binding{binding})[0]
+	implementedEntries := map[string]struct{}{}
+	implementedRoutes := map[string]struct{}{}
+	projected.Routes = nil
+	projected.Navigation = nil
+	for _, route := range binding.Routes {
+		if route.DeliveryState == DeliveryNotImplemented {
+			if route.Default || route.UnauthenticatedDefault {
+				return Binding{}, fmt.Errorf("webui route %q marked not-implemented cannot be a default route", route.ID)
+			}
+			continue
+		}
+		projected.Routes = append(projected.Routes, route)
+		implementedRoutes[route.ID] = struct{}{}
+		implementedEntries[route.EntryID] = struct{}{}
+	}
+	projected.Entries = nil
+	for _, entry := range binding.Entries {
+		if _, ok := implementedEntries[entry.ID]; ok {
+			projected.Entries = append(projected.Entries, entry)
+		}
+	}
+	for _, item := range binding.Navigation {
+		if _, ok := implementedRoutes[item.RouteID]; ok {
+			projected.Navigation = append(projected.Navigation, item)
+		}
+	}
+	return projected, nil
+}
+
+func normalizeAvailability(route Route, availability Availability) Availability {
+	capabilities := uniqueStrings(availability.Capabilities)
+	switch availability.State {
+	case AvailabilityAvailable:
+		return Availability{State: AvailabilityAvailable, Capabilities: capabilities}
+	case AvailabilityDegraded:
+		allowed := intersectStrings(route.DegradedCapabilities, capabilities)
+		if len(allowed) == 0 {
+			return Availability{State: AvailabilityUnavailable}
+		}
+		return Availability{State: AvailabilityDegraded, Capabilities: allowed}
+	default:
+		return Availability{State: AvailabilityUnavailable}
+	}
+}
+
+func uniqueStrings(values []string) []string {
+	seen := map[string]struct{}{}
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		if _, ok := seen[value]; ok {
+			continue
+		}
+		seen[value] = struct{}{}
+		result = append(result, value)
+	}
+	sort.Strings(result)
+	return result
+}
+
+func intersectStrings(left, right []string) []string {
+	rightSet := map[string]struct{}{}
+	for _, value := range right {
+		rightSet[value] = struct{}{}
+	}
+	result := make([]string, 0)
+	for _, value := range uniqueStrings(left) {
+		if _, ok := rightSet[value]; ok {
+			result = append(result, value)
+		}
+	}
+	return result
+}
+
+// ValidateSourcePathOwnership 校验构建期 SourcePath 属于声明模块的 WebUI 目录，且没有经过符号链接逃逸。
+func (c Catalog) ValidateSourcePathOwnership(repositoryRoot string) error {
+	root, err := filepath.Abs(repositoryRoot)
+	if err != nil {
+		return fmt.Errorf("resolve webui repository root: %w", err)
+	}
+	for _, binding := range c.Bindings {
+		ownerRoot := filepath.Join(root, "internal", "module", binding.ModuleID, "binding", "webui", "web")
+		for _, sourcePath := range bindingSourcePaths(binding) {
+			if err := validateOwnedSourcePath(root, ownerRoot, sourcePath); err != nil {
+				return fmt.Errorf("webui module %q source path %q: %w", binding.ModuleID, sourcePath, err)
+			}
+		}
+	}
+	return nil
+}
+
+func bindingSourcePaths(binding Binding) []string {
+	paths := make([]string, 0, len(binding.Entries)+len(binding.Locales))
+	for _, entry := range binding.Entries {
+		paths = append(paths, entry.SourcePath)
+	}
+	for _, locale := range binding.Locales {
+		paths = append(paths, locale.SourcePath)
+	}
+	return paths
+}
+
+func validateOwnedSourcePath(repositoryRoot, ownerRoot, sourcePath string) error {
+	if strings.TrimSpace(sourcePath) == "" || filepath.IsAbs(sourcePath) || strings.Contains(sourcePath, "\\") {
+		return fmt.Errorf("path must be repository-relative and use forward slashes")
+	}
+	absolute := filepath.Clean(filepath.Join(repositoryRoot, filepath.FromSlash(sourcePath)))
+	relative, err := filepath.Rel(ownerRoot, absolute)
+	if err != nil || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) || filepath.IsAbs(relative) {
+		return fmt.Errorf("path escapes module WebUI owner directory")
+	}
+	resolvedRoot, err := filepath.EvalSymlinks(ownerRoot)
+	if err != nil {
+		return fmt.Errorf("resolve module WebUI owner directory: %w", err)
+	}
+	resolvedPath, err := filepath.EvalSymlinks(absolute)
+	if err != nil {
+		return fmt.Errorf("resolve source path: %w", err)
+	}
+	resolvedRelative, err := filepath.Rel(resolvedRoot, resolvedPath)
+	if err != nil || resolvedRelative == ".." || strings.HasPrefix(resolvedRelative, ".."+string(filepath.Separator)) || filepath.IsAbs(resolvedRelative) {
+		return fmt.Errorf("path resolves outside module WebUI owner directory")
+	}
+	info, err := os.Stat(absolute)
+	if err != nil {
+		return fmt.Errorf("stat source path: %w", err)
+	}
+	if !info.Mode().IsRegular() {
+		return fmt.Errorf("source path is not a regular file")
+	}
+	return nil
+}
+
 func validateBindings(bindings []Binding) error {
 	modules := map[string]struct{}{}
 	entries := map[string]string{}
@@ -186,6 +444,11 @@ func validateBindings(bindings []Binding) error {
 	for _, binding := range bindings {
 		if strings.TrimSpace(binding.ModuleID) == "" {
 			return fmt.Errorf("webui module id is required")
+		}
+		for _, character := range binding.ModuleID {
+			if (character < 'a' || character > 'z') && (character < '0' || character > '9') && character != '-' && character != '_' {
+				return fmt.Errorf("webui module id %q contains unsupported character", binding.ModuleID)
+			}
 		}
 		if _, exists := modules[binding.ModuleID]; exists {
 			return fmt.Errorf("webui module %q is duplicated", binding.ModuleID)
@@ -227,6 +490,9 @@ func validateBindings(bindings []Binding) error {
 			}
 			if route.DeliveryState != DeliveryImplemented && route.DeliveryState != DeliveryNotImplemented {
 				return fmt.Errorf("webui route %q has unsupported delivery state %q", route.ID, route.DeliveryState)
+			}
+			if route.DeliveryState == DeliveryNotImplemented && (route.Default || route.UnauthenticatedDefault) {
+				return fmt.Errorf("webui route %q marked not-implemented cannot be a default route", route.ID)
 			}
 			if route.Default {
 				if defaultRouteID != "" {
@@ -284,6 +550,16 @@ func validateBindings(bindings []Binding) error {
 				return fmt.Errorf("webui locale %q/%q is declared by both %s and %s", locale.Language, locale.Namespace, owner, binding.ModuleID)
 			}
 			locales[localeKey] = binding.ModuleID
+		}
+		seenRequirements := map[string]struct{}{}
+		for _, requirement := range binding.Requires {
+			if strings.TrimSpace(requirement.ID) == "" || requirement.MajorVersion == 0 {
+				return fmt.Errorf("webui module %q has incomplete SDK requirement", binding.ModuleID)
+			}
+			if _, exists := seenRequirements[requirement.ID]; exists {
+				return fmt.Errorf("webui module %q SDK requirement %q is duplicated", binding.ModuleID, requirement.ID)
+			}
+			seenRequirements[requirement.ID] = struct{}{}
 		}
 	}
 	return validateNavigationCycles(bindings)
@@ -358,6 +634,10 @@ func cloneBindings(values []Binding) []Binding {
 		result[i].Routes = append([]Route(nil), values[i].Routes...)
 		result[i].Navigation = append([]Navigation(nil), values[i].Navigation...)
 		result[i].Locales = append([]Locale(nil), values[i].Locales...)
+		result[i].Requires = append([]SDKRequirement(nil), values[i].Requires...)
+		for routeIndex := range result[i].Routes {
+			result[i].Routes[routeIndex].DegradedCapabilities = append([]string(nil), values[i].Routes[routeIndex].DegradedCapabilities...)
+		}
 	}
 	return result
 }

@@ -79,6 +79,8 @@
   "webui.host.notImplemented.detail": "The page contract is stable, but the real capability has not been delivered.",
   "webui.host.unauthorized.title": "Authentication required",
   "webui.host.unauthorized.detail": "Sign in before accessing this page.",
+  "webui.host.unavailable.title": "Page unavailable",
+  "webui.host.unavailable.detail": "A dependency required by this page is currently unavailable. Try again later.",
   "webui.host.forbidden.title": "Access denied",
   "webui.host.forbidden.detail": "The current subject lacks the operation required by this page.",
   "webui.host.notFound.title": "Page not found",

@@ -18,6 +18,8 @@ export type ManifestRoute = {
   default: boolean;
   unauthenticatedDefault: boolean;
   access: Access;
+  availability?: CapabilityState;
+  availableCapabilities?: string[];
 };
 
 export type ManifestMenu = {
@@ -31,13 +33,12 @@ export type ManifestMenu = {
 };
 
 export type Manifest = { revision: string; routes: ManifestRoute[]; menu: ManifestMenu[] };
-export type WebUIUser = { id: string; username: string; scopes: string[] };
-export type WebUISession = { user: WebUIUser; csrfToken: string; createdAt: string; idleExpiresAt: string; absoluteExpiresAt: string };
+export type PrincipalView = { id: string; username: string; scopes: string[] };
 
 export type HostRuntime = {
   manifest: Manifest;
-  session?: WebUISession;
-  completeAuthentication: (session: WebUISession) => Promise<void>;
+  principal?: PrincipalView;
+  completeAuthentication: (principal: PrincipalView) => Promise<void>;
   navigateToDefault: () => void;
 };
 

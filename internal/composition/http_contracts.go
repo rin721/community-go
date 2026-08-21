@@ -22,9 +22,35 @@ func applicationHTTPModules() []contract.Module {
 	}
 }
 
+// applicationWebUIModules 是 WebUI runtime 与前端生成器共享的唯一 registration 汇总点。
+// 新模块必须在这里显式选择并声明 Activation；目录存在不代表应用会发布它。
+func applicationWebUIModules() []webuicontract.ModuleRegistration {
+	return []webuicontract.ModuleRegistration{
+		{Binding: authwebui.Binding(), Activation: webuicontract.ActivationEnabled},
+		{Binding: opswebui.Binding(), Activation: webuicontract.ActivationEnabled},
+	}
+}
+
+func applicationWebUISDKInventory() webuicontract.SDKInventory {
+	return webuicontract.SDKInventory{
+		"runtime": 1,
+		"http":    1,
+		"i18n":    1,
+		"query":   1,
+		"ui":      1,
+	}
+}
+
+// applicationWebUIAvailability 是当前应用的通用 availability provider。
+// 真实外部依赖接入时由 composition 提供 route capability 快照；没有快照不能在 handler 内猜测为可用。
+func applicationWebUIAvailability(string) webuicontract.Availability {
+	return webuicontract.Availability{State: webuicontract.AvailabilityAvailable}
+}
+
 // applicationWebUICatalog 是 WebUI runtime 与前端生成器共享的唯一声明汇总点。
 func applicationWebUICatalog() (webuicontract.Catalog, error) {
-	catalog, err := webuicontract.BuildCatalog(authwebui.Binding(), opswebui.Binding())
+	registrations := applicationWebUIModules()
+	catalog, err := webuicontract.BuildApplicationCatalog(registrations, applicationWebUISDKInventory())
 	if err != nil {
 		return webuicontract.Catalog{}, err
 	}

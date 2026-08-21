@@ -451,7 +451,7 @@ func (f *applicationGenerationFactory) Prepare(
 	if err != nil {
 		return abort(err)
 	}
-	manifestHandler := newWebUIManifestHandler(generation.webuiCatalog, generation.authModule.Service)
+	manifestHandler := newWebUIManifestHandler(generation.webuiCatalog, generation.authModule.Service, applicationWebUIAvailability)
 	webuiHandler := http.NewServeMux()
 	if generation.authModule.WebUI != nil {
 		manifestHandler = generation.authModule.WebUI.WithOptionalSession(manifestHandler)

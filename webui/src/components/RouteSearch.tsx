@@ -1,7 +1,8 @@
 import { Search, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { useWebUITranslation, type ManifestRoute } from "@webui/contracts";
+import { type ManifestRoute } from "@webui/sdk/runtime";
+import { useWebUITranslation } from "@webui/sdk/i18n";
 import { translateMessage } from "../i18n";
 
 export function RouteSearch({ open, routes, onClose }: { open: boolean; routes: ManifestRoute[]; onClose: () => void }) {

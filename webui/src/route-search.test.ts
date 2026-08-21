@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
-import type { ManifestRoute } from "@webui/contracts";
+import type { ManifestRoute } from "@webui/sdk/runtime";
 import { RouteSearch } from "./components/RouteSearch";
 import { initializeI18n } from "./i18n";
 

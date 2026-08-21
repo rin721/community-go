@@ -79,6 +79,8 @@
   "webui.host.notImplemented.detail": "页面契约已经稳定，但真实能力尚未交付。",
   "webui.host.unauthorized.title": "需要登录",
   "webui.host.unauthorized.detail": "请先登录后再访问该页面。",
+  "webui.host.unavailable.title": "页面暂不可用",
+  "webui.host.unavailable.detail": "该页面依赖的服务当前不可用，请稍后重试。",
   "webui.host.forbidden.title": "无权访问",
   "webui.host.forbidden.detail": "当前主体没有该页面所需的 operation 权限。",
   "webui.host.notFound.title": "页面不存在",

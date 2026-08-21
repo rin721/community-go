@@ -10,8 +10,13 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      "@webui/contracts": fileURLToPath(new URL("./src/contracts/index.tsx", import.meta.url)),
-      "@webui/ui": fileURLToPath(new URL("./src/ui/index.tsx", import.meta.url)),
+      "@webui/sdk/runtime": fileURLToPath(new URL("./src/sdk/runtime/index.tsx", import.meta.url)),
+      "@webui/sdk/http": fileURLToPath(new URL("./src/sdk/http/index.ts", import.meta.url)),
+      "@webui/sdk/i18n": fileURLToPath(new URL("./src/sdk/i18n/index.ts", import.meta.url)),
+      "@webui/sdk/query": fileURLToPath(new URL("./src/sdk/query/index.ts", import.meta.url)),
+      "@webui/sdk/navigation": fileURLToPath(new URL("./src/sdk/navigation/index.ts", import.meta.url)),
+      "@webui/sdk/feedback": fileURLToPath(new URL("./src/sdk/feedback/index.tsx", import.meta.url)),
+      "@webui/sdk/ui": fileURLToPath(new URL("./src/sdk/ui/index.tsx", import.meta.url)),
       react: fileURLToPath(new URL("./node_modules/react", import.meta.url)),
       "react-i18next": fileURLToPath(new URL("./node_modules/react-i18next", import.meta.url)),
       "@tanstack/react-query": fileURLToPath(new URL("./node_modules/@tanstack/react-query", import.meta.url)),

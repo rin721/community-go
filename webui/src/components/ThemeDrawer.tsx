@@ -1,7 +1,7 @@
 import { Moon, RotateCcw, Sun, X } from "lucide-react";
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
-import { Button } from "@webui/ui";
-import { useWebUITranslation } from "@webui/contracts";
+import { Button } from "@webui/sdk/ui";
+import { useWebUITranslation } from "@webui/sdk/i18n";
 import type { ContentDensity, ThemeMode, ThemePreferences, ThemePreset } from "../theme";
 
 export type ThemePanel = "appearance" | "layout" | "general" | "preset";

@@ -15,8 +15,8 @@ func Binding() webuicontract.Binding {
 			{ID: "ops.dashboard", SourcePath: "internal/module/ops/binding/webui/web/DashboardPage.tsx"},
 		},
 		Routes: []webuicontract.Route{
-			{ID: "ops.dashboard", Path: "/dashboard", EntryID: "ops.dashboard", TitleMessageID: "webui.ops.dashboard.title", ViewOperationID: "ops.diagnostics", Layout: webuicontract.RouteLayoutApp, DeliveryState: webuicontract.DeliveryImplemented, Default: true},
-			{ID: "ops.capabilities", Path: "/dashboard/capabilities", EntryID: "ops.capabilities", TitleMessageID: "webui.ops.capabilities.title", ViewOperationID: "ops.diagnostics", Layout: webuicontract.RouteLayoutApp, DeliveryState: webuicontract.DeliveryImplemented},
+			{ID: "ops.dashboard", Path: "/dashboard", EntryID: "ops.dashboard", TitleMessageID: "webui.ops.dashboard.title", ViewOperationID: "ops.diagnostics", Layout: webuicontract.RouteLayoutApp, DeliveryState: webuicontract.DeliveryImplemented, DegradedCapabilities: []string{"diagnostics", "metrics"}, Default: true},
+			{ID: "ops.capabilities", Path: "/dashboard/capabilities", EntryID: "ops.capabilities", TitleMessageID: "webui.ops.capabilities.title", ViewOperationID: "ops.diagnostics", Layout: webuicontract.RouteLayoutApp, DeliveryState: webuicontract.DeliveryImplemented, DegradedCapabilities: []string{"diagnostics"}},
 		},
 		Navigation: []webuicontract.Navigation{
 			{ID: "ops.dashboard", RouteID: "ops.dashboard", TitleMessageID: "webui.ops.dashboard.title", IconID: "activity", Order: 10},
@@ -25,6 +25,13 @@ func Binding() webuicontract.Binding {
 		Locales: []webuicontract.Locale{
 			{Language: "en-US", Namespace: "webui.ops", SourcePath: "internal/module/ops/binding/webui/web/locale/en-US.json"},
 			{Language: "zh-CN", Namespace: "webui.ops", SourcePath: "internal/module/ops/binding/webui/web/locale/zh-CN.json"},
+		},
+		Requires: []webuicontract.SDKRequirement{
+			{ID: "runtime", MajorVersion: 1},
+			{ID: "http", MajorVersion: 1},
+			{ID: "i18n", MajorVersion: 1},
+			{ID: "query", MajorVersion: 1},
+			{ID: "ui", MajorVersion: 1},
 		},
 	}
 }

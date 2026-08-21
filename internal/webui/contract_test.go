@@ -93,3 +93,65 @@ func TestCatalogValidatesOperationInventory(t *testing.T) {
 		t.Fatal("unknown operation was accepted")
 	}
 }
+
+func TestBuildApplicationCatalogProjectsActivationAndDelivery(t *testing.T) {
+	implemented := testBinding("ops", true)
+	notImplemented := testBinding("future", false)
+	notImplemented.Routes[0].DeliveryState = DeliveryNotImplemented
+	disabled := testBinding("disabled", false)
+	catalog, err := BuildApplicationCatalog([]ModuleRegistration{
+		{Binding: implemented, Activation: ActivationEnabled},
+		{Binding: notImplemented, Activation: ActivationEnabled},
+		{Binding: disabled, Activation: ActivationDisabled},
+	}, SDKInventory{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(catalog.Bindings) != 1 {
+		t.Fatalf("unexpected deployable bindings: %#v", catalog.Bindings)
+	}
+	for _, binding := range catalog.Bindings {
+		if binding.ModuleID == "disabled" {
+			t.Fatalf("disabled binding leaked into catalog: %#v", binding)
+		}
+	}
+	if _, err := BuildApplicationCatalog([]ModuleRegistration{{Binding: implemented}}, SDKInventory{}); err == nil {
+		t.Fatal("missing activation was accepted")
+	}
+}
+
+func TestManifestAvailabilityFailsClosedAndFiltersNavigation(t *testing.T) {
+	binding := testBinding("ops", true)
+	binding.Routes[0].DegradedCapabilities = []string{"read-only"}
+	catalog, err := BuildCatalog(binding)
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifest := catalog.ManifestForWithAvailability(
+		func(string) Access { return AccessAllowed },
+		func(routeID string) Availability {
+			if routeID == "ops.page" {
+				return Availability{State: AvailabilityDegraded, Capabilities: []string{"read-only"}}
+			}
+			return Availability{State: AvailabilityState("unknown")}
+		},
+	)
+	if len(manifest.Routes) != 1 || manifest.Routes[0].Availability != AvailabilityDegraded {
+		t.Fatalf("degraded route was not represented: %#v", manifest.Routes)
+	}
+	if len(manifest.Menu) != 1 {
+		t.Fatalf("supported degraded route should remain navigable: %#v", manifest.Menu)
+	}
+	unknown := catalog.ManifestForWithAvailability(func(string) Access { return AccessAllowed }, func(string) Availability { return Availability{} })
+	if unknown.Routes[0].Availability != AvailabilityUnavailable || len(unknown.Menu) != 0 {
+		t.Fatalf("unknown availability did not fail closed: %#v", unknown)
+	}
+}
+
+func TestBuildApplicationCatalogRejectsSDKRequirementMismatch(t *testing.T) {
+	binding := testBinding("ops", true)
+	binding.Requires = []SDKRequirement{{ID: "runtime", MajorVersion: 2}}
+	if _, err := BuildApplicationCatalog([]ModuleRegistration{{Binding: binding, Activation: ActivationEnabled}}, SDKInventory{"runtime": 1}); err == nil {
+		t.Fatal("SDK major mismatch was accepted")
+	}
+}

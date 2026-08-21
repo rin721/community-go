@@ -31,13 +31,15 @@ WebUI 用户密码可通过 `go run ./cmd/app webui reset-password --username <�
 - CORS 与 WebUI Auth 必须消费同一候选中的 `http.cors.allowedOrigins`；空列表继续拒绝跨域，不能为本地开发建立通配例外。
 - 页面菜单和 manifest 访问状态不构成授权；实际 operation 仍由服务端 Auth policy 决定。
 
-模块页面只能依赖宿主公开契约和自身 API，不得导入宿主 Router、菜单、Session Store 或内部全局状态。新增页面时先修改模块 WebUI Binding，再运行生成检查。
+模块页面只能依赖 `@webui/sdk/*` 和自身 API，不得导入宿主 Router、菜单、Session Store 或内部全局状态。新增页面时先修改模块 WebUI Binding，再运行生成检查。SDK 公开面按 runtime、http、i18n、query、navigation、ui、feedback 分包；禁止 `resolve/get`、万能 Context 和第三方 client 穿透。
 
 ## 强制 i18n 契约
 
 WebUI i18n 是所有接入模块必须遵守的规范契约。模块只要贡献页面、菜单或状态，就必须在自身 WebUI Binding 中声明 locale namespace 和资源文件；没有 locale Binding 的模块不得进入生产 registry。locale namespace 的 owner 始终是业务模块，宿主只负责聚合、加载、语言选择、fallback 和缺失资源状态。
 
-模块页面只能通过宿主公开的 `@webui/contracts` 翻译契约（例如 `useWebUITranslation(namespace)`）取得文案，不得自行初始化 i18next、直接操作宿主 singleton、直接依赖 `react-i18next` 内部实例，或在生产 Web 源码中写入用户可见硬编码文本。标签、按钮、字段、帮助、状态、诊断、校验、空态、错误和反馈都属于必须翻译的用户文案；技术 ID、CSS class、协议字段和测试断言不属于用户文案。
+模块页面只能通过 `@webui/sdk/i18n` 的 `useWebUITranslation(namespace)` 取得文案，不得自行初始化 i18next、直接操作宿主 singleton、直接依赖 `react-i18next` 内部实例，或在生产 Web 源码中写入用户可见硬编码文本。标签、按钮、字段、帮助、状态、诊断、校验、空态、错误和反馈都属于必须翻译的用户文案；技术 ID、CSS class、协议字段和测试断言不属于用户文案。
+
+宿主启动阶段只装载 `webui.host` locale。运行时 manifest 通过 revision、access、availability 门禁后，按 eligible route/navigation 懒加载模块 namespace；模块 locale、Entry 或页面故障只隔离对应 route。`availability` 缺失、未知或不支持 degraded capability 时按 unavailable 处理，业务 Entry、locale 和 query 不得执行。
 
 后端错误码只能映射到稳定的 message ID，不能直接映射到中文/英文展示文本。正确形态是：
 

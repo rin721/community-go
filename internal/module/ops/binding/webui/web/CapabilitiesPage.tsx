@@ -1,8 +1,10 @@
 import { useMemo, useState } from "react";
-import { useQueries, useQueryClient } from "@tanstack/react-query";
-import { Button, CapabilityBanner, DataTable, DataToolbar, Drawer, EmptyState, Field, FilterPanel, PageHeader, Pagination, StatusPill, Toast } from "@webui/ui";
-import { useWebUITranslation, type CapabilityState } from "@webui/contracts";
+import { useGatedQueries, useQueryClient } from "@webui/sdk/query";
+import { Button, CapabilityBanner, DataTable, DataToolbar, Drawer, EmptyState, Field, FilterPanel, PageHeader, Pagination, StatusPill, Toast } from "@webui/sdk/ui";
+import { useWebUITranslation } from "@webui/sdk/i18n";
+import type { CapabilityState } from "@webui/sdk/runtime";
 import { filterOperationNames, operationCapabilityState, opsOperations, refreshNoticeTone, type OpsOperation } from "./operations";
+import "./ops.module.css";
 
 type CapabilityFilter = "all" | "core" | "optional";
 type CapabilityRow = { operation: OpsOperation; state: CapabilityState; result: string; value: unknown; pending: boolean; failed: boolean };
@@ -15,7 +17,7 @@ function resultPreview(value: unknown): string {
 export default function CapabilitiesPage() {
   const { t } = useWebUITranslation("webui.ops");
   const queryClient = useQueryClient();
-  const queries = useQueries({ queries: opsOperations.map((operation) => ({ queryKey: ["ops", operation.name], queryFn: operation.query })) });
+  const queries = useGatedQueries({ queries: opsOperations.map((operation) => ({ queryKey: ["ops", operation.name], queryFn: operation.query })) });
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [scope, setScope] = useState<CapabilityFilter>("all");

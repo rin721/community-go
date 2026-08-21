@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { useQueries, useQueryClient } from "@tanstack/react-query";
-import { Button, CapabilityBanner, PageHeader, Skeleton, StatusPill, Surface, Toast } from "@webui/ui";
-import { useWebUITranslation, type CapabilityState } from "@webui/contracts";
+import { useGatedQueries, useQueryClient } from "@webui/sdk/query";
+import { Button, CapabilityBanner, PageHeader, Skeleton, StatusPill, Surface, Toast } from "@webui/sdk/ui";
+import { useWebUITranslation } from "@webui/sdk/i18n";
+import type { CapabilityState } from "@webui/sdk/runtime";
 import { booleanCapabilityState, healthCapabilityState, readBuildSnapshot, readRuntimeSnapshot, type RuntimeSnapshot } from "./dashboard-data";
 import { readMetricsSnapshot, type MetricsSnapshot } from "./metrics-data";
 import { opsOperations, operationCapabilityState, refreshNoticeTone } from "./operations";
+import "./ops.module.css";
 
 export { operationCapabilityState, refreshNoticeTone } from "./operations";
 
@@ -55,7 +57,7 @@ function MetricsSummaryCard({ metrics, state, t }: { metrics?: MetricsSnapshot; 
 export default function DashboardPage() {
   const { t } = useWebUITranslation("webui.ops");
   const queryClient = useQueryClient();
-  const queries = useQueries({ queries: operations.map((operation) => ({ queryKey: ["ops", operation.name], queryFn: operation.query })) });
+  const queries = useGatedQueries({ queries: operations.map((operation) => ({ queryKey: ["ops", operation.name], queryFn: operation.query })) });
   const failedCount = queries.filter((query) => query.isError).length;
   const healthyCount = queries.filter((query) => !query.isPending && !query.isError).length;
   const hasPending = queries.some((query) => query.isPending);

@@ -22,6 +22,9 @@ func GenerateWebUIRegistry() (string, error) {
 	if err != nil {
 		return "", err
 	}
+	if err := catalog.ValidateSourcePathOwnership(repositoryRoot); err != nil {
+		return "", err
+	}
 	entries := make([]struct{ id, source string }, 0)
 	locales := make([]webuicontract.Locale, 0)
 	for _, binding := range catalog.Bindings {

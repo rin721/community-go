@@ -1,4 +1,4 @@
-import { requestJSON, requestText } from "@webui/contracts";
+import { requestJSON, requestText } from "@webui/sdk/http";
 
 export type DiagnosticsValue = Record<string, unknown>;
 export const loadBuild = () => requestJSON<DiagnosticsValue>("/management/build");

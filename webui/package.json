@@ -4,8 +4,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "lint": "eslint . && pnpm lint:i18n",
+    "lint": "eslint . && pnpm lint:i18n && pnpm lint:architecture",
     "lint:modules": "node scripts/lint-modules.mjs",
+    "lint:architecture": "node scripts/lint-architecture.mjs",
     "lint:i18n": "node scripts/lint-i18n-contract.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --config vitest.config.ts",

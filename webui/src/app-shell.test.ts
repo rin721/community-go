@@ -3,7 +3,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
 import { AppShell } from "./components/AppShell";
-import { initializeI18n, translateMessage } from "./i18n";
+import { ensureRouteLocale, initializeI18n, translateMessage } from "./i18n";
 import type { Manifest } from "./contracts";
 
 const manifest: Manifest = {
@@ -24,7 +24,7 @@ describe("宿主 AppShell", () => {
   });
 
   it("keeps logout confirmation and failure feedback in the host i18n shell", () => {
-    const markup = renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: ["/ops"] }, createElement(AppShell, { manifest, session: { user: { id: "user-1", username: "operator", scopes: [] }, csrfToken: "csrf", createdAt: "2026-08-21T00:00:00Z", idleExpiresAt: "2026-08-21T01:00:00Z", absoluteExpiresAt: "2026-08-22T00:00:00Z" }, onLogout: async () => undefined })));
+    const markup = renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: ["/ops"] }, createElement(AppShell, { manifest, principal: { id: "user-1", username: "operator", scopes: [] }, onLogout: async () => undefined })));
 
     expect(markup).toContain("确认退出登录？");
     expect(markup).toContain("退出登录");
@@ -32,8 +32,10 @@ describe("宿主 AppShell", () => {
     expect(translateMessage("webui.host.logout.failed.title")).toBe("退出登录失败");
   });
 
-  it("从 manifest 渲染模块提供的会话导航入口", () => {
-    const markup = renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: ["/ops"] }, createElement(AppShell, { manifest, session: undefined, onLogout: async () => undefined })));
+  it("从 manifest 渲染模块提供的会话导航入口", async () => {
+    await ensureRouteLocale(manifest.routes[0]);
+    await ensureRouteLocale(manifest.routes[1]);
+    const markup = renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: ["/ops"] }, createElement(AppShell, { manifest, principal: undefined, onLogout: async () => undefined })));
 
     expect(markup).toContain('href="/account/session"');
     expect(markup).toContain("当前会话");

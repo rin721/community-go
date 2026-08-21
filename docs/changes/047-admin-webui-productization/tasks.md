@@ -29,6 +29,7 @@
 | UI-001 | HOST-001, I18N-001 | 高保真建立 Token、AuthLayout、AppLayout 与响应式 Shell | 侧栏、Header、breadcrumb、workspace tabs、route search、内容 Surface、Footer、用户/主题/语言/全屏入口在桌面/移动与明暗主题通过对照 | 已实施未闭合 |
 | UI-002 | UI-001 | 建立页面容器、toolbar、feedback、state、form、table、filter、pagination、Drawer 模式 | 测试 fixture 覆盖状态且不进入生产 manifest/navigation；模块不复制视觉基础 | 已实施未闭合 |
 | VIS-OPS-001 | UI-002, VIS-HOST-001 | 基于最新 Soybean 工作台观察校准已有 Ops Dashboard 的概览层级 | 仅使用六个真实 management 查询；概览统计、加载/失败状态和诊断详情均经 i18n 契约与响应式样式验证 | 已实施未闭合 |
+| VIS-OPS-002 | VIS-OPS-001 | 按参考工作台层级分组真实 Ops 查询并补齐刷新交互 | 核心探针/可选诊断分组；整体刷新与失败项独立重试；核心失败为 Unavailable、可选失败为 Degraded；不引入模拟数据或新后端接口 | 已实施未闭合 |
 | HOST-THEME-001 | UI-001, VIS-HOST-001 | 对照 Soybean Header 补齐宿主一键明暗切换入口 | 复用现有主题 authority；入口有 host i18n、桌面/移动规则明确且不新增第二套状态 | 已实施未闭合 |
 | HOST-TABS-001 | UI-001, VIS-HOST-001 | 对照 Soybean 页签行补齐宿主刷新当前页入口 | 刷新动作由宿主基于当前 route 执行；模块不接触页签状态；入口有 i18n 与响应式样式 | 已实施未闭合 |
 | HOST-SEARCH-001 | UI-001, VIS-HOST-001 | 补齐 RouteSearch 的键盘与可访问选中态 | 只搜索 manifest 可访问 route；上下键、Enter、Escape 和 ARIA 状态通过前端验证；不增加第二套路由注册 | 已实施未闭合 |

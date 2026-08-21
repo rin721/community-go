@@ -34,6 +34,7 @@
 | VIS-OPS-002 | VIS-OPS-001 | 按参考工作台层级分组真实 Ops 查询并补齐刷新交互 | 核心探针/可选诊断分组；整体刷新与失败项独立重试；核心失败为 Unavailable、可选失败为 Degraded；不引入模拟数据或新后端接口 | 已实施未闭合 |
 | OPS-CAPABILITIES-001 | UI-002-COMMON-001, VIS-OPS-002, I18N-CONTRACT-001 | 为 Ops 模块增加真实能力清单页 | Ops Binding 声明独立 entry/route/menu；六个真实 management query 形成表格行；搜索、核心/可选筛选、状态/结果摘要、单项重试、分页和 Toast 反馈均有 i18n；无新增后端 wire contract | 已实施未闭合 |
 | OPS-CAPABILITIES-002 | OPS-CAPABILITIES-001, UI-002-COMMON-001 | 对照列表到详情操作补齐能力详情 Drawer | 行级“查看详情”打开公共 Drawer，展示当前真实结果、范围和状态；关闭/焦点边界由 Drawer 测试覆盖；失败能力仍可重试，不复制后端规则 | 已实施未闭合 |
+| OPS-DASHBOARD-OVERVIEW-001 | VIS-OPS-001, VIS-OPS-002, I18N-CONTRACT-001 | 按 Soybean 工作台层级整理真实 Ops 概览 | 只使用已有 build/diagnostics 查询；构建信息、运行快照、依赖健康和字段缺失状态有结构化 Surface；不生成天气、待办、活动或模拟统计；投影函数与中英文 locale 有测试 | 已实施未闭合 |
 | HOST-THEME-001 | UI-001, VIS-HOST-001 | 对照 Soybean Header 补齐宿主一键明暗切换入口 | 复用现有主题 authority；入口有 host i18n、桌面/移动规则明确且不新增第二套状态 | 已实施未闭合 |
 | HOST-TABS-001 | UI-001, VIS-HOST-001 | 对照 Soybean 页签行补齐宿主刷新当前页入口 | 刷新动作由宿主基于当前 route 执行；模块不接触页签状态；入口有 i18n 与响应式样式；页签具备 `tablist`/`tab`/`tabpanel` 关联、唯一可 Tab 聚焦项及方向键/Home/End roving focus | 已实施未闭合 |
 | HOST-SEARCH-001 | UI-001, VIS-HOST-001 | 补齐 RouteSearch 的键盘与可访问选中态 | 只搜索 manifest 可访问 route；打开/关闭焦点、Tab 循环、上下键、Enter、Escape 和 ARIA 状态通过前端验证；不增加第二套路由注册 | 已实施未闭合 |

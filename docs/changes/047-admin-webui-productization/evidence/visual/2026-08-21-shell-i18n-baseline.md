@@ -135,6 +135,13 @@
 - 新页面由 `ops` Binding 声明 `ops.capabilities` entry/route/menu，宿主只消费生成 manifest；筛选、分页和反馈文案由 `webui.ops` locale 提供，模块不操作宿主 Router/Menu。
 - 参考站列表页的新增/编辑操作通过右侧固定 Drawer 承载标题、说明、可滚动内容和底部操作区；当前 Ops 页面将同一列表到详情关系收敛为“查看详情” Drawer，展示真实 management 结果快照，不伪造编辑表单或写操作。
 
+## Ops Dashboard 概览层补充校准
+
+- 2026-08-21 重新观察 Soybean `/home` DOM：主内容依次是欢迎区、项目/待办/消息摘要、统计卡、项目动态列表和 Footer；页面先给总体上下文，再进入细节。
+- 当前项目没有天气、待办、消息或项目活动后端，因此不复制这些示例数据。Ops Dashboard 将同一“先总览、后详情”关系映射到现有真实 management 查询：Build 信息、Diagnostics 运行快照和依赖健康状态位于原始诊断卡片之前。
+- 运行快照只读取 `processState`、`generation`、`phase`、活动请求/连接；依赖健康只读取服务端 diagnostics 的 `authReady`、`databaseReady`、`schedulerHealth`、`messagingHealth`。字段缺失显示 `—` 并标记 `Unavailable`，不会由浏览器推断状态。
+- 原有六个查询、核心/可选四态、重试和原始结果详情保留；这次只是增加真实数据的结构化 Surface，不新增后端 wire contract。
+
 ## 主题抽屉分层补充校准
 
 - 本轮重新观察 Soybean 主题配置抽屉：固定右侧 Drawer + 遮罩，顶部标题/关闭入口，下方按“外观、布局、通用、预设”四个分区切换；布局分区集中管理页签、面包屑、侧栏、底部和动效等宿主级偏好。

@@ -29,6 +29,11 @@ const (
 // Scope 是认证主体携带的精确权限范围。
 type Scope string
 
+const (
+	// OperationWebUISession 是当前登录主体查看 WebUI 会话详情的授权 identity。
+	OperationWebUISession = "auth.webui.session"
+)
+
 // Principal 是不暴露第三方 claims 的已验证主体。
 type Principal struct {
 	Subject         string

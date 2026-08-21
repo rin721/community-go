@@ -14,3 +14,4 @@
 
 - [R001 当前 WebUI 产品化与参考样本差距](R001-current-webui-product-gap/report.md)：追踪 Contract、Composition、生成 registry、宿主、模块页面、i18n、能力状态、SoybeanAdmin 高保真参考事实与“宿主本体先行、Demo 后置”边界。
 - [R002 i18n 强制契约缺口复核](R002-i18n-contract-gap/report.md)：复核当前工作树中的模块 locale 声明、宿主单实例边界、用户可见硬编码文案和 error code 映射，支撑本轮计划调整。
+- [R003 Auth Session 访问边界与导航装配](R003-auth-session-access/report.md)：确认已有 Session wire 可复用，并以模块 operation、Composition policy 和 manifest access 补齐受保护页面的可发现性与 fail-closed 边界。

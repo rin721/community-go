@@ -13,7 +13,8 @@
 | REQ-003 | 新增有后台需求的模块只需实现页面、声明 WebUI Binding 并在 `internal/composition` 显式装配；不得修改宿主核心菜单、集中模块路由表或其他业务模块。 |
 | REQ-004 | Todo 和没有真实管理用例的模块继续不提供 WebUI Binding，不创建空目录、空页面或虚假菜单。 |
 | REQ-005 | Binding、manifest、registry 和宿主必须保持稳定 ID、引用、operation、revision 与 fail-closed 校验；`SourcePath` 不得进入浏览器 manifest。 |
-| REQ-006 | 权限继续引用已有 operation ID，菜单过滤和 403 只用于呈现；服务端 operation gate 继续是最终授权 authority。 |
+| REQ-006 | 权限继续引用项目 Auth authority 登记的 operation ID，菜单过滤和 403 只用于呈现；服务端 operation gate 继续是最终授权 authority。 |
+| REQ-006A | 需要认证的 WebUI 页面必须由模块 Binding 声明自己的查看 operation，并由 Composition 装配到现有 Auth policy；未认证主体不得因为缺少 operation 声明而获得页面访问。 |
 | REQ-007 | WebUI i18n 是强制规范契约，不是约定或可选最佳实践。浏览器只允许一个由宿主初始化的 i18n 实例；业务模块只允许通过自身 Binding 声明一个或多个 locale namespace，由 Composition/codegen 聚合，宿主负责语言选择、fallback、加载失败和缺失资源状态。没有 locale Binding 的 WebUI 业务模块不得进入生产 registry。 |
 | REQ-008 | 菜单、页面标题、公共动作、字段、帮助文本、状态文案、诊断标题、校验提示和错误提示等所有用户可见文本必须来自 locale message。模块页面必须使用宿主公开的 `useWebUITranslation(namespace)` 或等价的窄翻译契约，不得直接初始化/操作 i18n singleton，不得直接依赖 `react-i18next` 的内部实例，也不得在生产模块 Web 源码中写入用户可见硬编码文案。 |
 | REQ-008A | 后端 error code 与 locale message ID 必须分离。模块只能声明 `errorCode -> messageID` 映射，再由 i18n 契约翻译 message ID；`setupErrorMessages` 这类直接返回中文/英文文本的映射违反契约。locale namespace、message ID、语言和资源文件由模块拥有并由 Contract/codegen 校验，缺失 key、namespace 或语言时必须 fail closed 或呈现明确诊断状态。 |

@@ -166,6 +166,12 @@
 - 当前项目已有真实 `WebUISession` 契约，Session 页面改为“状态 Banner → 主体/权限/创建摘要 → 生命周期与 scope Surface”层级，展示 `user.id`、用户名、scope、创建时间、空闲过期和绝对过期。
 - 未登录时页面明确 `Unavailable` 与登录提示；登录后只展示服务端签发的只读会话信息，不在前端推算过期、不新增密码修改、权限编辑或账号设置流程。
 
+## Auth Session 访问装配补充校准
+
+- 参考站 Header 保留用户入口，但当前 `/user-center` 仍是占位页；本项目不据此虚构用户中心写操作，而是把已有真实 Session 作为模块自己的可见导航入口。
+- `auth` Binding 现在同时声明 `auth.webui.session` 查看 operation、`auth.session` route/menu 和 `user` 图标；Composition 通过现有 `management:read` policy 装配服务端授权，manifest 对未认证主体返回 `authentication-required`，宿主再统一跳转登录。
+- 这次补齐的是已有会话页面的访问边界和导航可发现性，不改变 Session/CSRF/Origin wire，不新增后端业务操作或模拟数据。
+
 ## 路由搜索焦点补充校准
 
 - 参考站 Header 的搜索入口位于全局工具区，打开后应成为当前操作焦点，而不是把键盘操作留在页面下方；关闭后继续回到触发入口，符合后台连续操作的使用节奏。

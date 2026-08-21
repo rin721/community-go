@@ -119,6 +119,7 @@ HeroUI 作为可访问交互原语，宿主在其上定义项目 Token 和语义
 - Setup/Login 使用 AuthLayout，保留当前真实 API、密码约束和错误 code 翻译；补齐 pending、失败、成功跳转、键盘和小屏状态。
 - Session 页面使用 AppLayout，分组呈现主体、scope、创建/空闲/绝对过期；注销保持 CSRF 与服务端撤销语义。
 - Session 页面按“状态 Banner → 摘要卡 → 生命周期/权限 Surface”组织真实会话信息；不把用户中心、密码修改或权限编辑等未存在的后端能力伪装成可用操作。
+- Session Binding 声明 `auth.webui.session` 查看 operation 和 `auth.session` 导航；Composition 将该 operation 绑定到现有 `management:read` scope。这样页面访问沿既有服务端 operation gate fail closed，前端 manifest 只呈现授权结果，不自行判断权限。
 - 不增加忘记密码、验证码、注册或多账号切换，因为当前后端没有这些能力。
 
 ### 6.2 Ops
@@ -168,7 +169,7 @@ HeroUI 作为可访问交互原语，宿主在其上定义项目 Token 和语义
 
 其中 i18n 调整还会影响宿主 locale resource、`@webui/contracts` 翻译 hook、Auth/Ops 模块 locale JSON、error code -> message ID 映射和硬编码文案架构测试。
 
-不修改 Todo 实现、数据库 migration、后端 Session wire、普通 API Auth 或 Kernel lifecycle。
+不修改 Todo 实现、数据库 migration、后端 Session wire、普通 API Auth 或 Kernel lifecycle；本轮只为已有 Session 页面补齐其 WebUI 查看 operation 的装配，不新增认证数据或管理 API。
 
 ## 9. 实施与重新确认边界
 

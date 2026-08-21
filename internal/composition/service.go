@@ -159,6 +159,7 @@ func operationPolicies() ([]authmodel.Policy, error) {
 		return nil, fmt.Errorf("module operation policy inventory is empty")
 	}
 	policies = append(policies,
+		authmodel.Policy{Operation: authmodel.OperationWebUISession, Mode: authmodel.PolicyProtected, Scope: "management:read", Action: "auth.webui.session.read"},
 		authmodel.Policy{Operation: opsmodel.OperationDiagnostics, Mode: authmodel.PolicyProtected, Scope: "management:read", Action: "ops.diagnostics.read"},
 		authmodel.Policy{Operation: opsmodel.OperationMetrics, Mode: authmodel.PolicyProtected, Scope: "management:read", Action: "ops.metrics.read"},
 	)

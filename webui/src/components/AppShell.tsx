@@ -195,6 +195,7 @@ function SidebarMenu({ entries, currentRouteID, expandedMenuIDs, onToggle, level
 
 function MenuIcon({ iconID }: { iconID: string }) {
   if (iconID === "activity") return <Activity size={18} />;
+  if (iconID === "user") return <CircleUserRound size={18} />;
   return <span className="menu-icon-fallback" />;
 }
 

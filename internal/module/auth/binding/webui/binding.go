@@ -3,6 +3,7 @@ package webui
 
 import (
 	"github.com/rin721/go-scaffold-template/internal/module"
+	authmodel "github.com/rin721/go-scaffold-template/internal/module/auth/model"
 	"github.com/rin721/go-scaffold-template/internal/webui"
 )
 
@@ -18,7 +19,10 @@ func Binding() webui.Binding {
 		Routes: []webui.Route{
 			{ID: "auth.setup", Path: "/setup", EntryID: "auth.setup", TitleMessageID: "webui.auth.setup.title", Layout: webui.RouteLayoutBlank, DeliveryState: webui.DeliveryImplemented},
 			{ID: "auth.login", Path: "/login", EntryID: "auth.login", TitleMessageID: "webui.auth.login.title", Layout: webui.RouteLayoutBlank, DeliveryState: webui.DeliveryImplemented, UnauthenticatedDefault: true},
-			{ID: "auth.session", Path: "/account/session", EntryID: "auth.session", TitleMessageID: "webui.auth.session.title", Layout: webui.RouteLayoutApp, DeliveryState: webui.DeliveryImplemented},
+			{ID: "auth.session", Path: "/account/session", EntryID: "auth.session", TitleMessageID: "webui.auth.session.title", ViewOperationID: authmodel.OperationWebUISession, Layout: webui.RouteLayoutApp, DeliveryState: webui.DeliveryImplemented},
+		},
+		Navigation: []webui.Navigation{
+			{ID: "auth.session", RouteID: "auth.session", TitleMessageID: "webui.auth.session.title", IconID: "user", Order: 30},
 		},
 		Locales: []webui.Locale{
 			{Language: "en-US", Namespace: "webui.auth", SourcePath: "internal/module/auth/binding/webui/web/locale/en-US.json"},

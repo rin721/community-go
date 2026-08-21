@@ -2,6 +2,7 @@ package composition
 
 import (
 	authwebui "github.com/rin721/go-scaffold-template/internal/module/auth/binding/webui"
+	authmodel "github.com/rin721/go-scaffold-template/internal/module/auth/model"
 	opswebui "github.com/rin721/go-scaffold-template/internal/module/ops/binding/webui"
 	todohttp "github.com/rin721/go-scaffold-template/internal/module/todo/binding/http"
 	webuicontract "github.com/rin721/go-scaffold-template/internal/webui"
@@ -35,6 +36,7 @@ func applicationWebUICatalog() (webuicontract.Catalog, error) {
 	}
 	operations["ops.diagnostics"] = struct{}{}
 	operations["ops.metrics"] = struct{}{}
+	operations[authmodel.OperationWebUISession] = struct{}{}
 	if err := catalog.ValidateOperationReferences(operations); err != nil {
 		return webuicontract.Catalog{}, err
 	}

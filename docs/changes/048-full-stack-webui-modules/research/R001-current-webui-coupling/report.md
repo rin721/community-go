@@ -1,5 +1,7 @@
 # R001 当前 WebUI 全栈耦合审计
 
+> 修订说明：本报告的代码事实继续有效；其中曾把“前端源码必须物理迁出业务模块”作为目标的推断，已经由 [R003](../R003-module-owned-webui-sdk-boundary/report.md) 取代。当前目标保留业务模块对 WebUI 的所有权，修复宿主 SDK、样式和业务语义泄漏。
+
 ## 1. 研究问题与范围
 
 本报告回答：当前页面已经放在 `internal/module/auth|ops/binding/webui/web`，为什么新增或产品化业务页面仍会修改 `webui` 核心；哪些部分是合理的显式装配，哪些部分已经构成反向依赖。
@@ -81,25 +83,26 @@ runtime `/api/v1/webui/manifest` 虽然不会泄漏 `SourcePath`，但浏览器�
 - 现有 Auth/Ops 页面中的真实 API 流程和低敏错误码映射；
 - 047 建立的项目自有 UI primitives 中真正业务无关的部分。
 
-需要重新归属或替换的是 WebUI Catalog、SourcePath codegen、Auth-specific host contract、全局业务 CSS 和当前页面目录。
+需要重新归属或替换的是 Auth-specific host contract、全局业务 CSS 和 SDK/platform 公私边界。WebUI Catalog、SourcePath codegen 与当前页面目录可以保留并加固。
 
 ## 5. 推断与判断
 
 ### 推断
 
-仅把 CSS 拆文件、继续保留 Go `SourcePath` 不能解决问题，因为页面编译来源和前后端所有权仍然相互穿透。
+把所有页面集中搬进 `webui/src/pages` 或 `webui/src/module` 不能满足目标，因为账号、审计、系统配置等页面会失去原业务模块 owner，形成第二个业务目录。
 
-仅把所有页面集中搬进 `webui/src/pages` 也不能满足目标，因为账号、审计、系统配置等能力会再次失去模块 owner。
+保留 Go `SourcePath` 并不必然导致 core 耦合：只要它被限制为模块 owner 目录内的构建期元数据、runtime manifest 完全剥离，并且生成器保持通用，就能继续服务静态 lazy import。真正需要删除的是业务 CSS、业务 DTO 和模块特判进入宿主的路径。
 
 ### 判断
 
-当前实现是“后端模块共置前端源文件的构建期扩展”，不是前后端分离的全栈业务模块。新方案必须同时完成：
+当前实现已经具有“业务模块共置 WebUI 源文件”的正确 owner 基础，但缺少稳定 SDK 分层和 core 扩张门禁。新方案必须同时完成：
 
-1. 前后端源代码物理分离；
+1. 页面、API client、locale、styles 和测试继续归所属业务模块；
 2. 逻辑 ModuleID 与 API/operation 对齐；
-3. 前端模块拥有自身 routes/navigation/locales/pages/styles；
-4. 平台只消费窄模块定义和通用身份/访问抽象；
-5. 新模块只改变 module facet 与 composition profile。
+3. 模块只消费 `@webui/sdk/*`，不能穿透 platform；
+4. 平台只消费通用 Binding/manifest 和通用身份/访问抽象；
+5. 普通新模块只改变自身模块与 composition 汇总，core 零修改；
+6. 新宿主能力先建立 SDK interface/adapter，再由模块 adoption。
 
 ## 6. 局限与刷新条件
 
@@ -109,4 +112,4 @@ runtime `/api/v1/webui/manifest` 虽然不会泄漏 `SourcePath`，但浏览器�
 
 ## 7. 对 048 的影响
 
-研究支持停止 047 未完成实施路线，并建立前后端分离但保持逻辑业务模块完整的 048 方案。旧代码不能与新架构长期双轨；迁移完成后必须删除 SourcePath Catalog、旧 codegen 和旧页面目录。
+研究支持停止 047 未完成实施路线，并建立“业务模块自有 WebUI + 通用 SDK”的 048 方案。SourcePath Catalog 和通用 codegen 可以保留并加固；宿主业务 CSS、Auth-specific public contract、模块特判和 platform 穿透必须单轨删除。

@@ -1,80 +1,96 @@
-# 048 全栈业务模块化 WebUI 需求
+# 048 业务模块自有 WebUI 与通用 SDK 需求
 
 ## 1. 产品目标
 
-建立可持续扩展的后台业务模块体系。账号与权限、日志与审计、系统配置、运维工具以及未来业务模块都能完整拥有自己的后端能力和 WebUI 页面，同时共享稳定宿主平台；新增模块不需要修改宿主核心设计。
+建立可持续扩展的后台业务模块体系。每个业务模块完整拥有自己的后端能力和 WebUI 页面，并通过稳定 SDK 使用宿主能力；新增普通业务模块不修改 `webui` 核心。
 
 ## 2. 术语
 
-- **逻辑业务模块**：以稳定 `ModuleID` 标识的业务边界。
-- **backend facet**：`internal/module/<id>` 下的 Go Model、Service、Handler、HTTP contract、operation、Repository、binding 与 contribution。
-- **web facet**：`webui/src/module/<id>` 下的 route、navigation、locale、API client、page、component、style 与 test。
-- **platform**：WebUI Router 编译器、Shell、身份/访问抽象、i18n runtime、主题和项目自有 UI primitives。
-- **composition profile**：显式选择当前应用包含哪些 backend/web facet 的唯一装配文件。
+- **业务模块**：`internal/module/<id>` 下以稳定 `ModuleID` 标识的完整业务边界。
+- **模块 WebUI**：业务模块 `binding/webui/web` 下的 page、API client、query、locale、component、局部 style 与 test。
+- **WebUI SDK**：业务模块可以导入的项目自有稳定接口，路径为 `@webui/sdk/*`。
+- **WebUI platform**：Router、Shell、i18n runtime、theme、global state 和 SDK adapter 的私有实现。
+- **SDK capability**：一个具有稳定语义、版本、失败行为和 adapter 的宿主能力，不是运行时任意查询的 service。
+- **module-local adapter**：只服务单一业务模块的新技术封装，留在该模块内部，不进入 WebUI core。
 
-## 3. 功能要求
+## 3. 所有权要求
 
 | ID | 要求 |
 | --- | --- |
-| REQ-001 | 同一逻辑业务模块可以有 backend facet 与 web facet；两者共享稳定 ModuleID，但不得互相导入源码。 |
-| REQ-002 | backend facet 只通过 HTTP/OpenAPI、operation ID、错误码和模块可用性对浏览器提供能力，不得保存 TSX、locale 或 CSS 文件路径。 |
-| REQ-003 | web facet 必须拥有自身 route、navigation、locale、API client、page、component、局部样式与测试。 |
-| REQ-004 | 新增模块只允许修改自身 backend/web facet，以及前后端各自唯一 composition profile；不得修改平台 Router、Shell、全局 CSS 或其他业务模块。 |
-| REQ-005 | 前端 profile 必须显式列出 WebModuleDefinition；禁止目录扫描、`import.meta.glob` 自动注册、全局可变 registry 和 import side effect。 |
-| REQ-006 | 平台从不可变 module definitions 构建单一 React Router route tree，并在资源副作用前拒绝重复 ModuleID、RouteID、path、navigation ID、locale namespace 和非法 parent。 |
-| REQ-007 | 页面实现必须通过 route lazy import 延迟加载；lazy import 只存在于 web facet，后端不得生成 import registry。 |
-| REQ-008 | 后端提供版本化 WebUI bootstrap API，返回 protocol version、启用模块及 API version/state、通用 principal 和 operation access snapshot；不得返回 SourcePath、component、菜单文案或可执行代码。 |
-| REQ-009 | 静态前端 catalog 与后端 bootstrap 必须 fail closed 对齐：缺少 backend module、API version 不兼容或 protocol mismatch 时不执行页面请求，并呈现低敏诊断。 |
-| REQ-010 | 服务端 operation gate 始终是最终授权 authority；前端 route guard/menu filter 只负责体验和状态呈现。 |
-| REQ-011 | 平台只依赖通用 Principal、AccessSnapshot、IdentitySessionPort 和 HostRuntime，不公开账号模块 Session DTO、角色模型、CSRF 存储或 API 路径。 |
-| REQ-012 | 账号模块负责登录、退出、用户、角色、权限、会话和安全策略等业务；平台仅通过 typed identity port 获得当前主体和刷新/退出能力。 |
-| REQ-013 | 每个 web facet 必须声明并拥有 locale namespace；用户可见文案、错误码映射和缺失资源语义继续 fail closed。 |
-| REQ-014 | 业务样式必须使用 CSS Modules 或等价局部作用域；平台全局样式不得出现 Auth/Ops/Audit/System 等业务 selector。 |
-| REQ-015 | 模块只消费平台公开 SDK 与项目自有 UI primitives，不直接依赖 Router 内部、Shell store、i18n singleton 或第三方 UI 具体类型。 |
-| REQ-016 | 两个业务模块之间不得直接 import；跨模块导航使用公开 RouteID，跨模块业务协作通过后端窄契约和 composition 完成。 |
-| REQ-017 | 模块 API client 必须支持 AbortSignal、稳定错误码、低敏失败映射和统一凭据策略，不在页面组件散落 URL、CSRF 或 response parsing。 |
-| REQ-018 | WebUI 与 Go 服务必须可独立构建；产物可以同源托管，也可以分离部署，部署形态不得改变模块源码依赖方向。 |
-| REQ-019 | 当前 Auth/Ops 页面迁移必须保留真实 API、Session、CSRF、Origin、management 和权限语义，不通过兼容层长期保留旧 Binding/codegen。 |
-| REQ-020 | 迁移完成后单轨删除 `Entry.SourcePath`、Go 驱动的前端 registry、`internal/module/**/binding/webui/web` 和宿主业务 CSS。 |
-| REQ-021 | 完整账号权限、审计、系统配置/工具模块必须分别经过真实用例研究、计划和确认；048 基础迁移不得生成假 CRUD、假统计或空模块。 |
+| REQ-001 | 业务模块必须完整持有自己的 WebUI 源码；不得把账号、审计、配置、运维等页面迁入 `webui/src/pages` 或 `webui/src/module`。 |
+| REQ-002 | 模块 WebUI 必须与所属模块的业务 Model/API/operation/error semantics 对齐，但页面只通过 HTTP/API client 调用后端，不直接访问 Go 对象或 Repository。 |
+| REQ-003 | `webui/` 只拥有宿主、公共 SDK、SDK adapter、构建和验证，不拥有任何业务页面、业务 DTO、业务表格列、业务表单或业务 locale。 |
+| REQ-004 | Auth/Ops/Audit/System 等模块专属样式必须由模块持有并使用 CSS Modules 或等价局部作用域；宿主全局 CSS 禁止业务 selector。 |
+| REQ-005 | 模块 locale namespace、错误码到 message ID 映射、query key、页面状态和视觉测试全部归模块。 |
 
-## 4. 质量要求
+## 4. 普通模块接入要求
 
-### 4.1 依赖与演进
+| ID | 要求 |
+| --- | --- |
+| REQ-006 | 普通新模块只允许修改自身 `internal/module/<id>`、必要 API authority，以及 `internal/composition` 的唯一 WebUI module 汇总点。 |
+| REQ-007 | 普通新模块不得修改 `webui/src/platform/**`、Router、Shell、global CSS、SDK implementation、registry generator 或其他业务模块。 |
+| REQ-008 | 模块通过项目自有 `webui.Binding` 声明 Entry、Route、Navigation、Locale 和需要的 SDK capability；声明必须不可变且在生成/启动副作用前校验。 |
+| REQ-009 | `SourcePath` 只用于构建期定位模块自有 TS/TSX Entry 与 JSON Locale；必须位于声明模块的受控目录，禁止绝对路径、目录逃逸和 runtime manifest 暴露。模块 CSS 由 Entry 静态导入并保持局部作用域。 |
+| REQ-010 | `internal/composition` 是唯一同时知道各模块 WebUI Binding 的位置；增加一项属于应用装配，不属于修改 WebUI core。 |
+| REQ-011 | 禁止目录扫描、`import.meta.glob` 自动注册、`init` side effect、全局可变 registry、Service Locator 和运行时任意字符串 import。 |
+| REQ-012 | 生成 registry 只把通过校验的模块 Entry/Locale 变成 lazy import；不得生成模块专属 Router 分支、CSS 或业务逻辑。 |
 
-- `app -> platform + module definitions`；`module -> platform public SDK/UI`；`platform -> no business module`。
-- 每项共享平台能力必须有稳定、无业务语义的 contract；业务专属复合组件留在模块。
-- 新平台能力与新业务模块不能在同一未经重新确认的任务中混写。
+## 5. SDK 契约要求
 
-### 4.2 安全
+| ID | 要求 |
+| --- | --- |
+| REQ-013 | 模块生产代码只能导入明确允许的 `@webui/sdk/*` public surface；禁止导入 platform 内部、宿主组件源码、i18n singleton、Router/Store 实例和第三方 UI 具体类型。 |
+| REQ-014 | SDK 首批至少收敛 runtime/navigation、HTTP、i18n、query、UI primitives、feedback/overlay 和通用 identity/access view；每项接口必须定义取消、错误、资源和响应式语义。 |
+| REQ-015 | SDK 不得暴露万能 Context、任意 `resolve(id)`、`map[string]any`、第三方 client 或跨模块可变状态。 |
+| REQ-016 | SDK adapter 由 `webui` platform 持有，业务模块只依赖 interface/public hooks，不依赖 adapter 实现。 |
+| REQ-017 | React/JSX 是已选定的 WebUI 基础运行技术；Router、i18n、query、UI library 和浏览器 I/O 等易变第三方能力必须通过项目 SDK 边界提供。 |
+| REQ-018 | SDK capability 必须使用稳定语义和主版本；破坏性变化单轨迁移全部模块，不保留长期兼容别名。 |
 
-- bootstrap 不返回密码、Token、Cookie、CSRF 原值、完整内部 scope/policy 或敏感配置。
-- 前端隐藏菜单不构成授权；所有读写 API 都执行服务端 operation gate。
-- 独立部署必须保持当前 Cookie、Origin、CORS 和 CSRF 安全要求，不能为“前后端分离”降低安全属性。
+## 6. 新能力或新技术升级规则
 
-### 4.3 可诊断性
+| ID | 要求 |
+| --- | --- |
+| REQ-019 | 新模块提出新需求时，必须先判断现有 SDK 是否已能表达，不得因页面实现习惯直接修改 core。 |
+| REQ-020 | 只服务该模块、且不需要宿主生命周期/全局状态/跨模块复用的新技术，由模块内部 Adapter 封装；第三方类型不得越过模块边界。 |
+| REQ-021 | 需要接入 Router、Shell、全局 overlay、统一凭据、全局任务、主题、可访问性或其他宿主机制的新能力，必须先建立项目自有 SDK interface。 |
+| REQ-022 | 新 SDK capability 必须单独研究真实用例、现有能力缺口、技术选型、失败语义、资源 owner 和适配边界，并在计划中明确获得确认。 |
+| REQ-023 | SDK adapter 必须通用且不知道请求它的业务模块；实现或测试中出现具体 ModuleID 分支即视为契约失败。 |
+| REQ-024 | 新业务模块与新 SDK capability 可以属于同一总体目标，但必须分成“SDK contract/adapter”与“module adoption”两个任务；前者先通过 contract tests，后者才能消费。 |
 
-- 明确区分 module absent、API incompatible、access denied、authentication required、degraded、unavailable 和 route load failure。
-- 浏览器错误只显示稳定 module/route/operation ID 与低敏错误码；原始响应和凭据不得进入 UI 或日志。
+## 7. 路由、权限和运行要求
 
-### 4.4 可测试性
+| ID | 要求 |
+| --- | --- |
+| REQ-025 | runtime manifest 继续作为 route/menu/access view；只包含安全的 ID、path、title message ID、layout、delivery/access state，不包含 SourcePath 或 adapter 细节。 |
+| REQ-026 | 服务端 operation gate 始终是最终授权 authority；前端 access 只用于菜单、守卫和状态呈现。 |
+| REQ-027 | 宿主只理解通用 Principal、Access、Route、CapabilityState 和 HostRuntime；不得公开 WebUISession、角色 DTO、Ops diagnostics DTO 等业务类型。 |
+| REQ-028 | 模块之间禁止源码 import；跨模块导航只使用稳定 RouteID，跨模块业务协作通过后端窄契约和 composition。 |
+| REQ-029 | 模块页面必须支持 lazy load、取消、loading、empty、degraded、unavailable、denied 和 route failure，错误信息保持低敏。 |
+| REQ-030 | Session、CSRF、Origin、CORS、Cookie 和 operation semantics 不因 SDK 重构而降低安全要求。 |
 
-- 架构测试证明 platform 不导入 module、module 不互相导入、backend 不包含前端 SourcePath、全局 CSS 无业务 selector。
-- module contract tests 覆盖 duplicate、version mismatch、missing backend、permission、lazy failure 和 locale failure。
-- Auth/Ops 迁移后完成真实 setup/login/logout/session、权限直达、Ops query 与桌面/移动视觉回归。
+## 8. 质量与验证要求
 
-## 5. 非目标
+- 架构测试证明 platform 不导入任何业务模块，模块只导入 SDK public surface，模块之间无 import。
+- 普通模块 fixture 只新增模块文件和 composition entry，`webui/` 零 Diff 即可生成 route、menu、locale 和 lazy page。
+- 新 SDK fixture 证明缺失 capability 时生成/类型检查失败，adapter 与模块 ID 无关。
+- 全局 CSS 扫描拒绝业务 selector；模块局部 style 不污染其他模块。
+- Binding 校验覆盖 ownership、path escape、duplicate、unknown SDK requirement、route/navigation/locale 引用和 operation ID。
+- Auth/Ops 迁移保持真实 setup/login/logout/session、CSRF、Origin、management query、权限和错误语义。
 
+## 9. 非目标
+
+- 不把业务 WebUI 移入 `webui/src/module`。
+- 不追求 Go 与 WebUI 完全独立构建；当前是同仓库、静态编译的业务模块 WebUI。
 - 不实现第三方插件市场、远程模块、Module Federation 或运行时安装卸载。
-- 不让服务端通过 API 下发 React component、JS URL 或页面源码。
-- 不把所有后端模块强制配套 WebUI；没有管理用例的模块可以只有 backend facet。
-- 不把“系统工具集”建设成无归属的万能模块；配置、运维动作、诊断和审计必须按真实语义确定 owner。
-- 不在 048 基础迁移中实现完整账号权限、审计或系统配置业务本身。
+- 不为所有模块强制创建 WebUI；没有真实浏览器用例的模块继续无 WebUI Binding。
+- 不建立万能 `utils`、万能 SDK 或运行时 capability resolver。
+- 不在 048 基础重构中实现完整账号权限、审计或系统配置业务。
 
-## 6. 验收标准
+## 10. 验收标准
 
-1. 一个验证模块可以只新增自身 backend/web facet，并在两个 profile 各增加一项，Router/Shell/global CSS 零修改即可显示真实页面并调用真实 API。
-2. 前端产物不再从 `internal/module` import TS/TSX/JSON，Go 代码不再保存前端 SourcePath。
-3. Auth/Ops 单轨迁移后旧 codegen、旧页面目录、旧 manifest route/menu authority 和业务全局 CSS 被删除。
-4. bootstrap/catalog mismatch、认证、拒绝、降级和 lazy load failure 均有确定状态和测试。
-5. 全量 Go/TS/React/E2E/visual/architecture 门禁通过，文档与当前实现同步。
+1. 现有 Auth/Ops 页面仍位于各自业务模块，且业务 CSS、API、locale 和页面测试全部模块自有。
+2. 新增一个普通模块测试 fixture 时，`webui/src/platform`、Router、Shell、global CSS 和 SDK adapter 零修改。
+3. 只有新增真实宿主能力时才增加 SDK interface/adapter，并有独立研究、任务和 contract test。
+4. 宿主代码不包含具体业务模块 import、ModuleID 分支、业务 DTO 或业务 selector。
+5. SourcePath 仅构建期可见且受 owner/path 校验，runtime manifest 保持低敏。
+6. Go、生成、TypeScript、React、架构、E2E 和视觉门禁全部通过后才完成单轨迁移。

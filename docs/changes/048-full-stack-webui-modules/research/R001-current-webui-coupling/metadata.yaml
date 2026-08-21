@@ -8,7 +8,7 @@ keywords: ["SourcePath", "applicationWebUICatalog", "webuiEntryRegistry", "WebUI
 applicable_scenarios: ["048 整体重构", "新增后台业务模块", "Auth/Ops 页面迁移"]
 non_applicable_scenarios: ["运行时第三方插件", "社区 Nuxt frontend", "当前代码已实现声明"]
 status: active
-summary: "当前实现把路由声明放在 Go Binding、把 TSX 放进后端模块、再由 Go codegen 生成前端 import；宿主还直接拥有 Auth Session 与业务 CSS，因此只是目录共置，不是前后端解耦的全栈模块。"
+summary: "业务模块持有 Binding、TSX 和 locale 的 owner 方向可以保留；当前问题是宿主直接拥有 Auth Session 与业务 CSS，公共 SDK 边界不足，使页面演进反向扩张 core。"
 evidence:
   types: ["source-code", "tests", "project-docs", "git-history"]
   primary_sources:
@@ -33,7 +33,7 @@ validity:
   refresh_triggers: ["048 开始实施", "internal/webui 契约变化", "WebUI Router 或目录发生迁移"]
 relations:
   extends: []
-  related: ["047-R001", "047-R002"]
+  related: ["047/R001", "047/R002"]
   supersedes: []
   superseded_by: []
 researched_at: "2026-08-21"

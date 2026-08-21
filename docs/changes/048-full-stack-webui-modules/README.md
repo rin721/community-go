@@ -1,29 +1,30 @@
-# 048 全栈业务模块化 WebUI 重构
+# 048 业务模块自有 WebUI 与通用 SDK 重构
 
-状态：研究门禁已通过，纯文档方案已完成；非文档实施待用户确认。
+状态：研究门禁已通过，方案已按“WebUI 继续由业务模块持有”完成修订；非文档实施待用户确认。
 
 ## 目标
 
-本变更重新定义“业务模块渲染 WebUI”的边界：一个逻辑业务模块可以同时拥有 Go 后端 facet 与 React WebUI facet，但两者必须通过稳定 HTTP/API 契约连接，不能共享 TSX 源码路径、Router 内部对象、全局样式或宿主状态。
+建立通用的业务模块 WebUI 装配体系。账号与权限、日志与审计、系统配置、运维工具以及未来模块都在自己的 `internal/module/<module-id>` 中完整持有后端业务与 WebUI 页面；根 `webui/` 只拥有宿主、构建支持、通用 SDK contract 和 SDK adapter，不接管任何业务页面。
 
-目标形态支持账号与权限、日志与审计、系统配置、运维工具等完整业务模块持续接入。新增模块只需要：
+普通新模块接入只需要：
 
-1. 在 `internal/module/<module-id>` 实现后端业务、HTTP 契约与 operation；
-2. 在 `webui/src/module/<module-id>` 实现页面、路由、菜单、locale、API client 与局部样式；
-3. 在后端和前端各自唯一的 composition profile 中显式选择该模块；
-4. 通过 `ModuleID`、API version、operation ID 与 WebUI bootstrap 握手验证两端兼容性。
+1. 在自己的模块目录实现 Model、Service、Handler、HTTP API 与 WebUI Binding；
+2. 在自己的 `binding/webui/web` 中实现页面、API client、locale、局部样式和测试；
+3. 在 `internal/composition` 的唯一 WebUI module 汇总点增加一项；
+4. 只通过 `@webui/sdk/*` 使用宿主能力。
 
-Router、Shell、平台 UI、全局 CSS 和其他业务模块不因新增业务页面而修改。composition profile 增加一项属于应用装配，不属于修改宿主核心设计。
+普通接入不得修改 Router、Shell、全局 CSS、SDK adapter、生成器或其他业务模块。只有新模块提出了真实的新宿主能力或新技术集成，并且现有 SDK 无法表达时，才允许先建立项目自有 SDK interface，再由 `webui` 平台实现 adapter；这是一项独立的平台能力变更，不是业务页面的顺手修改。
 
 ## 核心决策
 
-- 采用静态编译的全栈业务模块，不采用运行时远程模块、Module Federation、自动目录扫描或 `init` 自注册。
-- Go 后端不再声明 `SourcePath`、前端路由、菜单文案资源路径或 TSX Entry。
-- 前端模块定义是页面路由、导航、locale 和 lazy import 的唯一来源。
-- 后端 API 是业务数据、命令、权限和错误语义的唯一来源；服务端不通过 API 下发可执行页面代码。
-- WebUI 平台只拥有 Router 装配、Shell、身份抽象、访问守卫、i18n runtime、主题和项目自有 UI primitives。
-- 业务专属页面、组件、查询、表格列、表单、locale 和 CSS 必须留在所属前端模块。
-- 047 未完成的产品化路线停止继续实施；其已提交代码仍是当前实现事实，直到 048 获确认并完成单轨迁移。
+- 业务模块继续持有 WebUI 源码，不迁移到 `webui/src/module`。
+- `internal/webui.Binding`、`applicationWebUICatalog()` 和构建期 registry 路线可以保留并通用化；`SourcePath` 只允许作为构建期元数据，禁止进入浏览器 manifest。
+- `webui/` 分成 public SDK 与 private platform。业务模块只能导入 public SDK，不能导入 Router、Shell、Store、i18n singleton 或平台内部对象。
+- 业务页面、查询、表格列、表单、locale、错误码映射和 CSS Modules 全部由模块持有。
+- 宿主只根据通用 Binding/manifest 装配路由、导航、权限、locale 和 lazy entry；不得出现 `auth`、`ops`、`audit`、`systemsettings` 等模块名分支。
+- 模块专属新技术默认由模块内部 Adapter 封装；只有跨模块复用或必须接入宿主生命周期/全局交互的技术才升级为 SDK capability。
+- 不采用目录扫描、`init` 注册、Service Locator、Module Federation 或运行时远程模块。
+- 047 未完成路线继续冻结；已提交代码是当前实现事实，048 获确认后按单轨计划收口。
 
 ## 阅读顺序
 
@@ -34,15 +35,15 @@ Router、Shell、平台 UI、全局 CSS 和其他业务模块不因新增业务�
 
 ## 当前与目标的区别
 
-| 维度 | 当前实现 | 048 目标 |
+| 维度 | 当前实现 | 048 修订目标 |
 | --- | --- | --- |
-| 页面源码 | 位于 Go `internal/module/**/binding/webui/web` | 位于独立前端 `webui/src/module/<id>` |
-| 路由来源 | Go Binding + SourcePath codegen + runtime manifest | 前端模块定义 + 静态 composition profile |
-| 后端 WebUI 契约 | 知道 Entry、route、navigation、locale 文件 | 只知道 module availability、API/operation 与 access |
-| 宿主依赖 | 直接知道 WebUISession/Auth logout，含 Auth/Ops CSS | 只依赖通用 Principal、AccessSnapshot 与平台 port |
-| 新模块接入 | 容易继续扩张宿主 UI/CSS | 只改模块与 composition profile |
-| 发布 | Go 源码与 TSX 构建期交织 | 前后端独立构建，可同源部署或分离部署 |
+| 页面 owner | Auth/Ops 模块目录 | 继续由每个业务模块完整持有 |
+| 宿主公开面 | `@webui/contracts`、`@webui/ui`，仍泄漏 Auth Session | 分层 `@webui/sdk/*`，只暴露通用 contract |
+| 样式 | Auth/Ops selector 进入宿主全局 CSS | 模块 CSS Modules；全局 CSS 只含 platform/token/reset |
+| 新模块 | 可能要求宿主增加组件、样式和分支 | 只增模块文件与 composition entry |
+| 新能力 | 容易随业务页面直接修改核心 | 先判定 module-local 或 host-level；host-level 单独增加 SDK interface + adapter |
+| SourcePath | 构建期生成 lazy import，runtime manifest 不含路径 | 保留为受控构建元数据，并增加通用校验 |
 
 ## 实施门禁
 
-本次交付仅建立研究与设计文档。删除旧 `internal/webui.Binding`、迁移 Auth/Ops 页面、修改 bootstrap API、调整 Router、样式和构建链都属于非文档实施，必须在本报告之后由用户明确确认 048 计划才能开始。
+本次只修订研究和设计文档。SDK 分层、业务 CSS 迁移、HostRuntime 收敛、Binding 校验和架构测试都属于非文档实施，必须在本报告之后由用户明确确认 048 修订计划才能开始。

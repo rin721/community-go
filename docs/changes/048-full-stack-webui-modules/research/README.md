@@ -1,12 +1,13 @@
 # 048 研究索引
 
-本目录回答两个问题：当前 WebUI 为什么仍然是构建期耦合，以及哪一种模块化模型既能保留完整业务模块，又不会让每个页面反向修改宿主核心。
+本目录回答三个问题：当前业务模块持有 WebUI 的哪些边界是正确的，为什么页面演进仍会反向修改宿主核心，以及怎样用通用 SDK contract/adapter 让普通新模块在 core 零修改前提下接入。
 
 ## 记录
 
 - [R001 当前 WebUI 全栈耦合审计](R001-current-webui-coupling/report.md)：沿 Binding、Composition、codegen、Router、宿主契约、业务页面和 CSS 核对当前依赖方向。
-- [R002 静态全栈模块方案比较](R002-static-full-stack-module-model/report.md)：比较当前共置模型、集中前端、静态全栈模块和运行时微前端，并结合 React Router、Vite 与 TypeScript 官方能力形成推荐方案。
+- [R002 静态全栈模块方案比较](R002-static-full-stack-module-model/report.md)：保存“把 web facet 迁入独立前端目录”的历史比较；其页面 owner 结论已由 R003 取代。
+- [R003 模块自有 WebUI 与 SDK 适配边界](R003-module-owned-webui-sdk-boundary/report.md)：落实用户修订决策，区分 module-local adapter、host-level SDK capability 和普通模块接入。
 
 ## 门禁结论
 
-关键问题已经有可复核证据，事实、用户决策和目标设计已经分离。剩余未知主要是实施时的 API DTO 细节与迁移切片顺序，不妨碍形成整体计划，因此研究门禁通过。
+关键问题已经有可复核证据，R003 已把“模块目录继续持有 WebUI”与“宿主 SDK 通用化”明确分开。剩余未知主要是首批 SDK public surface 的逐符号清单，不妨碍形成计划；该清单必须在实施 Checkpoint A 冻结，因此研究门禁通过。

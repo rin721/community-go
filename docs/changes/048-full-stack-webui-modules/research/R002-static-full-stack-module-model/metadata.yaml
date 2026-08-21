@@ -7,8 +7,8 @@ topics: ["react-router", "vite", "typescript", "full-stack-module", "micro-front
 keywords: ["RouteObject", "route.lazy", "CSS Modules", "project references", "composition profile"]
 applicable_scenarios: ["内置后台业务模块", "单仓库独立前后端构建", "静态产品发行"]
 non_applicable_scenarios: ["第三方远程模块", "运行时安装卸载", "多前端团队独立发布"]
-status: active
-summary: "推荐前端模块自有 RouteObject/lazy import、locale 与 CSS Module，并由显式静态 profile 聚合；后端仅通过 bootstrap 返回模块可用性与访问决策。运行时微前端没有当前需求依据。"
+status: superseded
+summary: "本记录曾推荐把 web facet 迁入独立前端目录；用户随后明确要求 WebUI 继续由业务模块持有，因此页面 owner 与双 profile 结论已由 R003 取代。React Router lazy、CSS Modules 与拒绝运行时微前端的资料仍可复用。"
 evidence:
   types: ["official-docs", "current-project", "architecture-comparison"]
   primary_sources:
@@ -35,7 +35,7 @@ relations:
   extends: ["R001"]
   related: ["018/R001", "047/R001"]
   supersedes: []
-  superseded_by: []
+  superseded_by: ["R003"]
 researched_at: "2026-08-21"
 verified_at: "2026-08-21"
 report: report.md

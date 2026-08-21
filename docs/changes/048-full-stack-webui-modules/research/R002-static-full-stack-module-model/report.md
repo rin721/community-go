@@ -1,5 +1,7 @@
 # R002 静态全栈业务模块方案比较
 
+> **目标结论已被取代。** 本报告曾推荐把 web facet 迁入 `webui/src/module/<id>` 并建立前后端双 profile。用户随后明确要求 WebUI 继续由 `internal/module/<id>` 业务模块持有，因此该 owner/装配结论由 [R003](../R003-module-owned-webui-sdk-boundary/report.md) 取代。React Router lazy、Vite CSS Modules、TypeScript 边界能力和拒绝运行时微前端的官方证据仍然有效。
+
 ## 1. 研究问题
 
 目标不是让后端动态发送 React 页面，而是让账号权限、日志审计、系统配置和运维工具等逻辑业务模块各自拥有完整 WebUI，同时保持前后端通过路由 API/HTTP 契约交互，并保证新增模块不修改宿主 Router、Shell、全局 CSS 或其他模块。
@@ -108,6 +110,6 @@ export type WebModuleRoute = Readonly<{
 
 不适用于第三方二进制插件、远程模块、运行时安装卸载、多个团队完全独立发布同一 Shell。若这些需求出现，必须新增研究，不能把 048 的静态 catalog 假装成远程插件 runtime。
 
-## 8. 对计划的影响
+## 8. 历史计划影响
 
-048 应先落地平台契约与最小 Auth/Ops 迁移，证明删除 `SourcePath` 后仍能登录、鉴权、导航和读取真实 Ops API；然后才建设完整账号权限、审计和系统模块。新业务模块不能在基础迁移中用假 CRUD 冒充验收。
+本报告当时建议删除 `SourcePath` 并迁出模块页面；该建议已由 R003 取代，不再进入 048 当前任务。仍保留的结论只有：先闭合平台契约与 Auth/Ops 真实流程，不用假 CRUD 验收新模块，并拒绝没有真实需求的运行时微前端。

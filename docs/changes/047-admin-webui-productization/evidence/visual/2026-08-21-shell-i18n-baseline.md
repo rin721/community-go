@@ -110,3 +110,9 @@
 - 本轮重新观察 Soybean 主题配置抽屉：固定右侧 Drawer + 遮罩，顶部标题/关闭入口，下方按“外观、布局、通用、预设”四个分区切换；布局分区集中管理页签、面包屑、侧栏、底部和动效等宿主级偏好。
 - 项目 ThemeDrawer 现在采用同样的四分区信息层级：外观承载模式/密度，布局承载面包屑/页签/底部/侧栏默认状态，通用承载减少动效，预设承载主题色；所有标题、开关标签和辅助说明来自 `webui.host` locale。
 - 新增偏好只由 `useThemePreferences` 单点持有并持久化；布局开关直接影响宿主可见层级，减少动效通过 `data-motion` 消费，不创建第二套主题 authority，也不影响业务模块语义。
+
+## 语言切换补充校准
+
+- 本轮重新观察 Soybean Header 语言入口：语言图标打开可选择菜单，至少提供中文与 English；切换后宿主壳层与当前业务页面同步变更，而不是只改变一个标签。
+- 项目语言入口现在由已装配的 host/module locale registry 共同决定，当前提供 `zh-CN` 与 `en-US`；Host、Auth、Ops 三个 namespace 均有完整英文资源，切换测试覆盖跨 namespace 文案。
+- 语言切换仍由唯一 i18n instance 执行，未知语言被拒绝；业务模块无需修改宿主 Header，只需继续在自身 Binding 声明对应 locale。

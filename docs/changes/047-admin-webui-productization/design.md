@@ -78,6 +78,7 @@ Auth/Ops 的真实页面实现迁入各自 `binding/webui/web`。模块页面只
 
   页面随后通过 `t(setupErrorMessageIDs[reason] ?? "webui.auth.errors.unknown")` 得到当前语言文案；禁止保留直接返回中文文本的 `setupErrorMessages`。
 - Host 自有的壳层文案也必须放入 host-owned locale resource，不以 `i18n.ts` 内联展示文本绕过同一契约。
+- Header 语言入口只展示已装配且拥有 host resource 的语言；当前 `zh-CN` 与 `en-US` 由 host/module registry 共同装配。切换通过唯一 i18n instance 完成，未知语言在边界拒绝，不允许模块自行添加第二个选择器或 singleton。
 - Contract/codegen 校验 locale 文件存在、语言/namespace 唯一、顶层为字符串 message map、SourcePath 在仓库内且 message ID 合法；运行期缺失 registry、namespace、语言或 key 必须 fail closed 或进入可诊断状态。
 - 静态架构检查扫描生产模块 Web 源码，发现用户可见硬编码文本或直接 i18n singleton 依赖即失败；测试同时覆盖 error code -> message ID、locale completeness 和缺失资源边界。
 

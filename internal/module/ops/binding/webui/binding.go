@@ -13,6 +13,9 @@ func Binding() webuicontract.Binding {
 		Entries:    []webuicontract.Entry{{ID: "ops.dashboard", SourcePath: "internal/module/ops/binding/webui/web/DashboardPage.tsx"}},
 		Routes:     []webuicontract.Route{{ID: "ops.dashboard", Path: "/dashboard", EntryID: "ops.dashboard", TitleMessageID: "webui.ops.dashboard.title", ViewOperationID: "ops.diagnostics", Layout: webuicontract.RouteLayoutApp, DeliveryState: webuicontract.DeliveryImplemented, Default: true}},
 		Navigation: []webuicontract.Navigation{{ID: "ops.dashboard", RouteID: "ops.dashboard", TitleMessageID: "webui.ops.dashboard.title", IconID: "activity", Order: 10}},
-		Locales:    []webuicontract.Locale{{Language: "zh-CN", Namespace: "webui.ops", SourcePath: "internal/module/ops/binding/webui/web/locale/zh-CN.json"}},
+		Locales: []webuicontract.Locale{
+			{Language: "en-US", Namespace: "webui.ops", SourcePath: "internal/module/ops/binding/webui/web/locale/en-US.json"},
+			{Language: "zh-CN", Namespace: "webui.ops", SourcePath: "internal/module/ops/binding/webui/web/locale/zh-CN.json"},
+		},
 	}
 }

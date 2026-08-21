@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { i18n, initializeI18n, namespaceForMessage, translateMessage } from "./i18n";
+import { changeLanguage, getAvailableLanguages, i18n, initializeI18n, namespaceForMessage, translateMessage } from "./i18n";
 
 describe("WebUI i18n contract", () => {
   beforeAll(async () => {
@@ -11,6 +11,10 @@ describe("WebUI i18n contract", () => {
     expect(i18n.hasResourceBundle("zh-CN", "webui.host")).toBe(true);
     expect(i18n.hasResourceBundle("zh-CN", "webui.auth")).toBe(true);
     expect(i18n.hasResourceBundle("zh-CN", "webui.ops")).toBe(true);
+    expect(i18n.hasResourceBundle("en-US", "webui.host")).toBe(true);
+    expect(i18n.hasResourceBundle("en-US", "webui.auth")).toBe(true);
+    expect(i18n.hasResourceBundle("en-US", "webui.ops")).toBe(true);
+    expect(getAvailableLanguages()).toEqual(["en-US", "zh-CN"]);
     expect(namespaceForMessage("webui.auth.setup.title")).toBe("webui.auth");
     expect(translateMessage("webui.auth.setup.title")).toBe("首次设置");
   });
@@ -18,5 +22,13 @@ describe("WebUI i18n contract", () => {
   it("fails closed with a diagnostic message when a key is missing", () => {
     expect(translateMessage("webui.auth.notDeclared")).toBe("翻译资源缺失");
     expect(translateMessage("webui.unknown.notDeclared")).toBe("翻译资源缺失");
+  });
+
+  it("switches host and module namespaces through the registry-backed language list", async () => {
+    await changeLanguage("en-US");
+    expect(translateMessage("webui.host.language")).toBe("Language");
+    expect(translateMessage("webui.auth.login.title")).toBe("Sign in");
+    expect(translateMessage("webui.ops.dashboard.title")).toBe("Runtime status");
+    await changeLanguage("zh-CN");
   });
 });

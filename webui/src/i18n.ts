@@ -2,9 +2,12 @@ import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import { webuiLocaleRegistry, type WebUILocaleMessages } from "./generated/webui-registry";
 import hostMessages from "./i18n/locale/zh-CN.json";
+import hostMessagesEnglish from "./i18n/locale/en-US.json";
 
 const languageStorageKey = "community-go-webui-language";
 const fallbackLanguage = "zh-CN";
+const hostLocaleMessages: Record<string, WebUILocaleMessages> = { "zh-CN": hostMessages, "en-US": hostMessagesEnglish };
+const languageMessageIDs: Record<string, string> = { "zh-CN": "webui.host.language.zhCN", "en-US": "webui.host.language.enUS" };
 
 type LocaleRegistry = Record<string, Record<string, () => Promise<WebUILocaleMessages>>>;
 
@@ -18,11 +21,13 @@ export async function initializeI18n(): Promise<void> {
       resources[language][namespace] = await loadMessages();
     }
   }
-  resources[fallbackLanguage] ??= {};
-  resources[fallbackLanguage]["webui.host"] = hostMessages as WebUILocaleMessages;
+  for (const [language, messages] of Object.entries(hostLocaleMessages)) {
+    resources[language] ??= {};
+    resources[language]["webui.host"] = messages;
+  }
   const requestedLanguage = (typeof localStorage === "undefined" ? null : localStorage.getItem(languageStorageKey))
     ?? (typeof navigator === "undefined" ? fallbackLanguage : navigator.language);
-  const language = resources[requestedLanguage] ? requestedLanguage : fallbackLanguage;
+  const language = resolveLanguage(requestedLanguage, resources);
   await i18n.use(initReactI18next).init({
     resources,
     lng: language,
@@ -34,6 +39,22 @@ export async function initializeI18n(): Promise<void> {
     returnNull: false,
     parseMissingKeyHandler: () => hostMessages["webui.host.i18n.missing"] ?? "webui_i18n_missing"
   });
+}
+
+function resolveLanguage(requestedLanguage: string | null, resources: Record<string, Record<string, WebUILocaleMessages>>): string {
+  if (requestedLanguage && resources[requestedLanguage]) return requestedLanguage;
+  const baseLanguage = requestedLanguage?.split("-")[0];
+  const regionalMatch = baseLanguage && Object.keys(resources).find((language) => language.split("-")[0] === baseLanguage);
+  return regionalMatch ?? fallbackLanguage;
+}
+
+export function getAvailableLanguages(): string[] {
+  const registry = webuiLocaleRegistry as LocaleRegistry;
+  return Object.keys(hostLocaleMessages).filter((language) => language === fallbackLanguage || Object.prototype.hasOwnProperty.call(registry, language)).sort();
+}
+
+export function languageLabelMessageID(language: string): string {
+  return languageMessageIDs[language] ?? "webui.host.language.unknown";
 }
 
 export function namespaceForMessage(messageID: string): string {
@@ -49,6 +70,7 @@ export function translateMessage(messageID: string): string {
 }
 
 export async function changeLanguage(language: string): Promise<void> {
+  if (!getAvailableLanguages().includes(language)) throw new Error("webui_language_unsupported");
   await i18n.changeLanguage(language);
   if (typeof localStorage !== "undefined") localStorage.setItem(languageStorageKey, language);
 }

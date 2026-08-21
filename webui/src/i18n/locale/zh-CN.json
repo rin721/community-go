@@ -45,6 +45,7 @@
   "webui.host.theme.preset.detail": "选择宿主使用的主题色，业务模块只消费语义色。",
   "webui.host.language": "语言",
   "webui.host.language.zhCN": "简体中文",
+  "webui.host.language.enUS": "English",
   "webui.host.fullscreen": "全屏",
   "webui.host.sidebar.expand": "展开侧边栏",
   "webui.host.sidebar.collapse": "收起侧边栏",

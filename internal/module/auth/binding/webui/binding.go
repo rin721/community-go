@@ -20,6 +20,9 @@ func Binding() webui.Binding {
 			{ID: "auth.login", Path: "/login", EntryID: "auth.login", TitleMessageID: "webui.auth.login.title", Layout: webui.RouteLayoutBlank, DeliveryState: webui.DeliveryImplemented, UnauthenticatedDefault: true},
 			{ID: "auth.session", Path: "/account/session", EntryID: "auth.session", TitleMessageID: "webui.auth.session.title", Layout: webui.RouteLayoutApp, DeliveryState: webui.DeliveryImplemented},
 		},
-		Locales: []webui.Locale{{Language: "zh-CN", Namespace: "webui.auth", SourcePath: "internal/module/auth/binding/webui/web/locale/zh-CN.json"}},
+		Locales: []webui.Locale{
+			{Language: "en-US", Namespace: "webui.auth", SourcePath: "internal/module/auth/binding/webui/web/locale/en-US.json"},
+			{Language: "zh-CN", Namespace: "webui.auth", SourcePath: "internal/module/auth/binding/webui/web/locale/zh-CN.json"},
+		},
 	}
 }

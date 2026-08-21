@@ -93,9 +93,21 @@ Catalog -> codegen registry + runtime manifest
 
 ## 5. Go WebUI Binding
 
-### 5.1 目标形态
+### 5.1 应用注册与模块声明
 
 ```go
+type ModuleRegistration struct {
+    Binding    Binding
+    Activation ActivationState
+}
+
+type ActivationState string
+
+const (
+    ActivationEnabled  ActivationState = "enabled"
+    ActivationDisabled ActivationState = "disabled"
+)
+
 type Binding struct {
     ModuleID   string
     Entries    []Entry
@@ -110,6 +122,12 @@ type SDKRequirement struct {
     MajorVersion uint
 }
 ```
+
+`Binding` 仍由业务模块持有，`ModuleRegistration` 与 Activation 由应用 composition 持有。源码或 Binding 存在不代表启用；应用必须逐项写明 `enabled` 或 `disabled`，零值、未知值和配置缺失均失败，禁止自动扫描和默认启用。
+
+构建先把 registration 投影成 deployable Catalog：未选择模块完全不存在，`disabled` 模块不进入 Entry/Locale registry 与 runtime manifest。Activation 改变静态 registry，必须重新生成、构建和部署，不承诺运行时热启用。
+
+`DeliveryState` 与 Activation 不得混用。Activation 回答“应用是否发布该模块”，Delivery 回答“某 route 是否已经实现”。`not-implemented` route 只作为非交付声明，不得声明 Entry、默认路由、匿名默认路由或 Navigation；只有 `implemented` route 的可达 Entry/Locale 才能进入生成投影。
 
 `Requires` 是构建期兼容声明，不是运行时 Service Locator。模块生产代码仍通过静态 `@webui/sdk/*` import 使用接口，不调用 `resolve("capability")`。
 
@@ -131,15 +149,15 @@ type SDKRequirement struct {
 ### 5.3 唯一汇总点
 
 ```go
-func applicationWebUIModules() []webui.Binding {
-    return []webui.Binding{
-        authwebui.Binding(),
-        opswebui.Binding(),
+func applicationWebUIModules() []webui.ModuleRegistration {
+    return []webui.ModuleRegistration{
+        {Binding: authwebui.Binding(), Activation: webui.ActivationEnabled},
+        {Binding: opswebui.Binding(), Activation: webui.ActivationEnabled},
     }
 }
 ```
 
-新增普通模块只在这里增加一项，并在模块自己的 composition 中接上实际 API/operation。Catalog 的 route、menu、locale、entry 和权限引用全部从该列表派生，不在其他文件重复模块名。
+新增普通模块只在这里增加一项并显式决定 Activation，再在模块自己的 composition 中接上实际 API/operation。Catalog 的 route、menu、locale、entry 和权限引用全部从该列表派生，不在其他文件重复模块名。尚未形成有效 Binding 的模块保持未选择；`disabled` 不能作为绕过启用时完整校验的手段。
 
 ## 6. WebUI SDK 分层
 
@@ -168,11 +186,11 @@ func applicationWebUIModules() []webui.Binding {
 
 ### 6.3 `sdk/i18n`
 
-提供模块 namespace 翻译 hook。模块不能初始化或直接操作 i18n singleton。locale SourcePath 仍由模块 Binding 声明并生成 lazy loader。
+提供模块 namespace 翻译 hook。模块不能初始化或直接操作 i18n singleton。locale SourcePath 仍由模块 Binding 声明并生成 lazy loader；宿主启动只加载 host locale，模块 namespace 必须等 manifest 与 route 门禁通过后按需加载。
 
 ### 6.4 `sdk/query`
 
-提供项目约束后的 query/mutation 使用面：取消、retry policy、invalidations、degraded/error state。TanStack Query 具体 client 和 provider 留在 adapter，不让模块创建第二个 client。
+提供项目约束后的 query/mutation 使用面：取消、retry policy、invalidations、degraded/error state 和 route runtime gate。TanStack Query 具体 client 和 provider 留在 adapter，不让模块创建第二个 client。access 收回、availability 变为 unavailable 或 manifest generation/revision 改变时，SDK 取消在途请求并拒绝新的自动 query。
 
 ### 6.5 `sdk/ui` 与 `sdk/feedback`
 
@@ -239,9 +257,9 @@ SDK 采用静态 import 和 React provider/hook 的明确组合，不允许：
 
 ```text
 module Binding
-  -> applicationWebUIModules
-  -> Catalog validation
-  -> generated lazy Entry/Locale registry
+  -> applicationWebUIModules 显式 registration/activation
+  -> deployable Catalog validation/projection
+  -> 只生成 enabled + implemented 可达的 lazy Entry/Locale registry
   -> React/Vite build
 ```
 
@@ -251,9 +269,11 @@ module Binding
 
 ```text
 GET /api/v1/webui/manifest
-  -> route/menu/access/revision
-  -> host generic router assembly
+  -> enabled/implemented route + menu + access + availability + revision
+  -> host 按 access/availability 执行加载前门禁
+  -> 按需加载 locale
   -> registry[entryID] lazy load module page
+  -> sdk/query 只启动当前允许的 capability
 ```
 
 manifest 不包含 SourcePath、CSS、SDK adapter、原始 policy 或敏感 Session 数据。服务端 operation gate 仍是最终授权 authority。
@@ -267,8 +287,54 @@ manifest 不包含 SourcePath、CSS、SDK adapter、原始 policy 或敏感 Sess
 | 模块请求未知 SDK capability | generate/typecheck 失败 |
 | route/entry/locale 重复或缺失 | Catalog 失败 |
 | revision mismatch | 宿主停止装配并显示低敏状态 |
-| lazy page 失败 | 通用 route error boundary |
-| API/operation 不可用 | 模块呈现 degraded/unavailable，服务端 fail closed |
+| Activation 缺失或未知 | 构建失败；不得自动启用 |
+| availability 缺失、超时或未知 | 归一为 unavailable，业务资源不加载 |
+| 单模块 locale/lazy page 失败 | 隔离该 route/module，宿主与其他模块继续运行 |
+| API/operation 不可用 | 取消/拒绝相关 query，服务端 fail closed |
+
+### 9.4 五层状态与 authority
+
+| 层 | Authority | 语义 | 不通过时 |
+| --- | --- | --- | --- |
+| Selection | application composition | 本次应用构建是否包含模块注册 | 不进入任何 WebUI 投影 |
+| Activation | application profile/registration | 已注册模块是否发布 | 不进入 Catalog/registry/manifest |
+| Delivery | module Binding | route 是否完成并可交付 | 不生成 Entry/Locale，不暴露 route/menu |
+| Access | server operation decision | 当前主体能否查看 | 登录跳转或宿主 403，不加载业务资源 |
+| Availability | server runtime snapshot | 当前依赖是否支持页面能力 | unavailable 时宿主短路；受支持 degraded 才加载 |
+
+状态必须是有归属的专用类型。Activation 未指定、Availability 未知/缺失/超时一律 fail closed，不能由目录存在、HTTP 成功、页面 catch 或任意字符串推断。
+
+### 9.5 加载判定与呈现矩阵
+
+业务资源唯一允许条件为：
+
+```text
+selected
+&& activation == enabled
+&& delivery == implemented
+&& access == allowed
+&& availability in {available, supported-degraded}
+```
+
+| 最终状态 | 菜单 | 直接访问 | 业务 Entry/locale/query |
+| --- | --- | --- | --- |
+| 未选择 / disabled | 不出现 | 404 | 不生成、不加载 |
+| not-implemented | 不出现 | 404 | 不生成、不加载 |
+| authentication-required | 不展示受保护项 | 跳转登录 | 目标模块不加载 |
+| denied | 不出现 | 宿主 403 | 不加载 |
+| unavailable / unknown | 默认隐藏，或宿主通用 disabled item | 宿主通用不可用页 | 不加载 |
+| degraded 且明确支持 | 带 degraded 标识 | 模块降级页 | 只加载允许资源与请求 |
+| available | 正常 | 模块页面 | route 级 lazy load |
+
+`degraded` 必须由模块声明支持，并由 availability snapshot 给出仍可用的 capability/operation 集合；没有声明时按 `unavailable`。宿主 disabled item 只能使用 host locale，不能为了显示状态提前加载模块 locale。
+
+### 9.6 locale、query 与错误隔离
+
+`initializeI18n()` 目标上只初始化 `webui.host`。manifest/revision 验证后，platform 从 eligible route/navigation 计算 namespace，按当前语言加载；进入 route 前保证其 namespace 就绪。切换语言仍只加载 eligible 集合，不全量遍历 registry。
+
+route guard 必须先于 `React.lazy` component 解析、模块 locale 和页面 query。若模块 locale、Entry 或 render 失败，通用 boundary 只把对应 route 标为 unavailable，并保留 Shell、公共登录和其他模块。runtime revision mismatch 属于宿主级错误，仍停止全部业务装配。
+
+`sdk/query` 以 route runtime snapshot 作为自动请求前置条件，并拥有 AbortSignal。状态失效时取消在途请求；degraded 页面只能请求 snapshot 明确允许的能力，不允许页面用无限 retry 假装恢复。
 
 ## 10. 身份与账号模块
 
@@ -344,17 +410,27 @@ System Settings 模块持有配置候选、校验、差异和应用结果页面�
 ### Phase 4：Binding 与生成治理
 
 - `applicationWebUIModules()` 成为唯一列表；
+- 增加显式 ModuleRegistration/ActivationState 和 deployable Catalog 投影；
+- `disabled` 与 `not-implemented` 不进入 Entry/Locale registry、manifest 和导航；
 - 增加 SourcePath owner/path、SDK requirement 和 catalog 引用校验；
 - generator 保持通用，仅生成 lazy Entry/Locale registry；
 - runtime manifest 继续剥离 SourcePath。
 
-### Phase 5：普通模块零 core Diff 证明
+### Phase 5：加载前门禁与错误隔离
+
+- 建立通用 availability snapshot，未知状态 fail closed；
+- Router 在 lazy import 前处理 access/availability；
+- i18n 改为 host-first、eligible namespace 按需加载；
+- query 随 route runtime state 启停并支持取消；
+- 单模块 locale/Entry/page 故障不影响宿主和其他模块。
+
+### Phase 6：普通模块零 core Diff 证明
 
 - 架构 fixture 新增完整 Binding/Page/Locale/CSS/API mock contract；
 - 只改 fixture 模块和 composition fixture，证明 `webui/` 零 Diff；
 - Auth/Ops 真实流程证明 SDK 能承载生产模块。
 
-### Phase 6：后续业务模块
+### Phase 7：后续业务模块
 
 完整 Account、Audit、System Settings/Tools 分别建立独立变更；如触发新 SDK capability，先走 SDK 研究与确认，再进入模块 adoption。
 
@@ -366,8 +442,10 @@ System Settings 模块持有配置候选、校验、差异和应用结果页面�
 - `webui/src/App.tsx`、`components/**`、`styles.css` 的业务耦合清理；
 - Auth/Ops `binding/webui/web/**` 增加模块局部 style 并迁移 import；
 - `internal/webui/**` 增强 Binding/SourcePath/SDK requirement 校验；
-- `internal/composition/http_contracts.go` 收敛唯一 module list；
-- `internal/composition/webui_registry.go` 保持通用并增加 owner/capability 验证；
+- `internal/composition/http_contracts.go` 收敛唯一 module registration/activation list；
+- `internal/composition/webui_registry.go` 保持通用并增加 deployable projection、owner/capability 验证；
+- `webui/src/i18n.ts` 改为 host-first 与 eligible namespace 按需加载；
+- Router、SDK runtime/query 增加 access/availability 加载前门禁和取消；
 - WebUI alias、lint、architecture tests、生成检查和 authority 文档。
 
 不把模块页面迁到 `webui/src/module`，不删除构建期 SourcePath，不修改 Todo、数据库 schema、Kernel lifecycle、普通 API 业务语义或社区 Nuxt `frontend/`。
@@ -376,12 +454,12 @@ System Settings 模块持有配置候选、校验、差异和应用结果页面�
 
 | 层级 | 门禁 |
 | --- | --- |
-| Go Contract | Binding owner/path、duplicate、SDK requirement、operation reference |
-| Codegen | 普通模块只改变 generated registry；SourcePath 不进入 runtime manifest |
+| Go Contract | registration/activation、Binding owner/path、delivery、duplicate、SDK requirement、operation reference |
+| Codegen | disabled/not-implemented 零输出；普通模块只改变 generated registry；SourcePath 不进入 runtime manifest |
 | TypeScript | SDK public surface、模块 import、capability contract、typecheck |
 | Architecture | platform 无模块 import/ID，模块只依赖 SDK，模块间零 import |
 | Style | global CSS 无业务 selector，CSS Modules 不跨模块泄漏 |
-| Runtime | manifest/revision/lazy/error/access 状态 |
+| Runtime | manifest/revision/access/availability/lazy/locale/query 状态矩阵与错误隔离 |
 | Security | Session/CSRF/Origin/CORS/operation gate 不回归 |
 | E2E | setup/login/logout/session、403、Ops 真实 query |
 | Visual | Auth/Ops 桌面/移动、明暗主题和模块状态 |
@@ -398,6 +476,9 @@ System Settings 模块持有配置候选、校验、差异和应用结果页面�
 | 第三方类型泄漏 | module-local adapter 或 SDK adapter，public contract 使用项目类型 |
 | Auth 继续污染宿主 | generic Principal/Access/identity SDK，业务 Session DTO 留模块 |
 | 生成器出现模块特判 | fixture 证明普通模块只改 Binding/生成结果，不改 generator |
+| 未完成模块被自动发布 | composition 显式 Activation；not-implemented 不进入可加载投影 |
+| locale 启动级联失败 | host-first、eligible namespace 加载和 route/module 级隔离 |
+| degraded 变成无限重试 | 显式支持声明、允许 capability 集合、query gate 与取消 |
 
 ## 17. 重新确认触发器
 
@@ -407,4 +488,6 @@ System Settings 模块持有配置候选、校验、差异和应用结果页面�
 - 需要改变 Session/CSRF/Origin、数据库 migration、API path 或 operation semantics；
 - 新能力无法判断为 module-local 或 host-level；
 - SourcePath 需要越过业务模块目录；
+- Activation 需要改为运行时热启用或引入动态 registry；
+- availability authority、状态集合或 degraded capability 语义改变；
 - 业务模块需要直接访问另一个模块或 platform internal。

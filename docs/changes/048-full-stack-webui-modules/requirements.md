@@ -68,25 +68,43 @@
 | REQ-029 | 模块页面必须支持 lazy load、取消、loading、empty、degraded、unavailable、denied 和 route failure，错误信息保持低敏。 |
 | REQ-030 | Session、CSRF、Origin、CORS、Cookie 和 operation semantics 不因 SDK 重构而降低安全要求。 |
 
-## 8. 质量与验证要求
+## 8. 启用、降级与加载门禁
+
+| ID | 要求 |
+| --- | --- |
+| REQ-031 | 应用 composition 必须以显式注册表达 Selection 与 Activation。Activation 只允许 `enabled`、`disabled`；未指定、未知或非法值必须构建失败，不得根据源码目录、Binding 存在或配置缺失自动启用。 |
+| REQ-032 | 未选择或 `disabled` 模块不得进入可部署 Catalog、Entry registry、locale registry、runtime manifest、Router 或 Navigation。Activation 改变静态 registry 时必须重新生成、构建和部署，不承诺运行时热启用。 |
+| REQ-033 | `DeliveryState=not-implemented` 只表示非交付声明，不得声明 Entry、默认路由、匿名默认路由或菜单，不得进入 runtime manifest；生成器不得为未交付 route 生成可加载 Entry/Locale。 |
+| REQ-034 | 服务端必须为已启用、已交付 route 提供通用 `AvailabilityState=available|degraded|unavailable`。缺失、超时、未知或非法状态按 `unavailable` fail closed，不得猜测为可用。 |
+| REQ-035 | `degraded` 只有模块明确声明支持降级呈现并提供仍可用 capability/operation 集合时才允许挂载模块页面；否则归一为 `unavailable`。服务端 operation/resource gate 始终是最终 authority。 |
+| REQ-036 | 宿主必须在业务资源加载前按 revision、access、availability 顺序执行 route guard。只有 `implemented + allowed + (available 或受支持的 degraded)` 才能触发 Entry、模块 locale 和页面 query。 |
+| REQ-037 | WebUI 启动只加载宿主 locale；模块 namespace 必须基于已接受 manifest 和当前 eligible route 按需加载。单模块 locale/Entry/page 失败只能隔离对应 route/module，不能阻止 Shell、登录或其他模块启动。 |
+| REQ-038 | access 收回、availability 变为 unavailable 或 manifest generation/revision 改变时，SDK 必须取消该 route 的在途请求并禁止新的自动 query；不得无限重试或静默回退旧实现。 |
+| REQ-039 | 未选择、disabled、not-implemented 和 denied route 不出现在菜单，直接访问呈现宿主 404/403；unavailable 默认隐藏或使用不依赖模块 locale 的宿主 disabled 状态，业务页面不得挂载。 |
+| REQ-040 | Activation、Delivery、Availability 与 Access 必须保持独立类型和 authority，不得复用单个布尔值、任意字符串或页面局部异常来推断其他状态。 |
+
+## 9. 质量与验证要求
 
 - 架构测试证明 platform 不导入任何业务模块，模块只导入 SDK public surface，模块之间无 import。
 - 普通模块 fixture 只新增模块文件和 composition entry，`webui/` 零 Diff 即可生成 route、menu、locale 和 lazy page。
 - 新 SDK fixture 证明缺失 capability 时生成/类型检查失败，adapter 与模块 ID 无关。
 - 全局 CSS 扫描拒绝业务 selector；模块局部 style 不污染其他模块。
 - Binding 校验覆盖 ownership、path escape、duplicate、unknown SDK requirement、route/navigation/locale 引用和 operation ID。
+- 状态矩阵覆盖未选择、disabled、not-implemented、authentication-required、denied、unknown/unavailable、degraded 和 available，并证明失败分支不会执行 Entry/Locale/Query loader。
+- locale/Entry 单模块故障注入证明 Shell、公共登录和其他模块保持可用；状态变化证明 query 能取消且不会重新自动加载。
 - Auth/Ops 迁移保持真实 setup/login/logout/session、CSRF、Origin、management query、权限和错误语义。
 
-## 9. 非目标
+## 10. 非目标
 
 - 不把业务 WebUI 移入 `webui/src/module`。
 - 不追求 Go 与 WebUI 完全独立构建；当前是同仓库、静态编译的业务模块 WebUI。
 - 不实现第三方插件市场、远程模块、Module Federation 或运行时安装卸载。
 - 不为所有模块强制创建 WebUI；没有真实浏览器用例的模块继续无 WebUI Binding。
 - 不建立万能 `utils`、万能 SDK 或运行时 capability resolver。
+- 不提供静态模块的运行时安装、卸载或热启用；Activation 变化走重新生成、构建和部署。
 - 不在 048 基础重构中实现完整账号权限、审计或系统配置业务。
 
-## 10. 验收标准
+## 11. 验收标准
 
 1. 现有 Auth/Ops 页面仍位于各自业务模块，且业务 CSS、API、locale 和页面测试全部模块自有。
 2. 新增一个普通模块测试 fixture 时，`webui/src/platform`、Router、Shell、global CSS 和 SDK adapter 零修改。
@@ -94,3 +112,5 @@
 4. 宿主代码不包含具体业务模块 import、ModuleID 分支、业务 DTO 或业务 selector。
 5. SourcePath 仅构建期可见且受 owner/path 校验，runtime manifest 保持低敏。
 6. Go、生成、TypeScript、React、架构、E2E 和视觉门禁全部通过后才完成单轨迁移。
+7. 未启用或未交付模块在 registry、manifest、菜单和浏览器资源请求中均不存在；无权限或 unavailable route 不执行业务 loader。
+8. degraded route 只执行声明可用的能力；任一模块 locale/Entry/page 失败不影响宿主与其他模块。

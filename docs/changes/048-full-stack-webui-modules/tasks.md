@@ -2,8 +2,8 @@
 
 ## 1. 当前状态
 
-- 研究门禁：已通过（R001、R002 历史比较、R003 修订决策）。
-- 计划状态：已按“业务模块继续持有 WebUI、core 只提供 SDK”完成修订，非文档实施待确认。
+- 研究门禁：已通过（R001、R002 历史比较、R003 所有权决策、R004 启用与加载门禁）。
+- 计划状态：已按“业务模块继续持有 WebUI、core 只提供 SDK、未通过门禁不加载”完成修订，非文档实施待确认。
 - 实施授权：无。
 - 当前代码事实：`13c28bf` 后源码仍使用现有 Binding/registry/host；本轮只修订方案。
 - Git 边界：纯文档修订可提交；不 push。
@@ -16,6 +16,8 @@
 | RES-002 | 比较集中前端、分离 facet、模块共置与运行时微前端 | R002 保存历史比较，R003 明确用户修订决策 | 已完成 |
 | RES-003 | 研究模块自有 WebUI 与 SDK capability 升级边界 | module-local/host-level 判定、SourcePath 和 SDK 约束可实施 | 已完成 |
 | PLAN-001 | 修订 requirements/design/tasks | 撤销页面迁移与 SourcePath 删除，形成 SDK 分层和门禁 | 已完成 |
+| RES-004 | 研究 Activation/Delivery/Availability/Access 与资源加载顺序 | R004 证明 locale 全量加载缺口并形成 fail-closed 状态模型 | 已完成 |
+| PLAN-002 | 补充启用、降级、locale/query 门禁 | requirements/design/tasks 覆盖未完成模块零加载与单模块错误隔离 | 已完成 |
 
 ## 3. 待确认基础重构
 
@@ -44,17 +46,29 @@
 
 | ID | 依赖 | 任务 | 完成条件 | 状态 |
 | --- | --- | --- | --- | --- |
-| CATALOG-001 | HOST-CLEAN-001 | 收敛 `applicationWebUIModules()` 唯一汇总 | Catalog/generator/runtime manifest 都消费同一列表 | 待确认 |
-| PATH-001 | CATALOG-001 | 加固 SourcePath module owner 与边界校验 | 相对路径、扩展名、目录/reparse point、runtime 剥离测试通过 | 待确认 |
-| CAP-001 | SDK-GOV-001, CATALOG-001 | 建立 SDK requirement/inventory fail-fast | unknown/missing/major mismatch 在 generate/typecheck 前失败，无 runtime locator | 待确认 |
-| GEN-001 | PATH-001, CAP-001 | 证明 generator 完全通用 | 新 fixture 只改变 Binding 与 generated registry，generator 源码零修改 | 待确认 |
+| CATALOG-001 | HOST-CLEAN-001 | 收敛 `applicationWebUIModules()` 唯一注册汇总 | Catalog/generator/runtime manifest 都消费同一 registration 列表 | 待确认 |
+| ACT-001 | CATALOG-001 | 建立显式 `ModuleRegistration/ActivationState` | 未指定/未知失败；disabled 不进入 deployable Catalog、registry、manifest | 待确认 |
+| DELIVERY-001 | ACT-001 | 收敛 Delivery 投影与可达资源生成 | not-implemented 无默认/菜单/manifest；只生成 implemented 可达 Entry/Locale | 待确认 |
+| PATH-001 | DELIVERY-001 | 加固 SourcePath module owner 与边界校验 | 启用内容的相对路径、扩展名、目录/reparse point、runtime 剥离测试通过 | 待确认 |
+| CAP-001 | SDK-GOV-001, ACT-001 | 建立 SDK requirement/inventory fail-fast | enabled 内容的 unknown/missing/major mismatch 在 generate/typecheck 前失败，无 runtime locator | 待确认 |
+| GEN-001 | PATH-001, CAP-001 | 证明 generator 完全通用 | disabled/not-implemented 零输出；新 fixture 只改变 Binding 与生成 registry | 待确认 |
 
-### Checkpoint D：验收与单轨交付
+### Checkpoint D：运行门禁与错误隔离
 
 | ID | 依赖 | 任务 | 完成条件 | 状态 |
 | --- | --- | --- | --- | --- |
-| FIXTURE-001 | GEN-001 | 增加普通 module fixture | page/route/menu/locale/style/SDK import 齐全，不进入生产导航，不用假业务验收 | 待确认 |
-| TEST-001 | FIXTURE-001, HOST-CLEAN-001 | 完成 Go/生成/TS/React/architecture/E2E/visual 门禁 | requirements 验收矩阵全部有证据 | 待确认 |
+| AVAIL-001 | SDK-GOV-001, ACT-001 | 定义通用 route availability contract 与 provider 聚合 | available/degraded/unavailable authority 明确；缺失/超时/未知 fail closed；无 ModuleID 分支 | 待确认 |
+| LOAD-GATE-001 | GEN-001, AVAIL-001 | 在 lazy import 前实现 revision/access/availability route guard | 只有 allowed + available/supported-degraded 触发业务 Entry | 待确认 |
+| LOCALE-GATE-001 | LOAD-GATE-001 | 把 i18n 改为 host-first 与 eligible namespace 按需加载 | disabled/not-implemented/denied/unavailable locale 不请求；单模块失败隔离 | 待确认 |
+| QUERY-GATE-001 | SDK-002, LOAD-GATE-001 | 建立 query 自动执行与取消门禁 | access/availability/generation 失效即取消；degraded 只请求允许 capability | 待确认 |
+| ISOLATION-001 | LOCALE-GATE-001, QUERY-GATE-001 | 建立模块资源与 render 故障隔离 | locale/Entry/page/query 故障不影响 Shell、登录和其他模块 | 待确认 |
+
+### Checkpoint E：验收与单轨交付
+
+| ID | 依赖 | 任务 | 完成条件 | 状态 |
+| --- | --- | --- | --- | --- |
+| FIXTURE-001 | ISOLATION-001 | 增加普通 module fixture | 覆盖 enabled/disabled/not-implemented/degraded/unavailable，生产导航无假业务 | 待确认 |
+| TEST-001 | FIXTURE-001, HOST-CLEAN-001 | 完成 Go/生成/TS/React/architecture/E2E/visual 门禁 | requirements 状态与零加载矩阵全部有证据 | 待确认 |
 | DOC-001 | TEST-001 | 同步 WebUI、应用模块和架构 authority | 新模块接入与新 SDK capability 流程成为唯一当前规范 | 待确认 |
 | GIT-001 | DOC-001 | 审查并提交单轨重构 | 旧 import/业务 CSS/宿主耦合无残留，只提交确认范围，不 push | 待确认 |
 
@@ -89,8 +103,11 @@ MOD-ADOPT-<id> 业务模块声明 requirement 并消费 SDK
 A: SDK-001 -> SDK-002 -> SDK-GOV-001 -> ARCH-001
   -> B: STYLE-001 -> AUTH-BOUNDARY-001 -> AUTH-MODULE-001
         OPS-MODULE-001 -> HOST-CLEAN-001
-  -> C: CATALOG-001 -> PATH-001 -> CAP-001 -> GEN-001
-  -> D: FIXTURE-001 -> TEST-001 -> DOC-001 -> GIT-001
+  -> C: CATALOG-001 -> ACT-001 -> DELIVERY-001 -> PATH-001
+        CAP-001 -> GEN-001
+  -> D: AVAIL-001 -> LOAD-GATE-001 -> LOCALE-GATE-001
+        QUERY-GATE-001 -> ISOLATION-001
+  -> E: FIXTURE-001 -> TEST-001 -> DOC-001 -> GIT-001
 ```
 
 如果实施中发现某个现有 Auth/Ops 需求需要新 SDK capability，先插入第 4 节任务链；不能在模块迁移任务里顺手扩展 core。
@@ -99,13 +116,15 @@ A: SDK-001 -> SDK-002 -> SDK-GOV-001 -> ARCH-001
 
 | 范围 | 计划检查 |
 | --- | --- |
-| Go Contract | Binding owner/path、duplicate、operation、SDK requirement |
-| Codegen | registry clean、普通 module 不改 generator、runtime manifest 无 SourcePath |
+| Go Contract | registration/activation、Binding owner/path、delivery、duplicate、operation、SDK requirement |
+| Codegen | disabled/not-implemented 零输出、普通 module 不改 generator、runtime manifest 无 SourcePath |
 | Frontend | SDK public API、lint、typecheck、unit、build |
 | Architecture | platform 无 module import/ID；module 只 import SDK；module 间零 import |
 | Style | global CSS 无业务 selector；CSS Modules scoped |
 | Security | Session/CSRF/Origin/CORS/Cookie/operation gate 不回归 |
-| E2E | setup/login/logout/session、403、Ops 真实 query、route lazy/error |
+| Runtime state | access/availability 门禁先于 Entry/Locale/Query；状态失效取消请求 |
+| Isolation | 单模块 locale/Entry/page/query 故障不影响 Shell、登录与其他模块 |
+| E2E | setup/login/logout/session、403/404/unavailable/degraded、Ops 真实 query、route lazy/error |
 | Visual | Auth/Ops 桌面/移动、明暗主题与状态 |
 | Ordinary module | 只改 module + composition，`webui/` core 零 Diff |
 | New capability | interface/adapter 无 ModuleID，contract test 先于 adoption |
@@ -118,5 +137,7 @@ A: SDK-001 -> SDK-002 -> SDK-GOV-001 -> ARCH-001
 - 需要 runtime resolver、远程模块、动态安装或跨模块共享可变状态；
 - 需要改变 Session/CSRF/Origin、数据库 migration、API path 或 operation；
 - SourcePath 需要越过模块目录；
+- Activation 需要从重新构建改为运行时热启用或动态 registry；
+- availability authority、状态集合、degraded capability 或默认呈现策略改变；
 - 普通模块无法在 core 零修改前提下接入；
 - 业务模块需要访问另一个模块或 platform internal。

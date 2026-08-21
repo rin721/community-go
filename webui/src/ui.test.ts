@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { DataTable, DataToolbar, Drawer, EmptyState, FilterPanel, Pagination, createPaginationItems, getDataTableSelectionState } from "./ui";
+import { CapabilityBanner, DataTable, DataToolbar, Drawer, EmptyState, FilterPanel, Pagination, createPaginationItems, getDataTableSelectionState } from "./ui";
 
 describe("公共管理 UI 模式", () => {
   it("renders a selectable data table with an empty state", () => {
@@ -31,6 +31,14 @@ describe("公共管理 UI 模式", () => {
 
     expect(markup).toContain('role="toolbar"');
     expect(markup).toContain('aria-label="User actions"');
+  });
+
+  it("announces capability state changes without changing the four-state contract", () => {
+    const markup = renderToStaticMarkup(createElement(CapabilityBanner, { state: "degraded", statusLabel: "Degraded", title: "Optional diagnostics unavailable" }));
+
+    expect(markup).toContain('role="status"');
+    expect(markup).toContain('aria-live="polite"');
+    expect(markup).toContain("capability-degraded");
   });
 
   it("keeps pagination compact while preserving first, current and last pages", () => {

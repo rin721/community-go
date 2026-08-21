@@ -103,6 +103,7 @@
 - 项目公共 `Drawer` 现在沿用该交互边界，但不复制用户管理业务：模块继续注入标题、内容和 footer；宿主公共层统一处理 `role=dialog`、`aria-labelledby`、打开聚焦、Tab 循环、Escape、关闭恢复焦点、遮罩禁用和关闭态 `inert`。
 - 同一页面的列表区还显示“搜索”折叠行、重置/搜索动作、批量删除禁用态、刷新/列设置、表头选择和分页；公共 `FilterPanel` 与 `DataTable` 本轮只吸收这些结构和可访问语义，不引入用户字段、模拟行或新的业务路由。
 - 工具栏的可访问名称由调用模块注入并走其 locale，不在公共 UI 内硬编码“用户操作”等业务文案。
+- Soybean 403 页面把异常结果与返回入口放在同一内容层级；项目保留 `Available / Degraded / Unavailable / Not Implemented` 四态，不伪造参考站业务状态，并让 `CapabilityBanner` 的状态转换以 `role=status`、`aria-live=polite` 对辅助技术可见。
 
 ## 密度设置补充校准
 

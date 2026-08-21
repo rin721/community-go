@@ -22,7 +22,7 @@ export function StatusPill({ state, children }: { state: CapabilityState; childr
 }
 
 export function CapabilityBanner({ state, statusLabel, title, detail }: { state: CapabilityState; statusLabel: string; title: string; detail?: string }) {
-  return <div className={`capability-banner capability-${state}`}><div><StatusPill state={state}>{statusLabel}</StatusPill><strong>{title}</strong></div>{detail && <p>{detail}</p>}</div>;
+  return <div className={`capability-banner capability-${state}`} role="status" aria-live="polite"><div><StatusPill state={state}>{statusLabel}</StatusPill><strong>{title}</strong></div>{detail && <p>{detail}</p>}</div>;
 }
 
 export function Skeleton({ lines = 3, label }: { lines?: number; label: string }) {

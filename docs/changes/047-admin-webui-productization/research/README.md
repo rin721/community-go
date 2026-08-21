@@ -1,0 +1,16 @@
+# 047 研究档案
+
+本目录记录 Admin WebUI 产品化与模块化装配闭环的当前代码事实、参考站点观察和技术选择依据。
+
+## 检索与复用
+
+研究前已检索 `docs/**/research/**/metadata.yaml`，并复核 042–046：
+
+- 042 提供最初 WebUI Contract、Auth/Ops 接入与安全设计，但视觉/E2E 验收未完成；
+- 043 已把项目自有技术命名单轨统一为 `webui`；
+- 044–046 已修复本地 HTTPS、路由前缀、Origin 和 Setup 输入错误，不需要在本任务重复建设。
+
+## 记录
+
+- [R001 当前 WebUI 产品化与参考样本差距](R001-current-webui-product-gap/report.md)：追踪 Contract、Composition、生成 registry、宿主、模块页面、i18n、能力状态、SoybeanAdmin 高保真参考事实与“宿主本体先行、Demo 后置”边界。
+- [R002 i18n 强制契约缺口复核](R002-i18n-contract-gap/report.md)：复核当前工作树中的模块 locale 声明、宿主单实例边界、用户可见硬编码文案和 error code 映射，支撑本轮计划调整。

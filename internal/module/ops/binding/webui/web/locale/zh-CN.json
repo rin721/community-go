@@ -1,1 +1,20 @@
-{"webui.ops.dashboard.title":"运行状态"}
+{
+  "webui.ops.dashboard.title": "运行状态",
+  "webui.ops.dashboard.eyebrow": "OPS / LIVE RUNTIME",
+  "webui.ops.dashboard.description": "数据来自现有 management build、probe、diagnostics 和 metrics，不使用模拟系统数据。",
+  "webui.ops.dashboard.availableTitle": "运行诊断可用",
+  "webui.ops.dashboard.degradedTitle": "{{count}} 项诊断暂不可用",
+  "webui.ops.dashboard.availableDetail": "所有已声明的 management 能力均已返回结果。",
+  "webui.ops.dashboard.degradedDetail": "页面保留已成功返回的真实结果，失败项会明确标记。",
+  "webui.ops.dashboard.requestFailed": "该诊断暂时不可用，请稍后重试。",
+  "webui.ops.dashboard.loading": "读取中",
+  "webui.ops.dashboard.available": "Available",
+  "webui.ops.dashboard.degraded": "Degraded",
+  "webui.ops.dashboard.unavailable": "Unavailable",
+  "webui.ops.dashboard.operation.build": "Build",
+  "webui.ops.dashboard.operation.startupz": "Startup",
+  "webui.ops.dashboard.operation.livez": "Liveness",
+  "webui.ops.dashboard.operation.readyz": "Readiness",
+  "webui.ops.dashboard.operation.diagnostics": "Diagnostics",
+  "webui.ops.dashboard.operation.metrics": "Metrics"
+}

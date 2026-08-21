@@ -49,5 +49,6 @@
 - [044 WebUI 本地启动闭环](044-webui-local-startup-closure/README.md)：已完成路由 prefix 与本地 HTTPS 修复；旧路径记录仅为历史证据。
 - [045 WebUI Origin 策略闭环](045-webui-origin-policy/README.md)：已完成 CORS、Auth Origin、Vite 本地配置和 Setup Token 输入遮罩修复。
 - [046 WebUI Setup 输入校验错误闭环](046-webui-setup-validation-errors/README.md)：已把用户名/密码输入错误从 500 收敛为稳定 400，并补齐页面约束、中文提示和前端测试。
+- [047 Admin WebUI 产品化与模块化装配闭环](047-admin-webui-productization/README.md)：修订后的布局、骨架和强制 i18n 契约已确认并实施中；当前 Go/TS 构建与静态门禁已推进，浏览器本地视觉回归仍待受信任证书环境。
 
-下一个任务序号为 `047`。已完成记录只保存历史证据；当前行为必须回到根 [README](../../README.md) 和对应主题文档确认。
+下一个任务序号为 `048`。已完成记录只保存历史证据；当前行为必须回到根 [README](../../README.md) 和对应主题文档确认。

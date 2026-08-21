@@ -11,10 +11,20 @@
     "forceConsistentCasingInFileNames": true,
     "module": "ESNext",
     "moduleResolution": "Bundler",
+    "baseUrl": ".",
+    "paths": {
+      "@webui/contracts": ["src/contracts/index.tsx"],
+      "@webui/ui": ["src/ui/index.tsx"],
+      "react": ["node_modules/@types/react"],
+      "react/*": ["node_modules/@types/react/*"],
+      "react-i18next": ["node_modules/react-i18next"],
+      "@tanstack/react-query": ["node_modules/@tanstack/react-query"],
+      "vitest": ["node_modules/vitest"]
+    },
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx"
   },
-  "include": ["src", "vite.config.ts"]
+  "include": ["src", "../internal/module/*/binding/webui/web", "vite.config.ts", "vitest.config.ts"]
 }

@@ -1,28 +1,77 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link, Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
-import { Activity, LogOut, Settings2 } from "lucide-react";
-import { loadManifest, logout, session, type WebUISession, type Manifest } from "./api";
-import { LoginPage } from "./pages/LoginPage";
-import { SetupPage } from "./pages/SetupPage";
-import { SessionPage } from "./pages/SessionPage";
-import { DashboardPage } from "./pages/DashboardPage";
-import { ThemePage } from "./pages/ThemePage";
-import { webuiRevision } from "./generated/webui-registry";
+import { lazy, Suspense, useCallback, useEffect, useState, type ComponentType } from "react";
+import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { HostRuntimeProvider, type HostRuntime, type Manifest, type ManifestRoute, type WebUISession } from "@webui/contracts";
+import { AppShell, BlankLayout } from "./components/AppShell";
+import { webuiEntryRegistry, webuiRevision } from "./generated/webui-registry";
+import { translateMessage } from "./i18n";
+import { loadManifest, loadSession, logout } from "./api";
+import { SystemStatePage } from "./pages/SystemStatePage";
+
+type EntryModule = { default: ComponentType };
+const entryLoaders = webuiEntryRegistry as Record<string, () => Promise<EntryModule>>;
+const entryComponents = Object.fromEntries(Object.entries(entryLoaders).map(([entryID, load]) => [entryID, lazy(load)]));
 
 export function App() {
+  const navigate = useNavigate();
   const [manifest, setManifest] = useState<Manifest>();
   const [webuiSession, setWebUISession] = useState<WebUISession>();
   const [error, setError] = useState<string>();
-  useEffect(() => { loadManifest().then(setManifest).catch((reason: Error) => setError(reason.message)); session().then(setWebUISession).catch(() => undefined); }, []);
-  if (error) return <State title="WebUI 装配失败" detail={error} />;
-  if (!manifest) return <State title="正在加载 WebUI" detail="正在读取安全 manifest。" />;
-  if (manifest.revision !== webuiRevision) return <State title="部署版本不匹配" detail="服务端 manifest 与静态页面 registry 的 revision 不一致，页面已拒绝装配。" />;
-  const routes = manifest.routes.filter((route) => route.state === "available");
-  return <Shell manifest={manifest} webuiSession={webuiSession} onSession={setWebUISession}><Routes><Route path="/login" element={<LoginPage onSession={setWebUISession} />} /><Route path="/setup" element={<SetupPage onSession={setWebUISession} />} /><Route path="/account/session" element={<SessionPage session={webuiSession} />} /><Route path="/dashboard" element={<DashboardPage />} /><Route path="/appearance" element={<ThemePage />} /><Route path="/403" element={<State title="无权访问" detail="当前主体没有所需 operation 权限。" />} /><Route path="/" element={<Navigate to={routes.find((route) => route.default && route.access === "allowed")?.path ?? "/login"} replace />} /><Route path="*" element={<State title="页面不存在" detail="请求的 WebUI route 不在当前 manifest 中。" />} /></Routes></Shell>;
+  const refreshManifest = useCallback(async () => {
+    const value = await loadManifest();
+    setManifest(value);
+    return value;
+  }, []);
+  useEffect(() => {
+    void Promise.all([refreshManifest(), loadSession().then(setWebUISession).catch(() => undefined)]).catch((reason: Error) => setError(reason.message));
+  }, [refreshManifest]);
+  const navigateToDefault = useCallback((catalog = manifest) => {
+    const route = catalog?.routes.find((candidate) => candidate.default && candidate.access === "allowed" && candidate.deliveryState === "implemented")
+      ?? catalog?.routes.find((candidate) => candidate.unauthenticatedDefault && candidate.deliveryState === "implemented");
+    navigate(route?.path ?? "/404", { replace: true });
+  }, [manifest, navigate]);
+  const completeAuthentication = useCallback(async (value: WebUISession) => {
+    setWebUISession(value);
+    const nextManifest = await refreshManifest();
+    navigateToDefault(nextManifest);
+  }, [navigateToDefault, refreshManifest]);
+  const handleLogout = useCallback(async () => {
+    if (webuiSession) await logout(webuiSession.csrfToken);
+    setWebUISession(undefined);
+    const nextManifest = await refreshManifest();
+    navigate(nextManifest.routes.find((candidate) => candidate.unauthenticatedDefault)?.path ?? "/", { replace: true });
+  }, [navigate, refreshManifest, webuiSession]);
+  if (error) return <StartupState title={translateMessage("webui.host.assembly.title")} detail={translateMessage("webui.host.assembly.detail")} />;
+  if (!manifest) return <StartupState title={translateMessage("webui.host.loading.title")} detail={translateMessage("webui.host.loading.detail")} />;
+  if (manifest.revision !== webuiRevision) return <StartupState title={translateMessage("webui.host.revision.title")} detail={translateMessage("webui.host.revision.detail")} />;
+  const runtime: HostRuntime = { manifest, session: webuiSession, completeAuthentication, navigateToDefault: () => navigateToDefault() };
+  return <HostRuntimeProvider value={runtime}><Routes><Route element={<BlankLayout />}>{manifest.routes.filter((route) => route.layout === "blank").map((route) => <Route key={route.id} path={route.path} element={<ManifestPage route={route} manifest={manifest} />} />)}</Route><Route element={<AppShell manifest={manifest} session={webuiSession} onLogout={handleLogout} />}>{manifest.routes.filter((route) => route.layout === "app").map((route) => <Route key={route.id} path={route.path} element={<ManifestPage route={route} manifest={manifest} />} />)}<Route path="/403" element={<SystemStatePage kind="forbidden" />} /><Route path="/404" element={<SystemStatePage kind="notFound" />} /></Route><Route path="/" element={<RootRedirect manifest={manifest} />} /><Route path="*" element={<StandaloneNotFound />} /></Routes></HostRuntimeProvider>;
 }
 
-function Shell({ manifest, webuiSession, onSession, children }: { manifest: Manifest; webuiSession?: WebUISession; onSession: (value?: WebUISession) => void; children: import("react").ReactNode }) {
-  const navigate = useNavigate(); const location = useLocation(); const menu = useMemo(() => manifest.menu.filter((item) => manifest.routes.some((route) => route.id === item.routeId && route.access === "allowed")), [manifest]);
-  return <div className="webui-shell"><aside><div className="brand"><Activity size={20} /> Community Go WebUI</div><nav>{menu.map((item) => <Link className={location.pathname === "/dashboard" ? "active" : ""} key={item.id} to={manifest.routes.find((route) => route.id === item.routeId)?.path ?? "/403"}>{item.titleMessageId}</Link>)}</nav><div className="side-bottom"><Link to="/appearance"><Settings2 size={16} /> 外观</Link><Link to="/account/session"><Settings2 size={16} /> 会话</Link>{webuiSession && <button onClick={() => logout(webuiSession.csrfToken).then(() => { onSession(undefined); navigate("/login"); })}><LogOut size={16} /> 注销</button>}</div></aside><main><header><span>{location.pathname}</span><span className="revision">revision {manifest.revision.slice(0, 12)}</span></header>{children}</main></div>;
+function ManifestPage({ route, manifest }: { route: ManifestRoute; manifest: Manifest }) {
+  if (route.access === "authentication-required") {
+    const loginRoute = manifest.routes.find((candidate) => candidate.unauthenticatedDefault);
+    return loginRoute ? <Navigate to={loginRoute.path} replace /> : <SystemStatePage kind="unauthorized" />;
+  }
+  if (route.access === "denied") return <Navigate to="/403" replace />;
+  if (route.deliveryState === "not-implemented") return <SystemStatePage kind="notImplemented" />;
+  const Page = entryComponents[route.entryId];
+  if (!Page) return <SystemStatePage kind="missingEntry" />;
+  return <Suspense fallback={<PageLoading />}><Page /></Suspense>;
 }
-export function State({ title, detail }: { title: string; detail: string }) { return <div className="center-state"><h1>{title}</h1><p>{detail}</p></div>; }
+
+function RootRedirect({ manifest }: { manifest: Manifest }) {
+  const route = manifest.routes.find((candidate) => candidate.default && candidate.access === "allowed" && candidate.deliveryState === "implemented")
+    ?? manifest.routes.find((candidate) => candidate.unauthenticatedDefault && candidate.deliveryState === "implemented");
+  return <Navigate to={route?.path ?? "/404"} replace />;
+}
+
+function PageLoading() { return <div className="page-loading" aria-label={translateMessage("webui.host.loading.label")}><span /><span /><span /></div>; }
+
+function StandaloneNotFound() {
+  const location = useLocation();
+  return <div className="standalone-state"><SystemStatePage kind="notFound" detail={location.pathname} /></div>;
+}
+
+function StartupState({ title, detail }: { title: string; detail: string }) {
+  return <div className="startup-state"><span className="startup-logo">CG</span><h1>{title}</h1><p>{detail}</p></div>;
+}

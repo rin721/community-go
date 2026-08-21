@@ -7,18 +7,27 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"path/filepath"
 	"sort"
 	"strings"
 
 	"golang.org/x/text/language"
 )
 
-// CapabilityState 表示页面是否已接入真实操作。
-type CapabilityState string
+// DeliveryState 表示页面实现是否已经交付，不混入运行时可用性或访问结果。
+type DeliveryState string
 
 const (
-	StateAvailable CapabilityState = "available"
-	StatePreview   CapabilityState = "preview"
+	DeliveryImplemented    DeliveryState = "implemented"
+	DeliveryNotImplemented DeliveryState = "not-implemented"
+)
+
+// RouteLayout 表示页面应由哪一种宿主布局承载。
+type RouteLayout string
+
+const (
+	RouteLayoutApp   RouteLayout = "app"
+	RouteLayoutBlank RouteLayout = "blank"
 )
 
 // Access 表示当前请求对页面查看 operation 的访问结果。
@@ -30,7 +39,7 @@ const (
 	AccessDenied                 Access = "denied"
 )
 
-// Binding 是模块拥有的不可变 WebUI 声明。SourcePath 只用于构建期生成。
+// Binding 是模块拥有的不可变 WebUI 声明。声明 Entry 的模块必须同时声明 locale；SourcePath 只用于构建期生成。
 type Binding struct {
 	ModuleID   string
 	Entries    []Entry
@@ -47,13 +56,15 @@ type Entry struct {
 
 // Route 是宿主 Router 使用的稳定页面声明。
 type Route struct {
-	ID              string
-	Path            string
-	EntryID         string
-	TitleMessageID  string
-	ViewOperationID string
-	State           CapabilityState
-	Default         bool
+	ID                     string
+	Path                   string
+	EntryID                string
+	TitleMessageID         string
+	ViewOperationID        string
+	Layout                 RouteLayout
+	DeliveryState          DeliveryState
+	Default                bool
+	UnauthenticatedDefault bool
 }
 
 // Navigation 是宿主菜单使用的稳定节点。
@@ -88,15 +99,17 @@ type Manifest struct {
 
 // ManifestRoute 是剥离构建期字段后的路由。
 type ManifestRoute struct {
-	ModuleID        string          `json:"moduleId"`
-	ID              string          `json:"id"`
-	Path            string          `json:"path"`
-	EntryID         string          `json:"entryId"`
-	TitleMessageID  string          `json:"titleMessageId"`
-	ViewOperationID string          `json:"viewOperationId,omitempty"`
-	State           CapabilityState `json:"state"`
-	Default         bool            `json:"default"`
-	Access          Access          `json:"access"`
+	ModuleID               string        `json:"moduleId"`
+	ID                     string        `json:"id"`
+	Path                   string        `json:"path"`
+	EntryID                string        `json:"entryId"`
+	TitleMessageID         string        `json:"titleMessageId"`
+	ViewOperationID        string        `json:"viewOperationId,omitempty"`
+	Layout                 RouteLayout   `json:"layout"`
+	DeliveryState          DeliveryState `json:"deliveryState"`
+	Default                bool          `json:"default"`
+	UnauthenticatedDefault bool          `json:"unauthenticatedDefault"`
+	Access                 Access        `json:"access"`
 }
 
 // ManifestMenu 是剥离构建期字段后的菜单节点。
@@ -140,7 +153,8 @@ func (c Catalog) ManifestFor(accessLookup func(string) Access) Manifest {
 			manifest.Routes = append(manifest.Routes, ManifestRoute{
 				ModuleID: binding.ModuleID, ID: route.ID, Path: route.Path, EntryID: route.EntryID,
 				TitleMessageID: route.TitleMessageID, ViewOperationID: route.ViewOperationID,
-				State: route.State, Default: route.Default, Access: access,
+				Layout: route.Layout, DeliveryState: route.DeliveryState, Default: route.Default,
+				UnauthenticatedDefault: route.UnauthenticatedDefault, Access: access,
 			})
 		}
 		for _, item := range binding.Navigation {
@@ -166,7 +180,9 @@ func validateBindings(bindings []Binding) error {
 	routes := map[string]RouteOwner{}
 	paths := map[string]string{}
 	navigation := map[string]string{}
-	operations := map[string]struct{}{}
+	locales := map[string]string{}
+	defaultRouteID := ""
+	unauthenticatedDefaultRouteID := ""
 	for _, binding := range bindings {
 		if strings.TrimSpace(binding.ModuleID) == "" {
 			return fmt.Errorf("webui module id is required")
@@ -175,10 +191,15 @@ func validateBindings(bindings []Binding) error {
 			return fmt.Errorf("webui module %q is duplicated", binding.ModuleID)
 		}
 		modules[binding.ModuleID] = struct{}{}
-		defaultRoutes := 0
+		if len(binding.Entries) > 0 && len(binding.Locales) == 0 {
+			return fmt.Errorf("webui module %q must declare locale binding for its entries", binding.ModuleID)
+		}
 		for _, entry := range binding.Entries {
 			if entry.ID == "" || strings.TrimSpace(entry.SourcePath) == "" {
 				return fmt.Errorf("webui module %q entry is incomplete", binding.ModuleID)
+			}
+			if !validSourcePath(entry.SourcePath, ".tsx", ".ts") {
+				return fmt.Errorf("webui entry %q has invalid source path", entry.ID)
 			}
 			if _, exists := entries[entry.ID]; exists {
 				return fmt.Errorf("webui entry %q is duplicated", entry.ID)
@@ -201,20 +222,32 @@ func validateBindings(bindings []Binding) error {
 			if owner, exists := entries[route.EntryID]; !exists || owner != binding.ModuleID {
 				return fmt.Errorf("webui route %q references unknown entry %q", route.ID, route.EntryID)
 			}
-			if route.State != StateAvailable && route.State != StatePreview {
-				return fmt.Errorf("webui route %q has unsupported state %q", route.ID, route.State)
+			if route.Layout != RouteLayoutApp && route.Layout != RouteLayoutBlank {
+				return fmt.Errorf("webui route %q has unsupported layout %q", route.ID, route.Layout)
 			}
-			if route.ViewOperationID != "" {
-				operations[route.ViewOperationID] = struct{}{}
+			if route.DeliveryState != DeliveryImplemented && route.DeliveryState != DeliveryNotImplemented {
+				return fmt.Errorf("webui route %q has unsupported delivery state %q", route.ID, route.DeliveryState)
 			}
 			if route.Default {
-				defaultRoutes++
+				if defaultRouteID != "" {
+					return fmt.Errorf("webui routes %q and %q are both default", defaultRouteID, route.ID)
+				}
+				defaultRouteID = route.ID
+			}
+			if route.UnauthenticatedDefault {
+				if route.Layout != RouteLayoutBlank {
+					return fmt.Errorf("webui unauthenticated default route %q must use blank layout", route.ID)
+				}
+				if route.ViewOperationID != "" {
+					return fmt.Errorf("webui unauthenticated default route %q must be public", route.ID)
+				}
+				if unauthenticatedDefaultRouteID != "" {
+					return fmt.Errorf("webui routes %q and %q are both unauthenticated defaults", unauthenticatedDefaultRouteID, route.ID)
+				}
+				unauthenticatedDefaultRouteID = route.ID
 			}
 			routes[route.ID] = RouteOwner{ModuleID: binding.ModuleID, Default: route.Default}
 			paths[route.Path] = binding.ModuleID
-		}
-		if defaultRoutes > 1 {
-			return fmt.Errorf("webui module %q declares multiple default routes", binding.ModuleID)
 		}
 		for _, item := range binding.Navigation {
 			if item.ID == "" || item.RouteID == "" || item.TitleMessageID == "" || item.IconID == "" {
@@ -243,14 +276,15 @@ func validateBindings(bindings []Binding) error {
 			if _, err := language.Parse(locale.Language); err != nil {
 				return fmt.Errorf("webui locale %q is invalid: %w", locale.Language, err)
 			}
+			if !validSourcePath(locale.SourcePath, ".json") {
+				return fmt.Errorf("webui locale %q/%q has invalid source path", locale.Language, locale.Namespace)
+			}
+			localeKey := locale.Language + "\x00" + locale.Namespace
+			if owner, exists := locales[localeKey]; exists {
+				return fmt.Errorf("webui locale %q/%q is declared by both %s and %s", locale.Language, locale.Namespace, owner, binding.ModuleID)
+			}
+			locales[localeKey] = binding.ModuleID
 		}
-	}
-	_ = operations // operation inventory is injected by the composition owner.
-	for routeID, owner := range routes {
-		if owner.Default {
-			continue
-		}
-		_ = routeID
 	}
 	return validateNavigationCycles(bindings)
 }
@@ -300,6 +334,20 @@ func validateNavigationCycles(bindings []Binding) error {
 func validPath(path string) bool {
 	parsed, err := url.Parse(path)
 	return err == nil && strings.HasPrefix(path, "/") && parsed.Host == "" && parsed.RawQuery == "" && parsed.Fragment == "" && path != "/"
+}
+
+func validSourcePath(sourcePath string, extensions ...string) bool {
+	cleaned := filepath.Clean(sourcePath)
+	if filepath.IsAbs(cleaned) || cleaned == "." || cleaned == ".." || strings.HasPrefix(cleaned, ".."+string(filepath.Separator)) {
+		return false
+	}
+	extension := strings.ToLower(filepath.Ext(cleaned))
+	for _, allowed := range extensions {
+		if extension == allowed {
+			return true
+		}
+	}
+	return false
 }
 
 func cloneBindings(values []Binding) []Binding {

@@ -19,7 +19,7 @@ export function useGatedQueries(options: GatedQueriesOptions): GatedQueryResult[
       || Boolean(route?.availability === "degraded" && typeof capability === "string" && route.availableCapabilities?.includes(capability));
     const gateAllowed = Boolean(route?.access === "allowed" && route.deliveryState === "implemented" && routeAvailable);
     queryGateAllowed.push(gateAllowed);
-    const queryKey = Array.isArray(query.queryKey) ? [...query.queryKey, "__webui_revision", manifest.revision] : query.queryKey;
+    const queryKey = Array.isArray(query.queryKey) ? [...query.queryKey, "__webui_revision", manifest.catalogRevision, manifest.navigationRevision] : query.queryKey;
     return { ...query, queryKey, enabled: gateAllowed && query.enabled !== false };
   });
   const queryKeySignature = queries.map((query) => JSON.stringify(query.queryKey)).join("|");
@@ -28,7 +28,7 @@ export function useGatedQueries(options: GatedQueriesOptions): GatedQueryResult[
     queries.forEach((query, index) => {
       if (!queryGateAllowed[index] && Array.isArray(query.queryKey)) void queryClient.cancelQueries({ queryKey: query.queryKey });
     });
-  }, [gateSignature, manifest.revision, pathname, queryClient, queryKeySignature, route?.access, route?.availability, route?.deliveryState, route?.availableCapabilities?.join("\u0000")]);
+  }, [gateSignature, manifest.catalogRevision, manifest.navigationRevision, pathname, queryClient, queryKeySignature, route?.access, route?.availability, route?.deliveryState, route?.availableCapabilities?.join("\u0000")]);
   return useTanStackQueries({ ...options, queries } as Parameters<typeof useTanStackQueries>[0]) as GatedQueryResult[];
 }
 

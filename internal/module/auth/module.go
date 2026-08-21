@@ -35,10 +35,16 @@ type Dependencies struct {
 // Module 是 Auth 局部装配后交给 composition root 的完成品。
 type Module struct {
 	Service        *service.Service
+	BearerSource   RequestAuthenticator
+	SessionSource  RequestAuthenticator
 	HTTPMiddleware func(http.Handler) http.Handler
 	Contribution   module.Contribution
 	WebUI          *webuiauth.Service
-	WebUIHTTP      http.Handler
+}
+
+// RequestAuthenticator 是 composition 可按 security profile 选择的项目自有认证来源。
+type RequestAuthenticator interface {
+	AuthenticateRequest(*http.Request) (*http.Request, error)
 }
 
 // ManagementMiddleware 允许 management 使用 Bearer 或 WebUI Session，普通 API 不走此入口。
@@ -115,22 +121,16 @@ func NewHTTP(dependencies Dependencies) (Module, error) {
 			return Module{}, fmt.Errorf("compose webui auth service: %w", err)
 		}
 	}
-	var webuiHTTP http.Handler
-	if webuiAuth != nil {
-		webuiHTTP, err = webuiauth.NewHTTPHandler(webuiAuth)
-		if err != nil {
-			return Module{}, fmt.Errorf("compose webui auth HTTP: %w", err)
-		}
-	}
-	httpMiddleware, err := middleware.HTTP(authService)
+	bearerSource, err := middleware.NewSource(authService)
 	if err != nil {
-		return Module{}, fmt.Errorf("compose auth HTTP middleware: %w", err)
+		return Module{}, fmt.Errorf("compose auth bearer source: %w", err)
 	}
+	httpMiddleware := bearerSource.Middleware
 	contribution := module.Contribution{ID: moduleID, Participants: participants}
 	if err := module.ValidateContributions(contribution); err != nil {
 		return Module{}, fmt.Errorf("validate auth contribution: %w", err)
 	}
-	return Module{Service: authService, HTTPMiddleware: httpMiddleware, WebUI: webuiAuth, WebUIHTTP: webuiHTTP, Contribution: contribution}, nil
+	return Module{Service: authService, BearerSource: bearerSource, SessionSource: webuiAuth, HTTPMiddleware: httpMiddleware, WebUI: webuiAuth, Contribution: contribution}, nil
 }
 
 // NewLocal 构造 CLI profile；operator 必须由命令执行边界显式提供。

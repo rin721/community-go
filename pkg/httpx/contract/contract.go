@@ -16,6 +16,7 @@ package contract
 
 import (
 	"fmt"
+	"strings"
 )
 
 // OperationID 是公开契约中的稳定 operation 标识，用于路由、授权、日志、trace、metrics 与
@@ -46,7 +47,27 @@ const (
 	SecurityNone Security = ""
 	// SecurityBearer 表示需要 Bearer JWT，对应 OpenAPI security scheme bearerAuth。
 	SecurityBearer Security = "bearerAuth"
+	// SecurityWebUISession 表示需要当前 Auth 模块解析 WebUI Session；Cookie 细节不属于通用契约。
+	SecurityWebUISession Security = "webuiSession"
 )
+
+// SecuritySchemeKind 表示公开认证协议的渲染方式。认证材料如何解析仍由对应模块的
+// RequestAuthenticator 负责，通用 HTTP contract 不持有 Cookie 或 Token 语义。
+type SecuritySchemeKind string
+
+const (
+	// SecuritySchemeHTTPBearer 渲染标准 HTTP Bearer 认证方案。
+	SecuritySchemeHTTPBearer SecuritySchemeKind = "httpBearer"
+	// SecuritySchemeAPIKeyCookie 渲染由 owner 模块命名的 Cookie 认证方案。
+	SecuritySchemeAPIKeyCookie SecuritySchemeKind = "apiKeyCookie"
+)
+
+// SecurityScheme 是模块贡献的公开认证协议定义。
+type SecurityScheme struct {
+	ID            Security
+	Kind          SecuritySchemeKind
+	ParameterName string
+}
 
 // PolicyMode 标识 operation 的授权策略模式。
 type PolicyMode string
@@ -112,6 +133,8 @@ type Operation struct {
 
 // Module 是模块声明的契约聚合。
 type Module struct {
+	// ID 是模块在应用内的稳定 owner identity。
+	ID string
 	// Name 是模块语义名（例如 "Todo"），用于生成 OpenAPI tag 的稳定 identity。
 	Name string
 	// Description 是模块契约的简介，进入 OpenAPI tag description。
@@ -120,12 +143,22 @@ type Module struct {
 	Operations []Operation
 	// Schemas 是该模块贡献的 component schema；跨模块共享的 schema 由生成器统一定义。
 	Schemas []*Schema
+	// SecuritySchemes 是该模块拥有的公开认证协议。Cookie 名等模块语义不得写入通用 renderer。
+	SecuritySchemes []SecurityScheme
 }
 
 // 校验模块契约不变量，供生成器与 binder 复用。
 func validateModule(module Module) error {
+	if !validModuleID(module.ID) {
+		return fmt.Errorf("contract module id %q is invalid", module.ID)
+	}
 	if module.Name == "" {
 		return fmt.Errorf("contract module name is required")
+	}
+	for _, scheme := range module.SecuritySchemes {
+		if err := validateSecurityScheme(module.ID, scheme); err != nil {
+			return err
+		}
 	}
 	seen := make(map[OperationID]struct{}, len(module.Operations))
 	for _, operation := range module.Operations {
@@ -144,12 +177,15 @@ func validateModule(module Module) error {
 			if operation.Policy.Scope != "" || operation.Policy.Action != "" {
 				return fmt.Errorf("public operation %q cannot declare scope or action", operation.ID)
 			}
+			if operation.Security != SecurityNone {
+				return fmt.Errorf("public operation %q cannot require security", operation.ID)
+			}
 		case PolicyModeProtected:
 			if operation.Policy.Scope == "" || operation.Policy.Action == "" {
 				return fmt.Errorf("protected operation %q requires scope and action", operation.ID)
 			}
-			if operation.Security != SecurityBearer {
-				return fmt.Errorf("protected operation %q requires bearer security", operation.ID)
+			if operation.Security != SecurityBearer && operation.Security != SecurityWebUISession {
+				return fmt.Errorf("protected operation %q requires a supported security profile", operation.ID)
 			}
 		default:
 			return fmt.Errorf("operation %q must declare policy mode public or protected", operation.ID)
@@ -161,4 +197,73 @@ func validateModule(module Module) error {
 		}
 	}
 	return nil
+}
+
+func validateModules(modules []Module) error {
+	moduleIDs := make(map[string]struct{}, len(modules))
+	operationIDs := make(map[OperationID]string)
+	securitySchemes := make(map[Security]string)
+	for _, module := range modules {
+		if err := validateModule(module); err != nil {
+			return err
+		}
+		if _, exists := moduleIDs[module.ID]; exists {
+			return fmt.Errorf("contract module id %q is declared more than once", module.ID)
+		}
+		moduleIDs[module.ID] = struct{}{}
+		for _, scheme := range module.SecuritySchemes {
+			if owner, exists := securitySchemes[scheme.ID]; exists {
+				return fmt.Errorf("security scheme %q is shared by modules %q and %q", scheme.ID, owner, module.ID)
+			}
+			securitySchemes[scheme.ID] = module.ID
+		}
+		for _, operation := range module.Operations {
+			if owner, exists := operationIDs[operation.ID]; exists {
+				return fmt.Errorf("operationId %q is shared by modules %q and %q", operation.ID, owner, module.ID)
+			}
+			operationIDs[operation.ID] = module.ID
+		}
+	}
+	for _, module := range modules {
+		for _, operation := range module.Operations {
+			if operation.Security == SecurityNone {
+				continue
+			}
+			if _, exists := securitySchemes[operation.Security]; !exists {
+				return fmt.Errorf("operation %q references unknown security scheme %q", operation.ID, operation.Security)
+			}
+		}
+	}
+	return nil
+}
+
+func validateSecurityScheme(owner string, scheme SecurityScheme) error {
+	if scheme.ID == SecurityNone {
+		return fmt.Errorf("module %q declares security scheme with empty ID", owner)
+	}
+	switch scheme.Kind {
+	case SecuritySchemeHTTPBearer:
+		if scheme.ParameterName != "" {
+			return fmt.Errorf("HTTP Bearer security scheme %q cannot declare a parameter name", scheme.ID)
+		}
+	case SecuritySchemeAPIKeyCookie:
+		if strings.TrimSpace(scheme.ParameterName) != scheme.ParameterName || scheme.ParameterName == "" {
+			return fmt.Errorf("Cookie security scheme %q requires a stable parameter name", scheme.ID)
+		}
+	default:
+		return fmt.Errorf("security scheme %q uses unsupported kind %q", scheme.ID, scheme.Kind)
+	}
+	return nil
+}
+
+func validModuleID(value string) bool {
+	if strings.TrimSpace(value) != value || value == "" {
+		return false
+	}
+	for _, character := range value {
+		if (character < 'a' || character > 'z') && (character < '0' || character > '9') && character != '-' && character != '_' {
+			return false
+		}
+	}
+	return true
 }

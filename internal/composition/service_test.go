@@ -29,18 +29,18 @@ func TestApplicationRouterStripsWebUIPrefixForStandardHandlers(t *testing.T) {
 		}
 		writer.WriteHeader(http.StatusOK)
 	})
-	webuiHandler.HandleFunc("/auth/session", func(writer http.ResponseWriter, request *http.Request) {
-		if request.URL.Path != "/auth/session" {
-			t.Fatalf("auth handler path = %q", request.URL.Path)
+	apiHandler := http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if request.URL.Path == webuiHTTPPrefix+"/auth/session" {
+			writer.WriteHeader(http.StatusUnauthorized)
+			return
 		}
-		writer.WriteHeader(http.StatusUnauthorized)
+		http.NotFound(writer, request)
 	})
 	router, err := applicationRouter(
 		kernelcomposition.Capabilities{Logger: logger.NewTestLogger(), IDGenerator: idgen.UUID()},
 		httpx.DefaultServerConfig(),
-		func(next http.Handler) http.Handler { return next },
 		webuiHandler,
-		http.NotFoundHandler(),
+		apiHandler,
 	)
 	if err != nil {
 		t.Fatalf("applicationRouter() error = %v", err)
@@ -251,8 +251,8 @@ func TestReportServiceFailureClassifiesWithoutErrorText(t *testing.T) {
 
 func TestMigrationLogsClassifyCompletionAndFailureWithoutErrorText(t *testing.T) {
 	log := logger.NewTestLogger()
-	logMigrationCompleted(log, "db.migrate.status", migration.Status{Current: 1, Target: 1, Compatible: true})
-	logMigrationCompleted(log, "db.migrate.status", migration.Status{Current: 1, Target: 2, Compatible: false})
+	logMigrationCompleted(log, "db.migrate.status", migration.Status{Sets: []migration.SetStatus{{ModuleID: "todo", SetName: "todo", Current: 1, Target: 1, Compatible: true}}, Compatible: true})
+	logMigrationCompleted(log, "db.migrate.status", migration.Status{Sets: []migration.SetStatus{{ModuleID: "todo", SetName: "todo", Current: 1, Target: 2}}, Compatible: false})
 	entries := log.Entries()
 	if len(entries) != 2 || entries[0].Level != "info" || entries[1].Level != "warn" {
 		t.Fatalf("migration completion entries = %#v", entries)

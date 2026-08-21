@@ -228,6 +228,24 @@ func validateSet(set Set, driver pkgdatabase.Driver) error {
 	return nil
 }
 
+// ValidateSet 在不创建数据库连接的前提下校验一个迁移集合的全部嵌入 SQL 与 checksum。
+func ValidateSet(set Set) error {
+	if len(set.DriverPaths) == 0 {
+		return fmt.Errorf("migration set %s has no driver paths", set.Name)
+	}
+	drivers := make([]pkgdatabase.Driver, 0, len(set.DriverPaths))
+	for driver := range set.DriverPaths {
+		drivers = append(drivers, driver)
+	}
+	sort.Slice(drivers, func(left, right int) bool { return drivers[left] < drivers[right] })
+	for _, driver := range drivers {
+		if err := validateSet(set, driver); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func openDatabase(config pkgdatabase.Config) (*sql.DB, string, error) {
 	var sqlDriver string
 	switch config.Driver {

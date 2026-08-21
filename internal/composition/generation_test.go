@@ -192,7 +192,7 @@ func TestApplicationGenerationRejectsDatabaseWithoutSchemaAndKeepsCurrent(t *tes
 	before := coordinator.Diagnostics()
 	writeGenerationConfig(t, configPath, generationConfig(directory, 120, 1<<20, filepath.Join(directory, "empty.db")))
 	result, err := coordinator.Reload(t.Context())
-	if err == nil || !strings.Contains(err.Error(), "migration is empty") || result.Applied {
+	if err == nil || !strings.Contains(err.Error(), "version is too old") || result.Applied {
 		t.Fatalf("Reload(empty schema) = %#v, %v", result, err)
 	}
 	after := coordinator.Diagnostics()

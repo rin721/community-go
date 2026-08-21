@@ -142,7 +142,7 @@ model <- service <- repo
 6. `module.go` 只做无 I/O、无 goroutine、无资源探测的局部装配，并返回窄 Handler/Service 与完成品 contribution。
 7. `internal/composition` 显式选择模块、适配最小 Capability、连接跨模块 port、聚合模块基础契约与运行期 handler、合并 contribution 并建立 Host；`internal/tools/contract-gen` 从模块契约生成 `api/openapi.yaml` 与 operation inventory，`internal/transport/http` 只把完整契约绑定一次路由与校验。
 
-HTTP 的固定构造顺序是 `模块顶层 typed Handler + binding 契约/装箱 → composition 聚合 contract + 运行期 handler → transport 一次绑定契约校验与路由 → application Router → Server`。最外层 Router 只拥有全局 middleware 和一次 API route tree 挂载；生成器从模块契约渲染 `api/openapi.yaml` 与 operation inventory。新增模块只增加自身 Handler/运行期 handler、契约声明、aggregate 转发与 composition 连接，不修改既有模块 Handler，不复制 method/path 或完整 Router，也不写第二份全局 OpenAPI。
+HTTP 的固定构造顺序是 `模块顶层 typed Handler + binding 契约/装箱 → composition 聚合 contract + 运行期 handler → transport 一次绑定契约校验、typed security 与路由 → application Router → Server`。每个 `contract.Module` 必须声明稳定 `ID`；dispatcher 校验 module/operation/handler 一一对应。`none`、`bearerAuth`、`webuiSession` 只描述认证 profile，Bearer header、Cookie、Origin 与 CSRF 细节由 Auth 来源或具体模块拥有，transport 不按 URL 前缀猜测。新增模块只增加自身 Handler、契约声明与显式 composition 连接，不复制 Router 或 OpenAPI。
 
 ### 4.1 统一 binding 契约清单
 
@@ -153,7 +153,8 @@ HTTP 的固定构造顺序是 `模块顶层 typed Handler + binding 契约/装�
 | HTTP binding | 模块顶层 `handler/`（Operations/Handler/DTO/ActorAccess/错误呈现）+ `binding/http`（`ModuleContract`/`RuntimeHandlers`） | 注册 `contract-gen` 的 `registeredModules()`；`internal/composition` 聚合；`internal/transport/http` 绑定 | `internal/module/<name>/handler` 与 `binding/http` |
 | config binding | `binding/config` | composition 连接模块 Config | `internal/module/<name>/binding/config` |
 | cli binding | `binding/cli` | cmd（command）装配 | `internal/module/<name>/binding/cli` |
-| migration binding | `binding/migration` | composition / migrate 使用 | `internal/module/<name>/binding/migration` |
+| migration binding | `binding/migration` 的独立 Set/版本表/checksum | composition 显式注册到 application Migration Catalog | `internal/module/<name>/binding/migration` |
+| permission binding | `binding/permission` 的精确 Key/owner/description message ID | composition 显式聚合 Permission Catalog，并校验 operation/WebUI 引用 | `internal/module/<name>/binding/permission` |
 | i18n binding | `binding/i18n`（模块自有语言资源 + 窄契约，如 `MessageFiles()`/`fs.FS`/catalog） | composition 显式聚合进 Non-Essential I18n 装配，再按模块注入 `pkg/i18n.Translator` | `internal/module/<name>/binding/i18n` 与模块内语言资源 |
 | middleware | `middleware/`（横切策略） | composition 挂载 | `internal/module/<name>/middleware` |
 | schedule binding | `module.go` 构造 `pkg/schedule.Binding` | `module.Contribution.Schedules`，由 application composition 统一聚合 | 模块 Service 与 `module.go` |
@@ -162,6 +163,8 @@ HTTP 的固定构造顺序是 `模块顶层 typed Handler + binding 契约/装�
 **新增业务模块必须接入的基础契约**：
 
 - 若暴露 HTTP operation：必须提供 `handler/` + `binding/http` 的 `ModuleContract`/`RuntimeHandlers`，**并在两处接入**：`internal/composition` 负责运行时装配（policy 汇总、observability operations、route binding、依赖注入），`internal/tools/contract-gen` 的 `registeredModules()` 生成器注册点负责 build-time 渲染 `api/openapi.yaml` 与 operation inventory；新增模块不得只在 composition 装配而漏掉契约注册（否则 `go generate` 不渲染），也不得退化为手写固定路由。
+- 若 operation 使用权限：模块贡献当前真实精确权限定义；禁止通配符、未知引用、预留未来模块 key，Catalog 也不承担角色关系或授权执行。
+- 若拥有数据库 schema：每个模块使用自己的版本表和 source，显式注册到 Migration Catalog；执行顺序按 ModuleID 确定，不建立跨 set 事务或扫描目录自动注册。
 - 若有用户可见翻译：必须提供 i18n binding（自有语言资源 + `binding/i18n`），经 composition/kernel 聚合后通过注入的 `pkg/i18n.Translator` 消费；不得绕过注入直接读 `pkg/i18n` 默认配置。
 - `module.go` 只做纯内存装配并返回窄 Handler/Service 与 contribution；`internal/composition` 是唯一跨模块连接点。
 - 配置边界：`pkg/*` 只提供通用能力和基础默认；`kernel/app/*` 负责应用层默认与装配，不隐式依赖 `pkg/*.DefaultConfig()`。

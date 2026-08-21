@@ -46,7 +46,10 @@ func newDispatcherStub() *dispatcherStub {
 }
 
 func (s *dispatcherStub) Modules() []contract.Module {
-	return []contract.Module{httpbinding.ModuleContract()}
+	return []contract.Module{
+		{ID: "auth", Name: "Auth", SecuritySchemes: []contract.SecurityScheme{{ID: contract.SecurityBearer, Kind: contract.SecuritySchemeHTTPBearer}}},
+		httpbinding.ModuleContract(),
+	}
 }
 
 func (s *dispatcherStub) Operations() []contract.Operation {
@@ -180,14 +183,14 @@ type operationGateStub struct {
 	enforceErr    error
 }
 
-func (s *operationGateStub) Authenticate(context.Context) error {
+func (s *operationGateStub) Authenticate(request *http.Request, _ contract.Security) (*http.Request, error) {
 	if s.authErr != nil {
-		return s.authErr
+		return nil, s.authErr
 	}
 	if !s.authenticated {
-		return ErrUnauthenticated
+		return nil, ErrUnauthenticated
 	}
-	return nil
+	return request, nil
 }
 
 func (s *operationGateStub) Enforce(_ context.Context, _ string) error {

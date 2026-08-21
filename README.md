@@ -56,9 +56,9 @@ pnpm generate:check
 pnpm dev
 ```
 
-浏览器访问 `https://127.0.0.1:5173`，按页面提示完成首次设置和登录。Vite 开发服务器使用本地 HTTPS；后端 CORS/Auth Origin 必须允许该来源。完整参数、Setup 失败处理和安全边界见 [WebUI 本地启动指南](docs/getting-started/webui.md)。
+浏览器访问 `https://127.0.0.1:5173` 可检查当前宿主、manifest 和页面静态交付。053 已把 Auth HTTP/Session 接入统一 typed contract，但 Todo 的旧账号表已经退休，新的账号持久化 owner 要到 054 IAM 才落地；因此 fresh database 暂不承诺 Setup/Login 可用。Vite 开发服务器使用本地 HTTPS；完整阶段边界见 [WebUI 本地启动指南](docs/getting-started/webui.md)。
 
-启动后可按 [首次使用与最小验收](docs/getting-started/first-use.md) 验证 WebUI、Todo CLI/API 和 management readiness。当前 Docker/release 尚未打包或托管 `webui/dist`，不能把本地 Vite 启动当作生产静态交付。
+启动后可按 [首次使用与最小验收](docs/getting-started/first-use.md) 验证当前可用的 WebUI 宿主、Todo CLI/API 和 management readiness。当前 Docker/release 尚未打包或托管 `webui/dist`，不能把本地 Vite 启动当作生产静态交付。
 
 如果本地已经存在 `config.yaml`，`config init` 会拒绝覆盖。不要为了“重新生成”随手使用 `--force`；需要对比时先输出到临时路径，详细关系见 [本地启动指南](docs/getting-started/local-development.md) 与 [配置说明](docs/configuration/README.md)。
 

@@ -122,13 +122,91 @@ components:
                 - field
                 - reason
             type: object
+        WebUIAuthLoginRequest:
+            additionalProperties: false
+            properties:
+                password:
+                    maxLength: 256
+                    minLength: 12
+                    type: string
+                username:
+                    maxLength: 128
+                    minLength: 1
+                    type: string
+            required:
+                - username
+                - password
+            type: object
+        WebUIAuthSession:
+            additionalProperties: false
+            properties:
+                absoluteExpiresAt:
+                    format: date-time
+                    type: string
+                createdAt:
+                    format: date-time
+                    type: string
+                csrfToken:
+                    type: string
+                idleExpiresAt:
+                    format: date-time
+                    type: string
+                user:
+                    $ref: '#/components/schemas/WebUIAuthUser'
+            required:
+                - user
+                - csrfToken
+                - createdAt
+                - idleExpiresAt
+                - absoluteExpiresAt
+            type: object
+        WebUIAuthSetupRequest:
+            additionalProperties: false
+            properties:
+                password:
+                    maxLength: 256
+                    minLength: 12
+                    type: string
+                setupToken:
+                    maxLength: 512
+                    minLength: 1
+                    type: string
+                username:
+                    maxLength: 128
+                    minLength: 1
+                    type: string
+            required:
+                - setupToken
+                - username
+                - password
+            type: object
+        WebUIAuthUser:
+            additionalProperties: false
+            properties:
+                id:
+                    type: string
+                scopes:
+                    items:
+                        type: string
+                    type: array
+                username:
+                    type: string
+            required:
+                - id
+                - username
+                - scopes
+            type: object
     securitySchemes:
         bearerAuth:
             bearerFormat: JWT
             scheme: bearer
             type: http
+        webuiSession:
+            in: cookie
+            name: __Host-community-go_webui_session
+            type: apiKey
 info:
-    description: 当前模板的公开 HTTP 契约。所有失败使用 RFC 9457 Problem Details；Todo operation 使用 bearer JWT，并由生成的 policy inventory 驱动授权。
+    description: 当前模板的公开 HTTP 契约。所有失败使用 RFC 9457 Problem Details；Todo operation 使用 bearer JWT，Auth operation 使用 none/webuiSession，并由生成的 policy inventory 驱动授权。
     title: go-scaffold-template HTTP API
     version: 1.0.0-rc.1
 openapi: 3.0.3
@@ -510,6 +588,371 @@ paths:
                 action: todo.complete
                 mode: protected
                 scope: todos:write
+    /api/v1/webui/auth/login:
+        post:
+            operationId: auth.webui.login
+            parameters:
+                - in: header
+                  name: Origin
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/WebUIAuthLoginRequest'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/WebUIAuthSession'
+                    description: 成功响应。
+                "400":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Problem'
+                    description: 请求无效。
+                "404":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Problem'
+                    description: 资源不存在。
+                "409":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Problem'
+                    description: 资源冲突。
+                "415":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Problem'
+                    description: 不支持的媒体类型。
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Problem'
+                    description: 请求过多，请稍后重试。
+                    headers:
+                        Retry-After:
+                            description: 建议客户端等待的秒数。
+                            schema:
+                                minimum: 1
+                                type: integer
+                "500":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Problem'
+                    description: 服务内部错误。
+                "503":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Problem'
+                    description: 服务暂不可用，请稍后重试。
+                    headers:
+                        Retry-After:
+                            description: 建议客户端等待的秒数。
+                            schema:
+                                minimum: 1
+                                type: integer
+                "504":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Problem'
+                    description: 上游请求超时。
+                default:
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Problem'
+                    description: 未预期的错误。
+            tags:
+                - Auth
+            x-policy:
+                action: ""
+                mode: public
+                scope: ""
+    /api/v1/webui/auth/logout:
+        post:
+            operationId: auth.webui.logout
+            parameters:
+                - in: header
+                  name: Origin
+                  required: true
+                  schema:
+                    type: string
+                - in: header
+                  name: X-CSRF-Token
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "204":
+                    description: 成功响应。
+                "400":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Problem'
+                    description: 请求无效。
+                "404":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Problem'
+                    description: 资源不存在。
+                "409":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Problem'
+                    description: 资源冲突。
+                "415":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Problem'
+                    description: 不支持的媒体类型。
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Problem'
+                    description: 请求过多，请稍后重试。
+                    headers:
+                        Retry-After:
+                            description: 建议客户端等待的秒数。
+                            schema:
+                                minimum: 1
+                                type: integer
+                "500":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Problem'
+                    description: 服务内部错误。
+                "503":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Problem'
+                    description: 服务暂不可用，请稍后重试。
+                    headers:
+                        Retry-After:
+                            description: 建议客户端等待的秒数。
+                            schema:
+                                minimum: 1
+                                type: integer
+                "504":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Problem'
+                    description: 上游请求超时。
+                default:
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Problem'
+                    description: 未预期的错误。
+            security:
+                - webuiSession: []
+            tags:
+                - Auth
+            x-policy:
+                action: auth.webui.session.logout
+                mode: protected
+                scope: management:read
+    /api/v1/webui/auth/session:
+        get:
+            operationId: auth.webui.session
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/WebUIAuthSession'
+                    description: 成功响应。
+                "400":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Problem'
+                    description: 请求无效。
+                "404":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Problem'
+                    description: 资源不存在。
+                "409":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Problem'
+                    description: 资源冲突。
+                "415":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Problem'
+                    description: 不支持的媒体类型。
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Problem'
+                    description: 请求过多，请稍后重试。
+                    headers:
+                        Retry-After:
+                            description: 建议客户端等待的秒数。
+                            schema:
+                                minimum: 1
+                                type: integer
+                "500":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Problem'
+                    description: 服务内部错误。
+                "503":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Problem'
+                    description: 服务暂不可用，请稍后重试。
+                    headers:
+                        Retry-After:
+                            description: 建议客户端等待的秒数。
+                            schema:
+                                minimum: 1
+                                type: integer
+                "504":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Problem'
+                    description: 上游请求超时。
+                default:
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Problem'
+                    description: 未预期的错误。
+            security:
+                - webuiSession: []
+            tags:
+                - Auth
+            x-policy:
+                action: auth.webui.session.read
+                mode: protected
+                scope: management:read
+    /api/v1/webui/auth/setup:
+        post:
+            operationId: auth.webui.setup
+            parameters:
+                - in: header
+                  name: Origin
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/WebUIAuthSetupRequest'
+                required: true
+            responses:
+                "201":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/WebUIAuthSession'
+                    description: 成功响应。
+                "400":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Problem'
+                    description: 请求无效。
+                "404":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Problem'
+                    description: 资源不存在。
+                "409":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Problem'
+                    description: 资源冲突。
+                "415":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Problem'
+                    description: 不支持的媒体类型。
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Problem'
+                    description: 请求过多，请稍后重试。
+                    headers:
+                        Retry-After:
+                            description: 建议客户端等待的秒数。
+                            schema:
+                                minimum: 1
+                                type: integer
+                "500":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Problem'
+                    description: 服务内部错误。
+                "503":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Problem'
+                    description: 服务暂不可用，请稍后重试。
+                    headers:
+                        Retry-After:
+                            description: 建议客户端等待的秒数。
+                            schema:
+                                minimum: 1
+                                type: integer
+                "504":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Problem'
+                    description: 上游请求超时。
+                default:
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/Problem'
+                    description: 未预期的错误。
+            tags:
+                - Auth
+            x-policy:
+                action: ""
+                mode: public
+                scope: ""
 tags:
+    - description: 当前 WebUI 本地认证边界。
+      name: Auth
     - description: Todo 示例资源。
       name: Todo

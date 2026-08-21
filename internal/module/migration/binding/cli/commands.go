@@ -14,7 +14,7 @@ import (
 // Executor 把命令解析结果交给 invocation-scoped composition。
 type Executor interface {
 	MigrationStatus(context.Context) (migration.Status, error)
-	MigrationUp(context.Context, string) (migration.Status, error)
+	MigrationUp(context.Context) (migration.Status, error)
 }
 
 // Contract 只声明命令树，不创建数据库连接。
@@ -38,8 +38,7 @@ func (c *Contract) Commands() ([]cli.CommandSpec, error) {
 			SideEffect: cli.SideEffectNone, Positional: cli.PositionalNone,
 			Commands: []cli.CommandSpec{
 				{Name: "status", Description: "读取 migration 版本", Mode: cli.CommandModeApplication, SideEffect: cli.SideEffectNone, Positional: cli.PositionalNone, Run: c.status},
-				{Name: "up", Description: "应用全部待执行 migration", Mode: cli.CommandModeApplication, SideEffect: cli.SideEffectExternalWrite, Positional: cli.PositionalNone,
-					Flags: []cli.FlagSpec{{Name: "legacy-owner-subject", Type: cli.FlagTypeString, Description: "存在 legacy Todo 时必须显式提供的 owner subject"}}, Run: c.up},
+				{Name: "up", Description: "应用全部待执行 migration", Mode: cli.CommandModeApplication, SideEffect: cli.SideEffectExternalWrite, Positional: cli.PositionalNone, Run: c.up},
 			},
 		}},
 	}}, nil
@@ -51,7 +50,7 @@ func (c *Contract) status(ctx *cli.Context) error {
 }
 
 func (c *Contract) up(ctx *cli.Context) error {
-	status, err := c.executor.MigrationUp(ctx.Context, ctx.GetString("legacy-owner-subject"))
+	status, err := c.executor.MigrationUp(ctx.Context)
 	return writeStatus(ctx, status, err)
 }
 
@@ -61,16 +60,7 @@ func writeStatus(ctx *cli.Context, status migration.Status, err error) error {
 	}
 	encoder := json.NewEncoder(ctx.Stdout)
 	encoder.SetEscapeHTML(false)
-	if err := encoder.Encode(struct {
-		Current    uint `json:"current"`
-		Target     uint `json:"target"`
-		Dirty      bool `json:"dirty"`
-		Empty      bool `json:"empty"`
-		Compatible bool `json:"compatible"`
-	}{
-		Current: status.Current, Target: status.Target, Dirty: status.Dirty,
-		Empty: status.Empty, Compatible: status.Compatible,
-	}); err != nil {
+	if err := encoder.Encode(status); err != nil {
 		return fmt.Errorf("encode migration CLI output: %w", err)
 	}
 	return nil

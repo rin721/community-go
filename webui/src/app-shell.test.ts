@@ -7,7 +7,8 @@ import { ensureRouteLocale, initializeI18n, translateMessage } from "./i18n";
 import type { Manifest } from "./contracts";
 
 const manifest: Manifest = {
-  revision: "test-revision",
+  catalogRevision: "test-catalog-revision",
+  navigationRevision: "test-navigation-revision",
   routes: [
     { moduleId: "ops", id: "ops.dashboard", path: "/ops", entryId: "ops.dashboard", titleMessageId: "webui.ops.dashboard.title", layout: "app", deliveryState: "implemented", default: true, unauthenticatedDefault: false, access: "allowed" },
     { moduleId: "auth", id: "auth.session", path: "/account/session", entryId: "auth.session", titleMessageId: "webui.auth.session.title", layout: "app", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access: "allowed" },

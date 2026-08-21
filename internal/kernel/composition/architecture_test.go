@@ -64,6 +64,39 @@ func TestProductionPackageGraphRespectsCompositionBoundaries(t *testing.T) {
 	if err := validateLoggingSourceOwnership(root); err != nil {
 		t.Fatal(err)
 	}
+	if err := validateAdminFoundationOwnership(root); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestAdminFoundationRulesRejectImplicitAggregation(t *testing.T) {
+	fixtures := []struct {
+		name    string
+		path    string
+		content string
+	}{
+		{name: "init registration", path: "internal/permission/catalog.go", content: "package permission\nfunc init() {}\n"},
+		{name: "runtime scan", path: "internal/module/migration/catalog.go", content: "package migration\nimport \"os\"\nfunc discover() { _, _ = os.ReadDir(\".\") }\n"},
+		{name: "global registry", path: "internal/permission/catalog.go", content: "package permission\ntype Registry struct{}\n"},
+		{name: "kernel dependency", path: "internal/permission/catalog.go", content: "package permission\nimport _ \"github.com/rin721/go-scaffold-template/internal/kernel\"\n"},
+	}
+	for _, fixture := range fixtures {
+		t.Run(fixture.name, func(t *testing.T) {
+			root := t.TempDir()
+			writeModuleBoundaryFixture(t, root, fixture.path, fixture.content)
+			if err := validateAdminFoundationOwnership(root); err == nil {
+				t.Fatal("implicit Admin foundation aggregation fixture passed")
+			}
+		})
+	}
+
+	placeholderRoot := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(placeholderRoot, "internal", "module", "iam"), 0o755); err != nil {
+		t.Fatalf("create Admin placeholder fixture: %v", err)
+	}
+	if err := validateAdminFoundationOwnership(placeholderRoot); err == nil {
+		t.Fatal("Admin business module placeholder fixture passed")
+	}
 }
 
 func TestPackageGraphRulesAcceptLegalFixtureAndRejectViolations(t *testing.T) {
@@ -451,6 +484,104 @@ func validateCompositionOwnership(root string) error {
 		}
 		return nil
 	})
+}
+
+// validateAdminFoundationOwnership 固化 053 的显式分类型聚合边界：Catalog 不依赖 Kernel，
+// 不通过 init、全局 Registry 或运行时目录扫描发现完成品，也不提前创建 054–056 业务模块。
+func validateAdminFoundationOwnership(root string) error {
+	for _, moduleID := range []string{"iam", "organization", "navigation"} {
+		path := filepath.Join(root, "internal", "module", moduleID)
+		if info, err := os.Stat(path); err == nil && info.IsDir() {
+			return fmt.Errorf("053 cannot create Admin business module placeholder %s", path)
+		} else if err != nil && !errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("inspect Admin business module placeholder %s: %w", path, err)
+		}
+	}
+
+	targets := []struct {
+		path         string
+		rejectKernel bool
+	}{
+		{path: filepath.Join(root, "internal", "permission"), rejectKernel: true},
+		{path: filepath.Join(root, "internal", "module", "migration", "catalog.go"), rejectKernel: true},
+		{path: filepath.Join(root, "internal", "module", "migration", "service.go"), rejectKernel: true},
+		{path: filepath.Join(root, "internal", "composition", "http_contracts.go")},
+		{path: filepath.Join(root, "internal", "composition", "migration.go")},
+	}
+	for _, target := range targets {
+		info, err := os.Stat(target.path)
+		if errors.Is(err, os.ErrNotExist) {
+			continue
+		}
+		if err != nil {
+			return fmt.Errorf("inspect Admin foundation aggregation target %s: %w", target.path, err)
+		}
+		if info.IsDir() {
+			err = filepath.WalkDir(target.path, func(path string, entry fs.DirEntry, walkErr error) error {
+				if walkErr != nil || entry.IsDir() || filepath.Ext(path) != ".go" || strings.HasSuffix(path, "_test.go") || strings.HasSuffix(path, ".gen.go") {
+					return walkErr
+				}
+				return validateExplicitAdminFoundationSource(path, target.rejectKernel)
+			})
+		} else {
+			err = validateExplicitAdminFoundationSource(target.path, target.rejectKernel)
+		}
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func validateExplicitAdminFoundationSource(path string, rejectKernel bool) error {
+	fileset := token.NewFileSet()
+	parsed, err := parser.ParseFile(fileset, path, nil, 0)
+	if err != nil {
+		return fmt.Errorf("parse Admin foundation source %s: %w", path, err)
+	}
+	imports := make(map[string]string, len(parsed.Imports))
+	for _, spec := range parsed.Imports {
+		importPath, err := strconv.Unquote(spec.Path.Value)
+		if err != nil {
+			return fmt.Errorf("decode Admin foundation import in %s: %w", path, err)
+		}
+		name := filepath.Base(importPath)
+		if spec.Name != nil {
+			name = spec.Name.Name
+		}
+		imports[name] = importPath
+		if rejectKernel && strings.HasPrefix(importPath, modulePath+"/internal/kernel") {
+			return fmt.Errorf("Admin foundation source %s imports Kernel package %s", path, importPath)
+		}
+	}
+	var violation error
+	ast.Inspect(parsed, func(node ast.Node) bool {
+		switch current := node.(type) {
+		case *ast.FuncDecl:
+			if current.Name.Name == "init" {
+				violation = fmt.Errorf("Admin foundation source %s:%d uses init registration", path, fileset.Position(current.Pos()).Line)
+				return false
+			}
+		case *ast.TypeSpec:
+			if current.Name.Name == "Registry" {
+				violation = fmt.Errorf("Admin foundation source %s:%d declares forbidden global Registry", path, fileset.Position(current.Pos()).Line)
+				return false
+			}
+		case *ast.CallExpr:
+			selector, ok := current.Fun.(*ast.SelectorExpr)
+			if !ok {
+				return true
+			}
+			importPath := selectorImportPath(selector, imports)
+			if (importPath == "os" || importPath == "io/fs" || importPath == "path/filepath") &&
+				(selector.Sel.Name == "ReadDir" || selector.Sel.Name == "Walk" || selector.Sel.Name == "WalkDir") {
+				violation = fmt.Errorf("Admin foundation source %s:%d uses runtime discovery through %s.%s", path, fileset.Position(selector.Pos()).Line, importPath, selector.Sel.Name)
+				return false
+			}
+		}
+		return true
+	})
+	return violation
 }
 
 func validateModuleExportBoundaries(root string) error {

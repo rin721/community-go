@@ -68,8 +68,7 @@ func TestWriteServiceErrorPreservesValidationAndInternalBoundaries(t *testing.T)
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			recorder := httptest.NewRecorder()
-			request := httptest.NewRequest(http.MethodPost, "/api/v1/webui/auth/setup", nil)
-			writeServiceError(recorder, request, test.err)
+			writeServiceError(recorder, test.err)
 			if recorder.Code != test.wantStatus {
 				t.Fatalf("status = %d, want %d", recorder.Code, test.wantStatus)
 			}

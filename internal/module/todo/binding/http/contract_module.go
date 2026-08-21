@@ -9,6 +9,7 @@ import (
 // api/openapi.yaml 与 operation inventory。
 func ModuleContract() contract.Module {
 	return contract.Module{
+		ID:          "todo",
 		Name:        "Todo",
 		Description: "Todo 示例资源。",
 		Schemas: []*contract.Schema{

@@ -156,6 +156,113 @@ func TestBuildApplicationCatalogRejectsSDKRequirementMismatch(t *testing.T) {
 	}
 }
 
+func TestDefaultNavigationPolicyMatchesStaticCatalogAndUsesDualRevisions(t *testing.T) {
+	binding := testBinding("ops", true)
+	binding.Navigation[0].Order = 20
+	catalog, err := BuildCatalog(binding)
+	if err != nil {
+		t.Fatal(err)
+	}
+	policy, err := BuildNavigationPolicySnapshot(catalog)
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifest, err := catalog.ManifestForWithNavigation(policy, func(string) Access { return AccessAllowed }, func(string) Availability { return Availability{State: AvailabilityAvailable} })
+	if err != nil {
+		t.Fatal(err)
+	}
+	if manifest.CatalogRevision != catalog.Revision || manifest.NavigationRevision == "" || len(manifest.Menu) != 1 || manifest.Menu[0].Order != 20 {
+		t.Fatalf("unexpected default policy manifest: %#v", manifest)
+	}
+	encoded, err := json.Marshal(manifest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(encoded), `"revision"`) || !strings.Contains(string(encoded), `"catalogRevision"`) || !strings.Contains(string(encoded), `"navigationRevision"`) {
+		t.Fatalf("dual revisions are not explicit: %s", encoded)
+	}
+}
+
+func TestNavigationPolicyOverridesOnlyMenuProjection(t *testing.T) {
+	parent := testBinding("parent", true)
+	child := testBinding("child", false)
+	catalog, err := BuildCatalog(parent, child)
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := ""
+	order := 7
+	policy, err := BuildNavigationPolicySnapshot(catalog,
+		NavigationPolicy{NavigationID: "parent.page", Enabled: false},
+		NavigationPolicy{NavigationID: "child.page", Enabled: true, ParentOverride: &root, OrderOverride: &order},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifest, err := catalog.ManifestForWithNavigation(policy, func(string) Access { return AccessAllowed }, func(string) Availability { return Availability{State: AvailabilityAvailable} })
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(manifest.Routes) != 2 || len(manifest.Menu) != 1 || manifest.Menu[0].ID != "child.page" || manifest.Menu[0].ParentID != "" || manifest.Menu[0].Order != 7 {
+		t.Fatalf("unexpected policy projection: %#v", manifest)
+	}
+	for _, route := range manifest.Routes {
+		if route.ID == "child.page" && (route.Path != "/child" || route.EntryID != "child.page" || route.ModuleID != "child") {
+			t.Fatalf("policy mutated immutable route fields: %#v", route)
+		}
+	}
+}
+
+func TestNavigationPolicyFailsClosedForInvalidOverrides(t *testing.T) {
+	first := testBinding("first", true)
+	second := testBinding("second", false)
+	catalog, err := BuildCatalog(first, second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	firstParent, secondParent := "second.page", "first.page"
+	badOrder := maximumNavigationOrder + 1
+	for _, test := range []struct {
+		name      string
+		overrides []NavigationPolicy
+	}{
+		{name: "unknown", overrides: []NavigationPolicy{{NavigationID: "missing", Enabled: true}}},
+		{name: "duplicate", overrides: []NavigationPolicy{{NavigationID: "first.page", Enabled: true}, {NavigationID: "first.page", Enabled: false}}},
+		{name: "cycle", overrides: []NavigationPolicy{{NavigationID: "first.page", Enabled: true, ParentOverride: &firstParent}, {NavigationID: "second.page", Enabled: true, ParentOverride: &secondParent}}},
+		{name: "order", overrides: []NavigationPolicy{{NavigationID: "first.page", Enabled: true, OrderOverride: &badOrder}}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if _, err := BuildNavigationPolicySnapshot(catalog, test.overrides...); err == nil {
+				t.Fatal("invalid navigation policy was accepted")
+			}
+		})
+	}
+}
+
+func TestDisabledNavigationParentHidesDescendants(t *testing.T) {
+	parent := testBinding("parent", true)
+	child := testBinding("child", false)
+	catalog, err := BuildCatalog(parent, child)
+	if err != nil {
+		t.Fatal(err)
+	}
+	parentID := "parent.page"
+	policy, err := BuildNavigationPolicySnapshot(catalog,
+		NavigationPolicy{NavigationID: "parent.page", Enabled: false},
+		NavigationPolicy{NavigationID: "child.page", Enabled: true, ParentOverride: &parentID},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifest, err := catalog.ManifestForWithNavigation(policy, func(string) Access { return AccessAllowed }, func(string) Availability { return Availability{State: AvailabilityAvailable} })
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(manifest.Routes) != 2 || len(manifest.Menu) != 0 {
+		t.Fatalf("disabled parent leaked descendant menu or removed routes: %#v", manifest)
+	}
+}
+
 func TestApplicationCatalogFixtureStateMatrix(t *testing.T) {
 	fixture := testBinding("fixture", false)
 	fixture.Routes[0].DegradedCapabilities = []string{"diagnostics"}

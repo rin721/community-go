@@ -132,11 +132,34 @@ type Catalog struct {
 	Revision string
 }
 
+// NavigationPolicy 是 Navigation Service 可提供的稀疏运行时策略；缺失项沿用静态声明。
+type NavigationPolicy struct {
+	NavigationID   string
+	Enabled        bool
+	ParentOverride *string
+	OrderOverride  *int
+}
+
+type effectiveNavigationPolicy struct {
+	NavigationID string
+	Enabled      bool
+	ParentID     string
+	Order        int
+}
+
+// NavigationPolicySnapshot 是已校验、不可变并绑定到某一 Catalog revision 的有效策略快照。
+type NavigationPolicySnapshot struct {
+	Revision        string
+	catalogRevision string
+	policies        map[string]effectiveNavigationPolicy
+}
+
 // Manifest 是可安全返回给浏览器的运行时视图，不包含文件系统路径。
 type Manifest struct {
-	Revision string          `json:"revision"`
-	Routes   []ManifestRoute `json:"routes"`
-	Menu     []ManifestMenu  `json:"menu"`
+	CatalogRevision    string          `json:"catalogRevision"`
+	NavigationRevision string          `json:"navigationRevision"`
+	Routes             []ManifestRoute `json:"routes"`
+	Menu               []ManifestMenu  `json:"menu"`
 }
 
 // ManifestRoute 是剥离构建期字段后的路由。
@@ -222,13 +245,29 @@ func (c Catalog) ManifestFor(accessLookup func(string) Access) Manifest {
 // ManifestForWithAvailability 返回 access 和 availability 门禁后的安全 manifest。
 // unavailable route 仍可作为宿主状态呈现，但不会出现在可加载菜单中。
 func (c Catalog) ManifestForWithAvailability(accessLookup func(string) Access, availabilityLookup func(string) Availability) Manifest {
+	policy, err := BuildNavigationPolicySnapshot(c)
+	if err != nil {
+		return Manifest{CatalogRevision: c.Revision}
+	}
+	manifest, err := c.ManifestForWithNavigation(policy, accessLookup, availabilityLookup)
+	if err != nil {
+		return Manifest{CatalogRevision: c.Revision}
+	}
+	return manifest
+}
+
+// ManifestForWithNavigation 在策略、访问和可用性三类门禁后生成安全 manifest。
+func (c Catalog) ManifestForWithNavigation(policy NavigationPolicySnapshot, accessLookup func(string) Access, availabilityLookup func(string) Availability) (Manifest, error) {
+	if policy.catalogRevision != c.Revision || policy.Revision == "" {
+		return Manifest{}, fmt.Errorf("webui navigation policy snapshot does not match catalog revision")
+	}
 	if accessLookup == nil {
 		accessLookup = func(string) Access { return AccessAuthenticationRequired }
 	}
 	if availabilityLookup == nil {
 		availabilityLookup = func(string) Availability { return Availability{State: AvailabilityUnavailable} }
 	}
-	manifest := Manifest{Revision: c.Revision}
+	manifest := Manifest{CatalogRevision: c.Revision, NavigationRevision: policy.Revision}
 	loadableRoutes := map[string]bool{}
 	for _, binding := range c.Bindings {
 		for _, route := range binding.Routes {
@@ -255,15 +294,17 @@ func (c Catalog) ManifestForWithAvailability(accessLookup func(string) Access, a
 			})
 		}
 		for _, item := range binding.Navigation {
-			if !loadableRoutes[item.RouteID] {
+			effective, exists := policy.policies[item.ID]
+			if !exists || !effective.Enabled || !loadableRoutes[item.RouteID] {
 				continue
 			}
 			manifest.Menu = append(manifest.Menu, ManifestMenu{
-				ModuleID: binding.ModuleID, ID: item.ID, ParentID: item.ParentID, RouteID: item.RouteID,
-				TitleMessageID: item.TitleMessageID, IconID: item.IconID, Order: item.Order,
+				ModuleID: binding.ModuleID, ID: item.ID, ParentID: effective.ParentID, RouteID: item.RouteID,
+				TitleMessageID: item.TitleMessageID, IconID: item.IconID, Order: effective.Order,
 			})
 		}
 	}
+	manifest.Menu = retainMenuWithVisibleParents(manifest.Menu)
 	sort.Slice(manifest.Routes, func(i, j int) bool { return manifest.Routes[i].ID < manifest.Routes[j].ID })
 	sort.Slice(manifest.Menu, func(i, j int) bool {
 		if manifest.Menu[i].Order != manifest.Menu[j].Order {
@@ -271,7 +312,104 @@ func (c Catalog) ManifestForWithAvailability(accessLookup func(string) Access, a
 		}
 		return manifest.Menu[i].ID < manifest.Menu[j].ID
 	})
-	return manifest
+	return manifest, nil
+}
+
+const (
+	minimumNavigationOrder = -1_000_000
+	maximumNavigationOrder = 1_000_000
+)
+
+// BuildNavigationPolicySnapshot 把稀疏 override 投影为完整有效快照并计算独立 revision。
+func BuildNavigationPolicySnapshot(catalog Catalog, overrides ...NavigationPolicy) (NavigationPolicySnapshot, error) {
+	policies := make(map[string]effectiveNavigationPolicy)
+	for _, binding := range catalog.Bindings {
+		for _, item := range binding.Navigation {
+			policies[item.ID] = effectiveNavigationPolicy{NavigationID: item.ID, Enabled: true, ParentID: item.ParentID, Order: item.Order}
+		}
+	}
+	seen := make(map[string]struct{}, len(overrides))
+	for index, override := range overrides {
+		if _, exists := seen[override.NavigationID]; exists {
+			return NavigationPolicySnapshot{}, fmt.Errorf("webui navigation policy %q is duplicated", override.NavigationID)
+		}
+		seen[override.NavigationID] = struct{}{}
+		effective, exists := policies[override.NavigationID]
+		if !exists {
+			return NavigationPolicySnapshot{}, fmt.Errorf("webui navigation policy %d references unknown navigation %q", index, override.NavigationID)
+		}
+		effective.Enabled = override.Enabled
+		if override.ParentOverride != nil {
+			effective.ParentID = *override.ParentOverride
+		}
+		if override.OrderOverride != nil {
+			effective.Order = *override.OrderOverride
+		}
+		policies[override.NavigationID] = effective
+	}
+	canonical := make([]effectiveNavigationPolicy, 0, len(policies))
+	for _, policy := range policies {
+		if policy.Order < minimumNavigationOrder || policy.Order > maximumNavigationOrder {
+			return NavigationPolicySnapshot{}, fmt.Errorf("webui navigation policy %q order %d is outside supported range", policy.NavigationID, policy.Order)
+		}
+		if policy.ParentID != "" {
+			if _, exists := policies[policy.ParentID]; !exists {
+				return NavigationPolicySnapshot{}, fmt.Errorf("webui navigation policy %q references unknown parent %q", policy.NavigationID, policy.ParentID)
+			}
+		}
+		canonical = append(canonical, policy)
+	}
+	sort.Slice(canonical, func(left, right int) bool { return canonical[left].NavigationID < canonical[right].NavigationID })
+	if err := validateEffectiveNavigationCycles(canonical); err != nil {
+		return NavigationPolicySnapshot{}, err
+	}
+	payload, err := json.Marshal(canonical)
+	if err != nil {
+		return NavigationPolicySnapshot{}, fmt.Errorf("marshal webui navigation policy: %w", err)
+	}
+	digest := sha256.Sum256(payload)
+	return NavigationPolicySnapshot{Revision: hex.EncodeToString(digest[:]), catalogRevision: catalog.Revision, policies: policies}, nil
+}
+
+func validateEffectiveNavigationCycles(policies []effectiveNavigationPolicy) error {
+	parents := make(map[string]string, len(policies))
+	for _, policy := range policies {
+		parents[policy.NavigationID] = policy.ParentID
+	}
+	for node := range parents {
+		seen := map[string]struct{}{}
+		for current := node; current != ""; current = parents[current] {
+			if _, exists := seen[current]; exists {
+				return fmt.Errorf("webui navigation policy contains a parent cycle at %q", node)
+			}
+			seen[current] = struct{}{}
+		}
+	}
+	return nil
+}
+
+func retainMenuWithVisibleParents(items []ManifestMenu) []ManifestMenu {
+	byID := make(map[string]ManifestMenu, len(items))
+	for _, item := range items {
+		byID[item.ID] = item
+	}
+	result := make([]ManifestMenu, 0, len(items))
+	for _, item := range items {
+		visible := true
+		for parentID := item.ParentID; parentID != ""; {
+			parent, exists := byID[parentID]
+			if !exists {
+				visible = false
+				break
+			}
+			parentID = parent.ParentID
+		}
+		if !visible {
+			continue
+		}
+		result = append(result, item)
+	}
+	return result
 }
 
 func validateSDKRequirements(binding Binding, inventory SDKInventory) error {

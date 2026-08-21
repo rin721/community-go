@@ -1,10 +1,14 @@
 package composition
 
 import (
+	authhttp "github.com/rin721/go-scaffold-template/internal/module/auth/binding/http"
+	authpermission "github.com/rin721/go-scaffold-template/internal/module/auth/binding/permission"
 	authwebui "github.com/rin721/go-scaffold-template/internal/module/auth/binding/webui"
 	authmodel "github.com/rin721/go-scaffold-template/internal/module/auth/model"
 	opswebui "github.com/rin721/go-scaffold-template/internal/module/ops/binding/webui"
 	todohttp "github.com/rin721/go-scaffold-template/internal/module/todo/binding/http"
+	todopermission "github.com/rin721/go-scaffold-template/internal/module/todo/binding/permission"
+	permissioncatalog "github.com/rin721/go-scaffold-template/internal/permission"
 	webuicontract "github.com/rin721/go-scaffold-template/internal/webui"
 	"github.com/rin721/go-scaffold-template/pkg/httpx/contract"
 )
@@ -18,8 +22,15 @@ import (
 // 在此追加一项，并同时扩展其运行时在 composition 的装配。
 func applicationHTTPModules() []contract.Module {
 	return []contract.Module{
+		authhttp.ModuleContract(),
 		todohttp.ModuleContract(),
 	}
+}
+
+// applicationPermissionCatalog 是当前应用中“哪些模块贡献权限定义”的唯一显式汇总点。
+func applicationPermissionCatalog() (permissioncatalog.Catalog, error) {
+	definitions := append(authpermission.Definitions(), todopermission.Definitions()...)
+	return permissioncatalog.BuildCatalog(definitions...)
 }
 
 // applicationWebUIModules 是 WebUI runtime 与前端生成器共享的唯一 registration 汇总点。
@@ -47,6 +58,11 @@ func applicationWebUIAvailability(string) webuicontract.Availability {
 	return webuicontract.Availability{State: webuicontract.AvailabilityAvailable}
 }
 
+// applicationNavigationPolicySnapshot 是 053 的确定性默认 provider；056 将从 Navigation Service 提供同一契约。
+func applicationNavigationPolicySnapshot(catalog webuicontract.Catalog) (webuicontract.NavigationPolicySnapshot, error) {
+	return webuicontract.BuildNavigationPolicySnapshot(catalog)
+}
+
 // applicationWebUICatalog 是 WebUI runtime 与前端生成器共享的唯一声明汇总点。
 func applicationWebUICatalog() (webuicontract.Catalog, error) {
 	registrations := applicationWebUIModules()
@@ -62,8 +78,37 @@ func applicationWebUICatalog() (webuicontract.Catalog, error) {
 	}
 	operations["ops.diagnostics"] = struct{}{}
 	operations["ops.metrics"] = struct{}{}
-	operations[authmodel.OperationWebUISession] = struct{}{}
 	if err := catalog.ValidateOperationReferences(operations); err != nil {
+		return webuicontract.Catalog{}, err
+	}
+	permissions, err := applicationPermissionCatalog()
+	if err != nil {
+		return webuicontract.Catalog{}, err
+	}
+	policies, err := operationPolicies()
+	if err != nil {
+		return webuicontract.Catalog{}, err
+	}
+	policyByOperation := make(map[string]authmodel.Policy, len(policies))
+	references := make([]permissioncatalog.Reference, 0, len(policies)+len(catalog.Bindings))
+	for _, policy := range policies {
+		policyByOperation[policy.Operation] = policy
+		if policy.Mode == authmodel.PolicyProtected {
+			references = append(references, permissioncatalog.Reference{Key: permissioncatalog.Key(policy.Scope), ConsumerType: "operation", ConsumerID: policy.Operation})
+		}
+	}
+	for _, binding := range catalog.Bindings {
+		for _, route := range binding.Routes {
+			if route.ViewOperationID == "" {
+				continue
+			}
+			policy := policyByOperation[route.ViewOperationID]
+			if policy.Mode == authmodel.PolicyProtected {
+				references = append(references, permissioncatalog.Reference{Key: permissioncatalog.Key(policy.Scope), ConsumerType: "webui route", ConsumerID: route.ID})
+			}
+		}
+	}
+	if err := permissions.ValidateReferences(references...); err != nil {
 		return webuicontract.Catalog{}, err
 	}
 	return catalog, nil

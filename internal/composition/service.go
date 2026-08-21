@@ -97,13 +97,9 @@ func (a *Application) newServiceRuntime() (*serviceRuntime, error) {
 func applicationRouter(
 	capabilities kernelcomposition.Capabilities,
 	httpConfig httpx.ServerConfig,
-	authMiddleware func(http.Handler) http.Handler,
 	webuiHandler http.Handler,
 	apiRoutes http.Handler,
 ) (httpx.Router, error) {
-	if authMiddleware == nil {
-		return nil, fmt.Errorf("application auth HTTP middleware is nil")
-	}
 	if apiRoutes == nil {
 		return nil, fmt.Errorf("application API routes are nil")
 	}
@@ -134,11 +130,13 @@ func applicationRouter(
 		rateLimiter.Middleware(),
 		overload.Middleware(),
 	)
-	router.UseHTTP(authMiddleware)
 	// Chi Mount 为子 Router 维护 RoutePath，但不会改写普通 http.Handler 看到的
 	// request.URL.Path。WebUI handler 使用标准库 ServeMux 声明相对路径，因此在
 	// Composition 边界统一剥离公开前缀，避免 manifest/Auth 落入 404。
-	router.Mount(webuiHTTPPrefix, http.StripPrefix(webuiHTTPPrefix, webuiHandler))
+	router.Handle(httpx.MethodGet, webuiHTTPPrefix+"/manifest", func(ctx *httpx.Context) error {
+		http.StripPrefix(webuiHTTPPrefix, webuiHandler).ServeHTTP(ctx.ResponseWriter, ctx.Request)
+		return nil
+	})
 	router.Mount("/", apiRoutes)
 	return router, nil
 }
@@ -159,9 +157,8 @@ func operationPolicies() ([]authmodel.Policy, error) {
 		return nil, fmt.Errorf("module operation policy inventory is empty")
 	}
 	policies = append(policies,
-		authmodel.Policy{Operation: authmodel.OperationWebUISession, Mode: authmodel.PolicyProtected, Scope: "management:read", Action: "auth.webui.session.read"},
-		authmodel.Policy{Operation: opsmodel.OperationDiagnostics, Mode: authmodel.PolicyProtected, Scope: "management:read", Action: "ops.diagnostics.read"},
-		authmodel.Policy{Operation: opsmodel.OperationMetrics, Mode: authmodel.PolicyProtected, Scope: "management:read", Action: "ops.metrics.read"},
+		authmodel.Policy{Operation: opsmodel.OperationDiagnostics, Mode: authmodel.PolicyProtected, Scope: authmodel.ScopeManagementRead, Action: "ops.diagnostics.read"},
+		authmodel.Policy{Operation: opsmodel.OperationMetrics, Mode: authmodel.PolicyProtected, Scope: authmodel.ScopeManagementRead, Action: "ops.metrics.read"},
 	)
 	return policies, nil
 }

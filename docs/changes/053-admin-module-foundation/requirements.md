@@ -38,7 +38,7 @@
 | `FOUNDATION-REQ-011` | HTTP Contract 必须正式表达 `none`、`bearer`、`webuiSession` security；operation gate 按契约认证一次并将 Principal 注入 request context。 |
 | `FOUNDATION-REQ-012` | Dispatcher 必须聚合多个 HTTP Module 与 runtime handler map，校验 ModuleID、OperationID 和 handler 一一对应，不再固定 Todo 或读取 `modules[0]`。 |
 | `FOUNDATION-REQ-013` | Auth 必须提供项目自有认证来源/Session Resolver 接入契约；053 由当前真实 WebUI Auth 实现接入，054 再单轨替换为 IAM，不保留永久兼容层。 |
-| `FOUNDATION-REQ-014` | Cookie name、Origin、CSRF 和认证失败语义不得硬编码进通用 contract；当前 Bearer/JWT、Todo、management 和 WebUI 行为不得回归。 |
+| `FOUNDATION-REQ-014` | Cookie name、Origin、CSRF 和认证失败语义不得硬编码进通用 contract；当前 Bearer/JWT、Todo、management 和 WebUI typed request chain 不得回归。Auth 本地账号持久化不属于本项承诺。 |
 
 ### 2.5 WebUI NavigationPolicy
 
@@ -61,7 +61,7 @@
 
 1. 两个真实/测试模块以不同顺序贡献相同集合时，Permission/HTTP/WebUI/Migration Catalog 输出稳定。
 2. 重复 ModuleID、PermissionKey、OperationID、NavigationID 或 migration version table 在启动/写入前被拒绝。
-3. 当前 Todo HTTP 与 Auth WebUI Session 经过统一 security profile 正常工作，不再依赖 URL 前缀跳过。
+3. 当前 Todo HTTP 与 Auth WebUI Session resolver 经过统一 security profile 正确选择并单次注入 Principal，不再依赖 URL 前缀跳过；fresh database 的 Setup/Login 持久化等待 054 IAM。
 4. 默认 NavigationPolicy 生成与当前静态菜单等价的 Manifest，CatalogRevision 不因运行期 policy 变化而改变。
 5. Todo fresh migration 使用独立 version table；退休 baseline 在任何写入前拒绝，默认 `.data/app.db` 不被修改。
 6. 053 完成后仓库仍不存在 IAM、Organization、Navigation 业务模型、表或页面占位实现。

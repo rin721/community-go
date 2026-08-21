@@ -29,12 +29,12 @@ func GenerateOperationsGo(packageName string, modules []Module) ([]byte, error) 
 	source.WriteString("// Operation 描述公开路由的低基数身份与策略。\ntype Operation struct {\n\tID OperationID\n\tMethod string\n\tPath string\n\tPolicy string\n\tScope string\n\tAction string\n}\n\n")
 	source.WriteString("const (\n")
 	for _, item := range operations {
-		fmt.Fprintf(&source, "\tOperation%s OperationID = %s\n", upperFirst(item.ID), strconvQuote(item.ID))
+		fmt.Fprintf(&source, "\tOperation%s OperationID = %s\n", goOperationName(item.ID), strconvQuote(item.ID))
 	}
 	source.WriteString(")\n\nvar operationInventory = [...]Operation{\n")
 	for _, item := range operations {
 		fmt.Fprintf(&source, "\t{ID: Operation%s, Method: %s, Path: %s, Policy: %s, Scope: %s, Action: %s},\n",
-			upperFirst(item.ID), strconvQuote(item.Method), strconvQuote(item.Path),
+			goOperationName(item.ID), strconvQuote(item.Method), strconvQuote(item.Path),
 			strconvQuote(item.Policy), strconvQuote(item.Scope), strconvQuote(item.Action))
 	}
 	source.WriteString("}\n\n")
@@ -42,7 +42,7 @@ func GenerateOperationsGo(packageName string, modules []Module) ([]byte, error) 
 	source.WriteString("// OperationForStrictName 把 strict middleware 名称映射回原始 operationId。\nfunc OperationForStrictName(name string) (Operation, bool) {\n\tswitch name {\n")
 	for _, item := range operations {
 		fmt.Fprintf(&source, "\tcase %s:\n\t\treturn Operation{ID: Operation%s, Method: %s, Path: %s, Policy: %s, Scope: %s, Action: %s}, true\n",
-			strconvQuote(item.StrictName), upperFirst(item.ID), strconvQuote(item.Method), strconvQuote(item.Path),
+			strconvQuote(item.StrictName), goOperationName(item.ID), strconvQuote(item.Method), strconvQuote(item.Path),
 			strconvQuote(item.Policy), strconvQuote(item.Scope), strconvQuote(item.Action))
 	}
 	source.WriteString("\tdefault:\n\t\treturn Operation{}, false\n\t}\n}\n")
@@ -54,19 +54,20 @@ func GenerateOperationsGo(packageName string, modules []Module) ([]byte, error) 
 }
 
 func flattenOperations(modules []Module) ([]inventoryOperation, error) {
-	seen := make(map[string]bool)
+	if err := validateModules(modules); err != nil {
+		return nil, err
+	}
 	result := make([]inventoryOperation, 0)
+	strictNames := make(map[string]string)
 	for _, module := range modules {
-		if err := validateModule(module); err != nil {
-			return nil, err
-		}
 		for _, op := range module.Operations {
-			if seen[string(op.ID)] {
-				return nil, fmt.Errorf("operationId %q is declared more than once", op.ID)
+			strictName := goOperationName(string(op.ID))
+			if owner, exists := strictNames[strictName]; exists {
+				return nil, fmt.Errorf("operationIds %q and %q map to the same Go identity %q", owner, op.ID, strictName)
 			}
-			seen[string(op.ID)] = true
+			strictNames[strictName] = string(op.ID)
 			result = append(result, inventoryOperation{
-				ID: string(op.ID), StrictName: upperFirst(string(op.ID)),
+				ID: string(op.ID), StrictName: strictName,
 				Method: string(op.Method), Path: op.Path,
 				Policy: string(op.Policy.Mode), Scope: op.Policy.Scope, Action: op.Policy.Action,
 			})
@@ -76,11 +77,21 @@ func flattenOperations(modules []Module) ([]inventoryOperation, error) {
 	return result, nil
 }
 
-func upperFirst(value string) string {
-	if value == "" {
-		return ""
+func goOperationName(value string) string {
+	var result strings.Builder
+	upperNext := true
+	for _, character := range value {
+		if character >= 'a' && character <= 'z' || character >= 'A' && character <= 'Z' || character >= '0' && character <= '9' {
+			if upperNext && character >= 'a' && character <= 'z' {
+				character -= 'a' - 'A'
+			}
+			result.WriteRune(character)
+			upperNext = false
+			continue
+		}
+		upperNext = true
 	}
-	return strings.ToUpper(value[:1]) + value[1:]
+	return result.String()
 }
 
 func strconvQuote(value string) string { return fmt.Sprintf("%q", value) }

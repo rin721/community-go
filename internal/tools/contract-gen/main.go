@@ -14,8 +14,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/rin721/go-scaffold-template/internal/projectlayout"
+	authhttp "github.com/rin721/go-scaffold-template/internal/module/auth/binding/http"
 	todohttp "github.com/rin721/go-scaffold-template/internal/module/todo/binding/http"
+	"github.com/rin721/go-scaffold-template/internal/projectlayout"
 	"github.com/rin721/go-scaffold-template/pkg/httpx/contract"
 )
 
@@ -59,7 +60,7 @@ func run(outputOpenAPI, outputInventory, packageName string) error {
 		Title:   "go-scaffold-template HTTP API",
 		Version: "1.0.0-rc.1",
 		Description: "当前模板的公开 HTTP 契约。所有失败使用 RFC 9457 Problem Details；" +
-			"Todo operation 使用 bearer JWT，并由生成的 policy inventory 驱动授权。",
+			"Todo operation 使用 bearer JWT，Auth operation 使用 none/webuiSession，并由生成的 policy inventory 驱动授权。",
 	}
 	document, err := contract.BuildDocument(info, modules)
 	if err != nil {
@@ -103,6 +104,7 @@ func writeFile(path string, content []byte) error {
 // 生成器独立于 production 运行图，且后续新增模块只需在此追加一行并扩展 ModuleContract 注册。
 func registeredModules() []contract.Module {
 	return []contract.Module{
+		authhttp.ModuleContract(),
 		todohttp.ModuleContract(),
 	}
 }

@@ -7,7 +7,6 @@ import (
 	"github.com/rin721/go-scaffold-template/internal/module"
 	configbinding "github.com/rin721/go-scaffold-template/internal/module/migration/binding/config"
 	"github.com/rin721/go-scaffold-template/pkg/database"
-	dbmigrate "github.com/rin721/go-scaffold-template/pkg/database/migrate"
 )
 
 const moduleID module.ID = "migration"
@@ -19,8 +18,8 @@ type Module struct {
 }
 
 // NewModule 构造不执行 I/O 的 Migration 模块。
-func NewModule(databaseConfig database.Config, config configbinding.Config, set dbmigrate.Set, factory Factory, completion Completion) (Module, error) {
-	service, err := New(databaseConfig, config, set, factory, completion)
+func NewModule(databaseConfig database.Config, config configbinding.Config, catalog Catalog, factory Factory, preflight Preflight) (Module, error) {
+	service, err := New(databaseConfig, config, catalog, factory, preflight)
 	if err != nil {
 		return Module{}, fmt.Errorf("compose migration service: %w", err)
 	}

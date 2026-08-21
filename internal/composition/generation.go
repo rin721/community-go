@@ -28,7 +28,6 @@ import (
 	opsmodel "github.com/rin721/go-scaffold-template/internal/module/ops/model"
 	"github.com/rin721/go-scaffold-template/internal/module/todo"
 	configbinding "github.com/rin721/go-scaffold-template/internal/module/todo/binding/config"
-	migrationbinding "github.com/rin721/go-scaffold-template/internal/module/todo/binding/migration"
 	httptransport "github.com/rin721/go-scaffold-template/internal/transport/http"
 	webuicontract "github.com/rin721/go-scaffold-template/internal/webui"
 	"github.com/rin721/go-scaffold-template/pkg/clock"
@@ -307,7 +306,7 @@ func (f *applicationGenerationFactory) Prepare(
 	if err != nil {
 		return abort(err)
 	}
-	operationGate, err := newOperationGate(generation.authModule.Service)
+	operationGate, err := newOperationGate(generation.authModule.Service, generation.authModule.BearerSource, generation.authModule.SessionSource)
 	if err != nil {
 		return abort(err)
 	}
@@ -316,23 +315,16 @@ func (f *applicationGenerationFactory) Prepare(
 	if err != nil {
 		return abort(err)
 	}
-	compatibility, err := migrationbinding.NewCompatibility(databaseAccess)
-	if err != nil {
-		return abort(err)
-	}
-	if err := compatibility.Check(ctx); err != nil {
-		return abort(fmt.Errorf("verify todo migration compatibility: %w", err))
-	}
 	databaseConfig, err := databaseapp.Decode(snapshot)
 	if err != nil {
 		return abort(err)
 	}
-	migrationCompletion, err := migrationbinding.NewCompletion(databaseConfig.PackageConfig())
+	migrationService, err := applicationMigrationService(snapshot, databaseConfig.PackageConfig())
 	if err != nil {
 		return abort(err)
 	}
-	if err := migrationCompletion.Verify(ctx); err != nil {
-		return abort(fmt.Errorf("verify todo migration completion: %w", err))
+	if err := migrationService.Compatible(ctx); err != nil {
+		return abort(fmt.Errorf("verify application migration compatibility: %w", err))
 	}
 
 	executionDigest, err := snapshot.SectionDigest("execution")
@@ -443,7 +435,7 @@ func (f *applicationGenerationFactory) Prepare(
 		generation.participants = append(generation.participants, participant)
 	}
 
-	dispatcher, err := newContractDispatcher(generation.module.Operations)
+	dispatcher, err := newApplicationContractDispatcher(generation.module.Operations, generation.authModule)
 	if err != nil {
 		return abort(err)
 	}
@@ -451,20 +443,24 @@ func (f *applicationGenerationFactory) Prepare(
 	if err != nil {
 		return abort(err)
 	}
-	manifestHandler := newWebUIManifestHandler(generation.webuiCatalog, generation.authModule.Service, applicationWebUIAvailability)
+	navigationPolicy, err := applicationNavigationPolicySnapshot(generation.webuiCatalog)
+	if err != nil {
+		return abort(fmt.Errorf("build default navigation policy: %w", err))
+	}
+	manifestHandler, err := newWebUIManifestHandler(generation.webuiCatalog, navigationPolicy, generation.authModule.Service, applicationWebUIAvailability)
+	if err != nil {
+		return abort(err)
+	}
 	webuiHandler := http.NewServeMux()
 	if generation.authModule.WebUI != nil {
 		manifestHandler = generation.authModule.WebUI.WithOptionalSession(manifestHandler)
 	}
 	webuiHandler.Handle("/manifest", manifestHandler)
-	if generation.authModule.WebUIHTTP != nil {
-		webuiHandler.Handle("/auth/", generation.authModule.WebUIHTTP)
-	}
 	router, err := applicationRouter(kernelcomposition.Capabilities{
 		Logger: generation.logger.value(), Clock: clock.System(), IDGenerator: idgen.UUID(), Validator: validation.New(),
 		Database: generation.database.value(), Cache: generation.cache.value(),
 		I18n: generation.i18n.value(), Storage: generation.storage.value(),
-	}, httpConfig, generation.authModule.HTTPMiddleware, webuiHandler, apiRoutes)
+	}, httpConfig, webuiHandler, apiRoutes)
 	if err != nil {
 		return abort(err)
 	}

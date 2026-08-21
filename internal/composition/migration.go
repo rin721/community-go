@@ -11,6 +11,7 @@ import (
 	"github.com/rin721/go-scaffold-template/internal/module/migration"
 	migrationconfig "github.com/rin721/go-scaffold-template/internal/module/migration/binding/config"
 	todomigration "github.com/rin721/go-scaffold-template/internal/module/todo/binding/migration"
+	pkgdatabase "github.com/rin721/go-scaffold-template/pkg/database"
 	"github.com/rin721/go-scaffold-template/pkg/logger"
 )
 
@@ -22,10 +23,40 @@ func (e migrationExecutor) MigrationStatus(ctx context.Context) (migration.Statu
 	})
 }
 
-func (e migrationExecutor) MigrationUp(ctx context.Context, legacyOwnerSubject string) (migration.Status, error) {
+func (e migrationExecutor) MigrationUp(ctx context.Context) (migration.Status, error) {
 	return e.application.executeMigration(ctx, "db.migrate.up", func(ctx context.Context, service *migration.Service) (migration.Status, error) {
-		return service.Up(ctx, legacyOwnerSubject)
+		return service.Up(ctx)
 	})
+}
+
+// applicationMigrationCatalog 是当前应用中“哪些模块贡献 migration set”的唯一显式汇总点。
+func applicationMigrationCatalog() (migration.Catalog, error) {
+	return migration.BuildCatalog(migration.Registration{
+		ModuleID: "todo",
+		Source:   "internal/module/todo/binding/migration",
+		Set:      todomigration.Set(),
+		RetiredTables: []string{
+			"schema_migrations",
+			"webui_sessions",
+			"webui_users",
+		},
+	})
+}
+
+func applicationMigrationService(snapshot config.Snapshot, databaseConfig pkgdatabase.Config) (*migration.Service, error) {
+	moduleConfig, err := migrationconfig.Decode(snapshot)
+	if err != nil {
+		return nil, err
+	}
+	catalog, err := applicationMigrationCatalog()
+	if err != nil {
+		return nil, err
+	}
+	module, err := migration.NewModule(databaseConfig, moduleConfig, catalog, migration.NewDefaultFactory, migration.DefaultPreflight)
+	if err != nil {
+		return nil, err
+	}
+	return module.Service, nil
 }
 
 func (a *Application) executeMigration(
@@ -67,24 +98,12 @@ func (a *Application) executeMigration(
 		logMigrationFailed(logging, operationName, "decode-database", err)
 		return migration.Status{}, fmt.Errorf("decode migration database configuration: %w", err)
 	}
-	moduleConfig, err := migrationconfig.Decode(snapshot)
-	if err != nil {
-		logMigrationFailed(logging, operationName, "decode-migration", err)
-		return migration.Status{}, err
-	}
-	completion, err := todomigration.NewCompletion(databaseConfig.PackageConfig())
-	if err != nil {
-		logMigrationFailed(logging, operationName, "compose-completion", err)
-		return migration.Status{}, err
-	}
-	module, err := migration.NewModule(
-		databaseConfig.PackageConfig(), moduleConfig, todomigration.Set(), migration.NewDefaultFactory, completion,
-	)
+	service, err := applicationMigrationService(snapshot, databaseConfig.PackageConfig())
 	if err != nil {
 		logMigrationFailed(logging, operationName, "compose-service", err)
 		return migration.Status{}, err
 	}
-	status, err := operation(ctx, module.Service)
+	status, err := operation(ctx, service)
 	if err != nil {
 		logMigrationFailed(logging, operationName, "run", err)
 		return status, err
@@ -112,13 +131,10 @@ func logMigrationCompleted(logging logger.Logger, operation string, status migra
 		logger.String("owner", "migration"),
 		logger.String("phase", "completed"),
 		logger.String("operation", operation),
-		logger.Any("current_version", status.Current),
-		logger.Any("target_version", status.Target),
-		logger.Bool("dirty", status.Dirty),
-		logger.Bool("empty", status.Empty),
+		logger.Any("set_count", len(status.Sets)),
 		logger.Bool("compatible", status.Compatible),
 	}
-	if status.Dirty || !status.Compatible {
+	if !status.Compatible {
 		logging.Warn("migration operation completed with action required", fields...)
 		return
 	}
@@ -148,6 +164,8 @@ func migrationErrorType(err error) string {
 		return "context_deadline_exceeded"
 	case errors.Is(err, migration.ErrCompletionRequired):
 		return "migration_completion_required"
+	case errors.Is(err, migration.ErrPreReleaseBaselineResetRequired):
+		return "migration_baseline_reset_required"
 	default:
 		return fmt.Sprintf("%T", err)
 	}

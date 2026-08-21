@@ -13,9 +13,9 @@ import (
 	"github.com/rin721/go-scaffold-template/internal/kernel/config"
 	"github.com/rin721/go-scaffold-template/internal/module/auth"
 	authmodel "github.com/rin721/go-scaffold-template/internal/module/auth/model"
+	"github.com/rin721/go-scaffold-template/internal/module/migration"
 	"github.com/rin721/go-scaffold-template/internal/module/todo"
 	configbinding "github.com/rin721/go-scaffold-template/internal/module/todo/binding/config"
-	migrationbinding "github.com/rin721/go-scaffold-template/internal/module/todo/binding/migration"
 	"github.com/rin721/go-scaffold-template/internal/module/todo/model"
 	"github.com/rin721/go-scaffold-template/internal/module/todo/service"
 	pkgexecution "github.com/rin721/go-scaffold-template/pkg/execution"
@@ -23,13 +23,12 @@ import (
 )
 
 type preparedTodo struct {
-	coordinator   *kernel.Coordinator
-	capabilities  kernelcomposition.Capabilities
-	module        todo.Module
-	authModule    auth.Module
-	compatibility *migrationbinding.Compatibility
-	completion    *migrationbinding.Completion
-	candidate     config.Snapshot
+	coordinator  *kernel.Coordinator
+	capabilities kernelcomposition.Capabilities
+	module       todo.Module
+	authModule   auth.Module
+	migration    *migration.Service
+	candidate    config.Snapshot
 }
 
 func (a *Application) prepareTodo(ctx context.Context) (preparedTodo, error) {
@@ -71,15 +70,11 @@ func (a *Application) prepareTodo(ctx context.Context) (preparedTodo, error) {
 	if err != nil {
 		return preparedTodo{}, err
 	}
-	migrationCompletion, err := migrationbinding.NewCompletion(databaseConfig.PackageConfig())
+	migrationService, err := applicationMigrationService(candidate, databaseConfig.PackageConfig())
 	if err != nil {
 		return preparedTodo{}, err
 	}
 	databaseAccess, err := adaptDatabaseAccess(capabilities.Database)
-	if err != nil {
-		return preparedTodo{}, err
-	}
-	compatibility, err := migrationbinding.NewCompatibility(databaseAccess)
 	if err != nil {
 		return preparedTodo{}, err
 	}
@@ -107,7 +102,7 @@ func (a *Application) prepareTodo(ctx context.Context) (preparedTodo, error) {
 	}
 	return preparedTodo{
 		coordinator: coordinator, capabilities: capabilities, module: module, authModule: authModule,
-		compatibility: compatibility, completion: migrationCompletion, candidate: candidate,
+		migration: migrationService, candidate: candidate,
 	}, nil
 }
 
@@ -127,11 +122,8 @@ func (a *Application) executeTodo(ctx context.Context, actor service.Actor, oper
 		return fmt.Errorf("create todo operation supervisor: %w", err)
 	}
 	if err := owner.RunOperation(ctx, func(operationCtx context.Context) error {
-		if err := prepared.compatibility.Check(operationCtx); err != nil {
-			return fmt.Errorf("verify todo migration compatibility: %w", err)
-		}
-		if err := prepared.completion.Verify(operationCtx); err != nil {
-			return fmt.Errorf("verify todo migration completion: %w", err)
+		if err := prepared.migration.Compatible(operationCtx); err != nil {
+			return fmt.Errorf("verify application migration compatibility: %w", err)
 		}
 		scopes := make([]authmodel.Scope, len(actor.Scopes))
 		for index, scope := range actor.Scopes {

@@ -6,7 +6,7 @@
 
 新增模块必须先按 [应用模块开发指南](../../docs/development/application-module-development.md) 完成真实用例、现有能力、新 Capability、资源 owner、生命周期和当前契约适配性评估，再进入目录与接口设计。
 
-当前已有 [Auth](auth/README.md)、[Ops](ops/README.md)、[Migration](migration/README.md) 与 [Todo](todo/README.md) 模块。Auth 拥有认证/授权/审计，Ops 拥有 management、探针和诊断用例，Migration 编排显式 status/up，Todo 拥有业务实体、对象授权 port 与 SQL migration set；composition 只连接完成品：
+当前已有 [Auth](auth/README.md)、[Ops](ops/README.md)、[Migration](migration/README.md) 与 [Todo](todo/README.md) 模块。Auth 拥有认证/授权/审计和当前 WebUI 认证来源，Ops 拥有 management、探针和诊断用例，Migration 编排显式多 set status/up，Todo 拥有业务实体、对象授权 port 与 SQL migration set；composition 只连接完成品：
 
 ```text
 model <- service <- repo/binding <- module.go <- internal/composition
@@ -25,7 +25,9 @@ model <- service <- repo/binding <- module.go <- internal/composition
 
 HTTP 模块遵循固定的代码优先源头与分层：模块顶层 `handler/` 承载 HTTP 应用语义适配（`Operations`/`Handler`、DTO 与映射、错误呈现、`ActorAccess`），`binding/http` 只做代码优先契约声明（`pkg/httpx/contract.Module`，见 `contract_module.go`）与运行期把 typed handler 装箱为 `contract.Handler`（见 `handlers.go`）；`internal/composition` 聚合模块基础契约与运行期 handler；`internal/transport/http` 从同一份契约一次绑定 OpenAPI 校验、operation gate 与路由；生成器 `internal/tools/contract-gen` 据此渲染 `api/openapi.yaml` 与 operation inventory。`handler` 不 import `binding/**` 或 `internal/transport/**`，不创建 Router、不加载 OpenAPI。新增模块不得复制完整 Router、route binding 或 method/path 表。
 
-各模块契约形态：**Todo** 是最完整参考（`handler/` + `binding/http` 契约/装箱 + `binding/config`/`binding/cli`/`binding/migration` + `binding/i18n` 模块自有语言资源）。**Ops** 的 management HTTP 是独立 management 监听（`/startupz /livez /readyz /build /diagnostics /metrics`），不属于公开 API，不作为公开契约参与 contract-gen，但必须在 `module.go` 中以模块自有 `ManagementHTTP` 输出并经 composition 挂载，文档明确其边界。**Auth** 是横切 middleware/port 模块（`HTTPMiddleware`、`Access`、`Authorizer`、`Audit`、`CredentialVerifier`），无自有业务 HTTP operation，不要求 `ModuleContract`。**Migration** 只编排 status/up 用例与 cli/config binding，无 HTTP、无 i18n。新增业务模块按 [应用模块开发指南](../../docs/development/application-module-development.md) 的统一 binding 契约清单（HTTP/config/cli/migration/i18n/middleware）只创建真实需要的 binding。
+各模块契约形态：**Todo** 是完整垂直切片参考（`handler/` + `binding/http` 契约/装箱 + `binding/config`/`binding/cli`/`binding/migration` + `binding/i18n` + `binding/permission`）。**Ops** 的 management HTTP 是独立 management 监听，不参与公开 contract-gen。**Auth** 提供横切认证来源与授权，同时让当前 WebUI setup/login/session/logout 通过 `binding/http` 进入统一 typed contract；054 将单轨替换本地账号/Session owner。**Migration** 聚合各模块显式贡献的 Set Catalog，本身不拥有业务 SQL。新增业务模块按 [应用模块开发指南](../../docs/development/application-module-development.md) 只创建真实需要的 binding。
+
+应用级 Permission Catalog、HTTP Module、WebUI Registration 和 Migration Set 分别类型化聚合；禁止把它们塞入万能 `Contribution`。Permission Catalog 只声明稳定 Key/owner/message ID，不存角色关系、不执行授权；Migration Catalog 不提供跨 set 事务。所有清单仍由 composition 显式列出，禁止扫描、`init` 注册、Service Locator 或全局可变 Registry。
 
 新增业务能力先把真实存在的 Model、Repository、Service、Handler、Adapter、binding、配置、migration/运行单元与 contribution 完整收口到 `internal/module/<name>`，不为对称制造空层。只服务该模块的第三方进入完整路径 `internal/module/<name>/adapter/<technology>` 并完全封装技术影子；不存在无 owner 的全局 `internal/module/adapter`。
 

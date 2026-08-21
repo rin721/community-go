@@ -126,3 +126,17 @@ func TestOperationPoliciesIncludeWebUISessionAuthorization(t *testing.T) {
 	}
 	t.Fatal("WebUI session authorization policy is missing")
 }
+
+func TestApplicationPermissionCatalogCoversCurrentOperationAndWebUIReferences(t *testing.T) {
+	catalog, err := applicationPermissionCatalog()
+	if err != nil {
+		t.Fatal(err)
+	}
+	definitions := catalog.Definitions()
+	if len(definitions) != 3 {
+		t.Fatalf("unexpected permission definitions: %#v", definitions)
+	}
+	if _, err := applicationWebUICatalog(); err != nil {
+		t.Fatalf("validate application permission references: %v", err)
+	}
+}

@@ -73,10 +73,13 @@ func TestProcessGeneratedConfigurationSupportsMigrationAndServiceStartup(t *test
 		t.Fatalf("generated config migration status error = %v, stderr=%s", err, stderr.String())
 	}
 	var beforeMigration struct {
-		Empty      bool `json:"empty"`
+		Sets []struct {
+			Empty      bool `json:"empty"`
+			Compatible bool `json:"compatible"`
+		} `json:"sets"`
 		Compatible bool `json:"compatible"`
 	}
-	if err := json.Unmarshal(stdout.Bytes(), &beforeMigration); err != nil || !beforeMigration.Empty || beforeMigration.Compatible {
+	if err := json.Unmarshal(stdout.Bytes(), &beforeMigration); err != nil || len(beforeMigration.Sets) != 1 || !beforeMigration.Sets[0].Empty || beforeMigration.Compatible {
 		t.Fatalf("status before migration = %q, parsed=%#v, err=%v", stdout.String(), beforeMigration, err)
 	}
 
@@ -86,10 +89,13 @@ func TestProcessGeneratedConfigurationSupportsMigrationAndServiceStartup(t *test
 		t.Fatalf("generated config migration up error = %v, stderr=%s", err, stderr.String())
 	}
 	var afterMigration struct {
-		Empty      bool `json:"empty"`
+		Sets []struct {
+			Empty      bool `json:"empty"`
+			Compatible bool `json:"compatible"`
+		} `json:"sets"`
 		Compatible bool `json:"compatible"`
 	}
-	if err := json.Unmarshal(stdout.Bytes(), &afterMigration); err != nil || afterMigration.Empty || !afterMigration.Compatible {
+	if err := json.Unmarshal(stdout.Bytes(), &afterMigration); err != nil || len(afterMigration.Sets) != 1 || afterMigration.Sets[0].Empty || !afterMigration.Sets[0].Compatible || !afterMigration.Compatible {
 		t.Fatalf("status after migration = %q, parsed=%#v, err=%v", stdout.String(), afterMigration, err)
 	}
 

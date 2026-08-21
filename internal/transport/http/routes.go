@@ -23,7 +23,6 @@ import (
 
 const (
 	acceptLanguageHeader = "Accept-Language"
-	bearerSecurityScheme = "bearerAuth"
 )
 
 var (
@@ -35,7 +34,7 @@ var (
 
 // OperationGate 是应用 route binding 使用的认证与 operation 授权窄端口。
 type OperationGate interface {
-	Authenticate(context.Context) error
+	Authenticate(*http.Request, contract.Security) (*http.Request, error)
 	Enforce(context.Context, string) error
 }
 
@@ -110,7 +109,7 @@ func buildSpec(modules []contract.Module) (*openapi3.T, error) {
 func bindOperation(router chi.Router, specification *openapi3.T, operation contract.Operation, handler contract.Handler, gate OperationGate) {
 	router.Method(string(operation.Method), operation.Path, http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		pathParams := collectPathParams(operation, request)
-		if err := validateRequest(specification, operation, request, pathParams, gate); err != nil {
+		if err := validateRequest(specification, operation, request, pathParams); err != nil {
 			writeValidationError(writer, request, err)
 			return
 		}
@@ -121,8 +120,14 @@ func bindOperation(router chi.Router, specification *openapi3.T, operation contr
 		ctx = httpx.WithRequestLanguage(ctx, request.Header.Get(acceptLanguageHeader))
 		request = request.WithContext(ctx)
 		request = contract.WithPathValues(request, pathParams)
+		authenticatedRequest, err := gate.Authenticate(request, operation.Security)
+		if err != nil {
+			writeGateError(writer, request, err)
+			return
+		}
+		request = authenticatedRequest
 
-		if err := gate.Enforce(ctx, operationID); err != nil {
+		if err := gate.Enforce(request.Context(), operationID); err != nil {
 			writeGateError(writer, request, err)
 			return
 		}
@@ -147,7 +152,7 @@ func collectPathParams(operation contract.Operation, request *http.Request) map[
 }
 
 // validateRequest 用规范校验请求（含路径参数与认证）。
-func validateRequest(specification *openapi3.T, operation contract.Operation, request *http.Request, pathParams map[string]string, gate OperationGate) error {
+func validateRequest(specification *openapi3.T, operation contract.Operation, request *http.Request, pathParams map[string]string) error {
 	pathItem := specification.Paths.Find(operation.Path)
 	if pathItem == nil {
 		return fmt.Errorf("contract path %q is absent from rendered OpenAPI", operation.Path)
@@ -164,11 +169,11 @@ func validateRequest(specification *openapi3.T, operation contract.Operation, re
 		Operation: specOperation,
 	}
 	options := &openapi3filter.Options{
-		AuthenticationFunc: func(ctx context.Context, input *openapi3filter.AuthenticationInput) error {
-			if input == nil || input.SecuritySchemeName != bearerSecurityScheme {
+		AuthenticationFunc: func(_ context.Context, input *openapi3filter.AuthenticationInput) error {
+			if input == nil || input.SecuritySchemeName != string(operation.Security) {
 				return ErrUnauthenticated
 			}
-			return gate.Authenticate(ctx)
+			return nil
 		},
 	}
 	input := &openapi3filter.RequestValidationInput{
@@ -201,7 +206,7 @@ func writeValidationError(writer http.ResponseWriter, request *http.Request, err
 	switch {
 	case errors.Is(err, ErrUnauthenticated):
 		httpx.WriteProblem(writer, request, &httpx.StatusError{
-			StatusCode: http.StatusUnauthorized, Code: "unauthenticated", Message: "valid bearer authentication is required", Err: err,
+			StatusCode: http.StatusUnauthorized, Code: "unauthenticated", Message: "valid operation authentication is required", Err: err,
 		})
 	case errors.Is(err, ErrPermissionDenied):
 		httpx.WriteProblem(writer, request, &httpx.StatusError{
@@ -234,7 +239,7 @@ func writeGateError(writer http.ResponseWriter, request *http.Request, err error
 	switch {
 	case errors.Is(err, ErrUnauthenticated):
 		httpx.WriteProblem(writer, request, &httpx.StatusError{
-			StatusCode: http.StatusUnauthorized, Code: "unauthenticated", Message: "valid bearer authentication is required", Err: err,
+			StatusCode: http.StatusUnauthorized, Code: "unauthenticated", Message: "valid operation authentication is required", Err: err,
 		})
 	case errors.Is(err, ErrPermissionDenied):
 		httpx.WriteProblem(writer, request, &httpx.StatusError{

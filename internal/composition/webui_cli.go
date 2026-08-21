@@ -10,7 +10,6 @@ import (
 	"github.com/rin721/go-scaffold-template/internal/kernel/config"
 	"github.com/rin721/go-scaffold-template/internal/module/auth"
 	authconfig "github.com/rin721/go-scaffold-template/internal/module/auth/binding/config"
-	migrationbinding "github.com/rin721/go-scaffold-template/internal/module/todo/binding/migration"
 	"github.com/rin721/go-scaffold-template/pkg/supervisor"
 )
 
@@ -61,11 +60,7 @@ func (a *Application) executeWebUIResetPassword(ctx context.Context, username, p
 	if err != nil {
 		return err
 	}
-	compatibility, err := migrationbinding.NewCompatibility(databaseAccess)
-	if err != nil {
-		return err
-	}
-	completion, err := migrationbinding.NewCompletion(databaseConfig.PackageConfig())
+	migrationService, err := applicationMigrationService(candidate, databaseConfig.PackageConfig())
 	if err != nil {
 		return err
 	}
@@ -88,11 +83,8 @@ func (a *Application) executeWebUIResetPassword(ctx context.Context, username, p
 		return fmt.Errorf("create webui operation supervisor: %w", err)
 	}
 	if err := owner.RunOperation(ctx, func(operationCtx context.Context) error {
-		if err := compatibility.Check(operationCtx); err != nil {
-			return fmt.Errorf("verify webui migration compatibility: %w", err)
-		}
-		if err := completion.Verify(operationCtx); err != nil {
-			return fmt.Errorf("verify webui migration completion: %w", err)
+		if err := migrationService.Compatible(operationCtx); err != nil {
+			return fmt.Errorf("verify application migration compatibility: %w", err)
 		}
 		return authModule.WebUI.ResetPassword(operationCtx, username, password)
 	}); err != nil {

@@ -53,6 +53,35 @@ func ReadStatus(ctx context.Context, config pkgdatabase.Config, set Set) (result
 	return Status{Version: uint(version), Dirty: dirty}, nil
 }
 
+// ReadTablePresence 只读检查精确表名是否存在，不创建 migration version table。
+func ReadTablePresence(ctx context.Context, config pkgdatabase.Config, tables []string) (result map[string]bool, resultErr error) {
+	if ctx == nil {
+		return nil, fmt.Errorf("migration table inspection context is nil")
+	}
+	if err := pkgdatabase.ValidateConfig(&config); err != nil {
+		return nil, fmt.Errorf("validate migration table inspection database config: %w", err)
+	}
+	for _, table := range tables {
+		if !sqliteIdentifier.MatchString(table) {
+			return nil, fmt.Errorf("migration inspection table %q is invalid", table)
+		}
+	}
+	connection, _, err := openDatabase(config)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { resultErr = errors.Join(resultErr, sanitize(connection.Close())) }()
+	result = make(map[string]bool, len(tables))
+	for _, table := range tables {
+		exists, err := migrationTableExists(ctx, connection, config.Driver, table)
+		if err != nil {
+			return nil, fmt.Errorf("inspect migration table %q: %w", table, sanitize(err))
+		}
+		result[table] = exists
+	}
+	return result, nil
+}
+
 func migrationTableExists(ctx context.Context, connection *sql.DB, driver pkgdatabase.Driver, table string) (bool, error) {
 	var exists bool
 	switch driver {

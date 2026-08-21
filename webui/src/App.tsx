@@ -45,7 +45,7 @@ export function App() {
   }, [navigate, refreshManifest, webuiSession]);
   if (error) return <StartupState title={translateMessage("webui.host.assembly.title")} detail={translateMessage("webui.host.assembly.detail")} />;
   if (!manifest) return <StartupState title={translateMessage("webui.host.loading.title")} detail={translateMessage("webui.host.loading.detail")} />;
-  if (manifest.revision !== webuiRevision) return <StartupState title={translateMessage("webui.host.revision.title")} detail={translateMessage("webui.host.revision.detail")} />;
+  if (manifest.catalogRevision !== webuiRevision) return <StartupState title={translateMessage("webui.host.revision.title")} detail={translateMessage("webui.host.revision.detail")} />;
   const runtime: HostRuntime = { manifest, principal, completeAuthentication, navigateToDefault: () => navigateToDefault() };
   return <HostRuntimeProvider value={runtime}><Routes><Route element={<BlankLayout />}>{manifest.routes.filter((route) => route.layout === "blank").map((route) => <Route key={route.id} path={route.path} element={<ManifestPage route={route} manifest={manifest} />} />)}</Route><Route element={<AppShell manifest={manifest} principal={principal} onLogout={handleLogout} />}>{manifest.routes.filter((route) => route.layout === "app").map((route) => <Route key={route.id} path={route.path} element={<ManifestPage route={route} manifest={manifest} />} />)}<Route path="/403" element={<SystemStatePage kind="forbidden" />} /><Route path="/404" element={<SystemStatePage kind="notFound" />} /></Route><Route path="/" element={<RootRedirect manifest={manifest} />} /><Route path="*" element={<StandaloneNotFound />} /></Routes></HostRuntimeProvider>;
 }

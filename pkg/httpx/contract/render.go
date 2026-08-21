@@ -44,12 +44,14 @@ func violationSchema() *Schema {
 
 // BuildDocument 把模块契约渲染为 OpenAPI 3.0.3 文档。modules 必须已通过 Validate。
 func BuildDocument(info Info, modules []Module) (*Document, error) {
-	for _, module := range modules {
-		if err := validateModule(module); err != nil {
-			return nil, err
-		}
+	if err := validateModules(modules); err != nil {
+		return nil, err
 	}
-	spec := newSpec(info)
+	securitySchemes := make([]SecurityScheme, 0)
+	for _, module := range modules {
+		securitySchemes = append(securitySchemes, module.SecuritySchemes...)
+	}
+	spec := newSpec(info, securitySchemes)
 	for _, module := range modules {
 		spec.Tags = append(spec.Tags, &openapi3.Tag{Name: module.Name, Description: module.Description})
 		for _, schema := range module.Schemas {
@@ -148,18 +150,14 @@ func (d *Document) Validate() error {
 	return nil
 }
 
-func newSpec(info Info) *openapi3.T {
-	return &openapi3.T{
+func newSpec(info Info, schemes []SecurityScheme) *openapi3.T {
+	spec := &openapi3.T{
 		OpenAPI: "3.0.3",
 		Info: &openapi3.Info{
 			Title: info.Title, Version: info.Version, Description: info.Description,
 		},
 		Components: &openapi3.Components{
-			SecuritySchemes: openapi3.SecuritySchemes{
-				"bearerAuth": &openapi3.SecuritySchemeRef{
-					Value: &openapi3.SecurityScheme{Type: "http", Scheme: "bearer", BearerFormat: "JWT"},
-				},
-			},
+			SecuritySchemes: openapi3.SecuritySchemes{},
 			Schemas: openapi3.Schemas{
 				"Problem":   renderSchema(problemSchema()),
 				"Violation": renderSchema(violationSchema()),
@@ -167,6 +165,17 @@ func newSpec(info Info) *openapi3.T {
 		},
 		Paths: openapi3.NewPaths(),
 	}
+	for _, scheme := range schemes {
+		var rendered *openapi3.SecurityScheme
+		switch scheme.Kind {
+		case SecuritySchemeHTTPBearer:
+			rendered = &openapi3.SecurityScheme{Type: "http", Scheme: "bearer", BearerFormat: "JWT"}
+		case SecuritySchemeAPIKeyCookie:
+			rendered = &openapi3.SecurityScheme{Type: "apiKey", In: "cookie", Name: scheme.ParameterName}
+		}
+		spec.Components.SecuritySchemes[string(scheme.ID)] = &openapi3.SecuritySchemeRef{Value: rendered}
+	}
+	return spec
 }
 
 // addOperation 把一个模块 operation 渲染为 path item 并注册进 paths。
@@ -192,7 +201,7 @@ func addOperation(spec *openapi3.T, moduleName string, operation Operation) erro
 
 	if operation.Security != SecurityNone {
 		op.Security = &openapi3.SecurityRequirements{
-			{"bearerAuth": []string{}},
+			{string(operation.Security): []string{}},
 		}
 	}
 
@@ -220,17 +229,11 @@ func addOperation(spec *openapi3.T, moduleName string, operation Operation) erro
 	}
 
 	for _, response := range operation.Responses {
-		if response.Schema == nil {
-			return fmt.Errorf("operation %q response %d has no schema", operation.ID, response.Status)
+		value := &openapi3.Response{Description: &successDescription}
+		if response.Schema != nil {
+			value.Content = openapi3.Content{"application/json": &openapi3.MediaType{Schema: renderSchema(response.Schema)}}
 		}
-		op.Responses.Set(fmt.Sprintf("%d", response.Status), &openapi3.ResponseRef{
-			Value: &openapi3.Response{
-				Description: &successDescription,
-				Content: openapi3.Content{
-					"application/json": &openapi3.MediaType{Schema: renderSchema(response.Schema)},
-				},
-			},
-		})
+		op.Responses.Set(fmt.Sprintf("%d", response.Status), &openapi3.ResponseRef{Value: value})
 	}
 
 	op.Responses.Set("400", &openapi3.ResponseRef{Value: problemResponse("请求无效。")})

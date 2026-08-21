@@ -16,13 +16,21 @@ type Operation struct {
 }
 
 const (
-	OperationCompleteTodo OperationID = "completeTodo"
-	OperationCreateTodo   OperationID = "createTodo"
-	OperationGetTodo      OperationID = "getTodo"
-	OperationListTodos    OperationID = "listTodos"
+	OperationAuthWebuiLogin   OperationID = "auth.webui.login"
+	OperationAuthWebuiLogout  OperationID = "auth.webui.logout"
+	OperationAuthWebuiSession OperationID = "auth.webui.session"
+	OperationAuthWebuiSetup   OperationID = "auth.webui.setup"
+	OperationCompleteTodo     OperationID = "completeTodo"
+	OperationCreateTodo       OperationID = "createTodo"
+	OperationGetTodo          OperationID = "getTodo"
+	OperationListTodos        OperationID = "listTodos"
 )
 
 var operationInventory = [...]Operation{
+	{ID: OperationAuthWebuiLogin, Method: "POST", Path: "/api/v1/webui/auth/login", Policy: "public", Scope: "", Action: ""},
+	{ID: OperationAuthWebuiLogout, Method: "POST", Path: "/api/v1/webui/auth/logout", Policy: "protected", Scope: "management:read", Action: "auth.webui.session.logout"},
+	{ID: OperationAuthWebuiSession, Method: "GET", Path: "/api/v1/webui/auth/session", Policy: "protected", Scope: "management:read", Action: "auth.webui.session.read"},
+	{ID: OperationAuthWebuiSetup, Method: "POST", Path: "/api/v1/webui/auth/setup", Policy: "public", Scope: "", Action: ""},
 	{ID: OperationCompleteTodo, Method: "PATCH", Path: "/api/v1/todos/{id}/complete", Policy: "protected", Scope: "todos:write", Action: "todo.complete"},
 	{ID: OperationCreateTodo, Method: "POST", Path: "/api/v1/todos", Policy: "protected", Scope: "todos:write", Action: "todo.create"},
 	{ID: OperationGetTodo, Method: "GET", Path: "/api/v1/todos/{id}", Policy: "protected", Scope: "todos:read", Action: "todo.read"},
@@ -37,6 +45,14 @@ func Operations() []Operation {
 // OperationForStrictName 把 strict middleware 名称映射回原始 operationId。
 func OperationForStrictName(name string) (Operation, bool) {
 	switch name {
+	case "AuthWebuiLogin":
+		return Operation{ID: OperationAuthWebuiLogin, Method: "POST", Path: "/api/v1/webui/auth/login", Policy: "public", Scope: "", Action: ""}, true
+	case "AuthWebuiLogout":
+		return Operation{ID: OperationAuthWebuiLogout, Method: "POST", Path: "/api/v1/webui/auth/logout", Policy: "protected", Scope: "management:read", Action: "auth.webui.session.logout"}, true
+	case "AuthWebuiSession":
+		return Operation{ID: OperationAuthWebuiSession, Method: "GET", Path: "/api/v1/webui/auth/session", Policy: "protected", Scope: "management:read", Action: "auth.webui.session.read"}, true
+	case "AuthWebuiSetup":
+		return Operation{ID: OperationAuthWebuiSetup, Method: "POST", Path: "/api/v1/webui/auth/setup", Policy: "public", Scope: "", Action: ""}, true
 	case "CompleteTodo":
 		return Operation{ID: OperationCompleteTodo, Method: "PATCH", Path: "/api/v1/todos/{id}/complete", Policy: "protected", Scope: "todos:write", Action: "todo.complete"}, true
 	case "CreateTodo":

@@ -17,7 +17,7 @@
 go run ./cmd/app config init
 ```
 
-随后执行数据库前滚迁移。WebUI 本地用户和 Session 表也由当前 migration 集合创建：
+随后执行数据库前滚迁移。053 后当前生产 Catalog 只创建 Todo baseline，不再由 Todo migration 创建 WebUI 本地用户和 Session 表：
 
 ```powershell
 go run ./cmd/app db migrate up
@@ -25,7 +25,7 @@ go run ./cmd/app db migrate up
 
 已有 `config.yaml` 时不要重复执行 `config init`，也不要使用 `--force` 覆盖本地配置。
 
-当前 WebUI 数据库表由现行 migration set 管理，使用本地旧数据库时先执行 `go run ./cmd/app db migrate status`，确认版本后再执行 `db migrate up`。如果数据库来自不兼容的历史 schema，不要直接删除或覆盖数据；先备份数据库文件，再为数据保留制定一次性迁移方案。Agent 不会自动修改或删除现有本地数据。
+当前 WebUI 本地账号持久化正等待 054 IAM 单轨接管；053 保留其 typed HTTP/Session Resolver 接入契约，但不把旧账号表重新塞回 Todo。包含旧 `schema_migrations` 或 `webui_*` 表的数据库会被只读 preflight 拒绝。不要直接删除、覆盖或让 Agent 自动处理现有本地数据；先决定是否保留并制定一次性方案。在 054 完成前，本节后续首次 setup/login 步骤只用于理解既有界面和接口，不构成当前 fresh database 可用性承诺。
 
 ## 2. 启动后端
 

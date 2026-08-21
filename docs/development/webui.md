@@ -44,7 +44,7 @@ WebUI 用户密码可通过 `go run ./cmd/app webui reset-password --username <�
 
 ## 安全边界
 
-- WebUI Session 只用于 WebUI/Auth 和 management；普通 Todo API 仍只接受原有 Bearer 或开发匿名 profile。
+- 公开 HTTP contract 使用 `none`、`bearerAuth`、`webuiSession` typed profile；当前 WebUI Auth operation 使用 Session 来源，Todo 仍使用 Bearer/开发匿名来源。operation gate 只按 contract 选择来源，不读取 URL 前缀或 Cookie 名。
 - Cookie 名为 `__Host-community-go_webui_session`，固定 `Secure`、`HttpOnly`、`SameSite=Lax`、`Path=/`，不设置 `Domain`。
 - Session ID 和 CSRF token 使用 CSPRNG；数据库保存 SHA-256 摘要，浏览器只在内存保留 CSRF token。
 - setup、login、logout 的不安全请求必须通过 `Origin` 校验；logout 还要求 `X-CSRF-Token`。
@@ -61,7 +61,7 @@ WebUI i18n 是所有接入模块必须遵守的规范契约。模块只要贡献
 
 模块页面只能通过 `@webui/sdk/i18n` 的 `useWebUITranslation(namespace)` 取得文案，不得自行初始化 i18next、直接操作宿主 singleton、直接依赖 `react-i18next` 内部实例，或在生产 Web 源码中写入用户可见硬编码文本。标签、按钮、字段、帮助、状态、诊断、校验、空态、错误和反馈都属于必须翻译的用户文案；技术 ID、CSS class、协议字段和测试断言不属于用户文案。
 
-宿主启动阶段只装载 `webui.host` locale。运行时 manifest 通过 revision、access、availability 门禁后，按 eligible route/navigation 懒加载模块 namespace；模块 locale、Entry 或页面故障只隔离对应 route。`availability` 缺失、未知或不支持 degraded capability 时按 unavailable 处理，业务 Entry、locale 和 query 不得执行。
+宿主启动阶段只装载 `webui.host` locale。运行时 manifest 先校验 `catalogRevision` 与 generated registry，再把 `navigationRevision` 纳入 route query 失效边界；两者不能互相替代。菜单由静态 Catalog、NavigationPolicy snapshot、access 和 availability 共同投影，策略只能改变已注册 NavigationID 的 enabled、parent 与 order，Route/Entry/组件路径/ViewOperationID/owner 始终来自代码。随后按 eligible route/navigation 懒加载模块 namespace；`availability` 缺失、未知或不支持 degraded capability 时按 unavailable 处理。
 
 后端错误码只能映射到稳定的 message ID，不能直接映射到中文/英文展示文本。正确形态是：
 

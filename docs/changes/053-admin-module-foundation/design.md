@@ -73,6 +73,8 @@ contract route binding
 
 `none`、`bearer`、`webuiSession` 是 typed security profile。认证来源由 composition 显式装配：Bearer 继续连接现有 Auth verifier，WebUI Session 在 053 连接当前 Auth WebUI resolver，在 054 被 IAM resolver 单轨替换。
 
+053 只迁移请求契约和 resolver 接入，不为旧 Auth 本地账号新建 production migration set。Todo 旧 baseline 中的 `webui_*` 表已经退休，因此 fresh database 的 Setup/Login 持久化不作为 053 验收；054 必须由 IAM schema 和 service 单轨接管，不能恢复 Todo-owned 账号表。
+
 这不是双轨兼容：同一 profile 同一时刻只有一个 owner，054 必须删除旧 Auth 本地账号实现。Transport 不读取 URL 前缀、Cookie 名或具体模块类型。
 
 Dispatcher 接收多个 contract Module 和 handler map，校验每个 operation 恰有一个 handler，未知或重复项在 listener 前失败。

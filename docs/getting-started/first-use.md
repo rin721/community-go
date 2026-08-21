@@ -12,15 +12,15 @@ Invoke-RestMethod http://127.0.0.1:9090/readyz
 
 返回成功表示当前 generation 已通过 readiness；失败时回到日志、配置和[运行能力矩阵](../operations/runtime-capabilities.md)，不要用 WebUI 页面是否能打开代替后端就绪判断。
 
-## 2. 首次使用 Admin WebUI
+## 2. 检查 Admin WebUI 宿主
 
 1. 按[全栈 WebUI 本地启动](../../README.md#全栈-webui-本地启动)启动 Go 服务和 Vite。
 2. 打开 `https://127.0.0.1:5173`。
-3. 在 Setup 页面输入与后端 `APP_AUTH__LOCAL__SETUPTOKEN` 一致的 setup token、用户名和密码。
-4. Setup 成功后使用刚创建的账号登录，确认页面能读取当前会话和 dashboard 数据。
-5. setup token 只用于首次初始化，不写入仓库、截图、日志或前端 `NUXT_PUBLIC_*` 配置。
+3. 确认宿主能加载当前 manifest，且静态 registry 的 `catalogRevision` 匹配；菜单策略使用独立 `navigationRevision`。
+4. 053 后账号持久化等待 054 IAM 接管；fresh database 的 Setup/Login/Session 不属于当前可用性验收，不得用旧 `webui_*` 表绕过 preflight。
+5. setup token 仍不得写入仓库、截图、日志或前端公开配置。
 
-Vite 本地 HTTPS 的证书提示属于开发环境行为；CORS/Auth Origin 必须精确允许当前页面来源。Setup、登录、会话和错误语义以[WebUI 本地启动指南](webui.md)与 `webui/` 代码为准。
+Vite 本地 HTTPS 的证书提示属于开发环境行为。Auth typed HTTP、Origin/CSRF 与阶段边界以[WebUI 本地启动指南](webui.md)与 `webui/` 代码为准。
 
 ## 3. 验证 Todo CLI
 

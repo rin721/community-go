@@ -1,6 +1,7 @@
 package migration_test
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"os"
@@ -12,94 +13,73 @@ import (
 	migrationconfig "github.com/rin721/go-scaffold-template/internal/module/migration/binding/config"
 	todomigration "github.com/rin721/go-scaffold-template/internal/module/todo/binding/migration"
 	"github.com/rin721/go-scaffold-template/pkg/database"
+	dbmigrate "github.com/rin721/go-scaffold-template/pkg/database/migrate"
 )
 
 func TestConfiguredServerMigrations(t *testing.T) {
-	tests := []struct {
+	for _, test := range []struct {
 		name   string
 		driver database.Driver
 		env    string
 	}{
 		{name: "postgres", driver: database.DriverPostgres, env: "TEST_MIGRATION_POSTGRES_DSN"},
 		{name: "mysql", driver: database.DriverMySQL, env: "TEST_MIGRATION_MYSQL_DSN"},
-	}
-	for _, test := range tests {
+	} {
 		t.Run(test.name, func(t *testing.T) {
 			dsn := os.Getenv(test.env)
 			if dsn == "" {
 				t.Skipf("%s is not configured", test.env)
 			}
 			config := database.DefaultConfig()
-			config.Driver = test.driver
-			config.DSN = dsn
-			completion, err := todomigration.NewCompletion(config)
-			if err != nil {
-				t.Fatalf("NewCompletion(%s) error = %v", test.driver, err)
-			}
-			module, err := modulemigration.NewModule(
-				config,
-				migrationconfig.Config{LockTimeout: 10 * time.Second, OperationTimeout: time.Minute},
-				todomigration.Set(),
-				modulemigration.NewDefaultFactory,
-				completion,
-			)
-			if err != nil {
-				t.Fatalf("NewModule(%s) error = %v", test.driver, err)
-			}
+			config.Driver, config.DSN = test.driver, dsn
+			service := newService(t, config)
 			for attempt := 1; attempt <= 2; attempt++ {
-				status, err := module.Service.Up(t.Context(), "")
-				if err != nil || !status.Compatible || status.Dirty || status.Current != todomigration.CurrentVersion {
+				status, err := service.Up(t.Context())
+				if err != nil || !status.Compatible || len(status.Sets) != 1 || status.Sets[0].Current != todomigration.CurrentVersion {
 					t.Fatalf("Up(%s, attempt %d) = %#v, %v", test.driver, attempt, status, err)
 				}
-			}
-			if err := module.Service.Compatible(t.Context()); err != nil {
-				t.Fatalf("Compatible(%s) error = %v", test.driver, err)
 			}
 		})
 	}
 }
 
 func TestSQLiteMigrationFreshAndIdempotent(t *testing.T) {
-	service, databasePath := newSQLiteService(t)
+	databasePath := filepath.Join(t.TempDir(), "migration.db")
+	config := database.DefaultConfig()
+	config.Driver, config.DSN = database.DriverSQLite, databasePath
+	service := newService(t, config)
+
 	status, err := service.Status(t.Context())
-	if err != nil || !status.Empty || status.Compatible {
+	if err != nil || status.Compatible || len(status.Sets) != 1 || !status.Sets[0].Empty {
 		t.Fatalf("Status(empty) = %#v, %v", status, err)
 	}
-	statusConnection := openSQLite(t, databasePath)
-	var versionTables int
-	if err := statusConnection.QueryRowContext(t.Context(), "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'schema_migrations'").Scan(&versionTables); err != nil {
-		_ = statusConnection.Close()
-		t.Fatalf("inspect read-only status effect error = %v", err)
-	}
-	if err := statusConnection.Close(); err != nil {
-		t.Fatalf("close status inspection error = %v", err)
-	}
-	if versionTables != 0 {
-		t.Fatal("Status() created schema_migrations")
-	}
-	status, err = service.Up(t.Context(), "")
-	if err != nil || status.Current != todomigration.CurrentVersion || !status.Compatible || status.Dirty {
-		t.Fatalf("Up(fresh) = %#v, %v", status, err)
-	}
-	status, err = service.Up(t.Context(), "")
-	if err != nil || !status.Compatible {
-		t.Fatalf("Up(idempotent) = %#v, %v", status, err)
-	}
 	connection := openSQLite(t, databasePath)
+	assertTableCount(t, connection, todomigration.TableName, 0)
+	if err := connection.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	for attempt := 1; attempt <= 2; attempt++ {
+		status, err = service.Up(t.Context())
+		if err != nil || !status.Compatible || status.Sets[0].Dirty || status.Sets[0].Current != 1 {
+			t.Fatalf("Up(attempt %d) = %#v, %v", attempt, status, err)
+		}
+	}
+	connection = openSQLite(t, databasePath)
 	defer connection.Close()
+	assertTableCount(t, connection, todomigration.TableName, 1)
 	var notNull int
 	rows, err := connection.QueryContext(t.Context(), "PRAGMA table_info(todos)")
 	if err != nil {
-		t.Fatalf("PRAGMA table_info error = %v", err)
+		t.Fatal(err)
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var cid int
+		var cid, primaryKey int
 		var name, kind string
 		var defaultValue any
-		var primaryKey int
 		if err := rows.Scan(&cid, &name, &kind, &notNull, &defaultValue, &primaryKey); err != nil {
-			t.Fatalf("scan table info error = %v", err)
+			t.Fatal(err)
 		}
 		if name == "owner_subject" && notNull == 1 {
 			return
@@ -108,74 +88,92 @@ func TestSQLiteMigrationFreshAndIdempotent(t *testing.T) {
 	t.Fatal("owner_subject NOT NULL contract is missing")
 }
 
-func TestSQLiteMigrationRequiresExplicitLegacyOwner(t *testing.T) {
-	service, databasePath := newSQLiteService(t)
+func TestSQLiteRetiredBaselineIsRejectedBeforeRunnerWrites(t *testing.T) {
+	databasePath := filepath.Join(t.TempDir(), "legacy.db")
 	connection := openSQLite(t, databasePath)
-	if _, err := connection.ExecContext(t.Context(), `
-CREATE TABLE todos (
-  id TEXT NOT NULL PRIMARY KEY,
-  title TEXT NOT NULL,
-  status TEXT NOT NULL,
-  created_at DATETIME NOT NULL,
-  updated_at DATETIME NOT NULL,
-  completed_at DATETIME NULL,
-  version INTEGER NOT NULL
-);
-CREATE INDEX idx_todos_status_created_at ON todos (status, created_at);
-CREATE TABLE schema_migrations (version INTEGER NOT NULL, dirty BOOLEAN NOT NULL);
-INSERT INTO schema_migrations (version, dirty) VALUES (1, FALSE);
-INSERT INTO todos (id, title, status, created_at, updated_at, version)
-VALUES ('11111111-1111-4111-8111-111111111111', 'legacy', 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1);`); err != nil {
-		_ = connection.Close()
-		t.Fatalf("seed legacy schema error = %v", err)
+	if _, err := connection.ExecContext(t.Context(), "CREATE TABLE schema_migrations (version INTEGER NOT NULL, dirty BOOLEAN NOT NULL)"); err != nil {
+		t.Fatal(err)
 	}
 	if err := connection.Close(); err != nil {
-		t.Fatalf("close legacy seed error = %v", err)
+		t.Fatal(err)
 	}
-	if _, err := service.Up(t.Context(), ""); !errors.Is(err, modulemigration.ErrCompletionRequired) {
-		t.Fatalf("Up(without explicit owner) error = %v", err)
-	}
-	status, err := service.Status(t.Context())
-	if err != nil || status.Current != todomigration.CurrentVersion || status.Compatible {
-		t.Fatalf("Status(unresolved legacy) = %#v, %v", status, err)
-	}
-	status, err = service.Up(t.Context(), "legacy-owner")
-	if err != nil || !status.Compatible {
-		t.Fatalf("Up(explicit owner) = %#v, %v", status, err)
+	config := database.DefaultConfig()
+	config.Driver, config.DSN = database.DriverSQLite, databasePath
+	service := newService(t, config)
+	if _, err := service.Up(t.Context()); !errors.Is(err, modulemigration.ErrPreReleaseBaselineResetRequired) {
+		t.Fatalf("expected baseline reset error, got %v", err)
 	}
 	connection = openSQLite(t, databasePath)
 	defer connection.Close()
-	var owner string
-	if err := connection.QueryRowContext(t.Context(), "SELECT owner_subject FROM todos LIMIT 1").Scan(&owner); err != nil || owner != "legacy-owner" {
-		t.Fatalf("legacy owner = %q, %v", owner, err)
+	assertTableCount(t, connection, todomigration.TableName, 0)
+	assertTableCount(t, connection, "todos", 0)
+}
+
+func TestUpPreservesOperationAndCloseErrors(t *testing.T) {
+	operationErr, closeErr := errors.New("operation failed"), errors.New("close failed")
+	set := todomigration.Set()
+	catalog, err := modulemigration.BuildCatalog(modulemigration.Registration{ModuleID: "todo", Source: "test/todo", Set: set})
+	if err != nil {
+		t.Fatal(err)
+	}
+	config := database.DefaultConfig()
+	config.DSN = filepath.Join(t.TempDir(), "errors.db")
+	service, err := modulemigration.New(config, migrationconfig.Config{LockTimeout: time.Second, OperationTimeout: 2 * time.Second}, catalog,
+		func(context.Context, dbmigrate.Config, dbmigrate.Set) (modulemigration.Runner, error) {
+			return &runnerStub{upErr: operationErr, closeErr: closeErr}, nil
+		}, func(context.Context, database.Config, modulemigration.Catalog) error { return nil })
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = service.Up(t.Context())
+	if !errors.Is(err, operationErr) || !errors.Is(err, closeErr) {
+		t.Fatalf("joined error = %v", err)
 	}
 }
 
-func newSQLiteService(t *testing.T) (*modulemigration.Service, string) {
+type runnerStub struct {
+	upErr    error
+	closeErr error
+}
+
+func (stub *runnerStub) Status(context.Context) (dbmigrate.Status, error) {
+	return dbmigrate.Status{Version: 1}, nil
+}
+func (stub *runnerStub) Up(context.Context) error { return stub.upErr }
+func (stub *runnerStub) Close() error             { return stub.closeErr }
+
+func newService(t *testing.T, config database.Config) *modulemigration.Service {
 	t.Helper()
-	databasePath := filepath.Join(t.TempDir(), "migration.db")
-	config := database.DefaultConfig()
-	config.Driver = database.DriverSQLite
-	config.DSN = databasePath
-	completion, err := todomigration.NewCompletion(config)
+	catalog, err := modulemigration.BuildCatalog(modulemigration.Registration{
+		ModuleID: "todo", Source: "internal/module/todo/binding/migration", Set: todomigration.Set(),
+		RetiredTables: []string{"schema_migrations", "webui_sessions", "webui_users"},
+	})
 	if err != nil {
-		t.Fatalf("NewCompletion() error = %v", err)
+		t.Fatal(err)
 	}
-	module, err := modulemigration.NewModule(
-		config, migrationconfig.Config{LockTimeout: 5 * time.Second, OperationTimeout: 30 * time.Second},
-		todomigration.Set(), modulemigration.NewDefaultFactory, completion,
-	)
+	module, err := modulemigration.NewModule(config, migrationconfig.Config{LockTimeout: 5 * time.Second, OperationTimeout: 30 * time.Second}, catalog, modulemigration.NewDefaultFactory, modulemigration.DefaultPreflight)
 	if err != nil {
-		t.Fatalf("NewModule() error = %v", err)
+		t.Fatal(err)
 	}
-	return module.Service, databasePath
+	return module.Service
 }
 
 func openSQLite(t *testing.T, path string) *sql.DB {
 	t.Helper()
 	connection, err := sql.Open("sqlite", path)
 	if err != nil {
-		t.Fatalf("sql.Open() error = %v", err)
+		t.Fatal(err)
 	}
 	return connection
+}
+
+func assertTableCount(t *testing.T, connection *sql.DB, table string, want int) {
+	t.Helper()
+	var count int
+	if err := connection.QueryRowContext(t.Context(), "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?", table).Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	if count != want {
+		t.Fatalf("table %s count = %d, want %d", table, count, want)
+	}
 }

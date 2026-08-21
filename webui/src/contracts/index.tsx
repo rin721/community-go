@@ -32,7 +32,7 @@ export type ManifestMenu = {
   order: number;
 };
 
-export type Manifest = { revision: string; routes: ManifestRoute[]; menu: ManifestMenu[] };
+export type Manifest = { catalogRevision: string; navigationRevision: string; routes: ManifestRoute[]; menu: ManifestMenu[] };
 export type PrincipalView = { id: string; username: string; scopes: string[] };
 
 export type HostRuntime = {

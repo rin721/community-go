@@ -55,7 +55,6 @@ func TestComposeSwapsI18nAndStorageAndPreflightsCacheRestart(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cacheapp.NewClient() error = %v", err)
 	}
-	t.Cleanup(func() { _ = typedCache.Close() })
 	if err := typedCache.Set(t.Context(), "key", "value"); !errors.Is(err, pkgcache.ErrDisabled) {
 		t.Fatalf("typed Cache Set() error = %v, want ErrDisabled", err)
 	}

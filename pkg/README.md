@@ -25,7 +25,7 @@
 | [`httpx`](httpx/README.md) | `net/http` + `go-chi/chi/v5` | 构造 HTTP 客户端、路由和服务端；Server 由单一 owner 预绑定、阻塞 Serve，并显式拆分 graceful Stop 与有损 ForceStop；提供 recovery、request id、access log、secure headers、CORS、body limit、rate limit。`httpx/contract` 提供代码优先的模块自有契约 DSL 与 typed Handler 适配，封装 schema/OpenAPI 渲染内部使用的第三方库。 |
 | [`i18n`](i18n/README.md) | `go-i18n/v2` + `x/text/language` + `yaml.v3` | 构造翻译器并加载本地化资源；Kernel 组合输出身份稳定、内部可换代的 Translator facade。 |
 | [`database`](database/README.md) | `gorm`、SQLite、PostgreSQL、MySQL | 提供项目自有 Schema、Repository、事务、迁移与资源契约，不暴露 GORM 类型。 |
-| [`cache`](cache/README.md) | `go-cache`、`go-redis/v9`、`msgpack` | 构造调用方拥有的泛型缓存客户端；Kernel 可治理 disabled/Redis 后端与连接生命周期。 |
+| [`cache`](cache/README.md) | `go-redis/v9`、`msgpack` | 以无资源 typed Client 隔离 Redis 与 wire format；Kernel 治理 disabled/Redis 后端、coordination 与连接生命周期。 |
 | [`cli`](cli/README.md) | `cobra`、`Bubble Tea`、`Lip Gloss` | 构造 CLI 应用、命令、flag 和交互式提示；TUI option 不进入业务契约。 |
 | [`storage`](storage/README.md) | 本地文件系统、AWS SDK v2 S3 兼容对象存储、文件辅助库 | 构造对象存储和本地文件工具；Kernel 只治理对象存储 Manager，公开接口不泄漏第三方类型或共享资源关闭权。 |
 | [`validation`](validation/README.md) | `go-playground/validator/v10` | 构造结构体验证器，输出项目自有字段错误。 |

@@ -25,28 +25,22 @@ func New(client redis.UniversalClient, cfg *Config) (scaffoldcache.RemoteStore, 
 	return &Store{client: client, cfg: resolveConfig(cfg)}, nil
 }
 
-func (s *Store) Get(ctx context.Context, key string) ([]byte, time.Duration, error) {
+func (s *Store) Get(ctx context.Context, key string) ([]byte, error) {
 	if err := validateContext(ctx); err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 	if err := validateKey(key); err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 
 	bytes, err := s.client.Get(ctx, key).Bytes()
 	if errors.Is(err, redis.Nil) {
-		return nil, 0, scaffoldcache.ErrNotFound
+		return nil, scaffoldcache.ErrNotFound
 	}
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
-
-	ttl, err := s.client.TTL(ctx, key).Result()
-	if err != nil {
-		return nil, 0, err
-	}
-
-	return bytes, ttl, nil
+	return bytes, nil
 }
 
 func (s *Store) Set(ctx context.Context, key string, value []byte, ttl time.Duration, tags []string, tagsTTL time.Duration) error {
@@ -86,9 +80,9 @@ func (s *Store) Delete(ctx context.Context, key string) error {
 	return s.client.Del(ctx, key).Err()
 }
 
-func (s *Store) InvalidateTags(ctx context.Context, tags []string) ([]string, error) {
+func (s *Store) InvalidateTags(ctx context.Context, tags []string) error {
 	if err := validateContext(ctx); err != nil {
-		return nil, err
+		return err
 	}
 
 	seen := make(map[string]struct{})
@@ -127,7 +121,7 @@ func (s *Store) InvalidateTags(ctx context.Context, tags []string) ([]string, er
 		}
 	}
 
-	return keys, joined
+	return joined
 }
 
 func (s *Store) addTagIndex(ctx context.Context, tag string, key string, ttl time.Duration, tagsTTL time.Duration) error {

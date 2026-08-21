@@ -3,8 +3,6 @@ package cache
 import (
 	"context"
 	"errors"
-	"reflect"
-	"sort"
 	"testing"
 	"time"
 )
@@ -22,25 +20,6 @@ func TestNewRejectsInvalidInput(t *testing.T) {
 	remote := newFakeRemoteStore()
 	if _, err := New[profile](remote, &Config{DefaultTTL: -time.Second}); !errors.Is(err, ErrInvalidTTL) {
 		t.Fatalf("New negative ttl error = %v, want %v", err, ErrInvalidTTL)
-	}
-}
-
-func TestClientCloseIsIdempotentAndRejectsFurtherUse(t *testing.T) {
-	client, err := New[profile](newFakeRemoteStore(), &Config{
-		DefaultTTL:      time.Minute,
-		CleanupInterval: time.Millisecond,
-	})
-	if err != nil {
-		t.Fatalf("New() error = %v", err)
-	}
-	if err := client.Close(); err != nil {
-		t.Fatalf("Close() error = %v", err)
-	}
-	if err := client.Close(); err != nil {
-		t.Fatalf("second Close() error = %v", err)
-	}
-	if _, err := client.Get(context.Background(), "profile:1"); !errors.Is(err, ErrClientClosed) {
-		t.Fatalf("Get() after Close error = %v, want ErrClientClosed", err)
 	}
 }
 
@@ -76,7 +55,7 @@ func TestSetRejectsInvalidInput(t *testing.T) {
 	}
 }
 
-func TestSetGetStructFromLocalCache(t *testing.T) {
+func TestSetGetStructFromRemoteAuthority(t *testing.T) {
 	remote := newFakeRemoteStore()
 	client := mustNewClient[profile](t, remote, &Config{DefaultTTL: time.Minute})
 
@@ -92,37 +71,29 @@ func TestSetGetStructFromLocalCache(t *testing.T) {
 	if got != want {
 		t.Fatalf("Get = %+v, want %+v", got, want)
 	}
-	if remote.getCount != 0 {
-		t.Fatalf("remote get count = %d, want 0", remote.getCount)
+	if remote.getCount != 1 {
+		t.Fatalf("remote get count = %d, want 1", remote.getCount)
 	}
 }
 
-func TestGetBackfillsLocalCacheFromRemote(t *testing.T) {
+func TestGetAlwaysReadsCurrentRemoteValue(t *testing.T) {
 	remote := newFakeRemoteStore()
-	want := profile{ID: 2, Name: "Remote"}
-	bytes := mustEncode(t, want)
-	remote.values["profile:2"] = fakeRemoteValue{bytes: bytes, ttl: time.Minute}
+	remote.values["profile:2"] = mustEncode(t, profile{ID: 2, Name: "First"})
 
 	client := mustNewClient[profile](t, remote, &Config{DefaultTTL: time.Minute})
 
 	got, err := client.Get(context.Background(), "profile:2")
-	if err != nil {
-		t.Fatalf("Get returned error: %v", err)
-	}
-	if got != want {
-		t.Fatalf("Get = %+v, want %+v", got, want)
+	if err != nil || got.Name != "First" {
+		t.Fatalf("first Get = %+v, %v", got, err)
 	}
 
-	delete(remote.values, "profile:2")
+	remote.values["profile:2"] = mustEncode(t, profile{ID: 2, Name: "Second"})
 	got, err = client.Get(context.Background(), "profile:2")
-	if err != nil {
-		t.Fatalf("second Get returned error: %v", err)
+	if err != nil || got.Name != "Second" {
+		t.Fatalf("second Get = %+v, %v", got, err)
 	}
-	if got != want {
-		t.Fatalf("second Get = %+v, want %+v", got, want)
-	}
-	if remote.getCount != 1 {
-		t.Fatalf("remote get count = %d, want 1", remote.getCount)
+	if remote.getCount != 2 {
+		t.Fatalf("remote get count = %d, want 2", remote.getCount)
 	}
 }
 
@@ -143,7 +114,7 @@ func TestSetAndGetWrapInvalidCachedValue(t *testing.T) {
 	}
 
 	remote := newFakeRemoteStore()
-	remote.values["broken"] = fakeRemoteValue{bytes: []byte("not-msgpack"), ttl: time.Minute}
+	remote.values["broken"] = []byte("not-msgpack")
 	brokenClient := mustNewClient[profile](t, remote, &Config{DefaultTTL: time.Minute})
 	_, err = brokenClient.Get(context.Background(), "broken")
 	if !errors.Is(err, ErrInvalidCachedValue) {
@@ -151,7 +122,7 @@ func TestSetAndGetWrapInvalidCachedValue(t *testing.T) {
 	}
 }
 
-func TestDeleteRemovesLocalAndReturnsRemoteError(t *testing.T) {
+func TestDeleteFailureLeavesRemoteAuthorityUnchanged(t *testing.T) {
 	wantErr := errors.New("redis delete failed")
 	remote := newFakeRemoteStore()
 	client := mustNewClient[profile](t, remote, &Config{DefaultTTL: time.Minute})
@@ -166,17 +137,16 @@ func TestDeleteRemovesLocalAndReturnsRemoteError(t *testing.T) {
 		t.Fatalf("Delete error = %v, want %v", err, wantErr)
 	}
 
-	delete(remote.values, "profile:1")
-	_, err = client.Get(context.Background(), "profile:1")
-	if !errors.Is(err, ErrNotFound) {
-		t.Fatalf("Get after failed delete = %v, want %v", err, ErrNotFound)
+	value, err := client.Get(context.Background(), "profile:1")
+	if err != nil || value.ID != 1 {
+		t.Fatalf("Get after failed delete = %+v, %v", value, err)
 	}
 }
 
-func TestInvalidateTagsDeletesLocalAndRemoteKeys(t *testing.T) {
+func TestInvalidateTagsDeletesRemoteKeys(t *testing.T) {
 	remote := newFakeRemoteStore()
 	bytes := mustEncode(t, profile{ID: 3, Name: "Tagged"})
-	remote.values["profile:3"] = fakeRemoteValue{bytes: bytes, ttl: time.Minute}
+	remote.values["profile:3"] = bytes
 	remote.tags["user"] = map[string]struct{}{"profile:3": {}}
 
 	client := mustNewClient[profile](t, remote, &Config{DefaultTTL: time.Minute})
@@ -191,6 +161,23 @@ func TestInvalidateTagsDeletesLocalAndRemoteKeys(t *testing.T) {
 	_, err := client.Get(context.Background(), "profile:3")
 	if !errors.Is(err, ErrNotFound) {
 		t.Fatalf("Get after invalidate = %v, want %v", err, ErrNotFound)
+	}
+}
+
+func TestRemoteWriteAndTagErrorsArePreserved(t *testing.T) {
+	setErr := errors.New("redis set failed")
+	tagErr := errors.New("redis tag invalidation failed")
+	remote := newFakeRemoteStore()
+	client := mustNewClient[profile](t, remote, &Config{DefaultTTL: time.Minute})
+
+	remote.setErr = setErr
+	if err := client.Set(context.Background(), "profile:5", profile{ID: 5}); !errors.Is(err, setErr) {
+		t.Fatalf("Set error = %v, want %v", err, setErr)
+	}
+
+	remote.tagErr = tagErr
+	if err := client.InvalidateTags(context.Background(), "user"); !errors.Is(err, tagErr) {
+		t.Fatalf("InvalidateTags error = %v, want %v", err, tagErr)
 	}
 }
 
@@ -220,11 +207,6 @@ func mustNewClient[T any](t *testing.T, remote RemoteStore, cfg *Config) Client[
 	if err != nil {
 		t.Fatalf("New returned error: %v", err)
 	}
-	t.Cleanup(func() {
-		if err := client.Close(); err != nil {
-			t.Errorf("Close() error = %v", err)
-		}
-	})
 	return client
 }
 
@@ -238,15 +220,11 @@ func mustEncode[T any](t *testing.T, value T) []byte {
 	return bytes
 }
 
-type fakeRemoteValue struct {
-	bytes []byte
-	ttl   time.Duration
-}
-
 type fakeRemoteStore struct {
-	values    map[string]fakeRemoteValue
+	values    map[string][]byte
 	tags      map[string]map[string]struct{}
 	getCount  int
+	getErr    error
 	setErr    error
 	deleteErr error
 	tagErr    error
@@ -254,26 +232,35 @@ type fakeRemoteStore struct {
 
 func newFakeRemoteStore() *fakeRemoteStore {
 	return &fakeRemoteStore{
-		values: make(map[string]fakeRemoteValue),
+		values: make(map[string][]byte),
 		tags:   make(map[string]map[string]struct{}),
 	}
 }
 
-func (s *fakeRemoteStore) Get(_ context.Context, key string) ([]byte, time.Duration, error) {
+func (s *fakeRemoteStore) Get(ctx context.Context, key string) ([]byte, error) {
 	s.getCount++
+	if err := contextError(ctx); err != nil {
+		return nil, err
+	}
+	if s.getErr != nil {
+		return nil, s.getErr
+	}
 	value, exists := s.values[key]
 	if !exists {
-		return nil, 0, ErrNotFound
+		return nil, ErrNotFound
 	}
-	return value.bytes, value.ttl, nil
+	return append([]byte(nil), value...), nil
 }
 
-func (s *fakeRemoteStore) Set(_ context.Context, key string, value []byte, ttl time.Duration, tags []string, tagsTTL time.Duration) error {
+func (s *fakeRemoteStore) Set(ctx context.Context, key string, value []byte, ttl time.Duration, tags []string, tagsTTL time.Duration) error {
+	if err := contextError(ctx); err != nil {
+		return err
+	}
 	if s.setErr != nil {
 		return s.setErr
 	}
 
-	s.values[key] = fakeRemoteValue{bytes: cloneBytes(value), ttl: ttl}
+	s.values[key] = append([]byte(nil), value...)
 	for _, tag := range tags {
 		keys, exists := s.tags[tag]
 		if !exists {
@@ -288,7 +275,10 @@ func (s *fakeRemoteStore) Set(_ context.Context, key string, value []byte, ttl t
 	return nil
 }
 
-func (s *fakeRemoteStore) Delete(_ context.Context, key string) error {
+func (s *fakeRemoteStore) Delete(ctx context.Context, key string) error {
+	if err := contextError(ctx); err != nil {
+		return err
+	}
 	if s.deleteErr != nil {
 		return s.deleteErr
 	}
@@ -302,33 +292,38 @@ func (s *fakeRemoteStore) Delete(_ context.Context, key string) error {
 	return nil
 }
 
-func (s *fakeRemoteStore) InvalidateTags(_ context.Context, tags []string) ([]string, error) {
-	keys := make([]string, 0)
+func (s *fakeRemoteStore) InvalidateTags(ctx context.Context, tags []string) error {
+	if err := contextError(ctx); err != nil {
+		return err
+	}
 	for _, tag := range tags {
 		for key := range s.tags[tag] {
-			keys = append(keys, key)
 			delete(s.values, key)
 		}
 		delete(s.tags, tag)
 	}
-	sort.Strings(keys)
-	if s.tagErr != nil {
-		return keys, s.tagErr
-	}
-	return keys, nil
+	return s.tagErr
 }
 
 var _ RemoteStore = (*fakeRemoteStore)(nil)
 
-func TestFakeRemoteStoreInvalidatesDeterministically(t *testing.T) {
+func TestFakeRemoteStoreInvalidatesTaggedValues(t *testing.T) {
 	store := newFakeRemoteStore()
+	store.values["a"] = []byte("a")
+	store.values["b"] = []byte("b")
 	store.tags["tag"] = map[string]struct{}{"b": {}, "a": {}}
 
-	got, err := store.InvalidateTags(context.Background(), []string{"tag"})
-	if err != nil {
+	if err := store.InvalidateTags(context.Background(), []string{"tag"}); err != nil {
 		t.Fatalf("InvalidateTags returned error: %v", err)
 	}
-	if !reflect.DeepEqual(got, []string{"a", "b"}) {
-		t.Fatalf("keys = %v, want [a b]", got)
+	if len(store.values) != 0 || len(store.tags) != 0 {
+		t.Fatalf("values=%v tags=%v, want empty", store.values, store.tags)
 	}
+}
+
+func contextError(ctx context.Context) error {
+	if ctx == nil {
+		return ErrNilContext
+	}
+	return ctx.Err()
 }

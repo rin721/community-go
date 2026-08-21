@@ -46,7 +46,7 @@ err := capabilities.Database.Use(ctx, func(client databaseapp.Client) error {
 
 Database App 在 `build` 中明确调用 `pkg/database.NewGORM`，配置只选择 `sqlite/postgres/mysql` Driver 与连接参数，不包含可切换底层实现的 Engine。业务仓储通过项目 `Schema`、`BaseRepository` 和 `Tx` 使用数据库，不接触 GORM 类型；就绪检查通过 `Database Access.Ping` 在当前资源租约内执行，不暴露 Stats 或 Close。
 
-Cache 的底层 App 仍使用 `ManagedConfigured + Leased`，稳定 Access 不公开 `RemoteStore`；调用方通过 `cacheapp.NewClient[T]` 构造自己拥有且必须关闭的泛型 Client。长期 Service 不再对该 App 执行局部 reload，而是把 Cache backend 纳入完整 Application Generation，因此 Cache section 可同进程生效。当前 Todo 没有 Cache Client；后续模块若创建泛型 Client/L1，必须由对应 generation 持有并关闭，不能跨代共享 L1/tag index。
+Cache 的底层 App 仍使用 `ManagedConfigured + Leased`，稳定 Access 不公开 `RemoteStore`；调用方通过 `cacheapp.NewClient[T]` 构造无资源泛型 Client，不取得 Redis 关闭权。长期 Service 不再对该 App 执行局部 reload，而是把 Cache backend 纳入完整 Application Generation，因此 Cache section 可同进程生效。当前没有 production typed Client 消费者；未来若基于量化收益重新引入 L1，必须另行设计容量、多实例失效和 generation owner，不能把本地状态塞回当前 Client。
 
 I18n 使用 `ManagedConfigured + Leased + KernelInstanceSwap`，但输出仍是普通 `pkg/i18n.Translator` 稳定 facade。消息文件相对进程工作目录读取；成功重载后 facade 身份不变、内部 Translator 换代，候选资源加载失败则旧翻译器继续服务。
 

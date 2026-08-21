@@ -28,7 +28,6 @@ require (
 	github.com/lestrrat-go/jwx/v3 v3.2.0
 	github.com/nicksnyder/go-i18n/v2 v2.6.1
 	github.com/otiai10/copy v1.14.1
-	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/prometheus/client_golang v1.24.1
 	github.com/rabbitmq/amqp091-go v1.14.0
 	github.com/redis/go-redis/v9 v9.22.0

@@ -2,6 +2,8 @@ package cache
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/rin721/go-scaffold-template/pkg/concurrency"
@@ -16,6 +18,10 @@ func GetOrLoad[T any](ctx context.Context, sf *concurrency.SingleFlight, client 
 		cached, err := client.Get(ctx, key)
 		if err == nil {
 			return cached, nil
+		}
+		if !errors.Is(err, ErrNotFound) {
+			var zero T
+			return zero, err
 		}
 		loaded, err := loader(ctx)
 		if err != nil {
@@ -40,8 +46,11 @@ func GetMany[T any](ctx context.Context, client Client[T], keys ...string) (map[
 	out := make(map[string]T, len(keys))
 	for _, key := range keys {
 		value, err := client.Get(ctx, key)
-		if err != nil {
+		if errors.Is(err, ErrNotFound) {
 			continue
+		}
+		if err != nil {
+			return out, fmt.Errorf("get cache value %q: %w", key, err)
 		}
 		out[key] = value
 	}

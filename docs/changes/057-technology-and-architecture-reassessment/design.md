@@ -55,6 +55,7 @@
 - Cache：单轨退役当前无真实消费者、无容量上界且不能跨实例失效的默认 L1，删除 `patrickmn/go-cache`、本地 tag map、cleanup goroutine 与专属配置；保留 Redis typed cache/tag、序列化和 Kernel 共享资源 owner。
 - Cache miss：`GetOrLoad`/`GetMany` 只有 `ErrNotFound` 可按 miss 处理，取消、disabled、backend 与 codec 错误必须完整返回。
 - 不在本批引入另一 L1 库。未来真实消费者同时给出命中收益、内存 budget、陈旧预算和多实例一致性模型后，按高并发/weight 需求优先 PoC Otter v2，按简单 TTL/容量需求 PoC ttlcache v3。
+- `CACHE-057-001` 实施结果：typed Client 已收敛为无资源的 Redis RemoteStore 编解码边界，`RemoteStore.Get` 不再为已删除 L1 返回 TTL，`InvalidateTags` 不再返回仅供本地失效的 key 列表；Redis client 的构造、关闭与 reload owner 仍归 Kernel Cache App。
 - Serde：把全部项目直接 YAML import 从已归档 `gopkg.in/yaml.v3` 单轨迁移到官方稳定 `go.yaml.in/yaml/v3 v3.0.5`；v4 当前仍为 RC，不提升为 direct dependency。
 - 删除零消费者 `pkg/codec`，不保留兼容包；标准 JSON 由协议 owner 直接使用，cache 私有 MessagePack wire format 不在本任务暗改。
 - 用 config duplicate/strict/default golden、i18n fixture、OpenAPI generation golden、docs guard 和完整 Go 门禁验证；v4 stable 后另按格式、安全限制和可删除自研逻辑的实际收益评估。

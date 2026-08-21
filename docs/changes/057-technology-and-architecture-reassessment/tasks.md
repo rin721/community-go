@@ -4,7 +4,7 @@
 
 - 研究门禁：已通过。
 - 文档任务：已完成，适用纯文档直接实施例外。
-- 非文档任务：用户已于 2026-08-22 明确确认 Batch A（`SEC-057-001`），现已完成；Batch B–E 仍待确认。
+- 非文档任务：用户已于 2026-08-22 明确确认并完成 Batch A（`SEC-057-001`）及修订后的 `CACHE-057-001`；其余任务仍待确认。
 
 ## 任务清单
 
@@ -14,7 +14,7 @@
 | RES-057-002 | 文档 | 以官方来源核验成熟候选、维护与安全状态 | RES-057-001 | 已完成 | R002 有版本日期、适用边界、局限和刷新触发器 |
 | DOC-057-001 | 文档 | 更新 AGENTS、研究规范、模块指南、pkg/architecture authority 和导航 | RES-057-001, RES-057-002 | 已完成 | 技术决策基线单一可发现，文档门禁通过 |
 | SEC-057-001 | A | 升级 kin-openapi 并重建 Go 1.26 漏洞扫描证据 | 用户确认 Batch A | 已完成 | v0.147.0、生成/请求负向测试、全仓 govulncheck 和旧版本残留搜索通过 |
-| CACHE-057-001 | B | 单轨退役默认 L1 与 go-cache，收紧 Redis typed cache 的 miss/error 语义 | 用户确认修订后的该任务 | 待确认 | 删除本地状态/goroutine/专属配置和 go-cache；Redis typed cache/tag/disabled/cancel/error 语义测试通过；不新增 L1 依赖 |
+| CACHE-057-001 | B | 单轨退役默认 L1 与 go-cache，收紧 Redis typed cache 的 miss/error 语义 | 用户于 2026-08-22 确认修订后的该任务 | 已完成 | 删除本地状态/goroutine/专属配置和 go-cache；Redis typed cache/tag/disabled/cancel/error 语义测试通过；不新增 L1 依赖 |
 | SERDE-057-001 | B | 迁移官方稳定 YAML v3 路径并退役无消费者 Codec | 用户确认修订后的该任务 | 待确认 | project direct import 使用 go.yaml.in/yaml/v3 v3.0.5；删除 gopkg direct requirement 与 pkg/codec；config/i18n/OpenAPI/docs fixture 和完整门禁通过；不直引 v4 RC |
 | LIMIT-057-001 | B | 用 x/time/rate 替换通用 token bucket，修正入口保护配置语义 | 用户确认修订后的该任务 | 待确认 | x/time/rate v0.15.0 隐藏在项目薄边界；删除自研 refill/lock；增加 local/disabled 严格模式；保留 generation-local 与 channel 503；mode/burst/refill/concurrency/CORS/management/reload、完整 Go 与漏洞门禁通过；不增加主体或分布式 quota |
 | AUTHN-057-001 | B | 评估并迁移 JWX v4，补 Argon2 参数解析和 NeedsRehash | 用户确认该任务 | 待确认 | JWT 负向矩阵、密码版本/资源/重哈希测试通过；不引入 OIDC |
@@ -28,7 +28,7 @@
 
 ## 建议确认方式
 
-Batch A 已完成。R003、R004、R005 已分别材料性修订 `CACHE-057-001`、`SERDE-057-001`、`LIMIT-057-001`；此前关于 Batch A 的确认不覆盖这些任务。下一轮建议只确认修订后的 `CACHE-057-001`；完成后再分别确认修订后的 `SERDE-057-001`、`LIMIT-057-001` 或 `AUTHN-057-001`。Batch C/D/E 应依据前序证据重新提交更窄设计。
+Batch A 与修订后的 `CACHE-057-001` 已完成。R004、R005 已分别材料性修订 `SERDE-057-001`、`LIMIT-057-001`；此前确认不覆盖这些任务。下一轮可分别确认修订后的 `SERDE-057-001`、`LIMIT-057-001` 或 `AUTHN-057-001`。Batch C/D/E 应依据前序证据重新提交更窄设计。
 
 ## 停止与重新确认条件
 
@@ -52,6 +52,10 @@ Batch A 已完成。R003、R004、R005 已分别材料性修订 `CACHE-057-001`�
 | 2026-08-22 | 全仓漏洞扫描 | `govulncheck -show verbose ./...`：0 reachable symbol、0 imported package 漏洞；模块层有 2 个当前不可达项 GO-2026-6222 与 GO-2026-5932，保留为后续研究风险 |
 | 2026-08-22 | 完整 Go 门禁 | `Verify-Quality.ps1` 的 gofmt、tidy diff、project layout、generate/clean diff、全量 test、全量 race、vet、CGO-free build 均通过；最后 `Verify-Artifacts` 仅命中既有且被当前范围排除的 `old-backend/` 两个 tracked app.db，与 053/054 已记录阻塞相同，本任务未修改或删除 |
 | 2026-08-22 | CACHE-057-001 确认前深化研究 | 非测试 production 搜索没有 typed cache 消费者；现有 L1 无容量上界、跨实例失效和一致错误分类。官方刷新确认 go-cache 最新 release 仍为 2017 年；Otter v2.3.0、ttlcache v3.4.1、Ristretto v2.4.2 具候选资格但当前无引入收益。计划修订后继续待确认，未修改缓存代码或依赖 |
+| 2026-08-22 | CACHE-057-001 实施 | 用户确认修订后任务；删除 go-cache、L1、本地 tag map、cleanup goroutine/配置和 typed Client `Close`，Redis 成为唯一 authority；`GetOrLoad`/`GetMany` 仅把 `ErrNotFound` 作为 miss，定向与完整门禁结果见本任务最终验证记录 |
+| 2026-08-22 | CACHE-057-001 定向验证 | `go test ./pkg/cache/... ./internal/kernel/app/cache ./internal/kernel/composition -count=1`、`Verify-Docs.ps1` 与 `git diff --check` 通过 |
+| 2026-08-22 | CACHE-057-001 完整质量门禁 | `Verify-Quality.ps1` 的 gofmt、tidy diff、project layout、generate/clean diff、全量 test、全量 race、vet、CGO-free build 均通过；最终 `Verify-Artifacts` 仍仅命中范围外 `old-backend/` 两个既有 tracked app.db，本任务未修改或删除 |
+| 2026-08-22 | CACHE-057-001 漏洞扫描 | `govulncheck -show verbose ./...`：0 reachable symbol、0 imported package 漏洞；模块层仍为 2 个当前不可达项 GO-2026-6222 与 GO-2026-5932 |
 | 2026-08-22 | SERDE-057-001 确认前深化研究 | v4 当前仅有 v4.0.0-rc.6；官方稳定 v3.0.5 活跃安全维护。项目 YAML 只在 config/i18n/contract/tooling 边界，pkg/codec 无消费者。任务修订为稳定 v3 import 迁移 + Codec 退役，继续待确认；未修改源码或依赖 |
 | 2026-08-22 | LIMIT-057-001 确认前深化研究 | 当前 token bucket 自研通用算法且 0/0 实际回落 100/200 默认值；官方 x/time/rate v0.15.0 适配 fail-fast Allow。channel semaphore 精确表达非阻塞 503，保留优于机械换 x/sync。任务增加 local/disabled 严格模式并明确 generation-local，继续待确认；未修改源码、配置或依赖 |
 
@@ -59,3 +63,4 @@ Batch A 已完成。R003、R004、R005 已分别材料性修订 `CACHE-057-001`�
 
 - 研究与计划：`b8445d1 docs(architecture): establish technology selection baseline`
 - Batch A：`32a4987 fix(http): upgrade OpenAPI validator security baseline`
+- CACHE-057-001：本轮 Conventional Commit（以 Git 历史为准）

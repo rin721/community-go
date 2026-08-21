@@ -3,8 +3,6 @@ package redisstore
 import (
 	"context"
 	"errors"
-	"reflect"
-	"sort"
 	"testing"
 	"time"
 
@@ -20,7 +18,7 @@ func TestNewRejectsNilClient(t *testing.T) {
 	}
 }
 
-func TestSetGetAndTTL(t *testing.T) {
+func TestSetAndGet(t *testing.T) {
 	store, closeStore := newRedisStore(t)
 	defer closeStore()
 
@@ -28,15 +26,12 @@ func TestSetGetAndTTL(t *testing.T) {
 		t.Fatalf("Set returned error: %v", err)
 	}
 
-	got, ttl, err := store.Get(context.Background(), "profile:1")
+	got, err := store.Get(context.Background(), "profile:1")
 	if err != nil {
 		t.Fatalf("Get returned error: %v", err)
 	}
 	if string(got) != "value" {
 		t.Fatalf("Get value = %q, want value", got)
-	}
-	if ttl <= 0 {
-		t.Fatalf("ttl = %s, want positive", ttl)
 	}
 }
 
@@ -44,7 +39,7 @@ func TestGetReturnsNotFound(t *testing.T) {
 	store, closeStore := newRedisStore(t)
 	defer closeStore()
 
-	_, _, err := store.Get(context.Background(), "missing")
+	_, err := store.Get(context.Background(), "missing")
 	if !errors.Is(err, scaffoldcache.ErrNotFound) {
 		t.Fatalf("Get error = %v, want %v", err, scaffoldcache.ErrNotFound)
 	}
@@ -61,7 +56,7 @@ func TestDeleteRemovesKey(t *testing.T) {
 		t.Fatalf("Delete returned error: %v", err)
 	}
 
-	_, _, err := store.Get(context.Background(), "profile:2")
+	_, err := store.Get(context.Background(), "profile:2")
 	if !errors.Is(err, scaffoldcache.ErrNotFound) {
 		t.Fatalf("Get after delete = %v, want %v", err, scaffoldcache.ErrNotFound)
 	}
@@ -78,17 +73,12 @@ func TestInvalidateTagsDeletesTaggedKeys(t *testing.T) {
 		t.Fatalf("Set second returned error: %v", err)
 	}
 
-	keys, err := store.InvalidateTags(context.Background(), []string{"user"})
-	if err != nil {
+	if err := store.InvalidateTags(context.Background(), []string{"user"}); err != nil {
 		t.Fatalf("InvalidateTags returned error: %v", err)
 	}
-	sort.Strings(keys)
-	if !reflect.DeepEqual(keys, []string{"profile:3", "profile:4"}) {
-		t.Fatalf("invalidated keys = %v, want [profile:3 profile:4]", keys)
-	}
 
-	for _, key := range keys {
-		_, _, err := store.Get(context.Background(), key)
+	for _, key := range []string{"profile:3", "profile:4"} {
+		_, err := store.Get(context.Background(), key)
 		if !errors.Is(err, scaffoldcache.ErrNotFound) {
 			t.Fatalf("Get %q after invalidate = %v, want %v", key, err, scaffoldcache.ErrNotFound)
 		}
@@ -128,7 +118,7 @@ func TestContextCancellationIsReturned(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	_, _, err := store.Get(ctx, "profile:5")
+	_, err := store.Get(ctx, "profile:5")
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("Get canceled error = %v, want %v", err, context.Canceled)
 	}

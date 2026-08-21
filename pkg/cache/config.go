@@ -4,15 +4,13 @@ import "time"
 
 // Config 定义多级缓存客户端构造参数。
 type Config struct {
-	DefaultTTL      time.Duration
-	DefaultTagsTTL  time.Duration
-	KeyPrefix       string
-	CleanupInterval time.Duration
+	DefaultTTL     time.Duration
+	DefaultTagsTTL time.Duration
+	KeyPrefix      string
 }
 
 type resolvedConfig struct {
-	DefaultTTL      time.Duration
-	DefaultTagsTTL  time.Duration
-	KeyPrefix       string
-	CleanupInterval time.Duration
+	DefaultTTL     time.Duration
+	DefaultTagsTTL time.Duration
+	KeyPrefix      string
 }

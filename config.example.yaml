@@ -82,8 +82,8 @@ migration:
 
 cache:
   # 默认显式禁用，因此本地启动不依赖 Redis。启用后只允许 redis。
-  # 长期 Service 在完整 Application Generation 中重建 typed Client、L1 与 tag index；
-  # backend 或 namespace 变化只影响新 generation，旧请求排空后再释放旧代。
+  # typed Client 不持有 L1 或 goroutine；Redis backend 与 tag namespace 由完整
+  # Application Generation 复用或重建，旧请求排空后再释放旧连接 owner。
   driver: disabled
   # driver: redis
 

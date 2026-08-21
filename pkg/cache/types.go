@@ -11,13 +11,12 @@ type Client[T any] interface {
 	Set(ctx context.Context, key string, value T, options ...SetOption) error
 	Delete(ctx context.Context, key string) error
 	InvalidateTags(ctx context.Context, tags ...string) error
-	Close() error
 }
 
 // RemoteStore 定义远端缓存存储必须满足的字节级能力。
 type RemoteStore interface {
-	Get(ctx context.Context, key string) ([]byte, time.Duration, error)
+	Get(ctx context.Context, key string) ([]byte, error)
 	Set(ctx context.Context, key string, value []byte, ttl time.Duration, tags []string, tagsTTL time.Duration) error
 	Delete(ctx context.Context, key string) error
-	InvalidateTags(ctx context.Context, tags []string) ([]string, error)
+	InvalidateTags(ctx context.Context, tags []string) error
 }

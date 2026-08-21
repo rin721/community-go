@@ -3,8 +3,8 @@
 ## 状态与依据
 
 - 研究门禁：已通过，依据 [R001](research/R001-current-capability-and-architecture-audit/report.md)、[R002](research/R002-mainstream-options-and-security/report.md) 及各专项深化研究。
-- 本轮授权：纯文档规则、研究、计划与当前 authority 更新。
-- 非文档变更：待用户在本计划报告后的后续消息中按任务 ID 或实施批次确认。
+- 已实施授权：纯文档规则、研究、计划、当前 authority 更新、Batch A 与用户于 2026-08-22 确认的修订后 `CACHE-057-001`。
+- 其余非文档变更：待用户在当前计划报告后的后续消息中按任务 ID 或实施批次确认。
 
 ## 目标
 
@@ -46,14 +46,15 @@
 
 - 保留：zap、chi、GORM 连接/事务、golang-migrate、go-redis、gocron、amqp091-go、OpenTelemetry/Prometheus 和当前简单 Core RBAC。
 - 已完成安全升级：kin-openapi v0.147.0，并保持项目 OperationGate 为真实认证/授权 owner。
-- 后续退役/升级：退役当前无真实消费者且一致性边界不完整的默认 L1 与 patrickmn/go-cache；把已归档 `gopkg.in/yaml.v3` 直接依赖迁移到官方稳定 v3，并退役无消费者 `pkg/codec`；用 `x/time/rate` 替换 HTTP 自研 token bucket，同时保留简单非阻塞过载门禁并修正显式启停语义；对 JWX 和 resilience 状态机分项评估。未来 L1 和 YAML v4 都只能在真实收益与稳定门禁满足后重新选型。
+- 已完成退役：当前无真实消费者且一致性边界不完整的默认 L1 与 `patrickmn/go-cache` 已移除，Redis 是唯一缓存 authority，typed Client 不再拥有本地状态或生命周期。
+- 后续升级：把已归档 `gopkg.in/yaml.v3` 直接依赖迁移到官方稳定 v3，并退役无消费者 `pkg/codec`；用 `x/time/rate` 替换 HTTP 自研 token bucket，同时保留简单非阻塞过载门禁并修正显式启停语义；对 JWX 和 resilience 状态机分项评估。未来 L1 和 YAML v4 都只能在真实收益与稳定门禁满足后重新选型。
 - 合理自研：模块 Repository port、permission/operation/migration 业务语义、Argon2id 薄 Adapter，但补齐参数演进与重哈希语义。
 - 高耦合 PoC：Huma 对当前 HTTP DSL、GORM Gen/sqlc 对当前反射 Repository、koanf 对当前通用配置解析部分。
 - 架构重构候选：恢复启动期静态业务对象图与经证明可换代的动态资源平面分工。
 
 ## 非目标
 
-- 本轮不修改源码、配置、依赖、生成物或测试，不启动/停止服务，不写数据库或外部系统。
+- 未经任务级确认不修改源码、配置、依赖、生成物或测试，不启动/停止服务，不写数据库或外部系统；已确认任务仅按其范围实施。
 - 不一次性替换全部基础设施，不引入统一大框架、Service Locator 或反射 DI。
 - 不因候选更流行或版本更新就迁移，也不因现有代码多就保留。
 - 不把 `old-backend/` 纳入当前项目决策。

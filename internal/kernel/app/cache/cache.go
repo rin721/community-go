@@ -190,15 +190,14 @@ func (a *access) useCoordination(ctx context.Context, use func(coordination.Mana
 
 type remoteAccess struct{ backend Access }
 
-func (r remoteAccess) Get(ctx context.Context, key string) ([]byte, time.Duration, error) {
+func (r remoteAccess) Get(ctx context.Context, key string) ([]byte, error) {
 	var value []byte
-	var ttl time.Duration
 	err := r.backend.use(ctx, func(store pkgcache.RemoteStore) error {
 		var err error
-		value, ttl, err = store.Get(ctx, key)
+		value, err = store.Get(ctx, key)
 		return err
 	})
-	return value, ttl, err
+	return value, err
 }
 
 func (r remoteAccess) Set(ctx context.Context, key string, value []byte, ttl time.Duration, tags []string, tagsTTL time.Duration) error {
@@ -213,14 +212,10 @@ func (r remoteAccess) Delete(ctx context.Context, key string) error {
 	})
 }
 
-func (r remoteAccess) InvalidateTags(ctx context.Context, tags []string) ([]string, error) {
-	var keys []string
-	err := r.backend.use(ctx, func(store pkgcache.RemoteStore) error {
-		var err error
-		keys, err = store.InvalidateTags(ctx, tags)
-		return err
+func (r remoteAccess) InvalidateTags(ctx context.Context, tags []string) error {
+	return r.backend.use(ctx, func(store pkgcache.RemoteStore) error {
+		return store.InvalidateTags(ctx, tags)
 	})
-	return keys, err
 }
 
 func build(ctx context.Context, cfg Config, _ struct{}) (*resource, error) {

@@ -55,7 +55,6 @@ func TestDisabledAccessReturnsTypedError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewClient() error = %v", err)
 	}
-	t.Cleanup(func() { _ = client.Close() })
 	if err := client.Set(t.Context(), "key", "value"); !errors.Is(err, pkgcache.ErrDisabled) {
 		t.Fatalf("Set() error = %v, want ErrDisabled", err)
 	}
@@ -90,9 +89,6 @@ func TestRedisResourceSupportsTypedClient(t *testing.T) {
 	value, err := client.Get(t.Context(), "key")
 	if err != nil || value != "value" {
 		t.Fatalf("Get() value=%q error=%v", value, err)
-	}
-	if err := client.Close(); err != nil {
-		t.Fatalf("Close() error = %v", err)
 	}
 	if server.CurrentConnectionCount() == 0 {
 		t.Fatal("Redis connection was not established")

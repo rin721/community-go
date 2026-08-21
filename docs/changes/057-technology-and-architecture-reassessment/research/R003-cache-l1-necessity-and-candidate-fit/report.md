@@ -70,13 +70,17 @@ OSV query 在该快照未返回这四个 module path 的已登记记录；这只
 
 该结论同时回答了承载基础问题：typed cache 目前不是 Application Generation 中需要独立换代的资源；真正共享且有生命周期的 Redis client 已由 Kernel 管理并标记 `RestartRequired`。去掉每个 typed Client 的 goroutine 和本地状态，可以让调用方只依赖项目 cache 契约，而不必为无收益的 L1 建立额外 generation finalizer 或兼容层。
 
+## 2026-08-22 实施刷新
+
+用户确认修订后的 `CACHE-057-001` 后，项目已按上述路径单轨实施：删除默认 L1、`patrickmn/go-cache`、本地 tag map、cleanup goroutine/配置与 typed Client `Close`；Redis 成为 Get/Set/Delete/tag invalidation 的唯一 authority。`RemoteStore.Get` 不再执行仅服务于 L1 回填的 TTL 查询，`InvalidateTags` 不再返回仅服务于本地失效的 key 列表；`GetOrLoad`/`GetMany` 只把 `ErrNotFound` 作为 miss。Kernel 继续拥有并关闭共享 Redis client。
+
 ## 局限与刷新条件
 
 - 本轮没有运行 cache benchmark，因为没有 production consumer、value distribution 或 SLO；benchmark 不能替代缺失需求。
-- 没有连接真实 Redis 或修改实现；上述行为来自源码、测试和 composition 静态追踪。
+- 本轮没有连接外部真实 Redis；Redis Adapter 行为通过可控测试后端验证，完整验证结果记录在 057 `tasks.md`。
 - 若发现仓库外已承诺的 `pkg/cache.Client` 消费者或首个正式 release，删除 `Close`/配置字段等公共变化必须重新评估兼容策略。
 - 新增真实 typed cache 消费者、多实例失效机制、候选 release/安全变化或量化性能目标时，本报告必须刷新。
 
 ## 对计划的影响
 
-R001/R002 的“默认 L1 应直接换库”推断被更细证据修订。`CACHE-057-001` 的依赖选择、公共接口和生命周期范围发生材料变化，因此继续保持“待确认”；用户需基于修订后的计划重新明确确认，之后才能修改 `pkg/cache`、`go.mod` 或测试。
+R001/R002 的“默认 L1 应直接换库”推断被更细证据修订。用户已明确确认并完成修订后的 `CACHE-057-001`；后续若重新引入 L1，仍必须按本报告门禁建立新研究与任务，不能恢复历史实现或兼容层。

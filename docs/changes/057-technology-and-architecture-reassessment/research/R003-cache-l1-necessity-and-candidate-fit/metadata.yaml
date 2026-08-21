@@ -9,7 +9,7 @@ technologies: ["go-cache", "go-redis", "Otter", "ttlcache", "Ristretto", "msgpac
 applicable_scenarios: ["CACHE-057-001", "本地缓存引入门禁", "多实例缓存一致性", "缓存能力边界"]
 non_applicable_scenarios: ["Redis coordination lease", "未量化的性能承诺", "业务数据持久化"]
 status: active
-summary: "当前没有 production typed cache 消费者；默认 L1 无容量上界且没有跨实例失效，直接换库不能解决核心风险。CACHE-057-001 应先单轨退役默认 L1 和 go-cache，保留 Redis typed cache/tag 契约，并仅在真实消费者给出收益、内存和陈旧预算后重新选择 bounded L1。"
+summary: "当前没有 production typed cache 消费者；默认 L1 无容量上界且没有跨实例失效，直接换库不能解决核心风险。CACHE-057-001 已单轨退役默认 L1 和 go-cache，保留 Redis typed cache/tag 契约，并仅在真实消费者给出收益、内存和陈旧预算后重新选择 bounded L1。"
 evidence:
   types: ["source-code", "call-site-search", "tests", "dependency-manifest", "official-repository", "official-release", "vulnerability-database"]
   primary_sources:

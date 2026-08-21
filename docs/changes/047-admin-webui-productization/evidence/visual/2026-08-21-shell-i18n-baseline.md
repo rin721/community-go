@@ -60,3 +60,8 @@
 - Soybean Header 实测同时提供一键明暗模式切换与独立“主题配置”抽屉；抽屉内按“外观 / 布局 / 通用 / 预设”组织设置，并在右侧保持固定 Surface 与遮罩。
 - 本项目的主题 authority 仍由 `useThemePreferences` 单点持有；本轮只在 Header 增加一键 light/dark 切换，原有 ThemeDrawer 继续承载主题色、密度与恢复默认，不新增第二套主题状态。
 - 新增入口使用 `webui.host.theme.toggle` 文案，保持 host-owned i18n；移动端按现有 Header 响应式规则隐藏，不制造溢出。
+
+## 页签操作补充观察
+
+- Soybean 工作区页签行右侧保留宿主级刷新/显示操作，页签本身仍由宿主统一承载；业务页面不直接控制这组动作。
+- 本项目新增“刷新当前页面”宿主入口，调用当前 route 的既有导航语义，不新增模块 API、缓存策略或全局状态；按钮文案来自 `webui.host.tabs.refresh`。

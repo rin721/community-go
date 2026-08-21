@@ -45,7 +45,8 @@
 详细矩阵以[技术选型与架构复核基线](../../architecture/technology-selection.md)为当前 authority。至少包括：
 
 - 保留：zap、chi、GORM 连接/事务、golang-migrate、go-redis、gocron、amqp091-go、OpenTelemetry/Prometheus 和当前简单 Core RBAC。
-- 优先升级/替换：kin-openapi、patrickmn/go-cache、YAML v3；对 JWX、标准 rate limiter 和 resilience 状态机分项评估。
+- 已完成安全升级：kin-openapi v0.147.0，并保持项目 OperationGate 为真实认证/授权 owner。
+- 后续升级/替换：patrickmn/go-cache、YAML v3；对 JWX、标准 rate limiter 和 resilience 状态机分项评估。
 - 合理自研：模块 Repository port、permission/operation/migration 业务语义、Argon2id 薄 Adapter，但补齐参数演进与重哈希语义。
 - 高耦合 PoC：Huma 对当前 HTTP DSL、GORM Gen/sqlc 对当前反射 Repository、koanf 对当前通用配置解析部分。
 - 架构重构候选：恢复启动期静态业务对象图与经证明可换代的动态资源平面分工。

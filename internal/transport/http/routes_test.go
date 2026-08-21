@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/rin721/go-scaffold-template/internal/module/todo/binding/http"
 	todohandler "github.com/rin721/go-scaffold-template/internal/module/todo/handler"
 	"github.com/rin721/go-scaffold-template/pkg/httpx"
@@ -130,14 +131,59 @@ func TestRouteBindingEnforcesOperationGate(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			routes := newRouteBinding(t, newDispatcherStub(), test.gate)
+			dispatcher := newDispatcherStub()
+			handlerCalled := false
+			dispatcher.handlers["listTodos"] = contract.Query(func(context.Context, todohandler.ListTodosParams) (todohandler.TodoList, error) {
+				handlerCalled = true
+				return todohandler.TodoList{}, nil
+			}, http.StatusOK)
+			routes := newRouteBinding(t, dispatcher, test.gate)
 			recorder := httptest.NewRecorder()
 			routes.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/api/v1/todos", nil))
 			problem := decodeProblem(t, recorder)
 			if recorder.Code != test.status || problem.Code != test.code {
 				t.Fatalf("response = status %d problem %#v", recorder.Code, problem)
 			}
+			if handlerCalled {
+				t.Fatal("operation handler was called after the gate rejected the request")
+			}
 		})
+	}
+}
+
+// TestValidateRequestRejectsSchemaLessContentParameterWithoutPanic 回归
+// GHSA-jpcw-4wr7-c3vq：合法 OpenAPI 文档中的无 schema content 参数必须返回错误，
+// 不能由一条未认证请求触发 validator panic。
+func TestValidateRequestRejectsSchemaLessContentParameterWithoutPanic(t *testing.T) {
+	const specificationYAML = `
+openapi: 3.0.3
+info: {title: security-regression, version: "1.0.0"}
+paths:
+  /security-regression:
+    get:
+      parameters:
+        - name: cfg
+          in: query
+          content:
+            application/json: {}
+      responses:
+        "200": {description: ok}
+`
+	specification, err := openapi3.NewLoader().LoadFromData([]byte(specificationYAML))
+	if err != nil {
+		t.Fatalf("load security regression spec: %v", err)
+	}
+	if err := specification.Validate(context.Background()); err != nil {
+		t.Fatalf("security regression spec must remain valid OpenAPI: %v", err)
+	}
+	request := httptest.NewRequest(http.MethodGet, "/security-regression?cfg=1", nil)
+	operation := contract.Operation{
+		ID:     "securityRegression",
+		Method: contract.MethodGet,
+		Path:   "/security-regression",
+	}
+	if err := validateRequest(specification, operation, request, nil); err == nil {
+		t.Fatal("schema-less content parameter was accepted")
 	}
 }
 

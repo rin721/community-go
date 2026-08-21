@@ -31,7 +31,7 @@
 | 日志 | `pkg/logger` 以窄接口封装 `zap v1.28.0`，composition 拥有 sink 与 Sync/Close | **保留**；没有证据证明迁移 `log/slog` 能抵消行为、性能和迁移成本 | 保持 `zap` 为实现；`log/slog` 只作为后续基准候选，不向业务暴露具体 logger 类型 |
 | HTTP server/router | `net/http + chi v5.3.1`，项目拥有 server 生命周期与错误语义 | **保留** | `chi` 只承担路由；标准库承担 server/transport；项目边界继续拥有 Problem Details、超时和关闭语义 |
 | HTTP Client | `pkg/httpx` 在 `net/http` 上自研请求、响应和可选重试 | **保留标准库核心，重构策略层**；通用 Client 不应默认决定非幂等重试 | `net/http` 为 transport；`otelhttp` 承担标准观测；`failsafe-go` 为 retry/timeout/circuit/bulkhead 首选 PoC，策略由具体下游 profile 显式注入 |
-| HTTP 契约/OpenAPI | `pkg/httpx/contract` 自研 typed DSL；`kin-openapi v0.142.0` 参与生成与请求验证 | **先安全升级，再做替换 PoC**；不能因 030 已落地就排除成熟框架 | 优先评估 `kin-openapi v0.147.0`（本次研究时最新）；以 `Huma v2` 作为保持 code-first 与 chi 的首选 PoC，`ogen` 只在改为 spec-first 时比较；模块仍拥有 operation 语义 |
+| HTTP 契约/OpenAPI | `pkg/httpx/contract` 自研 typed DSL；`kin-openapi v0.147.0` 参与生成与请求验证 | **安全升级已完成，替换 PoC 待确认**；不能因 030 已落地就排除成熟框架 | 继续使用本次研究时最新的 `kin-openapi v0.147.0`；以 `Huma v2` 作为保持 code-first 与 chi 的首选 PoC，`ogen` 只在改为 spec-first 时比较；模块仍拥有 operation 语义，真实认证/授权由项目 `OperationGate` fail-closed 执行 |
 | ORM/Repository | `GORM v1.31.2` 活跃；`pkg/database` 又实现反射式 Schema、Query 和通用 Repository | **保留 GORM 连接/事务基线，复核自研 Repository 架构** | 用 IAM/Organization/Navigation 的真实 join、分页、乐观锁与三方言查询比较当前实现、`gorm.io/gen` 和 `sqlc`；业务仍依赖模块自有 Repository port，不暴露 GORM 类型 |
 | Migration | 使用 `golang-migrate` 与模块自有 migration set | **保留** | `golang-migrate` 负责版本执行；模块拥有 SQL 与兼容语义，不使用 GORM AutoMigrate 替代发布 migration |
 | L1/L2 Cache | L1 为 `patrickmn/go-cache`，L2 为官方 `go-redis/v9`，项目自管二级一致性、tag 和清理任务 | **替换 L1，保留 Redis 与项目缓存语义但复核复杂度** | `Otter v2` 与 `ttlcache v3` 做 TTL、容量、关闭、并发和内存上界 PoC；`go-redis/v9` 继续只存在于 Adapter；不得保留无容量上界的默认 L1 |

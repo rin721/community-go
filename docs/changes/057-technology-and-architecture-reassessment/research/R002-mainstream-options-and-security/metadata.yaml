@@ -9,7 +9,7 @@ technologies: ["kin-openapi", "Huma", "ogen", "GORM", "sqlc", "Otter", "ttlcache
 applicable_scenarios: ["057 技术矩阵", "安全升级", "依赖替换 PoC", "后续模块能力评估"]
 non_applicable_scenarios: ["未经 PoC 的生产迁移结论", "GitHub 热度排名", "具体业务需求尚未出现的重量级平台选型"]
 status: active
-summary: "官方证据支持保留多项现有成熟依赖，同时要求优先升级 kin-openapi、替换长期未发布的 patrickmn/go-cache，并对 HTTP 契约、Repository、韧性、配置、鉴权与授权按真实用例做边界化 PoC。"
+summary: "官方证据支持保留多项现有成熟依赖；SEC-057-001 已把 kin-openapi 单轨升级到 v0.147.0 并关闭可达漏洞，patrickmn/go-cache 替换及 HTTP 契约、Repository、韧性、配置、鉴权与授权 PoC 仍按真实用例分批确认。"
 evidence:
   types: ["official-repository", "official-release", "security-advisory", "standard-library-doc", "security-standard"]
   primary_sources:
@@ -24,6 +24,9 @@ evidence:
       snapshot: "2026-08-22"
     - title: "授权、YAML 与密码安全官方来源"
       locator: "https://github.com/apache/casbin; https://github.com/openfga/openfga; https://github.com/yaml/go-yaml; https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html"
+      snapshot: "2026-08-22"
+    - title: "SEC-057-001 实施与验证"
+      locator: "go.mod; internal/transport/http/routes.go; internal/transport/http/routes_test.go; docs/changes/057-technology-and-architecture-reassessment/tasks.md"
       snapshot: "2026-08-22"
 researched_at: "2026-08-22"
 verified_at: "2026-08-22"

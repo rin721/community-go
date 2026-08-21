@@ -60,3 +60,14 @@
 ## 对当前任务的影响
 
 形成明确的保留/升级/替换/合理自研/架构重构矩阵，并支持按安全风险和耦合度分批实施。候选清单已经收敛到项目职责边界，而不是无优先级技术名录。
+
+## 实施刷新（2026-08-22）
+
+`SEC-057-001` 已按本研究完成安全止血：
+
+- `kin-openapi` 从 `v0.142.0` 单轨升级到本次复核时最新 `v0.147.0`，`go.sum` 不再保留旧版本；
+- 当前 production 继续直接调用 `ValidateRequest`，不使用 `ValidationHandler.Load()` 或 `ValidateResponse`；OpenAPI `AuthenticationFunc` 只校验安全方案引用，真实凭据认证与授权继续由项目 `OperationGate` fail-closed 执行；
+- 新增 GHSA-jpcw-4wr7-c3vq 回归，证明合法文档中的无 schema `content` 参数返回错误而不 panic，并证明 Gate 拒绝后不会调用业务 Handler；
+- PATH 中 Scanner v1.3.0 已用 Go 1.26.6 重建。全仓 `govulncheck -show verbose ./...` 报告 0 个可达符号漏洞、0 个 imported-package 漏洞；模块层仍报告当前代码不可达的 GO-2026-6222（`x/image`）和 GO-2026-5932（`x/crypto/openpgp`），不在 Batch A 内无证据扩张升级。
+
+这关闭了安全升级任务，不代表 Huma 或当前 typed DSL 的高耦合 PoC 已完成或获得授权。

@@ -1,0 +1,6 @@
+schema_version: 1
+change: 057-technology-and-architecture-reassessment
+areas:
+  - id: api
+    decision: reviewed-no-change
+    reason: kin-openapi 安全补丁升级不改变公开 operation、OpenAPI authority、路由、DTO 或错误协议；go generate 后 api/openapi.yaml 与 operation inventory 均保持 clean diff，当前 API 使用说明无需改写。

@@ -4,7 +4,7 @@
 
 - 研究门禁：已通过。
 - 文档任务：已完成，适用纯文档直接实施例外。
-- 非文档任务：待确认；用户初始目标不构成计划报告后的实施确认。
+- 非文档任务：用户已于 2026-08-22 明确确认 Batch A（`SEC-057-001`），现已完成；Batch B–E 仍待确认。
 
 ## 任务清单
 
@@ -13,7 +13,7 @@
 | RES-057-001 | 文档 | 审计当前能力、依赖、调用方与承载架构 | 无 | 已完成 | R001 可复核，事实/推断/目标分离 |
 | RES-057-002 | 文档 | 以官方来源核验成熟候选、维护与安全状态 | RES-057-001 | 已完成 | R002 有版本日期、适用边界、局限和刷新触发器 |
 | DOC-057-001 | 文档 | 更新 AGENTS、研究规范、模块指南、pkg/architecture authority 和导航 | RES-057-001, RES-057-002 | 已完成 | 技术决策基线单一可发现，文档门禁通过 |
-| SEC-057-001 | A | 升级 kin-openapi 并重建 Go 1.26 漏洞扫描证据 | 用户确认 Batch A | 待确认 | 当前安全版本、生成/请求负向测试、全仓 govulncheck 和旧版本残留搜索通过 |
+| SEC-057-001 | A | 升级 kin-openapi 并重建 Go 1.26 漏洞扫描证据 | 用户确认 Batch A | 已完成 | v0.147.0、生成/请求负向测试、全仓 govulncheck 和旧版本残留搜索通过 |
 | CACHE-057-001 | B | Otter v2/ttlcache v3 PoC 并单轨替换 L1 | 用户确认该任务 | 待确认 | 容量、TTL、并发、关闭、内存上界与二级语义测试通过；删除 go-cache |
 | SERDE-057-001 | B | YAML v4 兼容验证与单轨迁移 | 用户确认该任务 | 待确认 | 配置/i18n/生成 fixture 等价或差异已决策；删除 v3 直接依赖 |
 | LIMIT-057-001 | B | 用 x/time/rate 替换通用 token bucket | 用户确认该任务 | 待确认 | 维持明确 load-shedding 语义、配置与并发测试；不冒充分布式 quota |
@@ -28,7 +28,7 @@
 
 ## 建议确认方式
 
-为避免安全修复被长期 PoC 阻塞，建议下一轮先确认 **Batch A（`SEC-057-001`）**。Batch B 的四项可逐项确认；Batch C/D/E 应依据前序证据重新提交更窄设计，不建议一次性授权全部实施。
+Batch A 已完成。下一轮建议逐项确认 Batch B，不一次授权全部任务；优先级建议为 `CACHE-057-001`，随后再分别确认 `SERDE-057-001`、`LIMIT-057-001` 或 `AUTHN-057-001`。Batch C/D/E 应依据前序证据重新提交更窄设计。
 
 ## 停止与重新确认条件
 
@@ -46,7 +46,13 @@
 | 2026-08-22 | Git 初始状态 | `main...origin/main [ahead 6]`，工作区初始 clean；未处理用户范围外文件 |
 | 2026-08-22 | 当前漏洞扫描尝试 | 未形成有效结果：本机 `govulncheck` 由 Go 1.25 构建，无法加载 Go 1.26.6 项目；列入 SEC-057-001，不冒充通过 |
 | 2026-08-22 | 文档验证 | `git diff --check` 通过；`./scripts/Verify-Docs.ps1` 通过，docs-guard 确认当前文档拓扑与适用影响记录有效 |
+| 2026-08-22 | 依赖与路径 | 官方最新版本复核为 kin-openapi v0.147.0；`go.mod`/`go.sum` 单轨升级且旧 v0.142.0 残留仅存在于历史研究证据；production 只调用 `ValidateRequest` 并显式提供 `AuthenticationFunc`，不调用 `ValidationHandler`/`ValidateResponse` |
+| 2026-08-22 | 安全负向测试 | `go test ./internal/transport/http ./pkg/httpx/contract -count=1` 通过；无 schema `content` 参数返回错误而不 panic，Gate 拒绝后 Handler 未执行 |
+| 2026-08-22 | 漏洞扫描工具 | PATH 中 `govulncheck v1.3.0` 已由 Go 1.26.6 重建，`go version -m` 与 `govulncheck -version` 均确认工具链一致 |
+| 2026-08-22 | 全仓漏洞扫描 | `govulncheck -show verbose ./...`：0 reachable symbol、0 imported package 漏洞；模块层有 2 个当前不可达项 GO-2026-6222 与 GO-2026-5932，保留为后续研究风险 |
+| 2026-08-22 | 完整 Go 门禁 | `Verify-Quality.ps1` 的 gofmt、tidy diff、project layout、generate/clean diff、全量 test、全量 race、vet、CGO-free build 均通过；最后 `Verify-Artifacts` 仅命中既有且被当前范围排除的 `old-backend/` 两个 tracked app.db，与 053/054 已记录阻塞相同，本任务未修改或删除 |
 
 ## Commit
 
-本轮纯文档提交使用 Conventional Commits 主题 `docs(architecture): establish technology selection baseline`；准确 commit id 由 Git 历史记录，不在提交前虚构。
+- 研究与计划：`b8445d1 docs(architecture): establish technology selection baseline`
+- Batch A：使用 Conventional Commits 主题 `fix(http): upgrade OpenAPI validator security baseline`；准确 commit id 由 Git 历史记录，不在提交前虚构。

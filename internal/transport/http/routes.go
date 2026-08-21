@@ -151,7 +151,8 @@ func collectPathParams(operation contract.Operation, request *http.Request) map[
 	return values
 }
 
-// validateRequest 用规范校验请求（含路径参数与认证）。
+// validateRequest 用规范校验请求结构和安全方案引用。真实凭据认证与权限判断由
+// OperationGate 独立执行，不能依赖 OpenAPI validator 的默认认证行为。
 func validateRequest(specification *openapi3.T, operation contract.Operation, request *http.Request, pathParams map[string]string) error {
 	pathItem := specification.Paths.Find(operation.Path)
 	if pathItem == nil {

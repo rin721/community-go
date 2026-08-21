@@ -190,5 +190,10 @@ function MenuIcon({ iconID }: { iconID: string }) {
 }
 
 export function BlankLayout() {
-  return <div className="blank-layout"><Link className="blank-brand" to="/"><span className="brand-mark">{translateMessage("webui.host.brandSymbol")}</span><span><strong>{translateMessage("webui.host.brand")}</strong><small>{translateMessage("webui.host.product")}</small></span></Link><Outlet /><p className="blank-footer">{translateMessage("webui.host.footer")}</p></div>;
+  const { i18n: hostI18n } = useWebUITranslation("webui.host");
+  const [themeOpen, setThemeOpen] = useState(false);
+  const { theme, setTheme, resetTheme } = useThemePreferences();
+  const availableLanguages = getAvailableLanguages();
+  const toggleColorScheme = () => setTheme({ ...theme, mode: theme.mode === "dark" ? "light" : "dark" });
+  return <div className="blank-layout"><header className="blank-header"><Link className="blank-brand" to="/"><span className="brand-mark">{translateMessage("webui.host.brandSymbol")}</span><span><strong>{translateMessage("webui.host.brand")}</strong><small>{translateMessage("webui.host.product")}</small></span></Link><div className="blank-actions"><label className="language-button" title={translateMessage("webui.host.language")}><Languages size={18} /><select aria-label={translateMessage("webui.host.language")} value={hostI18n.language} onChange={(event) => void changeLanguage(event.target.value)}>{availableLanguages.map((language) => <option value={language} key={language}>{translateMessage(languageLabelMessageID(language))}</option>)}</select></label><button type="button" className="icon-button" onClick={toggleColorScheme} title={translateMessage("webui.host.theme.toggle")} aria-label={translateMessage("webui.host.theme.toggle")}>{theme.mode === "dark" ? <Sun size={18} /> : <Moon size={18} />}</button><button type="button" className="icon-button" onClick={() => setThemeOpen(true)} title={translateMessage("webui.host.theme")} aria-label={translateMessage("webui.host.theme")}><Palette size={18} /></button></div></header><main className="blank-content"><Outlet /></main><p className="blank-footer">{translateMessage("webui.host.footer")}</p><ThemeDrawer open={themeOpen} theme={theme} onChange={setTheme} onReset={resetTheme} onClose={() => setThemeOpen(false)} /></div>;
 }

@@ -11,11 +11,11 @@ const manifest: Manifest = {
   navigationRevision: "test-navigation-revision",
   routes: [
     { moduleId: "ops", id: "ops.dashboard", path: "/ops", entryId: "ops.dashboard", titleMessageId: "webui.ops.dashboard.title", layout: "app", deliveryState: "implemented", default: true, unauthenticatedDefault: false, access: "allowed" },
-    { moduleId: "auth", id: "auth.session", path: "/account/session", entryId: "auth.session", titleMessageId: "webui.auth.session.title", layout: "app", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access: "allowed" },
+    { moduleId: "iam", id: "iam.security", path: "/account/security", entryId: "iam.security", titleMessageId: "webui.iam.security.title", layout: "app", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access: "allowed" },
   ],
   menu: [
     { moduleId: "ops", id: "ops.dashboard", routeId: "ops.dashboard", titleMessageId: "webui.ops.dashboard.title", iconId: "activity", order: 1 },
-    { moduleId: "auth", id: "auth.session", routeId: "auth.session", titleMessageId: "webui.auth.session.title", iconId: "user", order: 30 },
+    { moduleId: "iam", id: "iam.security", routeId: "iam.security", titleMessageId: "webui.iam.security.title", iconId: "user", order: 30 },
   ],
 };
 
@@ -38,7 +38,7 @@ describe("宿主 AppShell", () => {
     await ensureRouteLocale(manifest.routes[1]);
     const markup = renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: ["/ops"] }, createElement(AppShell, { manifest, principal: undefined, onLogout: async () => undefined })));
 
-    expect(markup).toContain('href="/account/session"');
-    expect(markup).toContain("当前会话");
+    expect(markup).toContain('href="/account/security"');
+    expect(markup).toContain("账号安全");
   });
 });

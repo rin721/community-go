@@ -1,10 +1,11 @@
 package composition
 
 import (
-	authhttp "github.com/rin721/go-scaffold-template/internal/module/auth/binding/http"
 	authpermission "github.com/rin721/go-scaffold-template/internal/module/auth/binding/permission"
-	authwebui "github.com/rin721/go-scaffold-template/internal/module/auth/binding/webui"
 	authmodel "github.com/rin721/go-scaffold-template/internal/module/auth/model"
+	iamhttp "github.com/rin721/go-scaffold-template/internal/module/iam/binding/http"
+	iampermission "github.com/rin721/go-scaffold-template/internal/module/iam/binding/permission"
+	iamwebui "github.com/rin721/go-scaffold-template/internal/module/iam/binding/webui"
 	opswebui "github.com/rin721/go-scaffold-template/internal/module/ops/binding/webui"
 	todohttp "github.com/rin721/go-scaffold-template/internal/module/todo/binding/http"
 	todopermission "github.com/rin721/go-scaffold-template/internal/module/todo/binding/permission"
@@ -22,14 +23,15 @@ import (
 // 在此追加一项，并同时扩展其运行时在 composition 的装配。
 func applicationHTTPModules() []contract.Module {
 	return []contract.Module{
-		authhttp.ModuleContract(),
+		iamhttp.ModuleContract(),
 		todohttp.ModuleContract(),
 	}
 }
 
 // applicationPermissionCatalog 是当前应用中“哪些模块贡献权限定义”的唯一显式汇总点。
 func applicationPermissionCatalog() (permissioncatalog.Catalog, error) {
-	definitions := append(authpermission.Definitions(), todopermission.Definitions()...)
+	definitions := append(authpermission.Definitions(), iampermission.Definitions()...)
+	definitions = append(definitions, todopermission.Definitions()...)
 	return permissioncatalog.BuildCatalog(definitions...)
 }
 
@@ -37,7 +39,7 @@ func applicationPermissionCatalog() (permissioncatalog.Catalog, error) {
 // 新模块必须在这里显式选择并声明 Activation；目录存在不代表应用会发布它。
 func applicationWebUIModules() []webuicontract.ModuleRegistration {
 	return []webuicontract.ModuleRegistration{
-		{Binding: authwebui.Binding(), Activation: webuicontract.ActivationEnabled},
+		{Binding: iamwebui.Binding(), Activation: webuicontract.ActivationEnabled},
 		{Binding: opswebui.Binding(), Activation: webuicontract.ActivationEnabled},
 	}
 }

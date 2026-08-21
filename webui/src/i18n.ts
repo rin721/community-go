@@ -30,6 +30,7 @@ export async function initializeI18n(): Promise<void> {
     fallbackLng: fallbackLanguage,
     defaultNS: "webui.host",
     interpolation: { escapeValue: false },
+    react: { bindI18nStore: "added removed" },
     keySeparator: false,
     nsSeparator: false,
     returnNull: false,

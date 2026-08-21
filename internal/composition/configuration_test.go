@@ -8,6 +8,7 @@ func TestApplicationOwnedConfigurationBindingsAreCompleteAndOrdered(t *testing.T
 		configPath   string
 	}{
 		{capabilityID: "module.auth", configPath: "auth"},
+		{capabilityID: "module.iam", configPath: "iam"},
 		{capabilityID: "module.migration", configPath: "migration"},
 		{capabilityID: "module.todo", configPath: "todo"},
 		{capabilityID: "module.ops.management", configPath: "management"},

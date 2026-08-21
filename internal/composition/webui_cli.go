@@ -8,18 +8,19 @@ import (
 	databaseapp "github.com/rin721/go-scaffold-template/internal/kernel/app/database"
 	kernelcomposition "github.com/rin721/go-scaffold-template/internal/kernel/composition"
 	"github.com/rin721/go-scaffold-template/internal/kernel/config"
-	"github.com/rin721/go-scaffold-template/internal/module/auth"
-	authconfig "github.com/rin721/go-scaffold-template/internal/module/auth/binding/config"
+	"github.com/rin721/go-scaffold-template/internal/module/iam"
+	iamconfig "github.com/rin721/go-scaffold-template/internal/module/iam/binding/config"
+	"github.com/rin721/go-scaffold-template/pkg/idgen"
 	"github.com/rin721/go-scaffold-template/pkg/supervisor"
 )
 
-type webuiExecutor struct{ application *Application }
+type iamExecutor struct{ application *Application }
 
-func (e webuiExecutor) ResetPassword(ctx context.Context, username, password string) error {
-	return e.application.executeWebUIResetPassword(ctx, username, password)
+func (e iamExecutor) ResetPassword(ctx context.Context, username, password string) error {
+	return e.application.executeIAMResetPassword(ctx, username, password)
 }
 
-func (a *Application) executeWebUIResetPassword(ctx context.Context, username, password string) error {
+func (a *Application) executeIAMResetPassword(ctx context.Context, username, password string) error {
 	if a == nil {
 		return fmt.Errorf("application is nil")
 	}
@@ -48,7 +49,7 @@ func (a *Application) executeWebUIResetPassword(ctx context.Context, username, p
 	if err != nil {
 		return fmt.Errorf("prepare application configuration: %w", err)
 	}
-	authConfig, err := authconfig.Decode(candidate)
+	iamConfig, err := iamconfig.Decode(candidate)
 	if err != nil {
 		return err
 	}
@@ -64,19 +65,15 @@ func (a *Application) executeWebUIResetPassword(ctx context.Context, username, p
 	if err != nil {
 		return err
 	}
-	policies, err := operationPolicies()
+	permissions, err := applicationPermissionCatalog()
 	if err != nil {
 		return err
 	}
-	authModule, err := auth.NewLocal(auth.Dependencies{
-		Clock: capabilities.Clock, Logger: capabilities.Logger, Config: authConfig,
-		Policies: policies, WebUIAccess: databaseAccess,
+	iamModule, err := iam.New(iam.Dependencies{
+		Database: databaseAccess, Clock: capabilities.Clock, IDGenerator: idgen.UUID(), Config: iamConfig, Permissions: permissions,
 	})
 	if err != nil {
-		return fmt.Errorf("compose local auth module: %w", err)
-	}
-	if authModule.WebUI == nil {
-		return fmt.Errorf("local webui service is unavailable")
+		return fmt.Errorf("compose local iam module: %w", err)
 	}
 	owner, err := newTodoOperationSupervisor([]supervisor.Participant{coordinator})
 	if err != nil {
@@ -86,7 +83,13 @@ func (a *Application) executeWebUIResetPassword(ctx context.Context, username, p
 		if err := migrationService.Compatible(operationCtx); err != nil {
 			return fmt.Errorf("verify application migration compatibility: %w", err)
 		}
-		return authModule.WebUI.ResetPassword(operationCtx, username, password)
+		if err := iamModule.Service.ReconcileOwnerCatalog(operationCtx); err != nil {
+			return fmt.Errorf("reconcile iam owner catalog: %w", err)
+		}
+		if err := iamModule.Service.Compatible(operationCtx); err != nil {
+			return fmt.Errorf("verify iam catalog compatibility: %w", err)
+		}
+		return iamModule.Service.ResetPasswordByUsername(operationCtx, username, password)
 	}); err != nil {
 		return fmt.Errorf("execute webui password reset: %w", err)
 	}

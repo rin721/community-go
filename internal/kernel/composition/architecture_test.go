@@ -487,12 +487,17 @@ func validateCompositionOwnership(root string) error {
 }
 
 // validateAdminFoundationOwnership 固化 053 的显式分类型聚合边界：Catalog 不依赖 Kernel，
-// 不通过 init、全局 Registry 或运行时目录扫描发现完成品，也不提前创建 054–056 业务模块。
+// 不通过 init、全局 Registry 或运行时目录扫描发现完成品；后续业务模块必须是可装配完成品，
+// 不能只创建空目录占位。
 func validateAdminFoundationOwnership(root string) error {
 	for _, moduleID := range []string{"iam", "organization", "navigation"} {
 		path := filepath.Join(root, "internal", "module", moduleID)
 		if info, err := os.Stat(path); err == nil && info.IsDir() {
-			return fmt.Errorf("053 cannot create Admin business module placeholder %s", path)
+			if _, moduleErr := os.Stat(filepath.Join(path, "module.go")); errors.Is(moduleErr, os.ErrNotExist) {
+				return fmt.Errorf("Admin business module is only a placeholder: %s", path)
+			} else if moduleErr != nil {
+				return fmt.Errorf("inspect Admin business module completion %s: %w", path, moduleErr)
+			}
 		} else if err != nil && !errors.Is(err, os.ErrNotExist) {
 			return fmt.Errorf("inspect Admin business module placeholder %s: %w", path, err)
 		}

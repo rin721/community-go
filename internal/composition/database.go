@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	databaseapp "github.com/rin721/go-scaffold-template/internal/kernel/app/database"
+	iamrepo "github.com/rin721/go-scaffold-template/internal/module/iam/repo"
 	"github.com/rin721/go-scaffold-template/internal/module/todo/repo"
 	"github.com/rin721/go-scaffold-template/pkg/database"
 )
@@ -39,3 +40,4 @@ func (a databaseAccessAdapter) WithinTx(
 }
 
 var _ repo.Access = databaseAccessAdapter{}
+var _ iamrepo.Access = databaseAccessAdapter{}

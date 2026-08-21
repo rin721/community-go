@@ -4,7 +4,7 @@ import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { type Manifest, type ManifestMenu, type ManifestRoute, type PrincipalView } from "@webui/sdk/runtime";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { ConfirmDialog, Toast } from "@webui/sdk/ui";
-import { changeLanguage, getAvailableLanguages, languageLabelMessageID, translateMessage } from "../i18n";
+import { changeLanguage, ensureRouteLocale, getAvailableLanguages, languageLabelMessageID, translateMessage } from "../i18n";
 import { useThemePreferences } from "../theme";
 import { RouteSearch } from "./RouteSearch";
 import { ThemeDrawer } from "./ThemeDrawer";
@@ -26,10 +26,12 @@ export function AppShell({ manifest, principal, onLogout }: { manifest: Manifest
   const mobileSidebarRef = useRef<HTMLElement>(null);
   const mobileRestoreFocusRef = useRef<HTMLElement | null>(null);
   const accessibleRoutes = useMemo(() => manifest.routes.filter((route) => route.layout === "app" && route.access === "allowed" && route.deliveryState === "implemented"), [manifest]);
+  const localeEligibleRoutes = useMemo(() => accessibleRoutes.filter((route) => route.availability === "available" || (route.availability === "degraded" && (route.availableCapabilities?.length ?? 0) > 0)), [accessibleRoutes]);
   const menu = useMemo(() => buildMenuTree(manifest.menu.map((item) => ({ item, route: accessibleRoutes.find((route) => route.id === item.routeId) })).filter((value): value is { item: ManifestMenu; route: ManifestRoute } => Boolean(value.route))), [accessibleRoutes, manifest.menu]);
   const currentRoute = manifest.routes.find((route) => route.path === location.pathname);
   const [visitedRouteIDs, setVisitedRouteIDs] = useState<string[]>(() => currentRoute?.layout === "app" ? [currentRoute.id] : []);
   useEffect(() => setCollapsed(theme.layout.sidebarCollapsed), [theme.layout.sidebarCollapsed]);
+  useEffect(() => { void Promise.allSettled(localeEligibleRoutes.map(ensureRouteLocale)); }, [localeEligibleRoutes]);
   useEffect(() => {
     const media = window.matchMedia("(max-width: 720px)");
     const update = () => setIsMobileViewport(media.matches);

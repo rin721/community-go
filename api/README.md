@@ -4,7 +4,7 @@
 
 ## 权威与生成
 
-1. 每个业务模块分层声明自己的 HTTP 契约与 handler：模块顶层 `internal/module/<name>/handler` 实现窄 `Operations`/`Handler`、DTO 映射、错误呈现与 `ActorAccess`；`internal/module/<name>/binding/http` 以 `pkg/httpx/contract` 的 typed 类型声明 operation（method/path/operationId/policy/security 与 DTO schema），例如 `todo/binding/http/contract_module.go` 的 `ModuleContract()`，并提供 `RuntimeHandlers` 装箱。新增 HTTP 业务模块**除了在 `internal/composition` 装配**，还必须把其契约注册到 `internal/tools/contract-gen/main.go` 的 `registeredModules()`（build-time 生成器注册点、独立于运行图），否则 `go generate` 不会渲染该模块的 `api/openapi.yaml` 与 operation inventory。
+1. 每个业务模块分层声明自己的 HTTP 契约与 handler：普通业务模块由顶层 `internal/module/<name>/handler` 实现窄 `Operations`/`Handler`、DTO 映射、错误呈现与主体访问；`internal/module/<name>/binding/http` 以 `pkg/httpx/contract` 的 typed 类型声明 operation（method/path/operationId/policy/security 与 DTO schema）并提供 `RuntimeHandlers` 装箱。IAM 的 Cookie、Origin 与 CSRF 属于其 Session 协议边界，当前由 `internal/module/iam/binding/http` 在同一 typed operation 完成品内集中处理，不进入 Service，也不由宿主按 URL 特判。新增 HTTP 业务模块**除了在 `internal/composition` 装配**，还必须把其契约注册到 `internal/tools/contract-gen/main.go` 的 `registeredModules()`（build-time 生成器注册点、独立于运行图），否则 `go generate` 不会渲染该模块的 `api/openapi.yaml` 与 operation inventory。
 2. 在仓库根目录执行：
 
    ```powershell
@@ -27,5 +27,5 @@
 - `none`、`bearerAuth`、`webuiSession` 是有限 security profile。OpenAPI 只声明 scheme，operation gate 从 composition 注入的 Auth 来源认证一次并写入 Principal；transport 不硬编码 URL 前缀、Cookie、Origin 或 CSRF。
 - 受保护 operation 的精确 scope 必须存在于 Permission Catalog；菜单隐藏不替代服务端授权。
 
-- 模块顶层 handler 使用模块自有 DTO（`internal/module/<name>/handler/dto.go`），不依赖全局生成包、不 import `binding/**` 或 `internal/transport/**`。
+- 普通业务模块顶层 handler 使用模块自有 DTO（`internal/module/<name>/handler/dto.go`），不依赖全局生成包、不 import `binding/**` 或 `internal/transport/**`。需要直接拥有 Cookie/Header 协议状态的身份边界可以在模块 `binding/http` 内集中实现，但不得把该例外扩散到其他模块或下沉到 Service。
 - 底层第三方库（kin-openapi、yaml、jsonschema）只存在于 `pkg/httpx/contract` 内部与 transport/生成器，不泄漏到业务模块。

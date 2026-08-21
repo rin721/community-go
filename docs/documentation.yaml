@@ -36,7 +36,7 @@ areas:
     paths: [cmd/, internal/bootstrap/, internal/composition/]
     authorities: [README.md, docs/getting-started/local-development.md, docs/getting-started/first-use.md]
   - id: webui
-    paths: [webui/, internal/module/auth/binding/webui/, internal/module/ops/binding/webui/]
+    paths: [webui/, internal/module/iam/binding/webui/, internal/module/ops/binding/webui/]
     authorities: [README.md, webui/README.md, docs/getting-started/webui.md, docs/getting-started/first-use.md]
   - id: frontend
     paths: [frontend/]

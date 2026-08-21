@@ -7,7 +7,7 @@ const webuiRevision = registrySource.match(/webuiRevision = "([^"]+)"/)?.[1];
 if (!webuiRevision) throw new Error("generated WebUI revision is missing");
 
 const session = {
-  user: { id: "user-1", username: "operator", scopes: ["webui:read"] },
+  identity: { accountId: "user-1", username: "operator", displayName: "Operator", permissions: ["iam:account:self:read"], mustChangePassword: false, securityRevision: 1 },
   csrfToken: "csrf-test-token",
   createdAt: "2026-08-21T00:00:00Z",
   idleExpiresAt: "2026-08-21T01:00:00Z",
@@ -17,18 +17,25 @@ const session = {
 function manifest(authenticated: boolean, availability: "available" | "degraded" | "unavailable" = "available", accessOverride?: "allowed" | "denied") {
   const access = authenticated ? (accessOverride ?? "allowed") : "authentication-required";
   return {
-    revision: webuiRevision,
+    catalogRevision: webuiRevision,
+    navigationRevision: "e2e-navigation-revision",
     routes: [
-      { moduleId: "auth", id: "auth.setup", path: "/setup", entryId: "auth.setup", titleMessageId: "webui.auth.setup.title", layout: "blank", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access: "allowed", availability: "available", availableCapabilities: [] },
-      { moduleId: "auth", id: "auth.login", path: "/login", entryId: "auth.login", titleMessageId: "webui.auth.login.title", layout: "blank", deliveryState: "implemented", default: false, unauthenticatedDefault: true, access: "allowed", availability: "available", availableCapabilities: [] },
-      { moduleId: "auth", id: "auth.session", path: "/account/session", entryId: "auth.session", titleMessageId: "webui.auth.session.title", layout: "app", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
+      { moduleId: "iam", id: "iam.setup", path: "/setup", entryId: "iam.setup", titleMessageId: "webui.iam.setup.title", layout: "blank", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access: "allowed", availability: "available", availableCapabilities: [] },
+      { moduleId: "iam", id: "iam.login", path: "/login", entryId: "iam.login", titleMessageId: "webui.iam.login.title", layout: "blank", deliveryState: "implemented", default: false, unauthenticatedDefault: true, access: "allowed", availability: "available", availableCapabilities: [] },
+      { moduleId: "iam", id: "iam.security", path: "/account/security", entryId: "iam.security", titleMessageId: "webui.iam.security.title", layout: "app", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
+      { moduleId: "iam", id: "iam.accounts", path: "/admin/accounts", entryId: "iam.accounts", titleMessageId: "webui.iam.accounts.title", layout: "app", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
+      { moduleId: "iam", id: "iam.roles", path: "/admin/roles", entryId: "iam.roles", titleMessageId: "webui.iam.roles.title", layout: "app", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
+      { moduleId: "iam", id: "iam.permissions", path: "/admin/permissions", entryId: "iam.permissions", titleMessageId: "webui.iam.permissions.title", layout: "app", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
       { moduleId: "ops", id: "ops.dashboard", path: "/dashboard", entryId: "ops.dashboard", titleMessageId: "webui.ops.dashboard.title", layout: "app", deliveryState: "implemented", default: true, unauthenticatedDefault: false, access, availability, availableCapabilities: availability === "unavailable" ? [] : ["diagnostics", "metrics"] },
       { moduleId: "ops", id: "ops.capabilities", path: "/dashboard/capabilities", entryId: "ops.capabilities", titleMessageId: "webui.ops.capabilities.title", layout: "app", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability, availableCapabilities: availability === "unavailable" ? [] : ["diagnostics"] },
     ],
     menu: authenticated && access !== "denied" ? [
       { moduleId: "ops", id: "ops.dashboard", routeId: "ops.dashboard", titleMessageId: "webui.ops.dashboard.title", iconId: "activity", order: 10 },
       { moduleId: "ops", id: "ops.capabilities", parentId: "ops.dashboard", routeId: "ops.capabilities", titleMessageId: "webui.ops.capabilities.title", iconId: "activity", order: 20 },
-      { moduleId: "auth", id: "auth.session", routeId: "auth.session", titleMessageId: "webui.auth.session.title", iconId: "user", order: 30 },
+      { moduleId: "iam", id: "iam.security", routeId: "iam.security", titleMessageId: "webui.iam.security.title", iconId: "user", order: 30 },
+      { moduleId: "iam", id: "iam.accounts", routeId: "iam.accounts", titleMessageId: "webui.iam.accounts.title", iconId: "users", order: 40 },
+      { moduleId: "iam", id: "iam.roles", routeId: "iam.roles", titleMessageId: "webui.iam.roles.title", iconId: "shield", order: 50 },
+      { moduleId: "iam", id: "iam.permissions", routeId: "iam.permissions", titleMessageId: "webui.iam.permissions.title", iconId: "key", order: 60 },
     ] : [],
   };
 }
@@ -42,22 +49,31 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/api/v1/webui/manifest", async (route) => {
     await route.fulfill({ json: manifest(authenticated, availability, accessOverride) });
   });
-  await page.route("**/api/v1/webui/auth/session", async (route) => {
+  await page.route("**/api/v1/iam/session", async (route) => {
     if (authenticated) await route.fulfill({ json: session });
     else await route.fulfill({ status: 401, contentType: "application/json", body: JSON.stringify({ code: "unauthenticated" }) });
   });
-  await page.route("**/api/v1/webui/auth/login", async (route) => {
+  await page.route("**/api/v1/iam/login", async (route) => {
     authenticated = true;
     await route.fulfill({ json: session });
   });
-  await page.route("**/api/v1/webui/auth/setup", async (route) => {
+  await page.route("**/api/v1/iam/setup", async (route) => {
     authenticated = true;
     await route.fulfill({ json: session });
   });
-  await page.route("**/api/v1/webui/auth/logout", async (route) => {
+  await page.route("**/api/v1/iam/logout", async (route) => {
     authenticated = false;
     await route.fulfill({ status: 204, body: "" });
   });
+  await page.route("**/api/v1/iam/accounts?*", async (route) => {
+    await route.fulfill({ json: { items: [{ id: "user-1", username: "operator", displayName: "Operator", status: "active", mustChangePassword: false, securityRevision: 1, version: 1 }], offset: 0, limit: 100, total: 1 } });
+  });
+  await page.route("**/api/v1/iam/accounts/user-1/roles", async (route) => { await route.fulfill({ json: ["role-owner"] }); });
+  await page.route("**/api/v1/iam/roles?*", async (route) => {
+    await route.fulfill({ json: { items: [{ id: "role-owner", code: "owner", name: "System owner", description: "", active: true, archived: false, system: true, version: 1 }], offset: 0, limit: 100, total: 1 } });
+  });
+  await page.route("**/api/v1/iam/roles/role-owner/permissions", async (route) => { await route.fulfill({ json: ["iam:account:read"] }); });
+  await page.route("**/api/v1/iam/permissions", async (route) => { await route.fulfill({ json: [{ key: "iam:account:read", ownerModuleId: "iam", descriptionMessageId: "permission.iam.account.read" }] }); });
   await page.route("**/management/**", async (route) => {
     managementRequestCount += 1;
     const path = new URL(route.request().url()).pathname;
@@ -114,11 +130,12 @@ test("unavailable route stops business management requests", async ({ page }) =>
 
 test("setup creates the session and reaches the default module route", async ({ page }) => {
   await page.goto("/setup");
-  await expect(page.getByRole("heading", { name: "Initial setup" })).toBeVisible();
-  await page.getByLabel("Setup Token").fill("setup-token");
+  await expect(page.getByRole("heading", { name: "Initialize system owner" })).toBeVisible();
+  await page.getByLabel("Setup token").fill("setup-token");
   await page.getByLabel("Username").fill("operator");
+  await page.getByLabel("Display name").fill("Operator");
   await page.getByLabel("Password").fill("safe-test-password");
-  await page.getByRole("button", { name: "Create WebUI user" }).click();
+  await page.getByRole("button", { name: "Initialize" }).click();
   await page.waitForURL("**/dashboard");
   await expect(page.getByRole("heading", { name: "Runtime status" })).toBeVisible();
 });
@@ -131,12 +148,11 @@ test("supported degraded route only runs declared management capabilities", asyn
   expect(state.managementRequestCount()).toBe(2);
 });
 
-test("session page and host logout preserve the private session boundary", async ({ page }) => {
+test("security page and host logout preserve the private session boundary", async ({ page }) => {
   const state = page as unknown as { setWebUIState: (state: { authenticated?: boolean; availability?: "available" | "degraded" | "unavailable"; access?: "allowed" | "denied" }) => void };
   state.setWebUIState({ authenticated: true });
-  await page.goto("/account/session");
-  await expect(page.getByRole("heading", { name: "Current session" })).toBeVisible();
-  await expect(page.getByText("operator").first()).toBeVisible();
+  await page.goto("/account/security");
+  await expect(page.getByRole("heading", { name: "Account security" })).toBeVisible();
   await page.locator(".account-menu summary").click();
   await page.getByRole("button", { name: "Log out" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
@@ -151,4 +167,21 @@ test("denied route renders host access state without loading its entry", async (
   await page.goto("/dashboard");
   await expect(page.getByRole("heading", { name: "Access denied" })).toBeVisible();
   expect(state.managementRequestCount()).toBe(0);
+});
+
+test("account role and permission management pages render module-owned evidence", async ({ page }, testInfo) => {
+  (page as unknown as { setWebUIState: (state: { authenticated: boolean }) => void }).setWebUIState({ authenticated: true });
+  await page.goto("/admin/accounts");
+  await expect(page.getByRole("heading", { name: "Users" })).toBeVisible();
+  await expect(page.getByText("Operator", { exact: true })).toBeVisible();
+  await expect(page.getByText("Runtime status", { exact: true })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("iam-accounts.png"), fullPage: true });
+  await page.goto("/admin/roles");
+  await expect(page.getByRole("heading", { name: "Roles" })).toBeVisible();
+  await expect(page.getByText("System owner", { exact: true })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("iam-roles.png"), fullPage: true });
+  await page.goto("/admin/permissions");
+  await expect(page.getByRole("heading", { name: "Permissions" })).toBeVisible();
+  await expect(page.getByText("iam:account:read", { exact: true })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("iam-permissions.png"), fullPage: true });
 });

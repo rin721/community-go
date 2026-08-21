@@ -16,6 +16,7 @@ FileSource -> EnvSource
 $env:APP_DATABASE__DSN = '.data/app.db'
 $env:APP_LOGGER__LEVEL = 'debug'
 $env:APP_HTTP__ADDR = '127.0.0.1:8081'
+$env:APP_IAM__LOCAL__SETUPTOKEN = '<从密钥管理系统注入>'
 $env:APP_SCHEDULER__ENABLED = 'true'
 $env:APP_MESSAGING__PROVIDERS__PRIMARY__RABBITMQ__URI = 'amqps://<user>:<password>@broker.example:5671/'
 ```
@@ -55,6 +56,7 @@ go run ./cmd/app config init --output .data/generated-config.yaml
 | `messaging` | Application Messaging Component | 命名 Provider、逻辑 Route、confirm/handoff/恢复与 RabbitMQ topology 要求 |
 | `todo` | Todo 模块 | Todo 业务约束 |
 | `auth` | Auth 模块 | development-anonymous 或 JWT 鉴权配置 |
+| `iam` | IAM 模块 | 本地 setup、登录锁定和 Session timeout 安全预算 |
 | `http` | Kernel HTTP composition | 业务 HTTP listener 与请求治理 |
 | `management` | Ops 模块 | management listener、readiness、metrics access |
 | `observability` | Kernel Observability composition | service name、tracing exporter 与采样参数 |

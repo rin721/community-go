@@ -5,14 +5,14 @@
 | 能力 | 当前入口 | 资源/生命周期 owner | 当前验证 | 未覆盖边界 |
 | --- | --- | --- | --- | --- |
 | Config | `config init`、配置说明、环境变量 | Application 配置集合与 generation | Go 测试、启动和 reload 相关检查 | 外部部署平台注入策略 |
-| Database/Migration | `db migrate status/up`、database/migration 文档 | 多 Set Migration Catalog、one-shot runner 与数据库组件 | Todo SQLite baseline、Catalog/错误门禁；Postgres/MySQL SQL/checksum 静态校验 | 生产数据库协议需配置外部 DSN 独立验证 |
+| Database/Migration | `db migrate status/up`、database/migration 文档 | 多 Set Migration Catalog、one-shot runner 与数据库组件 | IAM/Todo SQLite baseline、Catalog/错误门禁；Postgres/MySQL SQL/checksum 静态校验 | 生产数据库协议需配置外部 DSN 独立验证 |
 | Cache/Coordination | 配置中的 cache/Redis 节 | Kernel App 连接与 lease/close owner | 单元测试、模拟依赖 | 真实 Redis、多实例故障恢复 |
 | Storage | storage 配置节、Storage Capability | Kernel App Manager 与对象存储资源 owner | Go 测试、契约边界 | 真实 S3 兼容服务和生产凭据 |
 | Observability | logger、diagnostics、metrics、OTLP 配置 | Kernel App observability 与注入 Logger | Go 测试、低敏日志检查 | 外部 collector/后端接收验证 |
 | Execution | `pkg/execution` 与模块接入文档 | Application execution policy、记录和 shutdown | Go 测试、故障注入 | 外部持久化 backend、多实例部署 |
 | Schedule | 模块 Schedule Binding、scheduler 配置 | 统一 scheduler、Execution、coordination lease | Go 测试与本地静态检查 | 真实多实例 owner 交接 |
 | Messaging | Message Contract/Binding、RabbitMQ 配置 | Provider Adapter、consumer generation 与 ack/retry | Go 测试与静态门禁 | RabbitMQ 真实协议需外部运行证据 |
-| Admin WebUI | `webui/`、WebUI 本地启动指南 | Vite 宿主、WebUI Catalog/NavigationPolicy 与 Auth typed HTTP | generate、lint、typecheck、test、build；fresh DB 仅验证宿主/manifest | 054 IAM 前不承诺 Setup/Login 持久化；Docker/release、E2E、视觉验收未覆盖 |
+| Admin WebUI | `webui/`、WebUI 本地启动指南 | Vite 宿主、WebUI Catalog/NavigationPolicy、IAM typed HTTP 与 Auth decision | IAM setup/login/security/users/roles/permissions 的 Go/静态 WebUI 门禁 | PostgreSQL/MySQL 实库、Docker/release、真实浏览器视觉证据需独立验证 |
 
 ## 使用规则
 

@@ -1,13 +1,12 @@
 # Auth 模块
 
-Auth 是应用组合根选择的横切认证、授权与审计模块。它通过项目自有认证来源、port、middleware 和 `Contribution` 为 HTTP 与业务模块提供认证上下文；第三方 JWT、密码哈希或 session 实现不得泄漏到调用方。
+Auth 是应用组合根选择的横切认证、授权与审计模块。它通过项目自有认证来源、port、middleware 和 `Contribution` 为 HTTP 与业务模块提供认证上下文；本地身份、凭据与 Session 由 IAM 拥有，第三方 JWT 实现不得泄漏到调用方。
 
 ## 当前职责
 
-- 提供 Bearer/WebUI Session `RequestAuthenticator`、`Access`、`Authorizer`、`Audit` 和 `CredentialVerifier` 等项目契约。
-- 在明确的 composition 位置装配认证策略，负责会话/凭据校验、授权结果和审计边界。
-- 当前 setup/login/session/logout 由 `binding/http` 贡献 typed operation，统一 dispatcher 和 operation gate 按 `none`/`webuiSession` 绑定；Auth 不创建 Router，也不把内部 Adapter 暴露给 Todo 或其它业务模块。
-- 当前本地 WebUI 账号实现是 054 IAM 前的待替换实现；053 只建立认证来源和 HTTP 接入契约，不继续让 Todo migration 拥有账号表。
+- 提供 Bearer `RequestAuthenticator`、`Authorizer`、`Audit` 和 `CredentialVerifier` 等通用契约。
+- 在明确的 composition 位置装配 JWT/开发认证策略，执行 operation policy、授权结果和低敏审计。
+- composition 把 IAM `SessionIdentity` 适配为 Auth `Principal`，再作为 `webuiSession` 来源交给统一 operation gate；Auth 不拥有 IAM Repository、密码哈希、Session 表、HTTP 页面或 CLI。
 
 ## 变更入口
 

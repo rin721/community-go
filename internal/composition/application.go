@@ -11,7 +11,7 @@ import (
 	kernelcli "github.com/rin721/go-scaffold-template/internal/kernel/cli"
 	kernelcomposition "github.com/rin721/go-scaffold-template/internal/kernel/composition"
 	"github.com/rin721/go-scaffold-template/internal/kernel/logging"
-	authcli "github.com/rin721/go-scaffold-template/internal/module/auth/binding/cli"
+	iamcli "github.com/rin721/go-scaffold-template/internal/module/iam/binding/cli"
 	migrationcli "github.com/rin721/go-scaffold-template/internal/module/migration/binding/cli"
 	opsmodel "github.com/rin721/go-scaffold-template/internal/module/ops/model"
 	todocli "github.com/rin721/go-scaffold-template/internal/module/todo/binding/cli"
@@ -143,9 +143,9 @@ func (a *Application) Run(ctx context.Context, args []string) error {
 	if err != nil {
 		return fmt.Errorf("compose migration CLI contract: %w", err)
 	}
-	authContract, err := authcli.New(webuiExecutor{application: a})
+	iamContract, err := iamcli.New(iamExecutor{application: a})
 	if err != nil {
-		return fmt.Errorf("compose auth CLI contract: %w", err)
+		return fmt.Errorf("compose iam CLI contract: %w", err)
 	}
 	bootstrap, err := kernelcomposition.ComposeBootstrap(cli.Config{
 		Name:                   a.config.Name,
@@ -156,7 +156,7 @@ func (a *Application) Run(ctx context.Context, args []string) error {
 		DisableInteractiveHome: true,
 	}, kernelcomposition.BootstrapOptions{
 		Configuration:     applicationOwnedConfigurationBindings(),
-		Commands:          []kernelcli.Contract{todoContract, migrationContract, authContract},
+		Commands:          []kernelcli.Contract{todoContract, migrationContract, iamContract},
 		DefaultConfigPath: a.config.ConfigPath,
 	})
 	if err != nil {

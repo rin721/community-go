@@ -17,7 +17,7 @@
 go run ./cmd/app config init
 ```
 
-随后执行数据库前滚迁移。053 后当前生产 Catalog 只创建 Todo baseline，不再由 Todo migration 创建 WebUI 本地用户和 Session 表：
+随后执行数据库前滚迁移。当前 Catalog 会分别执行 IAM 与 Todo 的独立 baseline：
 
 ```powershell
 go run ./cmd/app db migrate up
@@ -25,14 +25,14 @@ go run ./cmd/app db migrate up
 
 已有 `config.yaml` 时不要重复执行 `config init`，也不要使用 `--force` 覆盖本地配置。
 
-当前 WebUI 本地账号持久化正等待 054 IAM 单轨接管；053 保留其 typed HTTP/Session Resolver 接入契约，但不把旧账号表重新塞回 Todo。包含旧 `schema_migrations` 或 `webui_*` 表的数据库会被只读 preflight 拒绝。不要直接删除、覆盖或让 Agent 自动处理现有本地数据；先决定是否保留并制定一次性方案。在 054 完成前，本节后续首次 setup/login 步骤只用于理解既有界面和接口，不构成当前 fresh database 可用性承诺。
+IAM 使用 `iam_schema_migrations` 创建账号、凭据、Session、角色与关系表；Todo 继续使用 `todo_schema_migrations`。包含旧 `schema_migrations` 或 `webui_*` 表的数据库会被只读 preflight 拒绝。不要直接删除、覆盖或让 Agent 自动处理现有本地数据；当前项目未发布时可显式选择新的本地数据库建立干净 baseline。
 
 ## 2. 启动后端
 
 在第一个 PowerShell 终端中设置仅供首次创建用户使用的高熵 Token，然后启动 Service：
 
 ```powershell
-$env:APP_AUTH__LOCAL__SETUPTOKEN = '<从密码管理器取得的高熵随机值>'
+$env:APP_IAM__LOCAL__SETUPTOKEN = '<从密码管理器取得的高熵随机值>'
 go run ./cmd/app
 ```
 
@@ -54,7 +54,7 @@ http:
       - https://127.0.0.1:5173
 ```
 
-CORS 与 WebUI Auth 的 CSRF Origin 校验共用该列表。不要改成 `*`，生产配置应替换为真实部署 Origin。
+CORS 与 IAM Session 的 CSRF Origin 校验共用该列表。不要改成 `*`，生产配置应替换为真实部署 Origin。
 
 ## 3. 启动 WebUI
 
@@ -78,13 +78,14 @@ Vite 使用项目配置的本地自签名证书。浏览器首次访问会提示
 首次运行时，在 Vite 地址后访问 `/setup`，填写：
 
 - 第一个终端设置的同一 Setup Token；
-- 本地用户名；
+- 3 至 64 位 ASCII 用户名（字母或数字开头，可使用 `._-`）；
+- 显示名称；
 - 15 至 128 个字符的密码。
 
 首次创建成功后浏览器会获得服务端 Session 并进入 `/dashboard`。设置入口随后关闭，之后从 `/login` 登录；Setup Token 不再用于登录。完成首次设置后可以停止后端、清除该终端环境变量，再重新启动：
 
 ```powershell
-Remove-Item Env:APP_AUTH__LOCAL__SETUPTOKEN
+Remove-Item Env:APP_IAM__LOCAL__SETUPTOKEN
 ```
 
 停止两个开发进程都使用 `Ctrl+C`。
@@ -95,14 +96,14 @@ Remove-Item Env:APP_AUTH__LOCAL__SETUPTOKEN
 | --- | --- |
 | 页面一直显示 manifest 或装配错误 | 先确认后端已 ready，再检查 Vite 终端的 `/api/v1` 代理请求。 |
 | Setup Token 返回 `invalid_credentials` | 确认环境变量与后端在同一终端启动，并使用完全一致的 Token。 |
-| `username_invalid` | 用户名不能为空且不能超过 128 个字符。 |
+| `invalid_request` | 检查用户名为 3 至 64 位受控 ASCII、显示名称非空、密码为 15 至 128 个 Unicode 字符。 |
 | `password_length_invalid` | 密码必须为 15 至 128 个字符；页面约束只用于即时提示，最终以后端校验为准。 |
 | `cors_origin_denied` | 在 `http.cors.allowedOrigins` 中加入实际 Vite HTTPS Origin并重启后端；本地默认只允许 5173。 |
-| `origin_rejected` | 确认 Auth 使用的同一候选配置已经包含 Vite Origin，并确认没有连接到未重启的旧后端。 |
-| `setup_closed` | 数据库已经存在本地用户；使用 `/login`，忘记密码时运行当前 `webui reset-password` CLI。 |
+| `origin_rejected` | 确认 IAM 使用的同一候选配置已经包含 Vite Origin，并确认没有连接到未重启的旧后端。 |
+| `setup_closed` | 数据库已经存在本地账号；使用 `/login`，忘记密码时运行 `iam reset-password` CLI。 |
 | 浏览器提示证书不受信任 | 确认地址是 Vite 打印的本机地址后继续访问；不要把该开发证书用于生产。 |
 | 登录成功但 Cookie 不生效 | 必须打开 Vite 输出的 HTTPS 地址，不要使用 HTTP，并确认浏览器已接受本地证书。 |
 | `webui registry is stale` | 在 `webui/` 执行 `pnpm generate`，审查生成差异后再运行 `pnpm generate:check`。 |
 | management 卡片请求失败 | 检查 `http://127.0.0.1:9090/readyz`，并确认 Vite `/management` 代理没有被本地代理软件拦截。 |
 
-WebUI 的模块 Binding、Session、CSRF 和 registry 开发边界见 [WebUI 开发指南](../development/webui.md)。
+WebUI 的模块 Binding、IAM Session、CSRF 和 registry 开发边界见 [WebUI 开发指南](../development/webui.md)。

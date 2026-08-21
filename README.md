@@ -39,7 +39,7 @@ Invoke-RestMethod http://127.0.0.1:9090/readyz
 终端 A（仓库根目录）：
 
 ```powershell
-$env:APP_AUTH__LOCAL__SETUPTOKEN = "change-me-before-use"
+$env:APP_IAM__LOCAL__SETUPTOKEN = "change-me-before-use"
 go run ./cmd/app config init
 go run ./cmd/app db migrate up
 go run ./cmd/app
@@ -56,7 +56,7 @@ pnpm generate:check
 pnpm dev
 ```
 
-浏览器访问 `https://127.0.0.1:5173` 可检查当前宿主、manifest 和页面静态交付。053 已把 Auth HTTP/Session 接入统一 typed contract，但 Todo 的旧账号表已经退休，新的账号持久化 owner 要到 054 IAM 才落地；因此 fresh database 暂不承诺 Setup/Login 可用。Vite 开发服务器使用本地 HTTPS；完整阶段边界见 [WebUI 本地启动指南](docs/getting-started/webui.md)。
+浏览器访问 `https://127.0.0.1:5173` 可检查当前宿主、manifest 和 IAM/Ops 页面。IAM 已拥有本地账号、凭据、Session、Core RBAC、用户/角色/权限管理及独立 migration set；Auth 只保留通用 Principal、JWT、operation decision 和审计。Vite 开发服务器使用本地 HTTPS；完整启动步骤见 [WebUI 本地启动指南](docs/getting-started/webui.md)。
 
 启动后可按 [首次使用与最小验收](docs/getting-started/first-use.md) 验证当前可用的 WebUI 宿主、Todo CLI/API 和 management readiness。当前 Docker/release 尚未打包或托管 `webui/dist`，不能把本地 Vite 启动当作生产静态交付。
 

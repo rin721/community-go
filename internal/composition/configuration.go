@@ -4,6 +4,7 @@ import (
 	composed "github.com/rin721/go-scaffold-template/internal/kernel/composition"
 	"github.com/rin721/go-scaffold-template/internal/kernel/config"
 	authconfig "github.com/rin721/go-scaffold-template/internal/module/auth/binding/config"
+	iamconfig "github.com/rin721/go-scaffold-template/internal/module/iam/binding/config"
 	migrationconfig "github.com/rin721/go-scaffold-template/internal/module/migration/binding/config"
 	opsconfig "github.com/rin721/go-scaffold-template/internal/module/ops/binding/config"
 	todoconfig "github.com/rin721/go-scaffold-template/internal/module/todo/binding/config"
@@ -14,6 +15,7 @@ import (
 func applicationOwnedConfigurationBindings() []config.Binding {
 	return []config.Binding{
 		authconfig.Binding(),
+		iamconfig.Binding(),
 		migrationconfig.Binding(),
 		todoconfig.Binding(),
 		opsconfig.Binding(),

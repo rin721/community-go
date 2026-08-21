@@ -15,7 +15,7 @@ pnpm generate:check
 pnpm dev
 ```
 
-默认地址为 `https://127.0.0.1:5173`。需要调整开发端口或代理时，复制 `webui/.env.example` 为 `.env.local`，使用 `WEBUI_DEV_HOST`、`WEBUI_DEV_PORT`、`WEBUI_API_TARGET` 和 `WEBUI_MANAGEMENT_TARGET`；Vite 与 Playwright 共用这组受控配置。053 当前可验证宿主、双 revision manifest 和静态页面；账号持久化等待 054 IAM，完整阶段边界见[WebUI 本地启动指南](../docs/getting-started/webui.md)。
+默认地址为 `https://127.0.0.1:5173`。需要调整开发端口或代理时，复制 `webui/.env.example` 为 `.env.local`，使用 `WEBUI_DEV_HOST`、`WEBUI_DEV_PORT`、`WEBUI_API_TARGET` 和 `WEBUI_MANAGEMENT_TARGET`；Vite 与 Playwright 共用这组受控配置。IAM 已提供 setup/login/security/users/roles/permissions 页面与持久化，完整步骤见[WebUI 本地启动指南](../docs/getting-started/webui.md)。
 
 ## 静态质量
 

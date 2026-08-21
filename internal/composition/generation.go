@@ -23,6 +23,8 @@ import (
 	"github.com/rin721/go-scaffold-template/internal/module"
 	"github.com/rin721/go-scaffold-template/internal/module/auth"
 	authconfig "github.com/rin721/go-scaffold-template/internal/module/auth/binding/config"
+	"github.com/rin721/go-scaffold-template/internal/module/iam"
+	iamconfig "github.com/rin721/go-scaffold-template/internal/module/iam/binding/config"
 	"github.com/rin721/go-scaffold-template/internal/module/ops"
 	opsconfig "github.com/rin721/go-scaffold-template/internal/module/ops/binding/config"
 	opsmodel "github.com/rin721/go-scaffold-template/internal/module/ops/model"
@@ -82,6 +84,7 @@ type applicationGeneration struct {
 
 	module            todo.HTTPModule
 	authModule        auth.Module
+	iamModule         iam.HTTPModule
 	opsModule         ops.Module
 	webuiCatalog      webuicontract.Catalog
 	participants      []supervisor.Participant
@@ -295,9 +298,27 @@ func (f *applicationGenerationFactory) Prepare(
 	if err != nil {
 		return abort(err)
 	}
+	permissionCatalog, err := applicationPermissionCatalog()
+	if err != nil {
+		return abort(err)
+	}
+	iamConfig, err := iamconfig.Decode(snapshot)
+	if err != nil {
+		return abort(err)
+	}
+	generation.iamModule, err = iam.NewHTTP(iam.HTTPDependencies{Dependencies: iam.Dependencies{
+		Database: databaseAccess, Clock: clock.System(), IDGenerator: idgen.UUID(), Config: iamConfig, Permissions: permissionCatalog,
+	}, AllowedOrigins: httpConfig.CORS.AllowedOrigins})
+	if err != nil {
+		return abort(err)
+	}
+	sessionSource, err := newIAMSessionAuthAdapter(generation.iamModule.Service)
+	if err != nil {
+		return abort(err)
+	}
 	generation.authModule, err = auth.NewHTTP(auth.Dependencies{
 		Clock: clock.System(), Logger: generation.logger.value(), Config: authConfig, Policies: policies,
-		WebUIAccess: databaseAccess, WebUIAllowedOrigins: httpConfig.CORS.AllowedOrigins,
+		SessionSource: sessionSource,
 	})
 	if err != nil {
 		return abort(err)
@@ -325,6 +346,12 @@ func (f *applicationGenerationFactory) Prepare(
 	}
 	if err := migrationService.Compatible(ctx); err != nil {
 		return abort(fmt.Errorf("verify application migration compatibility: %w", err))
+	}
+	if err := generation.iamModule.Service.ReconcileOwnerCatalog(ctx); err != nil {
+		return abort(fmt.Errorf("reconcile iam owner catalog: %w", err))
+	}
+	if err := generation.iamModule.Service.Compatible(ctx); err != nil {
+		return abort(fmt.Errorf("verify iam catalog compatibility: %w", err))
 	}
 
 	executionDigest, err := snapshot.SectionDigest("execution")
@@ -388,21 +415,21 @@ func (f *applicationGenerationFactory) Prepare(
 		return abort(err)
 	}
 
-	if err := module.ValidateContributions(generation.authModule.Contribution, generation.module.Contribution, generation.opsModule.Contribution); err != nil {
+	if err := module.ValidateContributions(generation.authModule.Contribution, generation.iamModule.Contribution, generation.module.Contribution, generation.opsModule.Contribution); err != nil {
 		return abort(fmt.Errorf("validate application module contributions: %w", err))
 	}
 	generation.webuiCatalog, err = applicationWebUICatalog()
 	if err != nil {
 		return abort(fmt.Errorf("compose WebUI catalog: %w", err))
 	}
-	messages, err := module.MessageBindings(generation.authModule.Contribution, generation.module.Contribution, generation.opsModule.Contribution)
+	messages, err := module.MessageBindings(generation.authModule.Contribution, generation.iamModule.Contribution, generation.module.Contribution, generation.opsModule.Contribution)
 	if err != nil {
 		return abort(fmt.Errorf("collect application module messages: %w", err))
 	}
 	if err := generation.messaging.output.Control.Freeze(messages); err != nil {
 		return abort(fmt.Errorf("freeze messaging candidate: %w", err))
 	}
-	schedules, err := module.ScheduleBindings(generation.authModule.Contribution, generation.module.Contribution, generation.opsModule.Contribution)
+	schedules, err := module.ScheduleBindings(generation.authModule.Contribution, generation.iamModule.Contribution, generation.module.Contribution, generation.opsModule.Contribution)
 	if err != nil {
 		return abort(fmt.Errorf("collect application module schedules: %w", err))
 	}
@@ -425,6 +452,7 @@ func (f *applicationGenerationFactory) Prepare(
 	}
 	generation.resourceStats.Built = append(generation.resourceStats.Built, "scheduler")
 	generation.resourceStats.Built = append(generation.resourceStats.Built, "auth")
+	generation.resourceStats.Built = append(generation.resourceStats.Built, "iam")
 	generation.resourceStats.Built = append(generation.resourceStats.Built, "ops")
 	participants := append(append([]supervisor.Participant(nil), generation.module.Contribution.Participants...), generation.authModule.Contribution.Participants...)
 	participants = append(participants, generation.opsModule.Contribution.Participants...)
@@ -435,7 +463,7 @@ func (f *applicationGenerationFactory) Prepare(
 		generation.participants = append(generation.participants, participant)
 	}
 
-	dispatcher, err := newApplicationContractDispatcher(generation.module.Operations, generation.authModule)
+	dispatcher, err := newApplicationContractDispatcher(generation.module.Operations, generation.iamModule)
 	if err != nil {
 		return abort(err)
 	}
@@ -452,9 +480,7 @@ func (f *applicationGenerationFactory) Prepare(
 		return abort(err)
 	}
 	webuiHandler := http.NewServeMux()
-	if generation.authModule.WebUI != nil {
-		manifestHandler = generation.authModule.WebUI.WithOptionalSession(manifestHandler)
-	}
+	manifestHandler = withOptionalAuthentication(generation.authModule.SessionSource, manifestHandler)
 	webuiHandler.Handle("/manifest", manifestHandler)
 	router, err := applicationRouter(kernelcomposition.Capabilities{
 		Logger: generation.logger.value(), Clock: clock.System(), IDGenerator: idgen.UUID(), Validator: validation.New(),

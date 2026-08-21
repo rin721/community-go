@@ -1,6 +1,6 @@
 # WebUI 开发指南
 
-WebUI 基线由 `internal/composition` 统一装配，模块只在确有浏览器界面需求时提供 `binding/webui`。Auth 提供首次设置、登录、会话页面和离线密码重置 CLI；Ops 提供真实 management build/probe/diagnostics/metrics 看板；Todo 没有 WebUI Binding。
+WebUI 基线由 `internal/composition` 统一装配，模块只在确有浏览器界面需求时提供 `binding/webui`。IAM 提供首次设置、登录、账号安全、用户、角色、权限页面和离线密码重置 CLI；Ops 提供真实 management build/probe/diagnostics/metrics 看板；Todo 没有 WebUI Binding。
 
 ## 适用语境与当前门禁范围
 
@@ -40,15 +40,15 @@ pnpm generate:check
 
 `webui/` 是独立 React/Vite 宿主，开发服务器使用 HTTPS，并将 `/api/v1` 与 `/management` 代理到 Go 服务。开发 host、port 和两个 proxy target 由 `webui/.env.example` 对应的环境变量声明，Vite 与 Playwright 使用同一个 parser。生成 registry 的唯一来源是 `internal/composition` 的 WebUI Catalog；不要直接编辑 `src/generated/webui-registry.ts`。
 
-WebUI 用户密码可通过 `go run ./cmd/app webui reset-password --username <用户名>` 重置；未传 `--password` 时由 CLI 的安全输入接口读取。命令先验证 migration 兼容性，再更新密码并撤销该用户全部 Session。
+IAM 用户密码可通过 `go run ./cmd/app iam reset-password --username <用户名>` 重置；未传 `--password` 时由 CLI 的安全输入接口读取。命令先验证 migration 兼容性，再更新密码、设置首次改密并撤销该账号全部 Session。
 
 ## 安全边界
 
-- 公开 HTTP contract 使用 `none`、`bearerAuth`、`webuiSession` typed profile；当前 WebUI Auth operation 使用 Session 来源，Todo 仍使用 Bearer/开发匿名来源。operation gate 只按 contract 选择来源，不读取 URL 前缀或 Cookie 名。
-- Cookie 名为 `__Host-community-go_webui_session`，固定 `Secure`、`HttpOnly`、`SameSite=Lax`、`Path=/`，不设置 `Domain`。
+- 公开 HTTP contract 使用 `none`、`bearerAuth`、`webuiSession` typed profile；IAM operation 使用 Session 来源，Todo 仍使用 Bearer/开发匿名来源。operation gate 只按 contract 选择来源，不读取 URL 前缀或 Cookie 名。
+- Cookie 名为 `__Host-community-go_iam_session`，固定 `Secure`、`HttpOnly`、`SameSite=Lax`、`Path=/`，不设置 `Domain`。
 - Session ID 和 CSRF token 使用 CSPRNG；数据库保存 SHA-256 摘要，浏览器只在内存保留 CSRF token。
 - setup、login、logout 的不安全请求必须通过 `Origin` 校验；logout 还要求 `X-CSRF-Token`。
-- CORS 与 WebUI Auth 必须消费同一候选中的 `http.cors.allowedOrigins`；空列表继续拒绝跨域，不能为本地开发建立通配例外。
+- CORS 与 IAM HTTP 必须消费同一候选中的 `http.cors.allowedOrigins`；空列表继续拒绝跨域，不能为本地开发建立通配例外。
 - 页面菜单和 manifest 访问状态不构成授权；实际 operation 仍由服务端 Auth policy 决定。
 
 模块页面只能依赖 `@webui/sdk/*` 和自身 API，不得导入宿主 Router、菜单、Session Store 或内部全局状态。新增页面时先修改模块 WebUI Binding，再运行生成检查。SDK 公开面按 runtime、http、i18n、query、navigation、ui、feedback 分包；禁止 `resolve/get`、万能 Context 和第三方 client 穿透。
@@ -67,7 +67,7 @@ WebUI i18n 是所有接入模块必须遵守的规范契约。模块只要贡献
 
 ```ts
 const setupErrorMessageIDs: Record<string, string> = {
-  username_invalid: "webui.auth.errors.usernameInvalid",
+  invalid_request: "webui.iam.errors.invalidRequest",
 };
 ```
 

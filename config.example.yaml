@@ -223,6 +223,15 @@ auth:
     leeway: 30s
     maxResponseBodyBytes: 1048576
 
+# 本地身份、凭据与会话由 IAM 独立拥有；setupToken 应通过 APP_IAM__LOCAL__SETUPTOKEN 注入。
+iam:
+  local:
+    setupToken: ""
+    idleTimeout: 30m0s
+    absoluteTimeout: 12h0m0s
+    maxFailedAttempts: 5
+    lockDuration: 15m0s
+
 http:
   # HTTP listener 在进程 ready 前同步绑定；端口占用会使启动失败。
   addr: 127.0.0.1:8080

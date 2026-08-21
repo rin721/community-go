@@ -57,7 +57,7 @@ func TestProcessGeneratedConfigurationSupportsMigrationAndServiceStartup(t *test
 		"cache:", "driver: disabled", "i18n:", "defaultLanguage: zh-CN",
 		"storage:", "basePath: .data/storage",
 		"auth:", "mode: development-anonymous", "migration:", "lockTimeout: 15s",
-		"todo:", "titleMaxRunes: 120", "defaultListLimit: 20", "maxListLimit: 100",
+		"todo:", "titleMaxRunes: 120", "defaultListLimit: 20", "maxListLimit: 100", "iam:", "maxFailedAttempts: 5",
 		"http:", "addr: 127.0.0.1:8080",
 		"management:", "addr: 127.0.0.1:9090", "metricsAccess: public",
 		"observability:", "serviceName: go-scaffold-template", "sampleRatio: 0.1",
@@ -79,7 +79,7 @@ func TestProcessGeneratedConfigurationSupportsMigrationAndServiceStartup(t *test
 		} `json:"sets"`
 		Compatible bool `json:"compatible"`
 	}
-	if err := json.Unmarshal(stdout.Bytes(), &beforeMigration); err != nil || len(beforeMigration.Sets) != 1 || !beforeMigration.Sets[0].Empty || beforeMigration.Compatible {
+	if err := json.Unmarshal(stdout.Bytes(), &beforeMigration); err != nil || len(beforeMigration.Sets) != 2 || !beforeMigration.Sets[0].Empty || !beforeMigration.Sets[1].Empty || beforeMigration.Compatible {
 		t.Fatalf("status before migration = %q, parsed=%#v, err=%v", stdout.String(), beforeMigration, err)
 	}
 
@@ -95,7 +95,7 @@ func TestProcessGeneratedConfigurationSupportsMigrationAndServiceStartup(t *test
 		} `json:"sets"`
 		Compatible bool `json:"compatible"`
 	}
-	if err := json.Unmarshal(stdout.Bytes(), &afterMigration); err != nil || len(afterMigration.Sets) != 1 || afterMigration.Sets[0].Empty || !afterMigration.Sets[0].Compatible || !afterMigration.Compatible {
+	if err := json.Unmarshal(stdout.Bytes(), &afterMigration); err != nil || len(afterMigration.Sets) != 2 || afterMigration.Sets[0].Empty || afterMigration.Sets[1].Empty || !afterMigration.Sets[0].Compatible || !afterMigration.Sets[1].Compatible || !afterMigration.Compatible {
 		t.Fatalf("status after migration = %q, parsed=%#v, err=%v", stdout.String(), afterMigration, err)
 	}
 

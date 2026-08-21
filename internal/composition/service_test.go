@@ -63,13 +63,25 @@ func TestApplicationRouterStripsWebUIPrefixForStandardHandlers(t *testing.T) {
 }
 
 func TestExampleConfigSatisfiesApplicationBindings(t *testing.T) {
+	temporary := t.TempDir()
+	databasePath := filepath.Join(temporary, "example.db")
+	prepareTodoSchema(t, databasePath)
+	payload, err := os.ReadFile(filepath.Join("..", "..", "config.example.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	payload = bytes.Replace(payload, []byte("dsn: .data/app.db"), []byte("dsn: "+filepath.ToSlash(databasePath)), 1)
+	configPath := filepath.Join(temporary, "config.yaml")
+	if err := os.WriteFile(configPath, payload, 0o600); err != nil {
+		t.Fatal(err)
+	}
 	manager, err := kernellogging.New(logger.Noop())
 	if err != nil {
 		t.Fatalf("logging.New() error = %v", err)
 	}
 	application, err := New(Config{
 		Name: "go-scaffold-template", Description: "test application",
-		ConfigPath:        filepath.Join("..", "..", "config.example.yaml"),
+		ConfigPath:        configPath,
 		EnvironmentPrefix: "GO_SCAFFOLD2_TEST_014_EXAMPLE_", Logging: manager,
 	})
 	if err != nil {

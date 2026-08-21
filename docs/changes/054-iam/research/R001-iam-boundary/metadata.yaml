@@ -14,15 +14,15 @@ evidence:
   primary_sources:
     - title: "当前 Auth 本地账号与 Session"
       locator: "internal/module/auth/{module.go,webuiauth,adapter/password}; internal/composition/{generation.go,webui_cli.go}"
-      snapshot: "based on commit 5927f2a116ba6b689473fde49e7790b03773c675; verified 2026-08-21"
+      snapshot: "refreshed against 053 completion commit 7c716d578571b7b205edb24fae7b702ad76d515b; verified 2026-08-22"
     - title: "053 Core RBAC 与三模块边界研究"
       locator: "docs/changes/053-admin-module-foundation/research/{R002-core-rbac-security-selection,R005-mainstream-admin-module-boundary}"
       snapshot: "active plan evidence, 2026-08-21"
 researched_at: "2026-08-21"
-verified_at: "2026-08-21"
+verified_at: "2026-08-22"
 validity:
   mode: dependency-bound
-  review_after: "053 implementation completion"
+  review_after: "054 boundary or Auth ownership change"
   refresh_triggers: ["053 contract changes", "Auth local implementation changes", "IAM scope changes", "external IAM or MFA requested"]
 relations:
   extends: ["053/R001", "053/R002", "053/R004", "053/R005"]

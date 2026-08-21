@@ -17,10 +17,10 @@ Invoke-RestMethod http://127.0.0.1:9090/readyz
 1. 按[全栈 WebUI 本地启动](../../README.md#全栈-webui-本地启动)启动 Go 服务和 Vite。
 2. 打开 `https://127.0.0.1:5173`。
 3. 确认宿主能加载当前 manifest，且静态 registry 的 `catalogRevision` 匹配；菜单策略使用独立 `navigationRevision`。
-4. 053 后账号持久化等待 054 IAM 接管；fresh database 的 Setup/Login/Session 不属于当前可用性验收，不得用旧 `webui_*` 表绕过 preflight。
-5. setup token 仍不得写入仓库、截图、日志或前端公开配置。
+4. 使用临时或已明确选择的 fresh database 执行 `db migrate up`，确认 `iam` 与 `todo` 两个 set 均兼容；默认 `.data/app.db` 不会被 Agent 自动重置。
+5. 通过 `/setup` 原子创建首个 owner，随后验证登录、账号安全、用户、角色和权限页面；setup token 不得写入仓库、截图、日志或前端公开配置。
 
-Vite 本地 HTTPS 的证书提示属于开发环境行为。Auth typed HTTP、Origin/CSRF 与阶段边界以[WebUI 本地启动指南](webui.md)与 `webui/` 代码为准。
+Vite 本地 HTTPS 的证书提示属于开发环境行为。IAM typed HTTP、Origin/CSRF 与阶段边界以[WebUI 本地启动指南](webui.md)与 `webui/` 代码为准。
 
 ## 3. 验证 Todo CLI
 

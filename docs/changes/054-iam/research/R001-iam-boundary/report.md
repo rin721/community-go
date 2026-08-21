@@ -25,3 +25,7 @@ IAM 复用 Database、Clock、ID、Logger 和 053 的 Permission/Migration/HTTP/
 ## 5. 局限与门禁
 
 本研究不覆盖外部 IAM、MFA、多租户、数据范围或组织/导航模型。053 未完成或其契约变化时必须刷新。当前证据足以形成 054 计划，研究门禁通过，不构成实施授权。
+
+## 6. 053 完成后复核（2026-08-22）
+
+已按提交 `7c716d578571b7b205edb24fae7b702ad76d515b` 复核：Permission Catalog、Migration Catalog、多 HTTP Module dispatcher、`none/bearer/webuiSession` 和 NavigationPolicy 均已落地；Auth 当前本地账号 schema 已从 Todo baseline 退休，fresh database 不再具备旧 Setup/Login 持久化。这强化了“054 由 IAM 单轨接管本地身份、Auth 只保留通用决策”的原结论，没有引入新的目标、依赖或跨模块事务。研究门禁继续有效。

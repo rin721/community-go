@@ -14,7 +14,6 @@ import (
 	"github.com/rin721/go-scaffold-template/internal/module/auth/middleware"
 	"github.com/rin721/go-scaffold-template/internal/module/auth/model"
 	"github.com/rin721/go-scaffold-template/internal/module/auth/service"
-	webuiauth "github.com/rin721/go-scaffold-template/internal/module/auth/webuiauth"
 	"github.com/rin721/go-scaffold-template/pkg/clock"
 	"github.com/rin721/go-scaffold-template/pkg/logger"
 	"github.com/rin721/go-scaffold-template/pkg/supervisor"
@@ -24,12 +23,11 @@ const moduleID module.ID = "auth"
 
 // Dependencies 是 Auth module 实际使用的稳定能力和 authority inventory。
 type Dependencies struct {
-	Clock               clock.Clock
-	Logger              logger.Logger
-	Config              configbinding.Config
-	Policies            []model.Policy
-	WebUIAccess         webuiauth.Access
-	WebUIAllowedOrigins []string
+	Clock         clock.Clock
+	Logger        logger.Logger
+	Config        configbinding.Config
+	Policies      []model.Policy
+	SessionSource RequestAuthenticator
 }
 
 // Module 是 Auth 局部装配后交给 composition root 的完成品。
@@ -39,7 +37,6 @@ type Module struct {
 	SessionSource  RequestAuthenticator
 	HTTPMiddleware func(http.Handler) http.Handler
 	Contribution   module.Contribution
-	WebUI          *webuiauth.Service
 }
 
 // RequestAuthenticator 是 composition 可按 security profile 选择的项目自有认证来源。
@@ -52,12 +49,12 @@ func (m Module) ManagementMiddleware(next http.Handler) http.Handler {
 	if next == nil {
 		return http.NotFoundHandler()
 	}
-	if m.WebUI == nil {
+	if m.SessionSource == nil {
 		return m.HTTPMiddleware(next)
 	}
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		if cookie, err := request.Cookie(webuiauth.SessionCookieName); err == nil && cookie.Value != "" {
-			m.WebUI.WithSession(next).ServeHTTP(writer, request)
+		if authenticated, err := m.SessionSource.AuthenticateRequest(request); err == nil {
+			next.ServeHTTP(writer, authenticated)
 			return
 		}
 		m.HTTPMiddleware(next).ServeHTTP(writer, request)
@@ -111,16 +108,6 @@ func NewHTTP(dependencies Dependencies) (Module, error) {
 	if err != nil {
 		return Module{}, fmt.Errorf("compose auth service: %w", err)
 	}
-	var webuiAuth *webuiauth.Service
-	if dependencies.WebUIAccess != nil {
-		webuiAuth, err = webuiauth.New(dependencies.WebUIAccess, dependencies.Clock, webuiauth.Config{
-			SetupToken: dependencies.Config.Local.SetupToken, IdleTimeout: dependencies.Config.Local.IdleTimeout,
-			AbsoluteTimeout: dependencies.Config.Local.AbsoluteTimeout, AllowedOrigins: dependencies.WebUIAllowedOrigins,
-		})
-		if err != nil {
-			return Module{}, fmt.Errorf("compose webui auth service: %w", err)
-		}
-	}
 	bearerSource, err := middleware.NewSource(authService)
 	if err != nil {
 		return Module{}, fmt.Errorf("compose auth bearer source: %w", err)
@@ -130,7 +117,7 @@ func NewHTTP(dependencies Dependencies) (Module, error) {
 	if err := module.ValidateContributions(contribution); err != nil {
 		return Module{}, fmt.Errorf("validate auth contribution: %w", err)
 	}
-	return Module{Service: authService, BearerSource: bearerSource, SessionSource: webuiAuth, HTTPMiddleware: httpMiddleware, WebUI: webuiAuth, Contribution: contribution}, nil
+	return Module{Service: authService, BearerSource: bearerSource, SessionSource: dependencies.SessionSource, HTTPMiddleware: httpMiddleware, Contribution: contribution}, nil
 }
 
 // NewLocal 构造 CLI profile；operator 必须由命令执行边界显式提供。
@@ -143,21 +130,11 @@ func NewLocal(dependencies Dependencies) (Module, error) {
 	if err != nil {
 		return Module{}, fmt.Errorf("compose local auth service: %w", err)
 	}
-	var webuiAuth *webuiauth.Service
-	if dependencies.WebUIAccess != nil {
-		webuiAuth, err = webuiauth.New(dependencies.WebUIAccess, dependencies.Clock, webuiauth.Config{
-			SetupToken: dependencies.Config.Local.SetupToken, IdleTimeout: dependencies.Config.Local.IdleTimeout,
-			AbsoluteTimeout: dependencies.Config.Local.AbsoluteTimeout,
-		})
-		if err != nil {
-			return Module{}, fmt.Errorf("compose local webui auth service: %w", err)
-		}
-	}
 	contribution := module.Contribution{ID: moduleID}
 	if err := module.ValidateContributions(contribution); err != nil {
 		return Module{}, fmt.Errorf("validate auth contribution: %w", err)
 	}
-	return Module{Service: authService, WebUI: webuiAuth, Contribution: contribution}, nil
+	return Module{Service: authService, Contribution: contribution}, nil
 }
 
 func loopbackURL(raw string) bool {

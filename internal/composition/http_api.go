@@ -9,8 +9,9 @@ import (
 	"sort"
 
 	"github.com/rin721/go-scaffold-template/internal/module/auth"
-	authhttp "github.com/rin721/go-scaffold-template/internal/module/auth/binding/http"
 	authmodel "github.com/rin721/go-scaffold-template/internal/module/auth/model"
+	"github.com/rin721/go-scaffold-template/internal/module/iam"
+	iamhttp "github.com/rin721/go-scaffold-template/internal/module/iam/binding/http"
 	todohttp "github.com/rin721/go-scaffold-template/internal/module/todo/binding/http"
 	todohandler "github.com/rin721/go-scaffold-template/internal/module/todo/handler"
 	httptransport "github.com/rin721/go-scaffold-template/internal/transport/http"
@@ -127,12 +128,12 @@ func newContractDispatcher(runtimeModules ...runtimeHTTPModule) (*contractDispat
 	return &contractDispatcher{modules: contracts, operations: operations, handlers: handlers}, nil
 }
 
-func newApplicationContractDispatcher(todoOperations todohandler.Operations, authModule auth.Module) (*contractDispatcher, error) {
-	if nilDependency(todoOperations) || authModule.WebUI == nil {
+func newApplicationContractDispatcher(todoOperations todohandler.Operations, iamModule iam.HTTPModule) (*contractDispatcher, error) {
+	if nilDependency(todoOperations) || iamModule.Handler == nil {
 		return nil, fmt.Errorf("application HTTP runtime dependencies are incomplete")
 	}
 	return newContractDispatcher(
-		runtimeHTTPModule{Contract: authhttp.ModuleContract(), Handlers: authhttp.RuntimeHandlers(authModule.WebUI)},
+		runtimeHTTPModule{Contract: iamhttp.ModuleContract(), Handlers: iamhttp.RuntimeHandlers(iamModule.Handler)},
 		runtimeHTTPModule{Contract: todohttp.ModuleContract(), Handlers: todohttp.RuntimeHandlers(todoOperations)},
 	)
 }
@@ -176,3 +177,14 @@ func nilDependency(value any) bool {
 
 var _ httptransport.OperationGate = operationGateAdapter{}
 var _ httptransport.Dispatcher = (*contractDispatcher)(nil)
+
+func withOptionalAuthentication(source auth.RequestAuthenticator, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		authenticated, err := source.AuthenticateRequest(request)
+		if err != nil {
+			next.ServeHTTP(writer, request)
+			return
+		}
+		next.ServeHTTP(writer, authenticated)
+	})
+}

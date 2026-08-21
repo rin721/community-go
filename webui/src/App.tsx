@@ -51,7 +51,7 @@ export function App() {
 }
 
 function toPrincipal(session: WebUISession): PrincipalView {
-  return { id: session.user.id, username: session.user.username, scopes: [...session.user.scopes] };
+  return { id: session.identity.accountId, username: session.identity.username, scopes: [...session.identity.permissions] };
 }
 
 function ManifestPage({ route, manifest }: { route: ManifestRoute; manifest: Manifest }) {

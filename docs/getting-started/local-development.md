@@ -33,7 +33,7 @@ Invoke-RestMethod http://127.0.0.1:9090/readyz
 
 ## 启动 WebUI
 
-独立 WebUI 需要保持后端 Service 运行，并在第二个终端启动 Vite。首次设置还需要在后端终端提供 `APP_AUTH__LOCAL__SETUPTOKEN`。完整的两终端命令、HTTPS 地址、首次设置和排障步骤见 [WebUI 本地启动指南](webui.md)。
+独立 WebUI 需要保持后端 Service 运行，并在第二个终端启动 Vite。首次设置还需要在后端终端提供 `APP_IAM__LOCAL__SETUPTOKEN`。完整的两终端命令、HTTPS 地址、首次设置和排障步骤见 [WebUI 本地启动指南](webui.md)。
 
 ## 已有配置文件
 

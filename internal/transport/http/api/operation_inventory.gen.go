@@ -16,24 +16,48 @@ type Operation struct {
 }
 
 const (
-	OperationAuthWebuiLogin   OperationID = "auth.webui.login"
-	OperationAuthWebuiLogout  OperationID = "auth.webui.logout"
-	OperationAuthWebuiSession OperationID = "auth.webui.session"
-	OperationAuthWebuiSetup   OperationID = "auth.webui.setup"
-	OperationCompleteTodo     OperationID = "completeTodo"
-	OperationCreateTodo       OperationID = "createTodo"
-	OperationGetTodo          OperationID = "getTodo"
-	OperationListTodos        OperationID = "listTodos"
+	OperationCompleteTodo               OperationID = "completeTodo"
+	OperationCreateTodo                 OperationID = "createTodo"
+	OperationGetTodo                    OperationID = "getTodo"
+	OperationIamAccountsCreate          OperationID = "iam.accounts.create"
+	OperationIamAccountsList            OperationID = "iam.accounts.list"
+	OperationIamAccountsPasswordReset   OperationID = "iam.accounts.password.reset"
+	OperationIamAccountsRolesRead       OperationID = "iam.accounts.roles.read"
+	OperationIamAccountsRolesReplace    OperationID = "iam.accounts.roles.replace"
+	OperationIamAccountsStatus          OperationID = "iam.accounts.status"
+	OperationIamLogin                   OperationID = "iam.login"
+	OperationIamLogout                  OperationID = "iam.logout"
+	OperationIamPermissionsList         OperationID = "iam.permissions.list"
+	OperationIamRolesCreate             OperationID = "iam.roles.create"
+	OperationIamRolesList               OperationID = "iam.roles.list"
+	OperationIamRolesPermissionsRead    OperationID = "iam.roles.permissions.read"
+	OperationIamRolesPermissionsReplace OperationID = "iam.roles.permissions.replace"
+	OperationIamSelfPasswordChange      OperationID = "iam.self.password.change"
+	OperationIamSessionRead             OperationID = "iam.session.read"
+	OperationIamSetup                   OperationID = "iam.setup"
+	OperationListTodos                  OperationID = "listTodos"
 )
 
 var operationInventory = [...]Operation{
-	{ID: OperationAuthWebuiLogin, Method: "POST", Path: "/api/v1/webui/auth/login", Policy: "public", Scope: "", Action: ""},
-	{ID: OperationAuthWebuiLogout, Method: "POST", Path: "/api/v1/webui/auth/logout", Policy: "protected", Scope: "management:read", Action: "auth.webui.session.logout"},
-	{ID: OperationAuthWebuiSession, Method: "GET", Path: "/api/v1/webui/auth/session", Policy: "protected", Scope: "management:read", Action: "auth.webui.session.read"},
-	{ID: OperationAuthWebuiSetup, Method: "POST", Path: "/api/v1/webui/auth/setup", Policy: "public", Scope: "", Action: ""},
 	{ID: OperationCompleteTodo, Method: "PATCH", Path: "/api/v1/todos/{id}/complete", Policy: "protected", Scope: "todos:write", Action: "todo.complete"},
 	{ID: OperationCreateTodo, Method: "POST", Path: "/api/v1/todos", Policy: "protected", Scope: "todos:write", Action: "todo.create"},
 	{ID: OperationGetTodo, Method: "GET", Path: "/api/v1/todos/{id}", Policy: "protected", Scope: "todos:read", Action: "todo.read"},
+	{ID: OperationIamAccountsCreate, Method: "POST", Path: "/api/v1/iam/accounts", Policy: "protected", Scope: "iam:account:write", Action: "iam.accounts.create"},
+	{ID: OperationIamAccountsList, Method: "GET", Path: "/api/v1/iam/accounts", Policy: "protected", Scope: "iam:account:read", Action: "iam.accounts.list"},
+	{ID: OperationIamAccountsPasswordReset, Method: "POST", Path: "/api/v1/iam/accounts/{id}/password-reset", Policy: "protected", Scope: "iam:account:write", Action: "iam.accounts.password.reset"},
+	{ID: OperationIamAccountsRolesRead, Method: "GET", Path: "/api/v1/iam/accounts/{id}/roles", Policy: "protected", Scope: "iam:account:read", Action: "iam.accounts.roles.read"},
+	{ID: OperationIamAccountsRolesReplace, Method: "PUT", Path: "/api/v1/iam/accounts/{id}/roles", Policy: "protected", Scope: "iam:account:write", Action: "iam.accounts.roles.replace"},
+	{ID: OperationIamAccountsStatus, Method: "PATCH", Path: "/api/v1/iam/accounts/{id}/status", Policy: "protected", Scope: "iam:account:write", Action: "iam.accounts.status"},
+	{ID: OperationIamLogin, Method: "POST", Path: "/api/v1/iam/login", Policy: "public", Scope: "", Action: ""},
+	{ID: OperationIamLogout, Method: "POST", Path: "/api/v1/iam/logout", Policy: "protected", Scope: "iam:account:self:read", Action: "iam.logout"},
+	{ID: OperationIamPermissionsList, Method: "GET", Path: "/api/v1/iam/permissions", Policy: "protected", Scope: "iam:permission:read", Action: "iam.permissions.list"},
+	{ID: OperationIamRolesCreate, Method: "POST", Path: "/api/v1/iam/roles", Policy: "protected", Scope: "iam:role:write", Action: "iam.roles.create"},
+	{ID: OperationIamRolesList, Method: "GET", Path: "/api/v1/iam/roles", Policy: "protected", Scope: "iam:role:read", Action: "iam.roles.list"},
+	{ID: OperationIamRolesPermissionsRead, Method: "GET", Path: "/api/v1/iam/roles/{id}/permissions", Policy: "protected", Scope: "iam:role:read", Action: "iam.roles.permissions.read"},
+	{ID: OperationIamRolesPermissionsReplace, Method: "PUT", Path: "/api/v1/iam/roles/{id}/permissions", Policy: "protected", Scope: "iam:role:write", Action: "iam.roles.permissions.replace"},
+	{ID: OperationIamSelfPasswordChange, Method: "POST", Path: "/api/v1/iam/self/password", Policy: "protected", Scope: "iam:account:self:password:write", Action: "iam.self.password.change"},
+	{ID: OperationIamSessionRead, Method: "GET", Path: "/api/v1/iam/session", Policy: "protected", Scope: "iam:account:self:read", Action: "iam.session.read"},
+	{ID: OperationIamSetup, Method: "POST", Path: "/api/v1/iam/setup", Policy: "public", Scope: "", Action: ""},
 	{ID: OperationListTodos, Method: "GET", Path: "/api/v1/todos", Policy: "protected", Scope: "todos:read", Action: "todo.list"},
 }
 
@@ -45,20 +69,44 @@ func Operations() []Operation {
 // OperationForStrictName 把 strict middleware 名称映射回原始 operationId。
 func OperationForStrictName(name string) (Operation, bool) {
 	switch name {
-	case "AuthWebuiLogin":
-		return Operation{ID: OperationAuthWebuiLogin, Method: "POST", Path: "/api/v1/webui/auth/login", Policy: "public", Scope: "", Action: ""}, true
-	case "AuthWebuiLogout":
-		return Operation{ID: OperationAuthWebuiLogout, Method: "POST", Path: "/api/v1/webui/auth/logout", Policy: "protected", Scope: "management:read", Action: "auth.webui.session.logout"}, true
-	case "AuthWebuiSession":
-		return Operation{ID: OperationAuthWebuiSession, Method: "GET", Path: "/api/v1/webui/auth/session", Policy: "protected", Scope: "management:read", Action: "auth.webui.session.read"}, true
-	case "AuthWebuiSetup":
-		return Operation{ID: OperationAuthWebuiSetup, Method: "POST", Path: "/api/v1/webui/auth/setup", Policy: "public", Scope: "", Action: ""}, true
 	case "CompleteTodo":
 		return Operation{ID: OperationCompleteTodo, Method: "PATCH", Path: "/api/v1/todos/{id}/complete", Policy: "protected", Scope: "todos:write", Action: "todo.complete"}, true
 	case "CreateTodo":
 		return Operation{ID: OperationCreateTodo, Method: "POST", Path: "/api/v1/todos", Policy: "protected", Scope: "todos:write", Action: "todo.create"}, true
 	case "GetTodo":
 		return Operation{ID: OperationGetTodo, Method: "GET", Path: "/api/v1/todos/{id}", Policy: "protected", Scope: "todos:read", Action: "todo.read"}, true
+	case "IamAccountsCreate":
+		return Operation{ID: OperationIamAccountsCreate, Method: "POST", Path: "/api/v1/iam/accounts", Policy: "protected", Scope: "iam:account:write", Action: "iam.accounts.create"}, true
+	case "IamAccountsList":
+		return Operation{ID: OperationIamAccountsList, Method: "GET", Path: "/api/v1/iam/accounts", Policy: "protected", Scope: "iam:account:read", Action: "iam.accounts.list"}, true
+	case "IamAccountsPasswordReset":
+		return Operation{ID: OperationIamAccountsPasswordReset, Method: "POST", Path: "/api/v1/iam/accounts/{id}/password-reset", Policy: "protected", Scope: "iam:account:write", Action: "iam.accounts.password.reset"}, true
+	case "IamAccountsRolesRead":
+		return Operation{ID: OperationIamAccountsRolesRead, Method: "GET", Path: "/api/v1/iam/accounts/{id}/roles", Policy: "protected", Scope: "iam:account:read", Action: "iam.accounts.roles.read"}, true
+	case "IamAccountsRolesReplace":
+		return Operation{ID: OperationIamAccountsRolesReplace, Method: "PUT", Path: "/api/v1/iam/accounts/{id}/roles", Policy: "protected", Scope: "iam:account:write", Action: "iam.accounts.roles.replace"}, true
+	case "IamAccountsStatus":
+		return Operation{ID: OperationIamAccountsStatus, Method: "PATCH", Path: "/api/v1/iam/accounts/{id}/status", Policy: "protected", Scope: "iam:account:write", Action: "iam.accounts.status"}, true
+	case "IamLogin":
+		return Operation{ID: OperationIamLogin, Method: "POST", Path: "/api/v1/iam/login", Policy: "public", Scope: "", Action: ""}, true
+	case "IamLogout":
+		return Operation{ID: OperationIamLogout, Method: "POST", Path: "/api/v1/iam/logout", Policy: "protected", Scope: "iam:account:self:read", Action: "iam.logout"}, true
+	case "IamPermissionsList":
+		return Operation{ID: OperationIamPermissionsList, Method: "GET", Path: "/api/v1/iam/permissions", Policy: "protected", Scope: "iam:permission:read", Action: "iam.permissions.list"}, true
+	case "IamRolesCreate":
+		return Operation{ID: OperationIamRolesCreate, Method: "POST", Path: "/api/v1/iam/roles", Policy: "protected", Scope: "iam:role:write", Action: "iam.roles.create"}, true
+	case "IamRolesList":
+		return Operation{ID: OperationIamRolesList, Method: "GET", Path: "/api/v1/iam/roles", Policy: "protected", Scope: "iam:role:read", Action: "iam.roles.list"}, true
+	case "IamRolesPermissionsRead":
+		return Operation{ID: OperationIamRolesPermissionsRead, Method: "GET", Path: "/api/v1/iam/roles/{id}/permissions", Policy: "protected", Scope: "iam:role:read", Action: "iam.roles.permissions.read"}, true
+	case "IamRolesPermissionsReplace":
+		return Operation{ID: OperationIamRolesPermissionsReplace, Method: "PUT", Path: "/api/v1/iam/roles/{id}/permissions", Policy: "protected", Scope: "iam:role:write", Action: "iam.roles.permissions.replace"}, true
+	case "IamSelfPasswordChange":
+		return Operation{ID: OperationIamSelfPasswordChange, Method: "POST", Path: "/api/v1/iam/self/password", Policy: "protected", Scope: "iam:account:self:password:write", Action: "iam.self.password.change"}, true
+	case "IamSessionRead":
+		return Operation{ID: OperationIamSessionRead, Method: "GET", Path: "/api/v1/iam/session", Policy: "protected", Scope: "iam:account:self:read", Action: "iam.session.read"}, true
+	case "IamSetup":
+		return Operation{ID: OperationIamSetup, Method: "POST", Path: "/api/v1/iam/setup", Policy: "public", Scope: "", Action: ""}, true
 	case "ListTodos":
 		return Operation{ID: OperationListTodos, Method: "GET", Path: "/api/v1/todos", Policy: "protected", Scope: "todos:read", Action: "todo.list"}, true
 	default:

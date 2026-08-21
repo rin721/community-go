@@ -105,6 +105,7 @@
 - 工具栏的可访问名称由调用模块注入并走其 locale，不在公共 UI 内硬编码“用户操作”等业务文案。
 - Soybean 403 页面把异常结果与返回入口放在同一内容层级；项目保留 `Available / Degraded / Unavailable / Not Implemented` 四态，不伪造参考站业务状态，并让 `CapabilityBanner` 的状态转换以 `role=status`、`aria-live=polite` 对辅助技术可见。
 - Soybean 用户列表的表格标题、分页总数/页码/页大小均属于页面上下文；公共 `DataTable` 与 `Pagination` 现在只提供结构，表格/分页可访问名称必须由模块以当前 locale 注入。
+- Soybean 的“列设置”弹层还包含全选、列显隐、拖动排序和固定列；当前没有真实模块消费该弹层，因此项目只把 `DataTableColumn.visible` 作为模块驱动的显隐边界，暂不建立全局列设置状态、拖拽排序或固定列协议。
 
 ## 密度设置补充校准
 

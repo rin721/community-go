@@ -5,9 +5,10 @@ import { CapabilityBanner, DataTable, DataToolbar, Drawer, EmptyState, FilterPan
 
 describe("公共管理 UI 模式", () => {
   it("renders a selectable data table with an empty state", () => {
-    const markup = renderToStaticMarkup(createElement(DataTable<{ name: string }>, { columns: [{ id: "name", header: "Name", cell: (row) => row.name }], rows: [], ariaLabel: "Records", selectable: true, selectionLabel: "Select row", emptyState: createElement(EmptyState, { title: "No records" }) }));
+    const markup = renderToStaticMarkup(createElement(DataTable<{ name: string }>, { columns: [{ id: "name", header: "Name", cell: (row) => row.name }, { id: "internal", header: "Internal", cell: () => "hidden", visible: false }], rows: [], ariaLabel: "Records", selectable: true, selectionLabel: "Select row", emptyState: createElement(EmptyState, { title: "No records" }) }));
     expect(markup).toContain("data-table");
     expect(markup).toContain('aria-label="Records"');
+    expect(markup).not.toContain("Internal");
     expect(markup).toContain("No records");
     expect(markup).toContain("Select row");
   });

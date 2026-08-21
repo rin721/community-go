@@ -50,6 +50,7 @@ export function getDataTableSelectionState(rowKeys: ReadonlyArray<string>, selec
 type DataTableProps<Row> = {
   columns: ReadonlyArray<DataTableColumn<Row>>;
   rows: ReadonlyArray<Row>;
+  ariaLabel?: string;
   getRowKey?: (row: Row, index: number) => string;
   loading?: boolean;
   loadingLabel?: string;
@@ -60,7 +61,7 @@ type DataTableProps<Row> = {
   onSelectedKeysChange?: (keys: Set<string>) => void;
 };
 
-export function DataTable<Row>({ columns, rows, getRowKey = (_row, index) => String(index), loading = false, loadingLabel, emptyState, selectable = false, selectionLabel, selectedKeys, onSelectedKeysChange }: DataTableProps<Row>) {
+export function DataTable<Row>({ columns, rows, ariaLabel, getRowKey = (_row, index) => String(index), loading = false, loadingLabel, emptyState, selectable = false, selectionLabel, selectedKeys, onSelectedKeysChange }: DataTableProps<Row>) {
   const rowKeys = rows.map(getRowKey);
   const selected = selectedKeys ?? new Set<string>();
   const headerSelectionRef = useRef<HTMLInputElement>(null);
@@ -79,7 +80,7 @@ export function DataTable<Row>({ columns, rows, getRowKey = (_row, index) => Str
     onSelectedKeysChange(allSelected ? new Set() : new Set(rowKeys));
   };
   const columnCount = columns.length + (selectable ? 1 : 0);
-  return <div className="data-table-wrap"><table className="data-table" aria-busy={loading}><thead><tr>{selectable && <th scope="col" className="data-table-selection"><input ref={headerSelectionRef} type="checkbox" checked={allSelected} onChange={toggleAll} aria-checked={partiallySelected ? "mixed" : allSelected} aria-label={selectionLabel} /></th>}{columns.map((column) => <th scope="col" className={column.className} key={column.id}>{column.header}</th>)}</tr></thead><tbody>{loading && <tr><td colSpan={columnCount}><Skeleton lines={3} label={loadingLabel ?? ""} /></td></tr>}{!loading && rows.length === 0 && <tr><td colSpan={columnCount}>{emptyState}</td></tr>}{!loading && rows.map((row, index) => { const key = getRowKey(row, index); return <tr key={key}>{selectable && <td className="data-table-selection"><input type="checkbox" checked={selected.has(key)} onChange={() => toggleKey(key)} aria-label={selectionLabel} /></td>}{columns.map((column) => <td className={column.className} key={column.id}>{column.cell(row, index)}</td>)}</tr>; })}</tbody></table></div>;
+  return <div className="data-table-wrap"><table className="data-table" aria-label={ariaLabel} aria-busy={loading}><thead><tr>{selectable && <th scope="col" className="data-table-selection"><input ref={headerSelectionRef} type="checkbox" checked={allSelected} onChange={toggleAll} aria-checked={partiallySelected ? "mixed" : allSelected} aria-label={selectionLabel} /></th>}{columns.map((column) => <th scope="col" className={column.className} key={column.id}>{column.header}</th>)}</tr></thead><tbody>{loading && <tr><td colSpan={columnCount}><Skeleton lines={3} label={loadingLabel ?? ""} /></td></tr>}{!loading && rows.length === 0 && <tr><td colSpan={columnCount}>{emptyState}</td></tr>}{!loading && rows.map((row, index) => { const key = getRowKey(row, index); return <tr key={key}>{selectable && <td className="data-table-selection"><input type="checkbox" checked={selected.has(key)} onChange={() => toggleKey(key)} aria-label={selectionLabel} /></td>}{columns.map((column) => <td className={column.className} key={column.id}>{column.cell(row, index)}</td>)}</tr>; })}</tbody></table></div>;
 }
 
 export type PaginationItem = number | "ellipsis-left" | "ellipsis-right";
@@ -95,10 +96,10 @@ export function createPaginationItems(page: number, pageCount: number): Paginati
   return [...new Set(items)];
 }
 
-export function Pagination({ page, pageCount, total, totalLabel, pageLabel, previousLabel, nextLabel, onPageChange, pageSize, pageSizeOptions, pageSizeLabel, onPageSizeChange }: { page: number; pageCount: number; total: number; totalLabel: (total: number) => ReactNode; pageLabel: (page: number) => string; previousLabel: string; nextLabel: string; onPageChange: (page: number) => void; pageSize?: number; pageSizeOptions?: ReadonlyArray<number>; pageSizeLabel?: string; onPageSizeChange?: (pageSize: number) => void }) {
+export function Pagination({ page, pageCount, total, totalLabel, pageLabel, paginationLabel, previousLabel, nextLabel, onPageChange, pageSize, pageSizeOptions, pageSizeLabel, onPageSizeChange }: { page: number; pageCount: number; total: number; totalLabel: (total: number) => ReactNode; pageLabel: (page: number) => string; paginationLabel?: string; previousLabel: string; nextLabel: string; onPageChange: (page: number) => void; pageSize?: number; pageSizeOptions?: ReadonlyArray<number>; pageSizeLabel?: string; onPageSizeChange?: (pageSize: number) => void }) {
   const current = Math.min(Math.max(page, 1), Math.max(pageCount, 1));
   const items = createPaginationItems(current, pageCount);
-  return <nav className="pagination" aria-label={pageLabel(current)}><span className="pagination-total">{totalLabel(total)}</span><button type="button" disabled={current <= 1} onClick={() => onPageChange(current - 1)} aria-label={previousLabel}>‹</button>{items.map((item) => item === "ellipsis-left" || item === "ellipsis-right" ? <span className="pagination-ellipsis" aria-hidden="true" key={item}>…</span> : <button type="button" className={item === current ? "active" : ""} onClick={() => onPageChange(item)} aria-current={item === current ? "page" : undefined} aria-label={pageLabel(item)} key={item}>{item}</button>)}<button type="button" disabled={current >= pageCount} onClick={() => onPageChange(current + 1)} aria-label={nextLabel}>›</button>{pageSizeOptions && pageSizeLabel && onPageSizeChange && <select aria-label={pageSizeLabel} value={pageSize} onChange={(event) => onPageSizeChange(Number(event.target.value))}>{pageSizeOptions.map((option) => <option value={option} key={option}>{option}</option>)}</select>}</nav>;
+  return <nav className="pagination" aria-label={paginationLabel ?? pageLabel(current)}><span className="pagination-total">{totalLabel(total)}</span><button type="button" disabled={current <= 1} onClick={() => onPageChange(current - 1)} aria-label={previousLabel}>‹</button>{items.map((item) => item === "ellipsis-left" || item === "ellipsis-right" ? <span className="pagination-ellipsis" aria-hidden="true" key={item}>…</span> : <button type="button" className={item === current ? "active" : ""} onClick={() => onPageChange(item)} aria-current={item === current ? "page" : undefined} aria-label={pageLabel(item)} key={item}>{item}</button>)}<button type="button" disabled={current >= pageCount} onClick={() => onPageChange(current + 1)} aria-label={nextLabel}>›</button>{pageSizeOptions && pageSizeLabel && onPageSizeChange && <select aria-label={pageSizeLabel} value={pageSize} onChange={(event) => onPageSizeChange(Number(event.target.value))}>{pageSizeOptions.map((option) => <option value={option} key={option}>{option}</option>)}</select>}</nav>;
 }
 
 export function EmptyState({ title, detail, action }: { title: string; detail?: string; action?: ReactNode }) {

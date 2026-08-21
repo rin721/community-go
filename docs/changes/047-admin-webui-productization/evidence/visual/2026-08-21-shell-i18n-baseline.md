@@ -104,6 +104,7 @@
 - 同一页面的列表区还显示“搜索”折叠行、重置/搜索动作、批量删除禁用态、刷新/列设置、表头选择和分页；公共 `FilterPanel` 与 `DataTable` 本轮只吸收这些结构和可访问语义，不引入用户字段、模拟行或新的业务路由。
 - 工具栏的可访问名称由调用模块注入并走其 locale，不在公共 UI 内硬编码“用户操作”等业务文案。
 - Soybean 403 页面把异常结果与返回入口放在同一内容层级；项目保留 `Available / Degraded / Unavailable / Not Implemented` 四态，不伪造参考站业务状态，并让 `CapabilityBanner` 的状态转换以 `role=status`、`aria-live=polite` 对辅助技术可见。
+- Soybean 用户列表的表格标题、分页总数/页码/页大小均属于页面上下文；公共 `DataTable` 与 `Pagination` 现在只提供结构，表格/分页可访问名称必须由模块以当前 locale 注入。
 
 ## 密度设置补充校准
 

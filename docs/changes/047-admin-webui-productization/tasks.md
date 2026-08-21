@@ -29,7 +29,7 @@
 | MOD-001 | HOST-001, I18N-CONTRACT-001 | 把 Auth/Ops 页面迁回模块 owner，完成宿主骨架所需最小适配并遵守 i18n 契约 | 删除反向 re-export 和宿主具体模块 import；模块只依赖公开宿主契约/UI；所有用户文案走模块 namespace；真实流程行为不扩展 | 已实施未闭合 |
 | UI-001 | HOST-001, I18N-001 | 高保真建立 Token、AuthLayout、AppLayout 与响应式 Shell | 侧栏、Header、breadcrumb、workspace tabs、route search、内容 Surface、Footer、用户/主题/语言/全屏入口在桌面/移动与明暗主题通过对照；Header/页签/Footer 固定且仅页面视口滚动 | 已实施未闭合 |
 | UI-002 | UI-001 | 建立页面容器、toolbar、feedback、state、form、table、filter、pagination、Drawer 模式 | 测试 fixture 覆盖状态且不进入生产 manifest/navigation；模块不复制视觉基础 | 已实施未闭合 |
-| UI-002-COMMON-001 | UI-002, I18N-CONTRACT-001 | 落地公共管理模式的可复用宿主组件 | `DataToolbar`、`FilterPanel`、`DataTable`、`Pagination`、`EmptyState`、`InlineAlert`、`Drawer` 由模块注入翻译/业务内容；toolbar label、四态 banner、选择 mixed 状态、加载、空态、分页、筛选 region 语义和 Drawer 焦点边界有测试；不注册 Demo 路由 | 已实施未闭合 |
+| UI-002-COMMON-001 | UI-002, I18N-CONTRACT-001 | 落地公共管理模式的可复用宿主组件 | `DataToolbar`、`FilterPanel`、`DataTable`、`Pagination`、`EmptyState`、`InlineAlert`、`Drawer` 由模块注入翻译/业务内容；toolbar/table/pagination label、四态 banner、选择 mixed 状态、加载、空态、分页、筛选 region 语义和 Drawer 焦点边界有测试；不注册 Demo 路由 | 已实施未闭合 |
 | VIS-OPS-001 | UI-002, VIS-HOST-001 | 基于最新 Soybean 工作台观察校准已有 Ops Dashboard 的概览层级 | 仅使用六个真实 management 查询；概览统计、加载/失败状态和诊断详情均经 i18n 契约与响应式样式验证 | 已实施未闭合 |
 | VIS-OPS-002 | VIS-OPS-001 | 按参考工作台层级分组真实 Ops 查询并补齐刷新交互 | 核心探针/可选诊断分组；整体刷新与失败项独立重试；核心失败为 Unavailable、可选失败为 Degraded；不引入模拟数据或新后端接口 | 已实施未闭合 |
 | HOST-THEME-001 | UI-001, VIS-HOST-001 | 对照 Soybean Header 补齐宿主一键明暗切换入口 | 复用现有主题 authority；入口有 host i18n、桌面/移动规则明确且不新增第二套状态 | 已实施未闭合 |

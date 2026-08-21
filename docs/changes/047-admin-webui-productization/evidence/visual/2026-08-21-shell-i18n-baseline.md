@@ -41,3 +41,16 @@
 
 - `SystemStatePage` 保留 `Available / Degraded / Unavailable / Not Implemented` 语义和原有详情入口，只调整异常插画、状态编号、阴影、标题层级与主按钮表现。
 - 插画由项目 CSS 与既有图标组合生成，不引入 Soybean 的品牌资源、业务数据或源码；页面仍由宿主统一承载，模块不操作 Router、Menu 或全局状态。
+
+## Ops 页面补充观察
+
+- 页面：[Soybean 工作台](https://soybeanjs.cn/)，同一约 1280 × 720 视口；通过浏览器 DOM 与截图重新观察。
+- 工作台主区先放一排高密度统计卡片，再进入较大的图表/列表 Surface；卡片承担“先看总体，再看细节”的信息层级。
+- 页面：[Soybean 用户管理](https://soybeanjs.cn/manage/user)。实测结构为页面标题、`新增/批量删除/刷新/列设置` 工具栏、表格、状态单元格和分页。
+- 当前项目没有用户、角色或菜单 CRUD 的业务 Binding 与真实 API，因此不复制该页面，也不生成演示数据；本轮只把相同的信息层级迁移到已有 Ops 真实查询。
+
+## 本轮 Ops 校准
+
+- `DashboardPage` 新增三张概览 Surface：已声明诊断、正常响应、需要关注；数值只来自当前六个 management 查询的声明数量与实时查询结果。
+- 原有六个诊断结果仍保留，失败继续显示 `Degraded` 与低敏提示，加载时使用 i18n 的占位文案，不把占位状态伪装成成功。
+- 概览与诊断卡片使用项目自己的 CSS token 和图标，不复制 Soybean 的品牌、样例数据或业务页面；模块仍只通过公开 WebUI/i18n 契约工作。

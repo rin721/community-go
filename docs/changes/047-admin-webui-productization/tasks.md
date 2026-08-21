@@ -28,6 +28,7 @@
 | MOD-001 | HOST-001, I18N-CONTRACT-001 | 把 Auth/Ops 页面迁回模块 owner，完成宿主骨架所需最小适配并遵守 i18n 契约 | 删除反向 re-export 和宿主具体模块 import；模块只依赖公开宿主契约/UI；所有用户文案走模块 namespace；真实流程行为不扩展 | 已实施未闭合 |
 | UI-001 | HOST-001, I18N-001 | 高保真建立 Token、AuthLayout、AppLayout 与响应式 Shell | 侧栏、Header、breadcrumb、workspace tabs、route search、内容 Surface、Footer、用户/主题/语言/全屏入口在桌面/移动与明暗主题通过对照 | 已实施未闭合 |
 | UI-002 | UI-001 | 建立页面容器、toolbar、feedback、state、form、table、filter、pagination、Drawer 模式 | 测试 fixture 覆盖状态且不进入生产 manifest/navigation；模块不复制视觉基础 | 已实施未闭合 |
+| VIS-OPS-001 | UI-002, VIS-HOST-001 | 基于最新 Soybean 工作台观察校准已有 Ops Dashboard 的概览层级 | 仅使用六个真实 management 查询；概览统计、加载/失败状态和诊断详情均经 i18n 契约与响应式样式验证 | 已实施未闭合 |
 | BUILTIN-001 | UI-001, ARC-001 | 建立 Theme Drawer、403、404、mismatch 和 not-implemented 宿主页面 | 单一主题 authority；状态一致、错误低敏、解析错误可见、不发不存在 API | 已实施未闭合 |
 | VIS-HOST-001 | UI-001, UI-002, BUILTIN-001 | 建立 SoybeanAdmin 宿主 parity 矩阵并逐任务动态观察 | 同视口 DOM/截图覆盖 Shell、导航、页签、搜索、主题 Drawer、Surface、状态页、响应式/主题；差异修正或有项目边界理由 | 已实施未闭合 |
 | TEST-HOST-001 | ARC-001, GEN-001, HOST-001, MOD-001, I18N-001, I18N-CONTRACT-001, UI-001, UI-002, BUILTIN-001, VIS-HOST-001 | 补宿主 Go/TS/React/E2E/visual/architecture 门禁 | 证明无用户可见硬编码/直接 i18n singleton/穿透/Demo/假能力；error code -> message ID、locale completeness、现有 Auth/Ops 流程和宿主 parity 全部通过 | 验证中 |

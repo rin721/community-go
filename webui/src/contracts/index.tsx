@@ -39,6 +39,7 @@ export type HostRuntime = {
   manifest: Manifest;
   principal?: PrincipalView;
   completeAuthentication: (principal: PrincipalView) => Promise<void>;
+  refreshManifest: () => Promise<void>;
   navigateToDefault: () => void;
 };
 

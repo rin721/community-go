@@ -132,7 +132,7 @@ func TestApplicationPermissionCatalogCoversCurrentOperationAndWebUIReferences(t 
 		t.Fatal(err)
 	}
 	definitions := catalog.Definitions()
-	if len(definitions) != 14 {
+	if len(definitions) != 16 {
 		t.Fatalf("unexpected permission definitions: %#v", definitions)
 	}
 	if _, err := applicationWebUICatalog(); err != nil {

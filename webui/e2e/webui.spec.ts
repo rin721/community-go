@@ -14,11 +14,11 @@ const session = {
   absoluteExpiresAt: "2026-08-22T00:00:00Z",
 };
 
-function manifest(authenticated: boolean, availability: "available" | "degraded" | "unavailable" = "available", accessOverride?: "allowed" | "denied") {
+function manifest(authenticated: boolean, availability: "available" | "degraded" | "unavailable" = "available", accessOverride?: "allowed" | "denied", navigationEnabled = true, navigationRevision = "e2e-navigation-revision") {
   const access = authenticated ? (accessOverride ?? "allowed") : "authentication-required";
   return {
     catalogRevision: webuiRevision,
-    navigationRevision: "e2e-navigation-revision",
+    navigationRevision,
     routes: [
       { moduleId: "iam", id: "iam.setup", path: "/setup", entryId: "iam.setup", titleMessageId: "webui.iam.setup.title", layout: "blank", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access: "allowed", availability: "available", availableCapabilities: [] },
       { moduleId: "iam", id: "iam.login", path: "/login", entryId: "iam.login", titleMessageId: "webui.iam.login.title", layout: "blank", deliveryState: "implemented", default: false, unauthenticatedDefault: true, access: "allowed", availability: "available", availableCapabilities: [] },
@@ -29,6 +29,7 @@ function manifest(authenticated: boolean, availability: "available" | "degraded"
       { moduleId: "organization", id: "organization.departments", path: "/admin/departments", entryId: "organization.departments", titleMessageId: "webui.organization.departments.title", layout: "app", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
       { moduleId: "organization", id: "organization.positions", path: "/admin/positions", entryId: "organization.positions", titleMessageId: "webui.organization.positions.title", layout: "app", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
       { moduleId: "organization", id: "organization.assignments", path: "/admin/account-organization", entryId: "organization.assignments", titleMessageId: "webui.organization.assignments.title", layout: "app", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
+      { moduleId: "navigation", id: "navigation.menus", path: "/admin/menus", entryId: "navigation.menus", titleMessageId: "webui.navigation.menus.title", layout: "app", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
       { moduleId: "ops", id: "ops.dashboard", path: "/dashboard", entryId: "ops.dashboard", titleMessageId: "webui.ops.dashboard.title", layout: "app", deliveryState: "implemented", default: true, unauthenticatedDefault: false, access, availability, availableCapabilities: availability === "unavailable" ? [] : ["diagnostics", "metrics"] },
       { moduleId: "ops", id: "ops.capabilities", path: "/dashboard/capabilities", entryId: "ops.capabilities", titleMessageId: "webui.ops.capabilities.title", layout: "app", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability, availableCapabilities: availability === "unavailable" ? [] : ["diagnostics"] },
     ],
@@ -42,6 +43,7 @@ function manifest(authenticated: boolean, availability: "available" | "degraded"
       { moduleId: "organization", id: "organization.departments", routeId: "organization.departments", titleMessageId: "webui.organization.departments.title", iconId: "building", order: 70 },
       { moduleId: "organization", id: "organization.positions", routeId: "organization.positions", titleMessageId: "webui.organization.positions.title", iconId: "briefcase", order: 80 },
       { moduleId: "organization", id: "organization.assignments", routeId: "organization.assignments", titleMessageId: "webui.organization.assignments.title", iconId: "users", order: 90 },
+      ...(navigationEnabled ? [{ moduleId: "navigation", id: "navigation.menus", routeId: "navigation.menus", titleMessageId: "webui.navigation.menus.title", iconId: "menu", order: 100 }] : []),
     ] : [],
   };
 }
@@ -51,9 +53,11 @@ test.beforeEach(async ({ page }) => {
   let availability: "available" | "degraded" | "unavailable" = "available";
   let accessOverride: "allowed" | "denied" | undefined;
   let managementRequestCount = 0;
+  let navigationEnabled = true;
+  let navigationRevision = "e2e-navigation-revision-1";
 
   await page.route("**/api/v1/webui/manifest", async (route) => {
-    await route.fulfill({ json: manifest(authenticated, availability, accessOverride) });
+    await route.fulfill({ json: manifest(authenticated, availability, accessOverride, navigationEnabled, navigationRevision) });
   });
   await page.route("**/api/v1/iam/session", async (route) => {
     if (authenticated) await route.fulfill({ json: session });
@@ -84,6 +88,19 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/api/v1/organization/departments/tree", async (route) => { await route.fulfill({ json: [{ id: "dept-root", code: "engineering", name: "Engineering", active: true, archived: false, version: 1, children: [{ id: "dept-child", code: "platform", name: "Platform", parentId: "dept-root", active: true, archived: false, version: 1, children: [] }] }] }); });
   await page.route("**/api/v1/organization/positions?*", async (route) => { await route.fulfill({ json: { items: [{ id: "position-manager", code: "manager", name: "Manager", active: true, archived: false, version: 1 }], offset: 0, limit: 100, total: 1 } }); });
   await page.route("**/api/v1/organization/accounts/user-1/assignment", async (route) => { await route.fulfill({ json: { accountId: "user-1", departmentId: "dept-root", positionIds: ["position-manager"] } }); });
+  await page.route("**/api/v1/navigation/menus**", async (route) => {
+    if (route.request().method() === "PUT") {
+      const body = route.request().postDataJSON() as { enabled: boolean };
+      navigationEnabled = body.enabled;
+      navigationRevision = "e2e-navigation-revision-2";
+      await route.fulfill({ json: { catalogRevision: webuiRevision, navigationRevision } });
+      return;
+    }
+    await route.fulfill({ json: { catalogRevision: webuiRevision, navigationRevision, items: [
+      { id: "ops.dashboard", moduleId: "ops", routeId: "ops.dashboard", titleMessageId: "webui.ops.dashboard.title", iconId: "activity", defaultParentId: "", defaultOrder: 10, enabled: true, parentId: "", order: 10, version: 0, overridden: false, parentOverridden: false, orderOverridden: false },
+      { id: "navigation.menus", moduleId: "navigation", routeId: "navigation.menus", titleMessageId: "webui.navigation.menus.title", iconId: "menu", defaultParentId: "", defaultOrder: 100, enabled: navigationEnabled, parentId: "", order: 100, version: navigationRevision.endsWith("2") ? 1 : 0, overridden: navigationRevision.endsWith("2"), parentOverridden: false, orderOverridden: false },
+    ] } });
+  });
   await page.route("**/management/**", async (route) => {
     managementRequestCount += 1;
     const path = new URL(route.request().url()).pathname;
@@ -210,4 +227,18 @@ test("organization management pages render tree, position and assignment evidenc
   await expect(page.getByRole("heading", { name: "Account organization" })).toBeVisible();
   await expect(page.getByLabel("Primary department")).toHaveValue("dept-root");
   await page.screenshot({ path: testInfo.outputPath("organization-assignment.png"), fullPage: true });
+});
+
+test("navigation policy refreshes the manifest while keeping the registered route", async ({ page }, testInfo) => {
+  (page as unknown as { setWebUIState: (state: { authenticated: boolean }) => void }).setWebUIState({ authenticated: true });
+  await page.goto("/admin/menus");
+  await expect(page.getByRole("heading", { name: "Menus", exact: true, level: 1 })).toBeVisible();
+  const card = page.locator(".policy-card").filter({ hasText: "navigation.menus" });
+  await expect(card.getByText("navigation.menus", { exact: true })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("navigation-menus.png"), fullPage: true });
+  await card.getByRole("checkbox").uncheck();
+  await card.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByRole("heading", { name: "Menus", exact: true, level: 1 })).toBeVisible();
+  await expect(page.locator(".app-sidebar").getByText("Menus", { exact: true })).toHaveCount(0);
+  await expect(page.locator(".revision code")).toContainText("e2e-navigat");
 });

@@ -21,3 +21,5 @@
 当前本地 WebUI 使用 IAM 服务端有状态 Session。首次设置要求 `APP_IAM__LOCAL__SETUPTOKEN`，密码使用 Argon2id（64 MiB、3 次、并行度 2），默认连续 5 次失败锁定 15 分钟；Session 默认空闲 30 分钟、绝对 12 小时。Session 保存签发时的 `SecurityRevision`，账号、密码、AccountRole 或 RolePermission 变化会使旧 Session 失效。Session 不得作为普通业务 API 的 Bearer/JWT 替代凭据。
 
 浏览器请求使用 `__Host-community-go_iam_session` 安全 Cookie；不安全请求必须同时满足同源校验和绑定 Session 的 `X-CSRF-Token`。密码、setup token、Session ID、CSRF token 和 Authorization 不进入日志、Web Storage 或错误详情。
+
+IAM 在 composition 提供普通 WebUI 业务 mutation 共用的窄 Origin/CSRF 守卫；Navigation 策略修改使用该守卫，但业务模块不读取 IAM Repository 或 Session 表。菜单隐藏不构成授权，所有 Navigation operation 仍由服务端 `navigation:menu:*` 权限判断。

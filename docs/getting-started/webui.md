@@ -17,7 +17,7 @@
 go run ./cmd/app config init
 ```
 
-随后执行数据库前滚迁移。当前 Catalog 会分别执行 IAM、Organization 与 Todo 的独立 baseline：
+随后执行数据库前滚迁移。当前 Catalog 会分别执行 IAM、Organization、Navigation 与 Todo 的独立 baseline：
 
 ```powershell
 go run ./cmd/app db migrate up
@@ -25,7 +25,7 @@ go run ./cmd/app db migrate up
 
 已有 `config.yaml` 时不要重复执行 `config init`，也不要使用 `--force` 覆盖本地配置。
 
-IAM 使用 `iam_schema_migrations` 创建账号、凭据、Session、角色与关系表；Organization 使用 `organization_schema_migrations` 创建部门、岗位与账号组织关系；Todo 继续使用 `todo_schema_migrations`。包含旧 `schema_migrations` 或 `webui_*` 表的数据库会被只读 preflight 拒绝。不要直接删除、覆盖或让 Agent 自动处理现有本地数据；当前项目未发布时可显式选择新的本地数据库建立干净 baseline。
+IAM 使用 `iam_schema_migrations` 创建账号、凭据、Session、角色与关系表；Organization 使用 `organization_schema_migrations` 创建部门、岗位与账号组织关系；Navigation 使用 `navigation_schema_migrations` 创建稀疏菜单策略；Todo 继续使用 `todo_schema_migrations`。包含旧 `schema_migrations` 或 `webui_*` 表的数据库会被只读 preflight 拒绝。不要直接删除、覆盖或让 Agent 自动处理现有本地数据；当前项目未发布时可显式选择新的本地数据库建立干净 baseline。
 
 ## 2. 启动后端
 
@@ -89,6 +89,8 @@ Remove-Item Env:APP_IAM__LOCAL__SETUPTOKEN
 ```
 
 拥有对应权限的 owner 可访问 `/admin/departments`、`/admin/positions` 和 `/admin/account-organization`。部门是最大八层的无环树，岗位是平面目录；被有效子部门或账号关系引用的条目不能归档。组织分配与 IAM 创建账号是两个独立用例，不提供跨模块原子操作。
+
+拥有 `navigation:menu:read/write` 的 owner 可访问 `/admin/menus`。页面只修改代码已注册菜单的启停、父级和排序；保存会刷新当前 Manifest。禁用菜单不会删除 Route、Entry 或改变 Auth decision。
 
 停止两个开发进程都使用 `Ctrl+C`。
 

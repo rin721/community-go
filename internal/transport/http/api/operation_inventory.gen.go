@@ -36,6 +36,8 @@ const (
 	OperationIamSessionRead                 OperationID = "iam.session.read"
 	OperationIamSetup                       OperationID = "iam.setup"
 	OperationListTodos                      OperationID = "listTodos"
+	OperationNavigationMenusList            OperationID = "navigation.menus.list"
+	OperationNavigationMenusUpdate          OperationID = "navigation.menus.update"
 	OperationOrganizationAssignmentsGet     OperationID = "organization.assignments.get"
 	OperationOrganizationAssignmentsReplace OperationID = "organization.assignments.replace"
 	OperationOrganizationDepartmentsCreate  OperationID = "organization.departments.create"
@@ -68,6 +70,8 @@ var operationInventory = [...]Operation{
 	{ID: OperationIamSessionRead, Method: "GET", Path: "/api/v1/iam/session", Policy: "protected", Scope: "iam:account:self:read", Action: "iam.session.read"},
 	{ID: OperationIamSetup, Method: "POST", Path: "/api/v1/iam/setup", Policy: "public", Scope: "", Action: ""},
 	{ID: OperationListTodos, Method: "GET", Path: "/api/v1/todos", Policy: "protected", Scope: "todos:read", Action: "todo.list"},
+	{ID: OperationNavigationMenusList, Method: "GET", Path: "/api/v1/navigation/menus", Policy: "protected", Scope: "navigation:menu:read", Action: "navigation.menu.list"},
+	{ID: OperationNavigationMenusUpdate, Method: "PUT", Path: "/api/v1/navigation/menus/{id}", Policy: "protected", Scope: "navigation:menu:write", Action: "navigation.menu.update"},
 	{ID: OperationOrganizationAssignmentsGet, Method: "GET", Path: "/api/v1/organization/accounts/{id}/assignment", Policy: "protected", Scope: "organization:department:read", Action: "organization.assignment.read"},
 	{ID: OperationOrganizationAssignmentsReplace, Method: "PUT", Path: "/api/v1/organization/accounts/{id}/assignment", Policy: "protected", Scope: "organization:department:write", Action: "organization.assignment.replace"},
 	{ID: OperationOrganizationDepartmentsCreate, Method: "POST", Path: "/api/v1/organization/departments", Policy: "protected", Scope: "organization:department:write", Action: "organization.department.create"},
@@ -127,6 +131,10 @@ func OperationForStrictName(name string) (Operation, bool) {
 		return Operation{ID: OperationIamSetup, Method: "POST", Path: "/api/v1/iam/setup", Policy: "public", Scope: "", Action: ""}, true
 	case "ListTodos":
 		return Operation{ID: OperationListTodos, Method: "GET", Path: "/api/v1/todos", Policy: "protected", Scope: "todos:read", Action: "todo.list"}, true
+	case "NavigationMenusList":
+		return Operation{ID: OperationNavigationMenusList, Method: "GET", Path: "/api/v1/navigation/menus", Policy: "protected", Scope: "navigation:menu:read", Action: "navigation.menu.list"}, true
+	case "NavigationMenusUpdate":
+		return Operation{ID: OperationNavigationMenusUpdate, Method: "PUT", Path: "/api/v1/navigation/menus/{id}", Policy: "protected", Scope: "navigation:menu:write", Action: "navigation.menu.update"}, true
 	case "OrganizationAssignmentsGet":
 		return Operation{ID: OperationOrganizationAssignmentsGet, Method: "GET", Path: "/api/v1/organization/accounts/{id}/assignment", Policy: "protected", Scope: "organization:department:read", Action: "organization.assignment.read"}, true
 	case "OrganizationAssignmentsReplace":

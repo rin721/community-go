@@ -32,7 +32,7 @@
 
 ## 生命周期治理
 
-Service 使用 `GenerationCoordinator -> GenerationFactory -> typed resource pools -> ListenerHub`。候选 Generation 从同一配置快照构造 Logger、Database、Cache、I18n、Storage、Execution、Scheduler、Messaging、IAM、Organization、Todo、Auth、Ops、HTTP route 和 management route；Prepare 失败时 current 不变，Commit 后旧代排空并释放资源，清理失败进入 cleanup debt 并撤销 readiness。
+Service 使用 `GenerationCoordinator -> GenerationFactory -> typed resource pools -> ListenerHub`。候选 Generation 从同一配置快照构造 Logger、Database、Cache、I18n、Storage、Execution、Scheduler、Messaging、IAM、Organization、Navigation、Todo、Auth、Ops、HTTP route 和 management route；Prepare 失败时 current 不变，Commit 后旧代排空并释放资源，清理失败进入 cleanup debt 并撤销 readiness。Navigation 每次 Manifest 请求读取当前数据库策略并投影静态 Catalog，不创建 watcher、cache 或独立生命周期资源。
 
 one-shot CLI 走 Bootstrap 或 invocation-scoped Kernel 路径，不启动长期 watcher、HTTP listener、schedule 或 messaging Consumer。
 

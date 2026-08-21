@@ -57,9 +57,9 @@
 - [050 项目门禁缺口实施](050-project-gate-implementation/README.md)：已确认并实施；WebUI 门禁改为动态发现模块，静态质量链接入本地脚本、CI 与 release，容器许可证标签与源码声明对齐。
 - [051 项目文档体系治理闭环](051-documentation-system-governance-closure/README.md)：已确认并实施；系统修复当前文档入口、范围、使用路径、模块/能力索引、历史污染与缺失说明，并建立文档影响记录、跨平台门禁和 CI 约束；`old-backend/` 明确排除。
 - [052 项目布局与可配置值集中声明](052-declarative-project-layout/README.md)：研究门禁已通过，计划待确认；拟集中声明 WebUI/模块 facet、生成物、工具/release 路径与开发 endpoint，并审计其他可配置化候选。
-- [053 Admin 多业务模块基础平台](053-admin-module-foundation/README.md)：研究门禁已通过、计划待确认；定向补齐 Permission、Migration、HTTP/Auth 与 WebUI NavigationPolicy 聚合契约，不实施 Admin 业务功能。
-- [054 IAM 身份与访问管理模块](054-iam/README.md)：研究门禁已通过、计划待确认；依赖 053，拟单轨接管本地账号/凭据/Session，并实现 Core RBAC、owner、用户/角色/权限 API 与 WebUI。
+- [053 Admin 多业务模块基础平台](053-admin-module-foundation/README.md)：已完成；定向补齐 Permission、Migration、HTTP/Auth 与 WebUI NavigationPolicy 聚合契约，不实施 Admin 业务功能。
+- [054 IAM 身份与访问管理模块](054-iam/README.md)：已完成；单轨接管本地账号/凭据/Session，并实现 Core RBAC、owner、用户/角色/权限 API 与 WebUI。
 - [055 Organization 组织目录模块](055-organization/README.md)：已完成；拥有部门、岗位和账号组织关系，不包含部门数据权限。
-- [056 Navigation 后台导航策略模块](056-navigation/README.md)：研究门禁已通过、计划待确认；依赖 053/054 Catalog，拟管理已注册菜单的启停、父子、排序和 NavigationRevision，不建立动态页面或第二套授权。
+- [056 Navigation 后台导航策略模块](056-navigation/README.md)：已完成；管理已注册菜单的启停、父子、排序和 NavigationRevision，不建立动态页面或第二套授权。
 
-下一个任务序号为 `054`。已完成记录只保存历史证据；当前行为必须回到根 [README](../../README.md) 和对应主题文档确认。
+下一个任务序号为 `057`。已完成记录只保存历史证据；当前行为必须回到根 [README](../../README.md) 和对应主题文档确认。

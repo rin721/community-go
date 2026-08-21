@@ -6,6 +6,9 @@ import (
 	iamhttp "github.com/rin721/go-scaffold-template/internal/module/iam/binding/http"
 	iampermission "github.com/rin721/go-scaffold-template/internal/module/iam/binding/permission"
 	iamwebui "github.com/rin721/go-scaffold-template/internal/module/iam/binding/webui"
+	navigationhttp "github.com/rin721/go-scaffold-template/internal/module/navigation/binding/http"
+	navigationpermission "github.com/rin721/go-scaffold-template/internal/module/navigation/binding/permission"
+	navigationwebui "github.com/rin721/go-scaffold-template/internal/module/navigation/binding/webui"
 	opswebui "github.com/rin721/go-scaffold-template/internal/module/ops/binding/webui"
 	organizationhttp "github.com/rin721/go-scaffold-template/internal/module/organization/binding/http"
 	organizationpermission "github.com/rin721/go-scaffold-template/internal/module/organization/binding/permission"
@@ -28,6 +31,7 @@ func applicationHTTPModules() []contract.Module {
 	return []contract.Module{
 		iamhttp.ModuleContract(),
 		organizationhttp.ModuleContract(),
+		navigationhttp.ModuleContract(),
 		todohttp.ModuleContract(),
 	}
 }
@@ -36,6 +40,7 @@ func applicationHTTPModules() []contract.Module {
 func applicationPermissionCatalog() (permissioncatalog.Catalog, error) {
 	definitions := append(authpermission.Definitions(), iampermission.Definitions()...)
 	definitions = append(definitions, organizationpermission.Definitions()...)
+	definitions = append(definitions, navigationpermission.Definitions()...)
 	definitions = append(definitions, todopermission.Definitions()...)
 	return permissioncatalog.BuildCatalog(definitions...)
 }
@@ -46,6 +51,7 @@ func applicationWebUIModules() []webuicontract.ModuleRegistration {
 	return []webuicontract.ModuleRegistration{
 		{Binding: iamwebui.Binding(), Activation: webuicontract.ActivationEnabled},
 		{Binding: organizationwebui.Binding(), Activation: webuicontract.ActivationEnabled},
+		{Binding: navigationwebui.Binding(), Activation: webuicontract.ActivationEnabled},
 		{Binding: opswebui.Binding(), Activation: webuicontract.ActivationEnabled},
 	}
 }
@@ -64,11 +70,6 @@ func applicationWebUISDKInventory() webuicontract.SDKInventory {
 // 真实外部依赖接入时由 composition 提供 route capability 快照；没有快照不能在 handler 内猜测为可用。
 func applicationWebUIAvailability(string) webuicontract.Availability {
 	return webuicontract.Availability{State: webuicontract.AvailabilityAvailable}
-}
-
-// applicationNavigationPolicySnapshot 是 053 的确定性默认 provider；056 将从 Navigation Service 提供同一契约。
-func applicationNavigationPolicySnapshot(catalog webuicontract.Catalog) (webuicontract.NavigationPolicySnapshot, error) {
-	return webuicontract.BuildNavigationPolicySnapshot(catalog)
 }
 
 // applicationWebUICatalog 是 WebUI runtime 与前端生成器共享的唯一声明汇总点。

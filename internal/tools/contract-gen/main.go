@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 
 	iamhttp "github.com/rin721/go-scaffold-template/internal/module/iam/binding/http"
+	navigationhttp "github.com/rin721/go-scaffold-template/internal/module/navigation/binding/http"
 	organizationhttp "github.com/rin721/go-scaffold-template/internal/module/organization/binding/http"
 	todohttp "github.com/rin721/go-scaffold-template/internal/module/todo/binding/http"
 	"github.com/rin721/go-scaffold-template/internal/projectlayout"
@@ -107,6 +108,7 @@ func registeredModules() []contract.Module {
 	return []contract.Module{
 		iamhttp.ModuleContract(),
 		organizationhttp.ModuleContract(),
+		navigationhttp.ModuleContract(),
 		todohttp.ModuleContract(),
 	}
 }

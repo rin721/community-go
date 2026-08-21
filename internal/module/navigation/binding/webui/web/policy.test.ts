@@ -1,0 +1,3 @@
+import { describe, expect, it } from "vitest";
+import { effectivePolicy } from "./MenusPage";
+describe("Navigation policy",()=>{it("distinguishes source defaults from field overrides",()=>{const base={id:"menu",moduleId:"m",routeId:"r",titleMessageId:"title",iconId:"menu",defaultParentId:"root",defaultOrder:10,enabled:true,parentId:"root",order:10,version:0,overridden:false,parentOverridden:false,orderOverridden:false};expect(effectivePolicy(base)).toEqual({enabled:true,parent:"root",order:10});expect(effectivePolicy({...base,parentId:"",order:3,overridden:true,parentOverridden:true,orderOverridden:true})).toEqual({enabled:true,parent:"",order:3});});});

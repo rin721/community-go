@@ -17,10 +17,12 @@ Invoke-RestMethod http://127.0.0.1:9090/readyz
 1. 按[全栈 WebUI 本地启动](../../README.md#全栈-webui-本地启动)启动 Go 服务和 Vite。
 2. 打开 `https://127.0.0.1:5173`。
 3. 确认宿主能加载当前 manifest，且静态 registry 的 `catalogRevision` 匹配；菜单策略使用独立 `navigationRevision`。
-4. 使用临时或已明确选择的 fresh database 执行 `db migrate up`，确认 `iam`、`organization` 与 `todo` 三个 set 均兼容；默认 `.data/app.db` 不会被 Agent 自动重置。
-5. 通过 `/setup` 原子创建首个 owner，随后验证登录、账号安全、用户、角色、权限、部门、岗位和账号组织分配页面；setup token 不得写入仓库、截图、日志或前端公开配置。
+4. 使用临时或已明确选择的 fresh database 执行 `db migrate up`，确认 `iam`、`organization`、`navigation` 与 `todo` 四个 set 均兼容；默认 `.data/app.db` 不会被 Agent 自动重置。
+5. 通过 `/setup` 原子创建首个 owner，随后验证登录、账号安全、用户、角色、权限、部门、岗位、账号组织分配和菜单策略页面；setup token 不得写入仓库、截图、日志或前端公开配置。
 
 Organization 页面只维护组织目录：一个账号可选择一个主部门和多个岗位。修改这些关系不会授予角色、刷新 IAM `SecurityRevision` 或改变 Auth decision。
+
+Navigation 页面只允许调整已注册菜单的 enabled、parent 和 order。保存后当前页面刷新 Manifest 与 `navigationRevision`；禁用菜单会从侧栏移除，但其代码注册路由仍保留，直接访问仍由服务端权限决定。
 
 Vite 本地 HTTPS 的证书提示属于开发环境行为。IAM typed HTTP、Origin/CSRF 与阶段边界以[WebUI 本地启动指南](webui.md)与 `webui/` 代码为准。
 

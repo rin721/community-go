@@ -21,3 +21,5 @@ Navigation 复用 Database、Clock、Logger、053 Permission/Migration/HTTP/WebU
 ## 4. 局限与门禁
 
 外链、iframe、远程模块、CMS、多租户菜单或 push/cache 会改变安全和生命周期边界，必须重新研究。当前证据足以形成 056 计划，不构成实施授权。
+
+2026-08-22 在 055 完成提交 `e4e279c4e3ecd84588f7976b2bb8bae203844278` 上复核：IAM、Organization 和现有模块均通过静态 WebUI Binding 注册 Route/Navigation，053 的 `BuildNavigationPolicySnapshot` 仍是唯一运行时策略投影入口；Manifest handler 目前固定持有默认 snapshot，改为每请求读取 Navigation Service snapshot 无需改变静态 Catalog 或 RolePermission authority。原结论保持有效。

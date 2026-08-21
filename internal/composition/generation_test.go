@@ -23,6 +23,7 @@ import (
 	kernellogging "github.com/rin721/go-scaffold-template/internal/kernel/logging"
 	authmodel "github.com/rin721/go-scaffold-template/internal/module/auth/model"
 	iammigration "github.com/rin721/go-scaffold-template/internal/module/iam/binding/migration"
+	navigationmigration "github.com/rin721/go-scaffold-template/internal/module/navigation/binding/migration"
 	organizationmigration "github.com/rin721/go-scaffold-template/internal/module/organization/binding/migration"
 	migrationbinding "github.com/rin721/go-scaffold-template/internal/module/todo/binding/migration"
 	todoservice "github.com/rin721/go-scaffold-template/internal/module/todo/service"
@@ -62,7 +63,7 @@ func TestApplicationGenerationReloadsTodoAndHTTPWithoutRestart(t *testing.T) {
 	})
 	initial := coordinator.Diagnostics()
 	if initial.CurrentGeneration != 1 || initial.ConfiguredAddress != "127.0.0.1:0" || initial.BoundAddress == "" ||
-		initial.RestartPolicy != "" || fmt.Sprint(initial.ResourceBuilt) != fmt.Sprint([]string{"logger", "database", "cache", "i18n", "storage", "observability.metrics", "observability.telemetry", "execution", "messaging", "todo", "scheduler", "auth", "iam", "organization", "ops", "http"}) {
+		initial.RestartPolicy != "" || fmt.Sprint(initial.ResourceBuilt) != fmt.Sprint([]string{"logger", "database", "cache", "i18n", "storage", "observability.metrics", "observability.telemetry", "execution", "messaging", "todo", "scheduler", "auth", "iam", "organization", "navigation", "ops", "http"}) {
 		t.Fatalf("initial diagnostics = %#v", initial)
 	}
 	if status := createTodo(t, initial.BoundAddress, strings.Repeat("x", 100)); status != http.StatusCreated {
@@ -94,7 +95,7 @@ func TestApplicationGenerationReloadsTodoAndHTTPWithoutRestart(t *testing.T) {
 		t.Fatalf("reloaded diagnostics = %#v, initial = %#v", after, initial)
 	}
 	if fmt.Sprint(after.ResourceReused) != fmt.Sprint([]string{"logger", "database", "cache", "i18n", "storage", "observability.metrics", "execution"}) ||
-		fmt.Sprint(after.ResourceBuilt) != fmt.Sprint([]string{"observability.telemetry", "messaging", "todo", "scheduler", "auth", "iam", "organization", "ops", "http"}) {
+		fmt.Sprint(after.ResourceBuilt) != fmt.Sprint([]string{"observability.telemetry", "messaging", "todo", "scheduler", "auth", "iam", "organization", "navigation", "ops", "http"}) {
 		t.Fatalf("reloaded resource diagnostics = %#v", after)
 	}
 	if status := createTodo(t, after.BoundAddress, strings.Repeat("x", 100)); status != http.StatusBadRequest {
@@ -752,7 +753,7 @@ func prepareTodoSchema(t *testing.T, path string) {
 	cfg := pkgdatabase.DefaultConfig()
 	cfg.Driver = pkgdatabase.DriverSQLite
 	cfg.DSN = filepath.ToSlash(path)
-	for _, set := range []dbmigrate.Set{iammigration.Set(), organizationmigration.Set(), migrationbinding.Set()} {
+	for _, set := range []dbmigrate.Set{iammigration.Set(), navigationmigration.Set(), organizationmigration.Set(), migrationbinding.Set()} {
 		runner, err := dbmigrate.New(t.Context(), dbmigrate.Config{Database: cfg, LockTimeout: 5 * time.Second}, set)
 		if err != nil {
 			t.Fatalf("New migration runner(%s/%s) error = %v", path, set.Name, err)

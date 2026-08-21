@@ -1,0 +1,14 @@
+// Package permission 把 Navigation 权限贡献给应用 Catalog。
+package permission
+
+import (
+	navigationpermission "github.com/rin721/go-scaffold-template/internal/module/navigation/permission"
+	permissioncatalog "github.com/rin721/go-scaffold-template/internal/permission"
+)
+
+func Definitions() []permissioncatalog.Definition {
+	return []permissioncatalog.Definition{
+		{Key: navigationpermission.MenuRead, OwnerModuleID: "navigation", DescriptionMessageID: "permission.navigation.menu.read"},
+		{Key: navigationpermission.MenuWrite, OwnerModuleID: "navigation", DescriptionMessageID: "permission.navigation.menu.write"},
+	}
+}

@@ -11,6 +11,7 @@ import (
 	iammigration "github.com/rin721/go-scaffold-template/internal/module/iam/binding/migration"
 	"github.com/rin721/go-scaffold-template/internal/module/migration"
 	migrationconfig "github.com/rin721/go-scaffold-template/internal/module/migration/binding/config"
+	navigationmigration "github.com/rin721/go-scaffold-template/internal/module/navigation/binding/migration"
 	organizationmigration "github.com/rin721/go-scaffold-template/internal/module/organization/binding/migration"
 	todomigration "github.com/rin721/go-scaffold-template/internal/module/todo/binding/migration"
 	pkgdatabase "github.com/rin721/go-scaffold-template/pkg/database"
@@ -36,6 +37,7 @@ func applicationMigrationCatalog() (migration.Catalog, error) {
 	return migration.BuildCatalog(
 		migration.Registration{ModuleID: "iam", Source: "internal/module/iam/binding/migration", Set: iammigration.Set()},
 		migration.Registration{ModuleID: "organization", Source: "internal/module/organization/binding/migration", Set: organizationmigration.Set()},
+		migration.Registration{ModuleID: "navigation", Source: "internal/module/navigation/binding/migration", Set: navigationmigration.Set()},
 		migration.Registration{
 			ModuleID: "todo",
 			Source:   "internal/module/todo/binding/migration",

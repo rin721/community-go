@@ -25,6 +25,7 @@ import (
 	authconfig "github.com/rin721/go-scaffold-template/internal/module/auth/binding/config"
 	"github.com/rin721/go-scaffold-template/internal/module/iam"
 	iamconfig "github.com/rin721/go-scaffold-template/internal/module/iam/binding/config"
+	"github.com/rin721/go-scaffold-template/internal/module/navigation"
 	"github.com/rin721/go-scaffold-template/internal/module/ops"
 	opsconfig "github.com/rin721/go-scaffold-template/internal/module/ops/binding/config"
 	opsmodel "github.com/rin721/go-scaffold-template/internal/module/ops/model"
@@ -87,6 +88,7 @@ type applicationGeneration struct {
 	authModule         auth.Module
 	iamModule          iam.HTTPModule
 	organizationModule organization.HTTPModule
+	navigationModule   navigation.HTTPModule
 	opsModule          ops.Module
 	webuiCatalog       webuicontract.Catalog
 	participants       []supervisor.Participant
@@ -322,6 +324,18 @@ func (f *applicationGenerationFactory) Prepare(
 	if err != nil {
 		return abort(err)
 	}
+	generation.webuiCatalog, err = applicationWebUICatalog()
+	if err != nil {
+		return abort(fmt.Errorf("compose WebUI catalog: %w", err))
+	}
+	navigationCatalog, err := newNavigationCatalogAdapter(generation.webuiCatalog)
+	if err != nil {
+		return abort(err)
+	}
+	generation.navigationModule, err = navigation.NewHTTP(navigation.Dependencies{Database: databaseAccess, Clock: clock.System(), Catalog: navigationCatalog})
+	if err != nil {
+		return abort(err)
+	}
 	sessionSource, err := newIAMSessionAuthAdapter(generation.iamModule.Service)
 	if err != nil {
 		return abort(err)
@@ -338,6 +352,10 @@ func (f *applicationGenerationFactory) Prepare(
 		return abort(err)
 	}
 	operationGate, err := newOperationGate(generation.authModule.Service, generation.authModule.BearerSource, generation.authModule.SessionSource)
+	if err != nil {
+		return abort(err)
+	}
+	mutationGuard, err := newIAMMutationGuard(generation.iamModule.Service, httpConfig.CORS.AllowedOrigins)
 	if err != nil {
 		return abort(err)
 	}
@@ -362,6 +380,9 @@ func (f *applicationGenerationFactory) Prepare(
 	}
 	if err := generation.iamModule.Service.Compatible(ctx); err != nil {
 		return abort(fmt.Errorf("verify iam catalog compatibility: %w", err))
+	}
+	if err := generation.navigationModule.Service.Compatible(ctx); err != nil {
+		return abort(fmt.Errorf("verify navigation catalog compatibility: %w", err))
 	}
 
 	executionDigest, err := snapshot.SectionDigest("execution")
@@ -425,21 +446,17 @@ func (f *applicationGenerationFactory) Prepare(
 		return abort(err)
 	}
 
-	if err := module.ValidateContributions(generation.authModule.Contribution, generation.iamModule.Contribution, generation.organizationModule.Contribution, generation.module.Contribution, generation.opsModule.Contribution); err != nil {
+	if err := module.ValidateContributions(generation.authModule.Contribution, generation.iamModule.Contribution, generation.organizationModule.Contribution, generation.navigationModule.Contribution, generation.module.Contribution, generation.opsModule.Contribution); err != nil {
 		return abort(fmt.Errorf("validate application module contributions: %w", err))
 	}
-	generation.webuiCatalog, err = applicationWebUICatalog()
-	if err != nil {
-		return abort(fmt.Errorf("compose WebUI catalog: %w", err))
-	}
-	messages, err := module.MessageBindings(generation.authModule.Contribution, generation.iamModule.Contribution, generation.organizationModule.Contribution, generation.module.Contribution, generation.opsModule.Contribution)
+	messages, err := module.MessageBindings(generation.authModule.Contribution, generation.iamModule.Contribution, generation.organizationModule.Contribution, generation.navigationModule.Contribution, generation.module.Contribution, generation.opsModule.Contribution)
 	if err != nil {
 		return abort(fmt.Errorf("collect application module messages: %w", err))
 	}
 	if err := generation.messaging.output.Control.Freeze(messages); err != nil {
 		return abort(fmt.Errorf("freeze messaging candidate: %w", err))
 	}
-	schedules, err := module.ScheduleBindings(generation.authModule.Contribution, generation.iamModule.Contribution, generation.organizationModule.Contribution, generation.module.Contribution, generation.opsModule.Contribution)
+	schedules, err := module.ScheduleBindings(generation.authModule.Contribution, generation.iamModule.Contribution, generation.organizationModule.Contribution, generation.navigationModule.Contribution, generation.module.Contribution, generation.opsModule.Contribution)
 	if err != nil {
 		return abort(fmt.Errorf("collect application module schedules: %w", err))
 	}
@@ -464,6 +481,7 @@ func (f *applicationGenerationFactory) Prepare(
 	generation.resourceStats.Built = append(generation.resourceStats.Built, "auth")
 	generation.resourceStats.Built = append(generation.resourceStats.Built, "iam")
 	generation.resourceStats.Built = append(generation.resourceStats.Built, "organization")
+	generation.resourceStats.Built = append(generation.resourceStats.Built, "navigation")
 	generation.resourceStats.Built = append(generation.resourceStats.Built, "ops")
 	participants := append(append([]supervisor.Participant(nil), generation.module.Contribution.Participants...), generation.authModule.Contribution.Participants...)
 	participants = append(participants, generation.opsModule.Contribution.Participants...)
@@ -474,7 +492,7 @@ func (f *applicationGenerationFactory) Prepare(
 		generation.participants = append(generation.participants, participant)
 	}
 
-	dispatcher, err := newApplicationContractDispatcher(generation.module.Operations, generation.iamModule, generation.organizationModule)
+	dispatcher, err := newApplicationContractDispatcher(generation.module.Operations, generation.iamModule, generation.organizationModule, generation.navigationModule, mutationGuard)
 	if err != nil {
 		return abort(err)
 	}
@@ -482,11 +500,7 @@ func (f *applicationGenerationFactory) Prepare(
 	if err != nil {
 		return abort(err)
 	}
-	navigationPolicy, err := applicationNavigationPolicySnapshot(generation.webuiCatalog)
-	if err != nil {
-		return abort(fmt.Errorf("build default navigation policy: %w", err))
-	}
-	manifestHandler, err := newWebUIManifestHandler(generation.webuiCatalog, navigationPolicy, generation.authModule.Service, applicationWebUIAvailability)
+	manifestHandler, err := newWebUIManifestHandler(generation.webuiCatalog, navigationPolicyProvider(generation.navigationModule.Service, generation.webuiCatalog), generation.authModule.Service, applicationWebUIAvailability)
 	if err != nil {
 		return abort(err)
 	}

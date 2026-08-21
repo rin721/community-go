@@ -23,7 +23,7 @@
 
 `internal/transport/http` 是唯一 route binding owner：它从聚合后的模块契约构建 OpenAPI 校验规范、一次绑定路由、执行 operation gate 与问题呈现。新增业务模块只扩展自身契约声明、runtime handlers 与 `internal/composition` 的聚合，不复制 Router、validator 或 method/path。
 
-当前公开契约聚合 IAM、Organization 与 Todo。Organization 拥有部门、岗位和账号组织分配 operation，使用 `organization:department:*` 与 `organization:position:*` 精确权限；组织关系只作为目录数据，不进入 Auth decision。
+当前公开契约聚合 IAM、Organization、Navigation 与 Todo。Organization 拥有部门、岗位和账号组织分配 operation，使用 `organization:department:*` 与 `organization:position:*` 精确权限；组织关系只作为目录数据，不进入 Auth decision。Navigation 使用 `navigation:menu:read/write` 管理已注册菜单策略，修改请求使用 `webuiSession`、Origin 与 Session 绑定的 CSRF token；它不提供动态 Route 或第二套角色菜单授权。
 
 - `contract.Module.ID` 是 HTTP 完成品的稳定 owner；composition 的通用 dispatcher 拒绝重复模块、重复 operation、缺失 handler 和未知 handler。
 - `none`、`bearerAuth`、`webuiSession` 是有限 security profile。OpenAPI 只声明 scheme，operation gate 从 composition 注入的 Auth 来源认证一次并写入 Principal；transport 不硬编码 URL 前缀、Cookie、Origin 或 CSRF。

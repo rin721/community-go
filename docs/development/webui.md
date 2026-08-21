@@ -1,6 +1,6 @@
 # WebUI 开发指南
 
-WebUI 基线由 `internal/composition` 统一装配，模块只在确有浏览器界面需求时提供 `binding/webui`。IAM 提供首次设置、登录、账号安全、用户、角色、权限页面和离线密码重置 CLI；Ops 提供真实 management build/probe/diagnostics/metrics 看板；Todo 没有 WebUI Binding。
+WebUI 基线由 `internal/composition` 统一装配，模块只在确有浏览器界面需求时提供 `binding/webui`。IAM 提供首次设置、登录、账号安全、用户、角色、权限页面和离线密码重置 CLI；Organization 提供组织目录页面；Navigation 提供已注册菜单策略页面；Ops 提供真实 management build/probe/diagnostics/metrics 看板；Todo 没有 WebUI Binding。
 
 ## 适用语境与当前门禁范围
 
@@ -61,7 +61,7 @@ WebUI i18n 是所有接入模块必须遵守的规范契约。模块只要贡献
 
 模块页面只能通过 `@webui/sdk/i18n` 的 `useWebUITranslation(namespace)` 取得文案，不得自行初始化 i18next、直接操作宿主 singleton、直接依赖 `react-i18next` 内部实例，或在生产 Web 源码中写入用户可见硬编码文本。标签、按钮、字段、帮助、状态、诊断、校验、空态、错误和反馈都属于必须翻译的用户文案；技术 ID、CSS class、协议字段和测试断言不属于用户文案。
 
-宿主启动阶段只装载 `webui.host` locale。运行时 manifest 先校验 `catalogRevision` 与 generated registry，再把 `navigationRevision` 纳入 route query 失效边界；两者不能互相替代。菜单由静态 Catalog、NavigationPolicy snapshot、access 和 availability 共同投影，策略只能改变已注册 NavigationID 的 enabled、parent 与 order，Route/Entry/组件路径/ViewOperationID/owner 始终来自代码。随后按 eligible route/navigation 懒加载模块 namespace；`availability` 缺失、未知或不支持 degraded capability 时按 unavailable 处理。
+宿主启动阶段只装载 `webui.host` locale。运行时 manifest 先校验 `catalogRevision` 与 generated registry，再把 `navigationRevision` 纳入 route query 失效边界；两者不能互相替代。菜单由静态 Catalog、数据库 NavigationPolicy snapshot、access 和 availability 共同投影，策略只能改变已注册 NavigationID 的 enabled、parent 与 order，Route/Entry/组件路径/ViewOperationID/owner 始终来自代码。每次 Manifest 请求都读取并校验一个当前策略快照；首版不使用 cache、watcher 或后台 goroutine。策略页面保存后只能通过宿主 SDK 的 `refreshManifest` 刷新，不能直接修改宿主菜单状态。随后按 eligible route/navigation 懒加载模块 namespace；`availability` 缺失、未知或不支持 degraded capability 时按 unavailable 处理。
 
 后端错误码只能映射到稳定的 message ID，不能直接映射到中文/英文展示文本。正确形态是：
 

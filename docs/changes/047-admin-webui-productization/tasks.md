@@ -5,7 +5,7 @@
 - 研究门禁：已通过（`R001`）。
 - 计划状态：修订后的首次检查点 A–C 已重新确认，当前实施中；检查点 D 后续待确认。
 - 实施授权：用户已确认“047 方案”，授权修订后的布局、骨架和强制 i18n 契约实现；不授权 Auth/Ops 完整页面产品化或后续 Demo。
-- Git 基线：`HEAD 72e99de`，当前分支相对本地 `origin/main` ahead 8；接续复核时已有未提交的 047 草案和索引修改，本轮计划文档不得暂存或提交。
+- Git 基线：本轮从 `19b0fa7` 开始；047 采用增量提交，当前分支只保留本任务已审查的提交，不 push。
 
 ## 2. 研究与计划
 
@@ -27,7 +27,7 @@
 | I18N-CONTRACT-001 | I18N-001 | 固化 locale owner、message ID、error code -> message ID、无硬编码文案和公开翻译 hook 规范 | `setupErrorMessages` 类映射只返回 message ID；Contract/codegen、静态扫描和运行期边界测试通过；调整后计划已确认 | 已实施未闭合 |
 | I18N-LOCALE-001 | I18N-CONTRACT-001, VIS-HOST-001 | 让语言入口消费已装配 locale 并覆盖现有页面 | Header 语言选项来自 registry；`zh-CN`/`en-US` 的 host、Auth、Ops namespace 完整；Shell/overlay 订阅公开 i18n hook；切换和未知语言边界有测试 | 已实施未闭合 |
 | MOD-001 | HOST-001, I18N-CONTRACT-001 | 把 Auth/Ops 页面迁回模块 owner，完成宿主骨架所需最小适配并遵守 i18n 契约 | 删除反向 re-export 和宿主具体模块 import；模块只依赖公开宿主契约/UI；所有用户文案走模块 namespace；真实流程行为不扩展 | 已实施未闭合 |
-| UI-001 | HOST-001, I18N-001 | 高保真建立 Token、AuthLayout、AppLayout 与响应式 Shell | 侧栏、Header、breadcrumb、workspace tabs、route search、内容 Surface、Footer、用户/主题/语言/全屏入口在桌面/移动与明暗主题通过对照 | 已实施未闭合 |
+| UI-001 | HOST-001, I18N-001 | 高保真建立 Token、AuthLayout、AppLayout 与响应式 Shell | 侧栏、Header、breadcrumb、workspace tabs、route search、内容 Surface、Footer、用户/主题/语言/全屏入口在桌面/移动与明暗主题通过对照；Header/页签/Footer 固定且仅页面视口滚动 | 已实施未闭合 |
 | UI-002 | UI-001 | 建立页面容器、toolbar、feedback、state、form、table、filter、pagination、Drawer 模式 | 测试 fixture 覆盖状态且不进入生产 manifest/navigation；模块不复制视觉基础 | 已实施未闭合 |
 | UI-002-COMMON-001 | UI-002, I18N-CONTRACT-001 | 落地公共管理模式的可复用宿主组件 | `DataToolbar`、`FilterPanel`、`DataTable`、`Pagination`、`EmptyState`、`InlineAlert`、`Drawer` 由模块注入翻译/业务内容；选择、加载、空态和分页有测试；不注册 Demo 路由 | 已实施未闭合 |
 | VIS-OPS-001 | UI-002, VIS-HOST-001 | 基于最新 Soybean 工作台观察校准已有 Ops Dashboard 的概览层级 | 仅使用六个真实 management 查询；概览统计、加载/失败状态和诊断详情均经 i18n 契约与响应式样式验证 | 已实施未闭合 |
@@ -44,7 +44,7 @@
 | VIS-HOST-001 | UI-001, UI-002, BUILTIN-001 | 建立 SoybeanAdmin 宿主 parity 矩阵并逐任务动态观察 | 同视口 DOM/截图覆盖 Shell、导航、页签、搜索、主题 Drawer、Surface、状态页、响应式/主题；差异修正或有项目边界理由 | 已实施未闭合 |
 | TEST-HOST-001 | ARC-001, GEN-001, HOST-001, MOD-001, I18N-001, I18N-CONTRACT-001, UI-001, UI-002, BUILTIN-001, VIS-HOST-001 | 补宿主 Go/TS/React/E2E/visual/architecture 门禁 | 证明无用户可见硬编码/直接 i18n singleton/穿透/Demo/假能力；error code -> message ID、locale completeness、现有 Auth/Ops 流程和宿主 parity 全部通过 | 验证中 |
 | DOC-HOST-001 | TEST-HOST-001 | 同步 WebUI authority 与模块开发指南 | 当前宿主结构、强制 i18n 接入、状态、视觉流程和未完成模块产品化边界进入主题文档 | 已同步未闭合 |
-| GIT-HOST-001 | DOC-HOST-001 | 审查并提交首次已确认范围 | 只提交重新确认后的首次宿主范围；有完整验证证据；不 push | 待提交 |
+| GIT-HOST-001 | DOC-HOST-001 | 审查并持续提交已确认范围的宿主增量 | 每轮只提交已审查的宿主范围；有完整验证证据；不 push | 进行中 |
 
 ## 4. 宿主门禁后的后续任务
 

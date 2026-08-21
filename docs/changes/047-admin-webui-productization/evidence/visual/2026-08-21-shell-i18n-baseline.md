@@ -92,6 +92,11 @@
 - 基于已观察到的“菜单入口 → 左侧 Drawer → 遮罩 → 关闭返回”的交互关系，项目移动侧栏现在在窄视口打开时聚焦关闭入口、Tab 在侧栏内循环、Escape/遮罩/关闭按钮关闭并恢复菜单入口焦点；关闭态用 `aria-hidden`/`inert` 隔离，桌面侧栏保持可用。
 - 语言、账号和搜索仍由 Header 宿主承载，移动侧栏只负责导航，不新增模块注册或第二套全局状态。
 
+## 工作区滚动所有权补充校准
+
+- 2026-08-21 重新观察 `https://soybeanjs.cn/home`：浏览器实测 `header` 位于 `y=0,h=56`，左侧 `aside` 覆盖 `h=720`；宿主内容区从 `y=56` 开始，页签后 `main` 位于 `y=100,h=572` 且 `overflow:auto`，`footer` 固定在 `y=672,h=48`。这证明参考站把 Header、页签、Footer 留在宿主层，仅让中间工作区滚动。
+- 项目 `AppLayout` 现在将 `.app-workspace` 设为 `height: 100vh; overflow: hidden`，`.page-viewport` 设为 `min-height: 0; overflow: auto`；这样长页面不会把 Header、页签和 Footer 一起推走，移动 Drawer 仍沿用既有窄视口规则。
+
 ## 密度设置补充校准
 
 - Soybean 主题配置抽屉把布局/密度作为独立的外观设置层；本项目已有 Comfortable/Compact 选择，但此前只写入 `data-density`，没有实际 CSS 消费。

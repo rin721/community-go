@@ -20,6 +20,10 @@
 .language-button{cursor:pointer}@media(max-width:720px){.language-button{display:flex;padding:0 2px}.account-menu{display:block}.account-menu summary{padding:3px}.account-menu summary>span:last-child{display:none}.account-menu>div{right:0}.account-menu .user-avatar{width:28px;height:28px}}
 [data-density=compact] .page-viewport{padding-top:18px}[data-density=compact] .page-header{margin-bottom:16px}[data-density=compact] .sidebar-link{min-height:34px}[data-density=compact] .workspace-tabs{height:38px}[data-density=compact] .capability-banner{padding:10px 12px;margin-bottom:14px}[data-density=compact] .ops-summary{gap:10px;margin-bottom:14px}[data-density=compact] .summary-card{min-height:68px;padding:12px 14px}[data-density=compact] .ops-grid{gap:10px}[data-density=compact] .diagnostic-card{min-height:170px;padding:12px}[data-density=compact] .form-field{gap:5px}[data-density=compact] .field-input{min-height:34px}
 
+/* 参考站的宿主固定 Header/页签/Footer，仅把中间工作区交给页面滚动。 */
+.app-workspace{min-height:0;height:100vh;overflow:hidden}
+.page-viewport{min-height:0;overflow:auto}
+
 /* 页签滚动区与刷新操作分离，避免页签过多时把宿主操作挤出视口。 */
 .workspace-tabs{overflow:hidden}
 .workspace-tab-scroll{display:flex;min-width:0;flex:1 1 auto;overflow-x:auto;scrollbar-width:none}

@@ -89,7 +89,7 @@ message ID 按 owner 命名，不把后端 Translator 对象搬进浏览器；�
 ### 5.1 布局层
 
 - `AuthLayout`：独立 blank layout，承载 setup/login；参考站点的“聚焦卡片 + 品牌/主题/语言 + 明确操作层级”，但使用项目品牌与真实入口。
-- `AppLayout`：高保真参考 SoybeanAdmin 的桌面侧栏、Header、面包屑、工作区页签、内容 Surface 与 Footer；移动端使用 Drawer/Sheet 导航，不把侧栏粗暴堆到页面顶部。移动侧栏打开时聚焦关闭入口并在侧栏内循环，关闭时恢复菜单入口焦点；窄视口的关闭侧栏通过 `aria-hidden`/`inert` 隔离，桌面侧栏不受影响。
+- `AppLayout`：高保真参考 SoybeanAdmin 的桌面侧栏、Header、面包屑、工作区页签、内容 Surface 与 Footer；移动端使用 Drawer/Sheet 导航，不把侧栏粗暴堆到页面顶部。宿主固定 Header、页签和 Footer，仅把中间页面视口交给滚动；移动侧栏打开时聚焦关闭入口并在侧栏内循环，关闭时恢复菜单入口焦点；窄视口的关闭侧栏通过 `aria-hidden`/`inert` 隔离，桌面侧栏不受影响。
 - `WorkspaceTabs`：由宿主根据稳定 route ID 管理已访问页面、激活、关闭、刷新和不可关闭默认页；不允许模块直接写页签状态。只实现页面切换所需语义，不复制参考站的页面缓存技术实现。
 - `RouteSearch`：只搜索当前 manifest 中可访问的 route/menu，并通过 route ID 导航；不扫描模块源码，不成为第二套路由注册。打开时聚焦输入框、Tab 在弹层内循环，关闭时恢复触发入口焦点；结果使用 `combobox/listbox/option` 语义，搜索文案随宿主语言变化重新计算。
 - Header 统一承载折叠、route search、全屏、语言、主题和用户入口；业务页面自己的筛选、刷新、新增等操作留在 PageHeader/Toolbar。

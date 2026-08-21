@@ -1,7 +1,7 @@
 import { Ban, CircleOff, FileQuestion, LogIn, PlugZap, Undo2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button, StatusPill } from "@webui/ui";
-import { translateMessage } from "../i18n";
+import { useWebUITranslation } from "@webui/contracts";
 
 type StateKind = "forbidden" | "notFound" | "notImplemented" | "unauthorized" | "missingEntry";
 const states = {
@@ -13,8 +13,9 @@ const states = {
 };
 
 export function SystemStatePage({ kind, detail }: { kind: StateKind; detail?: string }) {
+  const { t } = useWebUITranslation("webui.host");
   const navigate = useNavigate();
   const state = states[kind];
   const Icon = state.icon;
-  return <section className="system-state"><div className="state-illustration"><span>{state.code}</span><Icon size={54} /></div><StatusPill state={state.capability}>{translateMessage(`webui.host.status.${state.capability}`)}</StatusPill><h1>{translateMessage(state.title)}</h1><p>{detail ?? translateMessage(state.detail)}</p><Button variant="secondary" onClick={() => navigate("/")}><Undo2 size={16} />{translateMessage("webui.host.backHome")}</Button></section>;
+  return <section className={`system-state system-state-${kind}`}><div className="state-illustration" aria-hidden="true"><span className="state-number">{state.code}</span><span className="state-card"><Icon size={58} strokeWidth={1.5} /></span><span className="state-shadow" /></div><StatusPill state={state.capability}>{t(`webui.host.status.${state.capability}`)}</StatusPill><h1>{t(state.title)}</h1><p>{detail ?? t(state.detail)}</p><Button onClick={() => navigate("/")}><Undo2 size={16} />{t("webui.host.backHome")}</Button></section>;
 }

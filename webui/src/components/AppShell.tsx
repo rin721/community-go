@@ -1,7 +1,7 @@
-import { Activity, ChevronRight, CircleUserRound, Expand, Languages, LogOut, Menu, Moon, Palette, PanelLeftClose, PanelLeftOpen, RefreshCw, Search, Sun, X } from "lucide-react";
+import { Activity, ChevronDown, ChevronRight, CircleUserRound, Expand, Languages, LogOut, Menu, Moon, Palette, PanelLeftClose, PanelLeftOpen, RefreshCw, Search, Sun, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import type { Manifest, ManifestRoute, WebUISession } from "@webui/contracts";
+import type { Manifest, ManifestMenu, ManifestRoute, WebUISession } from "@webui/contracts";
 import { changeLanguage, i18n, translateMessage } from "../i18n";
 import { useThemePreferences } from "../theme";
 import { RouteSearch } from "./RouteSearch";
@@ -16,9 +16,10 @@ export function AppShell({ manifest, session, onLogout }: { manifest: Manifest; 
   const [themeOpen, setThemeOpen] = useState(false);
   const { theme, setTheme, resetTheme } = useThemePreferences();
   const accessibleRoutes = useMemo(() => manifest.routes.filter((route) => route.layout === "app" && route.access === "allowed" && route.deliveryState === "implemented"), [manifest]);
-  const menu = useMemo(() => manifest.menu.map((item) => ({ item, route: accessibleRoutes.find((route) => route.id === item.routeId) })).filter((value): value is { item: typeof value.item; route: ManifestRoute } => Boolean(value.route)), [accessibleRoutes, manifest.menu]);
+  const menu = useMemo(() => buildMenuTree(manifest.menu.map((item) => ({ item, route: accessibleRoutes.find((route) => route.id === item.routeId) })).filter((value): value is { item: ManifestMenu; route: ManifestRoute } => Boolean(value.route))), [accessibleRoutes, manifest.menu]);
   const currentRoute = manifest.routes.find((route) => route.path === location.pathname);
   const [visitedRouteIDs, setVisitedRouteIDs] = useState<string[]>(() => currentRoute?.layout === "app" ? [currentRoute.id] : []);
+  const [expandedMenuIDs, setExpandedMenuIDs] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
     if (currentRoute?.layout === "app" && currentRoute.access === "allowed") {
@@ -26,6 +27,11 @@ export function AppShell({ manifest, session, onLogout }: { manifest: Manifest; 
     }
     setMobileOpen(false);
   }, [currentRoute]);
+  useEffect(() => {
+    const activeAncestors = findMenuAncestors(menu, currentRoute?.id);
+    if (activeAncestors.length === 0) return;
+    setExpandedMenuIDs((current) => new Set([...current, ...activeAncestors]));
+  }, [currentRoute?.id, menu]);
   useEffect(() => {
     const handleKeydown = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
@@ -52,7 +58,7 @@ export function AppShell({ manifest, session, onLogout }: { manifest: Manifest; 
     <button className={`mobile-backdrop ${mobileOpen ? "visible" : ""}`} onClick={() => setMobileOpen(false)} aria-label={translateMessage("webui.host.menu.close")} />
     <aside className={`app-sidebar ${mobileOpen ? "mobile-open" : ""}`}>
       <div className="brand-row"><span className="brand-mark">{translateMessage("webui.host.brandSymbol")}</span><span className="brand-copy"><strong>{translateMessage("webui.host.brand")}</strong><small>{translateMessage("webui.host.product")}</small></span><button className="mobile-sidebar-close" onClick={() => setMobileOpen(false)} aria-label={translateMessage("webui.host.menu.close")}><X size={18} /></button></div>
-      <nav className="sidebar-nav">{menu.map(({ item, route }) => <Link key={item.id} to={route.path} title={translateMessage(item.titleMessageId)} className={currentRoute?.id === route.id ? "sidebar-link active" : "sidebar-link"}><MenuIcon iconID={item.iconId} /><span>{translateMessage(item.titleMessageId)}</span></Link>)}</nav>
+      <nav className="sidebar-nav"><SidebarMenu entries={menu} currentRouteID={currentRoute?.id} expandedMenuIDs={expandedMenuIDs} onToggle={(menuID) => setExpandedMenuIDs((current) => { const next = new Set(current); next.has(menuID) ? next.delete(menuID) : next.add(menuID); return next; })} /></nav>
       <div className="sidebar-meta"><span>{translateMessage("webui.host.revision.label")}</span><code>{manifest.revision.slice(0, 8)}</code></div>
     </aside>
     <div className="app-workspace">
@@ -64,6 +70,42 @@ export function AppShell({ manifest, session, onLogout }: { manifest: Manifest; 
     <RouteSearch open={searchOpen} routes={accessibleRoutes} onClose={() => setSearchOpen(false)} />
     <ThemeDrawer open={themeOpen} theme={theme} onChange={setTheme} onReset={resetTheme} onClose={() => setThemeOpen(false)} />
   </div>;
+}
+
+export type SidebarMenuEntry = { item: ManifestMenu; route: ManifestRoute; children: SidebarMenuEntry[] };
+
+export function buildMenuTree(entries: Array<{ item: ManifestMenu; route: ManifestRoute }>): SidebarMenuEntry[] {
+  const nodes = entries.map(({ item, route }) => ({ item, route, children: [] as SidebarMenuEntry[] }));
+  const byID = new Map(nodes.map((node) => [node.item.id, node]));
+  const roots: SidebarMenuEntry[] = [];
+  for (const node of nodes) {
+    const parent = node.item.parentId ? byID.get(node.item.parentId) : undefined;
+    if (parent) parent.children.push(node);
+    else roots.push(node);
+  }
+  return roots;
+}
+
+function findMenuAncestors(entries: SidebarMenuEntry[], routeID?: string): string[] {
+  for (const entry of entries) {
+    if (entry.route.id === routeID) return [];
+    const childAncestors = findMenuAncestors(entry.children, routeID);
+    if (childAncestors.length > 0 || entry.children.some((child) => child.route.id === routeID)) return [entry.item.id, ...childAncestors];
+  }
+  return [];
+}
+
+function menuContainsRoute(entry: SidebarMenuEntry, routeID?: string): boolean {
+  return entry.route.id === routeID || entry.children.some((child) => menuContainsRoute(child, routeID));
+}
+
+function SidebarMenu({ entries, currentRouteID, expandedMenuIDs, onToggle, level = 0 }: { entries: SidebarMenuEntry[]; currentRouteID?: string; expandedMenuIDs: Set<string>; onToggle: (menuID: string) => void; level?: number }) {
+  return <>{entries.map((entry) => {
+    const hasChildren = entry.children.length > 0;
+    const expanded = expandedMenuIDs.has(entry.item.id);
+    const active = menuContainsRoute(entry, currentRouteID);
+    return <div className="sidebar-menu-group" key={entry.item.id}><div className={active ? "sidebar-entry active" : "sidebar-entry"}><Link to={entry.route.path} title={translateMessage(entry.item.titleMessageId)} className={entry.route.id === currentRouteID ? "sidebar-link active" : "sidebar-link"} style={{ paddingLeft: `${11 + level * 14}px` }}><MenuIcon iconID={entry.item.iconId} /><span>{translateMessage(entry.item.titleMessageId)}</span></Link>{hasChildren && <button className="sidebar-group-toggle" onClick={() => onToggle(entry.item.id)} aria-expanded={expanded} aria-label={translateMessage(expanded ? "webui.host.menu.collapse" : "webui.host.menu.expand")}><ChevronDown size={14} /></button>}</div>{hasChildren && expanded && <SidebarMenu entries={entry.children} currentRouteID={currentRouteID} expandedMenuIDs={expandedMenuIDs} onToggle={onToggle} level={level + 1} />}</div>;
+  })}</>;
 }
 
 function MenuIcon({ iconID }: { iconID: string }) {

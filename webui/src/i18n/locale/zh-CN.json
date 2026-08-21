@@ -35,6 +35,8 @@
   "webui.host.sidebar.collapse": "收起侧边栏",
   "webui.host.menu.close": "关闭菜单",
   "webui.host.menu.open": "打开菜单",
+  "webui.host.menu.expand": "展开子菜单",
+  "webui.host.menu.collapse": "收起子菜单",
   "webui.host.account": "当前账号",
   "webui.host.logout": "退出登录",
   "webui.host.revision.label": "版本",

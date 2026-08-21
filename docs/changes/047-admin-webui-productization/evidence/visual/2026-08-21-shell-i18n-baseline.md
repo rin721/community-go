@@ -71,3 +71,9 @@
 - Soybean Header 的搜索入口在同一组全局工具中，并提供明确 tooltip；本次会话未展开其搜索面板，因此不推断其内部结果组织。
 - 当前项目 RouteSearch 保持“只搜索 manifest 可访问 route”的契约，本轮补充 ArrowUp/ArrowDown 选择、Enter 导航、Escape 关闭、ARIA `listbox/option` 选中态和 host-owned 关闭文案。
 - 搜索仍不扫描模块源码、不新增第二套路由注册，选中结果只调用宿主已有 `navigate(path)`。
+
+## 多级导航补充观察
+
+- Soybean 侧栏实测包含可展开的分组菜单，例如“系统管理”下继续呈现用户、角色、菜单子项；分组展开状态由宿主侧栏维护，当前路径会保持可见。
+- 当前项目的 `ManifestMenu` 已有 `parentId` 契约，但此前宿主只把所有可访问项平铺渲染。本轮开始消费该字段，形成递归菜单树、分组展开按钮和当前 route 的祖先自动展开。
+- 菜单树仍由 manifest/access 过滤结果构成；孤立或不可见父级不会阻断其他导航，模块无需修改宿主菜单文件。

@@ -98,3 +98,9 @@
 - 当前项目没有对应的模拟业务统计，因此不复制 Soybean 的示例数字或图表；将同一信息层级映射到真实 Ops 查询：摘要卡继续只统计六个 management operation，诊断区按核心运行探针与可选诊断/指标分组。
 - 核心探针失败整体进入 `Unavailable`，可选诊断/指标局部失败进入 `Degraded`；顶部刷新和失败卡片重试都只重新触发现有 query，不新增后端接口或第二套状态源。
 - 本轮启动本地 Vite 后再次尝试同视口浏览器回归，浏览器仍因项目要求的 basic-ssl 自签名证书返回 `ERR_CERT_AUTHORITY_INVALID`；因此本轮保留自动化构建/类型/测试证据，不把本地截图误报为已完成。
+
+## 公共管理模式补充校准
+
+- 本轮重新观察 Soybean `/manage/user`：筛选区是可折叠的独立 Surface；页面工具栏把新增、批量删除、刷新、列设置放在列表标题右侧；表格提供选择列、状态标签、行级操作和分页/页容量；内容区保持横向可滚动。
+- 当前项目没有用户管理业务，因此没有复制 Soybean 的用户字段、示例数据或 CRUD 路由；公共层只提供可由模块注入 locale 文案和业务单元格的 `DataToolbar`、`FilterPanel`、`DataTable`、`Pagination`、`EmptyState`、`InlineAlert` 和 `Drawer` 模式。
+- 表格选择、加载、空态、分页和抽屉开关均由调用模块控制，公共 UI 不创建业务状态、不注册 manifest，也不绕过模块能力边界。

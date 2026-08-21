@@ -1,5 +1,5 @@
 import { Activity, ChevronDown, ChevronRight, CircleUserRound, Expand, Languages, LogOut, Menu, Moon, Palette, PanelLeftClose, PanelLeftOpen, RefreshCw, Search, Sun, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useWebUITranslation, type Manifest, type ManifestMenu, type ManifestRoute, type WebUISession } from "@webui/contracts";
 import { changeLanguage, getAvailableLanguages, languageLabelMessageID, translateMessage } from "../i18n";
@@ -14,14 +14,36 @@ export function AppShell({ manifest, session, onLogout }: { manifest: Manifest; 
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [themeOpen, setThemeOpen] = useState(false);
   const { theme, setTheme, resetTheme } = useThemePreferences();
+  const mobileMenuButtonRef = useRef<HTMLButtonElement>(null);
+  const mobileSidebarRef = useRef<HTMLElement>(null);
+  const mobileRestoreFocusRef = useRef<HTMLElement | null>(null);
   const accessibleRoutes = useMemo(() => manifest.routes.filter((route) => route.layout === "app" && route.access === "allowed" && route.deliveryState === "implemented"), [manifest]);
   const menu = useMemo(() => buildMenuTree(manifest.menu.map((item) => ({ item, route: accessibleRoutes.find((route) => route.id === item.routeId) })).filter((value): value is { item: ManifestMenu; route: ManifestRoute } => Boolean(value.route))), [accessibleRoutes, manifest.menu]);
   const currentRoute = manifest.routes.find((route) => route.path === location.pathname);
   const [visitedRouteIDs, setVisitedRouteIDs] = useState<string[]>(() => currentRoute?.layout === "app" ? [currentRoute.id] : []);
   useEffect(() => setCollapsed(theme.layout.sidebarCollapsed), [theme.layout.sidebarCollapsed]);
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 720px)");
+    const update = () => setIsMobileViewport(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+  useEffect(() => {
+    if (!mobileOpen) return;
+    mobileRestoreFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const focusFrame = requestAnimationFrame(() => mobileSidebarRef.current?.querySelector<HTMLElement>("[data-mobile-initial-focus]")?.focus());
+    return () => {
+      cancelAnimationFrame(focusFrame);
+      const target = mobileRestoreFocusRef.current ?? mobileMenuButtonRef.current;
+      mobileRestoreFocusRef.current = null;
+      target?.focus();
+    };
+  }, [mobileOpen]);
   const [expandedMenuIDs, setExpandedMenuIDs] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
@@ -59,16 +81,33 @@ export function AppShell({ manifest, session, onLogout }: { manifest: Manifest; 
   const toggleSidebar = () => { const next = !collapsed; setCollapsed(next); setTheme({ ...theme, layout: { ...theme.layout, sidebarCollapsed: next } }); };
   const toggleColorScheme = () => setTheme({ ...theme, mode: theme.mode === "dark" ? "light" : "dark" });
   const availableLanguages = getAvailableLanguages();
+  const handleMobileSidebarKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
+    if (!isMobileViewport) return;
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setMobileOpen(false);
+      return;
+    }
+    if (event.key !== "Tab") return;
+    const focusable = Array.from(mobileSidebarRef.current?.querySelectorAll<HTMLElement>("a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex=\"-1\"])") ?? []);
+    if (focusable.length === 0) return;
+    const currentIndex = focusable.indexOf(document.activeElement as HTMLElement);
+    const nextIndex = event.shiftKey
+      ? currentIndex <= 0 ? focusable.length - 1 : currentIndex - 1
+      : currentIndex === focusable.length - 1 ? 0 : currentIndex + 1;
+    event.preventDefault();
+    focusable[nextIndex]?.focus();
+  };
 
   return <div className={`app-shell ${collapsed ? "sidebar-collapsed" : ""}`}>
-    <button className={`mobile-backdrop ${mobileOpen ? "visible" : ""}`} onClick={() => setMobileOpen(false)} aria-label={translateMessage("webui.host.menu.close")} />
-    <aside className={`app-sidebar ${mobileOpen ? "mobile-open" : ""}`}>
-      <div className="brand-row"><span className="brand-mark">{translateMessage("webui.host.brandSymbol")}</span><span className="brand-copy"><strong>{translateMessage("webui.host.brand")}</strong><small>{translateMessage("webui.host.product")}</small></span><button className="mobile-sidebar-close" onClick={() => setMobileOpen(false)} aria-label={translateMessage("webui.host.menu.close")}><X size={18} /></button></div>
+    <button type="button" className={`mobile-backdrop ${mobileOpen ? "visible" : ""}`} onClick={() => setMobileOpen(false)} aria-label={translateMessage("webui.host.menu.close")} disabled={!mobileOpen} tabIndex={mobileOpen ? 0 : -1} />
+    <aside ref={mobileSidebarRef} className={`app-sidebar ${mobileOpen ? "mobile-open" : ""}`} aria-hidden={shouldIsolateMobileSidebar(isMobileViewport, mobileOpen)} inert={shouldIsolateMobileSidebar(isMobileViewport, mobileOpen)} onKeyDown={handleMobileSidebarKeyDown}>
+      <div className="brand-row"><span className="brand-mark">{translateMessage("webui.host.brandSymbol")}</span><span className="brand-copy"><strong>{translateMessage("webui.host.brand")}</strong><small>{translateMessage("webui.host.product")}</small></span><button type="button" data-mobile-initial-focus className="mobile-sidebar-close" onClick={() => setMobileOpen(false)} aria-label={translateMessage("webui.host.menu.close")}><X size={18} /></button></div>
       <nav className="sidebar-nav"><SidebarMenu entries={menu} currentRouteID={currentRoute?.id} expandedMenuIDs={expandedMenuIDs} onToggle={(menuID) => setExpandedMenuIDs((current) => { const next = new Set(current); next.has(menuID) ? next.delete(menuID) : next.add(menuID); return next; })} /></nav>
       <div className="sidebar-meta"><span>{translateMessage("webui.host.revision.label")}</span><code>{manifest.revision.slice(0, 8)}</code></div>
     </aside>
     <div className="app-workspace">
-      <header className="topbar"><div className="topbar-left"><button className="icon-button desktop-sidebar-toggle" onClick={toggleSidebar} aria-label={translateMessage(collapsed ? "webui.host.sidebar.expand" : "webui.host.sidebar.collapse")}>{collapsed ? <PanelLeftOpen size={19} /> : <PanelLeftClose size={19} />}</button><button className="icon-button mobile-menu-button" onClick={() => setMobileOpen(true)} aria-label={translateMessage("webui.host.menu.open")}><Menu size={20} /></button>{theme.layout.showBreadcrumb && <div className="breadcrumb"><span>{translateMessage("webui.host.breadcrumb.home")}</span><ChevronRight size={14} /> <strong>{currentRoute ? translateMessage(currentRoute.titleMessageId) : location.pathname}</strong></div>}</div><div className="topbar-actions"><button className="search-trigger" onClick={() => setSearchOpen(true)}><Search size={17} /><span>{translateMessage("webui.host.search")}</span><kbd>{translateMessage("webui.host.search.shortcut")}</kbd></button><button className="icon-button" onClick={() => void toggleFullscreen()} title={translateMessage("webui.host.fullscreen")}><Expand size={18} /></button><label className="language-button" title={translateMessage("webui.host.language")}><Languages size={18} /><select aria-label={translateMessage("webui.host.language")} value={hostI18n.language} onChange={(event) => void changeLanguage(event.target.value)}>{availableLanguages.map((language) => <option value={language} key={language}>{translateMessage(languageLabelMessageID(language))}</option>)}</select></label><button className="icon-button" onClick={toggleColorScheme} title={translateMessage("webui.host.theme.toggle")} aria-label={translateMessage("webui.host.theme.toggle")}>{theme.mode === "dark" ? <Sun size={18} /> : <Moon size={18} />}</button><button className="icon-button" onClick={() => setThemeOpen(true)} title={translateMessage("webui.host.theme")} aria-label={translateMessage("webui.host.theme")}><Palette size={18} /></button><details className="account-menu"><summary><span className="user-avatar">{session?.user.username.slice(0, 1).toUpperCase() ?? <CircleUserRound size={18} />}</span><span>{session?.user.username ?? translateMessage("webui.host.account")}</span></summary><div><button onClick={() => void onLogout()} disabled={!session}><LogOut size={16} />{translateMessage("webui.host.logout")}</button></div></details></div></header>
+      <header className="topbar"><div className="topbar-left"><button type="button" className="icon-button desktop-sidebar-toggle" onClick={toggleSidebar} aria-label={translateMessage(collapsed ? "webui.host.sidebar.expand" : "webui.host.sidebar.collapse")}>{collapsed ? <PanelLeftOpen size={19} /> : <PanelLeftClose size={19} />}</button><button type="button" ref={mobileMenuButtonRef} className="icon-button mobile-menu-button" onClick={() => setMobileOpen(true)} aria-label={translateMessage("webui.host.menu.open")}><Menu size={20} /></button>{theme.layout.showBreadcrumb && <div className="breadcrumb"><span>{translateMessage("webui.host.breadcrumb.home")}</span><ChevronRight size={14} /> <strong>{currentRoute ? translateMessage(currentRoute.titleMessageId) : location.pathname}</strong></div>}</div><div className="topbar-actions"><button type="button" className="search-trigger" onClick={() => setSearchOpen(true)}><Search size={17} /><span>{translateMessage("webui.host.search")}</span><kbd>{translateMessage("webui.host.search.shortcut")}</kbd></button><button type="button" className="icon-button" onClick={() => void toggleFullscreen()} title={translateMessage("webui.host.fullscreen")}><Expand size={18} /></button><label className="language-button" title={translateMessage("webui.host.language")}><Languages size={18} /><select aria-label={translateMessage("webui.host.language")} value={hostI18n.language} onChange={(event) => void changeLanguage(event.target.value)}>{availableLanguages.map((language) => <option value={language} key={language}>{translateMessage(languageLabelMessageID(language))}</option>)}</select></label><button type="button" className="icon-button" onClick={toggleColorScheme} title={translateMessage("webui.host.theme.toggle")} aria-label={translateMessage("webui.host.theme.toggle")}>{theme.mode === "dark" ? <Sun size={18} /> : <Moon size={18} />}</button><button type="button" className="icon-button" onClick={() => setThemeOpen(true)} title={translateMessage("webui.host.theme")} aria-label={translateMessage("webui.host.theme")}><Palette size={18} /></button><details className="account-menu"><summary><span className="user-avatar">{session?.user.username.slice(0, 1).toUpperCase() ?? <CircleUserRound size={18} />}</span><span>{session?.user.username ?? translateMessage("webui.host.account")}</span></summary><div><button type="button" onClick={() => void onLogout()} disabled={!session}><LogOut size={16} />{translateMessage("webui.host.logout")}</button></div></details></div></header>
       {theme.layout.showTabs && <div className="workspace-tabs"><div className="workspace-tab-scroll" role="tablist" aria-label={translateMessage("webui.host.tabs.list")}>{visitedRoutes.map((route) => { const active = route.id === currentRoute?.id; const closable = isWorkspaceTabClosable(route); return <div className={active ? "workspace-tab active" : "workspace-tab"} key={route.id}><button type="button" role="tab" aria-selected={active} className="workspace-tab-trigger" onClick={() => navigate(route.path)}><span className="tab-dot" />{translateMessage(route.titleMessageId)}</button>{closable && <button type="button" className="tab-close" onClick={() => closeTab(route)} aria-label={translateMessage("webui.host.tabs.close")}><X size={13} /></button>}</div>; })}</div><div className="workspace-tab-actions"><button type="button" className="icon-button" onClick={refreshCurrentRoute} aria-label={translateMessage("webui.host.tabs.refresh")} title={translateMessage("webui.host.tabs.refresh")}><RefreshCw size={16} /></button></div></div>}
       <main className="page-viewport"><Outlet /></main>
       {theme.layout.showFooter && <footer className="app-footer"><span>{translateMessage("webui.host.footer")}</span><span>{new Date().getFullYear()}</span></footer>}
@@ -82,6 +121,10 @@ export type SidebarMenuEntry = { item: ManifestMenu; route: ManifestRoute; child
 
 export function isWorkspaceTabClosable(route: ManifestRoute): boolean {
   return !route.default;
+}
+
+export function shouldIsolateMobileSidebar(isMobileViewport: boolean, mobileOpen: boolean): boolean {
+  return isMobileViewport && !mobileOpen;
 }
 
 export function buildMenuTree(entries: Array<{ item: ManifestMenu; route: ManifestRoute }>): SidebarMenuEntry[] {

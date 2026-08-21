@@ -36,8 +36,8 @@
 | HOST-TABS-001 | UI-001, VIS-HOST-001 | 对照 Soybean 页签行补齐宿主刷新当前页入口 | 刷新动作由宿主基于当前 route 执行；模块不接触页签状态；入口有 i18n 与响应式样式 | 已实施未闭合 |
 | HOST-SEARCH-001 | UI-001, VIS-HOST-001 | 补齐 RouteSearch 的键盘与可访问选中态 | 只搜索 manifest 可访问 route；打开/关闭焦点、Tab 循环、上下键、Enter、Escape 和 ARIA 状态通过前端验证；不增加第二套路由注册 | 已实施未闭合 |
 | HOST-MENU-001 | UI-001, VIS-HOST-001 | 消费 ManifestMenu.parentId 建立宿主递归导航 | 分组展开、当前路径祖先自动展开、孤立项安全落根；模块只提供 Binding，不改宿主菜单实现 | 已实施未闭合 |
-| HOST-MOBILE-001 | UI-001, VIS-HOST-001 | 基于 390×844 参考观察校准移动 Header 与页签密度 | 移动面包屑隐藏、工具区不溢出、页签操作保留、桌面规则不回归 | 已实施未闭合 |
-| HOST-MOBILE-002 | HOST-MOBILE-001, HOST-THEME-001 | 保留移动端语言与账号入口的紧凑形态 | 语言切换、用户菜单和退出登录仍可访问；不泄漏会话信息，不破坏桌面布局 | 已实施未闭合 |
+| HOST-MOBILE-001 | UI-001, VIS-HOST-001 | 基于 390×844 参考观察校准移动 Header 与页签密度 | 移动面包屑隐藏、工具区不溢出、页签操作保留、侧栏打开/关闭焦点连续、关闭态不进入键盘路径、桌面规则不回归 | 已实施未闭合 |
+| HOST-MOBILE-002 | HOST-MOBILE-001, HOST-THEME-001 | 保留移动端语言与账号入口的紧凑形态 | 语言切换、用户菜单和退出登录仍可访问；移动导航关闭态焦点隔离；不泄漏会话信息，不破坏桌面布局 | 已实施未闭合 |
 | HOST-DENSITY-001 | HOST-THEME-001, VIS-HOST-001 | 让 ThemePreferences.density 真正驱动宿主视觉密度 | Compact 消费 `data-density` 调整核心容器/控件间距；Comfortable 默认不变；不影响业务语义 | 已实施未闭合 |
 | HOST-THEME-002 | HOST-THEME-001, HOST-DENSITY-001 | 按参考主题抽屉补齐宿主布局/通用/预设分区 | 四分区由单一 ThemePreferences 驱动；面包屑、页签、底部、侧栏默认状态和减少动效均真实生效；Drawer 焦点进入/恢复、关闭隔离和键盘操作可验证；所有新增文案走 host i18n | 已实施未闭合 |
 | BUILTIN-001 | UI-001, ARC-001 | 建立 Theme Drawer、403、404、mismatch 和 not-implemented 宿主页面 | 单一主题 authority；状态一致、错误低敏、解析错误可见、不发不存在 API | 已实施未闭合 |

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ManifestMenu, ManifestRoute } from "@webui/contracts";
-import { buildMenuTree, isWorkspaceTabClosable } from "./components/AppShell";
+import { buildMenuTree, isWorkspaceTabClosable, shouldIsolateMobileSidebar } from "./components/AppShell";
 
 const route = (id: string): ManifestRoute => ({
   moduleId: "test",
@@ -44,5 +44,13 @@ describe("宿主工作区页签", () => {
   it("保留默认页签不可关闭，其他已访问页签可关闭", () => {
     expect(isWorkspaceTabClosable({ ...route("home"), default: true })).toBe(false);
     expect(isWorkspaceTabClosable(route("detail"))).toBe(true);
+  });
+});
+
+describe("宿主移动侧栏", () => {
+  it("仅在移动视口且抽屉关闭时隔离侧栏焦点", () => {
+    expect(shouldIsolateMobileSidebar(true, false)).toBe(true);
+    expect(shouldIsolateMobileSidebar(true, true)).toBe(false);
+    expect(shouldIsolateMobileSidebar(false, false)).toBe(false);
   });
 });

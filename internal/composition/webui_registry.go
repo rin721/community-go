@@ -22,6 +22,12 @@ func GenerateWebUIRegistry() (string, error) {
 	if err != nil {
 		return "", err
 	}
+	return GenerateWebUIRegistryForCatalog(catalog, repositoryRoot)
+}
+
+// GenerateWebUIRegistryForCatalog renders a validated catalog relative to the repository root.
+// 测试和独立生成入口可以复用同一套 module-owned source path 校验，不依赖当前应用模块集合。
+func GenerateWebUIRegistryForCatalog(catalog webuicontract.Catalog, repositoryRoot string) (string, error) {
 	if err := catalog.ValidateSourcePathOwnership(repositoryRoot); err != nil {
 		return "", err
 	}

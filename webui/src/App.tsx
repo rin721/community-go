@@ -26,8 +26,8 @@ export function App() {
     void Promise.all([refreshManifest(), loadSession().then((value) => { setWebUISession(value); setPrincipal(toPrincipal(value)); }).catch(() => undefined)]).catch((reason: Error) => setError(reason.message));
   }, [refreshManifest]);
   const navigateToDefault = useCallback((catalog = manifest) => {
-    const route = catalog?.routes.find((candidate) => candidate.default && candidate.access === "allowed" && candidate.deliveryState === "implemented")
-      ?? catalog?.routes.find((candidate) => candidate.unauthenticatedDefault && candidate.deliveryState === "implemented");
+    const route = catalog?.routes.find((candidate) => candidate.default && candidate.access === "allowed" && candidate.deliveryState === "implemented" && routeIsLoadable(candidate))
+      ?? catalog?.routes.find((candidate) => candidate.unauthenticatedDefault && candidate.deliveryState === "implemented" && routeIsLoadable(candidate));
     navigate(route?.path ?? "/404", { replace: true });
   }, [manifest, navigate]);
   const completeAuthentication = useCallback(async (value: PrincipalView) => {
@@ -47,23 +47,11 @@ export function App() {
   if (!manifest) return <StartupState title={translateMessage("webui.host.loading.title")} detail={translateMessage("webui.host.loading.detail")} />;
   if (manifest.revision !== webuiRevision) return <StartupState title={translateMessage("webui.host.revision.title")} detail={translateMessage("webui.host.revision.detail")} />;
   const runtime: HostRuntime = { manifest, principal, completeAuthentication, navigateToDefault: () => navigateToDefault() };
-  return <HostRuntimeProvider value={runtime}><ManifestLocaleGate manifest={manifest}><Routes><Route element={<BlankLayout />}>{manifest.routes.filter((route) => route.layout === "blank").map((route) => <Route key={route.id} path={route.path} element={<ManifestPage route={route} manifest={manifest} />} />)}</Route><Route element={<AppShell manifest={manifest} principal={principal} onLogout={handleLogout} />}>{manifest.routes.filter((route) => route.layout === "app").map((route) => <Route key={route.id} path={route.path} element={<ManifestPage route={route} manifest={manifest} />} />)}<Route path="/403" element={<SystemStatePage kind="forbidden" />} /><Route path="/404" element={<SystemStatePage kind="notFound" />} /></Route><Route path="/" element={<RootRedirect manifest={manifest} />} /><Route path="*" element={<StandaloneNotFound />} /></Routes></ManifestLocaleGate></HostRuntimeProvider>;
+  return <HostRuntimeProvider value={runtime}><Routes><Route element={<BlankLayout />}>{manifest.routes.filter((route) => route.layout === "blank").map((route) => <Route key={route.id} path={route.path} element={<ManifestPage route={route} manifest={manifest} />} />)}</Route><Route element={<AppShell manifest={manifest} principal={principal} onLogout={handleLogout} />}>{manifest.routes.filter((route) => route.layout === "app").map((route) => <Route key={route.id} path={route.path} element={<ManifestPage route={route} manifest={manifest} />} />)}<Route path="/403" element={<SystemStatePage kind="forbidden" />} /><Route path="/404" element={<SystemStatePage kind="notFound" />} /></Route><Route path="/" element={<RootRedirect manifest={manifest} />} /><Route path="*" element={<StandaloneNotFound />} /></Routes></HostRuntimeProvider>;
 }
 
 function toPrincipal(session: WebUISession): PrincipalView {
   return { id: session.user.id, username: session.user.username, scopes: [...session.user.scopes] };
-}
-
-function ManifestLocaleGate({ manifest, children }: { manifest: Manifest; children: ReactNode }) {
-  const [ready, setReady] = useState(false);
-  useEffect(() => {
-    let active = true;
-    setReady(false);
-    const eligibleRoutes = manifest.routes.filter((route) => route.access === "allowed" && route.deliveryState === "implemented" && route.availability !== "unavailable");
-    void Promise.allSettled(eligibleRoutes.map((route) => ensureRouteLocale(route))).then(() => { if (active) setReady(true); });
-    return () => { active = false; };
-  }, [manifest]);
-  return ready ? <>{children}</> : <PageLoading />;
 }
 
 function ManifestPage({ route, manifest }: { route: ManifestRoute; manifest: Manifest }) {
@@ -73,10 +61,15 @@ function ManifestPage({ route, manifest }: { route: ManifestRoute; manifest: Man
   }
   if (route.access === "denied") return <Navigate to="/403" replace />;
   if (route.deliveryState === "not-implemented") return <SystemStatePage kind="notImplemented" />;
-  if (route.availability === "unavailable") return <SystemStatePage kind="unavailable" />;
+  if (!routeIsLoadable(route)) return <SystemStatePage kind="unavailable" />;
   const Page = entryComponents[route.entryId];
   if (!Page) return <SystemStatePage kind="missingEntry" />;
   return <RouteResourceBoundary route={route}><RouteErrorBoundary key={route.id}><Suspense fallback={<PageLoading />}><Page /></Suspense></RouteErrorBoundary></RouteResourceBoundary>;
+}
+
+function routeIsLoadable(route: ManifestRoute): boolean {
+  return route.availability === "available"
+    || (route.availability === "degraded" && (route.availableCapabilities?.length ?? 0) > 0);
 }
 
 function RouteResourceBoundary({ route, children }: { route: ManifestRoute; children: ReactNode }) {
@@ -107,8 +100,8 @@ class RouteErrorBoundary extends Component<{ children: ReactNode }, RouteErrorBo
 }
 
 function RootRedirect({ manifest }: { manifest: Manifest }) {
-  const route = manifest.routes.find((candidate) => candidate.default && candidate.access === "allowed" && candidate.deliveryState === "implemented")
-    ?? manifest.routes.find((candidate) => candidate.unauthenticatedDefault && candidate.deliveryState === "implemented");
+  const route = manifest.routes.find((candidate) => candidate.default && candidate.access === "allowed" && candidate.deliveryState === "implemented" && routeIsLoadable(candidate))
+    ?? manifest.routes.find((candidate) => candidate.unauthenticatedDefault && candidate.deliveryState === "implemented" && routeIsLoadable(candidate));
   return <Navigate to={route?.path ?? "/404"} replace />;
 }
 

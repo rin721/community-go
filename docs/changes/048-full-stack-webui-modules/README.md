@@ -1,6 +1,6 @@
 # 048 业务模块自有 WebUI 与通用 SDK 重构
 
-状态：研究门禁已通过，用户已于 2026-08-21 确认实施；首轮基础重构已落地，CSS 全局残留、fixture、完整 E2E/视觉验收和最终单轨审查仍待完成。
+状态：研究门禁已通过，用户已于 2026-08-21 确认实施；048 已完成实现、全量验证和单轨提交。
 
 ## 目标
 
@@ -42,13 +42,13 @@
 | --- | --- | --- |
 | 页面 owner | Auth/Ops 模块目录 | 继续由每个业务模块完整持有 |
 | 宿主公开面 | `@webui/contracts`、`@webui/ui`，仍泄漏 Auth Session | 分层 `@webui/sdk/*`，只暴露通用 contract |
-| 样式 | Auth/Ops selector 进入宿主全局 CSS | 模块 CSS Modules；全局 CSS 只含 platform/token/reset |
+| 样式 | Auth/Ops 业务 selector 由模块 CSS Modules 持有 | 模块 CSS Modules；全局 CSS 只含 platform/token/reset |
 | 新模块 | 可能要求宿主增加组件、样式和分支 | 只增模块文件与 composition entry |
 | 新能力 | 容易随业务页面直接修改核心 | 先判定 module-local 或 host-level；host-level 单独增加 SDK interface + adapter |
 | SourcePath | 构建期生成 lazy import，runtime manifest 不含路径 | 保留为受控构建元数据，并增加通用校验 |
-| 启用与交付 | composition 选入即生成；`not-implemented` 仍进入 registry/manifest | 显式 `enabled/disabled`；未启用和未交付内容不进入可加载投影 |
-| locale 与故障 | 启动时全量加载模块 locale，单项失败可能阻止启动 | host locale 先启动；只加载 eligible namespace，模块失败隔离 |
+| 启用与交付 | composition 显式选择并生成 implemented 投影 | 显式 `enabled/disabled`；未启用和未交付内容不进入可加载投影 |
+| locale 与故障 | host locale 先启动，route boundary 按当前 route 加载 namespace | host locale 先启动；只加载 eligible namespace，模块失败隔离 |
 
 ## 实施门禁
 
-本轮已按确认范围实施 SDK 分层、HostRuntime 收敛、Binding/生成门禁、可用性与资源加载隔离；未完成项继续记录在 `tasks.md`，在 fixture、E2E/视觉验收和全局 CSS 收口完成前不宣称 048 全部完成。
+本轮已按确认范围实施 SDK 分层、HostRuntime 收敛、Binding/生成门禁、可用性与资源加载隔离，并完成 fixture、CSS Modules、E2E/视觉验收、文档同步和旧耦合残留审查。逐项证据见 `tasks.md`。

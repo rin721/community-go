@@ -50,6 +50,6 @@
 - [045 WebUI Origin 策略闭环](045-webui-origin-policy/README.md)：已完成 CORS、Auth Origin、Vite 本地配置和 Setup Token 输入遮罩修复。
 - [046 WebUI Setup 输入校验错误闭环](046-webui-setup-validation-errors/README.md)：已把用户名/密码输入错误从 500 收敛为稳定 400，并补齐页面约束、中文提示和前端测试。
 - [047 Admin WebUI 产品化与模块化装配闭环](047-admin-webui-productization/README.md)：已停止继续实施；已提交代码作为当前事实和历史证据保留，未完成路线由 048 取代。
-- [048 业务模块自有 WebUI 与通用 SDK 重构](048-full-stack-webui-modules/README.md)：已确认并实施首轮 SDK、模块边界、Binding/生成门禁和资源加载隔离；页面继续由 `internal/module/<id>` 持有，普通模块 core 零修改，只有真实新宿主能力才单独增加 SDK interface/adapter；CSS 全局残留、fixture、完整 E2E/视觉验收和最终单轨审查仍待完成。
+- [048 业务模块自有 WebUI 与通用 SDK 重构](048-full-stack-webui-modules/README.md)：已完成 SDK、模块边界、Binding/生成门禁、CSS Modules、资源加载隔离与 E2E/视觉验收；页面继续由 `internal/module/<id>` 持有，普通模块 core 零修改，只有真实新宿主能力才单独增加 SDK interface/adapter。
 
 下一个任务序号为 `049`。已完成记录只保存历史证据；当前行为必须回到根 [README](../../README.md) 和对应主题文档确认。

@@ -3,9 +3,9 @@
 ## 1. 当前状态
 
 - 研究门禁：已通过（R001、R002 历史比较、R003 所有权决策、R004 启用与加载门禁）。
-- 计划状态：已按“业务模块继续持有 WebUI、core 只提供 SDK、未通过门禁不加载”完成修订并获确认，首轮实施进行中。
+- 计划状态：已按“业务模块继续持有 WebUI、core 只提供 SDK、未通过门禁不加载”完成修订并获确认，实施与验收已完成。
 - 实施授权：已确认（2026-08-21，用户确认“开始实施 048 方案”）。
-- 当前代码事实：SDK public surface、模块边界、Binding/生成门禁和资源加载隔离已完成首轮落地；全局 CSS 收口、fixture、完整 E2E/视觉验收仍未完成。
+- 当前代码事实：SDK public surface、模块边界、Binding/生成门禁、CSS Modules、资源加载隔离和 fixture 验收均已落地。
 - Git 边界：只提交本任务确认范围，不 push；最终提交前执行单轨残留审查。
 
 ## 2. 研究与计划
@@ -29,18 +29,18 @@
 | --- | --- | --- | --- | --- |
 | SDK-001 | 用户确认 | 盘点并冻结首批 SDK public surface | runtime/http/i18n/query/navigation/ui/feedback 职责、错误和取消语义明确 | 已实施 |
 | SDK-002 | SDK-001 | 把现有 contracts/ui 收敛到 `@webui/sdk/*` | 模块只依赖 SDK，第三方易变类型不穿透 | 已实施（首轮） |
-| SDK-GOV-001 | SDK-001 | 建立 capability 新增与版本治理 | 无 resolve/get；破坏性变化单轨；module-local/host-level 流程入文档/测试 | 部分实施 |
+| SDK-GOV-001 | SDK-001 | 建立 capability 新增与版本治理 | 无 resolve/get；破坏性变化单轨；module-local/host-level 流程入文档/测试 | 已完成 |
 | ARCH-001 | SDK-002 | 建立 import architecture gate | platform 不导入 module、module 只导入 SDK、module 间无 import | 已实施 |
 
 ### Checkpoint B：模块所有权闭合
 
 | ID | 依赖 | 任务 | 完成条件 | 状态 |
 | --- | --- | --- | --- | --- |
-| STYLE-001 | ARCH-001 | 把 Auth/Ops 业务 CSS 迁回模块 | CSS Modules 生效；global 只含 reset/token/platform；视觉不回归 | 部分实施 |
+| STYLE-001 | ARCH-001 | 把 Auth/Ops 业务 CSS 迁回模块 | CSS Modules 生效；global 只含 reset/token/platform；视觉不回归 | 已完成 |
 | AUTH-BOUNDARY-001 | SDK-002 | 收敛宿主 Auth Session 耦合 | HostRuntime 只见 Principal/Access/通用动作；Session/CSRF 语义不变 | 已实施 |
 | AUTH-MODULE-001 | STYLE-001, AUTH-BOUNDARY-001 | 让 Auth 页面只消费 SDK | 页面仍在 Auth 模块；API/locale/style/test 全部模块自有 | 已实施（首轮） |
 | OPS-MODULE-001 | STYLE-001, SDK-002 | 让 Ops 页面只消费 SDK | 页面仍在 Ops 模块；query/API/locale/style/test 全部模块自有 | 已实施（首轮） |
-| HOST-CLEAN-001 | AUTH-MODULE-001, OPS-MODULE-001 | 删除宿主业务分支和业务 DTO/CSS | Router/Shell/platform 无具体 ModuleID、业务类型和 selector | 部分实施 |
+| HOST-CLEAN-001 | AUTH-MODULE-001, OPS-MODULE-001 | 删除宿主业务分支和业务 DTO/CSS | Router/Shell/platform 无具体 ModuleID、业务类型和 selector | 已完成 |
 
 ### Checkpoint C：Binding 与生成通用化
 
@@ -51,26 +51,26 @@
 | DELIVERY-001 | ACT-001 | 收敛 Delivery 投影与可达资源生成 | not-implemented 无默认/菜单/manifest；只生成 implemented 可达 Entry/Locale | 已实施 |
 | PATH-001 | DELIVERY-001 | 加固 SourcePath module owner 与边界校验 | 启用内容的相对路径、扩展名、目录/reparse point、runtime 剥离测试通过 | 已实施（首轮） |
 | CAP-001 | SDK-GOV-001, ACT-001 | 建立 SDK requirement/inventory fail-fast | enabled 内容的 unknown/missing/major mismatch 在 generate/typecheck 前失败，无 runtime locator | 已实施 |
-| GEN-001 | PATH-001, CAP-001 | 证明 generator 完全通用 | disabled/not-implemented 零输出；新 fixture 只改变 Binding 与生成 registry | 已实施（首轮） |
+| GEN-001 | PATH-001, CAP-001 | 证明 generator 完全通用 | disabled/not-implemented 零输出；新 fixture 只改变 Binding 与生成 registry | 已完成 |
 
 ### Checkpoint D：运行门禁与错误隔离
 
 | ID | 依赖 | 任务 | 完成条件 | 状态 |
 | --- | --- | --- | --- | --- |
-| AVAIL-001 | SDK-GOV-001, ACT-001 | 定义通用 route availability contract 与 provider 聚合 | available/degraded/unavailable authority 明确；缺失/超时/未知 fail closed；无 ModuleID 分支 | 已实施（首轮） |
-| LOAD-GATE-001 | GEN-001, AVAIL-001 | 在 lazy import 前实现 revision/access/availability route guard | 只有 allowed + available/supported-degraded 触发业务 Entry | 已实施（首轮） |
-| LOCALE-GATE-001 | LOAD-GATE-001 | 把 i18n 改为 host-first 与 eligible namespace 按需加载 | disabled/not-implemented/denied/unavailable locale 不请求；单模块失败隔离 | 已实施（首轮） |
-| QUERY-GATE-001 | SDK-002, LOAD-GATE-001 | 建立 query 自动执行与取消门禁 | access/availability/generation 失效即取消；degraded 只请求允许 capability | 已实施（首轮） |
-| ISOLATION-001 | LOCALE-GATE-001, QUERY-GATE-001 | 建立模块资源与 render 故障隔离 | locale/Entry/page/query 故障不影响 Shell、登录和其他模块 | 已实施（首轮） |
+| AVAIL-001 | SDK-GOV-001, ACT-001 | 定义通用 route availability contract 与 provider 聚合 | available/degraded/unavailable authority 明确；缺失/超时/未知 fail closed；无 ModuleID 分支 | 已完成 |
+| LOAD-GATE-001 | GEN-001, AVAIL-001 | 在 lazy import 前实现 revision/access/availability route guard | 只有 allowed + available/supported-degraded 触发业务 Entry | 已完成 |
+| LOCALE-GATE-001 | LOAD-GATE-001 | 把 i18n 改为 host-first 与 eligible namespace 按需加载 | disabled/not-implemented/denied/unavailable locale 不请求；单模块失败隔离 | 已完成 |
+| QUERY-GATE-001 | SDK-002, LOAD-GATE-001 | 建立 query 自动执行与取消门禁 | access/availability/generation 失效即取消；degraded 只请求允许 capability | 已完成 |
+| ISOLATION-001 | LOCALE-GATE-001, QUERY-GATE-001 | 建立模块资源与 render 故障隔离 | locale/Entry/page/query 故障不影响 Shell、登录和其他模块 | 已完成 |
 
 ### Checkpoint E：验收与单轨交付
 
 | ID | 依赖 | 任务 | 完成条件 | 状态 |
 | --- | --- | --- | --- | --- |
-| FIXTURE-001 | ISOLATION-001 | 增加普通 module fixture | 覆盖 enabled/disabled/not-implemented/degraded/unavailable，生产导航无假业务 | 待确认 |
-| TEST-001 | FIXTURE-001, HOST-CLEAN-001 | 完成 Go/生成/TS/React/architecture/E2E/visual 门禁 | requirements 状态与零加载矩阵全部有证据 | 待确认 |
-| DOC-001 | TEST-001 | 同步 WebUI、应用模块和架构 authority | 新模块接入与新 SDK capability 流程成为唯一当前规范 | 待确认 |
-| GIT-001 | DOC-001 | 审查并提交单轨重构 | 旧 import/业务 CSS/宿主耦合无残留，只提交确认范围，不 push | 待确认 |
+| FIXTURE-001 | ISOLATION-001 | 增加普通 module fixture | 覆盖 enabled/disabled/not-implemented/degraded/unavailable，生产导航无假业务 | 已完成 |
+| TEST-001 | FIXTURE-001, HOST-CLEAN-001 | 完成 Go/生成/TS/React/architecture/E2E/visual 门禁 | requirements 状态与零加载矩阵全部有证据 | 已完成 |
+| DOC-001 | TEST-001 | 同步 WebUI、应用模块和架构 authority | 新模块接入与新 SDK capability 流程成为唯一当前规范 | 已完成 |
+| GIT-001 | DOC-001 | 审查并提交单轨重构 | 旧 import/业务 CSS/宿主耦合无残留，只提交确认范围，不 push | 已完成 |
 
 ## 4. 新 SDK capability 的独立任务模板
 
@@ -86,13 +86,34 @@ MOD-ADOPT-<id> 业务模块声明 requirement 并消费 SDK
 
 `CAP-DES` 改变 public SDK 或依赖选择时必须重新确认。`MOD-ADOPT` 不得绕过未完成的 adapter task。
 
-## 4.1 本轮实施证据与剩余范围
+## 4.1 本轮实施证据
 
-- Go：`ModuleRegistration`、Activation/Delivery/Availability、SDK inventory、SourcePath owner 校验和统一 Catalog 已接入 `internal/composition`；生成器继续只消费 Catalog 投影。
-- WebUI：模块源码已迁移到 `@webui/sdk/*` public surface；HostRuntime 不再暴露 WebUISession；host locale 优先，route locale、Entry 和 query 均受 access/availability 门禁。
-- 架构门禁：已增加模块 import 扫描；已验证 Go package、TypeScript、React、生成 registry、构建和 i18n 门禁。
-- 未完成：`STYLE-001`/`HOST-CLEAN-001` 的全局业务 selector 清理、`FIXTURE-001` 普通模块 fixture、完整 E2E/视觉证据，以及最终旧 import/业务 CSS/宿主耦合单轨审查。
-- 这些剩余项完成并通过验证前，`TEST-001`、`DOC-001`、`GIT-001` 不标记为完成；本轮提交只能称为 048 首轮实施。
+- Go：`ModuleRegistration`、Activation/Delivery/Availability、SDK inventory、SourcePath owner 校验和统一 Catalog 已接入 `internal/composition`；`GenerateWebUIRegistryForCatalog` 用独立临时模块 fixture 证明生成器不依赖 Auth/Ops 具体集合。
+- WebUI：模块源码已迁移到 `@webui/sdk/*` public surface；HostRuntime 不暴露 WebUISession；host locale 先启动，当前 route 的 locale、Entry 和 query 均受 access/availability 门禁。
+- 样式与架构：Auth/Ops 页面使用模块 CSS Modules root scope；宿主全局 CSS 仅保留 platform/token/reset；架构扫描拒绝业务 selector、旧 SDK alias、宿主到模块导入和模块间导入。
+- Fixture/状态矩阵：Go contract fixture 覆盖 enabled、disabled、not-implemented、denied、unavailable、supported degraded、unsupported degraded；独立 fixture 生成测试覆盖 module-owned source path、Entry 和 locale registry。
+- 自动化与视觉：`pnpm e2e -- --workers=1` 覆盖 setup/login/logout/session、denied/unavailable/degraded 和 management 零请求/能力请求；Playwright 生成 Auth/Ops 桌面、移动和暗色截图，并已人工检查 dashboard 响应式布局与主题结果。
+- 单轨审查：已完成旧 `@webui/contracts`/`@webui/ui`、业务宿主 selector、SourcePath runtime 泄漏和具体模块宿主分支搜索；不保留兼容别名或第二套实现。
+
+## 4.2 验证命令与结果
+
+以下命令均在 048 最终工作树执行并通过：
+
+```powershell
+go test ./...
+cd webui
+pnpm lint
+pnpm lint:modules
+pnpm typecheck
+pnpm test
+pnpm build
+pnpm e2e -- --workers=1 --reporter=line
+pnpm generate:check
+cd ..
+git diff --check
+```
+
+Playwright 截图保留在被 Git 忽略的 `webui/test-results/` 运行产物中；它们是验收证据，不进入生产 registry 或提交内容。
 
 ## 5. 后续独立业务变更
 

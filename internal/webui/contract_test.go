@@ -155,3 +155,47 @@ func TestBuildApplicationCatalogRejectsSDKRequirementMismatch(t *testing.T) {
 		t.Fatal("SDK major mismatch was accepted")
 	}
 }
+
+func TestApplicationCatalogFixtureStateMatrix(t *testing.T) {
+	fixture := testBinding("fixture", false)
+	fixture.Routes[0].DegradedCapabilities = []string{"diagnostics"}
+	fixture.Routes[0].ViewOperationID = "fixture.view"
+	fixture.Requires = []SDKRequirement{{ID: "runtime", MajorVersion: 1}}
+
+	cases := []struct {
+		name       string
+		activation ActivationState
+		delivery   DeliveryState
+		access     Access
+		available  Availability
+		wantRoute  bool
+		wantMenu   bool
+	}{
+		{name: "enabled available", activation: ActivationEnabled, delivery: DeliveryImplemented, access: AccessAllowed, available: Availability{State: AvailabilityAvailable}, wantRoute: true, wantMenu: true},
+		{name: "disabled", activation: ActivationDisabled, delivery: DeliveryImplemented, access: AccessAllowed, available: Availability{State: AvailabilityAvailable}},
+		{name: "not implemented", activation: ActivationEnabled, delivery: DeliveryNotImplemented, access: AccessAllowed, available: Availability{State: AvailabilityAvailable}},
+		{name: "denied", activation: ActivationEnabled, delivery: DeliveryImplemented, access: AccessDenied, available: Availability{State: AvailabilityAvailable}, wantRoute: true},
+		{name: "unavailable", activation: ActivationEnabled, delivery: DeliveryImplemented, access: AccessAllowed, available: Availability{State: AvailabilityUnavailable}, wantRoute: true},
+		{name: "supported degraded", activation: ActivationEnabled, delivery: DeliveryImplemented, access: AccessAllowed, available: Availability{State: AvailabilityDegraded, Capabilities: []string{"diagnostics"}}, wantRoute: true, wantMenu: true},
+		{name: "unsupported degraded", activation: ActivationEnabled, delivery: DeliveryImplemented, access: AccessAllowed, available: Availability{State: AvailabilityDegraded}, wantRoute: true},
+	}
+
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			binding := fixture
+			binding.Routes = append([]Route(nil), fixture.Routes...)
+			binding.Routes[0].DeliveryState = testCase.delivery
+			catalog, err := BuildApplicationCatalog([]ModuleRegistration{{Binding: binding, Activation: testCase.activation}}, SDKInventory{"runtime": 1})
+			if err != nil {
+				t.Fatal(err)
+			}
+			manifest := catalog.ManifestForWithAvailability(func(string) Access { return testCase.access }, func(string) Availability { return testCase.available })
+			if got := len(manifest.Routes) > 0; got != testCase.wantRoute {
+				t.Fatalf("route projection = %v, want %v: %#v", got, testCase.wantRoute, manifest)
+			}
+			if got := len(manifest.Menu) > 0; got != testCase.wantMenu {
+				t.Fatalf("menu projection = %v, want %v: %#v", got, testCase.wantMenu, manifest)
+			}
+		})
+	}
+}

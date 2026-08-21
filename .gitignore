@@ -21,6 +21,7 @@ go.work.sum
 /build/
 /webui/node_modules/
 /webui/dist/
+/webui/test-results/
 /dist/
 /.tools/
 

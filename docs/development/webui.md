@@ -14,7 +14,9 @@ cd webui
 pnpm install
 pnpm lint
 pnpm typecheck
+pnpm test
 pnpm build
+pnpm e2e -- --workers=1
 pnpm generate:check
 ```
 
@@ -32,6 +34,8 @@ WebUI 用户密码可通过 `go run ./cmd/app webui reset-password --username <�
 - 页面菜单和 manifest 访问状态不构成授权；实际 operation 仍由服务端 Auth policy 决定。
 
 模块页面只能依赖 `@webui/sdk/*` 和自身 API，不得导入宿主 Router、菜单、Session Store 或内部全局状态。新增页面时先修改模块 WebUI Binding，再运行生成检查。SDK 公开面按 runtime、http、i18n、query、navigation、ui、feedback 分包；禁止 `resolve/get`、万能 Context 和第三方 client 穿透。
+
+模块样式必须放在模块自己的 `binding/webui/web/*.module.css`，页面根节点使用模块 CSS Module scope；宿主 `webui/src/styles.css` 只允许保留 reset、design token、Shell/platform 和公共 SDK UI 规则。业务 selector 不得回流宿主全局 CSS，`pnpm lint:modules` 会扫描该边界。
 
 ## 强制 i18n 契约
 
@@ -58,4 +62,5 @@ const setupErrorMessageIDs: Record<string, string> = {
 1. Binding、locale registry 和资源文件完整且 namespace/language 唯一；
 2. 页面源码只使用公开翻译契约，用户可见文本没有硬编码；
 3. error code 映射只产生 message ID，缺失 key/namespace/language 时 fail closed 或展示低敏诊断；
-4. `pnpm generate:check`、`pnpm typecheck`、`pnpm test`、`pnpm lint` 以及 i18n 架构扫描均通过。
+4. `pnpm generate:check`、`pnpm typecheck`、`pnpm test`、`pnpm lint`、`pnpm lint:modules` 以及 i18n 架构扫描均通过；
+5. `pnpm e2e -- --workers=1` 覆盖真实状态门禁。至少检查 setup/login/logout/session、denied/unavailable/degraded 与 management 请求数量；Auth/Ops 桌面、移动和主题截图在 Playwright `test-results/` 中人工复核。

@@ -7,6 +7,15 @@ const repositoryRoot = resolve(webuiRoot, "..");
 const moduleRoot = join(repositoryRoot, "internal", "module");
 const errors = [];
 
+const platformStyles = await readFile(join(webuiRoot, "src", "styles.css"), "utf8");
+for (const selector of [
+  "auth-panel", "auth-form", "auth-summary", "auth-session", "scope-list", "scope-item",
+  "ops-grid", "ops-summary", "ops-overview", "ops-metric", "diagnostic-", "capability-preview",
+  "capability-row-actions", "capability-detail-result", "refresh-icon",
+]) {
+  if (platformStyles.includes(`.${selector}`)) errors.push(`webui/src/styles.css: business selector ${selector} must be module-owned`);
+}
+
 async function sourceFiles(directory) {
   const files = [];
   for (const entry of await readdir(directory, { withFileTypes: true })) {

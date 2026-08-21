@@ -1,6 +1,8 @@
 package composition
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -26,6 +28,46 @@ func TestGenerateWebUIRegistryIncludesEntriesAndLocales(t *testing.T) {
 	}
 	if strings.Index(generated, `"auth.login"`) > strings.Index(generated, `"ops.dashboard"`) {
 		t.Fatalf("generated entries are not stable:\n%s", generated)
+	}
+}
+
+func TestGenerateWebUIRegistryForCatalogAcceptsIndependentModuleFixture(t *testing.T) {
+	repositoryRoot := t.TempDir()
+	webRoot := filepath.Join(repositoryRoot, "internal", "module", "fixture", "binding", "webui", "web")
+	if err := os.MkdirAll(filepath.Join(webRoot, "locale"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(webRoot, "Page.tsx"), []byte("export default function Page() { return null; }\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(webRoot, "locale", "en-US.json"), []byte(`{"webui.fixture.title":"Fixture"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	binding := webuicontract.Binding{
+		ModuleID:   "fixture",
+		Entries:    []webuicontract.Entry{{ID: "fixture.page", SourcePath: "internal/module/fixture/binding/webui/web/Page.tsx"}},
+		Routes:     []webuicontract.Route{{ID: "fixture.page", Path: "/fixture", EntryID: "fixture.page", TitleMessageID: "webui.fixture.title", Layout: webuicontract.RouteLayoutApp, DeliveryState: webuicontract.DeliveryImplemented, Default: true}},
+		Navigation: []webuicontract.Navigation{{ID: "fixture.page", RouteID: "fixture.page", TitleMessageID: "webui.fixture.title", IconID: "circle"}},
+		Locales:    []webuicontract.Locale{{Language: "en-US", Namespace: "webui.fixture", SourcePath: "internal/module/fixture/binding/webui/web/locale/en-US.json"}},
+		Requires:   []webuicontract.SDKRequirement{{ID: "runtime", MajorVersion: 1}},
+	}
+	catalog, err := webuicontract.BuildApplicationCatalog([]webuicontract.ModuleRegistration{{Binding: binding, Activation: webuicontract.ActivationEnabled}}, webuicontract.SDKInventory{"runtime": 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	generated, err := GenerateWebUIRegistryForCatalog(catalog, repositoryRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, expected := range []string{
+		`"fixture.page": () => import("../../../internal/module/fixture/binding/webui/web/Page")`,
+		`"webui.fixture": () => import("../../../internal/module/fixture/binding/webui/web/locale/en-US.json")`,
+	} {
+		if !strings.Contains(generated, expected) {
+			t.Fatalf("fixture registry does not contain %s:\n%s", expected, generated)
+		}
 	}
 }
 

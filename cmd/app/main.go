@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"runtime"
 	"strings"
 	"syscall"
@@ -17,7 +16,6 @@ import (
 const (
 	applicationName        = "go-scaffold-template"
 	applicationDescription = "Go 后端服务与 CLI 工具基础设施脚手架"
-	defaultConfigPath      = "config.yaml"
 	environmentPrefix      = "APP_"
 )
 
@@ -42,35 +40,12 @@ func runMain(stdin io.Reader, stdout, stderr io.Writer, args []string) int {
 }
 
 func generateWebUIRegistry(stdout, stderr io.Writer, check bool) int {
-	content, err := applicationcomposition.GenerateWebUIRegistry()
-	if err != nil {
+	if err := applicationcomposition.WriteWebUIRegistryFromCurrentDirectory(check); err != nil {
 		_, _ = fmt.Fprintf(stderr, "webui registry: %v\n", err)
 		return applicationcomposition.ExitError
-	}
-	outputPath := "webui/src/generated/webui-registry.ts"
-	if _, err := os.Stat("webui"); err != nil {
-		outputPath = "src/generated/webui-registry.ts"
 	}
 	if check {
-		actual, readErr := os.ReadFile(outputPath)
-		if readErr != nil {
-			_, _ = fmt.Fprintf(stderr, "webui registry: %v\n", readErr)
-			return applicationcomposition.ExitError
-		}
-		if string(actual) != content {
-			_, _ = fmt.Fprintln(stderr, "webui registry: generated file is stale")
-			return applicationcomposition.ExitError
-		}
 		_, _ = fmt.Fprintln(stdout, "webui registry is current")
-		return applicationcomposition.ExitSuccess
-	}
-	if err := os.MkdirAll(filepath.Dir(outputPath), 0o755); err != nil {
-		_, _ = fmt.Fprintf(stderr, "webui registry: %v\n", err)
-		return applicationcomposition.ExitError
-	}
-	if err := os.WriteFile(outputPath, []byte(content), 0o644); err != nil {
-		_, _ = fmt.Fprintf(stderr, "webui registry: %v\n", err)
-		return applicationcomposition.ExitError
 	}
 	return applicationcomposition.ExitSuccess
 }
@@ -88,7 +63,7 @@ type process struct {
 
 func newProcess(stdin io.Reader, stdout, stderr io.Writer) process {
 	return process{
-		configPath:        defaultConfigPath,
+		configPath:        applicationcomposition.DefaultConfigPath,
 		environmentPrefix: environmentPrefix,
 		stdin:             stdin,
 		stdout:            stdout,

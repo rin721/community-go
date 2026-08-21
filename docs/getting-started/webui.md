@@ -67,7 +67,7 @@ pnpm generate:check
 pnpm dev
 ```
 
-`pnpm install` 只需在首次拉取或依赖锁变化后执行。Vite 固定使用 5173；端口被占用时会明确启动失败，避免静默切换到未被 Origin allowlist 授权的端口。必须使用它输出的 `https://` 地址，不能改用 HTTP，否则带 `Secure` 属性的 Session Cookie 不会生效。
+`pnpm install` 只需在首次拉取或依赖锁变化后执行。默认开发值由 `webui/scripts/project-layout.mjs` 的 typed parser 管理；复制 `webui/.env.example` 为 `.env.local` 后可通过 `WEBUI_DEV_HOST`、`WEBUI_DEV_PORT`、`WEBUI_API_TARGET` 和 `WEBUI_MANAGEMENT_TARGET` 覆盖。Vite 与 Playwright 读取同一组值，端口被占用时会明确启动失败，避免静默切换到未被 Origin allowlist 授权的端口。必须使用它输出的 `https://` 地址，不能改用 HTTP，否则带 `Secure` 属性的 Session Cookie 不会生效。
 
 Vite 使用项目配置的本地自签名证书。浏览器首次访问会提示证书不受信任；确认访问的是终端打印的本机 `127.0.0.1`/`localhost` 地址后，选择继续访问。证书只用于本地开发，不用于生产部署。
 

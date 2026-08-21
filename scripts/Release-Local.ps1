@@ -3,10 +3,14 @@ param()
 
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
-$toolDirectory = Join-Path $repositoryRoot '.tools\bin'
+$layoutScript = Join-Path $repositoryRoot 'webui\scripts\project-layout.mjs'
+$toolDirectory = (& node $layoutScript --field toolsRoot).Trim()
+$releaseDirectory = (& node $layoutScript --field releaseRoot).Trim()
+if ([string]::IsNullOrWhiteSpace($toolDirectory) -or [string]::IsNullOrWhiteSpace($releaseDirectory)) { throw 'layout did not provide release paths' }
 $previousPath = $env:PATH
 $previousPassword = $env:COSIGN_PASSWORD
 $previousSyftUpdateCheck = $env:SYFT_CHECK_FOR_APP_UPDATE
+$previousGoReleaserDist = $env:GORELEASER_DIST
 Push-Location $repositoryRoot
 try {
     $env:PATH = "$toolDirectory;$env:PATH"
@@ -17,6 +21,7 @@ try {
         }
     }
 
+    $env:GORELEASER_DIST = $releaseDirectory
     goreleaser release --snapshot --clean '--skip=sign,publish,announce'
     if ($LASTEXITCODE -ne 0) { throw 'GoReleaser snapshot failed' }
 
@@ -29,10 +34,10 @@ try {
         $keyPrefix = Join-Path $temporaryKeyDirectory 'local-rc'
         cosign generate-key-pair --output-key-prefix $keyPrefix | Out-Null
         if ($LASTEXITCODE -ne 0) { throw 'Cosign temporary key generation failed' }
-        cosign sign-blob --yes --tlog-upload=false --key "$keyPrefix.key" --bundle dist/checksums.txt.bundle --output-signature dist/checksums.txt.sig dist/checksums.txt
+        cosign sign-blob --yes --tlog-upload=false --key "$keyPrefix.key" --bundle (Join-Path $releaseDirectory 'checksums.txt.bundle') --output-signature (Join-Path $releaseDirectory 'checksums.txt.sig') (Join-Path $releaseDirectory 'checksums.txt')
         if ($LASTEXITCODE -ne 0) { throw 'Cosign checksum signing failed' }
-        Copy-Item -LiteralPath "$keyPrefix.pub" -Destination dist/local-rc.pub
-        cosign verify-blob --insecure-ignore-tlog --key dist/local-rc.pub --bundle dist/checksums.txt.bundle --signature dist/checksums.txt.sig dist/checksums.txt
+        Copy-Item -LiteralPath "$keyPrefix.pub" -Destination (Join-Path $releaseDirectory 'local-rc.pub')
+        cosign verify-blob --insecure-ignore-tlog --key (Join-Path $releaseDirectory 'local-rc.pub') --bundle (Join-Path $releaseDirectory 'checksums.txt.bundle') --signature (Join-Path $releaseDirectory 'checksums.txt.sig') (Join-Path $releaseDirectory 'checksums.txt')
         if ($LASTEXITCODE -ne 0) { throw 'Cosign checksum verification failed' }
     } finally {
         if (Test-Path -LiteralPath $temporaryKeyDirectory) {
@@ -46,7 +51,7 @@ try {
         }
     }
 
-    Push-Location dist
+    Push-Location $releaseDirectory
     try {
         foreach ($line in Get-Content -LiteralPath checksums.txt -Encoding utf8) {
             if ($line -notmatch '^([0-9a-f]{64})\s+(.+)$') { throw "Invalid checksum line: $line" }
@@ -60,5 +65,6 @@ try {
     $env:PATH = $previousPath
     $env:COSIGN_PASSWORD = $previousPassword
     $env:SYFT_CHECK_FOR_APP_UPDATE = $previousSyftUpdateCheck
+    $env:GORELEASER_DIST = $previousGoReleaserDist
     Pop-Location
 }

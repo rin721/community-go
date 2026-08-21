@@ -43,7 +43,7 @@ func TestNewAppRejectsInvalidContractsWithoutReturningPartialApp(t *testing.T) {
 
 func TestConfigInitUsesDefaultsAndFlags(t *testing.T) {
 	manager := &recordingManager{result: config.GenerateResult{Path: filepath.Join("absolute", "config.json"), Format: config.FormatJSON, Replaced: true, SectionIDs: []string{"database"}}}
-	app, err := NewApp(pkgcli.Config{Name: "test", DisableInteractiveHome: true}, ConfigCommands(manager))
+	app, err := NewApp(pkgcli.Config{Name: "test", DisableInteractiveHome: true}, ConfigCommands(manager, DefaultConfigPath))
 	if err != nil {
 		t.Fatalf("NewApp() error = %v", err)
 	}
@@ -72,7 +72,7 @@ func TestConfigInitUsesDefaultsAndFlags(t *testing.T) {
 func TestConfigInitMapsUsageCommandAndOutputErrors(t *testing.T) {
 	cause := errors.New("generation failed")
 	manager := &recordingManager{err: cause}
-	app, err := NewApp(pkgcli.Config{Name: "test", DisableInteractiveHome: true}, ConfigCommands(manager))
+	app, err := NewApp(pkgcli.Config{Name: "test", DisableInteractiveHome: true}, ConfigCommands(manager, DefaultConfigPath))
 	if err != nil {
 		t.Fatalf("NewApp() error = %v", err)
 	}
@@ -96,7 +96,7 @@ func TestConfigInitMapsUsageCommandAndOutputErrors(t *testing.T) {
 }
 
 func TestConfigCommandsRejectsNilManager(t *testing.T) {
-	app, err := NewApp(pkgcli.Config{Name: "test"}, ConfigCommands(nil))
+	app, err := NewApp(pkgcli.Config{Name: "test"}, ConfigCommands(nil, DefaultConfigPath))
 	if err == nil || app != nil {
 		t.Fatalf("NewApp(nil manager) = %#v, %v; want nil, error", app, err)
 	}

@@ -14,14 +14,18 @@ const (
 	initCommandName   = "init"
 	outputFlagName    = "output"
 	forceFlagName     = "force"
-	defaultOutputPath = "config.yaml"
+	// DefaultConfigPath 是进程入口与 config init 共用的默认配置路径。
+	DefaultConfigPath = "config.yaml"
 )
 
 // ConfigCommands 返回调用 DefaultManager 的 config init 启动前命令契约。
-func ConfigCommands(manager config.DefaultManager) Contract {
+func ConfigCommands(manager config.DefaultManager, defaultOutputPath string) Contract {
 	return ContractFunc(func() ([]pkgcli.CommandSpec, error) {
 		if isNilDefaultManager(manager) {
 			return nil, fmt.Errorf("default configuration manager is nil")
+		}
+		if strings.TrimSpace(defaultOutputPath) == "" {
+			return nil, fmt.Errorf("default configuration path is empty")
 		}
 		return []pkgcli.CommandSpec{{
 			Name:        configCommandName,

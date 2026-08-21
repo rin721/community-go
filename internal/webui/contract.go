@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/rin721/go-scaffold-template/internal/projectlayout"
 	"golang.org/x/text/language"
 )
 
@@ -374,15 +375,18 @@ func intersectStrings(left, right []string) []string {
 }
 
 // ValidateSourcePathOwnership 校验构建期 SourcePath 属于声明模块的 WebUI 目录，且没有经过符号链接逃逸。
-func (c Catalog) ValidateSourcePathOwnership(repositoryRoot string) error {
+func (c Catalog) ValidateSourcePathOwnership(layout projectlayout.Layout, repositoryRoot string) error {
 	root, err := filepath.Abs(repositoryRoot)
 	if err != nil {
 		return fmt.Errorf("resolve webui repository root: %w", err)
 	}
 	for _, binding := range c.Bindings {
-		ownerRoot := filepath.Join(root, "internal", "module", binding.ModuleID, "binding", "webui", "web")
+		ownerRoot, err := layout.ModuleWebRoot(root, binding.ModuleID)
+		if err != nil {
+			return fmt.Errorf("resolve webui module %q owner: %w", binding.ModuleID, err)
+		}
 		for _, sourcePath := range bindingSourcePaths(binding) {
-			if err := validateOwnedSourcePath(root, ownerRoot, sourcePath); err != nil {
+			if err := validateOwnedSourcePath(ownerRoot, sourcePath); err != nil {
 				return fmt.Errorf("webui module %q source path %q: %w", binding.ModuleID, sourcePath, err)
 			}
 		}
@@ -401,11 +405,11 @@ func bindingSourcePaths(binding Binding) []string {
 	return paths
 }
 
-func validateOwnedSourcePath(repositoryRoot, ownerRoot, sourcePath string) error {
+func validateOwnedSourcePath(ownerRoot, sourcePath string) error {
 	if strings.TrimSpace(sourcePath) == "" || filepath.IsAbs(sourcePath) || strings.Contains(sourcePath, "\\") {
-		return fmt.Errorf("path must be repository-relative and use forward slashes")
+		return fmt.Errorf("path must be module-WebUI-relative and use forward slashes")
 	}
-	absolute := filepath.Clean(filepath.Join(repositoryRoot, filepath.FromSlash(sourcePath)))
+	absolute := filepath.Clean(filepath.Join(ownerRoot, filepath.FromSlash(sourcePath)))
 	relative, err := filepath.Rel(ownerRoot, absolute)
 	if err != nil || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) || filepath.IsAbs(relative) {
 		return fmt.Errorf("path escapes module WebUI owner directory")

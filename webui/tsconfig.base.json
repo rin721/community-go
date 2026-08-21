@@ -1,0 +1,34 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "allowJs": false,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "baseUrl": ".",
+    "paths": {
+      "@webui/sdk/runtime": ["src/sdk/runtime/index.tsx"],
+      "@webui/sdk/http": ["src/sdk/http/index.ts"],
+      "@webui/sdk/i18n": ["src/sdk/i18n/index.ts"],
+      "@webui/sdk/query": ["src/sdk/query/index.ts"],
+      "@webui/sdk/navigation": ["src/sdk/navigation/index.ts"],
+      "@webui/sdk/feedback": ["src/sdk/feedback/index.tsx"],
+      "@webui/sdk/ui": ["src/sdk/ui/index.tsx"],
+      "react": ["node_modules/@types/react"],
+      "react/*": ["node_modules/@types/react/*"],
+      "react-i18next": ["node_modules/react-i18next"],
+      "@tanstack/react-query": ["node_modules/@tanstack/react-query"],
+      "vitest": ["node_modules/vitest"]
+    },
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx"
+  }
+}

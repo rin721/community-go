@@ -5,7 +5,8 @@ repository_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck disable=SC1091
 source "${repository_root}/scripts/tool-versions.env"
 
-tool_dir="${repository_root}/.tools/bin"
+tool_dir="$(node "${repository_root}/webui/scripts/project-layout.mjs" --field toolsRoot)"
+[[ -n "${tool_dir}" ]] || { echo "layout did not provide tools root" >&2; exit 1; }
 mkdir -p "${tool_dir}"
 export GOBIN="${tool_dir}"
 

@@ -4,7 +4,7 @@ WebUI 基线由 `internal/composition` 统一装配，模块只在确有浏览�
 
 ## 适用语境与当前门禁范围
 
-新增或修改模块页面、Route、Navigation、WebUI Binding、locale、SDK requirement、宿主公共交互、全局样式、Session/CSRF、availability/access 状态或生成 registry 时，都必须使用本指南。任务是否写出“WebUI 模块”不是判定条件；只要浏览器可见行为、模块资源加载或宿主/模块边界发生变化，就已经命中。
+新增或修改模块页面、Route、Navigation、WebUI Binding、locale、SDK requirement、宿主公共交互、全局样式、Session/CSRF、availability/access 状态或生成 registry 时，都必须使用本指南。任务是否写出“WebUI 模块”不是判定条件；只要浏览器可见行为、模块资源加载或宿主/模块边界发生变化，就已经命中。仓库布局以 `.scaffold/layout.json` 为唯一构建期声明；不要在工具中复制 `webui`、`internal/module` 或生成输出路径。
 
 当前门禁覆盖必须按实际实现理解：
 
@@ -38,7 +38,7 @@ pnpm generate:check
 
 跨平台静态质量总入口为仓库根的 `./scripts/Verify-WebUI.ps1` 或 `bash scripts/verify-webui.sh`，它固定执行生成检查、冻结安装、lint、模块 lint、typecheck、test 和 build；不启动 Go 服务或 Playwright。
 
-`webui/` 是独立 React/Vite 宿主，开发服务器使用 HTTPS，并将 `/api/v1` 与 `/management` 代理到 Go 服务。生成 registry 的唯一来源是 `internal/composition` 的 WebUI Catalog；不要直接编辑 `src/generated/webui-registry.ts`。
+`webui/` 是独立 React/Vite 宿主，开发服务器使用 HTTPS，并将 `/api/v1` 与 `/management` 代理到 Go 服务。开发 host、port 和两个 proxy target 由 `webui/.env.example` 对应的环境变量声明，Vite 与 Playwright 使用同一个 parser。生成 registry 的唯一来源是 `internal/composition` 的 WebUI Catalog；不要直接编辑 `src/generated/webui-registry.ts`。
 
 WebUI 用户密码可通过 `go run ./cmd/app webui reset-password --username <用户名>` 重置；未传 `--password` 时由 CLI 的安全输入接口读取。命令先验证 migration 兼容性，再更新密码并撤销该用户全部 Session。
 

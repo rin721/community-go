@@ -11,7 +11,9 @@ foreach ($line in Get-Content -LiteralPath $versionFile -Encoding utf8) {
     }
 }
 
-$toolDirectory = Join-Path $repositoryRoot '.tools\bin'
+$layoutScript = Join-Path $repositoryRoot 'webui\scripts\project-layout.mjs'
+$toolDirectory = (& node $layoutScript --field toolsRoot).Trim()
+if ([string]::IsNullOrWhiteSpace($toolDirectory)) { throw 'layout did not provide tools root' }
 New-Item -ItemType Directory -Force -Path $toolDirectory | Out-Null
 $previousGoBin = $env:GOBIN
 try {

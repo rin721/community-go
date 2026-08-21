@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.base.json",
+  "include": [
+    "src",
+    "../internal/module/*/binding/webui/web",
+    "vite.config.ts",
+    "vitest.config.ts"
+  ]
+}

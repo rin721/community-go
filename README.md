@@ -1,5 +1,7 @@
 # go-scaffold-template / community-go
 
+构建期仓库布局由 `.scaffold/layout.json` 统一声明；WebUI、代码生成、工具和 release 脚本不得各自复制路径约定。
+
 当前仓库 remote 是 `rin721/community-go`，根 Go module 和构建产物仍使用 `go-scaffold-template` 身份；这个身份差异已记录在[项目范围与当前状态](docs/repository-scope.md)，最终身份迁移不在本次文档治理中。根 Go 工程使用显式 composition root 串联配置、日志、数据库、迁移、HTTP、management、后台任务、定时调度、消息系统和业务模块；当前默认应用包含 Todo 垂直切片。
 
 ## 五分钟本地启动

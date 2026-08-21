@@ -8,7 +8,9 @@ try {
     go run ./cmd/app webui generate --check
     if ($LASTEXITCODE -ne 0) { throw 'WebUI registry check failed' }
 
-    Push-Location (Join-Path $repositoryRoot 'webui')
+    $webuiRoot = (& node webui/scripts/project-layout.mjs --field webuiRoot).Trim()
+    if ([string]::IsNullOrWhiteSpace($webuiRoot)) { throw 'layout did not provide webui root' }
+    Push-Location $webuiRoot
     $previousCI = $env:CI
     try {
         # 固定非交互语义，避免本地终端与 CI 对 node_modules 清理行为分叉。

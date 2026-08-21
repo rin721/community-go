@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "roots": {
+    "webui": "webui",
+    "modules": "internal/module",
+    "tools": ".tools/bin",
+    "release": "dist"
+  },
+  "webui": {
+    "moduleFacet": "binding/webui/web",
+    "source": "webui/src",
+    "platformStyles": "webui/src/styles.css",
+    "registryOutput": "webui/src/generated/webui-registry.ts"
+  },
+  "generatedArtifacts": {
+    "openapi": "api/openapi.yaml",
+    "operationInventory": "internal/transport/http/api/operation_inventory.gen.go"
+  }
+}

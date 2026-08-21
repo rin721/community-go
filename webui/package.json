@@ -4,17 +4,20 @@
   "type": "module",
   "packageManager": "pnpm@10.22.0",
   "scripts": {
-    "dev": "vite --host 127.0.0.1",
+    "dev": "vite",
     "lint": "eslint . && pnpm lint:i18n && pnpm lint:architecture",
     "lint:modules": "node scripts/lint-modules.mjs",
     "lint:architecture": "node scripts/lint-architecture.mjs",
     "lint:i18n": "node scripts/lint-i18n-contract.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --config vitest.config.ts",
+    "test:layout": "node --test scripts/project-layout.test.mjs",
+    "test": "pnpm test:layout && vitest run --config vitest.config.ts",
     "build": "vite build",
     "e2e": "playwright test",
-    "generate": "go run ../cmd/app webui generate",
-    "generate:check": "go run ../cmd/app webui generate --check"
+    "generate:tsconfig": "node scripts/generate-tsconfig.mjs",
+    "generate": "node scripts/generate.mjs",
+    "generate:check": "node scripts/generate.mjs --check",
+    "layout:check": "node scripts/project-layout.mjs --field repositoryRoot"
   },
   "dependencies": {
     "@heroui/react": "^3.0.0",

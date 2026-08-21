@@ -1,5 +1,7 @@
 # 应用模块
 
+模块 WebUI Binding 的 `SourcePath` 必须相对于 `.scaffold/layout.json` 声明的 `webui.moduleFacet`，不得写仓库绝对或重复的 owner 前缀。
+
 `internal/module` 保存由应用组合根显式选择的纵向模块。这里的 Module 是进程内业务单元，不是 Go module、Kernel Component 或动态插件。每个模块按业务名称收口 Model、Service、Repository、协议 Adapter、binding 与 contribution；底层资源仍由 Kernel 统一创建，模块对象不进入 Kernel Plan。
 
 新增模块必须先按 [应用模块开发指南](../../docs/development/application-module-development.md) 完成真实用例、现有能力、新 Capability、资源 owner、生命周期和当前契约适配性评估，再进入目录与接口设计。

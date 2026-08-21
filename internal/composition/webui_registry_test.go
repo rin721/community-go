@@ -33,6 +33,18 @@ func TestGenerateWebUIRegistryIncludesEntriesAndLocales(t *testing.T) {
 
 func TestGenerateWebUIRegistryForCatalogAcceptsIndependentModuleFixture(t *testing.T) {
 	repositoryRoot := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(repositoryRoot, ".scaffold"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(repositoryRoot, "webui", "src", "generated"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(repositoryRoot, ".scaffold", "layout.json"), []byte(`{"schemaVersion":1,"roots":{"webui":"webui","modules":"internal/module","tools":".tools/bin","release":"dist"},"webui":{"moduleFacet":"binding/webui/web","source":"webui/src","platformStyles":"webui/src/styles.css","registryOutput":"webui/src/generated/webui-registry.ts"},"generatedArtifacts":{"openapi":"api/openapi.yaml","operationInventory":"internal/transport/http/api/operation_inventory.gen.go"}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(repositoryRoot, "webui", "src", "styles.css"), []byte(":root{}"), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	webRoot := filepath.Join(repositoryRoot, "internal", "module", "fixture", "binding", "webui", "web")
 	if err := os.MkdirAll(filepath.Join(webRoot, "locale"), 0o755); err != nil {
 		t.Fatal(err)
@@ -46,10 +58,10 @@ func TestGenerateWebUIRegistryForCatalogAcceptsIndependentModuleFixture(t *testi
 
 	binding := webuicontract.Binding{
 		ModuleID:   "fixture",
-		Entries:    []webuicontract.Entry{{ID: "fixture.page", SourcePath: "internal/module/fixture/binding/webui/web/Page.tsx"}},
+		Entries:    []webuicontract.Entry{{ID: "fixture.page", SourcePath: "Page.tsx"}},
 		Routes:     []webuicontract.Route{{ID: "fixture.page", Path: "/fixture", EntryID: "fixture.page", TitleMessageID: "webui.fixture.title", Layout: webuicontract.RouteLayoutApp, DeliveryState: webuicontract.DeliveryImplemented, Default: true}},
 		Navigation: []webuicontract.Navigation{{ID: "fixture.page", RouteID: "fixture.page", TitleMessageID: "webui.fixture.title", IconID: "circle"}},
-		Locales:    []webuicontract.Locale{{Language: "en-US", Namespace: "webui.fixture", SourcePath: "internal/module/fixture/binding/webui/web/locale/en-US.json"}},
+		Locales:    []webuicontract.Locale{{Language: "en-US", Namespace: "webui.fixture", SourcePath: "locale/en-US.json"}},
 		Requires:   []webuicontract.SDKRequirement{{ID: "runtime", MajorVersion: 1}},
 	}
 	catalog, err := webuicontract.BuildApplicationCatalog([]webuicontract.ModuleRegistration{{Binding: binding, Activation: webuicontract.ActivationEnabled}}, webuicontract.SDKInventory{"runtime": 1})

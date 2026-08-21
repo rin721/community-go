@@ -11,9 +11,13 @@ try {
     }
     go mod tidy -diff
     if ($LASTEXITCODE -ne 0) { throw 'go mod tidy -diff failed' }
+    go run ./internal/tools/project-layout --check-identity
+    if ($LASTEXITCODE -ne 0) { throw 'project layout identity check failed' }
     go generate ./...
     if ($LASTEXITCODE -ne 0) { throw 'go generate failed' }
-    git diff --exit-code -- api/openapi.yaml internal/transport/http/api/operation_inventory.gen.go
+    $openapi = (& node webui/scripts/project-layout.mjs --field openapiOutput).Trim()
+    $operationInventory = (& node webui/scripts/project-layout.mjs --field operationInventoryOutput).Trim()
+    git diff --exit-code -- $openapi $operationInventory
     if ($LASTEXITCODE -ne 0) { throw 'generated files are not clean' }
     go test ./... -count=1
     if ($LASTEXITCODE -ne 0) { throw 'go test failed' }

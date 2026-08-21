@@ -25,6 +25,8 @@ const (
 	ExitUsage       = cli.ExitUsage
 	ExitConfig      = cli.ExitConfig
 	ExitInterrupted = cli.ExitInterrupted
+	// DefaultConfigPath 是应用入口和 config init 共用的默认配置文件路径。
+	DefaultConfigPath = kernelcli.DefaultConfigPath
 )
 
 // Config 保存进程组合需要的固定输入，不包含运行期配置值。
@@ -153,8 +155,9 @@ func (a *Application) Run(ctx context.Context, args []string) error {
 		Stderr:                 a.config.Stderr,
 		DisableInteractiveHome: true,
 	}, kernelcomposition.BootstrapOptions{
-		Configuration: applicationOwnedConfigurationBindings(),
-		Commands:      []kernelcli.Contract{todoContract, migrationContract, authContract},
+		Configuration:     applicationOwnedConfigurationBindings(),
+		Commands:          []kernelcli.Contract{todoContract, migrationContract, authContract},
+		DefaultConfigPath: a.config.ConfigPath,
 	})
 	if err != nil {
 		return fmt.Errorf("compose application bootstrap: %w", err)

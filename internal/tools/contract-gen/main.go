@@ -14,15 +14,37 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/rin721/go-scaffold-template/internal/projectlayout"
 	todohttp "github.com/rin721/go-scaffold-template/internal/module/todo/binding/http"
 	"github.com/rin721/go-scaffold-template/pkg/httpx/contract"
 )
 
 func main() {
-	outputOpenAPI := flag.String("output-openapi", "api/openapi.yaml", "生成的 OpenAPI 文件路径")
-	outputInventory := flag.String("output-inventory", "internal/transport/http/api/operation_inventory.gen.go", "生成的 operation inventory Go 文件路径")
+	outputOpenAPI := flag.String("output-openapi", "", "生成的 OpenAPI 文件路径；留空时读取 project layout")
+	outputInventory := flag.String("output-inventory", "", "生成的 operation inventory Go 文件路径；留空时读取 project layout")
 	packageName := flag.String("package", "api", "生成 inventory 的 package")
 	flag.Parse()
+	if *outputOpenAPI == "" || *outputInventory == "" {
+		repositoryRoot, layout, err := projectlayout.FindRepositoryRootFromCurrentDirectory()
+		if err != nil {
+			_, _ = fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		if *outputOpenAPI == "" {
+			*outputOpenAPI, err = layout.RepositoryPath(repositoryRoot, layout.GeneratedArtifacts.OpenAPI)
+			if err != nil {
+				_, _ = fmt.Fprintln(os.Stderr, err)
+				os.Exit(1)
+			}
+		}
+		if *outputInventory == "" {
+			*outputInventory, err = layout.RepositoryPath(repositoryRoot, layout.GeneratedArtifacts.OperationInventory)
+			if err != nil {
+				_, _ = fmt.Fprintln(os.Stderr, err)
+				os.Exit(1)
+			}
+		}
+	}
 
 	if err := run(*outputOpenAPI, *outputInventory, *packageName); err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, err)

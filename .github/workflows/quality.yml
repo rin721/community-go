@@ -148,14 +148,13 @@ jobs:
           go-version-file: go.mod
           cache-dependency-path: go.sum
       - name: Install pinned scanners
-        env:
-          GOBIN: ${{ github.workspace }}/.tools/bin
         run: |
-          mkdir -p "${GOBIN}"
-          go install golang.org/x/vuln/cmd/govulncheck@v1.3.0
-          go install github.com/securego/gosec/v2/cmd/gosec@v2.28.0
-          go install github.com/zricethezav/gitleaks/v8@v8.28.0
-          echo "${GOBIN}" >> "${GITHUB_PATH}"
+          tool_dir="$(node webui/scripts/project-layout.mjs --field toolsRoot)"
+          mkdir -p "${tool_dir}"
+          GOBIN="${tool_dir}" go install golang.org/x/vuln/cmd/govulncheck@v1.3.0
+          GOBIN="${tool_dir}" go install github.com/securego/gosec/v2/cmd/gosec@v2.28.0
+          GOBIN="${tool_dir}" go install github.com/zricethezav/gitleaks/v8@v8.28.0
+          echo "${tool_dir}" >> "${GITHUB_PATH}"
       - name: Reachable vulnerability scan
         run: govulncheck ./...
       - name: Go security scan

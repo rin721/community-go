@@ -2,6 +2,9 @@ version: 2
 
 project_name: go-scaffold-template
 
+# 发布目录由 scripts/Release-Local 与 CI 从 .scaffold/layout.json 注入。
+dist: "{{ .Env.GORELEASER_DIST }}"
+
 builds:
   - id: application
     main: ./cmd/app

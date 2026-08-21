@@ -1,8 +1,8 @@
 import { expect, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { loadProjectLayout, resolveLayoutPaths } from "../scripts/project-layout.mjs";
 
-const registrySource = readFileSync(resolve(import.meta.dirname, "../src/generated/webui-registry.ts"), "utf8");
+const registrySource = readFileSync(resolveLayoutPaths(loadProjectLayout()).registryOutput, "utf8");
 const webuiRevision = registrySource.match(/webuiRevision = "([^"]+)"/)?.[1];
 if (!webuiRevision) throw new Error("generated WebUI revision is missing");
 

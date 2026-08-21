@@ -1,6 +1,6 @@
 # Admin WebUI
 
-`webui/` 是当前根 Go 工程质量链已接入的 React/Vite Admin WebUI。页面和资源按 `internal/module/<id>/binding/webui/web` 的模块边界组织，生成物由 Go 侧 WebUI generator 校验。
+`webui/` 是当前根 Go 工程质量链已接入的 React/Vite Admin WebUI。仓库构建布局由根 `.scaffold/layout.json` 声明：模块 WebUI facet、宿主源码、registry 输出和生成物路径都从该清单读取；Binding 中的 `SourcePath` 只写所属 facet 内的相对路径。
 
 ## 本地开发
 
@@ -15,7 +15,7 @@ pnpm generate:check
 pnpm dev
 ```
 
-默认地址为 `https://127.0.0.1:5173`。完整后端配置、CORS/Auth Origin、Setup 与登录步骤见[WebUI 本地启动指南](../docs/getting-started/webui.md)。
+默认地址为 `https://127.0.0.1:5173`。需要调整开发端口或代理时，复制 `webui/.env.example` 为 `.env.local`，使用 `WEBUI_DEV_HOST`、`WEBUI_DEV_PORT`、`WEBUI_API_TARGET` 和 `WEBUI_MANAGEMENT_TARGET`；Vite 与 Playwright 共用这组受控配置。完整后端配置、CORS/Auth Origin、Setup 与登录步骤见[WebUI 本地启动指南](../docs/getting-started/webui.md)。
 
 ## 静态质量
 

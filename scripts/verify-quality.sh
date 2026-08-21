@@ -10,8 +10,11 @@ if [[ -n "${unformatted}" ]]; then
   exit 1
 fi
 go mod tidy -diff
+go run ./internal/tools/project-layout --check-identity
 go generate ./...
-git diff --exit-code -- api/openapi.yaml internal/transport/http/api/operation_inventory.gen.go
+openapi_output="$(node webui/scripts/project-layout.mjs --field openapiOutput)"
+operation_inventory_output="$(node webui/scripts/project-layout.mjs --field operationInventoryOutput)"
+git diff --exit-code -- "${openapi_output}" "${operation_inventory_output}"
 go test ./... -count=1
 go test -race ./... -count=1
 go vet ./...

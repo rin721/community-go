@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/rin721/go-scaffold-template/internal/projectlayout"
 	webuicontract "github.com/rin721/go-scaffold-template/internal/webui"
 )
 
@@ -22,15 +23,73 @@ func GenerateWebUIRegistry() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return GenerateWebUIRegistryForCatalog(catalog, repositoryRoot)
+	return GenerateWebUIRegistryForCatalogAt(catalog, repositoryRoot)
+}
+
+// GenerateWebUIRegistryAt 从指定仓库根加载当前 application catalog 并生成 registry。
+func GenerateWebUIRegistryAt(repositoryRoot string) (string, error) {
+	catalog, err := applicationWebUICatalog()
+	if err != nil {
+		return "", err
+	}
+	return GenerateWebUIRegistryForCatalogAt(catalog, repositoryRoot)
+}
+
+// WriteWebUIRegistryFromCurrentDirectory 在布局清单确定的仓库根写入或校验 registry。
+func WriteWebUIRegistryFromCurrentDirectory(check bool) error {
+	repositoryRoot, layout, err := projectlayout.FindRepositoryRootFromCurrentDirectory()
+	if err != nil {
+		return err
+	}
+	content, err := GenerateWebUIRegistryAt(repositoryRoot)
+	if err != nil {
+		return err
+	}
+	outputPath, err := layout.RepositoryPath(repositoryRoot, layout.WebUI.RegistryOutput)
+	if err != nil {
+		return err
+	}
+	if check {
+		actual, readErr := os.ReadFile(outputPath)
+		if readErr != nil {
+			return readErr
+		}
+		if string(actual) != content {
+			return fmt.Errorf("generated file %q is stale", filepath.ToSlash(layout.WebUI.RegistryOutput))
+		}
+		return nil
+	}
+	if err := os.MkdirAll(filepath.Dir(outputPath), 0o755); err != nil {
+		return err
+	}
+	return os.WriteFile(outputPath, []byte(content), 0o644)
 }
 
 // GenerateWebUIRegistryForCatalog renders a validated catalog relative to the repository root.
 // 测试和独立生成入口可以复用同一套 module-owned source path 校验，不依赖当前应用模块集合。
 func GenerateWebUIRegistryForCatalog(catalog webuicontract.Catalog, repositoryRoot string) (string, error) {
-	if err := catalog.ValidateSourcePathOwnership(repositoryRoot); err != nil {
+	return GenerateWebUIRegistryForCatalogAt(catalog, repositoryRoot)
+}
+
+// GenerateWebUIRegistryForCatalogAt 使用指定仓库根的目录和布局清单生成 registry。
+func GenerateWebUIRegistryForCatalogAt(catalog webuicontract.Catalog, repositoryRoot string) (string, error) {
+	layout, err := projectlayout.Load(repositoryRoot, "")
+	if err != nil {
 		return "", err
 	}
+	return GenerateWebUIRegistryForCatalogWithLayout(catalog, repositoryRoot, layout)
+}
+
+// GenerateWebUIRegistryForCatalogWithLayout 使用已校验布局生成 registry。
+func GenerateWebUIRegistryForCatalogWithLayout(catalog webuicontract.Catalog, repositoryRoot string, layout projectlayout.Layout) (string, error) {
+	if err := catalog.ValidateSourcePathOwnership(layout, repositoryRoot); err != nil {
+		return "", err
+	}
+	registryPath, err := layout.RepositoryPath(repositoryRoot, layout.WebUI.RegistryOutput)
+	if err != nil {
+		return "", err
+	}
+	registryDirectory := filepath.Dir(registryPath)
 	entries := make([]struct{ id, source string }, 0)
 	locales := make([]webuicontract.Locale, 0)
 	for _, binding := range catalog.Bindings {
@@ -38,19 +97,31 @@ func GenerateWebUIRegistryForCatalog(catalog webuicontract.Catalog, repositoryRo
 			return "", fmt.Errorf("validate webui module %q: locale binding is required when entries are declared", binding.ModuleID)
 		}
 		for _, entry := range binding.Entries {
-			if err := validateWebUISourceFile(repositoryRoot, entry.SourcePath); err != nil {
+			ownerRoot, err := layout.ModuleWebRoot(repositoryRoot, binding.ModuleID)
+			if err != nil {
+				return "", err
+			}
+			sourcePath := filepath.Join(ownerRoot, filepath.FromSlash(entry.SourcePath))
+			if err := validateWebUISourceFile(sourcePath, entry.SourcePath); err != nil {
 				return "", fmt.Errorf("validate webui entry %q: %w", entry.ID, err)
 			}
-			source := strings.TrimSuffix(filepath.ToSlash(entry.SourcePath), filepath.Ext(entry.SourcePath))
-			entries = append(entries, struct{ id, source string }{entry.ID, "../../../" + source})
+			source, err := relativeImport(registryDirectory, sourcePath, entry.SourcePath, true)
+			if err != nil {
+				return "", fmt.Errorf("resolve webui entry %q import: %w", entry.ID, err)
+			}
+			entries = append(entries, struct{ id, source string }{entry.ID, source})
 		}
 		for _, locale := range binding.Locales {
-			if err := validateWebUILocaleFile(repositoryRoot, locale); err != nil {
+			ownerRoot, err := layout.ModuleWebRoot(repositoryRoot, binding.ModuleID)
+			if err != nil {
+				return "", err
+			}
+			if err := validateWebUILocaleFile(filepath.Join(ownerRoot, filepath.FromSlash(locale.SourcePath)), locale.SourcePath); err != nil {
 				return "", fmt.Errorf("validate webui locale %q/%q: %w", locale.Language, locale.Namespace, err)
 			}
 			locales = append(locales, locale)
 		}
-		if err := validateWebUILocaleCoverage(repositoryRoot, binding); err != nil {
+		if err := validateWebUILocaleCoverage(repositoryRoot, layout, binding); err != nil {
 			return "", err
 		}
 	}
@@ -80,7 +151,15 @@ func GenerateWebUIRegistryForCatalog(catalog webuicontract.Catalog, repositoryRo
 			fmt.Fprintf(&builder, "  %q: {\n", locale.Language)
 			currentLanguage = locale.Language
 		}
-		source := "../../../" + filepath.ToSlash(locale.SourcePath)
+		ownerRoot, err := layout.ModuleWebRoot(repositoryRoot, findLocaleModule(catalog, locale))
+		if err != nil {
+			return "", err
+		}
+		sourcePath := filepath.Join(ownerRoot, filepath.FromSlash(locale.SourcePath))
+		source, err := relativeImport(registryDirectory, sourcePath, locale.SourcePath, false)
+		if err != nil {
+			return "", err
+		}
 		fmt.Fprintf(&builder, "    %q: () => import(%q).then(({ default: messages }) => messages as WebUILocaleMessages),\n", locale.Namespace, source)
 	}
 	if currentLanguage != "" {
@@ -98,41 +177,41 @@ func webUIRepositoryRoot() (string, error) {
 	return filepath.Clean(filepath.Join(filepath.Dir(sourceFile), "..", "..")), nil
 }
 
-func validateWebUISourceFile(repositoryRoot string, sourcePath string) error {
-	fileInfo, err := os.Stat(filepath.Join(repositoryRoot, filepath.FromSlash(sourcePath)))
+func validateWebUISourceFile(absolutePath string, displayPath string) error {
+	fileInfo, err := os.Stat(absolutePath)
 	if err != nil {
-		return fmt.Errorf("stat %s: %w", sourcePath, err)
+		return fmt.Errorf("stat %s: %w", displayPath, err)
 	}
 	if !fileInfo.Mode().IsRegular() {
-		return fmt.Errorf("%s is not a regular file", sourcePath)
+		return fmt.Errorf("%s is not a regular file", displayPath)
 	}
 	return nil
 }
 
-func validateWebUILocaleFile(repositoryRoot string, locale webuicontract.Locale) error {
-	if err := validateWebUISourceFile(repositoryRoot, locale.SourcePath); err != nil {
+func validateWebUILocaleFile(absolutePath string, sourcePath string) error {
+	if err := validateWebUISourceFile(absolutePath, sourcePath); err != nil {
 		return err
 	}
-	content, err := os.ReadFile(filepath.Join(repositoryRoot, filepath.FromSlash(locale.SourcePath)))
+	content, err := os.ReadFile(absolutePath)
 	if err != nil {
-		return fmt.Errorf("read %s: %w", locale.SourcePath, err)
+		return fmt.Errorf("read %s: %w", sourcePath, err)
 	}
 	messages := map[string]string{}
 	if err := json.Unmarshal(content, &messages); err != nil {
-		return fmt.Errorf("decode %s as string message map: %w", locale.SourcePath, err)
+		return fmt.Errorf("decode %s as string message map: %w", sourcePath, err)
 	}
 	if len(messages) == 0 {
-		return fmt.Errorf("%s has no messages", locale.SourcePath)
+		return fmt.Errorf("%s has no messages", sourcePath)
 	}
 	for messageID := range messages {
 		if strings.TrimSpace(messageID) == "" {
-			return fmt.Errorf("%s contains an empty message id", locale.SourcePath)
+			return fmt.Errorf("%s contains an empty message id", sourcePath)
 		}
 	}
 	return nil
 }
 
-func validateWebUILocaleCoverage(repositoryRoot string, binding webuicontract.Binding) error {
+func validateWebUILocaleCoverage(repositoryRoot string, layout projectlayout.Layout, binding webuicontract.Binding) error {
 	if len(binding.Routes) == 0 && len(binding.Navigation) == 0 {
 		return nil
 	}
@@ -142,8 +221,12 @@ func validateWebUILocaleCoverage(repositoryRoot string, binding webuicontract.Bi
 		messages  map[string]string
 	}
 	resources := make([]localeResource, 0, len(binding.Locales))
+	moduleRoot, err := layout.ModuleWebRoot(repositoryRoot, binding.ModuleID)
+	if err != nil {
+		return err
+	}
 	for _, locale := range binding.Locales {
-		path := filepath.Join(repositoryRoot, filepath.FromSlash(locale.SourcePath))
+		path := filepath.Join(moduleRoot, filepath.FromSlash(locale.SourcePath))
 		content, err := os.ReadFile(path)
 		if err != nil {
 			return fmt.Errorf("read locale %q/%q for coverage: %w", locale.Language, locale.Namespace, err)
@@ -182,4 +265,31 @@ func validateWebUILocaleCoverage(repositoryRoot string, binding webuicontract.Bi
 		}
 	}
 	return nil
+}
+
+func relativeImport(registryDirectory, sourcePath, displayPath string, stripExtension bool) (string, error) {
+	relative, err := filepath.Rel(registryDirectory, sourcePath)
+	if err != nil {
+		return "", fmt.Errorf("relative path from registry to %s: %w", displayPath, err)
+	}
+	withoutExtension := relative
+	if stripExtension {
+		withoutExtension = strings.TrimSuffix(relative, filepath.Ext(relative))
+	}
+	importPath := filepath.ToSlash(withoutExtension)
+	if !strings.HasPrefix(importPath, ".") {
+		importPath = "./" + importPath
+	}
+	return importPath, nil
+}
+
+func findLocaleModule(catalog webuicontract.Catalog, locale webuicontract.Locale) string {
+	for _, binding := range catalog.Bindings {
+		for _, candidate := range binding.Locales {
+			if candidate.Language == locale.Language && candidate.Namespace == locale.Namespace && candidate.SourcePath == locale.SourcePath {
+				return binding.ModuleID
+			}
+		}
+	}
+	return ""
 }

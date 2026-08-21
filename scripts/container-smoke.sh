@@ -2,6 +2,7 @@
 set -euo pipefail
 
 image="${1:?usage: container-smoke.sh <image>}"
+management_url="${CONTAINER_SMOKE_MANAGEMENT_URL:-http://127.0.0.1:9090}"
 container_name="go-scaffold-template-smoke-${GITHUB_RUN_ID:-local}-$$"
 volume_name="${container_name}-data"
 
@@ -23,13 +24,13 @@ docker run --detach --name "${container_name}" --network host \
   "${image}" >/dev/null
 
 for _ in $(seq 1 40); do
-  if curl --fail --silent http://127.0.0.1:9090/readyz >/dev/null; then
+  if curl --fail --silent "${management_url}/readyz" >/dev/null; then
     break
   fi
   sleep 0.5
 done
-curl --fail --silent http://127.0.0.1:9090/readyz >/dev/null
-curl --fail --silent http://127.0.0.1:9090/build | grep -F '"version"' >/dev/null
+curl --fail --silent "${management_url}/readyz" >/dev/null
+curl --fail --silent "${management_url}/build" | grep -F '"version"' >/dev/null
 
 if [[ "$(docker inspect --format '{{.Config.User}}' "${container_name}")" != "nonroot:nonroot" ]]; then
   echo "container user is not nonroot:nonroot" >&2

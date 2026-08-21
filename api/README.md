@@ -1,6 +1,6 @@
 # HTTP API 契约
 
-`api/openapi.yaml` 是公开 HTTP operation、路径、请求/响应 schema、security 与兼容性的产物，由项目自有生成器 **从各模块的代码优先（code-first）契约声明生成**。Go 代码是唯一权威；不再由 openapi.yaml 生成 Go 代码，也不再维护第二份手写路由/DTO 清单。
+`api/openapi.yaml` 是公开 HTTP operation、路径、请求/响应 schema、security 与兼容性的产物，由项目自有生成器 **从各模块的代码优先（code-first）契约声明生成**。Go 代码是唯一权威；不再由 openapi.yaml 生成 Go 代码，也不再维护第二份手写路由/DTO 清单。生成器默认从 `.scaffold/layout.json` 读取 OpenAPI 与 operation inventory 输出路径；只有临时外部消费才通过显式 flags 覆盖。
 
 ## 权威与生成
 

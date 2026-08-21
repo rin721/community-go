@@ -56,5 +56,6 @@
 - [049 项目规范门禁语境核验](049-project-rule-gate-context/README.md)：已完成；核验模块、配置、日志、WebUI、质量、发布与许可证规范的真实覆盖，修复“命令通过但目标未被扫描”和“Go 门禁冒充全项目门禁”的项目文档语境。
 - [050 项目门禁缺口实施](050-project-gate-implementation/README.md)：已确认并实施；WebUI 门禁改为动态发现模块，静态质量链接入本地脚本、CI 与 release，容器许可证标签与源码声明对齐。
 - [051 项目文档体系治理闭环](051-documentation-system-governance-closure/README.md)：已确认并实施；系统修复当前文档入口、范围、使用路径、模块/能力索引、历史污染与缺失说明，并建立文档影响记录、跨平台门禁和 CI 约束；`old-backend/` 明确排除。
+- [052 项目布局与可配置值集中声明](052-declarative-project-layout/README.md)：研究门禁已通过，计划待确认；拟集中声明 WebUI/模块 facet、生成物、工具/release 路径与开发 endpoint，并审计其他可配置化候选。
 
-下一个任务序号为 `052`。已完成记录只保存历史证据；当前行为必须回到根 [README](../../README.md) 和对应主题文档确认。
+下一个任务序号为 `053`。已完成记录只保存历史证据；当前行为必须回到根 [README](../../README.md) 和对应主题文档确认。

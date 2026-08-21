@@ -1,6 +1,6 @@
 # 本地启动指南
 
-本文是本仓库本地启动、首次配置和首次迁移的当前权威说明。更详细的字段含义见 [配置说明](../configuration/README.md)，生产迁移顺序见 [数据库迁移与回滚](../operations/migration-and-rollback.md)。
+本文是本仓库本地启动、首次配置和首次迁移的当前权威说明。应用默认配置文件路径由入口与 `config init` 共用的声明提供；当前默认值为根目录 `config.yaml`。更详细的字段含义见 [配置说明](../configuration/README.md)，生产迁移顺序见 [数据库迁移与回滚](../operations/migration-and-rollback.md)。
 
 ## 命令关系
 

@@ -1,7 +1,13 @@
-import { defineConfig } from "vite";
-import { fileURLToPath, URL } from "node:url";
+import { defineConfig, loadEnv } from "vite";
+import { join } from "node:path";
 import react from "@vitejs/plugin-react";
 import basicSsl from "@vitejs/plugin-basic-ssl";
+import { loadProjectLayout, loadWebUIDevConfig, resolveLayoutPaths } from "./scripts/project-layout.mjs";
+
+const project = loadProjectLayout();
+const { webuiRoot, repositoryRoot } = resolveLayoutPaths(project);
+const dev = loadWebUIDevConfig({ ...loadEnv(process.env.NODE_ENV ?? "development", webuiRoot, ""), ...process.env });
+const sdk = (path: string) => join(webuiRoot, path);
 
 export default defineConfig({
   plugins: [
@@ -10,26 +16,28 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      "@webui/sdk/runtime": fileURLToPath(new URL("./src/sdk/runtime/index.tsx", import.meta.url)),
-      "@webui/sdk/http": fileURLToPath(new URL("./src/sdk/http/index.ts", import.meta.url)),
-      "@webui/sdk/i18n": fileURLToPath(new URL("./src/sdk/i18n/index.ts", import.meta.url)),
-      "@webui/sdk/query": fileURLToPath(new URL("./src/sdk/query/index.ts", import.meta.url)),
-      "@webui/sdk/navigation": fileURLToPath(new URL("./src/sdk/navigation/index.ts", import.meta.url)),
-      "@webui/sdk/feedback": fileURLToPath(new URL("./src/sdk/feedback/index.tsx", import.meta.url)),
-      "@webui/sdk/ui": fileURLToPath(new URL("./src/sdk/ui/index.tsx", import.meta.url)),
-      react: fileURLToPath(new URL("./node_modules/react", import.meta.url)),
-      "react-i18next": fileURLToPath(new URL("./node_modules/react-i18next", import.meta.url)),
-      "@tanstack/react-query": fileURLToPath(new URL("./node_modules/@tanstack/react-query", import.meta.url)),
+      "@webui/sdk/runtime": sdk("src/sdk/runtime/index.tsx"),
+      "@webui/sdk/http": sdk("src/sdk/http/index.ts"),
+      "@webui/sdk/i18n": sdk("src/sdk/i18n/index.ts"),
+      "@webui/sdk/query": sdk("src/sdk/query/index.ts"),
+      "@webui/sdk/navigation": sdk("src/sdk/navigation/index.ts"),
+      "@webui/sdk/feedback": sdk("src/sdk/feedback/index.tsx"),
+      "@webui/sdk/ui": sdk("src/sdk/ui/index.tsx"),
+      react: sdk("node_modules/react"),
+      "react-i18next": sdk("node_modules/react-i18next"),
+      "@tanstack/react-query": sdk("node_modules/@tanstack/react-query"),
     },
   },
   server: {
-    fs: { allow: [".."] },
+    fs: { allow: [repositoryRoot] },
     https: {},
+    host: dev.host,
+    port: dev.port,
     strictPort: true,
     proxy: {
-      "/api/v1": "http://127.0.0.1:8080",
-      "/management": { target: "http://127.0.0.1:9090", rewrite: (path) => path.replace(/^\/management/, "") }
+      "/api/v1": dev.apiTarget,
+      "/management": { target: dev.managementTarget, rewrite: (path) => path.replace(/^\/management/, "") }
     }
   },
-  build: { outDir: "dist", sourcemap: false },
+  build: { outDir: join(webuiRoot, "dist"), sourcemap: false },
 });

@@ -12,9 +12,9 @@ func Binding() webui.Binding {
 	return webui.Binding{
 		ModuleID: string(module.ID("auth")),
 		Entries: []webui.Entry{
-			{ID: "auth.setup", SourcePath: "internal/module/auth/binding/webui/web/SetupPage.tsx"},
-			{ID: "auth.login", SourcePath: "internal/module/auth/binding/webui/web/LoginPage.tsx"},
-			{ID: "auth.session", SourcePath: "internal/module/auth/binding/webui/web/SessionPage.tsx"},
+			{ID: "auth.setup", SourcePath: "SetupPage.tsx"},
+			{ID: "auth.login", SourcePath: "LoginPage.tsx"},
+			{ID: "auth.session", SourcePath: "SessionPage.tsx"},
 		},
 		Routes: []webui.Route{
 			{ID: "auth.setup", Path: "/setup", EntryID: "auth.setup", TitleMessageID: "webui.auth.setup.title", Layout: webui.RouteLayoutBlank, DeliveryState: webui.DeliveryImplemented},
@@ -25,8 +25,8 @@ func Binding() webui.Binding {
 			{ID: "auth.session", RouteID: "auth.session", TitleMessageID: "webui.auth.session.title", IconID: "user", Order: 30},
 		},
 		Locales: []webui.Locale{
-			{Language: "en-US", Namespace: "webui.auth", SourcePath: "internal/module/auth/binding/webui/web/locale/en-US.json"},
-			{Language: "zh-CN", Namespace: "webui.auth", SourcePath: "internal/module/auth/binding/webui/web/locale/zh-CN.json"},
+			{Language: "en-US", Namespace: "webui.auth", SourcePath: "locale/en-US.json"},
+			{Language: "zh-CN", Namespace: "webui.auth", SourcePath: "locale/zh-CN.json"},
 		},
 		Requires: []webui.SDKRequirement{
 			{ID: "runtime", MajorVersion: 1},

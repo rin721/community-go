@@ -26,8 +26,9 @@ type Bootstrap struct {
 // BootstrapOptions 显式接收 application-owned 配置节和启动前命令契约。
 // 构造这些契约不得创建 Kernel、资源、listener 或 goroutine。
 type BootstrapOptions struct {
-	Configuration []config.Binding
-	Commands      []kernelcli.Contract
+	Configuration     []config.Binding
+	Commands          []kernelcli.Contract
+	DefaultConfigPath string
 }
 
 // ComposeBootstrap 只构造配置节契约、默认配置管理器和命令树。
@@ -41,8 +42,12 @@ func ComposeBootstrap(cfg pkgcli.Config, options BootstrapOptions) (Bootstrap, e
 	if err != nil {
 		return Bootstrap{}, fmt.Errorf("compose bootstrap configuration: %w", err)
 	}
+	defaultConfigPath := options.DefaultConfigPath
+	if defaultConfigPath == "" {
+		defaultConfigPath = kernelcli.DefaultConfigPath
+	}
 	contracts := make([]kernelcli.Contract, 0, len(options.Commands)+1)
-	contracts = append(contracts, kernelcli.ConfigCommands(manager))
+	contracts = append(contracts, kernelcli.ConfigCommands(manager, defaultConfigPath))
 	contracts = append(contracts, options.Commands...)
 	command, err := kernelcli.NewApp(cfg, contracts...)
 	if err != nil {

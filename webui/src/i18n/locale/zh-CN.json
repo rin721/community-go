@@ -65,6 +65,8 @@
   "webui.host.revision.detail": "服务端 manifest 与静态页面注册表版本不一致，已拒绝装配。",
   "webui.host.route.missing.title": "页面入口缺失",
   "webui.host.route.missing.detail": "模块声明的页面入口未出现在生成注册表中。",
+  "webui.host.route.error.title": "页面加载失败",
+  "webui.host.route.error.detail": "页面暂时无法显示，请返回首页后重试。",
   "webui.host.notImplemented.title": "能力尚未实现",
   "webui.host.notImplemented.detail": "页面契约已经稳定，但真实能力尚未交付。",
   "webui.host.unauthorized.title": "需要登录",

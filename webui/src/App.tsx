@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useState, type ComponentType } from "react";
+import { Component, lazy, Suspense, useCallback, useEffect, useState, type ComponentType, type ReactNode } from "react";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { HostRuntimeProvider, type HostRuntime, type Manifest, type ManifestRoute, type WebUISession } from "@webui/contracts";
 import { AppShell, BlankLayout } from "./components/AppShell";
@@ -56,7 +56,21 @@ function ManifestPage({ route, manifest }: { route: ManifestRoute; manifest: Man
   if (route.deliveryState === "not-implemented") return <SystemStatePage kind="notImplemented" />;
   const Page = entryComponents[route.entryId];
   if (!Page) return <SystemStatePage kind="missingEntry" />;
-  return <Suspense fallback={<PageLoading />}><Page /></Suspense>;
+  return <RouteErrorBoundary key={route.id}><Suspense fallback={<PageLoading />}><Page /></Suspense></RouteErrorBoundary>;
+}
+
+type RouteErrorBoundaryState = { hasError: boolean };
+
+class RouteErrorBoundary extends Component<{ children: ReactNode }, RouteErrorBoundaryState> {
+  state: RouteErrorBoundaryState = { hasError: false };
+
+  static getDerivedStateFromError(): RouteErrorBoundaryState {
+    return { hasError: true };
+  }
+
+  render() {
+    return this.state.hasError ? <SystemStatePage kind="routeError" /> : this.props.children;
+  }
 }
 
 function RootRedirect({ manifest }: { manifest: Manifest }) {

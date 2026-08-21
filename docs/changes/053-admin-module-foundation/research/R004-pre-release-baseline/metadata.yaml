@@ -8,7 +8,7 @@ keywords: ["origin/main", "git tag", "schema_migrations", "webui_users", "webui_
 applicable_scenarios: ["053 migration 策略", "首发前 schema 重整", "Todo 保留或移除", "本地开发数据库处理"]
 non_applicable_scenarios: ["正式 release 后升级", "外部生产数据库", "已承诺兼容的消费者", "用户数据自动删除"]
 status: active
-summary: "仓库没有正式 tag/release，当前本地库只有 1 个 WebUI 用户、4 个 Session 且没有 Todo 行；Todo 是默认学习示例而非底座依赖。053 不建立 Todo4 自动升级链，改为独立 Todo/Account 干净首发 baseline；Todo 暂时保留，本地数据库不在方案修订中删除。"
+summary: "仓库没有正式 tag/release，当前本地库只有 1 个 WebUI 用户、4 个 Session 且没有 Todo 行；Todo 是默认学习示例而非底座依赖。053 不建立 Todo4 自动升级链，改为 Todo 与后续 IAM/Organization/Navigation 各自拥有干净首发 baseline；Todo 暂时保留，本地数据库不在方案修订中删除。"
 evidence:
   types: ["git-state", "local-read-only-database", "project-decision", "user-decision"]
   primary_sources:
@@ -32,7 +32,7 @@ validity:
   refresh_triggers: ["创建正式 tag/release", "发现外部消费者或生产数据库", "用户要求保留现有本地账号", "Todo product role changes", "repository scope authority changes"]
 relations:
   extends: ["053/R001", "020/R003", "024/R008"]
-  related: ["043/R001", "046/R001"]
+  related: ["043/R001", "046/R001", "053/R005"]
   supersedes: []
   superseded_by: []
 report: report.md

@@ -7,7 +7,7 @@ topics: ["account", "auth", "authorization", "session", "migration", "http-contr
 keywords: ["webui_users", "webui_sessions", "Scopes", "operationPolicies", "applicationHTTPModules", "applicationWebUIModules", "account"]
 applicable_scenarios: ["053 账号权限模块", "本地多账号管理", "Core RBAC", "WebUI Session operation", "Auth 与 Account 分责"]
 non_applicable_scenarios: ["OIDC/SSO", "MFA", "多租户", "外部 IAM", "old-backend"]
-status: active
+status: superseded
 summary: "当前已有本地密码、单账号 setup/login、服务端 Session、CSRF/Origin、精确 scope 授权和静态 WebUI 菜单，但没有用户/角色/部门/岗位/菜单策略管理；账号表属于 Auth 运行代码却落在 Todo migration，HTTP dispatcher 仍只有 Todo，完整 Account 必须先完成 owner、认证 profile 与多模块装配收口。"
 evidence:
   types: ["source-code", "tests", "migration", "project-documentation", "prior-research"]
@@ -34,5 +34,5 @@ relations:
   extends: ["042/R001", "048/R001", "048/R003"]
   related: ["017/R001", "025/R001", "034/R001", "046/R001", "052/R002"]
   supersedes: []
-  superseded_by: []
+  superseded_by: ["053/R005"]
 report: report.md

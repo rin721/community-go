@@ -48,8 +48,8 @@ webui_sessions    = 4
 
 1. Todo 保留为学习示例，只拥有 Todo schema、配置、API、CLI、WebUI 与测试。
 2. Todo 当前 `000001..000004` 收敛为表达最终 Todo schema 的新 `000001`；当前源码不再保存 expand/backfill 或 Auth 表历史步骤。
-3. Account 从独立 `000001` 创建账号、凭据、Session、RBAC、部门、岗位和菜单策略；不读取 `webui_users`，不迁移 password hash，不依赖 Todo version 4。
-4. Migration catalog 使用 `todo_schema_migrations` 与 `account_schema_migrations` 两个独立 version table，按确定顺序运行，但不存在跨 set 数据依赖。
+3. 054 IAM、055 Organization、056 Navigation 分别从独立 `000001` 创建自己拥有的最终 schema；不读取 `webui_users`，不迁移 password hash，不依赖 Todo version 4。
+4. Migration catalog 先在 053 建立 `todo_schema_migrations`，再由 054–056 依次加入 `iam_schema_migrations`、`organization_schema_migrations`、`navigation_schema_migrations`；各 set 独立、按确定顺序运行，不建立跨 set 历史迁移依赖。
 5. 检测到退休的 `schema_migrations`、`webui_users` 或 `webui_sessions` 时，status/up 返回稳定的 `pre_release_baseline_reset_required`，不继续写入、不静默共存，也不自动删除数据。
 6. Git 与历史 `docs/changes` 保留演进证据；当前 migration、源码和主题文档只表达首发目标状态。
 
@@ -58,10 +58,10 @@ webui_sessions    = 4
 ## 4. 对 053 的影响
 
 - 删除 requirements/design/tasks 中的 Todo4 upgrade、旧用户迁移、旧 Session 迁移和旧表自动删除要求。
-- 保留多 migration set 能力，因为当前应用同时保留 Todo 与新增 Account 两个 schema owner；两个 set 独立，无历史迁移依赖。
+- 保留多 migration set 能力，因为当前应用保留 Todo，并将新增 IAM、Organization、Navigation 三个 schema owner；各 set 独立，无历史迁移依赖。
 - Migration 验收改为 fresh、repeat、dirty/incompatible、退休 baseline 拒绝和三驱动 checksum；不再验收 Todo4 自动升级。
 - E2E 在临时数据库运行。默认 `.data/app.db` 不属于实现或自动化测试目标，后续重建需要独立明确授权。
-- 053 修订后重新进入“计划待确认”；用户本轮对修改方向的确认不是非文档实施确认。
+- 053–056 分别进入“计划待确认”；用户对修改方向的确认不是任何一项非文档实施确认。
 
 ## 5. 刷新条件
 

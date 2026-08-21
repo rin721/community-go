@@ -7,7 +7,7 @@ topics: ["user-management", "department", "position", "menu", "webui-catalog", "
 keywords: ["Binding.Navigation", "ManifestMenu", "RouteID", "ParentID", "department", "position", "menu policy"]
 applicable_scenarios: ["053 用户管理", "部门与岗位管理", "菜单管理", "角色权限树", "WebUI runtime manifest"]
 non_applicable_scenarios: ["运行时远程页面", "Module Federation", "部门数据范围", "多租户", "任意 external link"]
-status: active
+status: superseded
 summary: "当前菜单是模块 Binding 的构建期不可变声明并由 manifest 按权限过滤；053 可持久化已注册 NavigationID 的启停/父子/排序策略并把菜单权限树投影到 Role-Permission，但不能从数据库创建页面、component path 或第二套授权关系。部门首版为无环树，岗位为独立目录，用户关联一个主部门和多个岗位，不自动获得跨业务数据范围。"
 evidence:
   types: ["source-code", "tests", "project-documentation", "user-requirement"]
@@ -34,5 +34,5 @@ relations:
   extends: ["048/R001", "048/R003"]
   related: ["047/R001", "052/R001", "053/R001", "053/R002"]
   supersedes: []
-  superseded_by: []
+  superseded_by: ["053/R005"]
 report: report.md

@@ -41,7 +41,7 @@
 | CORS/安全头/CSRF | CORS、安全头和 Same-Origin/CSRF 为项目中间件；当前安全头只覆盖三个基础 header | **专项复核，不机械全换** | CORS 比较 `rs/cors`；安全头比较 `unrolled/secure` 与项目显式 policy；依据 API 与 WebUI 交付方式补齐 HSTS/CSP/COOP 等部署语义，CSRF 继续由 IAM session 边界拥有 |
 | 限流/过载 | 单进程全局 token bucket 与并发上限均为自研 | **替换通用算法，保留边界语义** | `golang.org/x/time/rate` 承担单进程 token bucket；并发上限继续可由有界 semaphore 表达；分布式配额或业务 quota 必须另立网关/Redis 方案，不能伪装成本地 limiter |
 | 重试/熔断 | `pkg/resilience` 自研固定指数退避和只能手工 Reset 的连续失败 breaker | **替换候选优先** | `failsafe-go` 作为组合策略首选；若只需 breaker，比较 `sony/gobreaker/v2`，重试退避可比较已在依赖树中的 `cenkalti/backoff/v5`；项目只保留策略命名、错误分类和观测边界 |
-| 序列化 | 标准 `encoding/json`、`msgpack/v5`、旧 `gopkg.in/yaml.v3`，项目 Codec 仅统一内容类型和大小限制 | **保留 JSON/msgpack，升级 YAML** | YAML 迁移到维护中的 `go.yaml.in/yaml/v4`，用现有配置/本地化 fixture 验证 v3/v4 行为；不为三个函数建立更厚 Wrapper |
+| 序列化 | 标准 `encoding/json`、cache 私有 `msgpack/v5`、已归档 `gopkg.in/yaml.v3`；自研 `pkg/codec` 无仓库内消费者 | **保留标准 JSON；迁移官方稳定 YAML v3；退役无价值 Codec；cache wire format 独立决策** | 直接 YAML import 迁移到 `go.yaml.in/yaml/v3 v3.0.5`；v4 当前仅 RC，不进入 production direct dependency。删除 `pkg/codec`，各协议 owner 直接使用库；MessagePack/JSON/CBOR 的 cache wire 选择归 CACHE 任务，不机械换格式 |
 | 配置 | 自研 strict binding/defaults/watch/atomic file，YAML + mapstructure；Viper 只是工具依赖的间接依赖 | **保留项目语义，复核是否过度承担通用解析** | 比较当前 parser 与 `koanf v2` 的 provider/parser 组合；只替换能减少依赖和自研解析的部分，owner、未知节拒绝、候选验证和失败保留旧代仍属项目语义 |
 | 定时调度 | `gocron/v2` 触发器 + 项目 schedule binding/execution/Redis lease | **保留** | `gocron/v2` 继续只在内部 Adapter；项目契约拥有任务身份、execution、准入、失权和诊断；耐久任务/工作流不是该能力，需按真实需求另评 `Temporal`、`River` 或 `Asynq` |
 | Messaging | 官方 `amqp091-go` + 项目 message contract/binding/consumer lifecycle | **保留，等待真实 RabbitMQ 门禁** | RabbitMQ Adapter 继续隔离 broker 类型；Kafka/NATS 不在没有业务语义时预选 |
@@ -73,7 +73,7 @@ HTTP 重试、熔断、限流、缓存加载和执行恢复都涉及幂等、失
 ## 实施门禁与顺序
 
 1. **安全止血**：升级受公告影响的依赖，重建与 Go 1.26 匹配的扫描工具，运行 `govulncheck`、测试和契约负向门禁。
-2. **低耦合替换**：先退役当前无收益且语义不完整的默认 L1；`x/time/rate`、YAML v4、JWX v4 分别做小范围 PoC 和单轨迁移。未来 L1 必须由真实消费者和量化门禁重新授权。
+2. **低耦合替换**：先退役当前无收益且语义不完整的默认 L1；迁移官方稳定 YAML v3 路径并删除无消费者 Codec；`x/time/rate`、JWX v4 分别做小范围 PoC 和单轨迁移。未来 L1 与 YAML v4 必须由真实需求、稳定版本和量化门禁重新授权。
 3. **策略层重构**：统一 HTTP/execution 的 retry、timeout、circuit、bulkhead 语义，再决定 `failsafe-go` 或较小组合。
 4. **高耦合 PoC**：以真实模块比较 Huma、当前 HTTP DSL；以真实查询比较当前 Repository、GORM Gen、sqlc。
 5. **架构切片**：根据 owner/reload 矩阵把一个不需要动态换代的模块或能力移回静态平面，证明启动、重载、停止和回滚收益后再扩大。

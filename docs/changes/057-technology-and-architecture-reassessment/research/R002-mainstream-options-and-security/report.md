@@ -13,7 +13,7 @@
 | kin-openapi | [Releases](https://github.com/getkin/kin-openapi/releases)、[fail-open 公告](https://github.com/getkin/kin-openapi/security/advisories/GHSA-r277-6w6q-xmqw)、[request validation DoS 公告](https://github.com/getkin/kin-openapi/security/advisories/GHSA-jpcw-4wr7-c3vq)、[response header panic 公告](https://github.com/getkin/kin-openapi/security/advisories/GHSA-74vm-87hj-r66f) | 当前/修复版本与触发范围 |
 | L1 Cache | [patrickmn/go-cache releases](https://github.com/patrickmn/go-cache/releases)、[Otter](https://github.com/maypok86/otter)、[ttlcache](https://github.com/jellydator/ttlcache) | 维护状态、容量/TTL/生命周期候选；Otter 为 Apache-2.0，ttlcache 为 MIT |
 | HTTP/SQL/韧性 | [Huma](https://github.com/danielgtaylor/huma)、[sqlc](https://github.com/sqlc-dev/sqlc)、[failsafe-go](https://github.com/failsafe-go/failsafe-go) | code-first/chi、类型安全 SQL、组合韧性能力；三者均为宽松开源许可证候选 |
-| 序列化与身份 | [YAML maintained fork](https://github.com/yaml/go-yaml)、[JWX releases](https://github.com/lestrrat-go/jwx/releases) | v3/v4 维护边界与 JWX major 演进 |
+| 序列化与身份 | [YAML maintained fork](https://github.com/yaml/go-yaml)、[JWX releases](https://github.com/lestrrat-go/jwx/releases) | v3 stable/v4 RC 维护边界与 JWX major 演进 |
 | 授权 | [Apache Casbin](https://github.com/apache/casbin)、[OpenFGA](https://github.com/openfga/openfga) | domain/ABAC 与 ReBAC 候选边界；两者为 Apache-2.0 |
 | 标准机制与安全基线 | [`x/time/rate`](https://pkg.go.dev/golang.org/x/time/rate)、[OWASP Password Storage](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html) | token bucket 与 Argon2id 当前最低建议 |
 
@@ -23,7 +23,7 @@
 
 - `patrickmn/go-cache` 最新 release 仍是 2017 年的 `v2.1.0`。它能工作不等于仍是当前默认候选，尤其当前项目还缺少 L1 容量上界。
 - 当前 `kin-openapi v0.142.0` 低于本次研究时最新 `v0.147.0`。官方公告显示 `<=0.143.0` 存在请求验证未授权拒绝服务和 `ValidationHandler` fail-open 问题，`<=0.145.0` 还有响应 header 验证 panic；项目当前调用路径并不等同于全部公告触发路径，但旧版本仍应优先升级并做负向验证。
-- `gopkg.in/yaml.v3` 所在官方项目说明 v3 处于 legacy security-fix 状态，持续开发迁往 `go.yaml.in/yaml/v4`；迁移必须用项目现有配置与本地化 fixture 验证差异。
+- 原 `gopkg.in/yaml.v3` 仓库已归档；官方 YAML 组织维护的 `go.yaml.in/yaml/v3` 提供稳定安全修复线，持续开发迁往 v4。R004 复核时 v4 仍只有 RC，因此不能直接作为生产依赖。
 
 030-R002 的版本更新刷新条件已经触发，因此其 metadata 标记为 `needs-refresh`。该历史记录仍能证明当时的生成路径可行性，但不能继续作为 `kin-openapi v0.142.0` 当前维护或安全状态的证据。
 
@@ -48,7 +48,7 @@
 ## 事实、推断与目标设计分离
 
 - **事实：** 上述库在本次验证日期有官方维护、release 或安全文档；这只证明候选资格。
-- **推断：** `kin-openapi` 升级、默认 L1 退役、YAML v4 迁移和标准 token bucket 是低耦合优先项；是否重新引入 L1 必须由真实消费者和量化预算决定。
+- **推断：** `kin-openapi` 升级、默认 L1 退役、YAML 官方稳定 v3 路径迁移和标准 token bucket 是低耦合优先项；是否重新引入 L1 或采用 YAML v4 必须由真实收益和稳定版本决定。
 - **目标设计：** Huma、sqlc/GORM Gen、failsafe-go、koanf、JWX v4 和静态/动态架构分工必须经项目真实用例 PoC 后才能成为实施结论。
 
 ## 局限与刷新条件
@@ -75,3 +75,7 @@
 ## Cache 计划刷新（2026-08-22）
 
 [R003](../R003-cache-l1-necessity-and-candidate-fit/report.md) 进一步确认当前没有 production typed cache 消费者，现有 L1 无容量上界且没有跨实例失效。成熟候选只能替换本地容器，不能解决该一致性缺口。因此 `CACHE-057-001` 修订为先退役默认 L1 与 `patrickmn/go-cache`、保留 Redis typed cache/tag 边界；Otter v2/ttlcache v3 只在真实消费者给出量化收益与一致性预算后再做 PoC。
+
+## Serde 计划刷新（2026-08-22）
+
+[R004](../R004-serde-runtime-boundary-and-yaml-path/report.md) 确认 `go.yaml.in/yaml/v4` 当前仍只有 `v4.0.0-rc.6`，不满足稳定 production dependency 门禁；官方稳定安全维护线为 `go.yaml.in/yaml/v3 v3.0.5`。项目自研 `pkg/codec` 又没有仓库内消费者。因此 `SERDE-057-001` 修订为先迁移官方稳定 v3 import、删除无边界价值的 Codec Wrapper，并在 v4 stable 后按实际收益重新评估。

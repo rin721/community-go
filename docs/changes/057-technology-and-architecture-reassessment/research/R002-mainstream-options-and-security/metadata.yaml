@@ -9,7 +9,7 @@ technologies: ["kin-openapi", "Huma", "ogen", "GORM", "sqlc", "Otter", "ttlcache
 applicable_scenarios: ["057 技术矩阵", "安全升级", "依赖替换 PoC", "后续模块能力评估"]
 non_applicable_scenarios: ["未经 PoC 的生产迁移结论", "GitHub 热度排名", "具体业务需求尚未出现的重量级平台选型"]
 status: active
-summary: "官方证据支持保留多项现有成熟依赖；SEC-057-001 已把 kin-openapi 单轨升级到 v0.147.0 并关闭可达漏洞。R003 已将 patrickmn/go-cache 路径修订为先退役无真实消费者的默认 L1；HTTP 契约、Repository、韧性、配置、鉴权与授权 PoC 仍按真实用例分批确认。"
+summary: "官方证据支持保留多项现有成熟依赖；SEC-057-001 已升级 kin-openapi。R003 将 cache 路径修订为退役默认 L1；R004 确认 YAML v4 仍为 RC，改为先迁移官方稳定 v3 并退役无消费者 Codec。其余高耦合能力仍按真实用例分批确认。"
 evidence:
   types: ["official-repository", "official-release", "security-advisory", "standard-library-doc", "security-standard"]
   primary_sources:

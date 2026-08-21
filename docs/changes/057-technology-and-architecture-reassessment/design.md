@@ -4,7 +4,7 @@
 
 本变更不选择“一套框架接管一切”，而是建立两层决策：先判断通用实现是否应复用成熟方案，再判断当前架构是否为合适载体。输出是可追踪矩阵和分批实施队列，不是技术名录。
 
-依据：[R001 当前实现与架构事实](research/R001-current-capability-and-architecture-audit/report.md)、[R002 外部候选与安全事实](research/R002-mainstream-options-and-security/report.md)、[R003 L1 必要性与候选适配](research/R003-cache-l1-necessity-and-candidate-fit/report.md)。
+依据：[R001 当前实现与架构事实](research/R001-current-capability-and-architecture-audit/report.md)、[R002 外部候选与安全事实](research/R002-mainstream-options-and-security/report.md)、[R003 L1 必要性与候选适配](research/R003-cache-l1-necessity-and-candidate-fit/report.md)、[R004 序列化与 YAML 稳定路径](research/R004-serde-runtime-boundary-and-yaml-path/report.md)。
 
 ## 决策流程
 
@@ -55,7 +55,9 @@
 - Cache：单轨退役当前无真实消费者、无容量上界且不能跨实例失效的默认 L1，删除 `patrickmn/go-cache`、本地 tag map、cleanup goroutine 与专属配置；保留 Redis typed cache/tag、序列化和 Kernel 共享资源 owner。
 - Cache miss：`GetOrLoad`/`GetMany` 只有 `ErrNotFound` 可按 miss 处理，取消、disabled、backend 与 codec 错误必须完整返回。
 - 不在本批引入另一 L1 库。未来真实消费者同时给出命中收益、内存 budget、陈旧预算和多实例一致性模型后，按高并发/weight 需求优先 PoC Otter v2，按简单 TTL/容量需求 PoC ttlcache v3。
-- YAML：迁移 `go.yaml.in/yaml/v4`，用配置、本地化、生成物 fixture 验证。
+- Serde：把全部项目直接 YAML import 从已归档 `gopkg.in/yaml.v3` 单轨迁移到官方稳定 `go.yaml.in/yaml/v3 v3.0.5`；v4 当前仍为 RC，不提升为 direct dependency。
+- 删除零消费者 `pkg/codec`，不保留兼容包；标准 JSON 由协议 owner 直接使用，cache 私有 MessagePack wire format 不在本任务暗改。
+- 用 config duplicate/strict/default golden、i18n fixture、OpenAPI generation golden、docs guard 和完整 Go 门禁验证；v4 stable 后另按格式、安全限制和可删除自研逻辑的实际收益评估。
 - 限流：以 `x/time/rate` 替换进程内 token bucket 算法，保留 load-shedding 语义。
 - JWX：复核 v4 API/安全迁移；不顺带引入 OIDC。
 

@@ -3,14 +3,14 @@
 ## 研究问题
 
 1. 当前业务模块和通用能力实际依赖什么，哪些属于标准库、成熟第三方、项目特有逻辑或自研通用机制？
-2. 当前版本、维护状态、安全记录和生产适用范围是否仍支持继续采用？
+2. 当前版本、维护状态、安全记录、稳定级别和生产适用范围是否仍支持继续采用？
 3. 哪些问题应通过替换实现解决，哪些应保留，哪些实际来自 Kernel/Application Generation 承载架构？
 4. 后续实施应如何分批，才能把安全止血、低耦合升级、高耦合 PoC 和架构重构分开验证？
 
 ## 检索与复用
 
 - 已检索 `docs/**/research/**/metadata.yaml`，复核 030 HTTP 契约、037 调度、038 消息与根 `docs/research/001`、`002` 的既有结论。
-- 内部事实以 Commit `ae26ace97a7d4e0478a8238a787bc03513c387bf` 的源码、`go.mod`、composition、实际调用方和测试为准。
+- 初始全仓审计以 Commit `ae26ace97a7d4e0478a8238a787bc03513c387bf` 为快照；R003/R004 分别按各自 metadata 中的后续 Commit 重新追踪 cache 与 serde 当前事实，不能用初始快照覆盖深化研究。
 - 外部事实优先使用项目官方仓库、release、安全公告、标准库文档和 OWASP 指南；GitHub 热度仅用于发现候选，不作为采用理由。
 
 ## 记录
@@ -19,7 +19,9 @@
 | --- | --- | --- | --- |
 | [R001](R001-current-capability-and-architecture-audit/report.md) | 当前能力与承载架构审计 | active | 现有实现混合成熟依赖、项目边界和多项自研通用机制；动态 Generation 范围需要重新收敛 |
 | [R002](R002-mainstream-options-and-security/report.md) | 成熟候选、维护与安全核验 | active | 可形成明确保留/升级/替换/PoC 队列；安全升级与长期架构复核必须拆分 |
+| [R003](R003-cache-l1-necessity-and-candidate-fit/report.md) | L1 必要性、一致性与候选适配 | active | 无 production typed cache 消费者且现有 L1 无容量/跨实例失效；先退役而非机械换库 |
+| [R004](R004-serde-runtime-boundary-and-yaml-path/report.md) | 序列化边界与 YAML 稳定路径 | active | v4 仍为 RC；先迁移官方稳定 v3，并退役无消费者 Codec Wrapper |
 
 ## 研究门禁
 
-关键问题已有可复核证据，事实、推断和目标设计已分离；未完成 PoC、基准与当前工具链漏洞扫描不妨碍形成分批计划，但禁止据此直接宣称候选已适配或授权生产迁移。因此研究门禁通过，非文档计划保持待确认。
+关键问题已有可复核证据，事实、推断和目标设计已分离；SEC-057-001 已完成当前工具链漏洞扫描。未完成的 cache/serde PoC 或兼容验证不妨碍形成修订计划，但禁止据此宣称候选已适配或授权生产迁移。因此研究门禁通过，非文档计划保持待确认。

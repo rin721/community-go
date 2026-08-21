@@ -25,7 +25,7 @@ go run ./cmd/app db migrate up
 
 已有 `config.yaml` 时不要重复执行 `config init`，也不要使用 `--force` 覆盖本地配置。
 
-043 在尚未发布的早期基线上把 000004 migration 单轨改成了 `webui_users`/`webui_sessions`。如果当前本地数据库曾执行旧版 000004，它虽然显示 version 4，但不会自动获得新表名。无保留价值的开发数据应先备份数据库文件，再重建本地数据库并重新执行 `db migrate up`；需要保留数据时不要直接删除数据库，应先制定一次性表重命名操作。Agent 不会自动修改或删除现有本地数据。
+当前 WebUI 数据库表由现行 migration set 管理，使用本地旧数据库时先执行 `go run ./cmd/app db migrate status`，确认版本后再执行 `db migrate up`。如果数据库来自不兼容的历史 schema，不要直接删除或覆盖数据；先备份数据库文件，再为数据保留制定一次性迁移方案。Agent 不会自动修改或删除现有本地数据。
 
 ## 2. 启动后端
 

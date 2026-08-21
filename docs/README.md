@@ -7,6 +7,7 @@
 ## 1. 认识项目
 
 - [根 README](../README.md)：项目定位、五分钟启动、架构摘要和文档权威边界。
+- [项目范围与当前状态](repository-scope.md)：当前构建范围、WebUI、frontend、排除目录、生产交付和身份边界。
 - [AGENTS.md](../AGENTS.md)：AI Agent 协作规则、工程红线和研究计划门禁。
 - [API 文档](../api/README.md)：当前 OpenAPI、operation inventory 和 code-first 契约生成入口。
 
@@ -14,6 +15,8 @@
 
 - [本地启动指南](getting-started/local-development.md)：`config init`、数据库迁移、Service 启动、readiness 和常见启动错误。
 - [WebUI 本地启动指南](getting-started/webui.md)：后端与 Vite 双终端启动、Setup Token、首次设置、HTTPS Session 和排障。
+- [WebUI 局部 README](../webui/README.md)：WebUI 目录命令、质量入口、模块边界和生产交付限制。
+- [首次使用与最小验收](getting-started/first-use.md)：WebUI Setup/登录、Todo CLI/API 与 management readiness 的当前验收路径。
 - [配置说明](configuration/README.md)：配置来源、环境变量覆盖、owner、strict binding、reload 与密钥边界。
 - [数据库迁移与回滚](operations/migration-and-rollback.md)：迁移状态、前滚、回滚和 dirty 处理。
 
@@ -32,6 +35,7 @@
 - [开发指南](development/README.md)：业务模块开发和能力接入的统一入口。
 - [应用模块开发指南](development/application-module-development.md)：新增业务模块时的能力评估、目录职责、HTTP/config/cli/migration/i18n/schedule/message binding。
 - [开发日志规范](development/logging.md)：结构化日志事件、级别、字段、脱敏和验证要求。
+- [文档治理规范](development/documentation-governance.md)：新增技术、模块、功能、配置和交付变化时的文档责任与影响记录。
 - [业务模块接入 execution 能力](development/execution-capability.md)：幂等、失败重试、执行记录、Trace 和多实例边界。
 - [业务模块接入定时调度能力](development/scheduled-task-capability.md)：cron/fixedDelay、分布式执行权、恢复和运维覆盖。
 - [业务模块接入消息系统适配能力](development/messaging-capability.md)：Message Contract/Binding、Provider、Publisher、Consumer 和可靠性语义。
@@ -42,6 +46,7 @@
 - [交付与运维](operations/README.md)：构建、容器、迁移、发布、复制、安全、定时任务、消息系统和排障入口。
 - [定时任务运维](operations/scheduled-tasks.md)：调度配置、执行权、健康和恢复观察。
 - [消息系统运维](operations/messaging.md)：Provider 配置、RabbitMQ topology、恢复和未验证门禁。
+- [运行能力矩阵](operations/runtime-capabilities.md)：Cache、Storage、Observability、Execution、WebUI 等能力的配置、资源和验证边界。
 
 ## 6. 理解架构
 
@@ -73,7 +78,7 @@
 
 - [研究档案与报告](research/README.md)：结构化研究格式、复用规则和项目级研究索引。
 - [任务级变更记录](changes/README.md)：每个变更的需求、设计、任务和验证证据。
-- [040 项目文档体系系统重构](changes/040-documentation-system-rebuild/README.md)：当前文档体系重构的研究、计划、审计矩阵与验证账本。
+- [任务级变更记录](changes/README.md)：历史实施、研究、计划和验证证据；不作为当前行为 authority。
 
 ## 维护边界
 

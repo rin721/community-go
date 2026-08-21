@@ -1,6 +1,6 @@
-# go-scaffold-template
+# go-scaffold-template / community-go
 
-`go-scaffold-template` 是一个 Go HTTP 服务脚手架，用显式 composition root 串联配置、日志、数据库、迁移、HTTP、management、后台任务、定时调度、消息系统和业务模块。当前默认应用包含 Todo 垂直切片，可作为本地开发、模块扩展和交付流程的参考实现。
+当前仓库 remote 是 `rin721/community-go`，根 Go module 和构建产物仍使用 `go-scaffold-template` 身份；这个身份差异已记录在[项目范围与当前状态](docs/repository-scope.md)，最终身份迁移不在本次文档治理中。根 Go 工程使用显式 composition root 串联配置、日志、数据库、迁移、HTTP、management、后台任务、定时调度、消息系统和业务模块；当前默认应用包含 Todo 垂直切片。
 
 ## 五分钟本地启动
 
@@ -20,7 +20,33 @@ Invoke-RestMethod http://127.0.0.1:9090/readyz
 
 停止服务使用 `Ctrl+C`，正常退出会打印 draining/stopped 相关日志。
 
-需要同时启动浏览器 WebUI 时，后端还要提供首次设置 Token，并在第二个终端运行 Vite；完整命令见 [WebUI 本地启动指南](docs/getting-started/webui.md)。
+## 全栈 WebUI 本地启动
+
+根 `webui/` 是当前质量链已接入的 Admin WebUI。本地联调需要两个终端；先准备 setup token，再启动 Go 服务：
+
+终端 A（仓库根目录）：
+
+```powershell
+$env:APP_AUTH__LOCAL__SETUPTOKEN = "change-me-before-use"
+go run ./cmd/app config init
+go run ./cmd/app db migrate up
+go run ./cmd/app
+```
+
+终端 B（仓库根目录）：
+
+```powershell
+corepack enable
+corepack install --global pnpm@10.22.0
+Set-Location webui
+pnpm install
+pnpm generate:check
+pnpm dev
+```
+
+浏览器访问 `https://127.0.0.1:5173`，按页面提示完成首次设置和登录。Vite 开发服务器使用本地 HTTPS；后端 CORS/Auth Origin 必须允许该来源。完整参数、Setup 失败处理和安全边界见 [WebUI 本地启动指南](docs/getting-started/webui.md)。
+
+启动后可按 [首次使用与最小验收](docs/getting-started/first-use.md) 验证 WebUI、Todo CLI/API 和 management readiness。当前 Docker/release 尚未打包或托管 `webui/dist`，不能把本地 Vite 启动当作生产静态交付。
 
 如果本地已经存在 `config.yaml`，`config init` 会拒绝覆盖。不要为了“重新生成”随手使用 `--force`；需要对比时先输出到临时路径，详细关系见 [本地启动指南](docs/getting-started/local-development.md) 与 [配置说明](docs/configuration/README.md)。
 
@@ -31,11 +57,14 @@ Invoke-RestMethod http://127.0.0.1:9090/readyz
 | 阅读节点 | 入口 |
 | --- | --- |
 | 本地启动与首次迁移 | [本地启动指南](docs/getting-started/local-development.md) |
+| 项目范围、当前实现与未决边界 | [项目范围与当前状态](docs/repository-scope.md) |
+| WebUI、Todo/API 和 management 首次验收 | [首次使用与最小验收](docs/getting-started/first-use.md) |
 | 配置来源、环境变量和默认配置生成 | [配置说明](docs/configuration/README.md) |
 | 应用模块、日志、执行、调度和消息开发 | [开发指南](docs/development/README.md) |
 | Kernel、Application Generation 和模块边界 | [架构说明](docs/architecture/README.md) |
 | API 路由与契约生成结果 | [API 文档](api/README.md) |
 | 构建、迁移、发布、复制、安全、排障和运行维护 | [运维文档](docs/operations/README.md) |
+| 当前运行能力、外部资源和验证状态 | [运行能力矩阵](docs/operations/runtime-capabilities.md) |
 | 研究快照与任务证据 | [研究档案](docs/research/README.md)、[变更记录](docs/changes/README.md) |
 
 ## 架构摘要
@@ -52,7 +81,8 @@ Invoke-RestMethod http://127.0.0.1:9090/readyz
 - `docs/changes/**` 保存任务级研究、计划、实施和验证证据，不替代当前主题文档。
 - `docs/research/**` 保存阶段性研究快照，不把目标设计写成已经实现的能力。
 - `pkg/**/README.md` 与 `internal/**/README.md` 是局部包说明，由主题文档链接进入，不作为全局阅读入口。
-- 新增或修改能力时，先更新对应主题 authority；局部 README 只保留本包或本模块的实现边界和到 authority 的链接。
+- `old-backend/` 是本次文档治理明确排除的目录，不属于当前 authority、链接图或质量门禁。
+- 新增或修改能力时，必须按[文档治理规范](docs/development/documentation-governance.md)评估对应主题，并提交文档影响记录；局部 README 只保留本包或本模块的实现边界和到 authority 的链接。
 
 ## License
 

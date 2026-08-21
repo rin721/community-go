@@ -16,9 +16,9 @@ bash scripts/verify-quality.sh
 
 两个入口都会验证格式、`go.mod`、生成物、test、race、vet、CGO-free build 和禁止跟踪的产物。安全扫描由 CI 的独立门禁执行，避免把“本机没有扫描器”静默视为通过。
 
-这两个 `Verify-Quality` 入口是 Go 后端与仓库产物门禁，不安装 Node/pnpm，也不执行 WebUI 的 lint、typecheck、unit、build、E2E 或 registry clean check。WebUI 另有 `./scripts/Verify-WebUI.ps1` 与 `bash scripts/verify-webui.sh`，固定执行生成检查、冻结安装、lint、模块 lint、typecheck、test 和 build；它们不启动 Go 服务或 Playwright。只运行任一单一入口不得表述为“项目全部质量门禁通过”。
+这两个 `Verify-Quality` 入口是 Go 后端与仓库产物门禁，不安装 Node/pnpm，也不执行 WebUI 的 lint、typecheck、unit、build、E2E 或 registry clean check。WebUI 另有 `./scripts/Verify-WebUI.ps1` 与 `bash scripts/verify-webui.sh`，固定执行生成检查、冻结安装、lint、模块 lint、typecheck、test 和 build；文档拓扑与变更影响另有 `./scripts/Verify-Docs.ps1` 与 `bash scripts/verify-docs.sh`。这些入口都不启动 Go 服务或 Playwright。只运行任一单一入口不得表述为“项目全部质量门禁通过”。
 
-`.github/workflows/quality.yml` 已分别提供 Windows/Linux WebUI 静态 job，正式 release job 也在 Go release gate 前运行 Linux WebUI 静态入口。Playwright E2E、视觉、外部协议和容器 runtime 仍是独立验收，不因这些静态 job 通过而自动完成。
+`.github/workflows/quality.yml` 分别提供 Windows/Linux Go、WebUI 和 Docs 静态 job；正式 release job 也会在 Go/WebUI gate 前运行 Linux Docs 和 WebUI 静态入口。Playwright E2E、视觉、外部协议和容器 runtime 仍是独立验收，不因这些静态 job 通过而自动完成。
 
 ## OCI image
 

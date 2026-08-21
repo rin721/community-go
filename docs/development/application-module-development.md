@@ -96,7 +96,7 @@ composition root 从现有稳定能力取出模块真正需要的最小接口并
 
 只满足跨业务复用但不需要进程选择的普通库，可以评估进入 `pkg`，但不得虚构 Kernel App 组件。只服务一个模块，即使拥有 SDK、Client、cache、连接或 goroutine，也继续收口在该模块并通过 contribution/Participant 管理生命周期。
 
-业务专属与底层 Capability 是互斥分类。当前 Observability 同时覆盖 Auth/Todo 业务 HTTP 与 Ops management/diagnostics，且 registry/provider/exporter 由进程统一选择和治理，因此满足双条件；[027](../changes/027-business-module-third-party-isolation/README.md) 已将具体实现迁到 Kernel App，Ops 与 application composition 只消费项目自有契约。
+业务专属与底层 Capability 是互斥分类。当前 Observability 同时覆盖 Auth/Todo 业务 HTTP 与 Ops management/diagnostics，且 registry/provider/exporter 由进程统一选择和治理，因此进入 Kernel App；Ops 与 application composition 只消费项目自有契约。能力状态和验证边界见[运行能力矩阵](../operations/runtime-capabilities.md)。
 
 ### 3.4 证据不足
 
@@ -144,7 +144,7 @@ model <- service <- repo
 
 HTTP 的固定构造顺序是 `模块顶层 typed Handler + binding 契约/装箱 → composition 聚合 contract + 运行期 handler → transport 一次绑定契约校验与路由 → application Router → Server`。最外层 Router 只拥有全局 middleware 和一次 API route tree 挂载；生成器从模块契约渲染 `api/openapi.yaml` 与 operation inventory。新增模块只增加自身 Handler/运行期 handler、契约声明、aggregate 转发与 composition 连接，不修改既有模块 Handler，不复制 method/path 或完整 Router，也不写第二份全局 OpenAPI。
 
-### 4.1 统一 binding 契约清单（033）
+### 4.1 统一 binding 契约清单
 
 业务模块按需提供以下 binding / 接入契约，每类的声明位置、接入方式、维护位置统一如下。仅按真实需要建立对应的 binding，不为了目录对称创建空层。
 
@@ -164,7 +164,7 @@ HTTP 的固定构造顺序是 `模块顶层 typed Handler + binding 契约/装�
 - 若暴露 HTTP operation：必须提供 `handler/` + `binding/http` 的 `ModuleContract`/`RuntimeHandlers`，**并在两处接入**：`internal/composition` 负责运行时装配（policy 汇总、observability operations、route binding、依赖注入），`internal/tools/contract-gen` 的 `registeredModules()` 生成器注册点负责 build-time 渲染 `api/openapi.yaml` 与 operation inventory；新增模块不得只在 composition 装配而漏掉契约注册（否则 `go generate` 不渲染），也不得退化为手写固定路由。
 - 若有用户可见翻译：必须提供 i18n binding（自有语言资源 + `binding/i18n`），经 composition/kernel 聚合后通过注入的 `pkg/i18n.Translator` 消费；不得绕过注入直接读 `pkg/i18n` 默认配置。
 - `module.go` 只做纯内存装配并返回窄 Handler/Service 与 contribution；`internal/composition` 是唯一跨模块连接点。
-- 保留 032 配置边界：`pkg/*` 只提供通用能力 + 基础默认；`kernel/app/*` 负责应用层默认与装配，不隐式依赖 `pkg/*.DefaultConfig()`。
+- 配置边界：`pkg/*` 只提供通用能力和基础默认；`kernel/app/*` 负责应用层默认与装配，不隐式依赖 `pkg/*.DefaultConfig()`。
 - 若声明定时任务：业务逻辑留在模块 Service，`module.go` 只构造不可变 Binding；触发、并发、协调、Execution、Tracing、健康与 Generation 切换均由统一底层能力负责。
 - 若声明消息生产/消费：payload 编解码与业务 Handler 留在模块，`module.go` 只构造不可变 Contract/Binding；Provider、confirm、ack/retry/DLX、Execution、Tracing、健康与 Consumer 代际均由统一消息能力负责。
 
@@ -269,7 +269,7 @@ confirm、ack/retry/DLX、恢复循环和 Consumer handoff。当前生产 Provid
 
 ### 8.4 i18n 接入规范
 
-i18n 是业务模块的正式 binding 契约（033）：业务模块按统一方式提供自身的 i18n 语言资源与 `binding/i18n`，而不是仅由底层 `kernel/app/i18n` 统一处理。业务模块统一通过注入的 `pkg/i18n.Translator` 消费翻译，不自行创建 Translator，不直接读取或依赖 `pkg/i18n` 的默认配置。
+i18n 是业务模块的正式 binding 契约：业务模块按统一方式提供自身的 i18n 语言资源与 `binding/i18n`，而不是仅由底层 `kernel/app/i18n` 统一处理。业务模块统一通过注入的 `pkg/i18n.Translator` 消费翻译，不自行创建 Translator，不直接读取或依赖 `pkg/i18n` 的默认配置。
 
 - **i18n binding 声明位置**：`internal/module/<name>/binding/i18n`（例如 `catalog.go`），暴露模块自有语言资源（如 `MessageFiles() []string`、`MessagesFS() fs.FS` 或静态 catalog），并在该目录下提供模块语言内容（如 `locales/messages.<lang>.yaml`，相对模块目录）。
 - **接入方式**：`internal/composition` 显式聚合各业务模块的 i18n binding 语言资源到 Kernel I18n App（`internal/kernel/app/i18n`）或组装进 `i18n.messageFiles`，再按模块注入 `pkg/i18n.Translator`（如 Todo 的 `HTTPDependencies.Translator`）。Handler 只在呈现边界调用 `Translate`/`MustTranslate`。不引入动态注册/Service Locator，聚合由 composition 显式完成。

@@ -2,6 +2,8 @@
 
 每项新变更使用递增三位序号和语义名称，固定包含 `README.md`、`research/`、`requirements.md`、`design.md` 和 `tasks.md`。所有任务先通过研究门禁，再形成计划；非纯文档实现必须在计划报告后的独立消息中获得确认。完整规则以根 [AGENTS.md](../../AGENTS.md) 为准。
 
+001–041 是随当前仓库导入的脚手架基线档案，保留作为历史证据；042 起是本仓库原生变更记录。两者都不能替代当前主题 authority，当前边界和来源见[脚手架基线来源](../scaffold-baseline.md)。
+
 ## 记录
 
 - [001 默认配置契约与可选 CLI](001-default-config-cli-contracts/README.md)：已完成。
@@ -53,5 +55,6 @@
 - [048 业务模块自有 WebUI 与通用 SDK 重构](048-full-stack-webui-modules/README.md)：已完成 SDK、模块边界、Binding/生成门禁、CSS Modules、资源加载隔离与 E2E/视觉验收；页面继续由 `internal/module/<id>` 持有，普通模块 core 零修改，只有真实新宿主能力才单独增加 SDK interface/adapter。
 - [049 项目规范门禁语境核验](049-project-rule-gate-context/README.md)：已完成；核验模块、配置、日志、WebUI、质量、发布与许可证规范的真实覆盖，修复“命令通过但目标未被扫描”和“Go 门禁冒充全项目门禁”的项目文档语境。
 - [050 项目门禁缺口实施](050-project-gate-implementation/README.md)：已确认并实施；WebUI 门禁改为动态发现模块，静态质量链接入本地脚本、CI 与 release，容器许可证标签与源码声明对齐。
+- [051 项目文档体系治理闭环](051-documentation-system-governance-closure/README.md)：已确认并实施；系统修复当前文档入口、范围、使用路径、模块/能力索引、历史污染与缺失说明，并建立文档影响记录、跨平台门禁和 CI 约束；`old-backend/` 明确排除。
 
-下一个任务序号为 `051`。已完成记录只保存历史证据；当前行为必须回到根 [README](../../README.md) 和对应主题文档确认。
+下一个任务序号为 `052`。已完成记录只保存历史证据；当前行为必须回到根 [README](../../README.md) 和对应主题文档确认。

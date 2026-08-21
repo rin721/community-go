@@ -15,7 +15,7 @@ Linux 使用 `scripts/install-tools.sh` 与 `scripts/release-local.sh`。输出�
 
 ## 正式发布
 
-正式流程只接受受保护的 `v*` tag，并进入 GitHub `release` environment 审批。workflow 使用固定工具版本，先运行 `scripts/verify-webui.sh` 的 WebUI 静态门禁，再运行 `scripts/verify-quality.sh` 定义的 Go/生成物/仓库产物门禁，以 GoReleaser 创建 draft release，再使用 GitHub OIDC keyless identity 签名并验证 checksum bundle。该静态 WebUI 门禁不启动 Go 服务或 Playwright；不得把 release job 描述成已经完成 E2E、视觉或外部协议验收。
+正式流程只接受受保护的 `v*` tag，并进入 GitHub `release` environment 审批。workflow 使用固定工具版本，先运行 `scripts/verify-docs.sh` 的文档静态门禁，再运行 `scripts/verify-webui.sh` 的 WebUI 静态门禁，最后运行 `scripts/verify-quality.sh` 定义的 Go/生成物/仓库产物门禁，以 GoReleaser 创建 draft release，再使用 GitHub OIDC keyless identity 签名并验证 checksum bundle。Docs gate 检查当前 authority、链接、模块/能力索引和变更影响记录；它不启动 Go 服务或 Playwright。不得把 release job 描述成已经完成 E2E、视觉或外部协议验收。
 
 审批者必须按同一 tag/source commit 核对独立 workflow 与任务证据，而不是只看 release job 自身：
 

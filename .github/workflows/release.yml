@@ -44,6 +44,7 @@ jobs:
           echo "${GOBIN}" >> "${GITHUB_PATH}"
       - name: Verify release gates
         run: |
+          bash scripts/verify-docs.sh
           bash scripts/verify-webui.sh
           bash scripts/verify-quality.sh
       - name: Build draft release

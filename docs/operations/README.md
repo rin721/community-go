@@ -11,6 +11,7 @@
 5. [安全响应](security.md)：凭据、漏洞、安全修复和低敏交付边界。
 6. [定时任务运维](scheduled-tasks.md)：调度配置、执行权、健康、恢复观察和多实例边界。
 7. [消息系统运维](messaging.md)：Provider 配置、RabbitMQ topology、恢复、DLX 和真实协议门禁。
+8. [运行能力矩阵](runtime-capabilities.md)：Cache、Storage、Observability、Execution、WebUI 等能力的配置、资源和验证边界。
 
 ## 排障入口
 

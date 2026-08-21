@@ -2,7 +2,7 @@
 
 `internal/module/ops` 只拥有 management、startup/liveness/readiness、脱敏 diagnostics/build 用例和 management HTTP binding。它消费 `pkg/observability` 项目契约，不导入 Prometheus、OpenTelemetry、OTLP 或底层具体 Adapter。
 
-Prometheus、OTel、OTLP exporter 和通用 HTTP observation 同时覆盖 Auth/Todo 业务 HTTP 与 Ops management/diagnostics，且由进程统一选择和治理，因此按 [027 第三方封装与分轨装配](../../../docs/changes/027-business-module-third-party-isolation/README.md) 进入 `pkg -> internal/kernel/app -> internal/kernel/composition` 底层链。Ops 的依赖和输出只包含项目类型、标准库 Handler 与 module contribution。
+Prometheus、OTel、OTLP exporter 和通用 HTTP observation 同时覆盖 Auth/Todo 业务 HTTP 与 Ops management/diagnostics，且由进程统一选择和治理，因此进入 `pkg -> internal/kernel/app -> internal/kernel/composition` 底层链。Ops 的依赖和输出只包含项目类型、标准库 Handler 与 module contribution；运行配置和外部验证边界见[运行能力矩阵](../../../docs/operations/runtime-capabilities.md)。
 
 当前进程组合根连接 Auth management scope、Kernel/Supervisor typed runtime snapshot、独立 business/management `ListenerHub` 与 Observability Capabilities。Ops module 不绑定物理端口、不查询容器、不穿透其他模块或 Kernel App，也没有 registry/provider 的关闭权。
 

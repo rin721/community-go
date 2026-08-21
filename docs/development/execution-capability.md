@@ -97,7 +97,7 @@ res, err := executor.Execute(ctx, pkgexecution.Execution{
 - 本地 memory 降级只是**单实例容错手段**，不提供与分布式 Cache 相同强度的幂等/跨进程一次语义；
   多实例下不保证跨实例去重一致。
 - 真实外部主存储（Cache=Redis / 数据库）尚未接入：当前主存储为 memory，恢复/回放/去重语义已通过
-  故障注入在装配层端到端验证；接入真实主存储属 `docs/changes/035` 的 `NEXT-002`。
+  故障注入在装配层端到端验证；真实主存储接入仍需独立研究、计划和外部资源验证，本项目当前不把它写成已交付默认能力。
 - 业务模块对一次业务操作应自行选择合适幂等键并明确其生命周期（何时算重复、何时过期）。
 
 ## 相关入口
@@ -105,4 +105,4 @@ res, err := executor.Execute(ctx, pkgexecution.Execution{
 - 契约：`pkg/execution`（`OperationExecutor` / `Execution` / `Result` / `WithTrace`）
 - 组件：`internal/kernel/app/execution`（`Access.Execute` / `Recovery` / `Health`）
 - 装配：`internal/kernel/composition` → `Capabilities.Execution`
-- 接入示例：`docs/changes/036-business-module-execution-adoption/design.md`（Todo 落地）
+- 接入示例：当前 Todo 模块的 service、composition 和策略命名实现；变更过程证据只在对应历史 change 中查阅。

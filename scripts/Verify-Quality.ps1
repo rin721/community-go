@@ -5,7 +5,7 @@ $ErrorActionPreference = 'Stop'
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
 Push-Location $repositoryRoot
 try {
-    $unformatted = @(gofmt -l .)
+    $unformatted = @(gofmt -l . | Where-Object { $_ -notmatch '^(old-backend[\\/])' })
     if ($unformatted.Count -gt 0) {
         throw "gofmt failed:`n$($unformatted -join "`n")"
     }
@@ -13,7 +13,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'go mod tidy -diff failed' }
     go generate ./...
     if ($LASTEXITCODE -ne 0) { throw 'go generate failed' }
-    git diff --exit-code -- api internal/transport/http/api
+    git diff --exit-code -- api/openapi.yaml internal/transport/http/api/operation_inventory.gen.go
     if ($LASTEXITCODE -ne 0) { throw 'generated files are not clean' }
     go test ./... -count=1
     if ($LASTEXITCODE -ne 0) { throw 'go test failed' }

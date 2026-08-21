@@ -122,3 +122,9 @@
 - 本轮重新观察 Soybean 工作台 Header：搜索入口位于全局工具区，与全屏、语言、主题和账号入口同层；工作区页签与主内容 Surface 位于其下方，保持“宿主操作 → 页面定位 → 页面内容”的信息顺序。
 - 项目 `RouteSearch` 继续只消费 manifest 中可访问的 route，并保留输入框、键盘上下选中、Enter 导航、Escape 关闭和空结果状态；不增加第二套路由注册。由于参考站搜索弹层在当前会话点击后未稳定返回 DOM，未对其内部动画或结果样式作未经验证的复制。
 - 语言切换后，`AppShell` 通过 `useWebUITranslation("webui.host")` 订阅公开 i18n 契约，保证 Header、页签、侧栏和挂载在宿主下的 ThemeDrawer/RouteSearch 一起重新渲染；语言选择器自身增加可访问名称，未知语言边界测试保持 fail closed。
+
+## 路由搜索焦点补充校准
+
+- 参考站 Header 的搜索入口位于全局工具区，打开后应成为当前操作焦点，而不是把键盘操作留在页面下方；关闭后继续回到触发入口，符合后台连续操作的使用节奏。
+- `RouteSearch` 现在在打开时保存触发元素并聚焦输入框，关闭时恢复焦点；Tab 在对话框内部循环，Escape、遮罩、关闭按钮、上下键和 Enter 都保持可预期路径。
+- 结果列表采用 `combobox/listbox/option` 语义与 roving `tabIndex`，空结果表达为 `role=status`；搜索标题会随宿主语言变化重新计算，不把旧语言的过滤结果留在内存中。

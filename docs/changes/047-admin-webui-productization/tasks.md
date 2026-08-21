@@ -34,7 +34,7 @@
 | VIS-OPS-002 | VIS-OPS-001 | 按参考工作台层级分组真实 Ops 查询并补齐刷新交互 | 核心探针/可选诊断分组；整体刷新与失败项独立重试；核心失败为 Unavailable、可选失败为 Degraded；不引入模拟数据或新后端接口 | 已实施未闭合 |
 | HOST-THEME-001 | UI-001, VIS-HOST-001 | 对照 Soybean Header 补齐宿主一键明暗切换入口 | 复用现有主题 authority；入口有 host i18n、桌面/移动规则明确且不新增第二套状态 | 已实施未闭合 |
 | HOST-TABS-001 | UI-001, VIS-HOST-001 | 对照 Soybean 页签行补齐宿主刷新当前页入口 | 刷新动作由宿主基于当前 route 执行；模块不接触页签状态；入口有 i18n 与响应式样式 | 已实施未闭合 |
-| HOST-SEARCH-001 | UI-001, VIS-HOST-001 | 补齐 RouteSearch 的键盘与可访问选中态 | 只搜索 manifest 可访问 route；上下键、Enter、Escape 和 ARIA 状态通过前端验证；不增加第二套路由注册 | 已实施未闭合 |
+| HOST-SEARCH-001 | UI-001, VIS-HOST-001 | 补齐 RouteSearch 的键盘与可访问选中态 | 只搜索 manifest 可访问 route；打开/关闭焦点、Tab 循环、上下键、Enter、Escape 和 ARIA 状态通过前端验证；不增加第二套路由注册 | 已实施未闭合 |
 | HOST-MENU-001 | UI-001, VIS-HOST-001 | 消费 ManifestMenu.parentId 建立宿主递归导航 | 分组展开、当前路径祖先自动展开、孤立项安全落根；模块只提供 Binding，不改宿主菜单实现 | 已实施未闭合 |
 | HOST-MOBILE-001 | UI-001, VIS-HOST-001 | 基于 390×844 参考观察校准移动 Header 与页签密度 | 移动面包屑隐藏、工具区不溢出、页签操作保留、桌面规则不回归 | 已实施未闭合 |
 | HOST-MOBILE-002 | HOST-MOBILE-001, HOST-THEME-001 | 保留移动端语言与账号入口的紧凑形态 | 语言切换、用户菜单和退出登录仍可访问；不泄漏会话信息，不破坏桌面布局 | 已实施未闭合 |

@@ -14,7 +14,7 @@
 | RES-057-002 | 文档 | 以官方来源核验成熟候选、维护与安全状态 | RES-057-001 | 已完成 | R002 有版本日期、适用边界、局限和刷新触发器 |
 | DOC-057-001 | 文档 | 更新 AGENTS、研究规范、模块指南、pkg/architecture authority 和导航 | RES-057-001, RES-057-002 | 已完成 | 技术决策基线单一可发现，文档门禁通过 |
 | SEC-057-001 | A | 升级 kin-openapi 并重建 Go 1.26 漏洞扫描证据 | 用户确认 Batch A | 已完成 | v0.147.0、生成/请求负向测试、全仓 govulncheck 和旧版本残留搜索通过 |
-| CACHE-057-001 | B | Otter v2/ttlcache v3 PoC 并单轨替换 L1 | 用户确认该任务 | 待确认 | 容量、TTL、并发、关闭、内存上界与二级语义测试通过；删除 go-cache |
+| CACHE-057-001 | B | 单轨退役默认 L1 与 go-cache，收紧 Redis typed cache 的 miss/error 语义 | 用户确认修订后的该任务 | 待确认 | 删除本地状态/goroutine/专属配置和 go-cache；Redis typed cache/tag/disabled/cancel/error 语义测试通过；不新增 L1 依赖 |
 | SERDE-057-001 | B | YAML v4 兼容验证与单轨迁移 | 用户确认该任务 | 待确认 | 配置/i18n/生成 fixture 等价或差异已决策；删除 v3 直接依赖 |
 | LIMIT-057-001 | B | 用 x/time/rate 替换通用 token bucket | 用户确认该任务 | 待确认 | 维持明确 load-shedding 语义、配置与并发测试；不冒充分布式 quota |
 | AUTHN-057-001 | B | 评估并迁移 JWX v4，补 Argon2 参数解析和 NeedsRehash | 用户确认该任务 | 待确认 | JWT 负向矩阵、密码版本/资源/重哈希测试通过；不引入 OIDC |
@@ -28,7 +28,7 @@
 
 ## 建议确认方式
 
-Batch A 已完成。下一轮建议逐项确认 Batch B，不一次授权全部任务；优先级建议为 `CACHE-057-001`，随后再分别确认 `SERDE-057-001`、`LIMIT-057-001` 或 `AUTHN-057-001`。Batch C/D/E 应依据前序证据重新提交更窄设计。
+Batch A 已完成。R003 已因真实调用方与一致性证据材料性修订 `CACHE-057-001`，此前关于 Batch A 的确认不覆盖该任务。下一轮建议只确认修订后的 `CACHE-057-001`；完成后再分别确认 `SERDE-057-001`、`LIMIT-057-001` 或 `AUTHN-057-001`。Batch C/D/E 应依据前序证据重新提交更窄设计。
 
 ## 停止与重新确认条件
 
@@ -51,8 +51,9 @@ Batch A 已完成。下一轮建议逐项确认 Batch B，不一次授权全部�
 | 2026-08-22 | 漏洞扫描工具 | PATH 中 `govulncheck v1.3.0` 已由 Go 1.26.6 重建，`go version -m` 与 `govulncheck -version` 均确认工具链一致 |
 | 2026-08-22 | 全仓漏洞扫描 | `govulncheck -show verbose ./...`：0 reachable symbol、0 imported package 漏洞；模块层有 2 个当前不可达项 GO-2026-6222 与 GO-2026-5932，保留为后续研究风险 |
 | 2026-08-22 | 完整 Go 门禁 | `Verify-Quality.ps1` 的 gofmt、tidy diff、project layout、generate/clean diff、全量 test、全量 race、vet、CGO-free build 均通过；最后 `Verify-Artifacts` 仅命中既有且被当前范围排除的 `old-backend/` 两个 tracked app.db，与 053/054 已记录阻塞相同，本任务未修改或删除 |
+| 2026-08-22 | CACHE-057-001 确认前深化研究 | 非测试 production 搜索没有 typed cache 消费者；现有 L1 无容量上界、跨实例失效和一致错误分类。官方刷新确认 go-cache 最新 release 仍为 2017 年；Otter v2.3.0、ttlcache v3.4.1、Ristretto v2.4.2 具候选资格但当前无引入收益。计划修订后继续待确认，未修改缓存代码或依赖 |
 
 ## Commit
 
 - 研究与计划：`b8445d1 docs(architecture): establish technology selection baseline`
-- Batch A：使用 Conventional Commits 主题 `fix(http): upgrade OpenAPI validator security baseline`；准确 commit id 由 Git 历史记录，不在提交前虚构。
+- Batch A：`32a4987 fix(http): upgrade OpenAPI validator security baseline`

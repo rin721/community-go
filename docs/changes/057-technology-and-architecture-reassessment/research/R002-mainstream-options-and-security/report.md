@@ -31,7 +31,7 @@
 
 | 能力 | 官方能力事实 | 当前项目中的候选职责 | 不能据此得出的结论 |
 | --- | --- | --- | --- |
-| L1 Cache | Otter v2 提供泛型、容量/权重、TTL 与并发缓存；ttlcache v3 提供泛型 TTL、capacity 和显式 Start/Stop | 替换 L1 存储与淘汰机制；项目仅保留真正需要的 key/tag/L2 语义 | 未做 benchmark，不能直接决定 Otter 或 ttlcache |
+| L1 Cache | Otter v2 提供泛型、容量/权重、TTL 与并发缓存；ttlcache v3 提供泛型 TTL、capacity 和显式 Start/Stop | 仅在真实消费者证明本地缓存收益、内存和陈旧预算后承担 L1 存储与淘汰；项目保留必要的 key/tag/L2 语义 | 候选成熟不等于当前必须存在 L1；R003 已据实际调用与一致性证据修订直接换库计划 |
 | HTTP 契约 | Huma v2 可使用现有 chi、code-first 生成 OpenAPI 3.1，并提供标准错误；ogen 是 spec-first 生成器 | Huma 用于保持 code-first 的替代 PoC；ogen 只在 authority 改为 spec-first 时比较 | 不能因功能覆盖就直接删除项目 operation/policy 语义 |
 | ORM/SQL | GORM 当前 release 与生态仍活跃；sqlc 从 SQL 生成类型安全 Go 并支持 PostgreSQL/MySQL/SQLite | GORM 保留连接/事务基线；sqlc 与 GORM Gen 在真实复杂查询上比较，模块保留 Repository port | 不能按“ORM 对 SQL”偏好一次性全仓迁移 |
 | 韧性 | failsafe-go 组合 Retry、Circuit Breaker、Rate Limiter、Bulkhead、Timeout 并有 HTTP 集成；gobreaker/v2 提供更窄 breaker | 由项目命名 profile 决定错误分类、幂等和观测，第三方实现通用状态机 | 不能把同一 retry policy 套给所有 HTTP 方法和后台任务 |
@@ -48,7 +48,7 @@
 ## 事实、推断与目标设计分离
 
 - **事实：** 上述库在本次验证日期有官方维护、release 或安全文档；这只证明候选资格。
-- **推断：** `kin-openapi` 升级、L1 Cache 替换、YAML v4 迁移和标准 token bucket 是低耦合优先项，预期收益清晰。
+- **推断：** `kin-openapi` 升级、默认 L1 退役、YAML v4 迁移和标准 token bucket 是低耦合优先项；是否重新引入 L1 必须由真实消费者和量化预算决定。
 - **目标设计：** Huma、sqlc/GORM Gen、failsafe-go、koanf、JWX v4 和静态/动态架构分工必须经项目真实用例 PoC 后才能成为实施结论。
 
 ## 局限与刷新条件
@@ -71,3 +71,7 @@
 - PATH 中 Scanner v1.3.0 已用 Go 1.26.6 重建。全仓 `govulncheck -show verbose ./...` 报告 0 个可达符号漏洞、0 个 imported-package 漏洞；模块层仍报告当前代码不可达的 GO-2026-6222（`x/image`）和 GO-2026-5932（`x/crypto/openpgp`），不在 Batch A 内无证据扩张升级。
 
 这关闭了安全升级任务，不代表 Huma 或当前 typed DSL 的高耦合 PoC 已完成或获得授权。
+
+## Cache 计划刷新（2026-08-22）
+
+[R003](../R003-cache-l1-necessity-and-candidate-fit/report.md) 进一步确认当前没有 production typed cache 消费者，现有 L1 无容量上界且没有跨实例失效。成熟候选只能替换本地容器，不能解决该一致性缺口。因此 `CACHE-057-001` 修订为先退役默认 L1 与 `patrickmn/go-cache`、保留 Redis typed cache/tag 边界；Otter v2/ttlcache v3 只在真实消费者给出量化收益与一致性预算后再做 PoC。

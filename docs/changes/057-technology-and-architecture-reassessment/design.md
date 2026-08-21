@@ -4,7 +4,7 @@
 
 本变更不选择“一套框架接管一切”，而是建立两层决策：先判断通用实现是否应复用成熟方案，再判断当前架构是否为合适载体。输出是可追踪矩阵和分批实施队列，不是技术名录。
 
-依据：[R001 当前实现与架构事实](research/R001-current-capability-and-architecture-audit/report.md)、[R002 外部候选与安全事实](research/R002-mainstream-options-and-security/report.md)。
+依据：[R001 当前实现与架构事实](research/R001-current-capability-and-architecture-audit/report.md)、[R002 外部候选与安全事实](research/R002-mainstream-options-and-security/report.md)、[R003 L1 必要性与候选适配](research/R003-cache-l1-necessity-and-candidate-fit/report.md)。
 
 ## 决策流程
 
@@ -52,7 +52,9 @@
 
 ### Batch B：低耦合升级与替换
 
-- L1 Cache：Otter v2 与 ttlcache v3 做容量、TTL、并发、关闭和内存上界 PoC，选一条单轨替换 `patrickmn/go-cache`。
+- Cache：单轨退役当前无真实消费者、无容量上界且不能跨实例失效的默认 L1，删除 `patrickmn/go-cache`、本地 tag map、cleanup goroutine 与专属配置；保留 Redis typed cache/tag、序列化和 Kernel 共享资源 owner。
+- Cache miss：`GetOrLoad`/`GetMany` 只有 `ErrNotFound` 可按 miss 处理，取消、disabled、backend 与 codec 错误必须完整返回。
+- 不在本批引入另一 L1 库。未来真实消费者同时给出命中收益、内存 budget、陈旧预算和多实例一致性模型后，按高并发/weight 需求优先 PoC Otter v2，按简单 TTL/容量需求 PoC ttlcache v3。
 - YAML：迁移 `go.yaml.in/yaml/v4`，用配置、本地化、生成物 fixture 验证。
 - 限流：以 `x/time/rate` 替换进程内 token bucket 算法，保留 load-shedding 语义。
 - JWX：复核 v4 API/安全迁移；不顺带引入 OIDC。
@@ -79,7 +81,7 @@ PoC 代码若不能作为最终单轨实现的一部分，应放在任务明确�
 
 - 依赖升级失败：保留错误链和测试证据，不能降级为旧漏洞版本并宣称成功。
 - PoC 不满足核心语义：记录拒绝原因和退出结论，删除 PoC 代码，不增加兼容层。
-- 单轨替换：先证明候选满足容量、取消、关闭、并发、错误和观测门禁，再迁移调用方并删除旧依赖。
+- 单轨替换或退役：先证明目标语义、取消、并发、错误和观测门禁，再迁移调用方并删除旧依赖；不得用新库保留没有收益的旧架构。
 - 架构切片：启动、reload、旧代保留、stop/wait 和 race 测试必须覆盖；无法安全热换的能力明确 RestartRequired。
 - 所有批次执行 `go test ./...`、`go vet ./...`、`go test -race ./...`（适用平台范围）、文档与生成物门禁；安全任务另执行与当前 Go 工具链匹配的 `govulncheck`。
 
@@ -88,7 +90,7 @@ PoC 代码若不能作为最终单轨实现的一部分，应放在任务明确�
 实际文件以确认后的任务设计复核为准：
 
 - Batch A：`go.mod`、`go.sum`、`internal/transport/http/`、`pkg/httpx/contract/`、安全验证记录。
-- Batch B：`pkg/cache/`、`internal/kernel/app/cache/`、配置/codec 消费者、`pkg/httpx/production_middleware.go`、IAM auth Adapter。
+- Batch B：`pkg/cache/`、`internal/kernel/app/cache/`、缓存文档与依赖清单、配置/codec 消费者、`pkg/httpx/production_middleware.go`、IAM auth Adapter。
 - Batch C：`pkg/httpx/`、`pkg/resilience/`、`pkg/execution/` 及 composition policy。
 - Batch D：限定 PoC、真实模块 Adapter/测试与生成门禁；不直接改变 production authority。
 - Batch E：`internal/composition/`、`internal/kernel/`、模块构造与 lifecycle 测试。

@@ -31,4 +31,10 @@ describe("WebUI i18n contract", () => {
     expect(translateMessage("webui.ops.dashboard.title")).toBe("Runtime status");
     await changeLanguage("zh-CN");
   });
+
+  it("rejects languages that are not assembled by the host registry", async () => {
+    await changeLanguage("zh-CN");
+    await expect(changeLanguage("fr-FR")).rejects.toThrow("webui_language_unsupported");
+    expect(i18n.language).toBe("zh-CN");
+  });
 });

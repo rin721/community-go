@@ -49,6 +49,8 @@ const setupErrorMessageIDs: Record<string, string> = {
 
 页面再调用翻译契约渲染该 ID。`setupErrorMessages` 这类直接返回“当前 WebUI 地址未被后端允许……”等展示文本的实现违反规范，必须改为 error code -> message ID -> 当前语言文案的链路。Host 自有文案也应进入 host-owned locale resource，不得用宿主 i18n adapter 内联字符串绕过规范。
 
+宿主 Shell、主题抽屉、全局搜索等公共交互同样必须订阅 `useWebUITranslation("webui.host")`。`translateMessage` 只适合作为按 message ID 查找的辅助函数，不能替代 React 组件对语言变化的订阅；语言切换后 Header、页签、状态层和 overlay 必须在同一 i18n instance 的事件驱动下同步刷新。
+
 每次新增或修改模块页面，必须验证：
 
 1. Binding、locale registry 和资源文件完整且 namespace/language 唯一；

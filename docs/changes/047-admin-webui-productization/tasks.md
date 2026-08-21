@@ -25,7 +25,7 @@
 | HOST-001 | GEN-001 | 用 manifest + generated registry 动态建立模块路由 | 宿主无 Auth/Ops import 和集中模块 Route；lazy/error/access boundary 生效 | 已实施未闭合 |
 | I18N-001 | GEN-001 | 接入单一 i18next/react-i18next 实例并落实强制 WebUI i18n 契约 | 每个 WebUI 模块声明 locale Binding；模块只使用 `useWebUITranslation(namespace)`；host/module 文案均来自资源；缺失资源可诊断 | 已实施未闭合 |
 | I18N-CONTRACT-001 | I18N-001 | 固化 locale owner、message ID、error code -> message ID、无硬编码文案和公开翻译 hook 规范 | `setupErrorMessages` 类映射只返回 message ID；Contract/codegen、静态扫描和运行期边界测试通过；调整后计划已确认 | 已实施未闭合 |
-| I18N-LOCALE-001 | I18N-CONTRACT-001, VIS-HOST-001 | 让语言入口消费已装配 locale 并覆盖现有页面 | Header 语言选项来自 registry；`zh-CN`/`en-US` 的 host、Auth、Ops namespace 完整；切换和未知语言边界有测试 | 已实施未闭合 |
+| I18N-LOCALE-001 | I18N-CONTRACT-001, VIS-HOST-001 | 让语言入口消费已装配 locale 并覆盖现有页面 | Header 语言选项来自 registry；`zh-CN`/`en-US` 的 host、Auth、Ops namespace 完整；Shell/overlay 订阅公开 i18n hook；切换和未知语言边界有测试 | 已实施未闭合 |
 | MOD-001 | HOST-001, I18N-CONTRACT-001 | 把 Auth/Ops 页面迁回模块 owner，完成宿主骨架所需最小适配并遵守 i18n 契约 | 删除反向 re-export 和宿主具体模块 import；模块只依赖公开宿主契约/UI；所有用户文案走模块 namespace；真实流程行为不扩展 | 已实施未闭合 |
 | UI-001 | HOST-001, I18N-001 | 高保真建立 Token、AuthLayout、AppLayout 与响应式 Shell | 侧栏、Header、breadcrumb、workspace tabs、route search、内容 Surface、Footer、用户/主题/语言/全屏入口在桌面/移动与明暗主题通过对照 | 已实施未闭合 |
 | UI-002 | UI-001 | 建立页面容器、toolbar、feedback、state、form、table、filter、pagination、Drawer 模式 | 测试 fixture 覆盖状态且不进入生产 manifest/navigation；模块不复制视觉基础 | 已实施未闭合 |

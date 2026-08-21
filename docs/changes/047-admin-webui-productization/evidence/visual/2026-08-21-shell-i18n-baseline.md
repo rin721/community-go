@@ -116,3 +116,9 @@
 - 本轮重新观察 Soybean Header 语言入口：语言图标打开可选择菜单，至少提供中文与 English；切换后宿主壳层与当前业务页面同步变更，而不是只改变一个标签。
 - 项目语言入口现在由已装配的 host/module locale registry 共同决定，当前提供 `zh-CN` 与 `en-US`；Host、Auth、Ops 三个 namespace 均有完整英文资源，切换测试覆盖跨 namespace 文案。
 - 语言切换仍由唯一 i18n instance 执行，未知语言被拒绝；业务模块无需修改宿主 Header，只需继续在自身 Binding 声明对应 locale。
+
+## Header 搜索与语言刷新补充校准
+
+- 本轮重新观察 Soybean 工作台 Header：搜索入口位于全局工具区，与全屏、语言、主题和账号入口同层；工作区页签与主内容 Surface 位于其下方，保持“宿主操作 → 页面定位 → 页面内容”的信息顺序。
+- 项目 `RouteSearch` 继续只消费 manifest 中可访问的 route，并保留输入框、键盘上下选中、Enter 导航、Escape 关闭和空结果状态；不增加第二套路由注册。由于参考站搜索弹层在当前会话点击后未稳定返回 DOM，未对其内部动画或结果样式作未经验证的复制。
+- 语言切换后，`AppShell` 通过 `useWebUITranslation("webui.host")` 订阅公开 i18n 契约，保证 Header、页签、侧栏和挂载在宿主下的 ThemeDrawer/RouteSearch 一起重新渲染；语言选择器自身增加可访问名称，未知语言边界测试保持 fail closed。

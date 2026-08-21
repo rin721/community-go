@@ -128,7 +128,7 @@ HeroUI 作为可访问交互原语，宿主在其上定义项目 Token 和语义
 
 ### 6.3 宿主页面
 
-- 当前独立 Appearance 页面单轨替换为宿主 Theme Drawer，承载主题模式、预设、布局相关设置、重置和持久化；导入或解析错误必须可见，不再静默吞掉，也不保留两个主题 authority。
+- 当前独立 Appearance 页面单轨替换为宿主 Theme Drawer，承载主题模式、预设、布局/通用设置、重置和持久化；布局偏好由 `ThemePreferences.layout` 持有，减少动效由 `ThemePreferences.reduceMotion` 映射到宿主 `data-motion`；导入或解析错误必须可见，不再静默吞掉，也不保留两个主题 authority。
 - 403、404、revision mismatch、manifest/entry/locale failure 使用统一 State Page。
 - Not Implemented 使用统一页面骨架，明确缺失后端能力、目标流程和禁用原因。
 

@@ -38,6 +38,7 @@
 | HOST-MOBILE-001 | UI-001, VIS-HOST-001 | 基于 390×844 参考观察校准移动 Header 与页签密度 | 移动面包屑隐藏、工具区不溢出、页签操作保留、桌面规则不回归 | 已实施未闭合 |
 | HOST-MOBILE-002 | HOST-MOBILE-001, HOST-THEME-001 | 保留移动端语言与账号入口的紧凑形态 | 语言切换、用户菜单和退出登录仍可访问；不泄漏会话信息，不破坏桌面布局 | 已实施未闭合 |
 | HOST-DENSITY-001 | HOST-THEME-001, VIS-HOST-001 | 让 ThemePreferences.density 真正驱动宿主视觉密度 | Compact 消费 `data-density` 调整核心容器/控件间距；Comfortable 默认不变；不影响业务语义 | 已实施未闭合 |
+| HOST-THEME-002 | HOST-THEME-001, HOST-DENSITY-001 | 按参考主题抽屉补齐宿主布局/通用/预设分区 | 四分区由单一 ThemePreferences 驱动；面包屑、页签、底部、侧栏默认状态和减少动效均真实生效；所有新增文案走 host i18n | 已实施未闭合 |
 | BUILTIN-001 | UI-001, ARC-001 | 建立 Theme Drawer、403、404、mismatch 和 not-implemented 宿主页面 | 单一主题 authority；状态一致、错误低敏、解析错误可见、不发不存在 API | 已实施未闭合 |
 | VIS-HOST-001 | UI-001, UI-002, BUILTIN-001 | 建立 SoybeanAdmin 宿主 parity 矩阵并逐任务动态观察 | 同视口 DOM/截图覆盖 Shell、导航、页签、搜索、主题 Drawer、Surface、状态页、响应式/主题；差异修正或有项目边界理由 | 已实施未闭合 |
 | TEST-HOST-001 | ARC-001, GEN-001, HOST-001, MOD-001, I18N-001, I18N-CONTRACT-001, UI-001, UI-002, BUILTIN-001, VIS-HOST-001 | 补宿主 Go/TS/React/E2E/visual/architecture 门禁 | 证明无用户可见硬编码/直接 i18n singleton/穿透/Demo/假能力；error code -> message ID、locale completeness、现有 Auth/Ops 流程和宿主 parity 全部通过 | 验证中 |

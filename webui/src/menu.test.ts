@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ManifestMenu, ManifestRoute } from "@webui/contracts";
-import { buildMenuTree } from "./components/AppShell";
+import { buildMenuTree, isWorkspaceTabClosable } from "./components/AppShell";
 
 const route = (id: string): ManifestRoute => ({
   moduleId: "test",
@@ -37,5 +37,12 @@ describe("宿主菜单树", () => {
     expect(tree.map((entry) => entry.item.id)).toEqual(["root", "orphan"]);
     expect(tree[0].children[0].item.id).toBe("child");
     expect(tree[0].children[0].children[0].item.id).toBe("grandchild");
+  });
+});
+
+describe("宿主工作区页签", () => {
+  it("保留默认页签不可关闭，其他已访问页签可关闭", () => {
+    expect(isWorkspaceTabClosable({ ...route("home"), default: true })).toBe(false);
+    expect(isWorkspaceTabClosable(route("detail"))).toBe(true);
   });
 });

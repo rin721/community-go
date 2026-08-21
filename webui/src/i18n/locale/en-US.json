@@ -8,6 +8,7 @@
   "webui.host.search.placeholder": "Enter a page name or path",
   "webui.host.search.empty": "No accessible pages match your search",
   "webui.host.breadcrumb.home": "Home",
+  "webui.host.tabs.list": "Open pages",
   "webui.host.tabs.close": "Close page",
   "webui.host.tabs.refresh": "Refresh current page",
   "webui.host.theme": "Theme settings",

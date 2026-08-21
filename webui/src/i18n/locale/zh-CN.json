@@ -8,6 +8,7 @@
   "webui.host.search.placeholder": "输入页面名称或路径",
   "webui.host.search.empty": "没有匹配的可访问页面",
   "webui.host.breadcrumb.home": "首页",
+  "webui.host.tabs.list": "已打开页面",
   "webui.host.tabs.close": "关闭页面",
   "webui.host.tabs.refresh": "刷新当前页面",
   "webui.host.theme": "主题配置",

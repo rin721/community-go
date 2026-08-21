@@ -10,7 +10,7 @@ frameworks: ["kin-openapi v0.142.0", "invopop/jsonschema v0.14.0"]
 technologies: ["OpenAPI 3.0.3", "JSON Schema", "yaml.v3"]
 applicable_scenarios: ["030 生成器设计", "模块自有契约声明", "契约文件由代码生成", "第三方工具封装"]
 non_applicable_scenarios: ["运行期加载远端 spec", "动态插件路由", "客户端 SDK 生成", "多服务拆分"]
-status: active
+status: needs-refresh
 summary: "本地模块缓存已确认 invopop/jsonschema v0.14.0 提供 Reflect/ReflectFromType 与 jsonschema 标签体系，可从 Go struct 生成 JSON Schema；kin-openapi v0.142.0 可程序化构建 openapi3.T 并序列化 YAML；两者均已在依赖树/module cache 中且为稳定版本。因此“项目自有 typed 声明 -> 生成 openapi.yaml”技术上可行，且不需要新增第三方生成框架；与 024 已拒绝的 Huma/ogen 相比，本方案保持模块只依赖项目自有类型，第三方只存在于生成器与 transport 内部。"
 evidence:
   types: ["module-cache", "generated-code", "source-code", "authoritative-project-documentation"]
@@ -35,7 +35,7 @@ validity:
   refresh_triggers: ["invopop/jsonschema 或 kin-openapi 版本更新", "OpenAPI 3.1 正式支持进入 oapi-codegen 主线", "出现统一 schema 标准变化"]
 relations:
   extends: ["024-R002", "019-R002"]
-  related: ["R001"]
+  related: ["R001", "057-R002"]
   supersedes: []
   superseded_by: []
 report: report.md

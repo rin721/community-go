@@ -74,6 +74,7 @@ pnpm dev
 | 配置来源、环境变量和默认配置生成 | [配置说明](docs/configuration/README.md) |
 | 应用模块、日志、执行、调度和消息开发 | [开发指南](docs/development/README.md) |
 | Kernel、Application Generation 和模块边界 | [架构说明](docs/architecture/README.md) |
+| 通用能力选型、第三方边界与架构复核 | [技术选型与架构复核基线](docs/architecture/technology-selection.md) |
 | API 路由与契约生成结果 | [API 文档](api/README.md) |
 | 构建、迁移、发布、复制、安全、排障和运行维护 | [运维文档](docs/operations/README.md) |
 | 当前运行能力、外部资源和验证状态 | [运行能力矩阵](docs/operations/runtime-capabilities.md) |

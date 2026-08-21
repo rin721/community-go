@@ -61,5 +61,6 @@
 - [054 IAM 身份与访问管理模块](054-iam/README.md)：已完成；单轨接管本地账号/凭据/Session，并实现 Core RBAC、owner、用户/角色/权限 API 与 WebUI。
 - [055 Organization 组织目录模块](055-organization/README.md)：已完成；拥有部门、岗位和账号组织关系，不包含部门数据权限。
 - [056 Navigation 后台导航策略模块](056-navigation/README.md)：已完成；管理已注册菜单的启停、父子、排序和 NavigationRevision，不建立动态页面或第二套授权。
+- [057 通用技术与承载架构重新审视](057-technology-and-architecture-reassessment/README.md)：研究门禁与纯文档规则/authority 更新已完成；明确现有能力的保留、升级、替换、合理自研和架构重构候选，后续非文档批次待计划报告后的明确确认。
 
-下一个任务序号为 `057`。已完成记录只保存历史证据；当前行为必须回到根 [README](../../README.md) 和对应主题文档确认。
+下一个任务序号为 `058`。已完成记录只保存历史证据；当前行为必须回到根 [README](../../README.md) 和对应主题文档确认。

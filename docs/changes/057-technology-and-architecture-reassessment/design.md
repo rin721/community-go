@@ -1,0 +1,94 @@
+# 057 设计
+
+## 设计概要
+
+本变更不选择“一套框架接管一切”，而是建立两层决策：先判断通用实现是否应复用成熟方案，再判断当前架构是否为合适载体。输出是可追踪矩阵和分批实施队列，不是技术名录。
+
+依据：[R001 当前实现与架构事实](research/R001-current-capability-and-architecture-audit/report.md)、[R002 外部候选与安全事实](research/R002-mainstream-options-and-security/report.md)。
+
+## 决策流程
+
+```text
+真实用例与消费者
+  -> 当前定义 / composition / owner / 失败语义
+  -> 标准库 / 成熟第三方 / 项目特有 / 自研通用 分类
+  -> 官方维护、版本、安全、兼容与生产范围核验
+  -> 实现适配收益 + 承载架构适配收益
+  -> 保留 / 升级 / 替换 / 合理自研 / 退役 / 架构重构
+  -> PoC 或迁移任务 -> 单轨验证 -> 当前 authority 同步
+```
+
+## 职责边界
+
+| 层次 | 项目拥有 | 第三方可以拥有 | 禁止泄漏 |
+| --- | --- | --- | --- |
+| 业务模块 | 用例、Model、Repository port、permission/operation key、事务和业务错误 | 模块 Adapter 内的局部实现细节 | ORM model、policy engine object、HTTP framework context 进入 Service/Model |
+| 项目能力 | 窄契约、配置/错误/安全策略、命名 profile、低敏诊断 | cache/codec/retry/breaker/schema 等通用算法 | 原样复制第三方全量 API 的 Wrapper |
+| composition | 实现选择、共享资源 owner、Start/Ready/Stop、静态/动态分类 | 具体 Client、connection、exporter、trigger | 业务调用方创建第二套共享资源或查询容器 |
+| transport/tooling | route binding、生成、验证、协议呈现 | chi、kin-openapi、Huma/ogen 候选、标准 instrumentation | 模块为适配框架而失去 operation 语义 ownership |
+
+## 承载架构目标
+
+### 静态对象图
+
+业务 Model/Service/Handler、无共享资源的库和不支持安全换代的对象，默认由显式构造函数在启动期构建。配置变化若无法定义候选准入、并存、排空和回滚，则明确 `RestartRequired`。
+
+### 动态资源平面
+
+只有共享连接、listener、Consumer、exporter 等能证明运行期换代收益，且具备资源 owner、候选验证、Replacement 与失败保留旧代语义的能力进入动态 Generation。
+
+### 迁移方式
+
+先制作 capability/consumer/owner/reload 矩阵，再选一个无热换价值且调用面小的垂直切片。保持公开行为不变，比较构造复杂度、reload 状态数、停止顺序和故障恢复证据；通过后才扩大，不引入 Fx/反射 DI。
+
+## 实施批次
+
+### Batch A：安全与基线恢复
+
+- 升级 `kin-openapi` 到实施时经官方复核的安全版本，验证现有 code-first 生成和 request validation 负向场景。
+- 使用 Go 1.26 构建/运行兼容的 `govulncheck`，建立全仓当前漏洞基线。
+
+不等待 Huma PoC，不改变 HTTP authority。
+
+### Batch B：低耦合升级与替换
+
+- L1 Cache：Otter v2 与 ttlcache v3 做容量、TTL、并发、关闭和内存上界 PoC，选一条单轨替换 `patrickmn/go-cache`。
+- YAML：迁移 `go.yaml.in/yaml/v4`，用配置、本地化、生成物 fixture 验证。
+- 限流：以 `x/time/rate` 替换进程内 token bucket 算法，保留 load-shedding 语义。
+- JWX：复核 v4 API/安全迁移；不顺带引入 OIDC。
+
+每个项目可以独立确认和回退，不做互相绑定的大提交。
+
+### Batch C：策略层重构
+
+先建立 HTTP/execution 下游 profile，显式表达幂等、可重试错误、总 budget、timeout、circuit、bulkhead 与观测。再以 failsafe-go 为首选 PoC、gobreaker/backoff 为较小组合对照，删除被替代的自研通用状态机。
+
+### Batch D：高耦合真实用例 PoC
+
+- HTTP：选一组现有 operation，比较当前 typed DSL 与 Huma v2 的声明量、生成一致性、错误/鉴权/政策扩展、chi 接入和升级成本。
+- Data：选 IAM/Organization/Navigation 的复杂查询，比较当前 Repository、GORM Gen 和 sqlc 的三方言、事务、乐观锁、分页、错误映射与迁移成本。
+- Config：只比较 koanf 能否减少 parser/provider 自研；strict candidate、owner、reload 失败保留旧代仍归项目。
+
+PoC 代码若不能作为最终单轨实现的一部分，应放在任务明确的隔离位置，并在结论后删除；不得把两套 production 实现长期留在仓库。
+
+### Batch E：架构切片
+
+形成完整 owner/reload 矩阵并提交更新计划。任何公共装配、生命周期或 reload 语义变化都属于材料性架构变更，必须在 Batch E 实施前再次确认。
+
+## 失败、回退与验证语义
+
+- 依赖升级失败：保留错误链和测试证据，不能降级为旧漏洞版本并宣称成功。
+- PoC 不满足核心语义：记录拒绝原因和退出结论，删除 PoC 代码，不增加兼容层。
+- 单轨替换：先证明候选满足容量、取消、关闭、并发、错误和观测门禁，再迁移调用方并删除旧依赖。
+- 架构切片：启动、reload、旧代保留、stop/wait 和 race 测试必须覆盖；无法安全热换的能力明确 RestartRequired。
+- 所有批次执行 `go test ./...`、`go vet ./...`、`go test -race ./...`（适用平台范围）、文档与生成物门禁；安全任务另执行与当前 Go 工具链匹配的 `govulncheck`。
+
+## 文件影响预测
+
+实际文件以确认后的任务设计复核为准：
+
+- Batch A：`go.mod`、`go.sum`、`internal/transport/http/`、`pkg/httpx/contract/`、安全验证记录。
+- Batch B：`pkg/cache/`、`internal/kernel/app/cache/`、配置/codec 消费者、`pkg/httpx/production_middleware.go`、IAM auth Adapter。
+- Batch C：`pkg/httpx/`、`pkg/resilience/`、`pkg/execution/` 及 composition policy。
+- Batch D：限定 PoC、真实模块 Adapter/测试与生成门禁；不直接改变 production authority。
+- Batch E：`internal/composition/`、`internal/kernel/`、模块构造与 lifecycle 测试。

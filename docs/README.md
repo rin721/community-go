@@ -51,13 +51,15 @@
 ## 6. 理解架构
 
 - [架构说明](architecture/README.md)：composition、Application Generation、Kernel App、模块边界、pkg 能力链路和生命周期治理。
+- [技术选型与架构复核基线](architecture/technology-selection.md)：通用能力的保留、升级、替换、自研、退役与架构重构判定，以及当前候选和实施门禁。
 - [应用模块边界](../internal/module/README.md)：业务模块目录职责、Contribution 和允许依赖。
 - [Kernel 与 App 组件装配](../internal/kernel/README.md)：底层 App 组件、Plan、typed Input、生命周期、重载和诊断。
 - [Kernel App 组件开发](../internal/kernel/app/README.md)：底层组件形态、Definition、Lease、Replacement 和接入验收。
 
 ## 7. 扩展能力
 
-- 业务模块扩展先从 [应用模块开发指南](development/application-module-development.md) 开始，确认真实用例、能力归属、Binding 和 owner。
+- 业务模块扩展先从 [应用模块开发指南](development/application-module-development.md) 开始，确认真实用例、能力归属、技术候选、承载架构、Binding 和 owner。
+- 继续扩展现有自研通用机制前，先按[技术选型与架构复核基线](architecture/technology-selection.md)比较成熟候选和实际收益。
 - 跨业务复用且由进程统一选择的底层能力，再进入 [Kernel App 组件开发](../internal/kernel/app/README.md)。
 - 新增公开 HTTP operation 时，遵守 [API 文档](../api/README.md) 的 code-first 生成链。
 

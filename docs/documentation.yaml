@@ -16,6 +16,7 @@ required_documents:
   - docs/getting-started/webui.md
   - docs/configuration/README.md
   - docs/development/documentation-governance.md
+  - docs/architecture/technology-selection.md
   - docs/operations/runtime-capabilities.md
   - internal/module/README.md
   - pkg/README.md
@@ -46,7 +47,7 @@ areas:
     authorities: [internal/module/README.md, docs/development/application-module-development.md]
   - id: capability
     paths: [pkg/, internal/kernel/app/]
-    authorities: [pkg/README.md, docs/architecture/README.md, docs/operations/runtime-capabilities.md]
+    authorities: [pkg/README.md, docs/architecture/README.md, docs/architecture/technology-selection.md, docs/operations/runtime-capabilities.md]
   - id: api
     paths: [api/, internal/transport/http/, internal/tools/contract-gen/]
     authorities: [api/README.md, docs/getting-started/first-use.md]

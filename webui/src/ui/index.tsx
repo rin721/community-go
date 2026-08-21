@@ -34,10 +34,18 @@ export function DataToolbar({ filters, actions }: { filters?: ReactNode; actions
 }
 
 export function FilterPanel({ label, open, onToggle, expandLabel, collapseLabel, children }: { label: string; open: boolean; onToggle: () => void; expandLabel: string; collapseLabel: string; children: ReactNode }) {
-  return <section className={`filter-panel ${open ? "open" : ""}`}><button className="filter-panel-toggle" type="button" onClick={onToggle} aria-expanded={open} aria-label={open ? collapseLabel : expandLabel}><span className="filter-panel-chevron" aria-hidden="true" />{label}</button>{open && <div className="filter-panel-content">{children}</div>}</section>;
+  const panelID = `webui-filter-panel-${useId().replaceAll(":", "")}`;
+  const toggleID = `${panelID}-toggle`;
+  return <section className={`filter-panel ${open ? "open" : ""}`}><button id={toggleID} className="filter-panel-toggle" type="button" onClick={onToggle} aria-expanded={open} aria-controls={panelID} aria-label={open ? collapseLabel : expandLabel}><span className="filter-panel-chevron" aria-hidden="true" />{label}</button>{open && <div id={panelID} className="filter-panel-content" role="region" aria-labelledby={toggleID}>{children}</div>}</section>;
 }
 
 export type DataTableColumn<Row> = { id: string; header: ReactNode; cell: (row: Row, index: number) => ReactNode; className?: string };
+
+export function getDataTableSelectionState(rowKeys: ReadonlyArray<string>, selected: ReadonlySet<string>): { allSelected: boolean; partiallySelected: boolean } {
+  const selectedVisibleCount = rowKeys.filter((key) => selected.has(key)).length;
+  const allSelected = rowKeys.length > 0 && selectedVisibleCount === rowKeys.length;
+  return { allSelected, partiallySelected: selectedVisibleCount > 0 && !allSelected };
+}
 
 type DataTableProps<Row> = {
   columns: ReadonlyArray<DataTableColumn<Row>>;
@@ -55,7 +63,11 @@ type DataTableProps<Row> = {
 export function DataTable<Row>({ columns, rows, getRowKey = (_row, index) => String(index), loading = false, loadingLabel, emptyState, selectable = false, selectionLabel, selectedKeys, onSelectedKeysChange }: DataTableProps<Row>) {
   const rowKeys = rows.map(getRowKey);
   const selected = selectedKeys ?? new Set<string>();
-  const allSelected = rowKeys.length > 0 && rowKeys.every((key) => selected.has(key));
+  const headerSelectionRef = useRef<HTMLInputElement>(null);
+  const { allSelected, partiallySelected } = getDataTableSelectionState(rowKeys, selected);
+  useEffect(() => {
+    if (headerSelectionRef.current) headerSelectionRef.current.indeterminate = partiallySelected;
+  }, [partiallySelected]);
   const toggleKey = (key: string) => {
     if (!onSelectedKeysChange) return;
     const next = new Set(selected);
@@ -67,7 +79,7 @@ export function DataTable<Row>({ columns, rows, getRowKey = (_row, index) => Str
     onSelectedKeysChange(allSelected ? new Set() : new Set(rowKeys));
   };
   const columnCount = columns.length + (selectable ? 1 : 0);
-  return <div className="data-table-wrap"><table className="data-table"><thead><tr>{selectable && <th className="data-table-selection"><input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label={selectionLabel} /></th>}{columns.map((column) => <th className={column.className} key={column.id}>{column.header}</th>)}</tr></thead><tbody>{loading && <tr><td colSpan={columnCount}><Skeleton lines={3} label={loadingLabel ?? ""} /></td></tr>}{!loading && rows.length === 0 && <tr><td colSpan={columnCount}>{emptyState}</td></tr>}{!loading && rows.map((row, index) => { const key = getRowKey(row, index); return <tr key={key}>{selectable && <td className="data-table-selection"><input type="checkbox" checked={selected.has(key)} onChange={() => toggleKey(key)} aria-label={selectionLabel} /></td>}{columns.map((column) => <td className={column.className} key={column.id}>{column.cell(row, index)}</td>)}</tr>; })}</tbody></table></div>;
+  return <div className="data-table-wrap"><table className="data-table" aria-busy={loading}><thead><tr>{selectable && <th scope="col" className="data-table-selection"><input ref={headerSelectionRef} type="checkbox" checked={allSelected} onChange={toggleAll} aria-checked={partiallySelected ? "mixed" : allSelected} aria-label={selectionLabel} /></th>}{columns.map((column) => <th scope="col" className={column.className} key={column.id}>{column.header}</th>)}</tr></thead><tbody>{loading && <tr><td colSpan={columnCount}><Skeleton lines={3} label={loadingLabel ?? ""} /></td></tr>}{!loading && rows.length === 0 && <tr><td colSpan={columnCount}>{emptyState}</td></tr>}{!loading && rows.map((row, index) => { const key = getRowKey(row, index); return <tr key={key}>{selectable && <td className="data-table-selection"><input type="checkbox" checked={selected.has(key)} onChange={() => toggleKey(key)} aria-label={selectionLabel} /></td>}{columns.map((column) => <td className={column.className} key={column.id}>{column.cell(row, index)}</td>)}</tr>; })}</tbody></table></div>;
 }
 
 export type PaginationItem = number | "ellipsis-left" | "ellipsis-right";

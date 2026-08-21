@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { DataTable, Drawer, EmptyState, Pagination, createPaginationItems } from "./ui";
+import { DataTable, Drawer, EmptyState, FilterPanel, Pagination, createPaginationItems, getDataTableSelectionState } from "./ui";
 
 describe("公共管理 UI 模式", () => {
   it("renders a selectable data table with an empty state", () => {
@@ -9,6 +9,21 @@ describe("公共管理 UI 模式", () => {
     expect(markup).toContain("data-table");
     expect(markup).toContain("No records");
     expect(markup).toContain("Select row");
+  });
+
+  it("exposes a mixed selection state for partially selected table rows", () => {
+    expect(getDataTableSelectionState(["a", "b"], new Set(["a"]))).toEqual({ allSelected: false, partiallySelected: true });
+    expect(getDataTableSelectionState(["a", "b"], new Set(["a", "b"]))).toEqual({ allSelected: true, partiallySelected: false });
+    expect(getDataTableSelectionState(["a", "b"], new Set(["stale"]))).toEqual({ allSelected: false, partiallySelected: false });
+  });
+
+  it("associates an expanded filter panel with its toggle", () => {
+    const markup = renderToStaticMarkup(createElement(FilterPanel, { label: "Search", open: true, onToggle: () => undefined, expandLabel: "Expand", collapseLabel: "Collapse", children: createElement("input", { placeholder: "Name" }) }));
+
+    expect(markup).toContain('aria-expanded="true"');
+    expect(markup).toContain("aria-controls=");
+    expect(markup).toContain('role="region"');
+    expect(markup).toContain("aria-labelledby=");
   });
 
   it("keeps pagination compact while preserving first, current and last pages", () => {

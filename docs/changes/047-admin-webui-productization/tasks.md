@@ -38,6 +38,7 @@
 | HOST-MENU-001 | UI-001, VIS-HOST-001 | 消费 ManifestMenu.parentId 建立宿主递归导航 | 分组展开、当前路径祖先自动展开、孤立项安全落根；模块只提供 Binding，不改宿主菜单实现 | 已实施未闭合 |
 | HOST-MOBILE-001 | UI-001, VIS-HOST-001 | 基于 390×844 参考观察校准移动 Header 与页签密度 | 移动面包屑隐藏、工具区不溢出、页签操作保留、侧栏打开/关闭焦点连续、关闭态不进入键盘路径、桌面规则不回归 | 已实施未闭合 |
 | HOST-MOBILE-002 | HOST-MOBILE-001, HOST-THEME-001 | 保留移动端语言与账号入口的紧凑形态 | 语言切换、用户菜单和退出登录仍可访问；移动导航关闭态焦点隔离；不泄漏会话信息，不破坏桌面布局 | 已实施未闭合 |
+| HOST-ACCOUNT-001 | UI-002-COMMON-001, I18N-CONTRACT-001 | 将用户菜单退出流程接入宿主确认与失败反馈 | 退出由宿主 `ConfirmDialog` 确认；失败由宿主 i18n `Toast` 低敏呈现；模块不接触账号菜单或全局状态；中英文资源完整 | 已实施未闭合 |
 | HOST-DENSITY-001 | HOST-THEME-001, VIS-HOST-001 | 让 ThemePreferences.density 真正驱动宿主视觉密度 | Compact 消费 `data-density` 调整核心容器/控件间距；Comfortable 默认不变；不影响业务语义 | 已实施未闭合 |
 | HOST-THEME-002 | HOST-THEME-001, HOST-DENSITY-001 | 按参考主题抽屉补齐宿主布局/通用/预设分区 | 四分区由单一 ThemePreferences 驱动；面包屑、页签、底部、侧栏默认状态和减少动效均真实生效；Drawer 焦点进入/恢复、关闭隔离和键盘操作可验证；主题分区具备唯一 Tab 聚焦项、方向键/Home/End roving focus 与 tabpanel 关联；所有新增文案走 host i18n | 已实施未闭合 |
 | BUILTIN-001 | UI-001, ARC-001 | 建立 Theme Drawer、403、404、mismatch 和 not-implemented 宿主页面 | 单一主题 authority；状态一致、错误低敏、解析错误可见；lazy 模块异常落入宿主 route error 状态；不发不存在 API | 已实施未闭合 |

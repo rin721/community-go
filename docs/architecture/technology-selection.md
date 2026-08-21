@@ -35,8 +35,8 @@
 | ORM/Repository | `GORM v1.31.2` 活跃；`pkg/database` 又实现反射式 Schema、Query 和通用 Repository | **保留 GORM 连接/事务基线，复核自研 Repository 架构** | 用 IAM/Organization/Navigation 的真实 join、分页、乐观锁与三方言查询比较当前实现、`gorm.io/gen` 和 `sqlc`；业务仍依赖模块自有 Repository port，不暴露 GORM 类型 |
 | Migration | 使用 `golang-migrate` 与模块自有 migration set | **保留** | `golang-migrate` 负责版本执行；模块拥有 SQL 与兼容语义，不使用 GORM AutoMigrate 替代发布 migration |
 | Cache | 默认 L1、`patrickmn/go-cache`、本地 tag/cleanup 状态已退役；typed Client 无资源且 production 暂无消费者，Redis 是唯一数据与 tag authority | **保留 Redis 与项目缓存语义**；只有 `ErrNotFound` 作为 miss，取消、disabled、backend 与 codec 错误向上返回 | `go-redis/v9` 继续只存在于 Adapter，项目保留 typed key/tag/错误边界。真实消费者给出命中率、内存和陈旧预算后，高并发/weight 场景优先 PoC `Otter v2`，简单 TTL/容量场景 PoC `ttlcache v3` |
-| JWT/JWK | Auth Adapter 使用 `jwx/v3` 并显式校验 issuer/audience/algorithm | **升级评估** | 评估 `jwx/v4` 迁移与安全差异；若新增 OIDC，优先 `coreos/go-oidc/v3 + x/oauth2`，不自研 discovery、nonce 或 token 验证 |
-| Password | IAM Adapter 基于 `x/crypto/argon2` 实现 Argon2id，参数高于 OWASP 当前最低建议 | **合理自研薄 Adapter，但需补齐演进语义** | 保留 `x/crypto/argon2`；编码解析必须读取并校验存量参数，支持 `NeedsRehash`，并用资源预算和负向测试验证，避免把密码算法扩展成通用 crypto 框架 |
+| JWT/JWK | Auth Adapter 使用最新 v3 线 `jwx/v3 v3.2.0` 并显式治理 JWK 生命周期及 issuer/audience/algorithm；v4 当前强制 `GOEXPERIMENT=jsonv2` | **保留成熟 v3，强化安全语义**；不为版本号把实验性构建约束扩散到全项目 | `jwx/v3` 继续拥有 JOSE/JWT/JWK 通用机制，项目 Adapter 拥有网络、claim、algorithm、取消、错误和 lifecycle；jsonv2 稳定或 v3 支持变化后再评 v4 + jwkfetch。真实 OIDC 用例出现时优先比较 `coreos/go-oidc/v3 + x/oauth2`，不自研 discovery/nonce/token 验证 |
+| Password | IAM Adapter 使用 Go 官方 `x/crypto/argon2`，但当前比较忽略 PHC 中的版本和参数且没有 NeedsRehash | **保留成熟密码学实现，修订项目格式与演进边界**；不引入不能消除资源边界的小众 Wrapper | `x/crypto/argon2` 拥有 Argon2id；项目只拥有严格且有资源上限的 PHC 格式、目标 policy、verification result、恒时比较编排与成功登录事务内渐进重哈希，不自行实现密码学算法 |
 | Permission/AuthZ | code-defined permission catalog + IAM 数据库存储 Core RBAC；当前没有租户、资源关系或 ABAC | **保留当前简单模型** | 出现 domain RBAC/ABAC 时比较 `Casbin v3`；出现跨资源 ReBAC/集中决策时比较 `OpenFGA`；没有真实语义前不引入外部 policy engine |
 | CORS/安全头/CSRF | CORS、安全头和 Same-Origin/CSRF 为项目中间件；当前安全头只覆盖三个基础 header | **专项复核，不机械全换** | CORS 比较 `rs/cors`；安全头比较 `unrolled/secure` 与项目显式 policy；依据 API 与 WebUI 交付方式补齐 HSTS/CSP/COOP 等部署语义，CSRF 继续由 IAM session 边界拥有 |
 | 限流/过载 | 单进程 token bucket 自研 mutex/refill；0/0 实际回落 100/200 默认值；并发门禁是非阻塞 channel；两者随 Application Generation 重建 | **替换 token bucket，保留简单过载实现并修正配置语义** | `golang.org/x/time/rate v0.15.0` 隐藏在 `pkg/httpx` 薄边界并使用 fail-fast Allow；增加 `local/disabled` 严格模式。保留 channel 503，保持 generation-local；默认值只是待负载校准的 scaffold 起点。主体或分布式 quota 另立网关/共享计数研究 |
@@ -73,7 +73,7 @@ HTTP 重试、熔断、限流、缓存加载和执行恢复都涉及幂等、失
 ## 实施门禁与顺序
 
 1. **安全止血**：升级受公告影响的依赖，重建与 Go 1.26 匹配的扫描工具，运行 `govulncheck`、测试和契约负向门禁。
-2. **低耦合替换**：默认 L1 已退役；后续迁移官方稳定 YAML v3 路径并删除无消费者 Codec；以 `x/time/rate` 单轨替换 token bucket、修正显式启停配置但保留 channel 过载门禁；JWX v4 单独评估和迁移。未来 L1 与 YAML v4 必须由真实需求、稳定版本和量化门禁重新授权。
+2. **低耦合替换**：默认 L1 已退役；后续迁移官方稳定 YAML v3 路径并删除无消费者 Codec；以 `x/time/rate` 单轨替换 token bucket、修正显式启停配置但保留 channel 过载门禁；保留 jwx/v3 与 x/crypto/argon2 并补认证安全/演进语义。未来 L1、YAML v4 与 JWX v4 必须由真实需求、稳定版本和量化门禁重新授权。
 3. **策略层重构**：统一 HTTP/execution 的 retry、timeout、circuit、bulkhead 语义，再决定 `failsafe-go` 或较小组合。
 4. **高耦合 PoC**：以真实模块比较 Huma、当前 HTTP DSL；以真实查询比较当前 Repository、GORM Gen、sqlc。
 5. **架构切片**：根据 owner/reload 矩阵把一个不需要动态换代的模块或能力移回静态平面，证明启动、重载、停止和回滚收益后再扩大。

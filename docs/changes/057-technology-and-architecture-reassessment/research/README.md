@@ -22,7 +22,8 @@
 | [R003](R003-cache-l1-necessity-and-candidate-fit/report.md) | L1 必要性、一致性与候选适配 | active | 无 production typed cache 消费者且现有 L1 无容量/跨实例失效；先退役而非机械换库 |
 | [R004](R004-serde-runtime-boundary-and-yaml-path/report.md) | 序列化边界与 YAML 稳定路径 | active | v4 仍为 RC；先迁移官方稳定 v3，并退役无消费者 Codec Wrapper |
 | [R005](R005-http-entry-rate-and-overload-boundary/report.md) | HTTP 入口速率与过载保护边界 | active | 用 x/time/rate 替换 token bucket；保留简单 channel 503；修正 local/disabled 配置并保持 generation-local |
+| [R006](R006-authn-library-and-credential-boundary/report.md) | 认证库与凭据校验边界 | active | 保留 jwx/v3 与 x/crypto/argon2；不引入实验性 v4 或小众 Wrapper，补取消、受限 PHC 与渐进重哈希 |
 
 ## 研究门禁
 
-关键问题已有可复核证据，事实、推断和目标设计已分离；SEC-057-001 已完成当前工具链漏洞扫描。Cache、serde 与 HTTP limit 的深化研究已经形成可确认的修订计划，但禁止据此宣称候选已适配或授权生产迁移。因此研究门禁通过，非文档计划保持待确认。
+关键问题已有可复核证据，事实、推断和目标设计已分离；SEC-057-001 已完成当前工具链漏洞扫描。Cache、serde、HTTP limit 与 AuthN 的深化研究已经形成可确认的修订计划，但禁止据此宣称候选已适配或授权生产迁移。因此研究门禁通过，非文档计划保持待确认。

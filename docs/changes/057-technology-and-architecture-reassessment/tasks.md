@@ -17,7 +17,7 @@
 | CACHE-057-001 | B | 单轨退役默认 L1 与 go-cache，收紧 Redis typed cache 的 miss/error 语义 | 用户于 2026-08-22 确认修订后的该任务 | 已完成 | 删除本地状态/goroutine/专属配置和 go-cache；Redis typed cache/tag/disabled/cancel/error 语义测试通过；不新增 L1 依赖 |
 | SERDE-057-001 | B | 迁移官方稳定 YAML v3 路径并退役无消费者 Codec | 用户确认修订后的该任务 | 待确认 | project direct import 使用 go.yaml.in/yaml/v3 v3.0.5；删除 gopkg direct requirement 与 pkg/codec；config/i18n/OpenAPI/docs fixture 和完整门禁通过；不直引 v4 RC |
 | LIMIT-057-001 | B | 用 x/time/rate 替换通用 token bucket，修正入口保护配置语义 | 用户确认修订后的该任务 | 待确认 | x/time/rate v0.15.0 隐藏在项目薄边界；删除自研 refill/lock；增加 local/disabled 严格模式；保留 generation-local 与 channel 503；mode/burst/refill/concurrency/CORS/management/reload、完整 Go 与漏洞门禁通过；不增加主体或分布式 quota |
-| AUTHN-057-001 | B | 评估并迁移 JWX v4，补 Argon2 参数解析和 NeedsRehash | 用户确认该任务 | 待确认 | JWT 负向矩阵、密码版本/资源/重哈希测试通过；不引入 OIDC |
+| AUTHN-057-001 | B | 保留 jwx/v3 与 x/crypto/argon2，补 JWT 取消/负向矩阵和受限 PHC/NeedsRehash/渐进重哈希 | 用户确认修订后的该任务 | 待确认 | 第三方类型不泄漏；取消原因保留；敌对 PHC 在 Argon2 前拒绝；登录事务重哈希与完整安全门禁通过；不引入 jwx/v4、OIDC 或小众 Wrapper |
 | RESIL-057-001 | C | 建立命名策略 profile，比较 failsafe-go 与窄组合并替换重复状态机 | Batch A 完成、用户确认 Batch C | 待确认 | HTTP/execution 的幂等、budget、错误分类、观测明确；旧自研机制按单轨删除 |
 | HTTP-057-001 | D | 用真实 operation 比较 Huma v2 与当前 typed DSL | Batch A 完成、用户确认该任务 | 待确认 | 生成、验证、鉴权/政策扩展、错误与迁移成本有可运行证据；只输出采用或拒绝结论 |
 | DATA-057-001 | D | 用真实复杂查询比较当前 Repository、GORM Gen 与 sqlc | 用户确认该任务 | 待确认 | 三方言、事务、分页、乐观锁、错误、测试与迁移成本可复核；模块 port 不变 |
@@ -28,7 +28,7 @@
 
 ## 建议确认方式
 
-Batch A 与修订后的 `CACHE-057-001` 已完成。R004、R005 已分别材料性修订 `SERDE-057-001`、`LIMIT-057-001`；此前确认不覆盖这些任务。下一轮可分别确认修订后的 `SERDE-057-001`、`LIMIT-057-001` 或 `AUTHN-057-001`。Batch C/D/E 应依据前序证据重新提交更窄设计。
+Batch A 与修订后的 `CACHE-057-001` 已完成。R004、R005、R006 已分别材料性修订 `SERDE-057-001`、`LIMIT-057-001`、`AUTHN-057-001`；此前确认不覆盖这些任务。下一轮可分别确认任一修订后的任务 ID。Batch C/D/E 应依据前序证据重新提交更窄设计。
 
 ## 停止与重新确认条件
 
@@ -58,6 +58,7 @@ Batch A 与修订后的 `CACHE-057-001` 已完成。R004、R005 已分别材料�
 | 2026-08-22 | CACHE-057-001 漏洞扫描 | `govulncheck -show verbose ./...`：0 reachable symbol、0 imported package 漏洞；模块层仍为 2 个当前不可达项 GO-2026-6222 与 GO-2026-5932 |
 | 2026-08-22 | SERDE-057-001 确认前深化研究 | v4 当前仅有 v4.0.0-rc.6；官方稳定 v3.0.5 活跃安全维护。项目 YAML 只在 config/i18n/contract/tooling 边界，pkg/codec 无消费者。任务修订为稳定 v3 import 迁移 + Codec 退役，继续待确认；未修改源码或依赖 |
 | 2026-08-22 | LIMIT-057-001 确认前深化研究 | 当前 token bucket 自研通用算法且 0/0 实际回落 100/200 默认值；官方 x/time/rate v0.15.0 适配 fail-fast Allow。channel semaphore 精确表达非阻塞 503，保留优于机械换 x/sync。任务增加 local/disabled 严格模式并明确 generation-local，继续待确认；未修改源码、配置或依赖 |
+| 2026-08-22 | AUTHN-057-001 确认前深化研究 | jwx/v4 仍强制全项目 `GOEXPERIMENT=jsonv2`，上游暂不建议新代码采用，v3 继续常规修复；Argon2 高层候选不能同时证明成熟主流与敌对 PHC 资源上限。任务修订为保留 jwx/v3 与官方 x/crypto/argon2，补取消、受限 PHC、NeedsRehash 和事务内渐进迁移，继续待确认；未修改源码或依赖 |
 
 ## Commit
 

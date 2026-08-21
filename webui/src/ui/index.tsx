@@ -29,8 +29,8 @@ export function Skeleton({ lines = 3, label }: { lines?: number; label: string }
   return <div className="skeleton-stack" aria-label={label}>{Array.from({ length: lines }, (_, index) => <span key={index} />)}</div>;
 }
 
-export function DataToolbar({ filters, actions }: { filters?: ReactNode; actions?: ReactNode }) {
-  return <div className="data-toolbar">{filters && <div className="data-toolbar-filters">{filters}</div>}{actions && <div className="data-toolbar-actions">{actions}</div>}</div>;
+export function DataToolbar({ filters, actions, ariaLabel }: { filters?: ReactNode; actions?: ReactNode; ariaLabel?: string }) {
+  return <div className="data-toolbar" role={ariaLabel ? "toolbar" : undefined} aria-label={ariaLabel}>{filters && <div className="data-toolbar-filters">{filters}</div>}{actions && <div className="data-toolbar-actions">{actions}</div>}</div>;
 }
 
 export function FilterPanel({ label, open, onToggle, expandLabel, collapseLabel, children }: { label: string; open: boolean; onToggle: () => void; expandLabel: string; collapseLabel: string; children: ReactNode }) {

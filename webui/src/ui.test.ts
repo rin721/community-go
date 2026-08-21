@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { DataTable, Drawer, EmptyState, FilterPanel, Pagination, createPaginationItems, getDataTableSelectionState } from "./ui";
+import { DataTable, DataToolbar, Drawer, EmptyState, FilterPanel, Pagination, createPaginationItems, getDataTableSelectionState } from "./ui";
 
 describe("公共管理 UI 模式", () => {
   it("renders a selectable data table with an empty state", () => {
@@ -24,6 +24,13 @@ describe("公共管理 UI 模式", () => {
     expect(markup).toContain("aria-controls=");
     expect(markup).toContain('role="region"');
     expect(markup).toContain("aria-labelledby=");
+  });
+
+  it("allows modules to provide an i18n toolbar label", () => {
+    const markup = renderToStaticMarkup(createElement(DataToolbar, { ariaLabel: "User actions", actions: createElement("button", { type: "button" }, "Refresh") }));
+
+    expect(markup).toContain('role="toolbar"');
+    expect(markup).toContain('aria-label="User actions"');
   });
 
   it("keeps pagination compact while preserving first, current and last pages", () => {

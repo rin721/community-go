@@ -12,6 +12,7 @@ func TestGenerateWebUIRegistryIncludesEntriesAndLocales(t *testing.T) {
 	}
 	for _, expected := range []string{
 		`"auth.login": () => import("../../../internal/module/auth/binding/webui/web/LoginPage")`,
+		`"ops.capabilities": () => import("../../../internal/module/ops/binding/webui/web/CapabilitiesPage")`,
 		`"ops.dashboard": () => import("../../../internal/module/ops/binding/webui/web/DashboardPage")`,
 		`"webui.auth": () => import("../../../internal/module/auth/binding/webui/web/locale/zh-CN.json")`,
 		`"webui.ops": () => import("../../../internal/module/ops/binding/webui/web/locale/zh-CN.json")`,

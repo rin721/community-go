@@ -126,6 +126,7 @@ HeroUI 作为可访问交互原语，宿主在其上定义项目 Token 和语义
 - diagnostics 与 metrics 分区呈现，原始数据只作为可展开的诊断详情，不作为默认主界面。
 - 六个查询独立结算：核心探针失败为 unavailable；可选 diagnostics/metrics 失败为 degraded；成功数据继续显示。
 - 刷新与重试使用 TanStack Query，取消、错误和过期语义保持可诊断。
+- 能力清单页由 Ops Binding 按需贡献，复用六个查询作为真实行数据，提供搜索、核心/可选筛选、状态列、结果摘要、单项重试和分页；不引入用户管理示例数据或新的后端 wire contract。
 
 ### 6.3 宿主页面
 

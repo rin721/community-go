@@ -2,26 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { Button, CapabilityBanner, PageHeader, Skeleton, StatusPill, Surface, Toast } from "@webui/ui";
 import { useWebUITranslation, type CapabilityState } from "@webui/contracts";
-import { loadBuild, loadDiagnostics, loadLiveness, loadMetrics, loadReadiness, loadStartup } from "./api";
+import { opsOperations, operationCapabilityState, refreshNoticeTone } from "./operations";
 
-const operations = [
-  { name: "build", titleMessageID: "webui.ops.dashboard.operation.build", query: loadBuild, required: true },
-  { name: "startupz", titleMessageID: "webui.ops.dashboard.operation.startupz", query: loadStartup, required: true },
-  { name: "livez", titleMessageID: "webui.ops.dashboard.operation.livez", query: loadLiveness, required: true },
-  { name: "readyz", titleMessageID: "webui.ops.dashboard.operation.readyz", query: loadReadiness, required: true },
-  { name: "diagnostics", titleMessageID: "webui.ops.dashboard.operation.diagnostics", query: loadDiagnostics, required: false },
-  { name: "metrics", titleMessageID: "webui.ops.dashboard.operation.metrics", query: loadMetrics, required: false },
-] as const;
+export { operationCapabilityState, refreshNoticeTone } from "./operations";
 
-export function operationCapabilityState(required: boolean, pending: boolean, failed: boolean): CapabilityState {
-  if (pending) return "unavailable";
-  if (!failed) return "available";
-  return required ? "unavailable" : "degraded";
-}
-
-export function refreshNoticeTone(failedCount: number): "success" | "danger" {
-  return failedCount === 0 ? "success" : "danger";
-}
+const operations = opsOperations;
 
 export default function DashboardPage() {
   const { t } = useWebUITranslation("webui.ops");

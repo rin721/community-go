@@ -128,6 +128,12 @@
 - 当前项目没有用户管理业务，因此没有复制 Soybean 的用户字段、示例数据或 CRUD 路由；公共层只提供可由模块注入 locale 文案和业务单元格的 `DataToolbar`、`FilterPanel`、`DataTable`、`Pagination`、`EmptyState`、`InlineAlert` 和 `Drawer` 模式。
 - 表格选择、加载、空态、分页和抽屉开关均由调用模块控制，公共 UI 不创建业务状态、不注册 manifest，也不绕过模块能力边界。
 
+## Ops 能力清单页补充校准
+
+- 2026-08-21 重新观察 Soybean `/manage/user`：主内容依次呈现筛选入口、带新增/批量删除/刷新/列设置的标题工具栏、表格状态列与操作列、分页和页容量；当前 DOM 还明确标出表头选择列和无数据状态。
+- 当前项目没有用户管理后端，因此不复制用户字段、批量删除或示例行；Ops 模块把同一页面组织映射到现有六个 management query，提供能力名称、核心/可选范围、四态状态、结果摘要和单项重试。
+- 新页面由 `ops` Binding 声明 `ops.capabilities` entry/route/menu，宿主只消费生成 manifest；筛选、分页和反馈文案由 `webui.ops` locale 提供，模块不操作宿主 Router/Menu。
+
 ## 主题抽屉分层补充校准
 
 - 本轮重新观察 Soybean 主题配置抽屉：固定右侧 Drawer + 遮罩，顶部标题/关闭入口，下方按“外观、布局、通用、预设”四个分区切换；布局分区集中管理页签、面包屑、侧栏、底部和动效等宿主级偏好。

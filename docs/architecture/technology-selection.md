@@ -39,7 +39,7 @@
 | Password | IAM Adapter 基于 `x/crypto/argon2` 实现 Argon2id，参数高于 OWASP 当前最低建议 | **合理自研薄 Adapter，但需补齐演进语义** | 保留 `x/crypto/argon2`；编码解析必须读取并校验存量参数，支持 `NeedsRehash`，并用资源预算和负向测试验证，避免把密码算法扩展成通用 crypto 框架 |
 | Permission/AuthZ | code-defined permission catalog + IAM 数据库存储 Core RBAC；当前没有租户、资源关系或 ABAC | **保留当前简单模型** | 出现 domain RBAC/ABAC 时比较 `Casbin v3`；出现跨资源 ReBAC/集中决策时比较 `OpenFGA`；没有真实语义前不引入外部 policy engine |
 | CORS/安全头/CSRF | CORS、安全头和 Same-Origin/CSRF 为项目中间件；当前安全头只覆盖三个基础 header | **专项复核，不机械全换** | CORS 比较 `rs/cors`；安全头比较 `unrolled/secure` 与项目显式 policy；依据 API 与 WebUI 交付方式补齐 HSTS/CSP/COOP 等部署语义，CSRF 继续由 IAM session 边界拥有 |
-| 限流/过载 | 单进程全局 token bucket 与并发上限均为自研 | **替换通用算法，保留边界语义** | `golang.org/x/time/rate` 承担单进程 token bucket；并发上限继续可由有界 semaphore 表达；分布式配额或业务 quota 必须另立网关/Redis 方案，不能伪装成本地 limiter |
+| 限流/过载 | 单进程 token bucket 自研 mutex/refill；0/0 实际回落 100/200 默认值；并发门禁是非阻塞 channel；两者随 Application Generation 重建 | **替换 token bucket，保留简单过载实现并修正配置语义** | `golang.org/x/time/rate v0.15.0` 隐藏在 `pkg/httpx` 薄边界并使用 fail-fast Allow；增加 `local/disabled` 严格模式。保留 channel 503，保持 generation-local；默认值只是待负载校准的 scaffold 起点。主体或分布式 quota 另立网关/共享计数研究 |
 | 重试/熔断 | `pkg/resilience` 自研固定指数退避和只能手工 Reset 的连续失败 breaker | **替换候选优先** | `failsafe-go` 作为组合策略首选；若只需 breaker，比较 `sony/gobreaker/v2`，重试退避可比较已在依赖树中的 `cenkalti/backoff/v5`；项目只保留策略命名、错误分类和观测边界 |
 | 序列化 | 标准 `encoding/json`、cache 私有 `msgpack/v5`、已归档 `gopkg.in/yaml.v3`；自研 `pkg/codec` 无仓库内消费者 | **保留标准 JSON；迁移官方稳定 YAML v3；退役无价值 Codec；cache wire format 独立决策** | 直接 YAML import 迁移到 `go.yaml.in/yaml/v3 v3.0.5`；v4 当前仅 RC，不进入 production direct dependency。删除 `pkg/codec`，各协议 owner 直接使用库；MessagePack/JSON/CBOR 的 cache wire 选择归 CACHE 任务，不机械换格式 |
 | 配置 | 自研 strict binding/defaults/watch/atomic file，YAML + mapstructure；Viper 只是工具依赖的间接依赖 | **保留项目语义，复核是否过度承担通用解析** | 比较当前 parser 与 `koanf v2` 的 provider/parser 组合；只替换能减少依赖和自研解析的部分，owner、未知节拒绝、候选验证和失败保留旧代仍属项目语义 |
@@ -73,7 +73,7 @@ HTTP 重试、熔断、限流、缓存加载和执行恢复都涉及幂等、失
 ## 实施门禁与顺序
 
 1. **安全止血**：升级受公告影响的依赖，重建与 Go 1.26 匹配的扫描工具，运行 `govulncheck`、测试和契约负向门禁。
-2. **低耦合替换**：先退役当前无收益且语义不完整的默认 L1；迁移官方稳定 YAML v3 路径并删除无消费者 Codec；`x/time/rate`、JWX v4 分别做小范围 PoC 和单轨迁移。未来 L1 与 YAML v4 必须由真实需求、稳定版本和量化门禁重新授权。
+2. **低耦合替换**：先退役当前无收益且语义不完整的默认 L1；迁移官方稳定 YAML v3 路径并删除无消费者 Codec；以 `x/time/rate` 单轨替换 token bucket、修正显式启停配置但保留 channel 过载门禁；JWX v4 单独评估和迁移。未来 L1 与 YAML v4 必须由真实需求、稳定版本和量化门禁重新授权。
 3. **策略层重构**：统一 HTTP/execution 的 retry、timeout、circuit、bulkhead 语义，再决定 `failsafe-go` 或较小组合。
 4. **高耦合 PoC**：以真实模块比较 Huma、当前 HTTP DSL；以真实查询比较当前 Repository、GORM Gen、sqlc。
 5. **架构切片**：根据 owner/reload 矩阵把一个不需要动态换代的模块或能力移回静态平面，证明启动、重载、停止和回滚收益后再扩大。

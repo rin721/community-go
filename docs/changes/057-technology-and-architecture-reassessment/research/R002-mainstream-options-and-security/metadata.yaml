@@ -9,7 +9,7 @@ technologies: ["kin-openapi", "Huma", "ogen", "GORM", "sqlc", "Otter", "ttlcache
 applicable_scenarios: ["057 技术矩阵", "安全升级", "依赖替换 PoC", "后续模块能力评估"]
 non_applicable_scenarios: ["未经 PoC 的生产迁移结论", "GitHub 热度排名", "具体业务需求尚未出现的重量级平台选型"]
 status: active
-summary: "官方证据支持保留多项现有成熟依赖；SEC-057-001 已升级 kin-openapi。R003 将 cache 路径修订为退役默认 L1；R004 确认 YAML v4 仍为 RC，改为先迁移官方稳定 v3 并退役无消费者 Codec。其余高耦合能力仍按真实用例分批确认。"
+summary: "官方证据支持保留多项现有成熟依赖；SEC-057-001 已升级 kin-openapi。R003/R004/R005 分别修订 cache、serde 与 HTTP 入口限流计划：退役无收益 L1、迁移稳定 YAML v3、用 x/time/rate 替换 token bucket 但保留简单过载门禁。其余高耦合能力仍按真实用例分批确认。"
 evidence:
   types: ["official-repository", "official-release", "security-advisory", "standard-library-doc", "security-standard"]
   primary_sources:
@@ -24,6 +24,9 @@ evidence:
       snapshot: "2026-08-22"
     - title: "授权、YAML 与密码安全官方来源"
       locator: "https://github.com/apache/casbin; https://github.com/openfga/openfga; https://github.com/yaml/go-yaml; https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html"
+      snapshot: "2026-08-22"
+    - title: "Go official rate and semaphore packages"
+      locator: "https://pkg.go.dev/golang.org/x/time/rate@v0.15.0; https://pkg.go.dev/golang.org/x/sync/semaphore@v0.22.0"
       snapshot: "2026-08-22"
     - title: "SEC-057-001 实施与验证"
       locator: "go.mod; internal/transport/http/routes.go; internal/transport/http/routes_test.go; docs/changes/057-technology-and-architecture-reassessment/tasks.md"

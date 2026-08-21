@@ -79,3 +79,7 @@
 ## Serde 计划刷新（2026-08-22）
 
 [R004](../R004-serde-runtime-boundary-and-yaml-path/report.md) 确认 `go.yaml.in/yaml/v4` 当前仍只有 `v4.0.0-rc.6`，不满足稳定 production dependency 门禁；官方稳定安全维护线为 `go.yaml.in/yaml/v3 v3.0.5`。项目自研 `pkg/codec` 又没有仓库内消费者。因此 `SERDE-057-001` 修订为先迁移官方稳定 v3 import、删除无边界价值的 Codec Wrapper，并在 v4 stable 后按实际收益重新评估。
+
+## HTTP limit 计划刷新（2026-08-22）
+
+[R005](../R005-http-entry-rate-and-overload-boundary/report.md) 确认 `golang.org/x/time/rate v0.15.0` 的并发安全 token bucket 与 fail-fast `Allow` 精确覆盖当前自研通用算法；Go 官方 module metadata 显示其要求 Go 1.25，兼容当前 Go 1.26.6。现有 channel semaphore 已精确表达固定权重、非阻塞 503，换用 `x/sync/semaphore` 没有可验证收益。`LIMIT-057-001` 因发现 0/0 实际回落默认值的配置歧义而材料性修订：增加 `local/disabled` 严格模式，保持 limiter generation-local，并继续排除主体与分布式 quota。

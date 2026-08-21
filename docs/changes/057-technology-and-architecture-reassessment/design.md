@@ -4,7 +4,7 @@
 
 本变更不选择“一套框架接管一切”，而是建立两层决策：先判断通用实现是否应复用成熟方案，再判断当前架构是否为合适载体。输出是可追踪矩阵和分批实施队列，不是技术名录。
 
-依据：[R001 当前实现与架构事实](research/R001-current-capability-and-architecture-audit/report.md)、[R002 外部候选与安全事实](research/R002-mainstream-options-and-security/report.md)、[R003 L1 必要性与候选适配](research/R003-cache-l1-necessity-and-candidate-fit/report.md)、[R004 序列化与 YAML 稳定路径](research/R004-serde-runtime-boundary-and-yaml-path/report.md)。
+依据：[R001 当前实现与架构事实](research/R001-current-capability-and-architecture-audit/report.md)、[R002 外部候选与安全事实](research/R002-mainstream-options-and-security/report.md)、[R003 L1 必要性与候选适配](research/R003-cache-l1-necessity-and-candidate-fit/report.md)、[R004 序列化与 YAML 稳定路径](research/R004-serde-runtime-boundary-and-yaml-path/report.md)、[R005 HTTP 入口速率与过载边界](research/R005-http-entry-rate-and-overload-boundary/report.md)。
 
 ## 决策流程
 
@@ -58,7 +58,11 @@
 - Serde：把全部项目直接 YAML import 从已归档 `gopkg.in/yaml.v3` 单轨迁移到官方稳定 `go.yaml.in/yaml/v3 v3.0.5`；v4 当前仍为 RC，不提升为 direct dependency。
 - 删除零消费者 `pkg/codec`，不保留兼容包；标准 JSON 由协议 owner 直接使用，cache 私有 MessagePack wire format 不在本任务暗改。
 - 用 config duplicate/strict/default golden、i18n fixture、OpenAPI generation golden、docs guard 和完整 Go 门禁验证；v4 stable 后另按格式、安全限制和可删除自研逻辑的实际收益评估。
-- 限流：以 `x/time/rate` 替换进程内 token bucket 算法，保留 load-shedding 语义。
+- 限流：以 `golang.org/x/time/rate v0.15.0` 替换进程内 token bucket 数学与锁；项目薄边界继续拥有 fail-fast 429、Problem 与 Retry-After，不暴露第三方类型。
+- 限流配置：增加有类型的 `local/disabled` 模式，缺省保持 `local`；`local` 必须使用正速率和 burst，构造不再静默修正错误。保留 `100/200` 作为现有 scaffold 起点并明确必须按负载/SLO 校准，不把它描述为生产容量保证。
+- 过载：保留 channel-based 非阻塞 in-flight semaphore 与 503，不机械改用已有 `x/sync/semaphore`，也不变成等待队列或 weighted bulkhead。
+- 生命周期：RateLimiter 与 OverloadLimiter 保持 generation-local；新代从新 policy 状态开始，旧代独立排空。不为跨代 token 复用新增 pool/handoff，整体 Generation 范围留给 Batch E。
+- 范围排除：不在本任务增加 Principal/IP/Operation/租户维度、Redis/网关/集中计数、登录防爆破或分布式 quota。
 - JWX：复核 v4 API/安全迁移；不顺带引入 OIDC。
 
 每个项目可以独立确认和回退，不做互相绑定的大提交。

@@ -98,6 +98,16 @@ export function AppShell({ manifest, session, onLogout }: { manifest: Manifest; 
     event.preventDefault();
     focusable[nextIndex]?.focus();
   };
+  const handleWorkspaceTabKeyDown = (event: ReactKeyboardEvent<HTMLButtonElement>, index: number) => {
+    const targetIndex = getWorkspaceTabTargetIndex(event.key, index, visitedRoutes.length);
+    if (targetIndex === undefined) return;
+    event.preventDefault();
+    const target = visitedRoutes[targetIndex];
+    if (!target) return;
+    navigate(target.path);
+    requestAnimationFrame(() => document.getElementById(workspaceTabID(target.id))?.focus());
+  };
+  const activeWorkspaceTabID = currentRoute?.id ?? visitedRoutes[0]?.id;
 
   return <div className={`app-shell ${collapsed ? "sidebar-collapsed" : ""}`}>
     <button type="button" className={`mobile-backdrop ${mobileOpen ? "visible" : ""}`} onClick={() => setMobileOpen(false)} aria-label={translateMessage("webui.host.menu.close")} disabled={!mobileOpen} tabIndex={mobileOpen ? 0 : -1} />
@@ -108,8 +118,8 @@ export function AppShell({ manifest, session, onLogout }: { manifest: Manifest; 
     </aside>
     <div className="app-workspace">
       <header className="topbar"><div className="topbar-left"><button type="button" className="icon-button desktop-sidebar-toggle" onClick={toggleSidebar} aria-label={translateMessage(collapsed ? "webui.host.sidebar.expand" : "webui.host.sidebar.collapse")}>{collapsed ? <PanelLeftOpen size={19} /> : <PanelLeftClose size={19} />}</button><button type="button" ref={mobileMenuButtonRef} className="icon-button mobile-menu-button" onClick={() => setMobileOpen(true)} aria-label={translateMessage("webui.host.menu.open")}><Menu size={20} /></button>{theme.layout.showBreadcrumb && <div className="breadcrumb"><span>{translateMessage("webui.host.breadcrumb.home")}</span><ChevronRight size={14} /> <strong>{currentRoute ? translateMessage(currentRoute.titleMessageId) : location.pathname}</strong></div>}</div><div className="topbar-actions"><button type="button" className="search-trigger" onClick={() => setSearchOpen(true)}><Search size={17} /><span>{translateMessage("webui.host.search")}</span><kbd>{translateMessage("webui.host.search.shortcut")}</kbd></button><button type="button" className="icon-button" onClick={() => void toggleFullscreen()} title={translateMessage("webui.host.fullscreen")}><Expand size={18} /></button><label className="language-button" title={translateMessage("webui.host.language")}><Languages size={18} /><select aria-label={translateMessage("webui.host.language")} value={hostI18n.language} onChange={(event) => void changeLanguage(event.target.value)}>{availableLanguages.map((language) => <option value={language} key={language}>{translateMessage(languageLabelMessageID(language))}</option>)}</select></label><button type="button" className="icon-button" onClick={toggleColorScheme} title={translateMessage("webui.host.theme.toggle")} aria-label={translateMessage("webui.host.theme.toggle")}>{theme.mode === "dark" ? <Sun size={18} /> : <Moon size={18} />}</button><button type="button" className="icon-button" onClick={() => setThemeOpen(true)} title={translateMessage("webui.host.theme")} aria-label={translateMessage("webui.host.theme")}><Palette size={18} /></button><details className="account-menu"><summary><span className="user-avatar">{session?.user.username.slice(0, 1).toUpperCase() ?? <CircleUserRound size={18} />}</span><span>{session?.user.username ?? translateMessage("webui.host.account")}</span></summary><div><button type="button" onClick={() => void onLogout()} disabled={!session}><LogOut size={16} />{translateMessage("webui.host.logout")}</button></div></details></div></header>
-      {theme.layout.showTabs && <div className="workspace-tabs"><div className="workspace-tab-scroll" role="tablist" aria-label={translateMessage("webui.host.tabs.list")}>{visitedRoutes.map((route) => { const active = route.id === currentRoute?.id; const closable = isWorkspaceTabClosable(route); return <div className={active ? "workspace-tab active" : "workspace-tab"} key={route.id}><button type="button" role="tab" aria-selected={active} className="workspace-tab-trigger" onClick={() => navigate(route.path)}><span className="tab-dot" />{translateMessage(route.titleMessageId)}</button>{closable && <button type="button" className="tab-close" onClick={() => closeTab(route)} aria-label={translateMessage("webui.host.tabs.close")}><X size={13} /></button>}</div>; })}</div><div className="workspace-tab-actions"><button type="button" className="icon-button" onClick={refreshCurrentRoute} aria-label={translateMessage("webui.host.tabs.refresh")} title={translateMessage("webui.host.tabs.refresh")}><RefreshCw size={16} /></button></div></div>}
-      <main className="page-viewport"><Outlet /></main>
+      {theme.layout.showTabs && <div className="workspace-tabs"><div className="workspace-tab-scroll" role="tablist" aria-label={translateMessage("webui.host.tabs.list")}>{visitedRoutes.map((route, index) => { const active = route.id === currentRoute?.id; const closable = isWorkspaceTabClosable(route); return <div className={active ? "workspace-tab active" : "workspace-tab"} key={route.id}><button id={workspaceTabID(route.id)} type="button" role="tab" tabIndex={active ? 0 : -1} aria-selected={active} aria-controls="webui-workspace-panel" className="workspace-tab-trigger" onClick={() => navigate(route.path)} onKeyDown={(event) => handleWorkspaceTabKeyDown(event, index)}><span className="tab-dot" />{translateMessage(route.titleMessageId)}</button>{closable && <button type="button" className="tab-close" onClick={() => closeTab(route)} aria-label={translateMessage("webui.host.tabs.close")}><X size={13} /></button>}</div>; })}</div><div className="workspace-tab-actions"><button type="button" className="icon-button" onClick={refreshCurrentRoute} aria-label={translateMessage("webui.host.tabs.refresh")} title={translateMessage("webui.host.tabs.refresh")}><RefreshCw size={16} /></button></div></div>}
+      <main id="webui-workspace-panel" className="page-viewport" role={theme.layout.showTabs ? "tabpanel" : undefined} aria-labelledby={theme.layout.showTabs && activeWorkspaceTabID ? workspaceTabID(activeWorkspaceTabID) : undefined}><Outlet /></main>
       {theme.layout.showFooter && <footer className="app-footer"><span>{translateMessage("webui.host.footer")}</span><span>{new Date().getFullYear()}</span></footer>}
     </div>
     <RouteSearch open={searchOpen} routes={accessibleRoutes} onClose={() => setSearchOpen(false)} />
@@ -121,6 +131,19 @@ export type SidebarMenuEntry = { item: ManifestMenu; route: ManifestRoute; child
 
 export function isWorkspaceTabClosable(route: ManifestRoute): boolean {
   return !route.default;
+}
+
+export function workspaceTabID(routeID: string): string {
+  return `webui-workspace-tab-${routeID}`;
+}
+
+export function getWorkspaceTabTargetIndex(key: string, currentIndex: number, count: number): number | undefined {
+  if (count <= 0) return undefined;
+  if (key === "Home") return 0;
+  if (key === "End") return count - 1;
+  if (key === "ArrowRight") return (currentIndex + 1) % count;
+  if (key === "ArrowLeft") return (currentIndex - 1 + count) % count;
+  return undefined;
 }
 
 export function shouldIsolateMobileSidebar(isMobileViewport: boolean, mobileOpen: boolean): boolean {

@@ -97,6 +97,11 @@
 - 2026-08-21 重新观察 `https://soybeanjs.cn/home`：浏览器实测 `header` 位于 `y=0,h=56`，左侧 `aside` 覆盖 `h=720`；宿主内容区从 `y=56` 开始，页签后 `main` 位于 `y=100,h=572` 且 `overflow:auto`，`footer` 固定在 `y=672,h=48`。这证明参考站把 Header、页签、Footer 留在宿主层，仅让中间工作区滚动。
 - 项目 `AppLayout` 现在将 `.app-workspace` 设为 `height: 100vh; overflow: hidden`，`.page-viewport` 设为 `min-height: 0; overflow: auto`；这样长页面不会把 Header、页签和 Footer 一起推走，移动 Drawer 仍沿用既有窄视口规则。
 
+## 公共 Drawer 交互补充校准
+
+- 2026-08-21 通过 Soybean `/manage/user` 的“新增”入口观察到：页面主体被遮罩压暗，右侧固定 Drawer 包含标题与关闭按钮、中间可滚动表单区和底部固定“取消/确认”操作区；当前可见 DOM 提供 close、多个输入控件和底部动作入口。
+- 项目公共 `Drawer` 现在沿用该交互边界，但不复制用户管理业务：模块继续注入标题、内容和 footer；宿主公共层统一处理 `role=dialog`、`aria-labelledby`、打开聚焦、Tab 循环、Escape、关闭恢复焦点、遮罩禁用和关闭态 `inert`。
+
 ## 密度设置补充校准
 
 - Soybean 主题配置抽屉把布局/密度作为独立的外观设置层；本项目已有 Comfortable/Compact 选择，但此前只写入 `data-density`，没有实际 CSS 消费。

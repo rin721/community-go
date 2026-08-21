@@ -108,7 +108,7 @@ HeroUI 作为可访问交互原语，宿主在其上定义项目 Token 和语义
 
 表格/表单组件用 unit harness 或测试 fixture 验证，但 fixture 不进入生产导航、manifest 或构建期模块 Catalog，不声明业务能力，也不形成 Demo 页面。
 
-当前公共 UI 已提供 `DataToolbar`、`FilterPanel`、`DataTable`、`Pagination`、`EmptyState`、`InlineAlert` 和 `Drawer`。这些组件只接受调用方传入的 locale 文案、行数据、单元格和状态回调；不持有业务查询、权限或路由状态。模块仍通过自身 Binding 与 Composition 接入，不能把公共组件测试 fixture 当作生产页面。
+当前公共 UI 已提供 `DataToolbar`、`FilterPanel`、`DataTable`、`Pagination`、`EmptyState`、`InlineAlert` 和 `Drawer`。这些组件只接受调用方传入的 locale 文案、行数据、单元格和状态回调；不持有业务查询、权限或路由状态。公共 `Drawer` 统一负责遮罩、焦点进入/恢复、Tab 循环、Escape 关闭和关闭态 `inert` 隔离。模块仍通过自身 Binding 与 Composition 接入，不能把公共组件测试 fixture 当作生产页面。
 
 ## 6. 现有真实模块页面演进
 

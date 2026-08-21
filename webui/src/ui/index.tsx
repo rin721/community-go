@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, HTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
+import { useEffect, useId, useRef, type ButtonHTMLAttributes, type HTMLAttributes, type InputHTMLAttributes, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
 import type { CapabilityState } from "@webui/contracts";
 
 export function PageHeader({ eyebrow, title, description, actions }: { eyebrow?: string; title: string; description?: string; actions?: ReactNode }) {
@@ -98,5 +98,38 @@ export function InlineAlert({ tone = "info", title, detail, action }: { tone?: "
 }
 
 export function Drawer({ open, title, description, closeLabel, onClose, children, footer }: { open: boolean; title: string; description?: string; closeLabel: string; onClose: () => void; children: ReactNode; footer?: ReactNode }) {
-  return <><button type="button" aria-label={closeLabel} className={`drawer-backdrop ${open ? "visible" : ""}`} onClick={onClose} /><aside className={`ui-drawer ${open ? "open" : ""}`} role="dialog" aria-modal="true" aria-hidden={!open}><header className="ui-drawer-header"><div><h2>{title}</h2>{description && <p>{description}</p>}</div><button type="button" className="icon-button" onClick={onClose} aria-label={closeLabel}>×</button></header><div className="ui-drawer-content">{children}</div>{footer && <footer className="ui-drawer-footer">{footer}</footer>}</aside></>;
+  const drawerRef = useRef<HTMLElement>(null);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
+  const titleID = `webui-drawer-title-${useId().replaceAll(":", "")}`;
+
+  useEffect(() => {
+    if (!open) return;
+    restoreFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const focusFrame = requestAnimationFrame(() => drawerRef.current?.querySelector<HTMLElement>("[data-drawer-initial-focus]")?.focus());
+    return () => {
+      cancelAnimationFrame(focusFrame);
+      const target = restoreFocusRef.current;
+      restoreFocusRef.current = null;
+      target?.focus();
+    };
+  }, [open]);
+
+  const handleDrawerKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      onClose();
+      return;
+    }
+    if (event.key !== "Tab") return;
+    const focusable = Array.from(drawerRef.current?.querySelectorAll<HTMLElement>("button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex=\"-1\"])") ?? []);
+    if (focusable.length === 0) return;
+    const currentIndex = focusable.indexOf(document.activeElement as HTMLElement);
+    const nextIndex = event.shiftKey
+      ? currentIndex <= 0 ? focusable.length - 1 : currentIndex - 1
+      : currentIndex === focusable.length - 1 ? 0 : currentIndex + 1;
+    event.preventDefault();
+    focusable[nextIndex]?.focus();
+  };
+
+  return <><button type="button" aria-hidden={!open} aria-label={closeLabel} className={`drawer-backdrop ${open ? "visible" : ""}`} disabled={!open} tabIndex={open ? 0 : -1} onClick={onClose} /><aside ref={drawerRef} className={`ui-drawer ${open ? "open" : ""}`} role="dialog" aria-modal="true" aria-hidden={!open} aria-labelledby={titleID} inert={!open} onKeyDown={handleDrawerKeyDown}><header className="ui-drawer-header"><div><h2 id={titleID}>{title}</h2>{description && <p>{description}</p>}</div><button type="button" data-drawer-initial-focus className="icon-button" onClick={onClose} aria-label={closeLabel}>×</button></header><div className="ui-drawer-content">{children}</div>{footer && <footer className="ui-drawer-footer">{footer}</footer>}</aside></>;
 }

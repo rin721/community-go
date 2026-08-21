@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { DataTable, EmptyState, Pagination, createPaginationItems } from "./ui";
+import { DataTable, Drawer, EmptyState, Pagination, createPaginationItems } from "./ui";
 
 describe("公共管理 UI 模式", () => {
   it("renders a selectable data table with an empty state", () => {
@@ -16,5 +16,22 @@ describe("公共管理 UI 模式", () => {
     const markup = renderToStaticMarkup(createElement(Pagination, { page: 6, pageCount: 20, total: 200, totalLabel: (total) => `Total ${total}`, pageLabel: (page) => `Page ${page}`, previousLabel: "Previous", nextLabel: "Next", onPageChange: () => undefined }));
     expect(markup).toContain("aria-current=\"page\"");
     expect(markup).toContain("Total 200");
+  });
+
+  it("provides a focus-managed dialog contract for shared drawers", () => {
+    const markup = renderToStaticMarkup(createElement(Drawer, { open: true, title: "Create", closeLabel: "Close", onClose: () => undefined, children: createElement("input", { placeholder: "Name" }) }));
+
+    expect(markup).toContain('role="dialog"');
+    expect(markup).toContain('aria-modal="true"');
+    expect(markup).toContain("aria-labelledby=");
+    expect(markup).toContain('data-drawer-initial-focus="true"');
+  });
+
+  it("isolates a closed shared drawer from pointer and keyboard focus", () => {
+    const markup = renderToStaticMarkup(createElement(Drawer, { open: false, title: "Create", closeLabel: "Close", onClose: () => undefined, children: null }));
+
+    expect(markup).toContain('aria-hidden="true"');
+    expect(markup).toContain('disabled=""');
+    expect(markup).toContain('inert=""');
   });
 });

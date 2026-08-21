@@ -9,6 +9,7 @@
   "webui.host.breadcrumb.home": "首页",
   "webui.host.tabs.close": "关闭页面",
   "webui.host.theme": "主题配置",
+  "webui.host.theme.toggle": "切换主题模式",
   "webui.host.theme.appearance": "外观",
   "webui.host.theme.mode": "主题模式",
   "webui.host.theme.system": "跟随系统",

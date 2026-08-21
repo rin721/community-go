@@ -54,3 +54,9 @@
 - `DashboardPage` 新增三张概览 Surface：已声明诊断、正常响应、需要关注；数值只来自当前六个 management 查询的声明数量与实时查询结果。
 - 原有六个诊断结果仍保留，失败继续显示 `Degraded` 与低敏提示，加载时使用 i18n 的占位文案，不把占位状态伪装成成功。
 - 概览与诊断卡片使用项目自己的 CSS token 和图标，不复制 Soybean 的品牌、样例数据或业务页面；模块仍只通过公开 WebUI/i18n 契约工作。
+
+## 主题交互补充观察
+
+- Soybean Header 实测同时提供一键明暗模式切换与独立“主题配置”抽屉；抽屉内按“外观 / 布局 / 通用 / 预设”组织设置，并在右侧保持固定 Surface 与遮罩。
+- 本项目的主题 authority 仍由 `useThemePreferences` 单点持有；本轮只在 Header 增加一键 light/dark 切换，原有 ThemeDrawer 继续承载主题色、密度与恢复默认，不新增第二套主题状态。
+- 新增入口使用 `webui.host.theme.toggle` 文案，保持 host-owned i18n；移动端按现有 Header 响应式规则隐藏，不制造溢出。

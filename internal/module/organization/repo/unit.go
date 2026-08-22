@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/rin721/go-scaffold-template/pkg/database"
+	"gorm.io/gorm"
 )
 
 var ErrNotFound = database.ErrNotFound
@@ -25,123 +26,165 @@ type PositionChanges struct {
 	Active, Archived *bool
 	UpdatedAt        time.Time
 }
-type Unit struct{ repositories *Repositories }
 
-func (u *Unit) CreateDepartment(ctx context.Context, value *DepartmentRecord) error {
-	return u.repositories.Departments.Create(ctx, value)
+func (unit *Unit) CreateDepartment(ctx context.Context, value *DepartmentRecord) error {
+	value.Version = 1
+	return unit.useDB(ctx, func(db *gorm.DB) error { return db.Table(departmentTable).Create(value).Error })
 }
-func (u *Unit) DepartmentByID(ctx context.Context, id string) (DepartmentRecord, error) {
-	return u.repositories.Departments.First(ctx, database.Query{Filters: []database.Filter{{Field: "ID", Operator: database.OpEqual, Value: id}}})
+
+func (unit *Unit) DepartmentByID(ctx context.Context, id string) (DepartmentRecord, error) {
+	var record DepartmentRecord
+	err := unit.useDB(ctx, func(db *gorm.DB) error {
+		return db.Table(departmentTable).Where("id = ?", id).First(&record).Error
+	})
+	return record, err
 }
-func (u *Unit) ListDepartments(ctx context.Context, offset, limit int, activeOnly bool) ([]DepartmentRecord, int64, error) {
-	filters := []database.Filter{}
-	if activeOnly {
-		filters = append(filters, database.Filter{Field: "Active", Operator: database.OpEqual, Value: true}, database.Filter{Field: "Archived", Operator: database.OpEqual, Value: false})
-	}
-	query := database.Query{Filters: filters, Orders: []database.Order{{Field: "Code", Direction: database.OrderAscending}}}
-	total, err := u.repositories.Departments.Count(ctx, query)
-	if err != nil {
-		return nil, 0, err
-	}
-	query.Page = &database.Page{Offset: offset, Limit: limit}
-	items, err := u.repositories.Departments.Find(ctx, query)
-	return items, total, err
+
+func (unit *Unit) ListDepartments(ctx context.Context, offset, limit int, activeOnly bool) ([]DepartmentRecord, int64, error) {
+	var records []DepartmentRecord
+	var total int64
+	err := unit.useDB(ctx, func(db *gorm.DB) error {
+		query := db.Table(departmentTable)
+		if activeOnly {
+			query = query.Where("active = ? AND archived = ?", true, false)
+		}
+		if err := query.Count(&total).Error; err != nil {
+			return err
+		}
+		return query.Order("code ASC").Offset(offset).Limit(limit).Find(&records).Error
+	})
+	return records, total, err
 }
-func (u *Unit) AllDepartments(ctx context.Context) ([]DepartmentRecord, error) {
-	return u.repositories.Departments.Find(ctx, database.Query{Orders: []database.Order{{Field: "Code", Direction: database.OrderAscending}}})
+
+func (unit *Unit) AllDepartments(ctx context.Context) ([]DepartmentRecord, error) {
+	var records []DepartmentRecord
+	err := unit.useDB(ctx, func(db *gorm.DB) error {
+		return db.Table(departmentTable).Order("code ASC").Find(&records).Error
+	})
+	return records, err
 }
-func (u *Unit) UpdateDepartment(ctx context.Context, id string, version uint64, changes DepartmentChanges) error {
-	values := database.Changes{"UpdatedAt": changes.UpdatedAt}
+
+func (unit *Unit) UpdateDepartment(ctx context.Context, id string, version uint64, changes DepartmentChanges) error {
+	values := map[string]any{"updated_at": changes.UpdatedAt, "version": gorm.Expr("version + 1")}
 	if changes.Name != nil {
-		values["Name"] = *changes.Name
+		values["name"] = *changes.Name
 	}
 	if changes.ParentID != nil {
-		values["ParentID"] = *changes.ParentID
+		values["parent_id"] = *changes.ParentID
 	}
 	if changes.Active != nil {
-		values["Active"] = *changes.Active
+		values["active"] = *changes.Active
 	}
 	if changes.Archived != nil {
-		values["Archived"] = *changes.Archived
+		values["archived"] = *changes.Archived
 	}
-	_, err := u.repositories.Departments.Update(ctx, database.Query{Filters: []database.Filter{{Field: "ID", Operator: database.OpEqual, Value: id}, {Field: "Version", Operator: database.OpEqual, Value: version}}}, values)
-	return err
-}
-func (u *Unit) CountActiveChildren(ctx context.Context, id string) (int64, error) {
-	return u.repositories.Departments.Count(ctx, database.Query{Filters: []database.Filter{{Field: "ParentID", Operator: database.OpEqual, Value: id}, {Field: "Active", Operator: database.OpEqual, Value: true}, {Field: "Archived", Operator: database.OpEqual, Value: false}}})
-}
-func (u *Unit) CountDepartmentAssignments(ctx context.Context, id string) (int64, error) {
-	return u.repositories.AccountDepartments.Count(ctx, database.Query{Filters: []database.Filter{{Field: "DepartmentID", Operator: database.OpEqual, Value: id}, {Field: "Assigned", Operator: database.OpEqual, Value: true}}})
+	return unit.updateVersioned(ctx, departmentTable, "id = ? AND version = ?", []any{id, version}, values)
 }
 
-func (u *Unit) CreatePosition(ctx context.Context, value *PositionRecord) error {
-	return u.repositories.Positions.Create(ctx, value)
-}
-func (u *Unit) PositionByID(ctx context.Context, id string) (PositionRecord, error) {
-	return u.repositories.Positions.First(ctx, database.Query{Filters: []database.Filter{{Field: "ID", Operator: database.OpEqual, Value: id}}})
-}
-func (u *Unit) ListPositions(ctx context.Context, offset, limit int, activeOnly bool) ([]PositionRecord, int64, error) {
-	filters := []database.Filter{}
-	if activeOnly {
-		filters = append(filters, database.Filter{Field: "Active", Operator: database.OpEqual, Value: true}, database.Filter{Field: "Archived", Operator: database.OpEqual, Value: false})
-	}
-	query := database.Query{Filters: filters, Orders: []database.Order{{Field: "Code", Direction: database.OrderAscending}}}
-	total, err := u.repositories.Positions.Count(ctx, query)
-	if err != nil {
-		return nil, 0, err
-	}
-	query.Page = &database.Page{Offset: offset, Limit: limit}
-	items, err := u.repositories.Positions.Find(ctx, query)
-	return items, total, err
-}
-func (u *Unit) UpdatePosition(ctx context.Context, id string, version uint64, changes PositionChanges) error {
-	values := database.Changes{"UpdatedAt": changes.UpdatedAt}
-	if changes.Name != nil {
-		values["Name"] = *changes.Name
-	}
-	if changes.Active != nil {
-		values["Active"] = *changes.Active
-	}
-	if changes.Archived != nil {
-		values["Archived"] = *changes.Archived
-	}
-	_, err := u.repositories.Positions.Update(ctx, database.Query{Filters: []database.Filter{{Field: "ID", Operator: database.OpEqual, Value: id}, {Field: "Version", Operator: database.OpEqual, Value: version}}}, values)
-	return err
-}
-func (u *Unit) CountPositionAssignments(ctx context.Context, id string) (int64, error) {
-	return u.repositories.AccountPositions.Count(ctx, database.Query{Filters: []database.Filter{{Field: "PositionID", Operator: database.OpEqual, Value: id}, {Field: "Assigned", Operator: database.OpEqual, Value: true}}})
+func (unit *Unit) CountActiveChildren(ctx context.Context, id string) (int64, error) {
+	return unit.count(ctx, departmentTable, "parent_id = ? AND active = ? AND archived = ?", id, true, false)
 }
 
-func (u *Unit) AccountDepartment(ctx context.Context, accountID string) (AccountDepartmentRecord, error) {
-	return u.repositories.AccountDepartments.First(ctx, database.Query{Filters: []database.Filter{{Field: "AccountID", Operator: database.OpEqual, Value: accountID}, {Field: "Assigned", Operator: database.OpEqual, Value: true}}})
+func (unit *Unit) CountDepartmentAssignments(ctx context.Context, id string) (int64, error) {
+	return unit.count(ctx, accountDepartmentTable, "department_id = ? AND assigned = ?", id, true)
 }
-func (u *Unit) ReplaceAccountDepartment(ctx context.Context, accountID string, departmentID *string, now time.Time) error {
-	_, err := u.repositories.AccountDepartments.First(ctx, database.Query{Filters: []database.Filter{{Field: "AccountID", Operator: database.OpEqual, Value: accountID}}})
-	if err == nil {
-		changes := database.Changes{"Assigned": departmentID != nil, "UpdatedAt": now}
-		if departmentID != nil {
-			changes["DepartmentID"] = *departmentID
+
+func (unit *Unit) CreatePosition(ctx context.Context, value *PositionRecord) error {
+	value.Version = 1
+	return unit.useDB(ctx, func(db *gorm.DB) error { return db.Table(positionTable).Create(value).Error })
+}
+
+func (unit *Unit) PositionByID(ctx context.Context, id string) (PositionRecord, error) {
+	var record PositionRecord
+	err := unit.useDB(ctx, func(db *gorm.DB) error {
+		return db.Table(positionTable).Where("id = ?", id).First(&record).Error
+	})
+	return record, err
+}
+
+func (unit *Unit) ListPositions(ctx context.Context, offset, limit int, activeOnly bool) ([]PositionRecord, int64, error) {
+	var records []PositionRecord
+	var total int64
+	err := unit.useDB(ctx, func(db *gorm.DB) error {
+		query := db.Table(positionTable)
+		if activeOnly {
+			query = query.Where("active = ? AND archived = ?", true, false)
 		}
-		_, err = u.repositories.AccountDepartments.Update(ctx, database.Query{Filters: []database.Filter{{Field: "AccountID", Operator: database.OpEqual, Value: accountID}}}, changes)
-		return err
+		if err := query.Count(&total).Error; err != nil {
+			return err
+		}
+		return query.Order("code ASC").Offset(offset).Limit(limit).Find(&records).Error
+	})
+	return records, total, err
+}
+
+func (unit *Unit) UpdatePosition(ctx context.Context, id string, version uint64, changes PositionChanges) error {
+	values := map[string]any{"updated_at": changes.UpdatedAt, "version": gorm.Expr("version + 1")}
+	if changes.Name != nil {
+		values["name"] = *changes.Name
+	}
+	if changes.Active != nil {
+		values["active"] = *changes.Active
+	}
+	if changes.Archived != nil {
+		values["archived"] = *changes.Archived
+	}
+	return unit.updateVersioned(ctx, positionTable, "id = ? AND version = ?", []any{id, version}, values)
+}
+
+func (unit *Unit) CountPositionAssignments(ctx context.Context, id string) (int64, error) {
+	return unit.count(ctx, accountPositionTable, "position_id = ? AND assigned = ?", id, true)
+}
+
+func (unit *Unit) AccountDepartment(ctx context.Context, accountID string) (AccountDepartmentRecord, error) {
+	var record AccountDepartmentRecord
+	err := unit.useDB(ctx, func(db *gorm.DB) error {
+		return db.Table(accountDepartmentTable).Where("account_id = ? AND assigned = ?", accountID, true).First(&record).Error
+	})
+	return record, err
+}
+
+func (unit *Unit) ReplaceAccountDepartment(ctx context.Context, accountID string, departmentID *string, now time.Time) error {
+	var existing AccountDepartmentRecord
+	err := unit.useDB(ctx, func(db *gorm.DB) error {
+		return db.Table(accountDepartmentTable).Where("account_id = ?", accountID).First(&existing).Error
+	})
+	if err == nil {
+		values := map[string]any{"assigned": departmentID != nil, "updated_at": now}
+		if departmentID != nil {
+			values["department_id"] = *departmentID
+		}
+		return unit.update(ctx, accountDepartmentTable, "account_id = ?", []any{accountID}, values)
 	}
 	if !IsNotFound(err) || departmentID == nil {
 		return nilIfNotFound(err)
 	}
-	return u.repositories.AccountDepartments.Create(ctx, &AccountDepartmentRecord{AccountID: accountID, DepartmentID: *departmentID, Assigned: true, UpdatedAt: now})
+	return unit.useDB(ctx, func(db *gorm.DB) error {
+		return db.Table(accountDepartmentTable).Create(&AccountDepartmentRecord{AccountID: accountID, DepartmentID: *departmentID, Assigned: true, UpdatedAt: now}).Error
+	})
 }
-func (u *Unit) ListAccountPositions(ctx context.Context, accountID string, assignedOnly bool) ([]AccountPositionRecord, error) {
-	filters := []database.Filter{{Field: "AccountID", Operator: database.OpEqual, Value: accountID}}
-	if assignedOnly {
-		filters = append(filters, database.Filter{Field: "Assigned", Operator: database.OpEqual, Value: true})
-	}
-	return u.repositories.AccountPositions.Find(ctx, database.Query{Filters: filters, Orders: []database.Order{{Field: "PositionID", Direction: database.OrderAscending}}})
+
+func (unit *Unit) ListAccountPositions(ctx context.Context, accountID string, assignedOnly bool) ([]AccountPositionRecord, error) {
+	var records []AccountPositionRecord
+	err := unit.useDB(ctx, func(db *gorm.DB) error {
+		query := db.Table(accountPositionTable).Where("account_id = ?", accountID)
+		if assignedOnly {
+			query = query.Where("assigned = ?", true)
+		}
+		return query.Order("position_id ASC").Find(&records).Error
+	})
+	return records, err
 }
-func (u *Unit) SetAccountPosition(ctx context.Context, accountID, positionID string, assigned bool, now time.Time) error {
-	query := database.Query{Filters: []database.Filter{{Field: "AccountID", Operator: database.OpEqual, Value: accountID}, {Field: "PositionID", Operator: database.OpEqual, Value: positionID}}}
-	_, err := u.repositories.AccountPositions.First(ctx, query)
+
+func (unit *Unit) SetAccountPosition(ctx context.Context, accountID, positionID string, assigned bool, now time.Time) error {
+	var existing AccountPositionRecord
+	err := unit.useDB(ctx, func(db *gorm.DB) error {
+		return db.Table(accountPositionTable).Where("account_id = ? AND position_id = ?", accountID, positionID).First(&existing).Error
+	})
 	if IsNotFound(err) && assigned {
-		return u.repositories.AccountPositions.Create(ctx, &AccountPositionRecord{AccountID: accountID, PositionID: positionID, Assigned: true, UpdatedAt: now})
+		return unit.useDB(ctx, func(db *gorm.DB) error {
+			return db.Table(accountPositionTable).Create(&AccountPositionRecord{AccountID: accountID, PositionID: positionID, Assigned: true, UpdatedAt: now}).Error
+		})
 	}
 	if IsNotFound(err) && !assigned {
 		return nil
@@ -149,8 +192,34 @@ func (u *Unit) SetAccountPosition(ctx context.Context, accountID, positionID str
 	if err != nil {
 		return err
 	}
-	_, err = u.repositories.AccountPositions.Update(ctx, query, database.Changes{"Assigned": assigned, "UpdatedAt": now})
-	return err
+	return unit.update(ctx, accountPositionTable, "account_id = ? AND position_id = ?", []any{accountID, positionID}, map[string]any{"assigned": assigned, "updated_at": now})
+}
+
+func (unit *Unit) count(ctx context.Context, table, condition string, arguments ...any) (int64, error) {
+	var count int64
+	err := unit.useDB(ctx, func(db *gorm.DB) error {
+		return db.Table(table).Where(condition, arguments...).Count(&count).Error
+	})
+	return count, err
+}
+
+func (unit *Unit) update(ctx context.Context, table, condition string, arguments []any, values map[string]any) error {
+	return unit.useDB(ctx, func(db *gorm.DB) error {
+		return db.Table(table).Where(condition, arguments...).Updates(values).Error
+	})
+}
+
+func (unit *Unit) updateVersioned(ctx context.Context, table, condition string, arguments []any, values map[string]any) error {
+	return unit.useDB(ctx, func(db *gorm.DB) error {
+		result := db.Table(table).Where(condition, arguments...).Updates(values)
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected == 0 {
+			return database.ErrOptimisticConflict
+		}
+		return nil
+	})
 }
 
 func nilIfNotFound(err error) error {

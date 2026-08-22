@@ -44,7 +44,7 @@ err := capabilities.Database.Use(ctx, func(client databaseapp.Client) error {
 
 一次 `Use` 是一次实例使用租约。回调取得的 Database Client 不含 `Close`，动态对象也不是 Resource；回调结束后逃逸的 Client、Repository 和 Tx 返回 `ErrClientUnavailable`。这样 Kernel 才能等待旧代使用结束并安全关闭连接池。
 
-Database App 在 `build` 中明确调用 `pkg/database.NewGORM`，配置只选择 `sqlite/postgres/mysql` Driver 与连接参数，不包含可切换底层实现的 Engine。业务仓储通过项目 `Schema`、`BaseRepository` 和 `Tx` 使用数据库，不接触 GORM 类型；就绪检查通过 `Database Access.Ping` 在当前资源租约内执行，不暴露 Stats 或 Close。
+Database App 在 `build` 中明确调用 `pkg/database.NewGORM`，配置只选择 `sqlite/postgres/mysql` Driver 与连接参数，不包含可切换底层实现的 Engine。模块 `repo` 只在项目 `UseGORM`/`UseGORMTx` 租约 callback 内使用 GORM concrete record；Service、Model、port 与 composition 不接触 GORM 类型。就绪检查通过 `Database Access.Ping` 在当前资源租约内执行，不暴露 Stats 或 Close。
 
 Cache 的底层 App 仍使用 `ManagedConfigured + Leased`，稳定 Access 不公开 `RemoteStore`；调用方通过 `cacheapp.NewClient[T]` 构造无资源泛型 Client，不取得 Redis 关闭权。长期 Service 不再对该 App 执行局部 reload，而是把 Cache backend 纳入完整 Application Generation，因此 Cache section 可同进程生效。当前没有 production typed Client 消费者；未来若基于量化收益重新引入 L1，必须另行设计容量、多实例失效和 generation owner，不能把本地状态塞回当前 Client。
 

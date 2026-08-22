@@ -8,7 +8,7 @@ areas:
     decision: updated
     documents:
       - docs/architecture/technology-selection.md
-    reason: 缓存、AuthN、Execution、Serde、限流、CORS、Huma HTTP、otelhttp instrumentation 与首批 Data repository 已按成熟方案收敛；其余 Data 与静态 Blueprint 仍按已确认计划待实施，authority 明确区分已实现和待实施。
+    reason: 缓存、AuthN、Execution、Serde、限流、CORS、Huma HTTP、otelhttp instrumentation 与全部 module Data repository 已按成熟方案收敛；generic database API 删除与静态 Blueprint 仍按已确认计划待实施，authority 明确区分已实现和待实施。
   - id: module
     decision: updated
     documents:
@@ -19,7 +19,8 @@ areas:
       - internal/kernel/app/README.md
       - pkg/observability/README.md
       - pkg/database/README.md
-    reason: 记录 Auth JWT/JWK 共享刷新与取消语义、IAM 凭据演进所有权、Kernel Execution 同步 memory backend 和受控 retry 观测边界；HTTP 模块现以 Huma registration 作为单一契约源；Data 明确处于 direct GORM 单轨迁移期并限制 ORM 只进入 session bridge 与 module repo Adapter。
+      - internal/kernel/README.md
+    reason: 记录 Auth JWT/JWK 共享刷新与取消语义、IAM 凭据演进所有权、Kernel Execution 同步 memory backend 和受控 retry 观测边界；HTTP 模块现以 Huma registration 作为单一契约源；全部 module Data repository 已迁移 direct GORM，并限制 ORM 只进入 session bridge 与 module repo Adapter。
   - id: configuration
     decision: reviewed-no-change
     reason: 本批只替换 HTTP instrumentation，不改变配置键、默认值、reload 语义或 management listener 配置。

@@ -2,7 +2,7 @@
 
 `pkg/database` 为上层业务提供稳定的资源、租约、事务与错误能力。底层统一使用 GORM；GORM 类型只允许出现在本包的显式 session bridge 和模块 `repo` 数据库 Adapter，不能进入模块 Service、Model、port 或 composition 公共契约。
 
-当前处于 `DATA-057` 单轨迁移期：Todo 与 Navigation 已使用 concrete record + direct GORM；IAM 与 Organization 尚使用旧 Schema/Repository，后续批次迁移完成后会删除旧通用抽象。本段只描述可验证的过渡状态，不表示允许新增旧式 Repository 调用方。
+当前处于 `DATA-057` 单轨迁移期：Todo、Navigation、IAM 与 Organization 均已使用 concrete record + direct GORM；旧 Schema/Repository 已无 production 调用方，下一批次会删除其实现、测试与下方过渡说明。本段只描述可验证的过渡状态，不表示允许新增旧式 Repository 调用方。
 
 ## 怎么运行
 
@@ -76,7 +76,7 @@ err := access.Use(ctx, func(client database.Client) error {
 
 callback 返回时 session context 会被取消，`*gorm.DB` 不得保存或向上层返回。`Client.WithinTx` 仍拥有提交/回滚，只有事务 callback 内可以使用 `UseGORMTx`。查询必须绑定参数，更新必须显式限制条件并检查 `RowsAffected`；业务错误在 module repo 边界转换。
 
-以下 generic Repository 仅记录 IAM/Organization 尚未迁移的当前事实，禁止新增使用：
+以下 generic Repository 仅记录待删除实现，已无 production 调用方，禁止新增使用：
 
 ```go
 accounts, err := database.NewRepository[Account](client, schema)

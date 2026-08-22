@@ -12,9 +12,23 @@ import (
 )
 
 const securityMetadata = "project.security"
+const definitionMetadata = "project.definition"
 
 // Registration 是无资源、可重复构造 OpenAPI 的模块 registration。
 type Registration func(huma.API)
+
+const (
+	SecurityNone         = ""
+	SecurityBearer       = "bearerAuth"
+	SecurityWebUISession = "webuiSession"
+	PolicyPublic         = "public"
+	PolicyProtected      = "protected"
+)
+
+// Definition 是项目拥有的稳定 operation/policy 元数据，不暴露 Huma 类型给消费者。
+type Definition struct {
+	ID, Method, Path, Security, Policy, Scope, Action string
+}
 
 // UnwrapHTTP 只供模块级协议 middleware 读取原生 request/response；Router adapter
 // 的具体类型不会扩散到模块 binding。
@@ -48,14 +62,21 @@ func (value *Optional[T]) Pointer() *T {
 
 // Operation 附加项目 security 元数据，具体认证与授权仍由 transport Gate 执行。
 func Operation(operation huma.Operation, security string) huma.Operation {
+	return Define(operation, Definition{ID: operation.OperationID, Method: operation.Method, Path: operation.Path, Security: security})
+}
+
+// Define 将项目 operation 定义附加到 Huma operation。
+func Define(operation huma.Operation, definition Definition) huma.Operation {
 	if operation.Metadata == nil {
 		operation.Metadata = make(map[string]any)
 	}
-	operation.Metadata[securityMetadata] = security
-	if security == "" {
+	definition.ID, definition.Method, definition.Path = operation.OperationID, operation.Method, operation.Path
+	operation.Metadata[securityMetadata] = definition.Security
+	operation.Metadata[definitionMetadata] = definition
+	if definition.Security == SecurityNone {
 		operation.Security = []map[string][]string{}
 	} else {
-		operation.Security = []map[string][]string{{security: {}}}
+		operation.Security = []map[string][]string{{definition.Security: {}}}
 	}
 	return operation
 }
@@ -63,6 +84,13 @@ func Operation(operation huma.Operation, security string) huma.Operation {
 // JSONOperation 在 Huma 解码前保持项目既有的显式 application/json 契约。
 func JSONOperation(operation huma.Operation, security string) huma.Operation {
 	operation = Operation(operation, security)
+	operation.Middlewares = append(operation.Middlewares, requireJSONContentType)
+	return operation
+}
+
+// JSONDefinition 为有 JSON body 的 operation 同时安装项目元数据与 media type 门禁。
+func JSONDefinition(operation huma.Operation, definition Definition) huma.Operation {
+	operation = Define(operation, definition)
 	operation.Middlewares = append(operation.Middlewares, requireJSONContentType)
 	return operation
 }
@@ -83,5 +111,14 @@ func Security(operation *huma.Operation) (string, bool) {
 		return "", false
 	}
 	value, ok := operation.Metadata[securityMetadata].(string)
+	return value, ok
+}
+
+// DefinitionOf 返回 operation 的项目元数据。
+func DefinitionOf(operation *huma.Operation) (Definition, bool) {
+	if operation == nil {
+		return Definition{}, false
+	}
+	value, ok := operation.Metadata[definitionMetadata].(Definition)
 	return value, ok
 }

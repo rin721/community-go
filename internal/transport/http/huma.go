@@ -7,25 +7,26 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"reflect"
+	"sort"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humachi"
 	"github.com/go-chi/chi/v5"
 	"github.com/rin721/go-scaffold-template/internal/transport/http/humabinding"
 	"github.com/rin721/go-scaffold-template/pkg/httpx"
-	"github.com/rin721/go-scaffold-template/pkg/httpx/contract"
 )
 
 func newHumaAPI(router chi.Router, gate OperationGate) huma.API {
-	config := huma.DefaultConfig("application HTTP API", "1.0.0-rc.1")
-	config.Info.Description = "generated from module bindings"
+	config := huma.DefaultConfig("go-scaffold-template HTTP API", "1.0.0-rc.1")
+	config.Info.Description = "当前模板的公开 HTTP 契约。所有失败使用 RFC 9457 Problem Details；operation 的认证与授权由项目 gate 统一执行。"
 	config.OpenAPIPath = ""
 	config.DocsPath = ""
 	config.SchemasPath = ""
 	config.CreateHooks = nil
 	config.Components.SecuritySchemes = map[string]*huma.SecurityScheme{
-		string(contract.SecurityBearer):       {Type: "http", Scheme: "bearer", BearerFormat: "JWT"},
-		string(contract.SecurityWebUISession): {Type: "apiKey", In: "cookie", Name: "go_scaffold_session"},
+		humabinding.SecurityBearer:       {Type: "http", Scheme: "bearer", BearerFormat: "JWT"},
+		humabinding.SecurityWebUISession: {Type: "apiKey", In: "cookie", Name: "go_scaffold_session"},
 	}
 
 	adapter := &problemAdapter{Adapter: humachi.NewAdapter(router)}
@@ -36,6 +37,46 @@ func newHumaAPI(router chi.Router, gate OperationGate) huma.API {
 
 // BuildHumaOpenAPI30 从无资源 registration 生成 OpenAPI 3.0.3，供静态生成门禁复用。
 func BuildHumaOpenAPI30(registrations ...humabinding.Registration) ([]byte, error) {
+	api, err := buildHumaAPI(registrations)
+	if err != nil {
+		return nil, err
+	}
+	payload, err := api.OpenAPI().DowngradeYAML()
+	if err != nil {
+		return nil, fmt.Errorf("downgrade Huma OpenAPI: %w", err)
+	}
+	return payload, nil
+}
+
+// BuildHumaOperationCatalog 从相同无资源 registration 提取稳定项目元数据。
+func BuildHumaOperationCatalog(registrations ...humabinding.Registration) ([]humabinding.Definition, error) {
+	api, err := buildHumaAPI(registrations)
+	if err != nil {
+		return nil, err
+	}
+	definitions := make([]humabinding.Definition, 0)
+	seen := make(map[string]struct{})
+	for _, pathItem := range api.OpenAPI().Paths {
+		for _, operation := range humaPathOperations(pathItem) {
+			if operation == nil {
+				continue
+			}
+			definition, ok := humabinding.DefinitionOf(operation)
+			if !ok || definition.ID == "" || definition.Method == "" || definition.Path == "" || definition.Policy == "" {
+				return nil, fmt.Errorf("Huma operation %q has incomplete project metadata", operation.OperationID)
+			}
+			if _, exists := seen[definition.ID]; exists {
+				return nil, fmt.Errorf("Huma operation %q is duplicated", definition.ID)
+			}
+			seen[definition.ID] = struct{}{}
+			definitions = append(definitions, definition)
+		}
+	}
+	sort.Slice(definitions, func(left, right int) bool { return definitions[left].ID < definitions[right].ID })
+	return definitions, nil
+}
+
+func buildHumaAPI(registrations []humabinding.Registration) (huma.API, error) {
 	api := newHumaAPI(chi.NewRouter(), nil)
 	for index, registration := range registrations {
 		if registration == nil {
@@ -43,11 +84,18 @@ func BuildHumaOpenAPI30(registrations ...humabinding.Registration) ([]byte, erro
 		}
 		registration(api)
 	}
-	payload, err := api.OpenAPI().DowngradeYAML()
-	if err != nil {
-		return nil, fmt.Errorf("downgrade Huma OpenAPI: %w", err)
+	// Huma 负责生成错误 response，但运行时由项目 Problem 契约统一呈现。
+	// 在同一 OpenAPI registry 中替换默认模型，避免文档声称另一套错误字段。
+	registry := api.OpenAPI().Components.Schemas
+	registry.Map()["ErrorModel"] = registry.Schema(reflect.TypeOf(httpx.Problem{}), false, "ProjectProblem")
+	return api, nil
+}
+
+func humaPathOperations(item *huma.PathItem) []*huma.Operation {
+	if item == nil {
+		return nil
 	}
-	return payload, nil
+	return []*huma.Operation{item.Get, item.Post, item.Put, item.Patch, item.Delete, item.Head, item.Options, item.Trace}
 }
 
 func humaOperationGate(gate OperationGate) func(huma.Context, func(huma.Context)) {
@@ -59,11 +107,10 @@ func humaOperationGate(gate OperationGate) func(huma.Context, func(huma.Context)
 			httpx.WriteProblem(writer, request, fmt.Errorf("operation %q has no project security metadata", operationID))
 			return
 		}
-		security := contract.Security(securityValue)
 		requestContext := httpx.WithOperationID(request.Context(), operationID)
 		requestContext = httpx.WithRequestLanguage(requestContext, request.Header.Get(acceptLanguageHeader))
 		request = request.WithContext(requestContext)
-		authenticated, err := gate.Authenticate(request, security)
+		authenticated, err := gate.Authenticate(request, securityValue)
 		if err != nil {
 			writeGateError(writer, request, err)
 			return

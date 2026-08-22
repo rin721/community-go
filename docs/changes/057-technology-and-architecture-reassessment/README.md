@@ -35,7 +35,7 @@
 ## 关键结论
 
 - 保留有成熟生态支撑且边界合理的能力，例如 `zap`、`chi`、GORM 的连接/事务基线、`golang-migrate`、`go-redis`、`gocron`、`amqp091-go`、OpenTelemetry 和 Prometheus。
-- `kin-openapi` 已从 `v0.142.0` 单轨升级到 `v0.147.0`，补齐 request validation panic 回归与 OperationGate fail-closed 证据；R009 已完成后续框架选择，Huma 第一片仍待实施确认。
+- `kin-openapi` 的直接 request-validation 路径已随 HTTP 全量迁移删除；它当前仅作为 Huma 的间接依赖存在。31 个业务 operation 已统一到 Huma registration，OperationGate 与项目 Problem 仍是项目边界。
 - cache 深化追踪确认当前没有 production typed L1 消费者，默认 L1 又缺少容量上界和跨实例失效；`CACHE-057-001` 已单轨退役 L1 与 `patrickmn/go-cache`，Redis 成为唯一 authority，并收紧 miss/error 语义。Otter v2/ttlcache v3 只保留为满足明确收益、内存和陈旧预算后的候选。
 - YAML v4 当前仍为 RC，不符合稳定生产依赖基线；修订计划先迁移到官方维护的稳定 `go.yaml.in/yaml/v3 v3.0.5`，并删除无仓库内消费者的 `pkg/codec`。JSON 继续使用标准库，MessagePack 只保留在 cache 私有边界并由 CACHE 任务决定其 wire 语义。
 - HTTP 自研 token bucket 应由 `golang.org/x/time/rate v0.15.0` 替换，但现有非阻塞 channel semaphore 直接表达 503 过载策略，应保留。限流修订计划增加显式 `local/disabled` 模式，保持 generation-local，不冒充分布式或主体 quota。
@@ -43,7 +43,7 @@
 - resilience 深化研究确认 `failsafe-go` 对当前需求范围过宽且仍为 pre-v1；修订计划改为用成熟、窄且零运行时依赖的 `cenkalti/backoff/v7` 承担 Execution retry loop，删除 HTTP 通用隐式重试、无消费者自研 breaker，以及没有真实外部 primary 支撑的 Execution 恢复/异步状态机。`gobreaker/v2` 只在出现真实下游 failure domain 后进入 Adapter 级候选。
 - `RESIL-057-001` 已完成上述单轨收敛：Execution 公开策略不暴露第三方类型，区分不可重试、caller cancellation/deadline 与 attempts exhausted；HTTP Client 对 status/transport failure 均只发送一次；memory Store 同步记录且不再启动推测性 lifecycle。
 - 配置流水线保留：不引入 koanf/Viper。当前 YAML、mapstructure、fsnotify 已占据成熟通用接缝，项目继续拥有重复/形状冲突、稳定文件、provenance/digest、binding owner 与候选事务。
-- HTTP 契约目标选择 Huma v2：只接管 typed binding、OpenAPI/JSON Schema、validation 和 route registration；chi、OperationGate、项目 Problem、module operation/policy ownership 与 server lifecycle 保持项目 authority。迁移完成后删除自研 contract/codec 和重复 kin-openapi request-validation 路径。
+- HTTP 契约已采用 Huma v2：它只接管 typed binding、OpenAPI/JSON Schema、validation 和 route registration；chi、OperationGate、项目 Problem、module operation/policy ownership 与 server lifecycle 保持项目 authority。自研 contract/codec、dispatcher 和重复 kin-openapi request-validation 路径已删除。
 - Data 保留 GORM 连接/事务/错误/租约，拒绝当前无收益的 GORM Gen/sqlc；以 module repo Adapter 内 concrete record + direct GORM 单轨退役反射式 BaseRepository/Schema/Query，业务 port 和 migration SQL 不变。
 - 浏览器安全采用 `rs/cors v1.11.1` 处理标准 CORS header/Vary/preflight，并用 Go `CrossOriginProtection` 加固 unsafe cross-site 请求；项目保留 default-deny/Problem 与 IAM Session CSRF token。显式三项安全头继续保留，不引入无法决定 HSTS/CSP 部署策略的 `unrolled/secure`。
 - HTTP Observability 采用官方 `otelhttp v0.70.0` 并对齐 OTel v1.45.0，删除手工 TraceContext/server span/status instrumentation；Generation lease、低基数 operation、项目 Prometheus、trace ID bridge 与 exporter lifecycle 保持项目边界。

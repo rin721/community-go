@@ -27,6 +27,7 @@ import (
 	iamconfig "github.com/rin721/go-scaffold-template/internal/module/iam/binding/config"
 	iamhttp "github.com/rin721/go-scaffold-template/internal/module/iam/binding/http"
 	"github.com/rin721/go-scaffold-template/internal/module/navigation"
+	navigationhttp "github.com/rin721/go-scaffold-template/internal/module/navigation/binding/http"
 	"github.com/rin721/go-scaffold-template/internal/module/ops"
 	opsconfig "github.com/rin721/go-scaffold-template/internal/module/ops/binding/config"
 	opsmodel "github.com/rin721/go-scaffold-template/internal/module/ops/model"
@@ -495,14 +496,11 @@ func (f *applicationGenerationFactory) Prepare(
 		generation.participants = append(generation.participants, participant)
 	}
 
-	dispatcher, err := newApplicationContractDispatcher(generation.module.Operations, generation.iamModule, generation.organizationModule, generation.navigationModule, mutationGuard)
-	if err != nil {
-		return abort(err)
-	}
-	apiRoutes, err := httptransport.NewRouteBinding(dispatcher, operationGate,
-		iamhttp.HumaSlice(generation.iamModule.Handler),
-		todohttp.HumaSlice(generation.module.Operations),
-		organizationhttp.HumaSlice(generation.organizationModule.Operations),
+	apiRoutes, err := httptransport.NewRouteBinding(operationGate,
+		iamhttp.HumaRegistration(generation.iamModule.Handler),
+		todohttp.HumaRegistration(generation.module.Operations),
+		organizationhttp.HumaRegistration(generation.organizationModule.Operations),
+		navigationhttp.HumaRegistration(generation.navigationModule.Operations, mutationGuard),
 	)
 	if err != nil {
 		return abort(err)

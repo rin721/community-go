@@ -159,16 +159,13 @@ func applicationRouter(
 }
 
 func operationPolicies() ([]authmodel.Policy, error) {
-	modules := applicationHTTPModules()
+	definitions, err := applicationHTTPCatalog()
+	if err != nil {
+		return nil, err
+	}
 	policies := make([]authmodel.Policy, 0, 8)
-	for _, module := range modules {
-		for _, operation := range module.Operations {
-			mode := authmodel.PolicyMode(operation.Policy.Mode)
-			policies = append(policies, authmodel.Policy{
-				Operation: string(operation.ID), Mode: mode,
-				Scope: authmodel.Scope(operation.Policy.Scope), Action: authmodel.Action(operation.Policy.Action),
-			})
-		}
+	for _, operation := range definitions {
+		policies = append(policies, authmodel.Policy{Operation: operation.ID, Mode: authmodel.PolicyMode(operation.Policy), Scope: authmodel.Scope(operation.Scope), Action: authmodel.Action(operation.Action)})
 	}
 	if len(policies) == 0 {
 		return nil, fmt.Errorf("module operation policy inventory is empty")

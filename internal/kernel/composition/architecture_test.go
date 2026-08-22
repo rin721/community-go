@@ -112,10 +112,10 @@ func TestPackageGraphRulesAcceptLegalFixtureAndRejectViolations(t *testing.T) {
 		{ImportPath: modulePath + "/internal/module/todo/repo", Imports: []string{modulePath + "/pkg/database"}},
 		{ImportPath: modulePath + "/internal/module/auth/adapter/jwt", Imports: []string{"github.com/lestrrat-go/jwx/v3/jwt"}},
 		{ImportPath: modulePath + "/internal/module/todo/binding/http", Imports: []string{
-			modulePath + "/internal/module/todo/service", modulePath + "/pkg/httpx", modulePath + "/pkg/httpx/contract", "github.com/danielgtaylor/huma/v2",
+			modulePath + "/internal/module/todo/service", modulePath + "/pkg/httpx", "github.com/danielgtaylor/huma/v2",
 		}},
 		{ImportPath: modulePath + "/internal/transport/http", Imports: []string{
-			modulePath + "/pkg/httpx", modulePath + "/pkg/httpx/contract", modulePath + "/internal/transport/http/api",
+			modulePath + "/pkg/httpx", modulePath + "/internal/transport/http/api",
 		}},
 	}
 	if err := validatePackageGraph(legal); err != nil {
@@ -708,7 +708,6 @@ func validateHTTPSourceOwnership(root string) error {
 	}
 	var moduleRouteCalls []assertion
 	var routeBindings []assertion
-	var dispatcherAssertions []assertion
 	internalRoot := filepath.Join(root, "internal")
 	err := filepath.WalkDir(internalRoot, func(path string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
@@ -762,15 +761,6 @@ func validateHTTPSourceOwnership(root string) error {
 					position := fileset.Position(selector.Pos())
 					moduleRouteCalls = append(moduleRouteCalls, assertion{path: path, line: position.Line})
 				}
-			case *ast.ValueSpec:
-				if len(current.Names) != 1 || current.Names[0].Name != "_" {
-					return true
-				}
-				selector, ok := current.Type.(*ast.SelectorExpr)
-				if ok && selector.Sel.Name == "Dispatcher" {
-					position := fileset.Position(selector.Pos())
-					dispatcherAssertions = append(dispatcherAssertions, assertion{path: path, line: position.Line})
-				}
 			}
 			return true
 		})
@@ -784,9 +774,6 @@ func validateHTTPSourceOwnership(root string) error {
 	}
 	if len(routeBindings) != 1 || !pathWithin(root, routeBindings[0].path, "internal", "transport", "http") {
 		return fmt.Errorf("contract NewRouteBinding must exist once under internal/transport/http, got %#v", routeBindings)
-	}
-	if len(dispatcherAssertions) != 1 || !pathWithin(root, dispatcherAssertions[0].path, "internal", "composition") {
-		return fmt.Errorf("dispatcher assertion must exist once under internal/composition, got %#v", dispatcherAssertions)
 	}
 	return nil
 }

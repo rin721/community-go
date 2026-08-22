@@ -2,17 +2,11 @@
 
 package api
 
-// OperationID 是公开契约中的稳定 operationId。
 type OperationID string
 
-// Operation 描述公开路由的低基数身份与策略。
 type Operation struct {
-	ID     OperationID
-	Method string
-	Path   string
-	Policy string
-	Scope  string
-	Action string
+	ID                                  OperationID
+	Method, Path, Policy, Scope, Action string
 }
 
 const (
@@ -83,77 +77,4 @@ var operationInventory = [...]Operation{
 	{ID: OperationOrganizationPositionsUpdate, Method: "PATCH", Path: "/api/v1/organization/positions/{id}", Policy: "protected", Scope: "organization:position:write", Action: "organization.position.update"},
 }
 
-// Operations 返回 inventory 副本。
-func Operations() []Operation {
-	return append([]Operation(nil), operationInventory[:]...)
-}
-
-// OperationForStrictName 把 strict middleware 名称映射回原始 operationId。
-func OperationForStrictName(name string) (Operation, bool) {
-	switch name {
-	case "CompleteTodo":
-		return Operation{ID: OperationCompleteTodo, Method: "PATCH", Path: "/api/v1/todos/{id}/complete", Policy: "protected", Scope: "todos:write", Action: "todo.complete"}, true
-	case "CreateTodo":
-		return Operation{ID: OperationCreateTodo, Method: "POST", Path: "/api/v1/todos", Policy: "protected", Scope: "todos:write", Action: "todo.create"}, true
-	case "GetTodo":
-		return Operation{ID: OperationGetTodo, Method: "GET", Path: "/api/v1/todos/{id}", Policy: "protected", Scope: "todos:read", Action: "todo.read"}, true
-	case "IamAccountsCreate":
-		return Operation{ID: OperationIamAccountsCreate, Method: "POST", Path: "/api/v1/iam/accounts", Policy: "protected", Scope: "iam:account:write", Action: "iam.accounts.create"}, true
-	case "IamAccountsList":
-		return Operation{ID: OperationIamAccountsList, Method: "GET", Path: "/api/v1/iam/accounts", Policy: "protected", Scope: "iam:account:read", Action: "iam.accounts.list"}, true
-	case "IamAccountsPasswordReset":
-		return Operation{ID: OperationIamAccountsPasswordReset, Method: "POST", Path: "/api/v1/iam/accounts/{id}/password-reset", Policy: "protected", Scope: "iam:account:write", Action: "iam.accounts.password.reset"}, true
-	case "IamAccountsRolesRead":
-		return Operation{ID: OperationIamAccountsRolesRead, Method: "GET", Path: "/api/v1/iam/accounts/{id}/roles", Policy: "protected", Scope: "iam:account:read", Action: "iam.accounts.roles.read"}, true
-	case "IamAccountsRolesReplace":
-		return Operation{ID: OperationIamAccountsRolesReplace, Method: "PUT", Path: "/api/v1/iam/accounts/{id}/roles", Policy: "protected", Scope: "iam:account:write", Action: "iam.accounts.roles.replace"}, true
-	case "IamAccountsStatus":
-		return Operation{ID: OperationIamAccountsStatus, Method: "PATCH", Path: "/api/v1/iam/accounts/{id}/status", Policy: "protected", Scope: "iam:account:write", Action: "iam.accounts.status"}, true
-	case "IamLogin":
-		return Operation{ID: OperationIamLogin, Method: "POST", Path: "/api/v1/iam/login", Policy: "public", Scope: "", Action: ""}, true
-	case "IamLogout":
-		return Operation{ID: OperationIamLogout, Method: "POST", Path: "/api/v1/iam/logout", Policy: "protected", Scope: "iam:account:self:read", Action: "iam.logout"}, true
-	case "IamPermissionsList":
-		return Operation{ID: OperationIamPermissionsList, Method: "GET", Path: "/api/v1/iam/permissions", Policy: "protected", Scope: "iam:permission:read", Action: "iam.permissions.list"}, true
-	case "IamRolesCreate":
-		return Operation{ID: OperationIamRolesCreate, Method: "POST", Path: "/api/v1/iam/roles", Policy: "protected", Scope: "iam:role:write", Action: "iam.roles.create"}, true
-	case "IamRolesList":
-		return Operation{ID: OperationIamRolesList, Method: "GET", Path: "/api/v1/iam/roles", Policy: "protected", Scope: "iam:role:read", Action: "iam.roles.list"}, true
-	case "IamRolesPermissionsRead":
-		return Operation{ID: OperationIamRolesPermissionsRead, Method: "GET", Path: "/api/v1/iam/roles/{id}/permissions", Policy: "protected", Scope: "iam:role:read", Action: "iam.roles.permissions.read"}, true
-	case "IamRolesPermissionsReplace":
-		return Operation{ID: OperationIamRolesPermissionsReplace, Method: "PUT", Path: "/api/v1/iam/roles/{id}/permissions", Policy: "protected", Scope: "iam:role:write", Action: "iam.roles.permissions.replace"}, true
-	case "IamSelfPasswordChange":
-		return Operation{ID: OperationIamSelfPasswordChange, Method: "POST", Path: "/api/v1/iam/self/password", Policy: "protected", Scope: "iam:account:self:password:write", Action: "iam.self.password.change"}, true
-	case "IamSessionRead":
-		return Operation{ID: OperationIamSessionRead, Method: "GET", Path: "/api/v1/iam/session", Policy: "protected", Scope: "iam:account:self:read", Action: "iam.session.read"}, true
-	case "IamSetup":
-		return Operation{ID: OperationIamSetup, Method: "POST", Path: "/api/v1/iam/setup", Policy: "public", Scope: "", Action: ""}, true
-	case "ListTodos":
-		return Operation{ID: OperationListTodos, Method: "GET", Path: "/api/v1/todos", Policy: "protected", Scope: "todos:read", Action: "todo.list"}, true
-	case "NavigationMenusList":
-		return Operation{ID: OperationNavigationMenusList, Method: "GET", Path: "/api/v1/navigation/menus", Policy: "protected", Scope: "navigation:menu:read", Action: "navigation.menu.list"}, true
-	case "NavigationMenusUpdate":
-		return Operation{ID: OperationNavigationMenusUpdate, Method: "PUT", Path: "/api/v1/navigation/menus/{id}", Policy: "protected", Scope: "navigation:menu:write", Action: "navigation.menu.update"}, true
-	case "OrganizationAssignmentsGet":
-		return Operation{ID: OperationOrganizationAssignmentsGet, Method: "GET", Path: "/api/v1/organization/accounts/{id}/assignment", Policy: "protected", Scope: "organization:department:read", Action: "organization.assignment.read"}, true
-	case "OrganizationAssignmentsReplace":
-		return Operation{ID: OperationOrganizationAssignmentsReplace, Method: "PUT", Path: "/api/v1/organization/accounts/{id}/assignment", Policy: "protected", Scope: "organization:department:write", Action: "organization.assignment.replace"}, true
-	case "OrganizationDepartmentsCreate":
-		return Operation{ID: OperationOrganizationDepartmentsCreate, Method: "POST", Path: "/api/v1/organization/departments", Policy: "protected", Scope: "organization:department:write", Action: "organization.department.create"}, true
-	case "OrganizationDepartmentsList":
-		return Operation{ID: OperationOrganizationDepartmentsList, Method: "GET", Path: "/api/v1/organization/departments", Policy: "protected", Scope: "organization:department:read", Action: "organization.department.list"}, true
-	case "OrganizationDepartmentsTree":
-		return Operation{ID: OperationOrganizationDepartmentsTree, Method: "GET", Path: "/api/v1/organization/departments/tree", Policy: "protected", Scope: "organization:department:read", Action: "organization.department.tree"}, true
-	case "OrganizationDepartmentsUpdate":
-		return Operation{ID: OperationOrganizationDepartmentsUpdate, Method: "PATCH", Path: "/api/v1/organization/departments/{id}", Policy: "protected", Scope: "organization:department:write", Action: "organization.department.update"}, true
-	case "OrganizationPositionsCreate":
-		return Operation{ID: OperationOrganizationPositionsCreate, Method: "POST", Path: "/api/v1/organization/positions", Policy: "protected", Scope: "organization:position:write", Action: "organization.position.create"}, true
-	case "OrganizationPositionsList":
-		return Operation{ID: OperationOrganizationPositionsList, Method: "GET", Path: "/api/v1/organization/positions", Policy: "protected", Scope: "organization:position:read", Action: "organization.position.list"}, true
-	case "OrganizationPositionsUpdate":
-		return Operation{ID: OperationOrganizationPositionsUpdate, Method: "PATCH", Path: "/api/v1/organization/positions/{id}", Policy: "protected", Scope: "organization:position:write", Action: "organization.position.update"}, true
-	default:
-		return Operation{}, false
-	}
-}
+func Operations() []Operation { return append([]Operation(nil), operationInventory[:]...) }

@@ -16,24 +16,23 @@ import (
 	todohttp "github.com/rin721/go-scaffold-template/internal/module/todo/binding/http"
 	todopermission "github.com/rin721/go-scaffold-template/internal/module/todo/binding/permission"
 	permissioncatalog "github.com/rin721/go-scaffold-template/internal/permission"
+	httptransport "github.com/rin721/go-scaffold-template/internal/transport/http"
+	"github.com/rin721/go-scaffold-template/internal/transport/http/humabinding"
 	webuicontract "github.com/rin721/go-scaffold-template/internal/webui"
-	"github.com/rin721/go-scaffold-template/pkg/httpx/contract"
 )
 
-// applicationHTTPModules 返回当前应用接入的全部 HTTP 契约模块（装配汇总点）。
+// applicationHTTPRegistrations 返回当前应用接入的全部 HTTP operation（装配汇总点）。
 //
 // 这是 composition 内“哪些模块提供 HTTP 公开契约”的唯一汇总：policy 汇总
-// （operationPolicies）、observability operation inventory（opsOperations）与路由
-// dispatcher（newContractDispatcher）都从该汇总消费，避免各处硬编码具体模块契约
-// （例如 service.go/ops.go 各自直接读 todohttp.ModuleContract）。新增 HTTP 业务模块时
-// 在此追加一项，并同时扩展其运行时在 composition 的装配。
-func applicationHTTPModules() []contract.Module {
-	return []contract.Module{
-		iamhttp.ModuleContract(),
-		organizationhttp.ModuleContract(),
-		navigationhttp.ModuleContract(),
-		todohttp.ModuleContract(),
-	}
+// policy、observability inventory、OpenAPI 与运行时路由都从相同 registration
+// 模型消费，避免静态契约与真实 handler 漂移。新增 HTTP 业务模块时在此追加一项，
+// 并同时扩展 generation 中的运行时依赖装配。
+func applicationHTTPRegistrations() []humabinding.Registration {
+	return []humabinding.Registration{iamhttp.HumaRegistration(nil), organizationhttp.HumaRegistration(nil), navigationhttp.HumaRegistration(nil, nil), todohttp.HumaRegistration(nil)}
+}
+
+func applicationHTTPCatalog() ([]humabinding.Definition, error) {
+	return httptransport.BuildHumaOperationCatalog(applicationHTTPRegistrations()...)
 }
 
 // applicationPermissionCatalog 是当前应用中“哪些模块贡献权限定义”的唯一显式汇总点。
@@ -79,11 +78,13 @@ func applicationWebUICatalog() (webuicontract.Catalog, error) {
 	if err != nil {
 		return webuicontract.Catalog{}, err
 	}
-	operations := make(map[string]struct{})
-	for _, module := range applicationHTTPModules() {
-		for _, operation := range module.Operations {
-			operations[string(operation.ID)] = struct{}{}
-		}
+	definitions, err := applicationHTTPCatalog()
+	if err != nil {
+		return webuicontract.Catalog{}, err
+	}
+	operations := make(map[string]struct{}, len(definitions))
+	for _, operation := range definitions {
+		operations[operation.ID] = struct{}{}
 	}
 	operations["ops.diagnostics"] = struct{}{}
 	operations["ops.metrics"] = struct{}{}

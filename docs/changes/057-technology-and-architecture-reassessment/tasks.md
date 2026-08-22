@@ -4,7 +4,7 @@
 
 - 研究门禁：已通过。
 - 文档与整体方案任务：已通过完成性审计，R001–R013 已收敛全部当前选型、owner/reload 矩阵、实施依赖和停止条件，适用纯文档直接实施例外。
-- 非文档任务：用户已于 2026-08-22 明确确认剩余整体计划并授权实施；已完成 Batch A（`SEC-057-001`）及修订后的 `CACHE-057-001`、`SERDE-057-001`、`AUTHN-057-001`、`RESIL-057-001`、`LIMIT-057-001`、`SEC-057-002` 与 `HTTP-057-001`，其余任务按冻结依赖顺序实施。
+- 非文档任务：用户已于 2026-08-22 明确确认剩余整体计划并授权实施；已完成 Batch A（`SEC-057-001`）及修订后的 `CACHE-057-001`、`SERDE-057-001`、`AUTHN-057-001`、`RESIL-057-001`、`LIMIT-057-001`、`SEC-057-002`、`HTTP-057-001/002`，其余任务按冻结依赖顺序实施。
 
 ## 原始目标逐能力闭环
 
@@ -42,7 +42,7 @@
 | RESIL-057-001 | C | 以 backoff/v7 收敛 Execution retry，并退役无依据的 HTTP/recovery/breaker 状态 | 用户于 2026-08-22 确认修订后的该任务 | 已完成 | backoff/v7 隐藏在 Execution 内部；profile 明确 attempts/jitter/attempt+total budget；HTTP one-shot；删除 pkg/resilience、RecoveringStore、AsyncRecorder 及旧配置/API；Todo/Schedule/Messaging 语义和完整门禁通过 |
 | CONFIG-057-001 | 文档 | 比较 koanf/Viper 与当前配置流水线并形成采用/拒绝结论 | R008 | 已完成 | 结论为不引入；保留 strict candidate、stable file、owner/reload，明确未来远程 provider 刷新条件 |
 | HTTP-057-001 | D | 引入 Huma v2 并完成代表性 operation 第一片 | R009、SERDE-057-001、用户于 2026-08-22 确认剩余整体计划 | 已完成 | Huma 只进 binding；public body、protected list、version mutation、Problem 可运行；静态生成无资源；OperationGate fail-closed；依赖/安全/生成门禁通过；失败则完整撤回 |
-| HTTP-057-002 | D | 全量迁移 HTTP operation 并删除旧 contract/binding 路径 | HTTP-057-001 门禁通过、整体计划已确认 | 已确认 | IAM/Organization/Navigation/Todo 全迁移；删除 pkg/httpx/contract、dispatcher、手工 codec/renderer 与重复 validation；无 direct consumer 时删除 kin-openapi；Service/Model 无 Huma 类型 |
+| HTTP-057-002 | D | 全量迁移 HTTP operation 并删除旧 contract/binding 路径 | HTTP-057-001 门禁通过、整体计划已确认 | 已完成 | 31 个 IAM/Organization/Navigation/Todo operation 全迁移；删除 pkg/httpx/contract、dispatcher、手工 codec/renderer 与重复 validation；kin-openapi 仅为 Huma 间接依赖；Service/Model 无 Huma 类型 |
 | OBS-057-001 | D | 用官方 otelhttp 替换手工 HTTP instrumentation 并对齐 OTel v1.45 | HTTP-057-002、R013、整体计划已确认 | 已确认 | 单一 server span；TraceContext/semconv/status 由 otelhttp；lease/operation/Prometheus/trace ID/processor lifecycle 保留；secret path/query 不泄漏；modules/race/vuln 门禁通过 |
 | DATA-057-001 | E | 建立 GORM session bridge，迁移 Todo 与 Navigation concrete repository | R010、用户于 2026-08-22 确认剩余整体计划 | 已确认 | session 不可逃逸 Borrow/Tx lifetime；CRUD/page/order/not-found/version conflict 三方言 contract 通过；业务 port 不变 |
 | DATA-057-002 | E | 迁移 IAM 与 Organization concrete repository/Unit | DATA-057-001、整体计划已确认 | 已确认 | multi-repository transaction、unique/FK、session revoke、catalog reconcile、optimistic update 与三方言通过；migration 不改写 |
@@ -128,6 +128,10 @@ HTTP 第一片失败、Data 边界泄漏或 Blueprint 无净删除时，不以�
 | 2026-08-22 | HTTP-057-001 实施 | 引入 Huma v2.39.1；IAM `login`、Todo `listTodos`、Organization `departments.update` 分别覆盖 public JSON body、protected query list 与 path+version mutation。Huma core 只进入模块 `binding/http`，Router adapter 收口在 `internal/transport/http/humabinding`；Service/Model/顶层 handler 无 Huma import。旧 dispatcher 仅临时承载未迁移 operation，禁止新增旧 DSL，下一任务必须全量删除 |
 | 2026-08-22 | HTTP 第一片协议与生成门禁 | 真实 IAM Service login/cookie/body、Organization path/version、Todo Generation list 均通过；Huma validation 与业务错误统一输出项目 RFC 9457 Problem，Gate 拒绝后 handler 未调用；三份 registration 在 nil runtime dependency 下生成并降级 OpenAPI 3.0.3，证明静态 build mode 无数据库、缓存、网络 Client 或 Service 资源 |
 | 2026-08-22 | HTTP 第一片边界与依赖门禁 | architecture package graph 更新为仅允许 Huma core 进入模块 `binding/http`，显式拒绝模块直接导入 Huma Router adapter；`go mod why` 确认 production root 经模块 binding 使用 Huma，CBOR 仅经 Huma 自身 test/format module graph 出现；现有公开 `api/openapi.yaml` 与 inventory 由 generate clean gate 保持不变 |
+| 2026-08-22 | HTTP-057-002 单轨迁移 | IAM 16、Organization 9、Navigation 2、Todo 4 共 31 个 operation 全部迁入模块 Huma registration；runtime route、OpenAPI、policy 和 observability catalog 消费同一 metadata authority；删除 `pkg/httpx/contract`、`contractDispatcher`、手工 codec/renderer 与 kin-openapi 重复 request validation，不保留兼容层 |
+| 2026-08-22 | HTTP 全量协议与边界门禁 | Huma 自身校验错误和业务错误均转为项目 RFC 9457 Problem；OpenAPI 默认错误 schema 替换为真实项目 Problem；IAM Origin/CSRF/Cookie、OperationGate、Todo actor、Organization version 与 Navigation mutation guard 保持 owner；Huma core 仅进入模块 `binding/http`，Router adapter 仍由 transport 拥有 |
+| 2026-08-22 | HTTP 全量验证 | `go generate ./...`、全仓 `go test ./... -count=1`、`go test -race ./... -count=1`、vet、CGO-free build、docs-guard 与 `git diff --check` 通过；generator golden 同时校验已提交 OpenAPI 和 operation inventory；31 项 catalog 完整性、IAM 真实 SQLite Session、Huma validation/Problem 与 architecture package graph 测试通过；`Verify-Quality.ps1` 最终仍只因范围外两个既有 tracked app.db 返回失败 |
+| 2026-08-22 | HTTP 全量漏洞门禁 | `govulncheck -show verbose ./...` 为 0 reachable、0 imported-package 漏洞；module 层仍只有不可达 GO-2026-6222/5932。kin-openapi 不再是项目 direct requirement，只经 Huma v2.39.1 留在 module graph |
 | 2026-08-22 | HTTP 第一片完整质量与安全门禁 | 定向测试、`go test ./... -count=1`、`go test -race ./... -count=1`、`go vet ./...`、`Verify-Docs.ps1`、`git diff --check` 与 `govulncheck -show verbose ./...` 通过；漏洞为 0 reachable、0 imported-package，仍仅有不可达 GO-2026-6222/5932。`Verify-Quality.ps1` 的 gofmt/tidy/layout/generate/test/race/vet/CGO-free build 通过，最终只因范围外两个既有 tracked `old-backend/**/app.db` 返回失败，本任务未修改或删除 |
 
 ## Commit

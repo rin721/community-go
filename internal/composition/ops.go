@@ -137,10 +137,12 @@ func (s generationOpsSource) Readiness(ctx context.Context) (bool, bool, error) 
 
 func opsOperations() []pkgobservability.Operation {
 	var result []pkgobservability.Operation
-	for _, module := range applicationHTTPModules() {
-		for _, operation := range module.Operations {
-			result = append(result, pkgobservability.Operation{ID: string(operation.ID), Method: string(operation.Method), Path: operation.Path})
-		}
+	definitions, err := applicationHTTPCatalog()
+	if err != nil {
+		return nil
+	}
+	for _, operation := range definitions {
+		result = append(result, pkgobservability.Operation{ID: operation.ID, Method: operation.Method, Path: operation.Path})
 	}
 	return result
 }

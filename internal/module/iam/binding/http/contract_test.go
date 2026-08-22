@@ -22,8 +22,6 @@ import (
 	"github.com/rin721/go-scaffold-template/pkg/clock"
 	"github.com/rin721/go-scaffold-template/pkg/database"
 	dbmigrate "github.com/rin721/go-scaffold-template/pkg/database/migrate"
-	"github.com/rin721/go-scaffold-template/pkg/httpx"
-	"github.com/rin721/go-scaffold-template/pkg/httpx/contract"
 	"github.com/rin721/go-scaffold-template/pkg/idgen"
 )
 
@@ -34,15 +32,11 @@ func TestHumaLoginSliceUsesTypedBodyAndSessionResponse(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	router := humaRouter(handler)
 	setupBody := []byte(`{"setupToken":"setup-secret","username":"owner","displayName":"Owner","password":"123456789012345"}`)
-	if response := serve(t, RuntimeHandlers(handler)[contract.OperationID("iam.setup")], http.MethodPost, "http://example.test/api/v1/iam/setup", setupBody, nil, ""); response.Code != http.StatusCreated {
+	if response := serve(router, http.MethodPost, "http://example.test/api/v1/iam/setup", setupBody, nil); response.Code != http.StatusCreated {
 		t.Fatalf("setup status = %d body=%s", response.Code, response.Body.String())
 	}
-	router := chi.NewRouter()
-	config := huma.DefaultConfig("test", "1")
-	config.OpenAPIPath, config.DocsPath, config.SchemasPath = "", "", ""
-	api := humachi.New(router, config)
-	RegisterHumaSlice(api, handler)
 
 	request := httptest.NewRequest(http.MethodPost, "http://example.test/api/v1/iam/login", bytes.NewBufferString(`{"username":"owner","password":"123456789012345"}`))
 	request.Header.Set("Content-Type", "application/json")
@@ -61,9 +55,9 @@ func TestSessionBoundaryPaginationAndStableConflicts(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	handlers := RuntimeHandlers(handler)
+	router := humaRouter(handler)
 	setupBody := []byte(`{"setupToken":"setup-secret","username":"owner","displayName":"Owner","password":"123456789012345"}`)
-	setupResponse := serve(t, handlers[contract.OperationID("iam.setup")], http.MethodPost, "http://example.test/api/v1/iam/setup", setupBody, nil, "")
+	setupResponse := serve(router, http.MethodPost, "http://example.test/api/v1/iam/setup", setupBody, nil)
 	if setupResponse.Code != http.StatusCreated {
 		t.Fatalf("setup status = %d, body = %s", setupResponse.Code, setupResponse.Body.String())
 	}
@@ -73,11 +67,11 @@ func TestSessionBoundaryPaginationAndStableConflicts(t *testing.T) {
 	}
 	cookie := setupResponse.Result().Cookies()[0]
 
-	duplicate := serve(t, handlers[contract.OperationID("iam.setup")], http.MethodPost, "http://example.test/api/v1/iam/setup", setupBody, nil, "")
+	duplicate := serve(router, http.MethodPost, "http://example.test/api/v1/iam/setup", setupBody, nil)
 	if duplicate.Code != http.StatusConflict {
 		t.Fatalf("duplicate setup status = %d", duplicate.Code)
 	}
-	unauthenticated := serve(t, handlers[contract.OperationID("iam.session.read")], http.MethodGet, "http://example.test/api/v1/iam/session", nil, nil, "")
+	unauthenticated := serve(router, http.MethodGet, "http://example.test/api/v1/iam/session", nil, nil)
 	if unauthenticated.Code != http.StatusUnauthorized {
 		t.Fatalf("unauthenticated session status = %d", unauthenticated.Code)
 	}
@@ -86,31 +80,37 @@ func TestSessionBoundaryPaginationAndStableConflicts(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	withoutCSRF := serve(t, handlers[contract.OperationID("iam.accounts.create")], http.MethodPost, "http://example.test/api/v1/iam/accounts", []byte(`{"username":"member","displayName":"Member","password":"abcdefghijklmno"}`), &resolved, cookie.Value)
+	withoutCSRF := serve(router, http.MethodPost, "http://example.test/api/v1/iam/accounts", []byte(`{"username":"member","displayName":"Member","password":"abcdefghijklmno"}`), &resolved)
 	if withoutCSRF.Code != http.StatusForbidden {
 		t.Fatalf("missing csrf status = %d", withoutCSRF.Code)
 	}
 	if withoutCSRF.Header().Get("Content-Type") != "application/problem+json" {
 		t.Fatalf("missing csrf content type = %q", withoutCSRF.Header().Get("Content-Type"))
 	}
-	list := serve(t, handlers[contract.OperationID("iam.accounts.list")], http.MethodGet, "http://example.test/api/v1/iam/accounts?offset=0&limit=1", nil, &resolved, cookie.Value)
+	list := serve(router, http.MethodGet, "http://example.test/api/v1/iam/accounts?offset=0&limit=1", nil, &resolved)
 	if list.Code != http.StatusOK || !bytes.Contains(list.Body.Bytes(), []byte(`"limit":1`)) || !bytes.Contains(list.Body.Bytes(), []byte(`"total":1`)) {
 		t.Fatalf("paginated list = %d, %s", list.Code, list.Body.String())
 	}
 	_ = session
 }
 
-func serve(t *testing.T, handler contract.Handler, method, target string, body []byte, resolved *service.Session, sessionID string) *httptest.ResponseRecorder {
-	t.Helper()
+func humaRouter(handler *Handler) http.Handler {
+	router := chi.NewRouter()
+	config := huma.DefaultConfig("test", "1")
+	config.OpenAPIPath, config.DocsPath, config.SchemasPath = "", "", ""
+	RegisterHuma(humachi.New(router, config), handler)
+	return router
+}
+
+func serve(handler http.Handler, method, target string, body []byte, resolved *service.Session) *httptest.ResponseRecorder {
 	request := httptest.NewRequest(method, target, bytes.NewReader(body))
+	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Origin", "http://example.test")
 	if resolved != nil {
-		request = service.WithResolvedSession(request, sessionID, *resolved)
+		request = service.WithResolvedSession(request, resolved.ID, *resolved)
 	}
 	response := httptest.NewRecorder()
-	if err := handler.ServeHTTP(response, request); err != nil {
-		httpx.WriteProblem(response, request, err)
-	}
+	handler.ServeHTTP(response, request)
 	return response
 }
 

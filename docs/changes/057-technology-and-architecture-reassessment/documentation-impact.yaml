@@ -15,8 +15,9 @@ areas:
       - internal/module/README.md
       - internal/module/auth/README.md
       - internal/module/iam/README.md
+      - internal/module/todo/README.md
       - internal/kernel/app/README.md
-    reason: 记录 Auth JWT/JWK 共享刷新与取消语义、IAM 凭据演进所有权，以及 Kernel Execution 同步 memory backend 和受控 retry 观测边界。
+    reason: 记录 Auth JWT/JWK 共享刷新与取消语义、IAM 凭据演进所有权、Kernel Execution 同步 memory backend 和受控 retry 观测边界；HTTP 模块现以 Huma registration 作为单一契约源。
   - id: configuration
     decision: updated
     documents:
@@ -32,11 +33,12 @@ areas:
     decision: updated
     documents:
       - api/README.md
-    reason: Huma 第一片已接管 login、listTodos 与 organization.departments.update 的运行期 typed binding/validation，并提供无资源 OpenAPI 3.0.3 build mode；公开 operation ID、Problem、security/policy 与现有生成物保持不变。文档明确该过渡双轨只允许持续到 HTTP-057-002，不得继续扩展旧 DSL。
+    reason: Huma 已接管全部 31 个业务 operation 的 typed binding、validation、OpenAPI 与 route registration；项目 OperationGate、Problem 和 operation/policy ownership 保持边界，旧 DSL、dispatcher 与重复 validation 已删除。
   - id: architecture
     decision: updated
     documents:
       - docs/architecture/technology-selection.md
+      - docs/development/application-module-development.md
       - docs/changes/057-technology-and-architecture-reassessment/README.md
       - docs/changes/057-technology-and-architecture-reassessment/design.md
       - docs/changes/057-technology-and-architecture-reassessment/tasks.md

@@ -1,255 +1,86 @@
 package httptransport
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
-	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/rin721/go-scaffold-template/internal/module/todo/binding/http"
-	todohandler "github.com/rin721/go-scaffold-template/internal/module/todo/handler"
-	"github.com/rin721/go-scaffold-template/pkg/httpx"
-	"github.com/rin721/go-scaffold-template/pkg/httpx/contract"
+	"github.com/danielgtaylor/huma/v2"
+	"github.com/rin721/go-scaffold-template/internal/transport/http/humabinding"
 )
 
-type dispatcherStub struct {
-	authenticated bool
-	gateErr       error
-	handlerErr    error
-	operationID   string
-	language      string
-	pathParams    map[string]string
-	queryParams   map[string][]string
-	handlers      map[contract.OperationID]contract.Handler
-}
-
-func newDispatcherStub() *dispatcherStub {
-	return &dispatcherStub{
-		authenticated: true,
-		handlers: map[contract.OperationID]contract.Handler{
-			"createTodo": contract.JSONBody(func(ctx context.Context, body todohandler.CreateTodoRequest) (todohandler.Todo, error) {
-				return todohandler.Todo{ID: "00000000-0000-0000-0000-000000000001", Title: body.Title, Status: todohandler.StatusPending}, nil
-			}, http.StatusCreated),
-			"listTodos": contract.Query(func(ctx context.Context, params todohandler.ListTodosParams) (todohandler.TodoList, error) {
-				return todohandler.TodoList{}, nil
-			}, http.StatusOK),
-			"getTodo": contract.Path("id", func(ctx context.Context, id string) (todohandler.Todo, error) { return todohandler.Todo{ID: id}, nil }, http.StatusOK),
-			"completeTodo": contract.Path("id", func(ctx context.Context, id string) (todohandler.Todo, error) {
-				return todohandler.Todo{ID: id, Status: todohandler.StatusCompleted}, nil
-			}, http.StatusOK),
-		},
-	}
-}
-
-func (s *dispatcherStub) Modules() []contract.Module {
-	return []contract.Module{
-		{ID: "auth", Name: "Auth", SecuritySchemes: []contract.SecurityScheme{{ID: contract.SecurityBearer, Kind: contract.SecuritySchemeHTTPBearer}}},
-		httpbinding.ModuleContract(),
-	}
-}
-
-func (s *dispatcherStub) Operations() []contract.Operation {
-	return httpbinding.ModuleContract().Operations
-}
-
-func (s *dispatcherStub) Handler(operationID contract.OperationID) (contract.Handler, bool) {
-	handler, ok := s.handlers[operationID]
-	return handler, ok
-}
-
-func TestRouteBindingUsesGeneratedRoutesAndRequestMetadata(t *testing.T) {
-	dispatcher := newDispatcherStub()
-	gate := &operationGateStub{authenticated: true}
-	routes := newRouteBinding(t, dispatcher, gate)
-	request := httptest.NewRequest(http.MethodPost, "/api/v1/todos", strings.NewReader(`{"title":"学习 OpenAPI"}`))
-	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("Accept-Language", "zh-CN")
-	recorder := httptest.NewRecorder()
-	routes.ServeHTTP(recorder, request)
-
-	if recorder.Code != http.StatusCreated || recorder.Header().Get("Content-Type") != "application/json" {
-		t.Fatalf("create response = status %d headers %#v body %s", recorder.Code, recorder.Header(), recorder.Body.String())
-	}
-	var created todohandler.Todo
-	if err := json.Unmarshal(recorder.Body.Bytes(), &created); err != nil {
-		t.Fatalf("decode create body: %v", err)
-	}
-	if created.ID != "00000000-0000-0000-0000-000000000001" {
-		t.Fatalf("created = %#v", created)
-	}
-}
-
-func TestRouteBindingRejectsInvalidRequestsAsProblem(t *testing.T) {
-	routes := newRouteBinding(t, newDispatcherStub(), &operationGateStub{authenticated: true})
-	tests := []struct {
-		name        string
-		method      string
-		path        string
-		contentType string
-		body        string
-		status      int
-		code        string
-	}{
-		{name: "missing content type", method: http.MethodPost, path: "/api/v1/todos", body: `{"title":"x"}`, status: http.StatusUnsupportedMediaType, code: "unsupported_media_type"},
-		{name: "unknown field", method: http.MethodPost, path: "/api/v1/todos", contentType: "application/json", body: `{"title":"x","private":"secret"}`, status: http.StatusBadRequest, code: "invalid_request"},
-		{name: "trailing token", method: http.MethodPost, path: "/api/v1/todos", contentType: "application/json", body: `{"title":"x"}{}`, status: http.StatusBadRequest, code: "invalid_request"},
-		{name: "invalid status", method: http.MethodGet, path: "/api/v1/todos?status=unknown", status: http.StatusBadRequest, code: "invalid_request"},
-		{name: "not found", method: http.MethodGet, path: "/missing", status: http.StatusNotFound, code: "route_not_found"},
-		{name: "method not allowed", method: http.MethodDelete, path: "/api/v1/todos", status: http.StatusMethodNotAllowed, code: "method_not_allowed"},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			request := httptest.NewRequest(test.method, test.path, strings.NewReader(test.body))
-			if test.contentType != "" {
-				request.Header.Set("Content-Type", test.contentType)
-			}
-			recorder := httptest.NewRecorder()
-			routes.ServeHTTP(recorder, request)
-			problem := decodeProblem(t, recorder)
-			if recorder.Code != test.status || problem.Status != test.status || problem.Code != test.code ||
-				recorder.Header().Get("Content-Type") != "application/problem+json" {
-				t.Fatalf("response = status %d problem %#v headers %#v", recorder.Code, problem, recorder.Header())
-			}
-		})
-	}
-}
-
-func TestRouteBindingEnforcesOperationGate(t *testing.T) {
-	tests := []struct {
-		name   string
-		gate   *operationGateStub
-		status int
-		code   string
-	}{
-		{name: "unauthenticated", gate: &operationGateStub{}, status: http.StatusUnauthorized, code: "unauthenticated"},
-		{name: "permission denied", gate: &operationGateStub{authenticated: true, enforceErr: ErrPermissionDenied}, status: http.StatusForbidden, code: "permission_denied"},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			dispatcher := newDispatcherStub()
-			handlerCalled := false
-			dispatcher.handlers["listTodos"] = contract.Query(func(context.Context, todohandler.ListTodosParams) (todohandler.TodoList, error) {
-				handlerCalled = true
-				return todohandler.TodoList{}, nil
-			}, http.StatusOK)
-			routes := newRouteBinding(t, dispatcher, test.gate)
-			recorder := httptest.NewRecorder()
-			routes.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/api/v1/todos", nil))
-			problem := decodeProblem(t, recorder)
-			if recorder.Code != test.status || problem.Code != test.code {
-				t.Fatalf("response = status %d problem %#v", recorder.Code, problem)
-			}
-			if handlerCalled {
-				t.Fatal("operation handler was called after the gate rejected the request")
-			}
-		})
-	}
-}
-
-// TestValidateRequestRejectsSchemaLessContentParameterWithoutPanic 回归
-// GHSA-jpcw-4wr7-c3vq：合法 OpenAPI 文档中的无 schema content 参数必须返回错误，
-// 不能由一条未认证请求触发 validator panic。
-func TestValidateRequestRejectsSchemaLessContentParameterWithoutPanic(t *testing.T) {
-	const specificationYAML = `
-openapi: 3.0.3
-info: {title: security-regression, version: "1.0.0"}
-paths:
-  /security-regression:
-    get:
-      parameters:
-        - name: cfg
-          in: query
-          content:
-            application/json: {}
-      responses:
-        "200": {description: ok}
-`
-	specification, err := openapi3.NewLoader().LoadFromData([]byte(specificationYAML))
-	if err != nil {
-		t.Fatalf("load security regression spec: %v", err)
-	}
-	if err := specification.Validate(context.Background()); err != nil {
-		t.Fatalf("security regression spec must remain valid OpenAPI: %v", err)
-	}
-	request := httptest.NewRequest(http.MethodGet, "/security-regression?cfg=1", nil)
-	operation := contract.Operation{
-		ID:     "securityRegression",
-		Method: contract.MethodGet,
-		Path:   "/security-regression",
-	}
-	if err := validateRequest(specification, operation, request, nil); err == nil {
-		t.Fatal("schema-less content parameter was accepted")
-	}
-}
-
-func TestRouteBindingRedactsUnexpectedHandlerError(t *testing.T) {
-	dispatcher := newDispatcherStub()
-	delete(dispatcher.handlers, "listTodos")
-	dispatcher.handlers["listTodos"] = contract.Query(func(ctx context.Context, params todohandler.ListTodosParams) (todohandler.TodoList, error) {
-		return todohandler.TodoList{}, errors.New("dsn=password private SQL")
-	}, http.StatusOK)
-	routes := newRouteBinding(t, dispatcher, &operationGateStub{authenticated: true})
-	recorder := httptest.NewRecorder()
-	routes.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/api/v1/todos", nil))
-	if recorder.Code != http.StatusInternalServerError {
-		t.Fatalf("response = %d", recorder.Code)
-	}
-	if bytes.Contains(recorder.Body.Bytes(), []byte("password")) || bytes.Contains(recorder.Body.Bytes(), []byte("SQL")) {
-		t.Fatalf("private error leaked: %s", recorder.Body.String())
-	}
-}
-
-func TestNewRouteBindingRejectsNilDependencies(t *testing.T) {
-	dispatcher := newDispatcherStub()
-	if _, err := NewRouteBinding(dispatcher, nil); err == nil {
-		t.Fatal("NewRouteBinding(nil gate) error = nil")
-	}
-	if _, err := NewRouteBinding(nil, &operationGateStub{authenticated: true}); err == nil {
-		t.Fatal("NewRouteBinding(nil dispatcher) error = nil")
-	}
-}
-
-func newRouteBinding(t *testing.T, dispatcher Dispatcher, gate OperationGate) http.Handler {
-	t.Helper()
-	routes, err := NewRouteBinding(dispatcher, gate)
-	if err != nil {
-		t.Fatalf("NewRouteBinding() error = %v", err)
-	}
-	return routes
-}
-
 type operationGateStub struct {
-	authenticated bool
-	authErr       error
-	enforceErr    error
+	authenticateErr error
+	enforceErr      error
+	operation       string
+	security        string
 }
 
-func (s *operationGateStub) Authenticate(request *http.Request, _ contract.Security) (*http.Request, error) {
-	if s.authErr != nil {
-		return nil, s.authErr
-	}
-	if !s.authenticated {
-		return nil, ErrUnauthenticated
-	}
-	return request, nil
+func (gate *operationGateStub) Authenticate(request *http.Request, security string) (*http.Request, error) {
+	gate.security = security
+	return request, gate.authenticateErr
+}
+func (gate *operationGateStub) Enforce(_ context.Context, operation string) error {
+	gate.operation = operation
+	return gate.enforceErr
 }
 
-func (s *operationGateStub) Enforce(_ context.Context, _ string) error {
-	return s.enforceErr
+func testRegistration(api huma.API) {
+	op := humabinding.JSONDefinition(huma.Operation{OperationID: "test.create", Method: http.MethodPost, Path: "/test"}, humabinding.Definition{ID: "test.create", Method: http.MethodPost, Path: "/test", Security: humabinding.SecurityBearer, Policy: humabinding.PolicyProtected, Scope: "test:write", Action: "create"})
+	type input struct {
+		Body struct {
+			Name string `json:"name" minLength:"1"`
+		}
+	}
+	type output struct {
+		Body struct {
+			Name string `json:"name"`
+		}
+	}
+	huma.Register(api, op, func(_ context.Context, in *input) (*output, error) {
+		return &output{Body: struct {
+			Name string `json:"name"`
+		}{Name: in.Body.Name}}, nil
+	})
 }
 
-func decodeProblem(t *testing.T, recorder *httptest.ResponseRecorder) httpx.Problem {
-	t.Helper()
-	var problem httpx.Problem
-	if err := json.Unmarshal(recorder.Body.Bytes(), &problem); err != nil {
-		t.Fatalf("decode Problem from %q: %v", recorder.Body.String(), err)
+func TestHumaRouteUsesProjectGateAndValidation(t *testing.T) {
+	gate := &operationGateStub{}
+	routes, err := NewRouteBinding(gate, testRegistration)
+	if err != nil {
+		t.Fatal(err)
 	}
-	return problem
+	request := httptest.NewRequest(http.MethodPost, "/test", nil)
+	request.Header.Set("Content-Type", "application/json")
+	response := httptest.NewRecorder()
+	routes.ServeHTTP(response, request)
+	if response.Code != http.StatusBadRequest || response.Header().Get("Content-Type") != "application/problem+json" {
+		t.Fatalf("validation response = %d %s", response.Code, response.Body.String())
+	}
+	request = httptest.NewRequest(http.MethodPost, "/test", nil)
+	request.Header.Set("Content-Type", "application/json")
+	gate.authenticateErr = ErrUnauthenticated
+	response = httptest.NewRecorder()
+	routes.ServeHTTP(response, request)
+	if response.Code != http.StatusUnauthorized {
+		t.Fatalf("gate response = %d", response.Code)
+	}
+}
+
+func TestCatalogUsesRegistrationMetadata(t *testing.T) {
+	definitions, err := BuildHumaOperationCatalog(testRegistration)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(definitions) != 1 || definitions[0].ID != "test.create" || definitions[0].Scope != "test:write" {
+		t.Fatalf("definitions = %#v", definitions)
+	}
+	_, err = NewRouteBinding(&operationGateStub{enforceErr: errors.New("denied")}, nil)
+	if err == nil {
+		t.Fatal("expected nil registration error")
+	}
 }
 
 var _ OperationGate = (*operationGateStub)(nil)

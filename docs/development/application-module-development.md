@@ -122,7 +122,7 @@ internal/module/<capability>/
 ├── binding/
 │   ├── config/     # 模块配置 owner
 │   ├── model/      # Schema/migration 等完成品
-│   ├── http/       # 只做代码优先契约声明（ModuleContract）与运行期装箱（RuntimeHandlers）
+│   ├── http/       # Huma typed input/output、metadata 与无资源 registration
 │   └── cli/        # 模块自有 CLI Handler/已绑定命令 contract
 └── module.go       # 纯内存局部装配与 contribution 输出
 ```
@@ -134,7 +134,7 @@ model <- service <- repo
    ↑         ↑
  handler  module.go <- internal/composition
    ↑
- binding/http   （契约声明 + RuntimeHandlers 装箱）
+ binding/http   （Huma registration + typed binding）
 ```
 
 开发顺序：
@@ -143,11 +143,11 @@ model <- service <- repo
 2. Service 定义用例和自己需要的 Repository、跨模块、Clock、ID 等窄 port。
 3. 先用 fake port、固定时间和固定 ID 验证成功、冲突、依赖失败、取消与超时。
 4. 实现实际需要的数据库、缓存、远程协议或其他 Adapter，并验证第三方错误转换、exported 类型、配置和资源边界；只有跨业务复用与进程统一选择两项均有证据时才走完整底层 Capability 路径。
-5. 实现真实验收需要的 HTTP、CLI 或后台入口；HTTP 语义适配落在模块顶层 `handler/`（实现 `Operations`/`Handler`、DTO、错误呈现与 `ActorAccess`），`binding/http` 拥有 Huma typed input/output 与无资源 registration；handler 不创建 Router、不加载 OpenAPI、不 import `binding/**`、`internal/transport/**` 或 Huma；不同入口复用同一 Service，不互相回环。057 第一片期间仅 `login`、`listTodos`、`organization.departments.update` 已走该路径，其余 operation 仍由待删除的 `pkg/httpx/contract` 路径承载，不能据此新增旧式 DSL operation。
+5. 实现真实验收需要的 HTTP、CLI 或后台入口；HTTP 语义适配落在模块顶层 `handler/`（实现 `Operations`、DTO、错误呈现与 `ActorAccess`），`binding/http` 拥有 Huma typed input/output、operation metadata 与无资源 registration；handler 不创建 Router、不加载 OpenAPI、不 import `binding/**`、`internal/transport/**` 或 Huma；不同入口复用同一 Service，不互相回环。
 6. `module.go` 只做无 I/O、无 goroutine、无资源探测的局部装配，并返回窄 Handler/Service 与完成品 contribution。
 7. `internal/composition` 显式选择模块、适配最小 Capability、连接跨模块 port、聚合模块基础契约与运行期 handler、合并 contribution 并建立 Host；`internal/tools/contract-gen` 从模块契约生成 `api/openapi.yaml` 与 operation inventory，`internal/transport/http` 只把完整契约绑定一次路由与校验。
 
-HTTP 的目标固定构造顺序是 `模块顶层 typed Handler + binding Huma registration → composition 显式聚合 → transport 统一安装 operation metadata、Problem、OperationGate 与 chi route → application Router → Server`。registration 必须能在没有数据库、缓存、网络客户端或业务 Service 的 build mode 下构造 OpenAPI；运行期依赖只允许被 handler closure 捕获。`none`、`bearerAuth`、`webuiSession` 只描述认证 profile，Bearer header、Cookie、Origin 与 CSRF 细节由 Auth 来源或具体模块拥有，transport 不按 URL 前缀猜测。057 第一片使用 `internal/transport/http/humabinding` 作为最小 registration 契约，并保留旧 dispatcher 仅承载未迁移 operation；`HTTP-057-002` 必须全量迁移并删除该临时双轨，新增模块不得复制 Router、OpenAPI 或继续扩展旧 DSL。
+HTTP 的固定构造顺序是 `模块顶层 typed Handler + binding Huma registration → composition 显式聚合 → transport 统一安装 operation metadata、Problem、OperationGate 与 chi route → application Router → Server`。registration 必须能在没有数据库、缓存、网络客户端或业务 Service 的 build mode 下构造 OpenAPI；运行期依赖只允许被 handler closure 捕获。`none`、`bearerAuth`、`webuiSession` 只描述认证 profile，Bearer header、Cookie、Origin 与 CSRF 细节由 Auth 来源或具体模块拥有，transport 不按 URL 前缀猜测。新增模块不得复制 Router、OpenAPI、operation 表或另建协议 DSL。
 
 ### 4.1 统一 binding 契约清单
 
@@ -155,7 +155,7 @@ HTTP 的目标固定构造顺序是 `模块顶层 typed Handler + binding Huma r
 
 | Binding / 契约 | 声明位置 | 接入方式 | 维护位置 |
 | --- | --- | --- | --- |
-| HTTP binding | 模块顶层 `handler/`（Operations/Handler/DTO/ActorAccess/错误呈现）+ `binding/http`（`ModuleContract`/`RuntimeHandlers`） | 注册 `contract-gen` 的 `registeredModules()`；`internal/composition` 聚合；`internal/transport/http` 绑定 | `internal/module/<name>/handler` 与 `binding/http` |
+| HTTP binding | 模块顶层 `handler/`（Operations/DTO/ActorAccess/错误呈现）+ `binding/http`（Huma typed input/output 与 registration） | 同一 registration 同时注册到 `contract-gen` 和 `internal/composition`；`internal/transport/http` 绑定 | `internal/module/<name>/handler` 与 `binding/http` |
 | config binding | `binding/config` | composition 连接模块 Config | `internal/module/<name>/binding/config` |
 | cli binding | `binding/cli` | cmd（command）装配 | `internal/module/<name>/binding/cli` |
 | migration binding | `binding/migration` 的独立 Set/版本表/checksum | composition 显式注册到 application Migration Catalog | `internal/module/<name>/binding/migration` |
@@ -167,7 +167,7 @@ HTTP 的目标固定构造顺序是 `模块顶层 typed Handler + binding Huma r
 
 **新增业务模块必须接入的基础契约**：
 
-- 若暴露 HTTP operation：必须提供 `handler/` + `binding/http` 的 `ModuleContract`/`RuntimeHandlers`，**并在两处接入**：`internal/composition` 负责运行时装配（policy 汇总、observability operations、route binding、依赖注入），`internal/tools/contract-gen` 的 `registeredModules()` 生成器注册点负责 build-time 渲染 `api/openapi.yaml` 与 operation inventory；新增模块不得只在 composition 装配而漏掉契约注册（否则 `go generate` 不渲染），也不得退化为手写固定路由。
+- 若暴露 HTTP operation：必须提供 `handler/` + `binding/http` 的 Huma registration，**并在两处接入**：`internal/composition` 负责运行时装配（policy 汇总、observability operations、route binding、依赖注入），`internal/tools/contract-gen` 的 `registeredOperations()` 负责 build-time 渲染 `api/openapi.yaml` 与 operation inventory；两处必须引用同一模块 registration，不得另写 schema、method/path 或 policy 清单。
 - 若 operation 使用权限：模块贡献当前真实精确权限定义；禁止通配符、未知引用、预留未来模块 key，Catalog 也不承担角色关系或授权执行。
 - 若拥有数据库 schema：每个模块使用自己的版本表和 source，显式注册到 Migration Catalog；执行顺序按 ModuleID 确定，不建立跨 set 事务或扫描目录自动注册。
 - 若有用户可见翻译：必须提供 i18n binding（自有语言资源 + `binding/i18n`），经 composition/kernel 聚合后通过注入的 `pkg/i18n.Translator` 消费；不得绕过注入直接读 `pkg/i18n` 默认配置。

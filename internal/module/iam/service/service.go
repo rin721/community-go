@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/http"
@@ -985,6 +986,99 @@ func (s *Service) authorizeMutation(ctx context.Context, mutate func(context.Con
 		s.authorization.PublishCandidate()
 		return nil
 	})
+}
+
+// SessionInfo 是会话集中管理的元数据视图：只暴露 IDHash 摘要（hex）、
+// 账号与过期信息，绝不泄露明文 SessionID 或 CSRF。
+type SessionInfo struct {
+	IDHash                                        string
+	AccountID                                     string
+	CreatedAt, LastSeenAt, IdleExpiresAt, AbsoluteExpiresAt time.Time
+	RevokedAt                                     *time.Time
+}
+
+// ListSessions 返回账号的全部受信 Session 元数据视图（含已吊销标记）。
+func (s *Service) ListSessions(ctx context.Context, accountID string) ([]SessionInfo, error) {
+	if strings.TrimSpace(accountID) == "" {
+		return nil, ErrSessionInvalid
+	}
+	var records []repo.SessionRecord
+	err := s.store.Use(ctx, func(r *repo.Unit) error {
+		account, err := r.AccountByID(ctx, accountID)
+		if err != nil {
+			return err
+		}
+		_ = account
+		records, err = r.ListSessionsByAccount(ctx, accountID)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+	items := make([]SessionInfo, len(records))
+	for index, record := range records {
+		items[index] = SessionInfo{
+			IDHash: hex.EncodeToString(record.IDHash), AccountID: record.AccountID,
+			CreatedAt: record.CreatedAt, LastSeenAt: record.LastSeenAt,
+			IdleExpiresAt: record.IdleExpiresAt, AbsoluteExpiresAt: record.AbsoluteExpiresAt,
+			RevokedAt: record.RevokedAt,
+		}
+	}
+	return items, nil
+}
+
+// RevokeSessions 按 idHash 摘要批量吊销指定账号的受信 Session；摘要无法
+// 解析、不属于该账号或账号已禁用时 fail closed。当前登录会话由调用方按
+// 决策语义决定是否包含在集合内，本方法不自动豁免任何会话。
+func (s *Service) RevokeSessions(ctx context.Context, accountID string, idHashes []string) (int, error) {
+	if strings.TrimSpace(accountID) == "" {
+		return 0, ErrSessionInvalid
+	}
+	if len(idHashes) == 0 {
+		return 0, nil
+	}
+	now := s.clock.Now().UTC()
+	revoked := 0
+	err := s.store.WithinTx(ctx, func(txCtx context.Context, r *repo.Unit) error {
+		account, err := r.AccountByID(txCtx, accountID)
+		if err != nil {
+			return err
+		}
+		if account.Status != string(model.AccountActive) {
+			return ErrAccountDisabled
+		}
+		for _, idHash := range idHashes {
+			if strings.TrimSpace(idHash) == "" {
+				return ErrSessionInvalid
+			}
+			raw, err := hex.DecodeString(idHash)
+			if err != nil || len(raw) == 0 {
+				return ErrSessionInvalid
+			}
+			record, err := r.SessionByHash(txCtx, raw)
+			if err != nil {
+				if repo.IsNotFound(err) {
+					return ErrSessionInvalid
+				}
+				return err
+			}
+			if record.AccountID != accountID {
+				return ErrSessionInvalid
+			}
+			if record.RevokedAt != nil {
+				continue
+			}
+			if err := r.RevokeSession(txCtx, raw, now); err != nil {
+				return err
+			}
+			revoked++
+		}
+		return nil
+	})
+	if err != nil {
+		return 0, err
+	}
+	return revoked, nil
 }
 
 // createSession 在事务内创建会话记录；Permissions 投影由调用方在事务外

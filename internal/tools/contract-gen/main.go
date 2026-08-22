@@ -11,6 +11,7 @@ import (
 	"strings"
 	"unicode"
 
+	authhttp "github.com/rin721/go-scaffold-template/internal/module/auth/binding/http"
 	iamhttp "github.com/rin721/go-scaffold-template/internal/module/iam/binding/http"
 	navigationhttp "github.com/rin721/go-scaffold-template/internal/module/navigation/binding/http"
 	organizationhttp "github.com/rin721/go-scaffold-template/internal/module/organization/binding/http"
@@ -70,7 +71,13 @@ func run(outputOpenAPI, outputInventory, packageName string) error {
 }
 
 func registeredOperations() []humabinding.Registration {
-	return []humabinding.Registration{iamhttp.HumaRegistration(nil), organizationhttp.HumaRegistration(nil), navigationhttp.HumaRegistration(nil, nil), todohttp.HumaRegistration(nil)}
+	return []humabinding.Registration{
+		authhttp.HumaRegistration(nil),
+		iamhttp.HumaRegistration(nil),
+		organizationhttp.HumaRegistration(nil),
+		navigationhttp.HumaRegistration(nil, nil),
+		todohttp.HumaRegistration(nil),
+	}
 }
 
 func generateInventory(packageName string, definitions []humabinding.Definition) ([]byte, error) {

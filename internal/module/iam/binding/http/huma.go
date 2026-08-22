@@ -193,6 +193,50 @@ func RegisterHuma(api huma.API, handler *Handler) {
 		return &emptyOutput{}, nil
 	})
 
+	// 会话集中管理：列表（自助/管理员按账号）与批量吊销。
+	// 列表返回摘要视图（IDHash hex），不泄露明文 SessionID。
+	huma.Register(api, protected(opSessionList, http.MethodGet, "/api/v1/iam/sessions", string(iampermission.SelfRead), "list"), func(ctx context.Context, in *sessionListInput) (*jsonOutput[listResponse[sessionInfoResponse]], error) {
+		accountID := in.AccountID
+		if accountID == "" {
+			_, current, ok := service.SessionFromContext(ctx)
+			if !ok {
+				return nil, httpx.NewProtocolProblemError(ctx, statusError(http.StatusUnauthorized, "unauthenticated", nil))
+			}
+			accountID = current.Identity.AccountID
+		}
+		items, err := handler.service.ListSessions(ctx, accountID)
+		if err != nil {
+			return nil, problem(ctx, err)
+		}
+		output := make([]sessionInfoResponse, len(items))
+		for index, item := range items {
+			output[index] = sessionInfoResponse{
+				IDHash: item.IDHash, AccountID: item.AccountID,
+				CreatedAt: item.CreatedAt, LastSeenAt: item.LastSeenAt,
+				IdleExpiresAt: item.IdleExpiresAt, AbsoluteExpiresAt: item.AbsoluteExpiresAt,
+				RevokedAt: item.RevokedAt,
+			}
+		}
+		return jsonEnvelope(listResponse[sessionInfoResponse]{Items: output, Offset: 0, Limit: len(output), Total: int64(len(output))}), nil
+	})
+	revoke := protected(opSessionRevoke, http.MethodPost, "/api/v1/iam/sessions/revoke", string(iampermission.AccountWrite), "revoke")
+	revoke.DefaultStatus = http.StatusNoContent
+	revoke.Middlewares = huma.Middlewares{handler.requireMutation}
+	huma.Register(api, revoke, func(ctx context.Context, in *sessionRevokeInput) (*emptyOutput, error) {
+		_, current, ok := service.SessionFromContext(ctx)
+		if !ok {
+			return nil, httpx.NewProtocolProblemError(ctx, statusError(http.StatusUnauthorized, "unauthenticated", nil))
+		}
+		accountID := in.AccountID
+		if accountID == "" {
+			accountID = current.Identity.AccountID
+		}
+		if _, err := handler.service.RevokeSessions(ctx, accountID, in.Body.IDHashes); err != nil {
+			return nil, problem(ctx, err)
+		}
+		return &emptyOutput{}, nil
+	})
+
 	huma.Register(api, protected(opAccounts, http.MethodGet, "/api/v1/iam/accounts", string(iampermission.AccountRead), "list"), func(ctx context.Context, in *pageInput) (*jsonOutput[listResponse[accountResponse]], error) {
 		result, err := handler.service.ListAccounts(ctx, in.Offset, in.Limit)
 		if err != nil {

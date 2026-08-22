@@ -23,7 +23,7 @@
 
 `internal/transport/http` 是唯一 route binding owner：Huma 从模块无资源 registration 生成 schema/校验并绑定 chi route，transport 统一执行 operation gate、Huma 校验错误到项目 Problem 的转换和问题呈现。运行时路由、静态 OpenAPI、policy 与 observability inventory 消费同一 registration authority；不再存在自研 contract DSL、dispatcher、重复 kin-openapi validation 或手工 codec/renderer。新增业务模块不复制 Router、validator 或 method/path。
 
-当前公开契约聚合 IAM、Organization、Navigation 与 Todo。Organization 拥有部门、岗位和账号组织分配 operation，使用 `organization:department:*` 与 `organization:position:*` 精确权限；组织关系只作为目录数据，不进入 Auth decision。Navigation 使用 `navigation:menu:read/write` 管理已注册菜单策略，修改请求使用 `webuiSession`、Origin 与 Session 绑定的 CSRF token；它不提供动态 Route 或第二套角色菜单授权。
+当前公开契约聚合 Auth、IAM、Organization、Navigation 与 Todo。Auth 提供低敏审计只读查询（`auth.audit.list`，`auth:audit:read`）——subject/resource 只返回摘要，不做删除/篡改。IAM 拥有账号、角色、权限与账号会话集中管理 operation，使用 `iam:account:*`、`iam:role:*`、`iam:session:*` 等精确权限；会话列表/吊销（`iam.sessions.list/revoke`）只暴露 SessionID 摘要并沿用安全修订与 owner 不变量。Organization 拥有部门、岗位和账号组织分配 operation，使用 `organization:department:*` 与 `organization:position:*` 精确权限；组织关系只作为目录数据，不进入 Auth decision。Navigation 使用 `navigation:menu:read/write` 管理已注册菜单策略，修改请求使用 `webuiSession`、Origin 与 Session 绑定的 CSRF token；它不提供动态 Route 或第二套角色菜单授权。
 
 - operation ID 与模块 registration 是 HTTP 完成品的稳定 owner；静态 catalog 拒绝重复 ID 和不完整的项目 metadata。
 - `none`、`bearerAuth`、`webuiSession` 是有限 security profile。OpenAPI 只声明 scheme，operation gate 从 composition 注入的 Auth 来源认证一次并写入 Principal；transport 不硬编码 URL 前缀、Cookie、Origin 或 CSRF。

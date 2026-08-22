@@ -12,6 +12,8 @@ const (
 	RoleRead          = iampermission.RoleRead
 	RoleWrite         = iampermission.RoleWrite
 	PermissionRead    = iampermission.PermissionRead
+	SessionRead       = iampermission.SessionRead
+	SessionRevoke     = iampermission.SessionRevoke
 )
 
 func Definitions() []permissioncatalog.Definition {
@@ -23,5 +25,7 @@ func Definitions() []permissioncatalog.Definition {
 		{Key: RoleRead, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.role.read"},
 		{Key: RoleWrite, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.role.write"},
 		{Key: PermissionRead, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.permission.read"},
+		{Key: SessionRead, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.session.read"},
+		{Key: SessionRevoke, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.session.revoke"},
 	}
 }

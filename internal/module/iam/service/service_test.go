@@ -2,7 +2,9 @@ package service_test
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -422,4 +424,106 @@ func (a resourceAccess) WithinTx(ctx context.Context, use func(context.Context, 
 	return a.Use(ctx, func(client database.Client) error {
 		return client.WithinTx(ctx, func(txCtx context.Context, tx database.Tx) error { return use(txCtx, client, tx) })
 	})
+}
+
+func TestSessionListingAndSelectiveRevocation(t *testing.T) {
+	iam, resource := newService(t)
+	defer resource.Close()
+	if _, err := iam.Setup(t.Context(), "setup-secret", "owner", "Owner", "123456789012345"); err != nil {
+		t.Fatal(err)
+	}
+	first, err := iam.Login(t.Context(), "owner", "123456789012345")
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := iam.Login(t.Context(), "owner", "123456789012345")
+	if err != nil {
+		t.Fatal(err)
+	}
+	accountID := first.Identity.AccountID
+
+	items, err := iam.ListSessions(t.Context(), accountID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Setup 也创建了一个会话，因此共 3 个。
+	if len(items) != 3 {
+		t.Fatalf("session list = %d, want 3", len(items))
+	}
+	// 摘要视图不泄露明文 SessionID。
+	for _, item := range items {
+		if item.IDHash == "" || item.IDHash == first.ID || item.IDHash == second.ID {
+			t.Fatalf("session view leaks raw id: %#v", item)
+		}
+	}
+	// 按明文 session id 的摘要定位对应的 idHash（测试夹具内部实现细节）。
+	firstHash, secondHash := "", ""
+	for _, item := range items {
+		raw, err := hex.DecodeString(item.IDHash)
+		if err != nil {
+			t.Fatal(err)
+		}
+		switch string(raw) {
+		case string(sessionDigest(first.ID)):
+			firstHash = item.IDHash
+		case string(sessionDigest(second.ID)):
+			secondHash = item.IDHash
+		}
+	}
+	if firstHash == "" || secondHash == "" {
+		t.Fatalf("first/second session hash not found: %#v", items)
+	}
+
+	// 批量吊销 first 会话；first 失效、second 与 setup 仍有效。
+	revoked, err := iam.RevokeSessions(t.Context(), accountID, []string{firstHash})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if revoked != 1 {
+		t.Fatalf("revoked = %d, want 1", revoked)
+	}
+	if _, err := iam.Resolve(t.Context(), first.ID); !errors.Is(err, service.ErrSessionInvalid) {
+		t.Fatalf("revoked session resolve error = %v", err)
+	}
+	if _, err := iam.Resolve(t.Context(), second.ID); err != nil {
+		t.Fatalf("active session resolve error = %v", err)
+	}
+
+	// 重复吊销是 no-op；未知摘要 fail closed。
+	if revoked, err := iam.RevokeSessions(t.Context(), accountID, []string{firstHash}); err != nil || revoked != 0 {
+		t.Fatalf("repeat revoke = %d, %v", revoked, err)
+	}
+	if _, err := iam.RevokeSessions(t.Context(), accountID, []string{"deadbeef"}); !errors.Is(err, service.ErrSessionInvalid) {
+		t.Fatalf("unknown session hash error = %v", err)
+	}
+
+	// 吊销剩余全部会话后 second 也失效。
+	remaining, err := iam.ListSessions(t.Context(), accountID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hashes := make([]string, 0, len(remaining))
+	for _, item := range remaining {
+		hashes = append(hashes, item.IDHash)
+	}
+	if n, err := iam.RevokeSessions(t.Context(), accountID, hashes); err != nil || n == 0 {
+		t.Fatalf("revoke remaining = %d, %v", n, err)
+	}
+	if _, err := iam.Resolve(t.Context(), second.ID); !errors.Is(err, service.ErrSessionInvalid) {
+		t.Fatalf("second session resolve error = %v", err)
+	}
+}
+
+// sessionDigest 计算与服务端一致的明文会话摘要（测试夹具用）。
+func sessionDigest(value string) []byte {
+	sum := sha256.Sum256([]byte(value))
+	return sum[:]
+}
+
+func TestSessionListRejectsUnknownAccount(t *testing.T) {
+	iam, resource := newService(t)
+	defer resource.Close()
+	if _, err := iam.ListSessions(t.Context(), "missing-account"); !errors.Is(err, repo.ErrNotFound) {
+		t.Fatalf("unknown account session list error = %v", err)
+	}
 }

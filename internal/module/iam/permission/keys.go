@@ -11,4 +11,6 @@ const (
 	RoleRead          permissioncatalog.Key = "iam:role:read"
 	RoleWrite         permissioncatalog.Key = "iam:role:write"
 	PermissionRead    permissioncatalog.Key = "iam:permission:read"
+	SessionRead       permissioncatalog.Key = "iam:session:read"
+	SessionRevoke     permissioncatalog.Key = "iam:session:revoke"
 )

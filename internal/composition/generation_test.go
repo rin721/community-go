@@ -22,6 +22,7 @@ import (
 	"github.com/rin721/go-scaffold-template/internal/kernel/config"
 	kernellogging "github.com/rin721/go-scaffold-template/internal/kernel/logging"
 	authmodel "github.com/rin721/go-scaffold-template/internal/module/auth/model"
+	authmigration "github.com/rin721/go-scaffold-template/internal/module/auth/binding/migration"
 	iammigration "github.com/rin721/go-scaffold-template/internal/module/iam/binding/migration"
 	navigationmigration "github.com/rin721/go-scaffold-template/internal/module/navigation/binding/migration"
 	organizationmigration "github.com/rin721/go-scaffold-template/internal/module/organization/binding/migration"
@@ -760,7 +761,7 @@ func prepareTodoSchema(t *testing.T, path string) {
 	cfg := pkgdatabase.DefaultConfig()
 	cfg.Driver = pkgdatabase.DriverSQLite
 	cfg.DSN = filepath.ToSlash(path)
-	for _, set := range []dbmigrate.Set{iammigration.Set(), navigationmigration.Set(), organizationmigration.Set(), migrationbinding.Set()} {
+	for _, set := range []dbmigrate.Set{authmigration.Set(), iammigration.Set(), navigationmigration.Set(), organizationmigration.Set(), migrationbinding.Set()} {
 		runner, err := dbmigrate.New(t.Context(), dbmigrate.Config{Database: cfg, LockTimeout: 5 * time.Second}, set)
 		if err != nil {
 			t.Fatalf("New migration runner(%s/%s) error = %v", path, set.Name, err)

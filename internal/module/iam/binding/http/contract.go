@@ -31,6 +31,8 @@ const (
 	opRolePermissionsRead = "iam.roles.permissions.read"
 	opRolePermissions     = "iam.roles.permissions.replace"
 	opPermissions         = "iam.permissions.list"
+	opSessionList         = "iam.sessions.list"
+	opSessionRevoke       = "iam.sessions.revoke"
 )
 
 type Handler struct {
@@ -124,6 +126,31 @@ type listResponse[T any] struct {
 	Offset int   `json:"offset"`
 	Limit  int   `json:"limit"`
 	Total  int64 `json:"total"`
+}
+
+// sessionInfoResponse 是会话集中管理的元数据视图；只暴露摘要 IDHash（hex）
+// 与过期信息，绝不泄露明文 SessionID 或 CSRF。
+type sessionInfoResponse struct {
+	IDHash            string     `json:"idHash"`
+	AccountID         string     `json:"accountId"`
+	CreatedAt         time.Time  `json:"createdAt"`
+	LastSeenAt        time.Time  `json:"lastSeenAt"`
+	IdleExpiresAt     time.Time  `json:"idleExpiresAt"`
+	AbsoluteExpiresAt time.Time  `json:"absoluteExpiresAt"`
+	RevokedAt         *time.Time `json:"revokedAt,omitempty"`
+}
+
+type sessionListInput struct {
+	AccountID string `query:"accountId"`
+}
+
+type sessionRevokeInput struct {
+	AccountID string `query:"accountId"`
+	Origin    string `header:"Origin" required:"true"`
+	CSRFToken string `header:"X-CSRF-Token" required:"true"`
+	Body      struct {
+		IDHashes []string `json:"idHashes"`
+	}
 }
 
 func accountOutput(v model.Account) accountResponse {

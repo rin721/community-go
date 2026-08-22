@@ -44,6 +44,8 @@ type Scope string
 const (
 	// ScopeManagementRead 是当前管理面只读能力的精确权限键。
 	ScopeManagementRead Scope = "management:read"
+	// ScopeAuditRead 是审计只读查询的精确权限键。
+	ScopeAuditRead Scope = "auth:audit:read"
 	// OperationWebUISession 是当前登录主体查看 WebUI 会话详情的授权 identity。
 	OperationWebUISession = "auth.webui.session"
 )

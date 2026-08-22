@@ -8,6 +8,7 @@ import (
 	databaseapp "github.com/rin721/go-scaffold-template/internal/kernel/app/database"
 	kernelcomposition "github.com/rin721/go-scaffold-template/internal/kernel/composition"
 	"github.com/rin721/go-scaffold-template/internal/kernel/config"
+	authmigration "github.com/rin721/go-scaffold-template/internal/module/auth/binding/migration"
 	iammigration "github.com/rin721/go-scaffold-template/internal/module/iam/binding/migration"
 	"github.com/rin721/go-scaffold-template/internal/module/migration"
 	migrationconfig "github.com/rin721/go-scaffold-template/internal/module/migration/binding/config"
@@ -35,6 +36,7 @@ func (e migrationExecutor) MigrationUp(ctx context.Context) (migration.Status, e
 // applicationMigrationCatalog 是当前应用中“哪些模块贡献 migration set”的唯一显式汇总点。
 func applicationMigrationCatalog() (migration.Catalog, error) {
 	return migration.BuildCatalog(
+		migration.Registration{ModuleID: "auth", Source: "internal/module/auth/binding/migration", Set: authmigration.Set()},
 		migration.Registration{ModuleID: "iam", Source: "internal/module/iam/binding/migration", Set: iammigration.Set()},
 		migration.Registration{ModuleID: "organization", Source: "internal/module/organization/binding/migration", Set: organizationmigration.Set()},
 		migration.Registration{ModuleID: "navigation", Source: "internal/module/navigation/binding/migration", Set: navigationmigration.Set()},

@@ -233,6 +233,16 @@ func (unit *Unit) RevokeAccountSessions(ctx context.Context, accountID string, n
 	return unit.update(ctx, sessionTable, "account_id = ? AND revoked_at IS NULL", []any{accountID}, map[string]any{"revoked_at": &now})
 }
 
+// ListSessionsByAccount 返回账号全部受信 Session 的元数据（含已吊销标记），
+// 只暴露摘要（IDHash hex）与过期信息，不泄露明文 SessionID。
+func (unit *Unit) ListSessionsByAccount(ctx context.Context, accountID string) ([]SessionRecord, error) {
+	var records []SessionRecord
+	err := unit.useDB(ctx, func(db *gorm.DB) error {
+		return db.Table(sessionTable).Where("account_id = ?", accountID).Order("created_at DESC, id_hash ASC").Find(&records).Error
+	})
+	return records, err
+}
+
 func (unit *Unit) update(ctx context.Context, table, condition string, arguments []any, values map[string]any) error {
 	return unit.useDB(ctx, func(db *gorm.DB) error {
 		return db.Table(table).Where(condition, arguments...).Updates(values).Error

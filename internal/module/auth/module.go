@@ -9,10 +9,13 @@ import (
 
 	"github.com/rin721/go-scaffold-template/internal/module"
 	auditadapter "github.com/rin721/go-scaffold-template/internal/module/auth/adapter/audit"
+	auditstorage "github.com/rin721/go-scaffold-template/internal/module/auth/adapter/audit/storage"
 	jwtadapter "github.com/rin721/go-scaffold-template/internal/module/auth/adapter/jwt"
 	configbinding "github.com/rin721/go-scaffold-template/internal/module/auth/binding/config"
+	httpbinding "github.com/rin721/go-scaffold-template/internal/module/auth/binding/http"
 	"github.com/rin721/go-scaffold-template/internal/module/auth/middleware"
 	"github.com/rin721/go-scaffold-template/internal/module/auth/model"
+	"github.com/rin721/go-scaffold-template/internal/module/auth/repo"
 	"github.com/rin721/go-scaffold-template/internal/module/auth/service"
 	"github.com/rin721/go-scaffold-template/pkg/clock"
 	"github.com/rin721/go-scaffold-template/pkg/logger"
@@ -31,6 +34,12 @@ type Dependencies struct {
 	// DecisionPoint 是 iam-rbac 来源主体的 RBAC 决策 port；由 composition
 	// 注入 IAM Authorization facet 的适配实现。
 	DecisionPoint service.DecisionPoint
+	// Database 是持久化低敏审计的可选数据库访问；nil 时回退 logger Sink。
+	// 模块内部拥有 storage Sink 装配，composition 只注入数据库租约。
+	Database repo.Access
+	// AuditRetentionLimit 是审计持久化保留上限；<=0 表示不限（默认限由
+	// 模块常量提供，composition 可显式覆盖）。
+	AuditRetentionLimit int64
 }
 
 // Module 是 Auth 局部装配后交给 composition root 的完成品。
@@ -39,8 +48,13 @@ type Module struct {
 	BearerSource   RequestAuthenticator
 	SessionSource  RequestAuthenticator
 	HTTPMiddleware func(http.Handler) http.Handler
+	AuditHandler   *httpbinding.Handler
 	Contribution   module.Contribution
 }
+
+// defaultAuditRetentionLimit 是审计持久化的默认受控保留上限（决策 4 首版：
+// 显式上限，不自动归档；超出时删除最旧事件）。
+const defaultAuditRetentionLimit int64 = 100_000
 
 // RequestAuthenticator 是 composition 可按 security profile 选择的项目自有认证来源。
 type RequestAuthenticator interface {
@@ -66,9 +80,30 @@ func (m Module) ManagementMiddleware(next http.Handler) http.Handler {
 
 // NewHTTP 按已校验配置构造 HTTP Auth profile；构造阶段不执行网络 I/O。
 func NewHTTP(dependencies Dependencies) (Module, error) {
-	audit, err := auditadapter.New(dependencies.Logger)
-	if err != nil {
-		return Module{}, fmt.Errorf("compose auth audit adapter: %w", err)
+	var audit service.AuditSink
+	var auditReader service.AuditReader
+	if dependencies.Database != nil {
+		store, err := repo.New(dependencies.Database)
+		if err != nil {
+			return Module{}, fmt.Errorf("compose auth audit store: %w", err)
+		}
+		limit := dependencies.AuditRetentionLimit
+		if limit <= 0 {
+			limit = defaultAuditRetentionLimit
+		}
+		persistent, err := auditstorage.New(store, dependencies.Clock, limit)
+		if err != nil {
+			return Module{}, fmt.Errorf("compose auth audit storage sink: %w", err)
+		}
+		audit = persistent
+		auditReader = persistent
+	}
+	if audit == nil {
+		var err error
+		audit, err = auditadapter.New(dependencies.Logger)
+		if err != nil {
+			return Module{}, fmt.Errorf("compose auth audit adapter: %w", err)
+		}
 	}
 	var (
 		verifier     service.CredentialVerifier
@@ -111,6 +146,15 @@ func NewHTTP(dependencies Dependencies) (Module, error) {
 	if err != nil {
 		return Module{}, fmt.Errorf("compose auth service: %w", err)
 	}
+	if auditReader != nil {
+		if err := authService.WithAuditReader(auditReader); err != nil {
+			return Module{}, fmt.Errorf("compose auth audit reader: %w", err)
+		}
+	}
+	auditHandler, err := httpbinding.NewHandler(authService)
+	if err != nil {
+		return Module{}, fmt.Errorf("compose auth audit handler: %w", err)
+	}
 	bearerSource, err := middleware.NewSource(authService)
 	if err != nil {
 		return Module{}, fmt.Errorf("compose auth bearer source: %w", err)
@@ -120,7 +164,7 @@ func NewHTTP(dependencies Dependencies) (Module, error) {
 	if err := module.ValidateContributions(contribution); err != nil {
 		return Module{}, fmt.Errorf("validate auth contribution: %w", err)
 	}
-	return Module{Service: authService, BearerSource: bearerSource, SessionSource: dependencies.SessionSource, HTTPMiddleware: httpMiddleware, Contribution: contribution}, nil
+	return Module{Service: authService, BearerSource: bearerSource, SessionSource: dependencies.SessionSource, HTTPMiddleware: httpMiddleware, AuditHandler: auditHandler, Contribution: contribution}, nil
 }
 
 // NewLocal 构造 CLI profile；operator 必须由命令执行边界显式提供。

@@ -1,8 +1,10 @@
 package composition
 
 import (
+	authhttp "github.com/rin721/go-scaffold-template/internal/module/auth/binding/http"
 	authpermission "github.com/rin721/go-scaffold-template/internal/module/auth/binding/permission"
 	authmodel "github.com/rin721/go-scaffold-template/internal/module/auth/model"
+	authwebui "github.com/rin721/go-scaffold-template/internal/module/auth/binding/webui"
 	iamhttp "github.com/rin721/go-scaffold-template/internal/module/iam/binding/http"
 	iampermission "github.com/rin721/go-scaffold-template/internal/module/iam/binding/permission"
 	iamwebui "github.com/rin721/go-scaffold-template/internal/module/iam/binding/webui"
@@ -28,7 +30,13 @@ import (
 // 模型消费，避免静态契约与真实 handler 漂移。新增 HTTP 业务模块时在此追加一项，
 // 并同时扩展 generation 中的运行时依赖装配。
 func applicationHTTPRegistrations() []humabinding.Registration {
-	return []humabinding.Registration{iamhttp.HumaRegistration(nil), organizationhttp.HumaRegistration(nil), navigationhttp.HumaRegistration(nil, nil), todohttp.HumaRegistration(nil)}
+	return []humabinding.Registration{
+		authhttp.HumaRegistration(nil),
+		iamhttp.HumaRegistration(nil),
+		organizationhttp.HumaRegistration(nil),
+		navigationhttp.HumaRegistration(nil, nil),
+		todohttp.HumaRegistration(nil),
+	}
 }
 
 func applicationHTTPCatalog() ([]humabinding.Definition, error) {
@@ -52,6 +60,7 @@ func applicationWebUIModules() []webuicontract.ModuleRegistration {
 		{Binding: organizationwebui.Binding(), Activation: webuicontract.ActivationEnabled},
 		{Binding: navigationwebui.Binding(), Activation: webuicontract.ActivationEnabled},
 		{Binding: opswebui.Binding(), Activation: webuicontract.ActivationEnabled},
+		{Binding: authwebui.Binding(), Activation: webuicontract.ActivationEnabled},
 	}
 }
 

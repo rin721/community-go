@@ -24,6 +24,7 @@ import (
 	"github.com/rin721/go-scaffold-template/internal/module"
 	"github.com/rin721/go-scaffold-template/internal/module/auth"
 	authconfig "github.com/rin721/go-scaffold-template/internal/module/auth/binding/config"
+	authhttp "github.com/rin721/go-scaffold-template/internal/module/auth/binding/http"
 	"github.com/rin721/go-scaffold-template/internal/module/iam"
 	iamconfig "github.com/rin721/go-scaffold-template/internal/module/iam/binding/config"
 	iamhttp "github.com/rin721/go-scaffold-template/internal/module/iam/binding/http"
@@ -499,6 +500,7 @@ func (f *applicationGenerationFactory) Prepare(
 	}
 
 	apiRoutes, err := httptransport.NewRouteBinding(operationGate,
+		authhttp.HumaRegistration(generation.authModule.AuditHandler),
 		iamhttp.HumaRegistration(generation.iamModule.Handler),
 		todohttp.HumaRegistration(generation.module.Operations),
 		organizationhttp.HumaRegistration(generation.organizationModule.Operations),

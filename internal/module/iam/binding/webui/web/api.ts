@@ -30,3 +30,7 @@ export const rolePermissionsView=(id:string)=>requestJSON<RolePermissionsView>(`
 export const replaceRolePermissions=(id:string,expectedRoleVersion:number,permissionKeys:string[])=>requestJSON<AssignmentResult>(`/api/v1/iam/roles/${id}/permissions`,{method:"PUT",body:JSON.stringify({expectedRoleVersion,permissionKeys}),headers:mutationHeaders()});
 export const listPermissions=()=>requestJSON<Array<{key:string;ownerModuleId:string;descriptionMessageId:string}>>("/api/v1/iam/permissions");
 export const principalFromSession=(session:IAMSession):PrincipalView=>({id:session.identity.accountId,username:session.identity.username,scopes:[...session.identity.permissions]});
+export type SessionInfo={idHash:string;accountId:string;createdAt:string;lastSeenAt:string;idleExpiresAt:string;absoluteExpiresAt:string;revokedAt?:string};
+export type SessionListResult={items:SessionInfo[];offset:number;limit:number;total:number};
+export const listSessions=()=>requestJSON<SessionListResult>("/api/v1/iam/sessions?limit=100");
+export const revokeSessions=(idHashes:string[],accountId?:string)=>requestJSON<void>(`/api/v1/iam/sessions/revoke${accountId?`?accountId=${encodeURIComponent(accountId)}`:""}`,{method:"POST",body:JSON.stringify({idHashes}),headers:mutationHeaders()});

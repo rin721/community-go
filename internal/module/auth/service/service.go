@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/rin721/go-scaffold-template/internal/module/auth/model"
 	"github.com/rin721/go-scaffold-template/pkg/clock"
@@ -20,6 +21,42 @@ type CredentialVerifier interface {
 // AuditSink 是 Auth Service 使用方定义的低敏审计 port。
 type AuditSink interface {
 	Record(context.Context, model.AuditEvent) error
+}
+
+// AuditQueryFilter 是审计只读查询的可选低敏过滤条件；空字段表示不过滤。
+type AuditQueryFilter struct {
+	Operation  string
+	Outcome    string
+	ActorKind  string
+	SubjectHash string
+	Since      *time.Time
+	Until      *time.Time
+}
+
+// AuditEventView 是查询返回的低敏事件视图（不含原始 token/claims/对象内容）。
+type AuditEventView struct {
+	Operation    string
+	Action       model.Action
+	ActorKind    model.ActorKind
+	SubjectHash  string
+	ResourceType string
+	ResourceHash string
+	Decision     model.DecisionReason
+	Outcome      model.AuditOutcome
+	OccurredAt   time.Time
+}
+
+// AuditQueryResult 是分页审计查询结果。
+type AuditQueryResult struct {
+	Items         []AuditEventView
+	Offset, Limit int
+	Total         int64
+}
+
+// AuditReader 是 Auth module 对持久化审计的只读查询 port；由 composition
+// 注入 adapter/audit/storage Sink 实现。查询不提供删除/篡改入口。
+type AuditReader interface {
+	List(context.Context, AuditQueryFilter, int, int) (AuditQueryResult, error)
 }
 
 // AuthorizationRequest 是 Auth 交给 DecisionPoint 的最小判断输入；
@@ -56,6 +93,7 @@ type Service struct {
 	verifier      CredentialVerifier
 	development   *model.Principal
 	audit         AuditSink
+	auditReader   AuditReader
 	decisionPoint DecisionPoint
 	byOperation   map[string]model.Policy
 	byAction      map[model.Action]model.Policy
@@ -64,16 +102,25 @@ type Service struct {
 // New 构造不执行 I/O 的 Auth Service，并冻结 policy authority；
 // decisionPoint 是 iam-rbac 来源主体的必选依赖。
 func New(currentClock clock.Clock, verifier CredentialVerifier, development *model.Principal, audit AuditSink, decisionPoint DecisionPoint, policies []model.Policy) (*Service, error) {
-	return newService(currentClock, verifier, development, false, audit, decisionPoint, policies)
+	return newService(currentClock, verifier, development, false, audit, nil, decisionPoint, policies)
 }
 
 // NewLocal 构造只接受显式 CLI operator 的 Auth Service，不启用 HTTP 认证入口，
 // 也不需要 DecisionPoint（CLI operator 永远是 token-scopes 来源）。
 func NewLocal(currentClock clock.Clock, audit AuditSink, policies []model.Policy) (*Service, error) {
-	return newService(currentClock, nil, nil, true, audit, nil, policies)
+	return newService(currentClock, nil, nil, true, audit, nil, nil, policies)
 }
 
-func newService(currentClock clock.Clock, verifier CredentialVerifier, development *model.Principal, localOnly bool, audit AuditSink, decisionPoint DecisionPoint, policies []model.Policy) (*Service, error) {
+// WithAuditReader 注入持久化审计只读查询 port；被授权查询 operation 消费。
+func (s *Service) WithAuditReader(reader AuditReader) error {
+	if s == nil || reader == nil {
+		return fmt.Errorf("auth audit reader is nil")
+	}
+	s.auditReader = reader
+	return nil
+}
+
+func newService(currentClock clock.Clock, verifier CredentialVerifier, development *model.Principal, localOnly bool, audit AuditSink, auditReader AuditReader, decisionPoint DecisionPoint, policies []model.Policy) (*Service, error) {
 	if currentClock == nil || audit == nil {
 		return nil, fmt.Errorf("auth service dependencies are incomplete")
 	}
@@ -108,7 +155,7 @@ func newService(currentClock clock.Clock, verifier CredentialVerifier, developme
 	}
 	return &Service{
 		clock: currentClock, verifier: verifier, development: development, audit: audit,
-		decisionPoint: decisionPoint, byOperation: byOperation, byAction: byAction,
+		auditReader: auditReader, decisionPoint: decisionPoint, byOperation: byOperation, byAction: byAction,
 	}, nil
 }
 
@@ -279,6 +326,29 @@ func (s *Service) Record(ctx context.Context, event model.AuditEvent) error {
 		return fmt.Errorf("auth service is nil")
 	}
 	return s.audit.Record(ctx, event)
+}
+
+// ListAuditEvents 返回持久化审计的只读分页视图；reader 未注入时 fail closed，
+// 不返回空数据冒充当前状态。offset/limit 沿用 IAM 分页语义（非法输入返回错误）。
+func (s *Service) ListAuditEvents(ctx context.Context, filter AuditQueryFilter, offset, limit int) (AuditQueryResult, error) {
+	if s == nil || s.auditReader == nil {
+		return AuditQueryResult{}, fmt.Errorf("auth audit reader is unavailable")
+	}
+	offset, limit, err := normalizeAuditPage(offset, limit)
+	if err != nil {
+		return AuditQueryResult{}, err
+	}
+	return s.auditReader.List(ctx, filter, offset, limit)
+}
+
+func normalizeAuditPage(offset, limit int) (int, int, error) {
+	if offset < 0 || limit < 0 || limit > 100 {
+		return 0, 0, fmt.Errorf("auth audit pagination is invalid")
+	}
+	if limit == 0 {
+		limit = 20
+	}
+	return offset, limit, nil
 }
 
 // RecordAuthenticationFailure 记录不含 token、claims 或 raw path 的认证拒绝。

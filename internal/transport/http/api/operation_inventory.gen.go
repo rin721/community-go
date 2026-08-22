@@ -10,6 +10,7 @@ type Operation struct {
 }
 
 const (
+	OperationAuthAuditList                  OperationID = "auth.audit.list"
 	OperationCompleteTodo                   OperationID = "completeTodo"
 	OperationCreateTodo                     OperationID = "createTodo"
 	OperationGetTodo                        OperationID = "getTodo"
@@ -28,6 +29,8 @@ const (
 	OperationIamRolesPermissionsReplace     OperationID = "iam.roles.permissions.replace"
 	OperationIamSelfPasswordChange          OperationID = "iam.self.password.change"
 	OperationIamSessionRead                 OperationID = "iam.session.read"
+	OperationIamSessionsList                OperationID = "iam.sessions.list"
+	OperationIamSessionsRevoke              OperationID = "iam.sessions.revoke"
 	OperationIamSetup                       OperationID = "iam.setup"
 	OperationListTodos                      OperationID = "listTodos"
 	OperationNavigationMenusList            OperationID = "navigation.menus.list"
@@ -44,6 +47,7 @@ const (
 )
 
 var operationInventory = [...]Operation{
+	{ID: OperationAuthAuditList, Method: "GET", Path: "/api/v1/auth/audit", Policy: "protected", Scope: "auth:audit:read", Action: "list"},
 	{ID: OperationCompleteTodo, Method: "PATCH", Path: "/api/v1/todos/{id}/complete", Policy: "protected", Scope: "todos:write", Action: "todo.complete"},
 	{ID: OperationCreateTodo, Method: "POST", Path: "/api/v1/todos", Policy: "protected", Scope: "todos:write", Action: "todo.create"},
 	{ID: OperationGetTodo, Method: "GET", Path: "/api/v1/todos/{id}", Policy: "protected", Scope: "todos:read", Action: "todo.read"},
@@ -62,6 +66,8 @@ var operationInventory = [...]Operation{
 	{ID: OperationIamRolesPermissionsReplace, Method: "PUT", Path: "/api/v1/iam/roles/{id}/permissions", Policy: "protected", Scope: "iam:role:write", Action: "iam.roles.permissions.replace"},
 	{ID: OperationIamSelfPasswordChange, Method: "POST", Path: "/api/v1/iam/self/password", Policy: "protected", Scope: "iam:account:self:password:write", Action: "iam.self.password.change"},
 	{ID: OperationIamSessionRead, Method: "GET", Path: "/api/v1/iam/session", Policy: "protected", Scope: "iam:account:self:read", Action: "iam.session.read"},
+	{ID: OperationIamSessionsList, Method: "GET", Path: "/api/v1/iam/sessions", Policy: "protected", Scope: "iam:account:self:read", Action: "iam.sessions.list"},
+	{ID: OperationIamSessionsRevoke, Method: "POST", Path: "/api/v1/iam/sessions/revoke", Policy: "protected", Scope: "iam:account:write", Action: "iam.sessions.revoke"},
 	{ID: OperationIamSetup, Method: "POST", Path: "/api/v1/iam/setup", Policy: "public", Scope: "", Action: ""},
 	{ID: OperationListTodos, Method: "GET", Path: "/api/v1/todos", Policy: "protected", Scope: "todos:read", Action: "todo.list"},
 	{ID: OperationNavigationMenusList, Method: "GET", Path: "/api/v1/navigation/menus", Policy: "protected", Scope: "navigation:menu:read", Action: "navigation.menu.list"},

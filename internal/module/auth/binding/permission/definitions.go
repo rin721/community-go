@@ -10,5 +10,6 @@ import (
 func Definitions() []permissioncatalog.Definition {
 	return []permissioncatalog.Definition{
 		{Key: permissioncatalog.Key(authmodel.ScopeManagementRead), OwnerModuleID: "auth", DescriptionMessageID: "permission.auth.management.read"},
+		{Key: permissioncatalog.Key(authmodel.ScopeAuditRead), OwnerModuleID: "auth", DescriptionMessageID: "permission.auth.audit.read"},
 	}
 }

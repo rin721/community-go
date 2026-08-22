@@ -17,6 +17,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/getkin/kin-openapi/routers"
 	"github.com/go-chi/chi/v5"
+	"github.com/rin721/go-scaffold-template/internal/transport/http/humabinding"
 	"github.com/rin721/go-scaffold-template/pkg/httpx"
 	"github.com/rin721/go-scaffold-template/pkg/httpx/contract"
 )
@@ -49,7 +50,7 @@ type Dispatcher interface {
 }
 
 // NewRouteBinding 把完整契约、验证和 operation middleware 绑定为唯一业务路由树。
-func NewRouteBinding(dispatcher Dispatcher, gate OperationGate) (http.Handler, error) {
+func NewRouteBinding(dispatcher Dispatcher, gate OperationGate, humaRegistrations ...humabinding.Registration) (http.Handler, error) {
 	if dispatcher == nil {
 		return nil, fmt.Errorf("HTTP operation dispatcher is nil")
 	}
@@ -74,6 +75,13 @@ func NewRouteBinding(dispatcher Dispatcher, gate OperationGate) (http.Handler, e
 		})
 	})
 	router.Use(requireSingleJSONDocument)
+	humaAPI := newHumaAPI(router, gate)
+	for index, registration := range humaRegistrations {
+		if registration == nil {
+			return nil, fmt.Errorf("Huma registration %d is nil", index)
+		}
+		registration(humaAPI)
+	}
 
 	for _, operation := range dispatcher.Operations() {
 		handler, ok := dispatcher.Handler(operation.ID)

@@ -112,7 +112,7 @@ func TestPackageGraphRulesAcceptLegalFixtureAndRejectViolations(t *testing.T) {
 		{ImportPath: modulePath + "/internal/module/todo/repo", Imports: []string{modulePath + "/pkg/database"}},
 		{ImportPath: modulePath + "/internal/module/auth/adapter/jwt", Imports: []string{"github.com/lestrrat-go/jwx/v3/jwt"}},
 		{ImportPath: modulePath + "/internal/module/todo/binding/http", Imports: []string{
-			modulePath + "/internal/module/todo/service", modulePath + "/pkg/httpx", modulePath + "/pkg/httpx/contract",
+			modulePath + "/internal/module/todo/service", modulePath + "/pkg/httpx", modulePath + "/pkg/httpx/contract", "github.com/danielgtaylor/huma/v2",
 		}},
 		{ImportPath: modulePath + "/internal/transport/http", Imports: []string{
 			modulePath + "/pkg/httpx", modulePath + "/pkg/httpx/contract", modulePath + "/internal/transport/http/api",
@@ -134,6 +134,7 @@ func TestPackageGraphRulesAcceptLegalFixtureAndRejectViolations(t *testing.T) {
 		{{ImportPath: modulePath + "/internal/module/todo/binding/http", Imports: []string{modulePath + "/internal/module/auth/model"}}},
 		{{ImportPath: modulePath + "/internal/module/todo/binding/http", Imports: []string{"github.com/go-chi/chi/v5"}}},
 		{{ImportPath: modulePath + "/internal/module/todo/binding/http", Imports: []string{"github.com/oapi-codegen/nethttp-middleware"}}},
+		{{ImportPath: modulePath + "/internal/module/todo/binding/http", Imports: []string{"github.com/danielgtaylor/huma/v2/adapters/humachi"}}},
 		{{ImportPath: modulePath + "/internal/module/todo/handler", Imports: []string{modulePath + "/internal/module/todo/binding/http"}}},
 		{{ImportPath: modulePath + "/internal/module/todo/handler", Imports: []string{modulePath + "/internal/transport/http"}}},
 		{{ImportPath: modulePath + "/internal/module/todo/handler", Imports: []string{"github.com/go-chi/chi/v5"}}},
@@ -256,7 +257,8 @@ func validatePackageGraph(graph []packageNode) error {
 				return fmt.Errorf("package %s bypasses pkg/logger through %s", node.ImportPath, imported)
 			}
 			if sourceOwner, sourceIsModule := applicationModuleOwner(node.ImportPath); sourceIsModule &&
-				thirdPartyImport(imported) && !moduleAdapterPackage(node.ImportPath) {
+				thirdPartyImport(imported) && !moduleAdapterPackage(node.ImportPath) &&
+				!allowedModuleHTTPBindingImport(node.ImportPath, imported) {
 				return fmt.Errorf("application module %s package %s imports third-party package outside its adapter: %s", sourceOwner, node.ImportPath, imported)
 			}
 			if node.ImportPath == modulePath+"/internal/composition" && moduleAdapterPackage(imported) {
@@ -891,7 +893,12 @@ func moduleBindingImport(imported string) bool {
 func forbiddenModuleHTTPBindingImport(importPath string) bool {
 	return importPath == "github.com/go-chi/chi/v5" ||
 		strings.HasPrefix(importPath, "github.com/getkin/kin-openapi") ||
-		importPath == "github.com/oapi-codegen/nethttp-middleware"
+		importPath == "github.com/oapi-codegen/nethttp-middleware" ||
+		strings.HasPrefix(importPath, "github.com/danielgtaylor/huma/v2/adapters/")
+}
+
+func allowedModuleHTTPBindingImport(source, imported string) bool {
+	return moduleHTTPBindingPackage(source) && imported == "github.com/danielgtaylor/huma/v2"
 }
 
 func forbiddenModuleCoreImport(importPath string) bool {

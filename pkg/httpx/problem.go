@@ -29,6 +29,38 @@ type Problem struct {
 	Violations []Violation `json:"violations,omitempty"`
 }
 
+// ProtocolProblemError 让 typed HTTP binding 在不泄漏内部错误链的前提下返回项目 Problem。
+// 它只实现基于状态码的通用错误契约，不依赖具体 HTTP 框架。
+type ProtocolProblemError struct {
+	Problem
+	status int
+}
+
+// NewProtocolProblemError 从项目错误映射构造可序列化的协议错误。
+func NewProtocolProblemError(ctx context.Context, err error) *ProtocolProblemError {
+	request := (&http.Request{}).WithContext(ctx)
+	problem, _ := ProblemOf(request, err)
+	return &ProtocolProblemError{Problem: problem, status: problem.Status}
+}
+
+func (e *ProtocolProblemError) Error() string {
+	if e == nil {
+		return ""
+	}
+	return e.Problem.Title
+}
+
+// GetStatus 返回 HTTP 状态，供 typed binding 的通用 status error 协议识别。
+func (e *ProtocolProblemError) GetStatus() int {
+	if e == nil || e.status == 0 {
+		return http.StatusInternalServerError
+	}
+	return e.status
+}
+
+// ContentType 固定项目 Problem 的 RFC 9457 media type。
+func (e *ProtocolProblemError) ContentType(string) string { return problemContentType }
+
 type responseStateWriter struct {
 	http.ResponseWriter
 	status      int

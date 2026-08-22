@@ -143,11 +143,11 @@ model <- service <- repo
 2. Service 定义用例和自己需要的 Repository、跨模块、Clock、ID 等窄 port。
 3. 先用 fake port、固定时间和固定 ID 验证成功、冲突、依赖失败、取消与超时。
 4. 实现实际需要的数据库、缓存、远程协议或其他 Adapter，并验证第三方错误转换、exported 类型、配置和资源边界；只有跨业务复用与进程统一选择两项均有证据时才走完整底层 Capability 路径。
-5. 实现真实验收需要的 HTTP、CLI 或后台入口；HTTP 语义适配落在模块顶层 `handler/`（实现 `Operations`/`Handler`、DTO、错误呈现与 `ActorAccess`），`binding/http` 只声明代码优先契约（`pkg/httpx/contract.Module`）与 `RuntimeHandlers` 装箱；handler 不创建 Router、不加载 OpenAPI、不 import `binding/**` 或 `internal/transport/**`；不同入口复用同一 Service，不互相回环。
+5. 实现真实验收需要的 HTTP、CLI 或后台入口；HTTP 语义适配落在模块顶层 `handler/`（实现 `Operations`/`Handler`、DTO、错误呈现与 `ActorAccess`），`binding/http` 拥有 Huma typed input/output 与无资源 registration；handler 不创建 Router、不加载 OpenAPI、不 import `binding/**`、`internal/transport/**` 或 Huma；不同入口复用同一 Service，不互相回环。057 第一片期间仅 `login`、`listTodos`、`organization.departments.update` 已走该路径，其余 operation 仍由待删除的 `pkg/httpx/contract` 路径承载，不能据此新增旧式 DSL operation。
 6. `module.go` 只做无 I/O、无 goroutine、无资源探测的局部装配，并返回窄 Handler/Service 与完成品 contribution。
 7. `internal/composition` 显式选择模块、适配最小 Capability、连接跨模块 port、聚合模块基础契约与运行期 handler、合并 contribution 并建立 Host；`internal/tools/contract-gen` 从模块契约生成 `api/openapi.yaml` 与 operation inventory，`internal/transport/http` 只把完整契约绑定一次路由与校验。
 
-HTTP 的固定构造顺序是 `模块顶层 typed Handler + binding 契约/装箱 → composition 聚合 contract + 运行期 handler → transport 一次绑定契约校验、typed security 与路由 → application Router → Server`。每个 `contract.Module` 必须声明稳定 `ID`；dispatcher 校验 module/operation/handler 一一对应。`none`、`bearerAuth`、`webuiSession` 只描述认证 profile，Bearer header、Cookie、Origin 与 CSRF 细节由 Auth 来源或具体模块拥有，transport 不按 URL 前缀猜测。新增模块只增加自身 Handler、契约声明与显式 composition 连接，不复制 Router 或 OpenAPI。
+HTTP 的目标固定构造顺序是 `模块顶层 typed Handler + binding Huma registration → composition 显式聚合 → transport 统一安装 operation metadata、Problem、OperationGate 与 chi route → application Router → Server`。registration 必须能在没有数据库、缓存、网络客户端或业务 Service 的 build mode 下构造 OpenAPI；运行期依赖只允许被 handler closure 捕获。`none`、`bearerAuth`、`webuiSession` 只描述认证 profile，Bearer header、Cookie、Origin 与 CSRF 细节由 Auth 来源或具体模块拥有，transport 不按 URL 前缀猜测。057 第一片使用 `internal/transport/http/humabinding` 作为最小 registration 契约，并保留旧 dispatcher 仅承载未迁移 operation；`HTTP-057-002` 必须全量迁移并删除该临时双轨，新增模块不得复制 Router、OpenAPI 或继续扩展旧 DSL。
 
 ### 4.1 统一 binding 契约清单
 

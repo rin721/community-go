@@ -10,6 +10,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/danielgtaylor/huma/v2"
+	"github.com/danielgtaylor/huma/v2/adapters/humachi"
+	"github.com/go-chi/chi/v5"
 	passwordadapter "github.com/rin721/go-scaffold-template/internal/module/iam/adapter/password"
 	migrationbinding "github.com/rin721/go-scaffold-template/internal/module/iam/binding/migration"
 	iampermission "github.com/rin721/go-scaffold-template/internal/module/iam/binding/permission"
@@ -23,6 +26,33 @@ import (
 	"github.com/rin721/go-scaffold-template/pkg/httpx/contract"
 	"github.com/rin721/go-scaffold-template/pkg/idgen"
 )
+
+func TestHumaLoginSliceUsesTypedBodyAndSessionResponse(t *testing.T) {
+	iam, resource := testService(t)
+	defer resource.Close()
+	handler, err := NewHandler(iam, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	setupBody := []byte(`{"setupToken":"setup-secret","username":"owner","displayName":"Owner","password":"123456789012345"}`)
+	if response := serve(t, RuntimeHandlers(handler)[contract.OperationID("iam.setup")], http.MethodPost, "http://example.test/api/v1/iam/setup", setupBody, nil, ""); response.Code != http.StatusCreated {
+		t.Fatalf("setup status = %d body=%s", response.Code, response.Body.String())
+	}
+	router := chi.NewRouter()
+	config := huma.DefaultConfig("test", "1")
+	config.OpenAPIPath, config.DocsPath, config.SchemasPath = "", "", ""
+	api := humachi.New(router, config)
+	RegisterHumaSlice(api, handler)
+
+	request := httptest.NewRequest(http.MethodPost, "http://example.test/api/v1/iam/login", bytes.NewBufferString(`{"username":"owner","password":"123456789012345"}`))
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Origin", "http://example.test")
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+	if response.Code != http.StatusOK || response.Result().Cookies()[0].Name != service.SessionCookieName || !bytes.Contains(response.Body.Bytes(), []byte(`"csrfToken"`)) {
+		t.Fatalf("login response = %d headers=%#v body=%s", response.Code, response.Header(), response.Body.String())
+	}
+}
 
 func TestSessionBoundaryPaginationAndStableConflicts(t *testing.T) {
 	iam, resource := testService(t)

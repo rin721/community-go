@@ -4,7 +4,7 @@
 
 ## 权威与生成
 
-1. 每个业务模块分层声明自己的 HTTP 契约与 handler：普通业务模块由顶层 `internal/module/<name>/handler` 实现窄 `Operations`/`Handler`、DTO 映射、错误呈现与主体访问；`internal/module/<name>/binding/http` 以 `pkg/httpx/contract` 的 typed 类型声明 operation（method/path/operationId/policy/security 与 DTO schema）并提供 `RuntimeHandlers` 装箱。IAM 的 Cookie、Origin 与 CSRF 属于其 Session 协议边界，当前由 `internal/module/iam/binding/http` 在同一 typed operation 完成品内集中处理，不进入 Service，也不由宿主按 URL 特判。新增 HTTP 业务模块**除了在 `internal/composition` 装配**，还必须把其契约注册到 `internal/tools/contract-gen/main.go` 的 `registeredModules()`（build-time 生成器注册点、独立于运行图），否则 `go generate` 不会渲染该模块的 `api/openapi.yaml` 与 operation inventory。
+1. 每个业务模块分层声明自己的 HTTP 契约与 handler：普通业务模块由顶层 `internal/module/<name>/handler` 实现窄 `Operations`/`Handler`、DTO 映射、错误呈现与主体访问；`internal/module/<name>/binding/http` 拥有 Huma typed input/output 与无资源 registration。057 第一片已迁移 `login`、`listTodos`、`organization.departments.update`；现有生成器与其余 operation 暂时仍由 `pkg/httpx/contract` 驱动，以保持公开产物稳定。该过渡路径只允许持续到 `HTTP-057-002`，新增 operation 不得继续扩展旧 DSL。IAM 的 Cookie、Origin 与 CSRF 仍属于其 Session 协议边界，不进入 Service，也不由宿主按 URL 特判。
 2. 在仓库根目录执行：
 
    ```powershell
@@ -21,7 +21,7 @@
 
 ## 运行期绑定
 
-`internal/transport/http` 是唯一 route binding owner：它从聚合后的模块契约构建 OpenAPI 校验规范、一次绑定路由、执行 operation gate 与问题呈现。新增业务模块只扩展自身契约声明、runtime handlers 与 `internal/composition` 的聚合，不复制 Router、validator 或 method/path。
+`internal/transport/http` 是唯一 route binding owner：Huma 第一片由模块无资源 registration 生成 schema/校验并绑定 chi route，transport 统一执行 operation gate、Huma 校验错误到项目 Problem 的转换和问题呈现；旧 dispatcher 仅继续承载尚未迁移的 operation。`HTTP-057-002` 将全量切换同一 registration authority 并删除旧 dispatcher、重复 kin-openapi validation 与手工 codec/renderer。新增业务模块不复制 Router、validator 或 method/path。
 
 当前公开契约聚合 IAM、Organization、Navigation 与 Todo。Organization 拥有部门、岗位和账号组织分配 operation，使用 `organization:department:*` 与 `organization:position:*` 精确权限；组织关系只作为目录数据，不进入 Auth decision。Navigation 使用 `navigation:menu:read/write` 管理已注册菜单策略，修改请求使用 `webuiSession`、Origin 与 Session 绑定的 CSRF token；它不提供动态 Route 或第二套角色菜单授权。
 
@@ -30,4 +30,4 @@
 - 受保护 operation 的精确 scope 必须存在于 Permission Catalog；菜单隐藏不替代服务端授权。
 
 - 普通业务模块顶层 handler 使用模块自有 DTO（`internal/module/<name>/handler/dto.go`），不依赖全局生成包、不 import `binding/**` 或 `internal/transport/**`。需要直接拥有 Cookie/Header 协议状态的身份边界可以在模块 `binding/http` 内集中实现，但不得把该例外扩散到其他模块或下沉到 Service。
-- 底层第三方库（kin-openapi、yaml、jsonschema）只存在于 `pkg/httpx/contract` 内部与 transport/生成器，不泄漏到业务模块。
+- Huma 核心 typed API 只允许出现在模块 `binding/http` 与 transport 接入边界；Router adapter 只由 `internal/transport/http/humabinding` 拥有，Service、Model 与顶层 handler 不导入 Huma。过渡期的 kin-openapi、yaml、jsonschema 仍只存在于旧 contract、transport 与生成器。

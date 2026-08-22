@@ -25,13 +25,16 @@ import (
 	authconfig "github.com/rin721/go-scaffold-template/internal/module/auth/binding/config"
 	"github.com/rin721/go-scaffold-template/internal/module/iam"
 	iamconfig "github.com/rin721/go-scaffold-template/internal/module/iam/binding/config"
+	iamhttp "github.com/rin721/go-scaffold-template/internal/module/iam/binding/http"
 	"github.com/rin721/go-scaffold-template/internal/module/navigation"
 	"github.com/rin721/go-scaffold-template/internal/module/ops"
 	opsconfig "github.com/rin721/go-scaffold-template/internal/module/ops/binding/config"
 	opsmodel "github.com/rin721/go-scaffold-template/internal/module/ops/model"
 	"github.com/rin721/go-scaffold-template/internal/module/organization"
+	organizationhttp "github.com/rin721/go-scaffold-template/internal/module/organization/binding/http"
 	"github.com/rin721/go-scaffold-template/internal/module/todo"
 	configbinding "github.com/rin721/go-scaffold-template/internal/module/todo/binding/config"
+	todohttp "github.com/rin721/go-scaffold-template/internal/module/todo/binding/http"
 	httptransport "github.com/rin721/go-scaffold-template/internal/transport/http"
 	webuicontract "github.com/rin721/go-scaffold-template/internal/webui"
 	"github.com/rin721/go-scaffold-template/pkg/clock"
@@ -496,7 +499,11 @@ func (f *applicationGenerationFactory) Prepare(
 	if err != nil {
 		return abort(err)
 	}
-	apiRoutes, err := httptransport.NewRouteBinding(dispatcher, operationGate)
+	apiRoutes, err := httptransport.NewRouteBinding(dispatcher, operationGate,
+		iamhttp.HumaSlice(generation.iamModule.Handler),
+		todohttp.HumaSlice(generation.module.Operations),
+		organizationhttp.HumaSlice(generation.organizationModule.Operations),
+	)
 	if err != nil {
 		return abort(err)
 	}

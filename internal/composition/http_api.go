@@ -136,12 +136,34 @@ func newApplicationContractDispatcher(todoOperations todohandler.Operations, iam
 	if nilDependency(todoOperations) || iamModule.Handler == nil || nilDependency(organizationModule.Operations) || nilDependency(navigationModule.Operations) || nilDependency(mutationGuard) {
 		return nil, fmt.Errorf("application HTTP runtime dependencies are incomplete")
 	}
-	return newContractDispatcher(
+	dispatcher, err := newContractDispatcher(
 		runtimeHTTPModule{Contract: iamhttp.ModuleContract(), Handlers: iamhttp.RuntimeHandlers(iamModule.Handler)},
 		runtimeHTTPModule{Contract: organizationhttp.ModuleContract(), Handlers: organizationhttp.RuntimeHandlers(organizationModule.Operations)},
 		runtimeHTTPModule{Contract: navigationhttp.ModuleContract(), Handlers: navigationhttp.RuntimeHandlers(navigationModule.Operations, mutationGuard)},
 		runtimeHTTPModule{Contract: todohttp.ModuleContract(), Handlers: todohttp.RuntimeHandlers(todoOperations)},
 	)
+	if err != nil {
+		return nil, err
+	}
+	dispatcher.removeRuntimeOperations("login", "listTodos", "organization.departments.update")
+	return dispatcher, nil
+}
+
+// removeRuntimeOperations 仅用于 057 Huma 第一片；契约仍保留给当前静态 authority，
+// runtime route 则保证每个 method/path 只有一个实现。HTTP-057-002 会删除整个 Dispatcher。
+func (dispatcher *contractDispatcher) removeRuntimeOperations(operationIDs ...contract.OperationID) {
+	removed := make(map[contract.OperationID]struct{}, len(operationIDs))
+	for _, operationID := range operationIDs {
+		removed[operationID] = struct{}{}
+		delete(dispatcher.handlers, operationID)
+	}
+	operations := dispatcher.operations[:0]
+	for _, operation := range dispatcher.operations {
+		if _, exists := removed[operation.ID]; !exists {
+			operations = append(operations, operation)
+		}
+	}
+	dispatcher.operations = operations
 }
 
 func cloneHTTPModule(module contract.Module) contract.Module {

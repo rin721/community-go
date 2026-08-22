@@ -1,6 +1,7 @@
 package composition
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"net/http"
@@ -9,11 +10,25 @@ import (
 	"time"
 
 	authmodel "github.com/rin721/go-scaffold-template/internal/module/auth/model"
+	iamhttp "github.com/rin721/go-scaffold-template/internal/module/iam/binding/http"
+	organizationhttp "github.com/rin721/go-scaffold-template/internal/module/organization/binding/http"
 	todohttp "github.com/rin721/go-scaffold-template/internal/module/todo/binding/http"
 	todohandler "github.com/rin721/go-scaffold-template/internal/module/todo/handler"
 	httptransport "github.com/rin721/go-scaffold-template/internal/transport/http"
 	"github.com/rin721/go-scaffold-template/pkg/httpx/contract"
 )
+
+func TestApplicationHumaSliceBuildsWithoutRuntimeResources(t *testing.T) {
+	payload, err := httptransport.BuildHumaOpenAPI30(iamhttp.HumaSlice(nil), todohttp.HumaSlice(nil), organizationhttp.HumaSlice(nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, operationID := range [][]byte{[]byte("login"), []byte("listTodos"), []byte("organization.departments.update")} {
+		if !bytes.Contains(payload, operationID) {
+			t.Fatalf("generated Huma slice is missing %q", operationID)
+		}
+	}
+}
 
 func TestContractDispatcherAggregatesMultipleModulesDeterministically(t *testing.T) {
 	todoHandlers := todohttp.RuntimeHandlers(&todoOperationsStub{})

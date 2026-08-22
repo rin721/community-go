@@ -1,11 +1,33 @@
 package httpbinding
 
 import (
+	"bytes"
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
+	"github.com/danielgtaylor/huma/v2"
+	"github.com/danielgtaylor/huma/v2/adapters/humachi"
+	"github.com/go-chi/chi/v5"
 	organizationhandler "github.com/rin721/go-scaffold-template/internal/module/organization/handler"
 )
+
+func TestHumaUpdateDepartmentSliceBindsPathAndVersion(t *testing.T) {
+	operations := &capturingOperationStub{}
+	router := chi.NewRouter()
+	config := huma.DefaultConfig("test", "1")
+	config.OpenAPIPath, config.DocsPath, config.SchemasPath = "", "", ""
+	api := humachi.New(router, config)
+	RegisterHumaSlice(api, operations)
+	request := httptest.NewRequest(http.MethodPatch, "/api/v1/organization/departments/department-1", bytes.NewBufferString(`{"version":7,"name":"Research"}`))
+	request.Header.Set("Content-Type", "application/json")
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+	if response.Code != http.StatusOK || operations.updated.ID != "department-1" || operations.updated.Version != 7 || operations.updated.Name == nil || *operations.updated.Name != "Research" {
+		t.Fatalf("response=%d body=%s request=%#v", response.Code, response.Body.String(), operations.updated)
+	}
+}
 
 func TestContractAndRuntimeHandlersStayComplete(t *testing.T) {
 	module := ModuleContract()
@@ -24,6 +46,16 @@ func TestContractAndRuntimeHandlersStayComplete(t *testing.T) {
 }
 
 type operationStub struct{}
+
+type capturingOperationStub struct {
+	operationStub
+	updated organizationhandler.UpdateDepartmentRequest
+}
+
+func (stub *capturingOperationStub) UpdateDepartment(_ context.Context, request organizationhandler.UpdateDepartmentRequest) (organizationhandler.Department, error) {
+	stub.updated = request
+	return organizationhandler.Department{ID: request.ID, Version: request.Version}, nil
+}
 
 func (operationStub) ListDepartments(context.Context, organizationhandler.ListParams) (organizationhandler.DepartmentList, error) {
 	return organizationhandler.DepartmentList{}, nil

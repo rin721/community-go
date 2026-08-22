@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"reflect"
 	"time"
 )
 
@@ -51,4 +52,19 @@ type Resource interface {
 
 type sessionProvider interface {
 	databaseSession(context.Context) (any, error)
+}
+
+func isNilProvider(provider sessionProvider) bool { return isNilValue(provider) }
+
+func isNilValue(value any) bool {
+	if value == nil {
+		return true
+	}
+	reflected := reflect.ValueOf(value)
+	switch reflected.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
+		return reflected.IsNil()
+	default:
+		return false
+	}
 }

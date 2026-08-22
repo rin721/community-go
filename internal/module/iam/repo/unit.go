@@ -220,7 +220,7 @@ func (unit *Unit) TouchSession(ctx context.Context, hash, csrf []byte, lastSeen,
 		values["idle_expires_at"] = idle
 	}
 	if len(values) == 0 {
-		return database.ErrInvalidQuery
+		return database.ErrOperationFailed
 	}
 	return unit.update(ctx, sessionTable, "id_hash = ?", []any{hash}, values)
 }

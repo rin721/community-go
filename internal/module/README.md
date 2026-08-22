@@ -31,7 +31,7 @@ HTTP 模块遵循固定的代码优先源头与分层：模块顶层 `handler/` 
 
 新增业务能力先把真实存在的 Model、Repository、Service、Handler、Adapter、binding、配置、migration/运行单元与 contribution 完整收口到 `internal/module/<name>`，不为对称制造空层。只服务该模块的第三方通常进入完整路径 `internal/module/<name>/adapter/<technology>` 并完全封装技术影子；数据库 ORM 是明确例外，只能由模块 `repo` 在项目租约 callback 内使用，不能传播到业务核心或公共契约。不存在无 owner 的全局 `internal/module/adapter`。
 
-当前 Todo、Navigation、IAM 与 Organization 的数据库 Adapter 均采用 concrete record + direct GORM；旧 generic Schema/Repository 已无 production 调用方，禁止新模块引用。
+当前 Todo、Navigation、IAM 与 Organization 的数据库 Adapter 均采用 concrete record + direct GORM；旧 generic Schema/Query/Repository 已删除，新模块不得重建第二套通用仓储 DSL。
 
 只有能力评估同时证明资源跨业务复用且由进程统一选择，才进入完整 `pkg -> internal/kernel/app -> internal/kernel/composition` 链。只满足跨业务复用的普通库可以评估留在 `pkg`，但不自动获得 Kernel 组件；SDK、Client、cache、连接或 goroutine 本身都不是升级理由。
 

@@ -32,7 +32,7 @@
 | HTTP server/router | `net/http + chi v5.3.1`，项目拥有 server 生命周期与错误语义 | **保留** | `chi` 只承担路由；标准库承担 server/transport；项目边界继续拥有 Problem Details、超时和关闭语义 |
 | HTTP Client | `pkg/httpx` 在 `net/http` 上自研请求、响应和隐式 transport/429/5xx 重试；当前无 production Client 构造 | **保留标准库核心，退役无依据的通用重试**；基础 Client 应 one-shot，不替下游猜测非幂等与 `Retry-After` 语义 | `net/http` 为 transport；`otelhttp` 承担标准观测。未来真实下游 Adapter 按 operation/profile 明确幂等、status/transport 分类、`Retry-After` 上限、budget 与观测，再决定是否使用 backoff/v7；不恢复全局 retry 开关 |
 | HTTP 契约/OpenAPI | 原 `pkg/httpx/contract` 自研 typed DSL/renderer/codec 与重复 kin-openapi validation 已删除 | **采用 Huma v2，已全量迁移** | `Huma v2.39.1` 接管全部 31 个业务 operation 的 typed input/output、OpenAPI/JSON Schema、validation 与 chi registration；项目保留 OperationGate、Problem、operation/policy metadata、生成 inventory 和 server lifecycle。kin-openapi 仅作为 Huma 间接依赖；ogen 仅在未来改为 spec-first 时重评 |
-| ORM/Repository | `GORM v1.31.2` 活跃；Todo、Navigation、IAM 与 Organization 均已迁移 direct GORM，generic Schema/Repository 已无 production 调用方并进入删除批次；当前 production 查询没有 join/CTE/window | **保留 GORM resource/transaction，direct GORM concrete repo 替换自研 generic repository** | GORM 类型只在 technology-specific session bridge 与 module repo Adapter；业务仍依赖模块 port，migration SQL 仍是 authority。当前查询不足以抵消 GORM Gen/sqlc 的生成与三方言成本，出现 SQL-heavy 用例后按查询重评 |
+| ORM/Repository | `GORM v1.31.2` 活跃；Todo、Navigation、IAM 与 Organization 均使用 direct GORM；反射式 generic Schema/Query/Repository、dynamic model 与旧 fixture 已删除；当前 production 查询没有 join/CTE/window | **保留 GORM resource/transaction；module concrete repository 已完成单轨替换** | GORM 类型只在 technology-specific session bridge 与 module repo Adapter；业务仍依赖模块 port，migration SQL 仍是 authority。当前查询不足以抵消 GORM Gen/sqlc 的生成与三方言成本，出现 SQL-heavy 用例后按查询重评 |
 | Migration | 使用 `golang-migrate` 与模块自有 migration set | **保留** | `golang-migrate` 负责版本执行；模块拥有 SQL 与兼容语义，不使用 GORM AutoMigrate 替代发布 migration |
 | Cache | 默认 L1、`patrickmn/go-cache`、本地 tag/cleanup 状态已退役；typed Client 无资源且 production 暂无消费者，Redis 是唯一数据与 tag authority | **保留 Redis 与项目缓存语义**；只有 `ErrNotFound` 作为 miss，取消、disabled、backend 与 codec 错误向上返回 | `go-redis/v9` 继续只存在于 Adapter，项目保留 typed key/tag/错误边界。真实消费者给出命中率、内存和陈旧预算后，高并发/weight 场景优先 PoC `Otter v2`，简单 TTL/容量场景 PoC `ttlcache v3` |
 | JWT/JWK | Auth Adapter 使用最新 v3 线 `jwx/v3 v3.2.0`，显式治理 JWK 生命周期及 issuer/audience/algorithm；未知 key 并发刷新已全局合并，调用取消与刷新超时可识别 | **保留成熟 v3，安全强化已完成**；不为版本号把实验性构建约束扩散到全项目 | `jwx/v3` 继续拥有 JOSE/JWT/JWK 通用机制，项目 Adapter 拥有网络、claim、algorithm、取消、错误和 lifecycle；jsonv2 稳定或 v3 支持变化后再评 v4 + jwkfetch。真实 OIDC 用例出现时优先比较 `coreos/go-oidc/v3 + x/oauth2`，不自研 discovery/nonce/token 验证 |
@@ -77,7 +77,7 @@ HTTP 重试、熔断、限流、缓存加载和执行恢复都涉及不同的幂
 3. **策略层重构**：以 backoff/v7 收敛 Execution retry；HTTP Client 改为 one-shot；删除无消费者 breaker 和没有真实外部 primary 的恢复/异步状态机。未来下游 breaker 或组合策略按真实 failure domain 另立研究。
 4. **HTTP 单轨迁移**：先以代表性 operation 验证 Huma + OperationGate + Problem + static generation，再迁移全部模块并删除旧 contract/codec/kin-openapi validation。
 5. **浏览器安全与标准 instrumentation**：CORS 已以 rs/cors/CrossOriginProtection 单轨替换手工协议部分；Huma 全量迁移后已以 otelhttp 替换手工 HTTP span/propagation。
-6. **Data 单轨迁移**：建立受租约约束的 GORM session bridge，分 Todo/Navigation 与 IAM/Organization 两批迁移 concrete repository，最后删除 generic Schema/Query/Repository。
+6. **Data 单轨边界**：已建立受租约约束的 GORM session bridge，全部 module repo 使用 concrete record + direct GORM，generic Schema/Query/Repository 已删除；架构门禁拒绝 GORM 向业务核心传播和 production AutoMigrate。
 7. **架构切片**：在 Huma registration 形态冻结后引入启动期 `applicationBlueprint`，移出纯 catalog/policy/contract；runtime graph 继续由 Generation 原子切换。
 
 每一步都是非文档变更，必须使用 057 的明确任务 ID，在计划报告后的后续消息中获得确认；新事实改变依赖、公共接口、迁移或生命周期边界时重新研究和确认。

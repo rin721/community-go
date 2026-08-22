@@ -69,6 +69,35 @@ func TestProductionPackageGraphRespectsCompositionBoundaries(t *testing.T) {
 	}
 }
 
+func TestDatabaseUsesMigrationSQLAndConcreteRepositories(t *testing.T) {
+	root, err := filepath.Abs(filepath.Join("..", "..", ".."))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, removed := range []string{"repository.go", "schema.go", "query.go"} {
+		path := filepath.Join(root, "pkg", "database", removed)
+		if _, err := os.Stat(path); !errors.Is(err, os.ErrNotExist) {
+			t.Fatalf("removed generic database API still exists: %s", path)
+		}
+	}
+	err = filepath.WalkDir(root, func(path string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil || entry.IsDir() || filepath.Ext(path) != ".go" || strings.HasSuffix(path, "_test.go") {
+			return walkErr
+		}
+		source, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		if strings.Contains(string(source), ".AutoMigrate(") {
+			return fmt.Errorf("production source uses GORM AutoMigrate instead of module migration SQL: %s", path)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestAdminFoundationRulesRejectImplicitAggregation(t *testing.T) {
 	fixtures := []struct {
 		name    string

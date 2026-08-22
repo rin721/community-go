@@ -3,9 +3,12 @@ package database
 import (
 	"context"
 	"fmt"
+	"regexp"
 
 	"gorm.io/gorm"
 )
+
+var migrationTableIdentifier = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]{0,62}$`)
 
 // MigrationStatus 只读查询独立 migration command 拥有的版本表。
 func (c *gormClient) MigrationStatus(ctx context.Context, table string) (MigrationStatus, error) {
@@ -15,8 +18,8 @@ func (c *gormClient) MigrationStatus(ctx context.Context, table string) (Migrati
 	if err := validateContext(ctx); err != nil {
 		return MigrationStatus{}, err
 	}
-	if !validIdentifier(table) {
-		return MigrationStatus{}, fmt.Errorf("%w: invalid migration table %q", ErrInvalidQuery, table)
+	if !migrationTableIdentifier.MatchString(table) {
+		return MigrationStatus{}, fmt.Errorf("%w: invalid migration table %q", ErrInvalidIdentifier, table)
 	}
 	db := c.db.WithContext(ctx)
 	if !db.Migrator().HasTable(table) {

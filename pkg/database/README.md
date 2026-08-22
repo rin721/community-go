@@ -1,8 +1,6 @@
 # database
 
-`pkg/database` 为上层业务提供稳定的资源、租约、事务与错误能力。底层统一使用 GORM；GORM 类型只允许出现在本包的显式 session bridge 和模块 `repo` 数据库 Adapter，不能进入模块 Service、Model、port 或 composition 公共契约。
-
-当前处于 `DATA-057` 单轨迁移期：Todo、Navigation、IAM 与 Organization 均已使用 concrete record + direct GORM；旧 Schema/Repository 已无 production 调用方，下一批次会删除其实现、测试与下方过渡说明。本段只描述可验证的过渡状态，不表示允许新增旧式 Repository 调用方。
+`pkg/database` 为上层提供稳定的资源、租约、事务、migration status 与错误能力。底层统一使用 GORM；GORM 类型只允许出现在本包的显式 session bridge 和模块 `repo` 数据库 Adapter，不能进入模块 Service、Model、port 或 composition 公共契约。
 
 ## 怎么运行
 
@@ -14,7 +12,7 @@ database:
   dsn: .data/app.db
 ```
 
-`internal/kernel/app/database` 在构造代码中调用 `database.NewGORM`，因此运行时配置只能选择 `sqlite`、`postgres` 或 `mysql` Driver，不能切换 GORM/SQLX 等底层技术。SQLite 会自动创建目录和文件，并启用 foreign keys、5 秒 busy timeout 与 WAL；私有 `:memory:` 数据库固定使用一个连接，避免连接池切换后得到不同的内存库。
+`internal/kernel/app/database` 在构造代码中调用 `database.NewGORM`，因此运行时配置只能选择 `sqlite`、`postgres` 或 `mysql` Driver，不能切换 GORM/SQLX 等底层技术。SQLite 会自动创建目录和文件，并启用 foreign keys、5 秒 busy timeout 与 WAL；私有 `:memory:` 数据库固定使用一个连接。
 
 独立使用时，只有资源所有者负责关闭连接池：
 
@@ -29,42 +27,13 @@ defer resource.Close()
 if err := resource.Ping(ctx); err != nil {
 	return err
 }
-
-client := resource.Client()
 ```
 
-`NewGORM` 只创建并配置连接池，不执行网络探测；Kernel 在 candidate 已转交 owner 后由 Ready 执行唯一 Ping。`Resource.Close` 是一次 terminal attempt，重复调用返回第一次结果，不表示失败步骤可安全重试。
+`NewGORM` 只创建并配置连接池，不执行网络探测；Kernel 在 candidate 已转交 owner 后由 Ready 执行唯一 Ping。`Resource.Close` 是一次 terminal attempt，重复调用返回第一次结果，不表示失败步骤可安全重试。PostgreSQL 与 MySQL 应通过环境变量注入真实 DSN，不把凭据写入配置、源码或日志。
 
-PostgreSQL 与 MySQL 应通过环境变量注入真实 DSN，不把凭据写入配置、源码或日志。
+## 怎么实现模块 Repository
 
-## 怎么定义 Schema
-
-业务实体保持普通 Go 结构体，不写 GORM tag。Schema 用项目字段名显式映射数据库列：
-
-```go
-type Account struct {
-	ID      uint64
-	Name    string
-	Version uint64
-}
-
-schema := database.Schema{
-	Table: "accounts",
-	Fields: []database.Field{
-		{Name: "ID", Column: "id", Type: database.FieldUint64, PrimaryKey: true, AutoIncrement: true},
-		{Name: "Name", Column: "name", Type: database.FieldString, Length: 100},
-		{Name: "Version", Column: "version", Type: database.FieldUint64},
-	},
-	Indexes:      []database.Index{{Name: "idx_accounts_name", Fields: []string{"Name"}}},
-	VersionField: "Version",
-}
-```
-
-Schema 支持表、列、主键、nullable、长度、默认值、普通/唯一索引和单列外键关系。它只服务 Repository 的字段映射、查询校验与并发语义，不是 DDL authority。生产 schema 由业务模块拥有的 versioned SQL 与独立 `db migrate` command 变更；`pkg/database/migrate` 只提供通用执行 Adapter。
-
-## 怎么使用 Repository
-
-新代码在模块 `repo` 内通过 `UseGORM`/`UseGORMTx` callback 使用当前租约的 session，并用具体 record 表达持久化结构：
+模块 `repo` 定义具体持久化 Record，并通过 `UseGORM` callback 使用当前租约的 session：
 
 ```go
 err := access.Use(ctx, func(client database.Client) error {
@@ -74,52 +43,30 @@ err := access.Use(ctx, func(client database.Client) error {
 })
 ```
 
-callback 返回时 session context 会被取消，`*gorm.DB` 不得保存或向上层返回。`Client.WithinTx` 仍拥有提交/回滚，只有事务 callback 内可以使用 `UseGORMTx`。查询必须绑定参数，更新必须显式限制条件并检查 `RowsAffected`；业务错误在 module repo 边界转换。
+callback 返回时 session context 会被取消，`*gorm.DB` 不得保存或向上层返回。查询必须绑定参数；mutation 必须显式限制条件；乐观锁更新必须同时匹配 ID 与 Version、使用 `gorm.Expr("version + 1")` 原子递增，并在 `RowsAffected == 0` 时返回 `ErrOptimisticConflict`。`gorm.ErrRecordNotFound`、唯一键和外键错误由 session bridge 统一转为项目错误。
 
-以下 generic Repository 仅记录待删除实现，已无 production 调用方，禁止新增使用：
-
-```go
-accounts, err := database.NewRepository[Account](client, schema)
-if err != nil {
-	return err
-}
-
-created := Account{Name: "Rin"}
-if err := accounts.Create(ctx, &created); err != nil {
-	return err
-}
-
-account, err := accounts.First(ctx, database.Query{Filters: []database.Filter{
-	{Field: "ID", Operator: database.OpEqual, Value: created.ID},
-}})
-```
-
-`BaseRepository[T]` 提供 `Create`、`First`、`Find`、`Count`、`Update` 和 `SoftDelete`。Filter、Order 和 Changes 只接受 Schema 字段名，包内再校验字段和值类型并映射为列名；未知字段、非法值、运算符或排序方向会返回 `ErrInvalidQuery`。`Update` 和 `SoftDelete` 必须有 Filter，且不接受 Order/Page，防止意外全表或含糊修改。
-
-Create 会忽略调用方传入的自增字段值并接收数据库生成值。启用 `VersionField` 后，Create 会把版本统一初始化为 1；Update 必须携带该字段的等值 Filter，包内原子递增版本，零影响行返回 `ErrOptimisticConflict`。启用 `SoftDeleteField` 后，Create 会把该字段统一初始化为 nil，Repository 查询默认排除已经软删除的记录。两个字段均由 Repository 管理，Schema 不能再为其声明 Default、主键或自增语义。
+生产 schema 的唯一 authority 是业务模块拥有的 versioned SQL 与独立 `db migrate` command。禁止使用 AutoMigrate，也不再提供反射式 Schema、Query 或 generic Repository。
 
 ## 怎么使用事务
 
 ```go
-err := client.WithinTx(ctx, func(ctx context.Context, tx database.Tx) error {
-	txAccounts, err := accounts.WithTx(tx)
-	if err != nil {
-		return err
-	}
-	return txAccounts.Create(ctx, &Account{Name: "Lin"})
+err := access.WithinTx(ctx, func(ctx context.Context, _ database.Client, tx database.Tx) error {
+	return database.UseGORMTx(ctx, tx, func(db *gorm.DB) error {
+		return db.Table("accounts").Create(&record).Error
+	})
 })
 ```
 
-`Tx` 只是 Repository 重绑定令牌，不提供 Commit、Rollback 或第三方 session。回调返回 `nil` 时提交，返回错误时回滚；回调 panic 时先回滚再继续抛出原 panic。事务对象不得逃逸回调。
+`Tx` 不提供 Commit、Rollback 或连接池关闭权。回调返回 `nil` 时提交，返回错误时回滚；回调 panic 时先回滚再继续抛出原 panic。事务对象与 session 都不得逃逸 callback。
 
 ## Kernel 租约边界
 
-`Capabilities.Database` 是稳定 Access。`Access.Ping` 在资源租约内提供窄就绪检查，但不暴露连接池对象；上层在 `Use` 回调中取得不含 `Close` 的 Borrowed Client。`Access.WithinTx` 的回调同时取得当前租约内 Client 和 Tx，可在回调中创建 Repository 并重绑定事务。回调返回后，逃逸的 Client、Repository 和 Tx 都会返回 `ErrClientUnavailable`。Stats 和 Close 只由 Kernel 私有 Resource 使用，其动态对象不会通过 Access 暴露。
+`Capabilities.Database` 是稳定 Access。`Access.Ping` 在资源租约内提供窄就绪检查，但不暴露连接池对象；上层在 `Use` callback 中取得不含 `Close` 的 Borrowed Client。`Access.WithinTx` 的 callback 同时取得当前租约内 Client 和 Tx。callback 返回后，逃逸的 Client 和 Tx 返回 `ErrClientUnavailable`；逃逸的 GORM session context 已取消。Stats 和 Close 只由 Kernel 私有 Resource 使用。
 
 ## 错误语义
 
-调用方使用 `errors.Is` 判断 `ErrNotFound`、`ErrDuplicateKey`、`ErrForeignKeyViolation`、`ErrOptimisticConflict`、`ErrInvalidSchema`、`ErrInvalidQuery`、`ErrUnsafeMutation`、`ErrClientUnavailable`、`ErrNilClientFunc` 和 `ErrNilTransactionFunc`。底层驱动错误只保留 `errors.Is` 可识别性，不提供可展开的原始错误文本，避免 DSN、密码或 Token 通过错误链泄漏。
+调用方使用 `errors.Is` 判断 `ErrNotFound`、`ErrDuplicateKey`、`ErrForeignKeyViolation`、`ErrOptimisticConflict`、`ErrInvalidIdentifier`、`ErrClientUnavailable`、`ErrNilClientFunc` 和 `ErrNilTransactionFunc`。底层驱动错误只保留稳定分类，不提供可展开的原始错误文本，避免 DSN、密码或 Token 通过错误链泄漏。
 
 ## 当前非目标
 
-不提供向 Service/Model/port 传播的 GORM session、破坏性/版本化迁移、读写分离、分库分表或多租户。确有业务需要时，应在 module repo Adapter 内评估并重新确认边界，不能让业务核心直接依赖 GORM。
+不提供向 Service/Model/port 传播的 GORM session、AutoMigrate、破坏性 migration、读写分离、分库分表或多租户。确有业务需要时，应在 module repo Adapter 内评估并重新确认边界，不能让业务核心直接依赖 GORM。

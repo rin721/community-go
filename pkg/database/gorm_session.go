@@ -52,7 +52,7 @@ func translateSessionError(err error) error {
 	if err == nil {
 		return nil
 	}
-	for _, known := range []error{context.Canceled, context.DeadlineExceeded, ErrNilContext, ErrClientUnavailable, ErrNotFound, ErrDuplicateKey, ErrForeignKeyViolation, ErrOptimisticConflict, ErrUnsafeMutation, ErrOperationFailed} {
+	for _, known := range []error{context.Canceled, context.DeadlineExceeded, ErrNilContext, ErrClientUnavailable, ErrNotFound, ErrDuplicateKey, ErrForeignKeyViolation, ErrOptimisticConflict, ErrInvalidIdentifier, ErrOperationFailed} {
 		if errors.Is(err, known) {
 			return err
 		}

@@ -5,7 +5,7 @@
 - 研究门禁：**已通过**。
 - 纯文档实施：**已完成，按纯文档例外直接验证并提交**。
 - 整体方案：**已通过完成性审计**。R001–R013 已覆盖全部当前能力、剩余技术选择和 owner/reload 承载架构；R012/R013 补齐了原计划遗漏的浏览器安全与标准 HTTP instrumentation，实施任务、依赖和停止条件已冻结。
-- 非文档实施：**剩余整体计划已确认并进入实施**；Batch A 至 `DATA-057-002` 的已排期任务均已完成，旧 generic database API 删除与静态 Blueprint 仍按冻结依赖顺序推进。
+- 非文档实施：**剩余整体计划已确认并进入实施**；Batch A 至 `DATA-057-003` 的已排期任务均已完成，静态 Blueprint 与最终审计仍按冻结依赖顺序推进。
 
 ## 范围
 
@@ -44,7 +44,7 @@
 - `RESIL-057-001` 已完成上述单轨收敛：Execution 公开策略不暴露第三方类型，区分不可重试、caller cancellation/deadline 与 attempts exhausted；HTTP Client 对 status/transport failure 均只发送一次；memory Store 同步记录且不再启动推测性 lifecycle。
 - 配置流水线保留：不引入 koanf/Viper。当前 YAML、mapstructure、fsnotify 已占据成熟通用接缝，项目继续拥有重复/形状冲突、稳定文件、provenance/digest、binding owner 与候选事务。
 - HTTP 契约已采用 Huma v2：它只接管 typed binding、OpenAPI/JSON Schema、validation 和 route registration；chi、OperationGate、项目 Problem、module operation/policy ownership 与 server lifecycle 保持项目 authority。自研 contract/codec、dispatcher 和重复 kin-openapi request-validation 路径已删除。
-- Data 保留 GORM 连接/事务/错误/租约，拒绝当前无收益的 GORM Gen/sqlc；以 module repo Adapter 内 concrete record + direct GORM 单轨退役反射式 BaseRepository/Schema/Query，业务 port 和 migration SQL 不变。
+- Data 保留 GORM 连接/事务/错误/租约，拒绝当前无收益的 GORM Gen/sqlc；全部 module repo 已使用 concrete record + direct GORM，反射式 BaseRepository/Schema/Query 已删除，业务 port 和 migration SQL 不变。
 - 浏览器安全采用 `rs/cors v1.11.1` 处理标准 CORS header/Vary/preflight，并用 Go `CrossOriginProtection` 加固 unsafe cross-site 请求；项目保留 default-deny/Problem 与 IAM Session CSRF token。显式三项安全头继续保留，不引入无法决定 HSTS/CSP 部署策略的 `unrolled/secure`。
 - HTTP Observability 采用官方 `otelhttp v0.70.0` 并对齐 OTel v1.45.0，删除手工 TraceContext/server span/status instrumentation；Generation lease、低基数 operation、项目 Prometheus、trace ID bridge 与 exporter lifecycle 保持项目边界。
 - 模块自有 Repository port、permission key、migration SQL 和 operation 语义具有项目特有价值；通用算法和框架机制不应继续默认自研。

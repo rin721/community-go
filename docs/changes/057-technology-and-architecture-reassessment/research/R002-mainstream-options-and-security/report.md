@@ -94,5 +94,7 @@ R002 的候选资格不是最终采用结论，后续专项已完成当前任务
 - [R009](../R009-http-contract-framework-fit/report.md)：选择 Huma v2，按代表性第一片后全量单轨迁移；
 - [R010](../R010-data-repository-and-orm-boundary/report.md)：选择 direct GORM concrete repository，当前拒绝 GORM Gen/sqlc；
 - [R011](../R011-owner-reload-and-static-blueprint/report.md)：冻结 `applicationBlueprint` 首片，Generation 保留运行态事务。
+- [R012](../R012-browser-http-security-boundary/report.md)：选择 rs/cors + Go CrossOriginProtection，保留项目 fail-closed/IAM CSRF，拒绝无收益的 security-header wrapper；
+- [R013](../R013-http-observability-instrumentation/report.md)：选择官方 otelhttp，保留项目 Telemetry lease、低基数 operation、Prometheus 与 exporter lifecycle。
 
-因此本报告早期“必须经真实用例 PoC 才能成为实施结论”的概括，已由 R008–R011 的代码级专项研究收窄。HTTP 仍以可撤回的 production first slice 验证协议细节，但技术选择和目标删除范围不再留到实施期临时决定。
+因此本报告早期“必须经真实用例 PoC 才能成为实施结论”的概括，已由 R008–R013 的代码级专项研究收窄。HTTP 仍以可撤回的 production first slice 验证协议细节，但技术选择和目标删除范围不再留到实施期临时决定。

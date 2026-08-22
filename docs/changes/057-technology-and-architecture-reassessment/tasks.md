@@ -3,8 +3,27 @@
 ## 当前状态
 
 - 研究门禁：已通过。
-- 文档与整体方案任务：已完成，R001–R011 已收敛全部当前选型、owner/reload 矩阵、实施依赖和停止条件，适用纯文档直接实施例外。
+- 文档与整体方案任务：已通过完成性审计，R001–R013 已收敛全部当前选型、owner/reload 矩阵、实施依赖和停止条件，适用纯文档直接实施例外。
 - 非文档任务：用户已于 2026-08-22 明确确认并完成 Batch A（`SEC-057-001`）及修订后的 `CACHE-057-001`、`AUTHN-057-001`、`RESIL-057-001`；其余任务仍待确认。
+
+## 原始目标逐能力闭环
+
+| 能力 | 研究/证据 | 最终决策 | 实施任务 |
+| --- | --- | --- | --- |
+| Cache | R001/R003 | Redis authority 保留，退役无收益 L1/go-cache | `CACHE-057-001` 已完成 |
+| Logging | R001/R002 | 保留 zap + 项目窄 Logger/lifecycle；不为版本迁 slog | 无新增任务 |
+| HTTP Client / resilience | R001/R007 | net/http one-shot；Execution 用 backoff/v7；无真实 failure domain 不引入 breaker | `RESIL-057-001` 已完成 |
+| HTTP contract/OpenAPI | R001/R002/R009 | Huma v2 接管 typed binding/schema/validation；保留 chi、Problem、OperationGate | `HTTP-057-001/002` |
+| ORM/Repository/Migration | R001/R002/R010 | 保留 GORM resource/transaction 与 golang-migrate；direct GORM concrete repo 退役 generic reflection | `DATA-057-001/002/003` |
+| Authentication/credential | R006 | 保留 jwx/v3、x/crypto/argon2；项目拥有受限 PHC、cancel、NeedsRehash | `AUTHN-057-001` 已完成 |
+| Permission/AuthZ | R001/R002 | 当前 Core RBAC 有真实业务语义且规模简单，保留项目 catalog/port；无 ABAC/ReBAC 不引入 Casbin/OpenFGA | 无新增任务 |
+| Browser security | R002/R006/R012 | rs/cors + CrossOriginProtection 复用标准机制；保留 fail-closed Problem 与 IAM CSRF token；拒绝 secure wrapper | `SEC-057-002` |
+| Rate limit/overload | R005 | x/time/rate 替换 token bucket；保留简单 channel 503 与 generation-local policy | `LIMIT-057-001` |
+| Serialization | R004 | 标准 JSON；官方稳定 YAML v3；删除无消费者 Codec；cache MessagePack 私有 | `SERDE-057-001` |
+| Configuration | R008 | 保留 strict candidate/binding/stable-file；不引入无净删除的 koanf/Viper | `CONFIG-057-001` 文档完成 |
+| Scheduling/Messaging | R001/R002 | 保留 gocron trigger、amqp091-go Adapter 与项目 execution/lease/lifecycle；无 durable workflow/Kafka/NATS 需求不预选 | 无新增任务 |
+| Observability | R001/R013 | otelhttp 接管标准 HTTP instrumentation；保留 OTel/Prometheus resource、低基数与 diagnostics owner | `OBS-057-001` |
+| 承载架构 | R001/R011 | Generation 保留运行态事务；纯 catalog/policy/contract 提升为启动期 Blueprint | `ARCH-057-001` 文档完成、`ARCH-057-002` 待实施 |
 
 ## 任务清单
 
@@ -13,16 +32,18 @@
 | RES-057-001 | 文档 | 审计当前能力、依赖、调用方与承载架构 | 无 | 已完成 | R001 可复核，事实/推断/目标分离 |
 | RES-057-002 | 文档 | 以官方来源核验成熟候选、维护与安全状态 | RES-057-001 | 已完成 | R002 有版本日期、适用边界、局限和刷新触发器 |
 | DOC-057-001 | 文档 | 更新 AGENTS、研究规范、模块指南、pkg/architecture authority 和导航 | RES-057-001, RES-057-002 | 已完成 | 技术决策基线单一可发现，文档门禁通过 |
-| PLAN-057-001 | 文档 | 落实剩余整体技术选择、owner/reload 矩阵和完整实施依赖 | R008-R011 | 已完成 | Config/HTTP/Data/Architecture 有明确采用或拒绝、接入边界、任务拆分、停止条件和统一确认入口 |
+| PLAN-057-001 | 文档 | 落实剩余整体技术选择、owner/reload 矩阵和完整实施依赖 | R008-R013 | 已完成 | Config/HTTP/Data/Security/Observability/Architecture 有明确采用或拒绝、接入边界、任务拆分、停止条件和统一确认入口 |
 | SEC-057-001 | A | 升级 kin-openapi 并重建 Go 1.26 漏洞扫描证据 | 用户确认 Batch A | 已完成 | v0.147.0、生成/请求负向测试、全仓 govulncheck 和旧版本残留搜索通过 |
 | CACHE-057-001 | B | 单轨退役默认 L1 与 go-cache，收紧 Redis typed cache 的 miss/error 语义 | 用户于 2026-08-22 确认修订后的该任务 | 已完成 | 删除本地状态/goroutine/专属配置和 go-cache；Redis typed cache/tag/disabled/cancel/error 语义测试通过；不新增 L1 依赖 |
 | SERDE-057-001 | B | 迁移官方稳定 YAML v3 路径并退役无消费者 Codec | 用户确认修订后的该任务 | 待确认 | project direct import 使用 go.yaml.in/yaml/v3 v3.0.5；删除 gopkg direct requirement 与 pkg/codec；config/i18n/OpenAPI/docs fixture 和完整门禁通过；不直引 v4 RC |
 | LIMIT-057-001 | B | 用 x/time/rate 替换通用 token bucket，修正入口保护配置语义 | 用户确认修订后的该任务 | 待确认 | x/time/rate v0.15.0 隐藏在项目薄边界；删除自研 refill/lock；增加 local/disabled 严格模式；保留 generation-local 与 channel 503；mode/burst/refill/concurrency/CORS/management/reload、完整 Go 与漏洞门禁通过；不增加主体或分布式 quota |
+| SEC-057-002 | B | 用 rs/cors + CrossOriginProtection 收敛浏览器跨域/跨站机制 | R012、用户确认整体剩余计划 | 待确认 | exact/default-deny/Problem/handler-not-called 保留；标准 Vary/preflight 由库处理；IAM Origin+Session+CSRF 不退化；删除手工 header/string-set；不新增 wildcard/credentials/PNA |
 | AUTHN-057-001 | B | 保留 jwx/v3 与 x/crypto/argon2，补 JWT 取消/负向矩阵和受限 PHC/NeedsRehash/渐进重哈希 | 用户于 2026-08-22 确认修订后的该任务 | 已完成 | 第三方类型不泄漏；取消原因保留；敌对 PHC 在 Argon2 前拒绝；登录事务重哈希与完整安全门禁通过；不引入 jwx/v4、OIDC 或小众 Wrapper |
 | RESIL-057-001 | C | 以 backoff/v7 收敛 Execution retry，并退役无依据的 HTTP/recovery/breaker 状态 | 用户于 2026-08-22 确认修订后的该任务 | 已完成 | backoff/v7 隐藏在 Execution 内部；profile 明确 attempts/jitter/attempt+total budget；HTTP one-shot；删除 pkg/resilience、RecoveringStore、AsyncRecorder 及旧配置/API；Todo/Schedule/Messaging 语义和完整门禁通过 |
 | CONFIG-057-001 | 文档 | 比较 koanf/Viper 与当前配置流水线并形成采用/拒绝结论 | R008 | 已完成 | 结论为不引入；保留 strict candidate、stable file、owner/reload，明确未来远程 provider 刷新条件 |
 | HTTP-057-001 | D | 引入 Huma v2 并完成代表性 operation 第一片 | R009、SERDE-057-001、用户确认整体剩余计划 | 待确认 | Huma 只进 binding；public body、protected list、version mutation、Problem 可运行；静态生成无资源；OperationGate fail-closed；依赖/安全/生成门禁通过；失败则完整撤回 |
 | HTTP-057-002 | D | 全量迁移 HTTP operation 并删除旧 contract/binding 路径 | HTTP-057-001 门禁通过 | 待确认 | IAM/Organization/Navigation/Todo 全迁移；删除 pkg/httpx/contract、dispatcher、手工 codec/renderer 与重复 validation；无 direct consumer 时删除 kin-openapi；Service/Model 无 Huma 类型 |
+| OBS-057-001 | D | 用官方 otelhttp 替换手工 HTTP instrumentation 并对齐 OTel v1.45 | HTTP-057-002、R013 | 待确认 | 单一 server span；TraceContext/semconv/status 由 otelhttp；lease/operation/Prometheus/trace ID/processor lifecycle 保留；secret path/query 不泄漏；modules/race/vuln 门禁通过 |
 | DATA-057-001 | E | 建立 GORM session bridge，迁移 Todo 与 Navigation concrete repository | R010、用户确认整体剩余计划 | 待确认 | session 不可逃逸 Borrow/Tx lifetime；CRUD/page/order/not-found/version conflict 三方言 contract 通过；业务 port 不变 |
 | DATA-057-002 | E | 迁移 IAM 与 Organization concrete repository/Unit | DATA-057-001 | 待确认 | multi-repository transaction、unique/FK、session revoke、catalog reconcile、optimistic update 与三方言通过；migration 不改写 |
 | DATA-057-003 | E | 删除反射式 generic Repository/Schema/Query | DATA-057-002 | 待确认 | 删除 BaseRepository、Schema/Field/Index/Reference、Query/Filter/Order/Page/Changes、dynamic model 及旧测试；无 AutoMigrate/兼容层/GORM 业务泄漏 |
@@ -34,11 +55,12 @@
 
 本次整体方案已冻结，不再要求用户逐项替 Agent 决定技术选型。后续一次明确确认“实施 057 剩余整体计划”即可启动，但执行仍按依赖拆分为可验证提交：
 
-1. `SERDE-057-001`，完成 Huma 前置 YAML 稳定路径；`LIMIT-057-001` 与其无代码依赖，可在同阶段独立完成。
+1. `SERDE-057-001`，完成 Huma 前置 YAML 稳定路径；`LIMIT-057-001` 与 `SEC-057-002` 可在同阶段独立完成。
 2. `HTTP-057-001` 第一片。只有第一片全部门禁通过才进入 `HTTP-057-002`；失败是材料变化，停止并重新报告。
-3. `DATA-057-001` -> `DATA-057-002` -> `DATA-057-003`，每一步必须保持 production 单轨可用，不提交长期新旧双轨。
-4. `ARCH-057-002` 在 Huma registration 形态冻结后实施；为减少返工，默认排在 `HTTP-057-002` 后。
-5. `VER-057-001` 不是最后补测，而是附着在每个实施任务的定向、全量、race/vet、生成、文档和漏洞门禁。
+3. `OBS-057-001` 在 Huma 全量迁移后接入稳定 operation/inventory，避免适配旧 DSL 两次。
+4. `DATA-057-001` -> `DATA-057-002` -> `DATA-057-003`，每一步必须保持 production 单轨可用，不提交长期新旧双轨。
+5. `ARCH-057-002` 在 Huma registration 形态冻结后实施；为减少返工，默认排在 `HTTP-057-002` 后。
+6. `VER-057-001` 不是最后补测，而是附着在每个实施任务的定向、全量、race/vet、生成、文档和漏洞门禁。
 
 HTTP 第一片失败、Data 边界泄漏或 Blueprint 无净删除时，不以“技术细节由 Agent 决定”为由越过重新确认门禁。
 
@@ -59,7 +81,9 @@ HTTP 第一片失败、Data 边界泄漏或 Blueprint 无净删除时，不以�
 | 2026-08-22 | HTTP/R009 | Huma v2.39.1 与 ogen v1.24.0 官方源码、release、license、Go 版本与 OSV 核验完成；选择 Huma 分片后单轨迁移 |
 | 2026-08-22 | DATA/R010 | GORM Gen v0.3.28、sqlc v1.31.1 与全部真实 repo 查询核验完成；当前无复杂 join，选择 direct GORM concrete repo |
 | 2026-08-22 | ARCH/R011 | 完整 Generation 调用链与 section reload 测试复核；owner/reload 矩阵和 `applicationBlueprint` 首片冻结 |
-| 2026-08-22 | PLAN-057-001 文档门禁 | `Verify-Docs.ps1` 与 `git diff --check` 通过；本轮无源码、依赖、配置、进程、数据库或外部系统变更 |
+| 2026-08-22 | Security/R012 | rs/cors v1.11.1、unrolled/secure v1.17.0、Go CrossOriginProtection、版本特定 OSV 与当前 IAM/CORS 语义复核；选择 rs/cors + stdlib，保留 IAM token，拒绝 secure wrapper |
+| 2026-08-22 | Observability/R013 | otelhttp v0.70.0、OTel v1.45.0、版本特定 OSV 与当前 Telemetry lease/inventory/Prometheus 路径复核；选择官方 HTTP instrumentation |
+| 2026-08-22 | PLAN-057-001 文档门禁 | 修订后执行 `Verify-Docs.ps1` 与 `git diff --check`；本轮无源码、依赖、配置、进程、数据库或外部系统变更 |
 
 ## 本轮验证证据
 

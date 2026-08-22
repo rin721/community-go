@@ -28,7 +28,9 @@
 | [R009](R009-http-contract-framework-fit/report.md) | HTTP 契约框架与 Huma 适配性 | active | 选择 Huma v2 替换自研 contract/binding 通用机制；保留 chi、OperationGate、Problem 和模块 operation ownership |
 | [R010](R010-data-repository-and-orm-boundary/report.md) | 数据 Repository 与 ORM 边界 | active | 保留 GORM 资源/事务；direct GORM concrete repo 单轨替换反射式 BaseRepository，当前拒绝 Gen/sqlc |
 | [R011](R011-owner-reload-and-static-blueprint/report.md) | Owner/reload 与静态 Blueprint | active | Generation 保留运行态事务；纯 catalog/contract/policy 提升到启动期 applicationBlueprint |
+| [R012](R012-browser-http-security-boundary/report.md) | 浏览器 HTTP 安全边界与成熟中间件 | active | rs/cors + CrossOriginProtection 承担标准机制；项目保留 fail-closed policy、Problem 与 IAM CSRF token；拒绝无收益 secure wrapper |
+| [R013](R013-http-observability-instrumentation/report.md) | HTTP OpenTelemetry 标准 instrumentation | active | 官方 otelhttp 替换手工 propagation/span/status；项目保留 lease、低基数 operation、Prometheus 和 exporter lifecycle |
 
 ## 研究门禁
 
-关键问题已有可复核证据，事实、推断和目标设计已分离；SEC-057-001 已完成当前工具链漏洞扫描。Config、HTTP、Data 与 owner/reload 的剩余专项已经收敛为明确采用、拒绝和架构切片结论，057 的整体实施依赖与验收门禁不再留给实施期临时选型。研究门禁通过；尚未完成的非文档任务仍须在本次整体计划报告之后获得确认。
+关键问题已有可复核证据，事实、推断和目标设计已分离；SEC-057-001 已完成当前工具链漏洞扫描。Config、HTTP、Data、浏览器安全、HTTP Observability 与 owner/reload 的剩余专项已经收敛为明确采用、拒绝和架构切片结论，057 的整体实施依赖与验收门禁不再留给实施期临时选型。研究门禁通过；尚未完成的非文档任务仍须在本次修订后整体计划报告之后获得确认。

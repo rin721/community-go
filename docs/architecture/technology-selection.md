@@ -38,14 +38,14 @@
 | JWT/JWK | Auth Adapter 使用最新 v3 线 `jwx/v3 v3.2.0`，显式治理 JWK 生命周期及 issuer/audience/algorithm；未知 key 并发刷新已全局合并，调用取消与刷新超时可识别 | **保留成熟 v3，安全强化已完成**；不为版本号把实验性构建约束扩散到全项目 | `jwx/v3` 继续拥有 JOSE/JWT/JWK 通用机制，项目 Adapter 拥有网络、claim、algorithm、取消、错误和 lifecycle；jsonv2 稳定或 v3 支持变化后再评 v4 + jwkfetch。真实 OIDC 用例出现时优先比较 `coreos/go-oidc/v3 + x/oauth2`，不自研 discovery/nonce/token 验证 |
 | Password | IAM Adapter 使用 Go 官方 `x/crypto/argon2`；PHC 现已按编码参数校验，并在 Argon2 前限制版本、格式和资源预算 | **保留成熟密码学实现，演进边界已补齐**；不引入不能消除资源边界的小众 Wrapper | `x/crypto/argon2` 拥有 Argon2id；项目只拥有严格且有资源上限的 PHC 格式、目标 policy、verification result、恒时比较编排与成功登录事务内渐进重哈希，不自行实现密码学算法 |
 | Permission/AuthZ | code-defined permission catalog + IAM 数据库存储 Core RBAC；当前没有租户、资源关系或 ABAC | **保留当前简单模型** | 出现 domain RBAC/ABAC 时比较 `Casbin v3`；出现跨资源 ReBAC/集中决策时比较 `OpenFGA`；没有真实语义前不引入外部 policy engine |
-| CORS/安全头/CSRF | CORS、安全头和 Same-Origin/CSRF 为项目中间件；当前安全头只覆盖三个基础 header | **专项复核，不机械全换** | CORS 比较 `rs/cors`；安全头比较 `unrolled/secure` 与项目显式 policy；依据 API 与 WebUI 交付方式补齐 HSTS/CSP/COOP 等部署语义，CSRF 继续由 IAM session 边界拥有 |
+| CORS/安全头/CSRF | 手工 CORS 同时承担 header/Vary/preflight 与 fail-closed policy；IAM 另有严格 Origin + Session CSRF token；安全头是三项显式静态 policy | **采用 rs/cors + 标准库 CrossOriginProtection；保留项目 policy/IAM CSRF；拒绝 unrolled/secure** | `rs/cors v1.11.1` 负责标准 header/Vary/preflight，`http.CrossOriginProtection` 加固 unsafe cross-site；项目 wrapper 保留 exact allowlist、handler-not-called 与 Problem。IAM token 不被替代。HSTS/CSP/COOP 需 TLS/asset authority，不在当前 API 默认猜测 |
 | 限流/过载 | 单进程 token bucket 自研 mutex/refill；0/0 实际回落 100/200 默认值；并发门禁是非阻塞 channel；两者随 Application Generation 重建 | **替换 token bucket，保留简单过载实现并修正配置语义** | `golang.org/x/time/rate v0.15.0` 隐藏在 `pkg/httpx` 薄边界并使用 fail-fast Allow；增加 `local/disabled` 严格模式。保留 channel 503，保持 generation-local；默认值只是待负载校准的 scaffold 起点。主体或分布式 quota 另立网关/共享计数研究 |
 | 重试/熔断 | Execution 已以项目自有 policy 隔离 `backoff/v7 v7.0.0`；HTTP Client one-shot；旧 `pkg/resilience`、无消费者 breaker、RecoveringStore/AsyncRecorder 已退役 | **当前边界已收敛，按真实 failure domain 扩展** | 项目保留命名 profile、幂等、错误分类、attempt/total budget 与低敏观测。`sony/gobreaker/v2` 只在真实共享下游出现后进入 Adapter；不引入当前范围过宽且 pre-v1 的 failsafe-go |
 | 序列化 | 标准 `encoding/json`、cache 私有 `msgpack/v5`、已归档 `gopkg.in/yaml.v3`；自研 `pkg/codec` 无仓库内消费者 | **保留标准 JSON；迁移官方稳定 YAML v3；退役无价值 Codec；cache wire format 独立决策** | 直接 YAML import 迁移到 `go.yaml.in/yaml/v3 v3.0.5`；v4 当前仅 RC，不进入 production direct dependency。删除 `pkg/codec`，各协议 owner 直接使用库；MessagePack/JSON/CBOR 的 cache wire 选择归 CACHE 任务，不机械换格式 |
 | 配置 | 项目实现 strict source merge、stable file、provenance/digest、binding/default 与 candidate transaction；YAML、mapstructure、fsnotify 位于窄接缝 | **保留，不引入 koanf/Viper** | `mapstructure/v2` 继续 strict decode，`fsnotify` 继续通知，YAML 按 R004 走官方稳定 v3；koanf 仍需重写冲突、稳定读取、owner 与 reload，不能形成净删除。新增远程 provider 时按来源重评 |
 | 定时调度 | `gocron/v2` 触发器 + 项目 schedule binding/execution/Redis lease | **保留** | `gocron/v2` 继续只在内部 Adapter；项目契约拥有任务身份、execution、准入、失权和诊断；耐久任务/工作流不是该能力，需按真实需求另评 `Temporal`、`River` 或 `Asynq` |
 | Messaging | 官方 `amqp091-go` + 项目 message contract/binding/consumer lifecycle | **保留，等待真实 RabbitMQ 门禁** | RabbitMQ Adapter 继续隔离 broker 类型；Kafka/NATS 不在没有业务语义时预选 |
-| Observability | OpenTelemetry、OTLP、Prometheus 已在 Kernel Adapter，项目拥有低敏 observation 契约 | **保留并补标准 instrumentation** | 优先官方 `otelhttp` 等 instrumentation，不自研 trace propagation；项目保留采样、字段脱敏、diagnostics 和 exporter 生命周期边界 |
+| Observability | OTel provider/exporter 与 Prometheus 已正确隔离，但 HTTP TraceContext/server span/status attributes 仍手工实现；otelhttp 仅残留旧 go.sum、未实际使用 | **采用官方 otelhttp，保留项目资源与诊断边界** | `otelhttp v0.70.0` + OTel v1.45.0 负责 HTTP propagation/semantic conventions/span/status；项目保留 Generation lease、稳定 operation、Prometheus metrics、trace ID bridge、bounded processor 和 exporter lifecycle |
 
 ## 需要架构解决的问题
 
@@ -76,7 +76,8 @@ HTTP 重试、熔断、限流、缓存加载和执行恢复都涉及不同的幂
 2. **低耦合替换**：默认 L1 已退役；后续迁移官方稳定 YAML v3 路径并删除无消费者 Codec；以 `x/time/rate` 单轨替换 token bucket、修正显式启停配置但保留 channel 过载门禁；保留 jwx/v3 与 x/crypto/argon2 并补认证安全/演进语义。未来 L1、YAML v4 与 JWX v4 必须由真实需求、稳定版本和量化门禁重新授权。
 3. **策略层重构**：以 backoff/v7 收敛 Execution retry；HTTP Client 改为 one-shot；删除无消费者 breaker 和没有真实外部 primary 的恢复/异步状态机。未来下游 breaker 或组合策略按真实 failure domain 另立研究。
 4. **HTTP 单轨迁移**：先以代表性 operation 验证 Huma + OperationGate + Problem + static generation，再迁移全部模块并删除旧 contract/codec/kin-openapi validation。
-5. **Data 单轨迁移**：建立受租约约束的 GORM session bridge，分 Todo/Navigation 与 IAM/Organization 两批迁移 concrete repository，最后删除 generic Schema/Query/Repository。
-6. **架构切片**：在 Huma registration 形态冻结后引入启动期 `applicationBlueprint`，移出纯 catalog/policy/contract；runtime graph 继续由 Generation 原子切换。
+5. **浏览器安全与标准 instrumentation**：CORS 以 rs/cors/CrossOriginProtection 单轨替换手工协议部分；Huma 全量迁移后以 otelhttp 替换手工 HTTP span/propagation。
+6. **Data 单轨迁移**：建立受租约约束的 GORM session bridge，分 Todo/Navigation 与 IAM/Organization 两批迁移 concrete repository，最后删除 generic Schema/Query/Repository。
+7. **架构切片**：在 Huma registration 形态冻结后引入启动期 `applicationBlueprint`，移出纯 catalog/policy/contract；runtime graph 继续由 Generation 原子切换。
 
 每一步都是非文档变更，必须使用 057 的明确任务 ID，在计划报告后的后续消息中获得确认；新事实改变依赖、公共接口、迁移或生命周期边界时重新研究和确认。

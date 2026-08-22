@@ -4,7 +4,7 @@
 
 本变更不选择“一套框架接管一切”，而是建立两层决策：先判断通用实现是否应复用成熟方案，再判断当前架构是否为合适载体。输出是可追踪矩阵和分批实施队列，不是技术名录。
 
-依据：[R001 当前实现与架构事实](research/R001-current-capability-and-architecture-audit/report.md)、[R002 外部候选与安全事实](research/R002-mainstream-options-and-security/report.md)、[R003 L1 必要性与候选适配](research/R003-cache-l1-necessity-and-candidate-fit/report.md)、[R004 序列化与 YAML 稳定路径](research/R004-serde-runtime-boundary-and-yaml-path/report.md)、[R005 HTTP 入口速率与过载边界](research/R005-http-entry-rate-and-overload-boundary/report.md)、[R006 认证库与凭据边界](research/R006-authn-library-and-credential-boundary/report.md)、[R007 resilience、Execution 与 HTTP Client 边界](research/R007-resilience-execution-and-http-boundary/report.md)、[R008 配置与 koanf](research/R008-config-pipeline-and-koanf-fit/report.md)、[R009 HTTP 与 Huma](research/R009-http-contract-framework-fit/report.md)、[R010 Data/ORM](research/R010-data-repository-and-orm-boundary/report.md)、[R011 owner/reload 与 Blueprint](research/R011-owner-reload-and-static-blueprint/report.md)。
+依据：[R001 当前实现与架构事实](research/R001-current-capability-and-architecture-audit/report.md)、[R002 外部候选与安全事实](research/R002-mainstream-options-and-security/report.md)、[R003 L1 必要性与候选适配](research/R003-cache-l1-necessity-and-candidate-fit/report.md)、[R004 序列化与 YAML 稳定路径](research/R004-serde-runtime-boundary-and-yaml-path/report.md)、[R005 HTTP 入口速率与过载边界](research/R005-http-entry-rate-and-overload-boundary/report.md)、[R006 认证库与凭据边界](research/R006-authn-library-and-credential-boundary/report.md)、[R007 resilience、Execution 与 HTTP Client 边界](research/R007-resilience-execution-and-http-boundary/report.md)、[R008 配置与 koanf](research/R008-config-pipeline-and-koanf-fit/report.md)、[R009 HTTP 与 Huma](research/R009-http-contract-framework-fit/report.md)、[R010 Data/ORM](research/R010-data-repository-and-orm-boundary/report.md)、[R011 owner/reload 与 Blueprint](research/R011-owner-reload-and-static-blueprint/report.md)、[R012 浏览器 HTTP 安全](research/R012-browser-http-security-boundary/report.md)、[R013 HTTP Observability](research/R013-http-observability-instrumentation/report.md)。
 
 ## 决策流程
 
@@ -66,6 +66,9 @@ R011 已形成 capability/consumer/owner/reload 矩阵，首片固定为静态 B
 - 范围排除：不在本任务增加 Principal/IP/Operation/租户维度、Redis/网关/集中计数、登录防爆破或分布式 quota。
 - AuthN：保留 `jwx/v3` 和 `x/crypto/argon2` 两项成熟实现；修正 JWT 运行中取消传递并补安全负向矩阵。密码 port 使用项目 verification result + error，Adapter 在调用 Argon2 前完成受限 PHC 校验并返回 `NeedsRehash`，Service 在成功登录事务内迁移 hash。
 - AuthN 不引入仍要求 `GOEXPERIMENT=jsonv2` 的 JWX v4，不引入高层 Argon2 Wrapper、OIDC 或新密码学实现。jsonv2 稳定或 v3 支持状态变化后再刷新选型。
+- 浏览器安全：`SEC-057-002` 以 `rs/cors v1.11.1` 负责标准 CORS headers/Vary/preflight，以 Go `CrossOriginProtection` 负责 unsafe cross-site defense-in-depth；项目保留 exact allowlist、default deny、Problem 与 handler-not-called policy。
+- IAM Session mutation 继续同时要求严格 Origin、已解析 Session 与 CSRF token；不允许全局 CORS/CSRF middleware 绕过模块 guard。
+- 安全头保留项目三项显式 policy，不引入 `unrolled/secure`。HSTS/CSP/COOP 需要真实 TLS termination 与 WebUI asset authority，不在当前 API 默认猜测。
 
 每个项目可以独立确认和回退，不做互相绑定的大提交。
 
@@ -92,6 +95,8 @@ R009 已完成候选比较并选择 Huma v2，不再把技术选型推迟到实�
 4. 第一片失败则单轨撤回 Huma，不保留 compatibility layer；失败结论需回到计划重新确认。
 
 Huma 只进入 transport binding，Service/Model 不导入其类型；chi、项目 Problem、server/listener 和生产 middleware 不变。
+
+HTTP 全量迁移后执行 `OBS-057-001`：引入官方 `otelhttp v0.70.0`，把 OTel core/sdk/exporter 对齐 v1.45.0，并删除手工 TraceContext extraction、server span、HTTP semantic attributes/status。项目 Telemetry wrapper 继续持有完整 request lease、解析 Huma 冻结后的低基数 operation、记录项目 Prometheus 指标并治理 bounded processor/exporter lifecycle；不得产生双 server span 或第二套 OTel metrics。
 
 ### Batch E：Data Repository 单轨迁移
 
@@ -128,6 +133,7 @@ R011 已建立 owner/reload 矩阵。`ARCH-057-002` 在 Huma registration 形态
 - Batch A：`go.mod`、`go.sum`、`internal/transport/http/`、`pkg/httpx/contract/`、安全验证记录。
 - Batch B：`pkg/cache/`、`internal/kernel/app/cache/`、缓存文档与依赖清单、配置/codec 消费者、`pkg/httpx/production_middleware.go`、IAM auth Adapter。
 - Batch C：`pkg/httpx/`、`pkg/resilience/`（删除）、`pkg/execution/`、`internal/kernel/app/execution/`、Todo/Schedule/Messaging 调用方、composition/config/docs 及 `go.mod/go.sum`。
-- Batch D：`go.mod/go.sum`、模块 `binding/http`、`internal/transport/http/`、composition、生成器、OpenAPI/inventory 与旧 `pkg/httpx/contract` 删除范围。
+- Batch B 的浏览器安全追加范围：`pkg/httpx.CORS`、IAM/composition CSRF 回归、`go.mod/go.sum`；不改写 IAM token 或新增 credentialed CORS。
+- Batch D：`go.mod/go.sum`、模块 `binding/http`、`internal/transport/http/`、composition、生成器、OpenAPI/inventory 与旧 `pkg/httpx/contract` 删除范围；随后覆盖 `internal/kernel/app/observability/`、OTel modules 与 Telemetry tests。
 - Batch E：`pkg/database/` technology-specific session bridge、四个模块 repo Adapter/contract tests，以及 generic repository/schema/query 删除范围。
 - Batch F：`internal/composition/` 的 Blueprint/factory/generation、静态 catalog/contract 入口与 reload/lifecycle 测试；不改变 Kernel generation transaction。

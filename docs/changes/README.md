@@ -65,5 +65,6 @@
 - [058 Casbin RBAC 注入与授权边界重构](058-casbin-rbac-integration/README.md)：已确认，实施中（001–009 已完成）；Casbin v3.10.0 以 IAM module-owned evaluator 单轨接管 Core RBAC 求值，Auth 经消费方 DecisionPoint 消费，authorization revision + 不可变 snapshot 保证 fail closed，动态分配升级为 expected version/409/Catalog 矩阵，`permissionsFor`/IAM-Scopes/HasScope 旧路径已删除。
 - [059 WebUI 后台骨架与交互体验升级](059-webui-shell-experience-upgrade/README.md)：已确认，实施中；统一 Shell 视觉区域、动效与 reduced-motion 决策、Shell/Page/Data skeleton、overlay 进退场，页面由各模块 owner 校准，退役零消费者 HeroUI，不引入 Tailwind/动画库，静态可插拔与按路由 code splitting 保持。
 - [060 WebUI 托管模式与构建产物配置管理](060-webui-hosting-modes/README.md)：已完成并提交 `86c2ca8`；WebUI 支持前后端分离与 Go 服务单进程托管双模式（`webui.hosting.enabled` 默认 true），新增 `webui.hosting` 配置节（托管路径默认 `webui/dist`、托管前构建脚本默认 node：registry 生成 -> 依赖安装 -> 构建打包）、SPA 托管处理器与 `webui build` CLI，并同步 Docker/release 产物纳入与文档 authority。
+- [061 WebUI 多环境数据源兼容（含全 WebUI mock）](061-webui-ops-multi-env-compat/README.md)：研究已通过，计划待确认；拟修复默认启动（模式 B）下 Ops `运行状态`/`能力清单` 页 `/management/*` 恒 4xx：模式 B 业务 listener 挂载受保护 management facade；WebUI 显式声明数据源环境（`VITE_WEBUI_DATA_SOURCE`，默认 `server-hosted`=服务托管构建产物，`separated`/`mock` 可覆盖）；声明 `mock` 时整个 WebUI（宿主骨架 + 全部模块数据）走本地 mock（模块自有 mock 源 + 生成 registry + Go catalog 投影 mock manifest + 全局“模拟环境”双语徽标、零真实请求），真实模式叠加 Ops 可达性分级降级。
 
-下一个任务序号为 `061`。已完成记录只保存历史证据；当前行为必须回到根 [README](../../README.md) 和对应主题文档确认。
+下一个任务序号为 `062`。已完成记录只保存历史证据；当前行为必须回到根 [README](../../README.md) 和对应主题文档确认。

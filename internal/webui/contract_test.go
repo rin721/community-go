@@ -13,6 +13,7 @@ func testBinding(moduleID string, defaultRoute bool) Binding {
 		Routes:     []Route{{ID: moduleID + ".page", Path: "/" + moduleID, EntryID: moduleID + ".page", TitleMessageID: moduleID + ".title", Layout: RouteLayoutApp, DeliveryState: DeliveryImplemented, Default: defaultRoute}},
 		Navigation: []Navigation{{ID: moduleID + ".page", RouteID: moduleID + ".page", TitleMessageID: moduleID + ".title", IconID: "circle"}},
 		Locales:    []Locale{{Language: "zh-CN", Namespace: moduleID, SourcePath: "web/zh-CN.json"}},
+		MockSource: "web/mock.ts",
 	}
 }
 
@@ -79,6 +80,19 @@ func TestBuildCatalogRequiresLocaleForWebUIEntries(t *testing.T) {
 	binding.Locales = nil
 	if _, err := BuildCatalog(binding); err == nil {
 		t.Fatal("webui entries without a locale binding were accepted")
+	}
+}
+
+func TestBuildCatalogRequiresMockSourceForWebUIEntries(t *testing.T) {
+	binding := testBinding("ops", true)
+	binding.MockSource = ""
+	if _, err := BuildCatalog(binding); err == nil {
+		t.Fatal("webui entries without a mock source were accepted")
+	}
+	invalid := testBinding("ops", true)
+	invalid.MockSource = "mock.js"
+	if _, err := BuildCatalog(invalid); err == nil {
+		t.Fatal("mock source with unsupported extension was accepted")
 	}
 }
 

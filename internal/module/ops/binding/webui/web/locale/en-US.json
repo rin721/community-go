@@ -15,6 +15,8 @@
   "webui.ops.dashboard.unavailableTitle": "{{count}} core diagnostics unavailable",
   "webui.ops.dashboard.degradedTitle": "{{count}} diagnostics temporarily unavailable",
   "webui.ops.dashboard.availableDetail": "All declared management capabilities returned a result.",
+  "webui.ops.dashboard.source.unreachable.title": "Management source unreachable",
+  "webui.ops.dashboard.source.unreachable.detail": "No management interface is reachable in this environment (backend down or requests rejected); the page shows no simulated state. Refresh to retry once restored.",
   "webui.ops.dashboard.unavailableDetail": "A core runtime probe failed. Available results remain visible and failed items are marked.",
   "webui.ops.dashboard.degradedDetail": "Successful real results remain visible while failed optional capabilities are marked.",
   "webui.ops.dashboard.requestFailed": "This diagnostic is temporarily unavailable. Retry later.",

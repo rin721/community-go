@@ -1,5 +1,17 @@
 import { createContext, useContext, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { mockRequestJSON, mockRequestText } from "../mock/router";
+
+// WebUIDataSource 声明当前 WebUI 运行的数据源环境；默认为服务托管构建产物
+// （server-hosted，对应 config.yaml 的 webui.hosting.enabled: true）。
+export type WebUIDataSource = "server-hosted" | "separated" | "mock";
+
+// readWebUIDataSource 读取显式环境声明（VITE_WEBUI_DATA_SOURCE）；缺失或非法值
+// 保守回退默认 server-hosted（tooling 侧的枚举校验在 052 typed 配置解析器中负责）。
+export function readWebUIDataSource(env: { VITE_WEBUI_DATA_SOURCE?: string } = import.meta.env): WebUIDataSource {
+  const declared = env.VITE_WEBUI_DATA_SOURCE;
+  return declared === "server-hosted" || declared === "separated" || declared === "mock" ? declared : "server-hosted";
+}
 
 export type Access = "allowed" | "authentication-required" | "denied";
 export type DeliveryState = "implemented" | "not-implemented";
@@ -62,6 +74,9 @@ export function useWebUITranslation(namespace: `webui.${string}`) {
 }
 
 export async function requestJSON<T>(input: RequestInfo | URL, init?: RequestInit): Promise<T> {
+  if (readWebUIDataSource() === "mock") {
+    return mockRequestJSON<T>(input, init);
+  }
   const response = await fetch(input, {
     credentials: "include",
     ...init,
@@ -75,6 +90,9 @@ export async function requestJSON<T>(input: RequestInfo | URL, init?: RequestIni
 }
 
 export async function requestText(input: RequestInfo | URL, init?: RequestInit): Promise<string> {
+  if (readWebUIDataSource() === "mock") {
+    return mockRequestText(input, init);
+  }
   const response = await fetch(input, { credentials: "include", ...init });
   if (!response.ok) throw new Error(`request_failed_${response.status}`);
   return response.text();

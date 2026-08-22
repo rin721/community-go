@@ -35,6 +35,13 @@ function runStep(executable, args, cwd, label) {
 const project = loadProjectLayout();
 const { repositoryRoot, webuiRoot } = resolveLayoutPaths(project);
 
+// 托管产物是真实服务端托管的构建产物：mock 声明（VITE_WEBUI_DATA_SOURCE=mock）
+// 只允许在无后端预览/演示中使用，不允许进入托管/发布链。
+const declaredDataSource = process.env.VITE_WEBUI_DATA_SOURCE?.trim() || "server-hosted";
+if (declaredDataSource === "mock") {
+  fail("mock data source is not allowed for hosted build artifacts; use a plain `pnpm build` with VITE_WEBUI_DATA_SOURCE=mock in .env.local for a demo build");
+}
+
 runStep(process.execPath, ["scripts/generate.mjs"], webuiRoot, "webui registry generation");
 runStep("corepack", ["pnpm", "install", "--frozen-lockfile"], webuiRoot, "webui dependency install");
 runStep("corepack", ["pnpm", "build"], webuiRoot, "webui build");

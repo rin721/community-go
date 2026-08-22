@@ -11,6 +11,7 @@ import (
 	kernelcomposition "github.com/rin721/go-scaffold-template/internal/kernel/composition"
 	"github.com/rin721/go-scaffold-template/internal/kernel/config"
 	authmodel "github.com/rin721/go-scaffold-template/internal/module/auth/model"
+	httpbinding "github.com/rin721/go-scaffold-template/internal/module/ops/binding/http"
 	opsmodel "github.com/rin721/go-scaffold-template/internal/module/ops/model"
 	"github.com/rin721/go-scaffold-template/internal/transport/http/humabinding"
 	"github.com/rin721/go-scaffold-template/pkg/httpx"
@@ -102,6 +103,7 @@ func applicationRouter(
 	webuiHandler http.Handler,
 	apiRoutes http.Handler,
 	staticHandler http.Handler,
+	managementFacade http.Handler,
 ) (httpx.Router, error) {
 	if apiRoutes == nil {
 		return nil, fmt.Errorf("application API routes are nil")
@@ -163,6 +165,20 @@ func applicationRouter(
 		http.StripPrefix(webuiHTTPPrefix, manifest).ServeHTTP(ctx.ResponseWriter, ctx.Request)
 		return nil
 	})
+	// 模式 B：按 management 路由单一清单把已知子路径挂到业务 listener（/management/*），
+	// 供托管 WebUI 同源读取真实管理数据；未知子路径由 chi NotFound 兜底为 JSON 404，
+	// 非 GET 由路由 MethodNotAllowed 兜底为 JSON 405，绝不回退 SPA。
+	if managementFacade != nil {
+		for _, subPath := range httpbinding.ManagementRoutePaths() {
+			sub := subPath
+			router.Handle(httpx.MethodGet, managementHTTPPrefix+sub, func(ctx *httpx.Context) error {
+				request := ctx.Request.Clone(ctx.Request.Context())
+				request.URL.Path = sub
+				managementFacade.ServeHTTP(ctx.ResponseWriter, request)
+				return nil
+			})
+		}
+	}
 	router.Mount("/", rootHandler)
 	return router, nil
 }

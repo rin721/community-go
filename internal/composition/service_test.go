@@ -43,6 +43,7 @@ func TestApplicationRouterStripsWebUIPrefixForStandardHandlers(t *testing.T) {
 		webuiHandler,
 		apiHandler,
 		nil,
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("applicationRouter() error = %v", err)
@@ -79,6 +80,14 @@ func TestApplicationRouterHostedModeServesWebUIAndKeepsAPIJSON(t *testing.T) {
 		}
 		httpx.WriteProblem(writer, request, &httpx.StatusError{StatusCode: http.StatusNotFound, Code: "route_not_found", Message: "route not found"})
 	})
+	managementFacade := http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		writer.Header().Set("Content-Type", "application/json")
+		if request.URL.Path == "/readyz" {
+			_, _ = writer.Write([]byte(`{"status":"pass"}`))
+			return
+		}
+		httpx.WriteProblem(writer, request, &httpx.StatusError{StatusCode: http.StatusNotFound, Code: "route_not_found", Message: "route not found"})
+	})
 	staticHandler, err := webuihost.NewSPAHandler(fixture, []string{"/api", "/management"}, []string{"/assets"})
 	if err != nil {
 		t.Fatalf("NewSPAHandler() error = %v", err)
@@ -89,6 +98,7 @@ func TestApplicationRouterHostedModeServesWebUIAndKeepsAPIJSON(t *testing.T) {
 		webuiHandler,
 		apiHandler,
 		staticHandler,
+		managementFacade,
 	)
 	if err != nil {
 		t.Fatalf("applicationRouter() error = %v", err)
@@ -103,7 +113,8 @@ func TestApplicationRouterHostedModeServesWebUIAndKeepsAPIJSON(t *testing.T) {
 		{path: "/dashboard", wantCode: http.StatusOK, wantIndex: true},
 		{path: "/api/v1/known", wantCode: http.StatusOK, wantJSON: true},
 		{path: "/api/v1/unknown", wantCode: http.StatusNotFound, wantJSON: true},
-		{path: "/management/readyz", wantCode: http.StatusNotFound, wantJSON: true},
+		{path: "/management/readyz", wantCode: http.StatusOK, wantJSON: true},
+		{path: "/management/nope", wantCode: http.StatusNotFound, wantJSON: true},
 	}
 	for _, test := range tests {
 		recorder := httptest.NewRecorder()
@@ -138,7 +149,7 @@ func TestApplicationRouterRateLimitModesAndGenerationLocalState(t *testing.T) {
 
 	newRouter := func(t *testing.T, cfg httpx.ServerConfig) httpx.Router {
 		t.Helper()
-		router, err := applicationRouter(capabilities, cfg, webuiHandler, apiHandler, nil)
+		router, err := applicationRouter(capabilities, cfg, webuiHandler, apiHandler, nil, nil)
 		if err != nil {
 			t.Fatalf("applicationRouter() error = %v", err)
 		}
@@ -182,6 +193,7 @@ func TestApplicationRouterCORSPreflightDoesNotConsumeRateToken(t *testing.T) {
 		config,
 		http.NotFoundHandler(),
 		http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) { writer.WriteHeader(http.StatusNoContent) }),
+		nil,
 		nil,
 	)
 	if err != nil {

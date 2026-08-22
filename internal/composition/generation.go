@@ -515,17 +515,21 @@ func (f *applicationGenerationFactory) Prepare(
 	manifestHandler = withOptionalAuthentication(generation.authModule.SessionSource, manifestHandler)
 	webuiHandler.Handle("/manifest", manifestHandler)
 	var staticHandler http.Handler
+	var managementFacade http.Handler
 	if webUIHostConfig.Hosting.Enabled {
 		staticHandler, err = webuihost.NewSPAHandler(webUIHostConfig.Hosting.Dir, []string{apiPrefix, managementHTTPPrefix}, []string{webUIImmutablePrefix})
 		if err != nil {
 			return abort(err)
 		}
+		// 模式 B：托管 WebUI 需要同源读取 management 数据，把受保护 facade 挂到业务
+		// listener（复用与 management listener 相同的 handler、预算与鉴别/授权语义）。
+		managementFacade = generation.opsModule.ManagementHTTP
 	}
 	router, err := applicationRouter(kernelcomposition.Capabilities{
 		Logger: generation.logger.value(), Clock: clock.System(), IDGenerator: idgen.UUID(), Validator: validation.New(),
 		Database: generation.database.value(), Cache: generation.cache.value(),
 		I18n: generation.i18n.value(), Storage: generation.storage.value(),
-	}, httpConfig, webuiHandler, apiRoutes, staticHandler)
+	}, httpConfig, webuiHandler, apiRoutes, staticHandler, managementFacade)
 	if err != nil {
 		return abort(err)
 	}

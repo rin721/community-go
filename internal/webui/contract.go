@@ -79,13 +79,17 @@ type ModuleRegistration struct {
 	Activation ActivationState
 }
 
-// Binding 是模块拥有的不可变 WebUI 声明。声明 Entry 的模块必须同时声明 locale；SourcePath 只用于构建期生成。
+// Binding 是模块拥有的不可变 WebUI 声明。声明 Entry 的模块必须同时声明 locale 与
+// mock 数据源；SourcePath 只用于构建期生成。
 type Binding struct {
 	ModuleID   string
 	Entries    []Entry
 	Routes     []Route
 	Navigation []Navigation
 	Locales    []Locale
+	// MockSource 是模块浏览器端 mock 数据路由表的源文件（webui facet 相对路径，如 mock.ts）。
+	// 声明 Entry 的模块必须提供，保证显式声明 mock 环境时整个 WebUI 有完整本地数据。
+	MockSource string
 	Requires   []SDKRequirement
 }
 
@@ -533,12 +537,15 @@ func (c Catalog) ValidateSourcePathOwnership(layout projectlayout.Layout, reposi
 }
 
 func bindingSourcePaths(binding Binding) []string {
-	paths := make([]string, 0, len(binding.Entries)+len(binding.Locales))
+	paths := make([]string, 0, len(binding.Entries)+len(binding.Locales)+1)
 	for _, entry := range binding.Entries {
 		paths = append(paths, entry.SourcePath)
 	}
 	for _, locale := range binding.Locales {
 		paths = append(paths, locale.SourcePath)
+	}
+	if strings.TrimSpace(binding.MockSource) != "" {
+		paths = append(paths, binding.MockSource)
 	}
 	return paths
 }
@@ -598,6 +605,12 @@ func validateBindings(bindings []Binding) error {
 		modules[binding.ModuleID] = struct{}{}
 		if len(binding.Entries) > 0 && len(binding.Locales) == 0 {
 			return fmt.Errorf("webui module %q must declare locale binding for its entries", binding.ModuleID)
+		}
+		if len(binding.Entries) > 0 && strings.TrimSpace(binding.MockSource) == "" {
+			return fmt.Errorf("webui module %q must declare mock source for its entries", binding.ModuleID)
+		}
+		if binding.MockSource != "" && !validSourcePath(binding.MockSource, ".ts") {
+			return fmt.Errorf("webui module %q mock source has invalid path", binding.ModuleID)
 		}
 		for _, entry := range binding.Entries {
 			if entry.ID == "" || strings.TrimSpace(entry.SourcePath) == "" {

@@ -261,7 +261,9 @@ http:
     allowedMethods: [GET, POST, PATCH, OPTIONS]
     allowedHeaders: [Authorization, Content-Type, X-Request-ID]
 
-# management 使用独立 listener；业务 Router 不挂载这些路径。
+# management 使用独立 listener；模式 A（前后端分离）业务 Router 不挂载这些路径，
+# 模式 B（Go 服务托管 WebUI，webui.hosting.enabled: true）下业务 listener 挂载同一受保护
+# facade（/management/*），供托管 WebUI 同源读取真实数据；未命中子路径保持 JSON 404。
 management:
   addr: 127.0.0.1:9090
   readHeaderTimeout: 2s
@@ -292,6 +294,9 @@ webui:
   # WebUI 构建产物托管组件。两种模式由 hosting.enabled 选择：
   #   - true（默认）：Go 服务单进程托管模式（模式 B），业务 listener 同时提供页面与 API；
   #   - false：前后端分离开发模式（模式 A，Vite dev server + Go Service）。
+  # WebUI 侧另有数据源环境显式声明（VITE_WEBUI_DATA_SOURCE，默认 server-hosted；separated
+  # 用于模式 A 开发声明；mock 用于无后端预览/演示，整个 WebUI 使用本地 mock 数据，
+  # 托管构建 webui build 会拒绝 mock 声明）。
   hosting:
     # 默认由 Go 服务托管 WebUI 构建产物。
     enabled: true

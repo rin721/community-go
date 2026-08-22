@@ -23,6 +23,7 @@ export default defineConfig({
       "@webui/sdk/navigation": sdk("src/sdk/navigation/index.ts"),
       "@webui/sdk/feedback": sdk("src/sdk/feedback/index.tsx"),
       "@webui/sdk/ui": sdk("src/sdk/ui/index.tsx"),
+      "@webui/sdk/mock": sdk("src/sdk/mock/index.ts"),
       react: sdk("node_modules/react"),
       "react-i18next": sdk("node_modules/react-i18next"),
       "@tanstack/react-query": sdk("node_modules/@tanstack/react-query"),

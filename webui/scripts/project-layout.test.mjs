@@ -17,12 +17,17 @@ test("development config accepts overrides and rejects unsafe endpoints", () => 
     WEBUI_DEV_PORT: "5174",
     WEBUI_API_TARGET: "https://api.example.test",
     WEBUI_MANAGEMENT_TARGET: "http://management.example.test:9091",
+    VITE_WEBUI_DATA_SOURCE: "separated",
   }), {
     host: "localhost",
     port: 5174,
     apiTarget: "https://api.example.test",
     managementTarget: "http://management.example.test:9091",
+    dataSource: "separated",
   });
+  assert.equal(loadWebUIDevConfig({}).dataSource, "server-hosted");
+  assert.equal(loadWebUIDevConfig({ VITE_WEBUI_DATA_SOURCE: "mock" }).dataSource, "mock");
+  assert.throws(() => loadWebUIDevConfig({ VITE_WEBUI_DATA_SOURCE: "offline" }));
   assert.throws(() => loadWebUIDevConfig({ WEBUI_DEV_PORT: "0" }));
   assert.throws(() => loadWebUIDevConfig({ WEBUI_API_TARGET: "http://user:pass@example.test" }));
 });

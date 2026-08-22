@@ -62,6 +62,7 @@ func applicationWebUISDKInventory() webuicontract.SDKInventory {
 		"i18n":    1,
 		"query":   1,
 		"ui":      1,
+		"mock":    1,
 	}
 }
 

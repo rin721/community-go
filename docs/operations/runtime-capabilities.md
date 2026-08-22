@@ -13,7 +13,7 @@
 | HTTP 入口保护 | `http.rateLimit`、`http.maxInFlight` | 每个 Application Generation 私有的 x/time/rate bucket 与 channel 过载门禁 | mode/输入/refill/并发、429/503、CORS preflight、generation 重建的 Go/race 测试 | Principal/IP/route quota、跨副本一致性、gateway 容量验证 |
 | Schedule | 模块 Schedule Binding、scheduler 配置 | 统一 scheduler、Execution、coordination lease | Go 测试与本地静态检查 | 真实多实例 owner 交接 |
 | Messaging | Message Contract/Binding、RabbitMQ 配置 | Provider Adapter、consumer generation 与 ack/retry | Go 测试与静态门禁 | RabbitMQ 真实协议需外部运行证据 |
-| Admin WebUI | `webui/`、`webui.hosting` 配置节、WebUI 本地启动指南 | 应用 WebUI 托管组件：托管模式由 `webui.hosting.enabled` 选择；静态 SPA 处理器无共享状态、磁盘即事实；托管前构建脚本由 CLI/启动期（development、缺产物）调用 | 模式 B（Go 服务托管）本机 HTTP 验收通过；Playwright 托管模式 E2E 与容器 runtime 冒烟列入 CI/后续独立验证 | 外部浏览器体验、生产部署与容器 runtime 仍需独立验证；静态门禁不替代 E2E/视觉 |
+| Admin WebUI | `webui/`、`webui.hosting` 配置节、`VITE_WEBUI_DATA_SOURCE` 环境声明、WebUI 本地启动指南 | 应用 WebUI 托管组件：托管模式由 `webui.hosting.enabled` 选择；静态 SPA 处理器无共享状态、磁盘即事实；托管前构建脚本由 CLI/启动期（development、缺产物）调用；数据源环境由 WebUI 显式声明（默认 server-hosted；separated 模式 A；mock 全 WebUI 本地数据），模块 mock 数据模块自有（`MockSource` + 生成 `webuiMockRegistry`），mock manifest 由 Go catalog 投影生成 | 模式 B（Go 服务托管）本机 HTTP 验收通过（含 `/management/*` facade 同源读取）；mock 环境零后端 boot/导航/双语徽标由 Playwright mock project 与 Vitest 覆盖（本机受限时记录 CI/后续项）；Playwright 托管模式 E2E 与容器 runtime 冒烟列入 CI/后续独立验证 | 外部浏览器体验、生产部署与容器 runtime 仍需独立验证；静态门禁不替代 E2E/视觉 |
 
 ## 使用规则
 

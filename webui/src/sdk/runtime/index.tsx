@@ -1,6 +1,7 @@
 export {
   HostRuntimeProvider,
   useHostRuntime,
+  readWebUIDataSource,
   type Access,
   type CapabilityState,
   type DeliveryState,
@@ -10,4 +11,5 @@ export {
   type ManifestRoute,
   type RouteLayout,
   type PrincipalView,
+  type WebUIDataSource,
 } from "../../contracts";

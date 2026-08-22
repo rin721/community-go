@@ -11,7 +11,7 @@ import (
 )
 
 func TestManifestReadsNavigationPolicyOnEveryRequest(t *testing.T) {
-	catalog, err := webuicontract.BuildCatalog(webuicontract.Binding{ModuleID: "test", Entries: []webuicontract.Entry{{ID: "test.page", SourcePath: "Page.tsx"}}, Routes: []webuicontract.Route{{ID: "test.page", Path: "/test", EntryID: "test.page", TitleMessageID: "test.title", Layout: webuicontract.RouteLayoutApp, DeliveryState: webuicontract.DeliveryImplemented}}, Navigation: []webuicontract.Navigation{{ID: "test.menu", RouteID: "test.page", TitleMessageID: "test.title", IconID: "menu", Order: 1}}, Locales: []webuicontract.Locale{{Language: "en-US", Namespace: "test", SourcePath: "locale.json"}}})
+	catalog, err := webuicontract.BuildCatalog(webuicontract.Binding{ModuleID: "test", Entries: []webuicontract.Entry{{ID: "test.page", SourcePath: "Page.tsx"}}, Routes: []webuicontract.Route{{ID: "test.page", Path: "/test", EntryID: "test.page", TitleMessageID: "test.title", Layout: webuicontract.RouteLayoutApp, DeliveryState: webuicontract.DeliveryImplemented}}, Navigation: []webuicontract.Navigation{{ID: "test.menu", RouteID: "test.page", TitleMessageID: "test.title", IconID: "menu", Order: 1}}, Locales: []webuicontract.Locale{{Language: "en-US", Namespace: "test", SourcePath: "locale.json"}}, MockSource: "mock.ts"})
 	if err != nil {
 		t.Fatal(err)
 	}

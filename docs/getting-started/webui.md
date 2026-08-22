@@ -1,9 +1,11 @@
 # WebUI 本地启动指南
 
-本文说明 WebUI 的两种运行模式。后端负责业务 HTTP、management、WebUI manifest 和本地 Session；由 `config.yaml` 的 `webui.hosting.enabled` 选择托管方式（默认 `true`）：
+本文说明 WebUI 的两种运行模式与数据源环境显式声明。后端负责业务 HTTP、management、WebUI manifest 和本地 Session；由 `config.yaml` 的 `webui.hosting.enabled` 选择托管方式（默认 `true`）：
 
 - **模式 B（默认）：Go 服务单进程托管**——Go Service 在业务 listener（默认 8080）同时提供页面与 API；
 - **模式 A：前后端分离**——Vite 只提供浏览器页面，并把请求代理到后端，适合 HMR 联调。
+
+WebUI 侧通过 `VITE_WEBUI_DATA_SOURCE` **显式声明**数据源环境（默认 `server-hosted`，对应模式 B 托管产物；`separated` 用于模式 A 开发声明；`mock` 用于无后端预览/演示，整个 WebUI 骨架与全部模块数据使用本地 mock，见[数据源环境声明与 mock 预览](#数据源环境声明与-mock-预览)）。
 
 ## 0. 前置条件
 
@@ -28,6 +30,23 @@ go run ./cmd/app webui build
 ```
 
 浏览器访问 `http://127.0.0.1:8080`（页面与 API 同源，深链如 `/dashboard` 回退到 SPA）。`logger.environment: production` 时缺产物会快速失败，镜像构建期必须装配好 `webui/dist`，运行期容器不含 node。
+
+模式 B 下业务 listener 额外挂载与 management listener（9090）同语义的受保护 facade（`/management/{startupz,livez,readyz,build,diagnostics,metrics}`，GET）：托管 WebUI 的 Ops 页面（`运行状态`、`能力清单`）同源读取真实数据；未知子路径保持 JSON 404、不回退 SPA。诊断/metrics 仍要求会话与 `management:read`，缺失时页面按既有失败语义降级。
+
+## 数据源环境声明与 mock 预览
+
+WebUI 通过 `VITE_WEBUI_DATA_SOURCE`（`webui/.env.example` 有默认值与取值说明，复制为 `.env.local` 后覆盖）显式声明数据源环境：
+
+| 声明 | 对应运行方式 | 行为 |
+| --- | --- | --- |
+| `server-hosted`（默认） | 模式 B（Go 服务托管构建产物） | 同源读取 `/management/*` facade 等真实接口 |
+| `separated` | 模式 A（Vite dev + Go Service） | 同源相对路径经 Vite 代理（`/api/v1`→8080、`/management`→9090）读取真实接口 |
+| `mock` | 静态预览/演示（无后端） | 整个 WebUI 使用本地 mock 数据：宿主骨架（manifest/session/logout）与全部模块页面数据均由宿主 SDK 传输层切换到本地 mock router，零真实网络请求，页面可完整浏览 |
+
+- 托管产物必须以默认或显式 `server-hosted` 构建；`webui build` 会拒绝 `mock` 声明（mock 演示构建使用普通 `pnpm build` + `.env.local` 设置 `VITE_WEBUI_DATA_SOURCE=mock`）。
+- mock 环境的 manifest 由 Go catalog 投影生成（全路由可用），`catalogRevision` 与生成 registry 一致，宿主版本门禁天然通过；每个模块的 mock 数据由模块自有的 `binding/webui/web/mock.ts` 提供，经生成 `webuiMockRegistry` 汇总。
+- mock 模式全程显示“模拟环境 / Mock environment”徽标（i18n 双语），所有数据均为本地示例，不代表真实服务状态。
+- 非法取值在 dev/Playwright 启动前由 typed 配置解析失败；客户端读取缺失/非法时保守回退默认 `server-hosted`。
 
 ## 模式 A：前后端分离（Vite HMR）
 
@@ -136,6 +155,6 @@ Session Cookie 带 `Secure` 属性：模式 B 的纯 HTTP 只对 loopback（loca
 | 浏览器提示证书不受信任 | 确认地址是 Vite 打印的本机地址后继续访问；不要把该开发证书用于生产。 |
 | 登录成功但 Cookie 不生效 | 必须打开 Vite 输出的 HTTPS 地址，不要使用 HTTP，并确认浏览器已接受本地证书。 |
 | `webui registry is stale` | 在 `webui/` 执行 `pnpm generate`，审查生成差异后再运行 `pnpm generate:check`。 |
-| management 卡片请求失败 | 检查 `http://127.0.0.1:9090/readyz`，并确认 Vite `/management` 代理没有被本地代理软件拦截。 |
+| management 卡片请求失败 | 模式 B 检查 `http://127.0.0.1:8080/management/readyz`（facade 同源）；模式 A 检查 `http://127.0.0.1:9090/readyz` 与 Vite `/management` 代理；同时确认 `VITE_WEBUI_DATA_SOURCE` 声明与实际运行方式一致（声明 `mock` 时全部请求走本地 mock，不触达后端）。 |
 
 WebUI 的模块 Binding、IAM Session、CSRF 和 registry 开发边界见 [WebUI 开发指南](../development/webui.md)。

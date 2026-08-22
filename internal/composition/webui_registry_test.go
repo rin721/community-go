@@ -3,11 +3,38 @@ package composition
 import (
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
 	webuicontract "github.com/rin721/go-scaffold-template/internal/webui"
 )
+
+func TestGenerateWebUIRegistryIncludesMockArtifacts(t *testing.T) {
+	generated, err := GenerateWebUIRegistry()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, expected := range []string{
+		`export const webuiMockRegistry = {`,
+		`"iam": () => import("../../../internal/module/iam/binding/webui/web/mock")`,
+		`"ops": () => import("../../../internal/module/ops/binding/webui/web/mock")`,
+		`export const webuiMockManifest = {`,
+	} {
+		if !strings.Contains(generated, expected) {
+			t.Fatalf("generated registry does not contain %s:\n%s", expected, generated)
+		}
+	}
+	// mock manifest 的 catalogRevision 必须与生成 registry 的 webuiRevision 一致
+	//（宿主版本门禁依赖这一点，否则 mock 环境无法 boot）。
+	revision := regexp.MustCompile(`webuiRevision = "([0-9a-f]+)"`).FindStringSubmatch(generated)
+	if len(revision) != 2 {
+		t.Fatalf("generated registry has no webuiRevision:\n%s", generated)
+	}
+	if !strings.Contains(generated, `"catalogRevision": "`+revision[1]+`"`) {
+		t.Fatalf("mock manifest catalogRevision does not match webuiRevision:\n%s", generated)
+	}
+}
 
 func TestGenerateWebUIRegistryIncludesEntriesAndLocales(t *testing.T) {
 	generated, err := GenerateWebUIRegistry()
@@ -51,6 +78,9 @@ func TestGenerateWebUIRegistryForCatalogAcceptsIndependentModuleFixture(t *testi
 	if err := os.WriteFile(filepath.Join(webRoot, "Page.tsx"), []byte("export default function Page() { return null; }\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+	if err := os.WriteFile(filepath.Join(webRoot, "mock.ts"), []byte("export default [];\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	if err := os.WriteFile(filepath.Join(webRoot, "locale", "en-US.json"), []byte(`{"webui.fixture.title":"Fixture"}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -61,6 +91,7 @@ func TestGenerateWebUIRegistryForCatalogAcceptsIndependentModuleFixture(t *testi
 		Routes:     []webuicontract.Route{{ID: "fixture.page", Path: "/fixture", EntryID: "fixture.page", TitleMessageID: "webui.fixture.title", Layout: webuicontract.RouteLayoutApp, DeliveryState: webuicontract.DeliveryImplemented, Default: true}},
 		Navigation: []webuicontract.Navigation{{ID: "fixture.page", RouteID: "fixture.page", TitleMessageID: "webui.fixture.title", IconID: "circle"}},
 		Locales:    []webuicontract.Locale{{Language: "en-US", Namespace: "webui.fixture", SourcePath: "locale/en-US.json"}},
+		MockSource: "mock.ts",
 		Requires:   []webuicontract.SDKRequirement{{ID: "runtime", MajorVersion: 1}},
 	}
 	catalog, err := webuicontract.BuildApplicationCatalog([]webuicontract.ModuleRegistration{{Binding: binding, Activation: webuicontract.ActivationEnabled}}, webuicontract.SDKInventory{"runtime": 1})
@@ -106,6 +137,9 @@ func TestGenerateWebUIRegistryExcludesDisabledModule(t *testing.T) {
 			t.Fatal(err)
 		}
 		if err := os.WriteFile(filepath.Join(webRoot, "Page.tsx"), []byte("export default function Page() { return null; }\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(webRoot, "mock.ts"), []byte("export default [];\n"), 0o644); err != nil {
 			t.Fatal(err)
 		}
 		if err := os.WriteFile(filepath.Join(webRoot, "locale", "en-US.json"), []byte(`{"webui.`+moduleID+`.title":"`+moduleID+`"}`), 0o644); err != nil {
@@ -156,6 +190,7 @@ func moduleFixtureBinding(moduleID string) webuicontract.Binding {
 		Routes:     []webuicontract.Route{{ID: moduleID + ".page", Path: "/" + moduleID, EntryID: moduleID + ".page", TitleMessageID: "webui." + moduleID + ".title", Layout: webuicontract.RouteLayoutApp, DeliveryState: webuicontract.DeliveryImplemented, Default: true}},
 		Navigation: []webuicontract.Navigation{{ID: moduleID + ".page", RouteID: moduleID + ".page", TitleMessageID: "webui." + moduleID + ".title", IconID: "circle"}},
 		Locales:    []webuicontract.Locale{{Language: "en-US", Namespace: "webui." + moduleID, SourcePath: "locale/en-US.json"}},
+		MockSource: "mock.ts",
 		Requires:   []webuicontract.SDKRequirement{{ID: "runtime", MajorVersion: 1}},
 	}
 }

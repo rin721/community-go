@@ -92,9 +92,13 @@ func GenerateWebUIRegistryForCatalogWithLayout(catalog webuicontract.Catalog, re
 	registryDirectory := filepath.Dir(registryPath)
 	entries := make([]struct{ id, source string }, 0)
 	locales := make([]webuicontract.Locale, 0)
+	mocks := make([]struct{ moduleID, source string }, 0)
 	for _, binding := range catalog.Bindings {
 		if len(binding.Entries) > 0 && len(binding.Locales) == 0 {
 			return "", fmt.Errorf("validate webui module %q: locale binding is required when entries are declared", binding.ModuleID)
+		}
+		if strings.TrimSpace(binding.MockSource) == "" && len(binding.Entries) > 0 {
+			return "", fmt.Errorf("validate webui module %q: mock source is required when entries are declared", binding.ModuleID)
 		}
 		for _, entry := range binding.Entries {
 			ownerRoot, err := layout.ModuleWebRoot(repositoryRoot, binding.ModuleID)
@@ -124,7 +128,24 @@ func GenerateWebUIRegistryForCatalogWithLayout(catalog webuicontract.Catalog, re
 		if err := validateWebUILocaleCoverage(repositoryRoot, layout, binding); err != nil {
 			return "", err
 		}
+		if strings.TrimSpace(binding.MockSource) == "" {
+			continue
+		}
+		ownerRoot, err := layout.ModuleWebRoot(repositoryRoot, binding.ModuleID)
+		if err != nil {
+			return "", err
+		}
+		sourcePath := filepath.Join(ownerRoot, filepath.FromSlash(binding.MockSource))
+		if err := validateWebUISourceFile(sourcePath, binding.MockSource); err != nil {
+			return "", fmt.Errorf("validate webui mock %q: %w", binding.ModuleID, err)
+		}
+		source, err := relativeImport(registryDirectory, sourcePath, binding.MockSource, true)
+		if err != nil {
+			return "", fmt.Errorf("resolve webui mock %q import: %w", binding.ModuleID, err)
+		}
+		mocks = append(mocks, struct{ moduleID, source string }{binding.ModuleID, source})
 	}
+	sort.Slice(mocks, func(i, j int) bool { return mocks[i].moduleID < mocks[j].moduleID })
 	sort.Slice(entries, func(i, j int) bool { return entries[i].id < entries[j].id })
 	sort.Slice(locales, func(i, j int) bool {
 		if locales[i].Language != locales[j].Language {
@@ -165,8 +186,44 @@ func GenerateWebUIRegistryForCatalogWithLayout(catalog webuicontract.Catalog, re
 	if currentLanguage != "" {
 		builder.WriteString("  },\n")
 	}
-	builder.WriteString("} as const;\n")
+	builder.WriteString("} as const;\n\n")
+	builder.WriteString("export const webuiMockRegistry = {\n")
+	for _, mock := range mocks {
+		fmt.Fprintf(&builder, "  %q: () => import(%q),\n", mock.moduleID, mock.source)
+	}
+	builder.WriteString("} as const;\n\n")
+	mockManifest, err := projectWebUIMockManifest(catalog)
+	if err != nil {
+		return "", err
+	}
+	manifestPayload, marshalErr := json.MarshalIndent(mockManifest, "", "  ")
+	if marshalErr != nil {
+		return "", fmt.Errorf("marshal webui mock manifest: %w", marshalErr)
+	}
+	builder.WriteString("// webuiMockManifest 是 mock 环境下宿主导入的完整运行时 manifest 快照（全路由可用）。\n")
+	builder.WriteString("export const webuiMockManifest = ")
+	builder.Write(manifestPayload)
+	builder.WriteString(" as const;\n")
 	return builder.String(), nil
+}
+
+// projectWebUIMockManifest 把应用 catalog 投影为 mock 环境的全可用 manifest：
+// 所有已实现路由 allowed + available、菜单使用默认导航策略，catalogRevision 与
+// 生成 registry 的 webuiRevision 天然一致（宿主 revision 门禁依赖这一点）。
+func projectWebUIMockManifest(catalog webuicontract.Catalog) (webuicontract.Manifest, error) {
+	policy, err := webuicontract.BuildNavigationPolicySnapshot(catalog)
+	if err != nil {
+		return webuicontract.Manifest{}, fmt.Errorf("build webui mock navigation policy: %w", err)
+	}
+	manifest, err := catalog.ManifestForWithNavigation(
+		policy,
+		func(string) webuicontract.Access { return webuicontract.AccessAllowed },
+		func(string) webuicontract.Availability { return webuicontract.Availability{State: webuicontract.AvailabilityAvailable} },
+	)
+	if err != nil {
+		return webuicontract.Manifest{}, fmt.Errorf("project webui mock manifest: %w", err)
+	}
+	return manifest, nil
 }
 
 func webUIRepositoryRoot() (string, error) {

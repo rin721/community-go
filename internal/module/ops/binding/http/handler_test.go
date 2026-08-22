@@ -47,6 +47,37 @@ func (a testAccess) Authorize(context.Context, string) error {
 	return nil
 }
 
+func TestManagementRoutePathsContractsWithRegisteredRoutes(t *testing.T) {
+	service, _ := service.New(testSource{}, model.BuildInfo{Version: "v1", Commit: "abc", BuildTime: "now", GoVersion: runtime.Version()})
+	handler, err := New(service, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte("metric")) }), testAccess{}, configbinding.AccessDisabled, logger.Noop())
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+	want := []string{"/startupz", "/livez", "/readyz", "/build", "/diagnostics", "/metrics"}
+	paths := ManagementRoutePaths()
+	if len(paths) != len(want) {
+		t.Fatalf("ManagementRoutePaths() = %v, want %v", paths, want)
+	}
+	seen := map[string]bool{}
+	for _, path := range paths {
+		seen[path] = true
+		// diagnostics 在 AccessDisabled 之外受保护；metrics 在 Disabled 下不注册。
+		if path == "/diagnostics" || path == "/metrics" {
+			continue
+		}
+		recorder := httptest.NewRecorder()
+		handler.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, path, nil))
+		if recorder.Code != http.StatusOK {
+			t.Fatalf("GET %s status = %d, want 200", path, recorder.Code)
+		}
+	}
+	for _, path := range want {
+		if !seen[path] {
+			t.Fatalf("ManagementRoutePaths() missed %q", path)
+		}
+	}
+}
+
 func TestManagementRoutesExcludePprofAndProtectDiagnostics(t *testing.T) {
 	service, _ := service.New(testSource{}, model.BuildInfo{Version: "v1", Commit: "abc", BuildTime: "now", GoVersion: runtime.Version()})
 	handler, err := New(service, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte("metric")) }), testAccess{}, configbinding.AccessDisabled, logger.Noop())

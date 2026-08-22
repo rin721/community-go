@@ -145,12 +145,22 @@ function parseTarget(value, field) {
   return target.toString().replace(/\/$/, "");
 }
 
+// parseDataSource 解析 WebUI 数据源环境声明；非法值在 dev/tooling 启动前失败。
+function parseDataSource(value, field) {
+  const declared = value?.trim() || "server-hosted";
+  if (!["server-hosted", "separated", "mock"].includes(declared)) {
+    fail(`${field} must be one of server-hosted | separated | mock`);
+  }
+  return declared;
+}
+
 export function loadWebUIDevConfig(environment = process.env) {
   return {
     host: environment.WEBUI_DEV_HOST?.trim() || "127.0.0.1",
     port: parsePort(environment.WEBUI_DEV_PORT?.trim() || "5173", "WEBUI_DEV_PORT"),
     apiTarget: parseTarget(environment.WEBUI_API_TARGET?.trim() || "http://127.0.0.1:8080", "WEBUI_API_TARGET"),
     managementTarget: parseTarget(environment.WEBUI_MANAGEMENT_TARGET?.trim() || "http://127.0.0.1:9090", "WEBUI_MANAGEMENT_TARGET"),
+    dataSource: parseDataSource(environment.VITE_WEBUI_DATA_SOURCE, "VITE_WEBUI_DATA_SOURCE"),
   };
 }
 

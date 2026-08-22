@@ -50,11 +50,15 @@ go run ./cmd/app db migrate up
 go run ./cmd/app
 ```
 
-浏览器访问 `http://127.0.0.1:8080` 完成首次设置；页面深链（如 `/dashboard`）回退到 SPA，`/api` 与 `/management` 路径保持 JSON 语义。需要显式重建产物时执行 `go run ./cmd/app webui build`。生产环境（`logger.environment: production`）缺产物会快速失败，镜像构建期必须装配好 `webui/dist`，运行时容器不含 node。
+浏览器访问 `http://127.0.0.1:8080` 完成首次设置；页面深链（如 `/dashboard`）回退到 SPA，`/api` 与 `/management` 路径保持 JSON 语义。模式 B 下业务 listener 同时挂载受保护 management facade（`/management/{startupz,livez,readyz,build,diagnostics,metrics}`），托管 WebUI 的`运行状态`/`能力清单`页可同源读取真实数据；未知子路径保持 JSON 404、不回退 HTML。需要显式重建产物时执行 `go run ./cmd/app webui build`。生产环境（`logger.environment: production`）缺产物会快速失败，镜像构建期必须装配好 `webui/dist`，运行时容器不含 node。
 
 ### 模式 A：前后端分离（Vite HMR）
 
 把 `config.yaml` 的 `webui.hosting.enabled` 改为 `false`，按[WebUI 本地启动指南](docs/getting-started/webui.md)在两个终端分别启动 Go Service 与 Vite（本地 HTTPS，`https://127.0.0.1:5173`），完整步骤与常见问题见该指南。
+
+### 数据源环境显式声明与 mock 预览
+
+WebUI 通过 `VITE_WEBUI_DATA_SOURCE` 显式声明数据源环境（默认 `server-hosted`=服务托管构建产物；`separated` 用于模式 A 开发声明；`mock` 用于无后端预览/演示）。声明 `mock` 时整个 WebUI（宿主骨架与全部模块数据）使用本地 mock：宿主 SDK 传输层切换到 mock router，零真实请求，全部页面可零后端浏览，并全程显示“模拟环境 / Mock environment”双语徽标；mock manifest 由 Go catalog 投影生成（revision 一致），模块 mock 数据由模块自有 `binding/webui/web/mock.ts` 提供。托管构建（`webui build`）拒绝 `mock` 声明，mock 演示构建使用普通 `pnpm build` + `.env.local`。
 
 两种模式共用同一套 IAM Session/CORS 语义：同源请求不依赖 `http.cors.allowedOrigins` 白名单；Session Cookie 带 `Secure` 属性，纯 HTTP 只对 loopback（localhost/127.0.0.1）有效，非 loopback 部署必须由 TLS 终结的反向代理承载。
 

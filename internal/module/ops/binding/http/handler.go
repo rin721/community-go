@@ -20,25 +20,41 @@ type Access interface {
 	Authorize(context.Context, string) error
 }
 
+// ManagementRoutePaths 返回 management 面支持的相对子路径（不含 /management 前缀）。
+// 模块内部注册与 composition 的模式 B facade 挂载共用同一清单，避免路径字面量漂移。
+func ManagementRoutePaths() []string {
+	return []string{"/startupz", "/livez", "/readyz", "/build", "/diagnostics", "/metrics"}
+}
+
 // New 构造不包含 pprof 的固定 management 路由。
 func New(ops *service.Service, metrics http.Handler, access Access, mode configbinding.AccessMode, logging logger.Logger) (http.Handler, error) {
 	if ops == nil || metrics == nil || access == nil || logging == nil {
 		return nil, fmt.Errorf("management HTTP dependencies are incomplete")
 	}
 	mux := http.NewServeMux()
-	mux.Handle("GET /startupz", probe(ops, model.ProbeStartup, logging))
-	mux.Handle("GET /livez", probe(ops, model.ProbeLiveness, logging))
-	mux.Handle("GET /readyz", probe(ops, model.ProbeReady, logging))
-	mux.Handle("GET /build", jsonHandler(model.OperationBuild, logging, func(context.Context) (any, error) { return ops.Build(), nil }))
-	mux.Handle("GET /diagnostics", protect(access, model.OperationDiagnostics, jsonHandler(model.OperationDiagnostics, logging, func(ctx context.Context) (any, error) { return ops.Diagnostics(ctx) }), logging))
-	switch mode {
-	case configbinding.AccessDisabled:
-	case configbinding.AccessPublic:
-		mux.Handle("GET /metrics", metrics)
-	case configbinding.AccessProtected:
-		mux.Handle("GET /metrics", protect(access, model.OperationMetrics, metrics, logging))
-	default:
-		return nil, fmt.Errorf("management metrics access %q is unsupported", mode)
+	for _, routePath := range ManagementRoutePaths() {
+		switch routePath {
+		case "/startupz":
+			mux.Handle("GET "+routePath, probe(ops, model.ProbeStartup, logging))
+		case "/livez":
+			mux.Handle("GET "+routePath, probe(ops, model.ProbeLiveness, logging))
+		case "/readyz":
+			mux.Handle("GET "+routePath, probe(ops, model.ProbeReady, logging))
+		case "/build":
+			mux.Handle("GET "+routePath, jsonHandler(model.OperationBuild, logging, func(context.Context) (any, error) { return ops.Build(), nil }))
+		case "/diagnostics":
+			mux.Handle("GET "+routePath, protect(access, model.OperationDiagnostics, jsonHandler(model.OperationDiagnostics, logging, func(ctx context.Context) (any, error) { return ops.Diagnostics(ctx) }), logging))
+		case "/metrics":
+			switch mode {
+			case configbinding.AccessDisabled:
+			case configbinding.AccessPublic:
+				mux.Handle("GET "+routePath, metrics)
+			case configbinding.AccessProtected:
+				mux.Handle("GET "+routePath, protect(access, model.OperationMetrics, metrics, logging))
+			default:
+				return nil, fmt.Errorf("management metrics access %q is unsupported", mode)
+			}
+		}
 	}
 	return noStore(mux), nil
 }

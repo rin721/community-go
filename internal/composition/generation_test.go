@@ -900,14 +900,34 @@ func TestGenerationHostingModeServesWebUIAssets(t *testing.T) {
 	if manifestResponse.StatusCode != http.StatusOK || !bytes.Contains(manifestPayload, []byte(`"catalogRevision"`)) {
 		t.Fatalf("GET %s = %d %q, want manifest JSON", webuiHTTPPrefix+"/manifest", manifestResponse.StatusCode, manifestPayload)
 	}
-	managementResponse, err := http.Get("http://" + address + "/management/metrics")
+	buildResponse, err := http.Get("http://" + address + "/management/build")
 	if err != nil {
-		t.Fatalf("GET /management/metrics error = %v", err)
+		t.Fatalf("GET /management/build error = %v", err)
+	}
+	buildPayload, _ := io.ReadAll(buildResponse.Body)
+	buildResponse.Body.Close()
+	if buildResponse.StatusCode != http.StatusOK || !bytes.Contains(buildPayload, []byte(`"version"`)) {
+		t.Fatalf("GET /management/build = %d %q, want management facade JSON", buildResponse.StatusCode, buildPayload)
+	}
+	managementResponse, err := http.Get("http://" + address + "/management/readyz")
+	if err != nil {
+		t.Fatalf("GET /management/readyz error = %v", err)
 	}
 	managementPayload, _ := io.ReadAll(managementResponse.Body)
 	managementResponse.Body.Close()
-	if managementResponse.StatusCode != http.StatusNotFound || bytes.Contains(managementPayload, []byte("hosting-root")) {
-		t.Fatalf("GET /management/metrics = %d, must not fall back to SPA", managementResponse.StatusCode)
+	// facade 复用真实 probe：测试 harness 中 readiness 可能未能通过（503 fail），
+	// 两者都是真实 JSON 结果且绝不回退 SPA HTML。
+	if (managementResponse.StatusCode != http.StatusOK && managementResponse.StatusCode != http.StatusServiceUnavailable) || !bytes.Contains(managementPayload, []byte(`"status"`)) {
+		t.Fatalf("GET /management/readyz = %d %q, want management probe JSON（200/503）", managementResponse.StatusCode, managementPayload)
+	}
+	unknownManagementResponse, err := http.Get("http://" + address + "/management/nope")
+	if err != nil {
+		t.Fatalf("GET /management/nope error = %v", err)
+	}
+	unknownManagementPayload, _ := io.ReadAll(unknownManagementResponse.Body)
+	unknownManagementResponse.Body.Close()
+	if unknownManagementResponse.StatusCode != http.StatusNotFound || bytes.Contains(unknownManagementPayload, []byte("hosting-root")) {
+		t.Fatalf("GET /management/nope = %d, must stay JSON 404 and not fall back to SPA", unknownManagementResponse.StatusCode)
 	}
 }
 

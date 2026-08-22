@@ -53,6 +53,18 @@ WebUI 构建产物由托管前构建脚本统一装配，`config.yaml` 的 `webu
 - `logger.environment: production` 时缺产物快速失败；镜像构建期由 Dockerfile 的 `webui-build` stage 装配 `webui/dist`，distroless runtime 不含 node，运行期不执行脚本。
 - 托管目录/脚本默认值与布局清单的一致性由 `project-layout --check-webui` 质量门禁守护；生产 Service 不运行期读取 `.scaffold/layout.json`。
 - 静态托管只服务 GET/HEAD；`/api`、`/management` 前缀未命中保持 JSON 404/405，不回退 HTML；`/assets/*`（Vite hash 资源）使用不可变缓存头，`index.html` 与其余文件 `no-cache`；`AcceptJSON` 门禁只作用于 API 分组。
+- 模式 B 下业务 listener 挂载受保护 management facade：`/management/{startupz,livez,readyz,build,diagnostics,metrics}`（GET）复用 management listener 同一 handler（`generation.opsModule.ManagementHTTP`，含 `middleware.Management` 预算与 Authenticate/Authorize/metricsAccess 语义），供托管 WebUI 的 Ops 页面（运行状态/能力清单）同源读取真实数据；未知子路径经 chi NotFound 保持 JSON 404，非 GET 保持 JSON 405。路径清单由 `internal/module/ops/binding/http.ManagementRoutePaths()` 单一导出，composition 与模块注册共用，禁止复制字面量。
+
+## 数据源环境声明与 mock 数据源
+
+WebUI 通过 `VITE_WEBUI_DATA_SOURCE`（`server-hosted` 默认 / `separated` / `mock`）显式声明数据源环境，值经 `webui/scripts/project-layout.mjs` 的 typed 解析器校验（非法值 dev/Playwright 启动前失败），客户端 `readWebUIDataSource()` 读取非法值回退默认 `server-hosted`。
+
+- **mock 声明（全 WebUI mock）**：`webui/src/contracts` 的 `requestJSON`/`requestText` 切换到 `webui/src/mock/router.ts`（宿主 mock 传输层），不发起真实请求。
+  - 宿主 mock（manifest/session/logout）在 `webui/src/mock/host.ts`；mock manifest 由 Go catalog 投影生成（`webuiMockManifest`，`catalogRevision` 与 `webuiRevision` 一致，宿主版本门禁天然通过）。
+  - 模块 mock 数据**模块自有**：每个声明 Entry 的模块在 `binding/webui/web/mock.ts` 提供 `WebUIMockRoute[]`（复用模块 `api.ts` 类型），Binding 契约 `MockSource` 声明（Entry⇒必需），生成器输出 `webuiMockRegistry`；模块经 `@webui/sdk/mock`（SDK 能力 `mock`）使用路由类型。禁止在宿主集中维护业务模块的 mock 数据。
+  - 宿主 shell 全局渲染“模拟环境 / Mock environment”徽标（`webui/src/components/shell/MockBadge.tsx`，host locale 双语），所有 mock 数据不冒充真实服务状态。
+- **真实声明（默认/separated）**：传输层行为与现状一致（mock 绝不在未声明时启用）；Ops 数据层用 `resolveManagementSource()`（`internal/module/ops/binding/webui/web/environment.ts`）叠加可达性探测，全部不可达时显示“数据源不可达”双语横幅并保留重试，不伪造数字。
+- 托管产物必须以默认或显式 `server-hosted` 构建；`webui/scripts/build-webui.mjs` 拒绝 `mock` 声明（mock 演示构建用普通 `pnpm build` + `.env.local`），防止演示产物进入托管/发布链。
 
 `webui/` 是独立 React/Vite 宿主，开发服务器使用 HTTPS，并将 `/api/v1` 与 `/management` 代理到 Go 服务。开发 host、port 和两个 proxy target 由 `webui/.env.example` 对应的环境变量声明，Vite 与 Playwright 使用同一个 parser。生成 registry 的唯一来源是 `internal/composition` 的 WebUI Catalog；不要直接编辑 `src/generated/webui-registry.ts`。
 

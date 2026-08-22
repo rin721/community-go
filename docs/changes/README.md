@@ -64,6 +64,6 @@
 - [057 通用技术与承载架构重新审视](057-technology-and-architecture-reassessment/README.md)：研究门禁与纯文档规则/authority 更新已完成；Batch A 已把 kin-openapi 升级到 v0.147.0、补齐请求验证安全回归并重建 Go 1.26 漏洞扫描证据，Batch B–E 仍待逐项确认。
 - [058 Casbin RBAC 注入与授权边界重构](058-casbin-rbac-integration/README.md)：已确认，实施中（001–009 已完成）；Casbin v3.10.0 以 IAM module-owned evaluator 单轨接管 Core RBAC 求值，Auth 经消费方 DecisionPoint 消费，authorization revision + 不可变 snapshot 保证 fail closed，动态分配升级为 expected version/409/Catalog 矩阵，`permissionsFor`/IAM-Scopes/HasScope 旧路径已删除。
 - [059 WebUI 后台骨架与交互体验升级](059-webui-shell-experience-upgrade/README.md)：已确认，实施中；统一 Shell 视觉区域、动效与 reduced-motion 决策、Shell/Page/Data skeleton、overlay 进退场，页面由各模块 owner 校准，退役零消费者 HeroUI，不引入 Tailwind/动画库，静态可插拔与按路由 code splitting 保持。
-- [060 WebUI 托管模式与构建产物配置管理](060-webui-hosting-modes/README.md)：研究门禁已通过，计划待确认；拟为 WebUI 提供前后端分离与 Go 服务单进程托管两种模式，新增 `webui.hosting` 配置节（托管路径默认 `webui/dist`、托管前构建脚本默认 node：registry 生成 -> 依赖安装 -> 构建打包），并同步 Docker/release 产物纳入与文档 authority。
+- [060 WebUI 托管模式与构建产物配置管理](060-webui-hosting-modes/README.md)：已完成并提交 `86c2ca8`；WebUI 支持前后端分离与 Go 服务单进程托管双模式（`webui.hosting.enabled` 默认 true），新增 `webui.hosting` 配置节（托管路径默认 `webui/dist`、托管前构建脚本默认 node：registry 生成 -> 依赖安装 -> 构建打包）、SPA 托管处理器与 `webui build` CLI，并同步 Docker/release 产物纳入与文档 authority。
 
 下一个任务序号为 `061`。已完成记录只保存历史证据；当前行为必须回到根 [README](../../README.md) 和对应主题文档确认。

@@ -30,7 +30,7 @@
 | `DELIVERY-060-001` | SCRIPT-060-001, GATE-060-001 | Dockerfile webui 构建 stage + runtime 复制 dist；goreleaser 归档含 `webui/dist/**`；container-smoke 增加模式 B 断言 | 镜像构建含 dist；归档含 dist；smoke 断言非零失败时暴露 | 已完成；Dockerfile `webui-build` stage（node:24-bookworm@sha256 固定，官方 API 复核 2026-08-22）+ runtime COPY；goreleaser files 增加 `webui/dist/**`；container-smoke 断言 home 含 `<div id="root">` 且 `/api/v1` 不回退 HTML（容器 runtime 验证仍属远端 CI 边界） |
 | `E2E-060-001` | GEN-060-001, DELIVERY-060-001 | 模式 B 端到端：本机 8080 setup/login/深链刷新/`/api` 与 `/management` JSON 404；模式 A 5173 回归 | 验收标准 4/5/6 证据；Playwright 受限时记录为 CI/后续项 | 模式 B 已完成：临时 cwd 生成干净配置 + 绝对 `APP_WEBUI__HOSTING__DIR` 指向真实 dist，实测 `rootSpa=True assetImmutable=True sessionStatus=401 setupStatus=201 sessionCookie=True deepLinkFallback/loginFallback=True managementStatus=404 managementJson=True`；模式 A 由全量 Go 套件（hosting disabled 路径）回归；Playwright 托管 project 记录为 CI/后续项（本机无干净全配置环境，且本地 config.yaml 为陈旧用户数据不可改动） |
 | `DOC-060-001` | 上述全部 | 同步 authority 文档与 `config.example.yaml`，删除过期“未托管 dist”表述 | 验收标准 10；`Verify-Docs` 通过 | 已完成；README 双模式章节、webui 启动指南、first-use、配置说明（webui 节 + ownership 表）、WebUI 开发指南（托管与产物装配）、运维 build-and-container（webui stage）、release（归档含 dist）、runtime-capabilities、repository-scope、webui/README、config.example.yaml 全部同步；旧表述残留搜索为零（仅变更记录保留验收文本） |
-| `GIT-060-001` | DOC-060-001 | 审查 diff、运行全量验证并提交 | 只 stage 060 文件；Conventional Commit；不 push | 待执行 |
+| `GIT-060-001` | DOC-060-001 | 审查 diff、运行全量验证并提交 | 只 stage 060 文件；Conventional Commit；不 push | 已完成；commit `86c2ca8`，只含 060 文件（51 个），未 push（working tree clean） |
 
 ## 4. 实施顺序
 

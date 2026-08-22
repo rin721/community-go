@@ -65,10 +65,7 @@ func (a *Application) executeIAMResetPassword(ctx context.Context, username, pas
 	if err != nil {
 		return err
 	}
-	permissions, err := applicationPermissionCatalog()
-	if err != nil {
-		return err
-	}
+	permissions := a.blueprint.permissions
 	iamModule, err := iam.New(iam.Dependencies{
 		Database: databaseAccess, Clock: capabilities.Clock, IDGenerator: idgen.UUID(), Config: iamConfig, Permissions: permissions,
 	})

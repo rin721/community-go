@@ -8,7 +8,7 @@ areas:
     decision: updated
     documents:
       - docs/architecture/technology-selection.md
-    reason: 缓存、AuthN、Execution、Serde、限流、CORS、Huma HTTP、otelhttp instrumentation 与全部 Data 任务已按成熟方案收敛；静态 Blueprint 仍按已确认计划待实施，authority 明确区分已实现和待实施。
+    reason: 缓存、AuthN、Execution、Serde、限流、CORS、Huma HTTP、otelhttp instrumentation、Data 与静态 Blueprint 均已按成熟方案和 owner/reload 证据收敛；authority 明确区分已实现边界与未来刷新条件。
   - id: module
     decision: updated
     documents:
@@ -36,6 +36,7 @@ areas:
     decision: updated
     documents:
       - docs/architecture/technology-selection.md
+      - docs/architecture/README.md
       - docs/development/application-module-development.md
       - docs/changes/057-technology-and-architecture-reassessment/README.md
       - docs/changes/057-technology-and-architecture-reassessment/design.md

@@ -111,10 +111,11 @@ func TestApplicationWebUICatalogProtectsIAMSecurityAndExposesNavigation(t *testi
 }
 
 func TestOperationPoliciesIncludeIAMSessionAuthorization(t *testing.T) {
-	policies, err := operationPolicies()
+	blueprint, err := newApplicationBlueprint()
 	if err != nil {
 		t.Fatal(err)
 	}
+	policies := blueprint.policyCopy()
 	for _, policy := range policies {
 		if policy.Operation == "iam.session.read" {
 			if policy.Scope != "iam:account:self:read" || policy.Action != "iam.session.read" {
@@ -127,15 +128,16 @@ func TestOperationPoliciesIncludeIAMSessionAuthorization(t *testing.T) {
 }
 
 func TestApplicationPermissionCatalogCoversCurrentOperationAndWebUIReferences(t *testing.T) {
-	catalog, err := applicationPermissionCatalog()
+	blueprint, err := newApplicationBlueprint()
 	if err != nil {
 		t.Fatal(err)
 	}
+	catalog := blueprint.permissions
 	definitions := catalog.Definitions()
 	if len(definitions) != 16 {
 		t.Fatalf("unexpected permission definitions: %#v", definitions)
 	}
-	if _, err := applicationWebUICatalog(); err != nil {
-		t.Fatalf("validate application permission references: %v", err)
+	if len(blueprint.webuiCatalog.Bindings) == 0 {
+		t.Fatal("validated application WebUI catalog is empty")
 	}
 }

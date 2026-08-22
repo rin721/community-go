@@ -37,7 +37,6 @@ import (
 	configbinding "github.com/rin721/go-scaffold-template/internal/module/todo/binding/config"
 	todohttp "github.com/rin721/go-scaffold-template/internal/module/todo/binding/http"
 	httptransport "github.com/rin721/go-scaffold-template/internal/transport/http"
-	webuicontract "github.com/rin721/go-scaffold-template/internal/webui"
 	"github.com/rin721/go-scaffold-template/pkg/clock"
 	"github.com/rin721/go-scaffold-template/pkg/httpx"
 	"github.com/rin721/go-scaffold-template/pkg/i18n"
@@ -50,6 +49,7 @@ import (
 
 type applicationGenerationFactory struct {
 	logging         *kernellogging.Manager
+	blueprint       *applicationBlueprint
 	hub             *httpx.ListenerHub
 	managementHub   *httpx.ListenerHub
 	scheduleHub     *scheduleapp.Hub
@@ -73,9 +73,10 @@ type applicationGenerationFactory struct {
 }
 
 type applicationGeneration struct {
-	factory  *applicationGenerationFactory
-	id       uint64
-	snapshot config.Snapshot
+	factory   *applicationGenerationFactory
+	blueprint *applicationBlueprint
+	id        uint64
+	snapshot  config.Snapshot
 
 	logger    *resourceHandle[logger.Logger]
 	database  *resourceHandle[databaseapp.Access]
@@ -94,7 +95,6 @@ type applicationGeneration struct {
 	organizationModule organization.HTTPModule
 	navigationModule   navigation.HTTPModule
 	opsModule          ops.Module
-	webuiCatalog       webuicontract.Catalog
 	participants       []supervisor.Participant
 	route              *httpx.PreparedRoute
 	server             *httpx.Server
@@ -118,12 +118,26 @@ type applicationGeneration struct {
 	terminalErr         error
 }
 
-func newApplicationGenerationFactory(logging *kernellogging.Manager, applicationName string) (*applicationGenerationFactory, error) {
+func newApplicationGenerationFactory(logging *kernellogging.Manager, applicationName string, provided ...*applicationBlueprint) (*applicationGenerationFactory, error) {
 	if logging == nil {
 		return nil, fmt.Errorf("application generation logging manager is nil")
 	}
 	if applicationName == "" {
 		return nil, fmt.Errorf("application generation application name is empty")
+	}
+	var blueprint *applicationBlueprint
+	if len(provided) > 1 {
+		return nil, fmt.Errorf("application generation accepts at most one blueprint")
+	}
+	if len(provided) == 1 {
+		blueprint = provided[0]
+	}
+	if blueprint == nil {
+		var err error
+		blueprint, err = newApplicationBlueprint()
+		if err != nil {
+			return nil, err
+		}
 	}
 	hub, err := httpx.NewListenerHub(0)
 	if err != nil {
@@ -134,7 +148,7 @@ func newApplicationGenerationFactory(logging *kernellogging.Manager, application
 		return nil, err
 	}
 	factory := &applicationGenerationFactory{
-		logging: logging, hub: hub, managementHub: managementHub,
+		logging: logging, blueprint: blueprint, hub: hub, managementHub: managementHub,
 		scheduleHub: scheduleapp.NewHub(), messagingHub: messagingapp.NewHub(), applicationName: applicationName,
 		build:         opsmodel.BuildInfo{Version: "test", Commit: "unknown", BuildTime: "unknown", GoVersion: runtime.Version(), Dirty: true},
 		loggerPool:    newResourcePool[logger.Logger]("logger"),
@@ -159,7 +173,7 @@ func (f *applicationGenerationFactory) Prepare(
 		return nil, fmt.Errorf("application generation prepare context is nil")
 	}
 	generation := &applicationGeneration{
-		factory: f, id: f.nextID.Add(1), snapshot: snapshot, runDone: make(chan struct{}), managementRunDone: make(chan struct{}),
+		factory: f, blueprint: f.blueprint, id: f.nextID.Add(1), snapshot: snapshot, runDone: make(chan struct{}), managementRunDone: make(chan struct{}),
 	}
 	abort := func(cause error) (kernel.PreparedGeneration, error) {
 		cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), kernel.DefaultReloadTimeout)
@@ -302,14 +316,8 @@ func (f *applicationGenerationFactory) Prepare(
 	if err != nil {
 		return abort(err)
 	}
-	policies, err := operationPolicies()
-	if err != nil {
-		return abort(err)
-	}
-	permissionCatalog, err := applicationPermissionCatalog()
-	if err != nil {
-		return abort(err)
-	}
+	policies := generation.blueprint.policyCopy()
+	permissionCatalog := generation.blueprint.permissions
 	iamConfig, err := iamconfig.Decode(snapshot)
 	if err != nil {
 		return abort(err)
@@ -328,11 +336,7 @@ func (f *applicationGenerationFactory) Prepare(
 	if err != nil {
 		return abort(err)
 	}
-	generation.webuiCatalog, err = applicationWebUICatalog()
-	if err != nil {
-		return abort(fmt.Errorf("compose WebUI catalog: %w", err))
-	}
-	navigationCatalog, err := newNavigationCatalogAdapter(generation.webuiCatalog)
+	navigationCatalog, err := newNavigationCatalogAdapter(generation.blueprint.webuiCatalog)
 	if err != nil {
 		return abort(err)
 	}
@@ -444,7 +448,7 @@ func (f *applicationGenerationFactory) Prepare(
 		Runtime: generationOpsSource{process: f.opsRuntime, generation: generation}, Build: f.build, Config: opsConfig,
 		Logger:        generation.logger.value(),
 		Observability: pkgobservability.Capabilities{Metrics: generation.metrics.value(), Telemetry: generation.telemetry.output},
-		Access:        opsAccessAdapter{auth: generation.authModule}, Operations: opsOperations(),
+		Access:        opsAccessAdapter{auth: generation.authModule}, Operations: generation.blueprint.operationCopy(),
 	})
 	if err != nil {
 		return abort(err)
@@ -505,7 +509,7 @@ func (f *applicationGenerationFactory) Prepare(
 	if err != nil {
 		return abort(err)
 	}
-	manifestHandler, err := newWebUIManifestHandler(generation.webuiCatalog, navigationPolicyProvider(generation.navigationModule.Service, generation.webuiCatalog), generation.authModule.Service, applicationWebUIAvailability)
+	manifestHandler, err := newWebUIManifestHandler(generation.blueprint.webuiCatalog, navigationPolicyProvider(generation.navigationModule.Service, generation.blueprint.webuiCatalog), generation.authModule.Service, applicationWebUIAvailability)
 	if err != nil {
 		return abort(err)
 	}

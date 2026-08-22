@@ -5,7 +5,7 @@
 - 研究门禁：**已通过**。
 - 纯文档实施：**已完成，按纯文档例外直接验证并提交**。
 - 整体方案：**已通过完成性审计**。R001–R013 已覆盖全部当前能力、剩余技术选择和 owner/reload 承载架构；R012/R013 补齐了原计划遗漏的浏览器安全与标准 HTTP instrumentation，实施任务、依赖和停止条件已冻结。
-- 非文档实施：**剩余整体计划已确认并进入实施**；Batch A 至 `DATA-057-003` 的已排期任务均已完成，静态 Blueprint 与最终审计仍按冻结依赖顺序推进。
+- 非文档实施：**剩余整体计划已确认并进入实施**；Batch A 至 `ARCH-057-002` 的实施任务均已完成，剩余最终审计按冻结依赖推进。
 
 ## 范围
 
@@ -48,5 +48,5 @@
 - 浏览器安全采用 `rs/cors v1.11.1` 处理标准 CORS header/Vary/preflight，并用 Go `CrossOriginProtection` 加固 unsafe cross-site 请求；项目保留 default-deny/Problem 与 IAM Session CSRF token。显式三项安全头继续保留，不引入无法决定 HSTS/CSP 部署策略的 `unrolled/secure`。
 - HTTP Observability 采用官方 `otelhttp v0.70.0` 并对齐 OTel v1.45.0，删除手工 TraceContext/server span/status instrumentation；Generation lease、低基数 operation、项目 Prometheus、trace ID bridge 与 exporter lifecycle 保持项目边界。
 - 模块自有 Repository port、permission key、migration SQL 和 operation 语义具有项目特有价值；通用算法和框架机制不应继续默认自研。
-- Application Generation 继续承载 resource/server/participant/runtime module 的候选事务；纯 permission/WebUI/policy/HTTP contract 声明移到启动期 `applicationBlueprint`。当前不强行静态化全部 Service，也不做一次性 Kernel 重写。
+- Application Generation 继续承载 resource/server/participant/runtime module 的候选事务；纯 permission/WebUI/policy/HTTP contract 声明已移到启动期 `applicationBlueprint`，所有 Generation 与 CLI 共享同一实例。当前不强行静态化全部 Service，也不做一次性 Kernel 重写。
 - 030、037、038 等历史任务是实施证据，不再自动构成继续沿用其依赖或承载架构的理由；安全、维护状态和新用例必须按本基线刷新。

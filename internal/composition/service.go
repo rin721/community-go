@@ -11,6 +11,7 @@ import (
 	"github.com/rin721/go-scaffold-template/internal/kernel/config"
 	authmodel "github.com/rin721/go-scaffold-template/internal/module/auth/model"
 	opsmodel "github.com/rin721/go-scaffold-template/internal/module/ops/model"
+	"github.com/rin721/go-scaffold-template/internal/transport/http/humabinding"
 	"github.com/rin721/go-scaffold-template/pkg/httpx"
 	"github.com/rin721/go-scaffold-template/pkg/logger"
 	"github.com/rin721/go-scaffold-template/pkg/supervisor"
@@ -60,7 +61,7 @@ func (a *Application) newServiceRuntime() (*serviceRuntime, error) {
 	if err != nil {
 		return nil, fmt.Errorf("compose service configuration bindings: %w", err)
 	}
-	factory, err := newApplicationGenerationFactory(a.config.Logging, a.config.Name)
+	factory, err := newApplicationGenerationFactory(a.config.Logging, a.config.Name, a.blueprint)
 	if err != nil {
 		return nil, fmt.Errorf("create application generation factory: %w", err)
 	}
@@ -158,11 +159,7 @@ func applicationRouter(
 	return router, nil
 }
 
-func operationPolicies() ([]authmodel.Policy, error) {
-	definitions, err := applicationHTTPCatalog()
-	if err != nil {
-		return nil, err
-	}
+func operationPoliciesFromDefinitions(definitions []humabinding.Definition) ([]authmodel.Policy, error) {
 	policies := make([]authmodel.Policy, 0, 8)
 	for _, operation := range definitions {
 		policies = append(policies, authmodel.Policy{Operation: operation.ID, Mode: authmodel.PolicyMode(operation.Policy), Scope: authmodel.Scope(operation.Scope), Action: authmodel.Action(operation.Action)})

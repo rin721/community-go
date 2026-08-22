@@ -1,6 +1,6 @@
 # 架构说明
 
-本目录是当前架构阅读入口。项目采用显式 composition root，把底层能力、Application Generation、业务模块和进程生命周期连接成单轨运行模型；不依赖包扫描、运行期 Service Locator 或隐式全局状态。
+本目录是当前架构阅读入口。项目采用显式 composition root，把启动期 immutable `applicationBlueprint`、底层能力、Application Generation、业务模块和进程生命周期连接成单轨运行模型；不依赖包扫描、运行期 Service Locator 或隐式全局状态。
 
 ## 阅读主线
 
@@ -16,7 +16,8 @@
 
 - `cmd/app` 只负责进程 I/O、基线日志、参数分支和信号入口。
 - `internal/composition` 是唯一应用 composition root，显式装配 Bootstrap CLI、migration one-shot 与长期 Service。
-- 长期 Service 通过 Application Generation 管理配置快照、资源复用、listener、HTTP route、定时任务、消息 Consumer 准入、ready 状态和优雅停止。
+- `Application.New` 一次构造并校验 `applicationBlueprint`，冻结 permission/WebUI/operation policy/HTTP definition；长期 Service 的所有 Generation 与 one-shot CLI 都只引用该 Blueprint。
+- 长期 Service 通过 Application Generation 管理配置快照、资源复用、runtime module/Handler、listener、HTTP route、定时任务、消息 Consumer 准入、compatibility、ready 状态和优雅停止。
 - 业务模块位于 `internal/module/<name>`，通过 typed contribution 交给 composition 聚合，不扫描、不隐式注册。
 - `pkg/<name>` 只暴露项目自有能力契约；第三方具体类型留在 Adapter 或 Kernel App 实现内。
 
@@ -34,7 +35,7 @@
 
 ## 生命周期治理
 
-Service 使用 `GenerationCoordinator -> GenerationFactory -> typed resource pools -> ListenerHub`。候选 Generation 从同一配置快照构造 Logger、Database、Cache、I18n、Storage、Execution、Scheduler、Messaging、IAM、Organization、Navigation、Todo、Auth、Ops、HTTP route 和 management route；Prepare 失败时 current 不变，Commit 后旧代排空并释放资源，清理失败进入 cleanup debt 并撤销 readiness。Navigation 每次 Manifest 请求读取当前数据库策略并投影静态 Catalog，不创建 watcher、cache 或独立生命周期资源。
+Service 使用 `applicationBlueprint -> GenerationCoordinator -> GenerationFactory -> typed resource pools -> ListenerHub`。候选 Generation 从同一配置快照构造 Logger、Database、Cache、I18n、Storage、Execution、Scheduler、Messaging、IAM、Organization、Navigation、Todo、Auth、Ops、HTTP route 和 management route，并引用启动期 Blueprint；Prepare 失败时 current 不变，Commit 后旧代排空并释放资源，清理失败进入 cleanup debt 并撤销 readiness。Navigation 每次 Manifest 请求读取当前数据库策略并投影 Blueprint 的静态 Catalog，不创建 watcher、cache 或独立生命周期资源。
 
 one-shot CLI 走 Bootstrap 或 invocation-scoped Kernel 路径，不启动长期 watcher、HTTP listener、schedule 或 messaging Consumer。
 

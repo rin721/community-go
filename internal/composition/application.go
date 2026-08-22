@@ -64,7 +64,10 @@ type BuildInfo struct {
 }
 
 // Application 按参数选择 Bootstrap/Application CLI 或长期 Service 模式。
-type Application struct{ config Config }
+type Application struct {
+	config    Config
+	blueprint *applicationBlueprint
+}
 
 // Run 从进程入口输入构造基线日志与 Application，并完整释放入口拥有的日志资源。
 func Run(ctx context.Context, cfg EntryConfig, args []string) (runErr error) {
@@ -115,7 +118,11 @@ func New(cfg Config) (*Application, error) {
 	if cfg.Build.Version == "" || cfg.Build.Commit == "" || cfg.Build.BuildTime == "" || cfg.Build.GoVersion == "" {
 		return nil, fmt.Errorf("application build information is incomplete")
 	}
-	return &Application{config: cfg}, nil
+	blueprint, err := newApplicationBlueprint()
+	if err != nil {
+		return nil, fmt.Errorf("compose application blueprint: %w", err)
+	}
+	return &Application{config: cfg, blueprint: blueprint}, nil
 }
 
 func (b BuildInfo) opsModel() opsmodel.BuildInfo {

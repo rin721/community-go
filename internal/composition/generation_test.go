@@ -144,7 +144,8 @@ func TestAllConfigurationSectionsCommitOneGeneration(t *testing.T) {
 	configPath := filepath.Join(directory, "config.yaml")
 	payload := generationConfig(directory, 120, 1<<20, filepath.Join(directory, "todo.db"))
 	writeGenerationConfig(t, configPath, payload)
-	coordinator, _ := newGenerationTestCoordinator(t, configPath)
+	coordinator, factory := newGenerationTestCoordinator(t, configPath)
+	blueprint := factory.blueprint
 	if err := coordinator.Start(t.Context()); err != nil {
 		t.Fatalf("Start() error = %v", err)
 	}
@@ -176,6 +177,9 @@ func TestAllConfigurationSectionsCommitOneGeneration(t *testing.T) {
 	}
 	if diagnostics := coordinator.Diagnostics(); diagnostics.CurrentGeneration != 2 || diagnostics.CandidateGeneration != 0 || fmt.Sprint(diagnostics.ResourceReused) != fmt.Sprint([]string{"observability.metrics", "execution"}) {
 		t.Fatalf("Diagnostics() = %#v", diagnostics)
+	}
+	if blueprint == nil || factory.blueprint != blueprint || factory.currentGeneration().blueprint != blueprint {
+		t.Fatal("reload rebuilt or replaced the startup application blueprint")
 	}
 }
 

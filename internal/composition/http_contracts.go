@@ -73,12 +73,16 @@ func applicationWebUIAvailability(string) webuicontract.Availability {
 
 // applicationWebUICatalog 是 WebUI runtime 与前端生成器共享的唯一声明汇总点。
 func applicationWebUICatalog() (webuicontract.Catalog, error) {
-	registrations := applicationWebUIModules()
-	catalog, err := webuicontract.BuildApplicationCatalog(registrations, applicationWebUISDKInventory())
+	blueprint, err := newApplicationBlueprint()
 	if err != nil {
 		return webuicontract.Catalog{}, err
 	}
-	definitions, err := applicationHTTPCatalog()
+	return blueprint.webuiCatalog, nil
+}
+
+func buildApplicationWebUICatalog(definitions []humabinding.Definition, permissions permissioncatalog.Catalog, policies []authmodel.Policy) (webuicontract.Catalog, error) {
+	registrations := applicationWebUIModules()
+	catalog, err := webuicontract.BuildApplicationCatalog(registrations, applicationWebUISDKInventory())
 	if err != nil {
 		return webuicontract.Catalog{}, err
 	}
@@ -89,14 +93,6 @@ func applicationWebUICatalog() (webuicontract.Catalog, error) {
 	operations["ops.diagnostics"] = struct{}{}
 	operations["ops.metrics"] = struct{}{}
 	if err := catalog.ValidateOperationReferences(operations); err != nil {
-		return webuicontract.Catalog{}, err
-	}
-	permissions, err := applicationPermissionCatalog()
-	if err != nil {
-		return webuicontract.Catalog{}, err
-	}
-	policies, err := operationPolicies()
-	if err != nil {
 		return webuicontract.Catalog{}, err
 	}
 	policyByOperation := make(map[string]authmodel.Policy, len(policies))

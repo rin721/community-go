@@ -23,7 +23,7 @@
 | Configuration | R008 | 保留 strict candidate/binding/stable-file；不引入无净删除的 koanf/Viper | `CONFIG-057-001` 文档完成 |
 | Scheduling/Messaging | R001/R002 | 保留 gocron trigger、amqp091-go Adapter 与项目 execution/lease/lifecycle；无 durable workflow/Kafka/NATS 需求不预选 | 无新增任务 |
 | Observability | R001/R013 | otelhttp 接管标准 HTTP instrumentation；保留 OTel/Prometheus resource、低基数与 diagnostics owner | `OBS-057-001` |
-| 承载架构 | R001/R011 | Generation 保留运行态事务；纯 catalog/policy/contract 提升为启动期 Blueprint | `ARCH-057-001` 文档完成、`ARCH-057-002` 待实施 |
+| 承载架构 | R001/R011 | Generation 保留运行态事务；纯 catalog/policy/contract 已提升为启动期 Blueprint | `ARCH-057-001/002` 已完成 |
 
 ## 任务清单
 
@@ -48,7 +48,7 @@
 | DATA-057-002 | E | 迁移 IAM 与 Organization concrete repository/Unit | DATA-057-001、整体计划已确认 | 已完成 | multi-repository transaction、unique/FK、session revoke、catalog reconcile、optimistic update 与 SQLite runtime contract 通过；三方言 migration 不改写；Postgres/MySQL runtime contract 需外部 DSN |
 | DATA-057-003 | E | 删除反射式 generic Repository/Schema/Query | DATA-057-002、整体计划已确认 | 已完成 | 删除 BaseRepository、Schema/Field/Index/Reference、Query/Filter/Order/Page/Changes、dynamic model 及旧测试；无 AutoMigrate/兼容层/GORM 业务泄漏 |
 | ARCH-057-001 | 文档 | 建立 owner/reload 矩阵并冻结最小静态 Blueprint 设计 | R011 | 已完成 | 每项 reload 收益、准入、并存、排空与目标 owner 明确；首片不静态化全部 Service |
-| ARCH-057-002 | F | 实施启动期 immutable applicationBlueprint | HTTP-057-001 registration 形态冻结，宜在 HTTP-057-002 后；整体计划已确认 | 已确认 | permission/WebUI/policy/contract 只构造一次；Generation 删除重复入口；多 section reload 行为不退化；无 proxy/容器/平行框架 |
+| ARCH-057-002 | F | 实施启动期 immutable applicationBlueprint | HTTP-057-001 registration 形态冻结，宜在 HTTP-057-002 后；整体计划已确认 | 已完成 | permission/WebUI/policy/contract 只构造一次；Generation 删除重复入口；多 section reload 行为不退化；无 proxy/容器/平行框架 |
 | VER-057-001 | 全部 | 执行与每批相匹配的测试、race/vet、生成、文档和安全门禁 | 对应实施任务；整体计划已确认 | 已确认 | 所有已执行/未执行项和剩余风险如实记录 |
 
 ## 整体实施顺序与确认方式
@@ -142,6 +142,9 @@ HTTP 第一片失败、Data 边界泄漏或 Blueprint 无净删除时，不以�
 | 2026-08-22 | DATA-057-003 实施 | 删除 `repository.go`、`schema.go`、`query.go`、dynamic model/fixture、quote helper 与旧 generic public tests；`pkg/database` 只保留 resource/lease/transaction/error/migration status/session bridge。旧 query/schema 错误随 owner 删除，migration table identifier 使用新的窄错误；无兼容 alias 或第二轨 |
 | 2026-08-22 | DATA-057-003 架构门禁 | package graph 继续只允许 GORM 进入 `pkg/database` 与 module `repo`；新增测试锁定旧 generic 文件不存在，并拒绝 production `.AutoMigrate(`。全仓搜索只在 057 目标/历史变更证据中保留旧符号，不存在 production 调用方或当前使用说明 |
 | 2026-08-22 | DATA-057-003 完整质量门禁 | `Verify-Quality.ps1` 的 gofmt、tidy diff、layout、generate/clean diff、全量 test/race、vet、CGO-free build 均通过；最终仍只因范围外两个既有 tracked app.db 返回失败。一次 Windows 临时 config 文件锁导致 architecture 定向测试失败，串行立即复跑通过，完整门禁随后也通过，不归因于实现 |
+| 2026-08-22 | ARCH-057-002 实施 | `Application.New` 一次构造并校验 private `applicationBlueprint`，冻结 permission catalog、WebUI catalog、operation policies、31 项 HTTP definitions 与 observability inventory；Factory/Generation/CLI 共享同一实例。Generation 删除三处静态 catalog/policy 重建，继续拥有 runtime module/Handler、resource、participant、compatibility 和 route handoff |
+| 2026-08-22 | ARCH-057-002 架构门禁 | 多 section reload 测试断言 Factory 与新 Generation 的 Blueprint identity 不变，同时保持 generation ID、resource built/reused、listener route、readiness 与 compatibility 断言；policy getter 返回独立 slice。未增加 proxy、Service Locator、反射 DI、容器或第二套 lifecycle |
+| 2026-08-22 | ARCH-057-002 完整质量门禁 | composition/cmd 定向 test 与 composition race 通过；`Verify-Quality.ps1` 的 gofmt、tidy diff、layout、generate/clean diff、全量 test/race、vet、CGO-free build 均通过，最终仍只因范围外两个既有 tracked app.db 返回失败。OpenAPI/operation inventory 与 WebUI registry 生成保持 clean |
 | 2026-08-22 | HTTP 第一片完整质量与安全门禁 | 定向测试、`go test ./... -count=1`、`go test -race ./... -count=1`、`go vet ./...`、`Verify-Docs.ps1`、`git diff --check` 与 `govulncheck -show verbose ./...` 通过；漏洞为 0 reachable、0 imported-package，仍仅有不可达 GO-2026-6222/5932。`Verify-Quality.ps1` 的 gofmt/tidy/layout/generate/test/race/vet/CGO-free build 通过，最终只因范围外两个既有 tracked `old-backend/**/app.db` 返回失败，本任务未修改或删除 |
 
 ## Commit

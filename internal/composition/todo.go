@@ -78,10 +78,7 @@ func (a *Application) prepareTodo(ctx context.Context) (preparedTodo, error) {
 	if err != nil {
 		return preparedTodo{}, err
 	}
-	policies, err := operationPolicies()
-	if err != nil {
-		return preparedTodo{}, err
-	}
+	policies := a.blueprint.policyCopy()
 	authModule, err := auth.NewLocal(auth.Dependencies{
 		Clock: capabilities.Clock, Logger: capabilities.Logger, Policies: policies,
 	})

@@ -3,10 +3,11 @@ package composition
 import "testing"
 
 func TestApplicationHTTPRegistrationsAreComplete(t *testing.T) {
-	definitions, err := applicationHTTPCatalog()
+	blueprint, err := newApplicationBlueprint()
 	if err != nil {
 		t.Fatal(err)
 	}
+	definitions := blueprint.httpDefinitions
 	if len(definitions) != 31 {
 		t.Fatalf("operation count = %d", len(definitions))
 	}
@@ -18,5 +19,18 @@ func TestApplicationHTTPRegistrationsAreComplete(t *testing.T) {
 		if _, ok := seen[id]; !ok {
 			t.Fatalf("missing operation %q", id)
 		}
+	}
+}
+
+func TestApplicationBlueprintReturnsIndependentPolicyCopies(t *testing.T) {
+	blueprint, err := newApplicationBlueprint()
+	if err != nil {
+		t.Fatal(err)
+	}
+	first := blueprint.policyCopy()
+	first[0].Operation = "mutated"
+	second := blueprint.policyCopy()
+	if second[0].Operation == "mutated" {
+		t.Fatal("blueprint policy slice is mutable through its consumer copy")
 	}
 }

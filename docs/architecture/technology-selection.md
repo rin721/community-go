@@ -51,16 +51,16 @@
 
 ### 1. 恢复静态对象图与动态资源平面分工
 
-当前 Application Generation 会一起重建底层资源、业务模块、路由、Scheduler、Messaging、管理面和纯静态 catalog/contract。R011 已区分真正需要候选事务的运行态与无 reload 价值的代码声明。
+Application Generation 原先会一起重建底层资源、业务模块、路由、Scheduler、Messaging、管理面和纯静态 catalog/contract。R011 已区分真正需要候选事务的运行态与无 reload 价值的代码声明，当前已完成首个 owner 修正切片。
 
-后续必须以真实配置变化和可用性收益逐项证明热重载价值。默认目标是：
+后续仍必须以真实配置变化和可用性收益逐项证明热重载价值。当前边界是：
 
-- permission、WebUI、operation policy 和 HTTP contract definitions 进入启动期 immutable `applicationBlueprint`；
+- permission、WebUI、operation policy 和 HTTP contract definitions 已进入启动期 immutable `applicationBlueprint`，所有 Generation 与 CLI 共享；
 - 只有能定义候选构造、准入、排空、回滚和资源所有权的能力进入动态平面；
 - 不适合并存或热换的能力明确 `RestartRequired`，不为“无感”叠加兼容状态机；
 - runtime Service/Handler 当前仍依赖当代 config/resource 与跨模块 port，暂留 Generation；没有稳定 handle 证据前不引入 proxy、Fx 或反射 DI。
 
-该目标已经形成 owner/reload 矩阵，最小切片是 `applicationBlueprint`。它依赖 Huma 第一片冻结 contract registration 形态，实施后用构造次数、identity 和 reload 行为证明收益；不允许一次性重写 Kernel。
+该目标已经形成 owner/reload 矩阵，最小 `applicationBlueprint` 切片已通过 identity 和多 section reload 测试；Generation 仍拥有 runtime module、资源、participant、compatibility 与 route handoff，不允许一次性重写 Kernel。
 
 ### 2. 把技术策略从通用 Client 中拆出
 
@@ -78,6 +78,6 @@ HTTP 重试、熔断、限流、缓存加载和执行恢复都涉及不同的幂
 4. **HTTP 单轨迁移**：先以代表性 operation 验证 Huma + OperationGate + Problem + static generation，再迁移全部模块并删除旧 contract/codec/kin-openapi validation。
 5. **浏览器安全与标准 instrumentation**：CORS 已以 rs/cors/CrossOriginProtection 单轨替换手工协议部分；Huma 全量迁移后已以 otelhttp 替换手工 HTTP span/propagation。
 6. **Data 单轨边界**：已建立受租约约束的 GORM session bridge，全部 module repo 使用 concrete record + direct GORM，generic Schema/Query/Repository 已删除；架构门禁拒绝 GORM 向业务核心传播和 production AutoMigrate。
-7. **架构切片**：在 Huma registration 形态冻结后引入启动期 `applicationBlueprint`，移出纯 catalog/policy/contract；runtime graph 继续由 Generation 原子切换。
+7. **架构切片**：启动期 `applicationBlueprint` 已移出纯 catalog/policy/contract；runtime graph 继续由 Generation 原子切换，后续 owner 调整必须另以真实收益研究。
 
 每一步都是非文档变更，必须使用 057 的明确任务 ID，在计划报告后的后续消息中获得确认；新事实改变依赖、公共接口、迁移或生命周期边界时重新研究和确认。

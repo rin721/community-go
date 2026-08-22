@@ -11,7 +11,6 @@ import (
 	authmodel "github.com/rin721/go-scaffold-template/internal/module/auth/model"
 	httpbinding "github.com/rin721/go-scaffold-template/internal/module/ops/binding/http"
 	opsmodel "github.com/rin721/go-scaffold-template/internal/module/ops/model"
-	pkgobservability "github.com/rin721/go-scaffold-template/pkg/observability"
 	"github.com/rin721/go-scaffold-template/pkg/supervisor"
 )
 
@@ -133,18 +132,6 @@ func (s generationOpsSource) Readiness(ctx context.Context) (bool, bool, error) 
 		return authReady, false, nil
 	}
 	return authReady, true, nil
-}
-
-func opsOperations() []pkgobservability.Operation {
-	var result []pkgobservability.Operation
-	definitions, err := applicationHTTPCatalog()
-	if err != nil {
-		return nil
-	}
-	for _, operation := range definitions {
-		result = append(result, pkgobservability.Operation{ID: operation.ID, Method: operation.Method, Path: operation.Path})
-	}
-	return result
 }
 
 var _ httpbinding.Access = opsAccessAdapter{}

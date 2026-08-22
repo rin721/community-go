@@ -142,7 +142,7 @@ model <- service <- repo
 1. 用 Model 表达业务状态与不变量；没有独立领域行为时不制造空领域层。
 2. Service 定义用例和自己需要的 Repository、跨模块、Clock、ID 等窄 port。
 3. 先用 fake port、固定时间和固定 ID 验证成功、冲突、依赖失败、取消与超时。
-4. 实现实际需要的数据库、缓存、远程协议或其他 Adapter，并验证第三方错误转换、exported 类型、配置和资源边界；只有跨业务复用与进程统一选择两项均有证据时才走完整底层 Capability 路径。
+4. 实现实际需要的数据库、缓存、远程协议或其他 Adapter，并验证第三方错误转换、exported 类型、配置和资源边界；模块 `repo` 可在 `pkg/database` 的租约 callback 内直接使用 GORM concrete record，但不得把 GORM 类型带入 Service、Model、port 或 composition。只有跨业务复用与进程统一选择两项均有证据时才走完整底层 Capability 路径。
 5. 实现真实验收需要的 HTTP、CLI 或后台入口；HTTP 语义适配落在模块顶层 `handler/`（实现 `Operations`、DTO、错误呈现与 `ActorAccess`），`binding/http` 拥有 Huma typed input/output、operation metadata 与无资源 registration；handler 不创建 Router、不加载 OpenAPI、不 import `binding/**`、`internal/transport/**` 或 Huma；不同入口复用同一 Service，不互相回环。
 6. `module.go` 只做无 I/O、无 goroutine、无资源探测的局部装配，并返回窄 Handler/Service 与完成品 contribution。
 7. `internal/composition` 显式选择模块、适配最小 Capability、连接跨模块 port、聚合模块基础契约与运行期 handler、合并 contribution 并建立 Host；`internal/tools/contract-gen` 从模块契约生成 `api/openapi.yaml` 与 operation inventory，`internal/transport/http` 只把完整契约绑定一次路由与校验。

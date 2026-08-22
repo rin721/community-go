@@ -11,7 +11,10 @@ import (
 	"github.com/rin721/go-scaffold-template/internal/module/todo/service"
 	"github.com/rin721/go-scaffold-template/pkg/database"
 	"github.com/rin721/go-scaffold-template/pkg/fault"
+	"gorm.io/gorm"
 )
+
+const todoTable = "todos"
 
 // Record 是 Todo 的持久化模型；它不向 Service 或协议边界传播。
 type Record struct {
@@ -34,26 +37,22 @@ type Access interface {
 // Repository 使用稳定 Database Access 实现 Todo 持久化。
 type Repository struct {
 	access Access
-	schema database.Schema
 }
 
 // New 创建不获取数据库租约的 Repository。
-func New(access Access, schema database.Schema) (*Repository, error) {
+func New(access Access) (*Repository, error) {
 	if access == nil {
 		return nil, fmt.Errorf("todo database access is nil")
 	}
-	return &Repository{access: access, schema: schema}, nil
+	return &Repository{access: access}, nil
 }
 
 // Create 创建 Todo。
 func (r *Repository) Create(ctx context.Context, todo model.Todo) (model.Todo, error) {
 	record := recordFromModel(todo)
+	record.Version = 1
 	err := r.access.Use(ctx, func(client database.Client) error {
-		repository, err := database.NewRepository[Record](client, r.schema)
-		if err != nil {
-			return err
-		}
-		return repository.Create(ctx, &record)
+		return database.UseGORM(ctx, client, func(db *gorm.DB) error { return db.Table(todoTable).Create(&record).Error })
 	})
 	if err != nil {
 		return model.Todo{}, translate(err, "todo.repo.create")
@@ -65,14 +64,7 @@ func (r *Repository) Create(ctx context.Context, todo model.Todo) (model.Todo, e
 func (r *Repository) Get(ctx context.Context, id string) (model.Todo, error) {
 	var record Record
 	err := r.access.Use(ctx, func(client database.Client) error {
-		repository, err := database.NewRepository[Record](client, r.schema)
-		if err != nil {
-			return err
-		}
-		record, err = repository.First(ctx, database.Query{Filters: []database.Filter{{
-			Field: "ID", Operator: database.OpEqual, Value: id,
-		}}})
-		return err
+		return database.UseGORM(ctx, client, func(db *gorm.DB) error { return db.Table(todoTable).Where("id = ?", id).First(&record).Error })
 	})
 	if err != nil {
 		return model.Todo{}, translate(err, "todo.repo.get")
@@ -84,32 +76,17 @@ func (r *Repository) Get(ctx context.Context, id string) (model.Todo, error) {
 func (r *Repository) List(ctx context.Context, filter service.ListFilter) ([]model.Todo, int64, error) {
 	var records []Record
 	var total int64
-	err := r.access.WithinTx(ctx, func(txCtx context.Context, client database.Client, tx database.Tx) error {
-		base, err := database.NewRepository[Record](client, r.schema)
-		if err != nil {
-			return err
-		}
-		repository, err := base.WithTx(tx)
-		if err != nil {
-			return err
-		}
-		filters := []database.Filter{{Field: "OwnerSubject", Operator: database.OpEqual, Value: filter.OwnerSubject}}
-		if filter.Status != nil {
-			filters = append(filters, database.Filter{Field: "Status", Operator: database.OpEqual, Value: string(*filter.Status)})
-		}
-		total, err = repository.Count(txCtx, database.Query{Filters: filters})
-		if err != nil {
-			return err
-		}
-		records, err = repository.Find(txCtx, database.Query{
-			Filters: filters,
-			Orders: []database.Order{
-				{Field: "CreatedAt", Direction: database.OrderDescending},
-				{Field: "ID", Direction: database.OrderAscending},
-			},
-			Page: &database.Page{Offset: filter.Offset, Limit: filter.Limit},
+	err := r.access.WithinTx(ctx, func(txCtx context.Context, _ database.Client, tx database.Tx) error {
+		return database.UseGORMTx(txCtx, tx, func(db *gorm.DB) error {
+			query := db.Table(todoTable).Where("owner_subject = ?", filter.OwnerSubject)
+			if filter.Status != nil {
+				query = query.Where("status = ?", string(*filter.Status))
+			}
+			if err := query.Count(&total).Error; err != nil {
+				return err
+			}
+			return query.Order("created_at DESC").Order("id ASC").Offset(filter.Offset).Limit(filter.Limit).Find(&records).Error
 		})
-		return err
 	})
 	if err != nil {
 		return nil, 0, translate(err, "todo.repo.list")
@@ -129,23 +106,16 @@ func (r *Repository) List(ctx context.Context, filter service.ListFilter) ([]mod
 func (r *Repository) Save(ctx context.Context, todo model.Todo) (model.Todo, error) {
 	var record Record
 	err := r.access.Use(ctx, func(client database.Client) error {
-		repository, err := database.NewRepository[Record](client, r.schema)
-		if err != nil {
-			return err
-		}
-		filters := []database.Filter{
-			{Field: "ID", Operator: database.OpEqual, Value: todo.ID},
-			{Field: "Version", Operator: database.OpEqual, Value: todo.Version},
-		}
-		if _, err := repository.Update(ctx, database.Query{Filters: filters}, database.Changes{
-			"Status": string(todo.Status), "UpdatedAt": todo.UpdatedAt, "CompletedAt": todo.CompletedAt,
-		}); err != nil {
-			return err
-		}
-		record, err = repository.First(ctx, database.Query{Filters: []database.Filter{{
-			Field: "ID", Operator: database.OpEqual, Value: todo.ID,
-		}}})
-		return err
+		return database.UseGORM(ctx, client, func(db *gorm.DB) error {
+			result := db.Table(todoTable).Where("id = ? AND version = ?", todo.ID, todo.Version).Updates(map[string]any{"status": string(todo.Status), "updated_at": todo.UpdatedAt, "completed_at": todo.CompletedAt, "version": gorm.Expr("version + 1")})
+			if result.Error != nil {
+				return result.Error
+			}
+			if result.RowsAffected == 0 {
+				return database.ErrOptimisticConflict
+			}
+			return db.Table(todoTable).Where("id = ?", todo.ID).First(&record).Error
+		})
 	})
 	if err != nil {
 		return model.Todo{}, translate(err, "todo.repo.save")

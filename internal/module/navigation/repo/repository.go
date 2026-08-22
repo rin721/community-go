@@ -8,7 +8,10 @@ import (
 	"time"
 
 	"github.com/rin721/go-scaffold-template/pkg/database"
+	"gorm.io/gorm"
 )
+
+const policyTable = "navigation_menu_policies"
 
 type Access interface {
 	Use(context.Context, func(database.Client) error) error
@@ -27,7 +30,8 @@ type PolicyRecord struct {
 
 type Store struct{ access Access }
 type Unit struct {
-	policies *database.BaseRepository[PolicyRecord]
+	client database.Client
+	tx     database.Tx
 }
 
 func New(access Access) (*Store, error) {
@@ -56,33 +60,59 @@ func (store *Store) WithinTx(ctx context.Context, use func(context.Context, *Uni
 }
 
 func newUnit(client database.Client, tx database.Tx) (*Unit, error) {
-	repository, err := database.NewRepository[PolicyRecord](client, schema())
-	if err != nil {
-		return nil, err
+	if client == nil {
+		return nil, database.ErrClientUnavailable
 	}
-	if tx != nil {
-		repository, err = repository.WithTx(tx)
-		if err != nil {
-			return nil, err
-		}
+	return &Unit{client: client, tx: tx}, nil
+}
+
+func (unit *Unit) useDB(ctx context.Context, use func(*gorm.DB) error) error {
+	if unit.tx != nil {
+		return database.UseGORMTx(ctx, unit.tx, use)
 	}
-	return &Unit{policies: repository}, nil
+	return database.UseGORM(ctx, unit.client, use)
 }
-func schema() database.Schema {
-	return database.Schema{Table: "navigation_menu_policies", VersionField: "Version", Fields: []database.Field{{Name: "NavigationID", Column: "navigation_id", Type: database.FieldString, PrimaryKey: true, Length: 128}, {Name: "Enabled", Column: "enabled", Type: database.FieldBool}, {Name: "ParentOverride", Column: "parent_override", Type: database.FieldString, Length: 128, Nullable: true}, {Name: "OrderOverride", Column: "order_override", Type: database.FieldInt, Nullable: true}, {Name: "CatalogRevision", Column: "catalog_revision", Type: database.FieldString, Length: 64}, {Name: "Version", Column: "version", Type: database.FieldUint64}, {Name: "UpdatedAt", Column: "updated_at", Type: database.FieldTime}}}
-}
+
 func (unit *Unit) List(ctx context.Context) ([]PolicyRecord, error) {
-	return unit.policies.Find(ctx, database.Query{Orders: []database.Order{{Field: "NavigationID", Direction: database.OrderAscending}}})
+	var records []PolicyRecord
+	err := unit.useDB(ctx, func(db *gorm.DB) error {
+		return db.Table(policyTable).Order("navigation_id ASC").Find(&records).Error
+	})
+	return records, err
 }
 func (unit *Unit) ByID(ctx context.Context, id string) (PolicyRecord, error) {
-	return unit.policies.First(ctx, database.Query{Filters: []database.Filter{{Field: "NavigationID", Operator: database.OpEqual, Value: id}}})
+	var record PolicyRecord
+	err := unit.useDB(ctx, func(db *gorm.DB) error {
+		return db.Table(policyTable).Where("navigation_id = ?", id).First(&record).Error
+	})
+	return record, err
 }
 func (unit *Unit) Create(ctx context.Context, record *PolicyRecord) error {
-	return unit.policies.Create(ctx, record)
+	record.Version = 1
+	return unit.useDB(ctx, func(db *gorm.DB) error {
+		return db.Table(policyTable).Create(record).Error
+	})
 }
 func (unit *Unit) Update(ctx context.Context, record PolicyRecord, version uint64) error {
-	_, err := unit.policies.Update(ctx, database.Query{Filters: []database.Filter{{Field: "NavigationID", Operator: database.OpEqual, Value: record.NavigationID}, {Field: "Version", Operator: database.OpEqual, Value: version}}}, database.Changes{"Enabled": record.Enabled, "ParentOverride": record.ParentOverride, "OrderOverride": record.OrderOverride, "CatalogRevision": record.CatalogRevision, "UpdatedAt": record.UpdatedAt})
-	return err
+	return unit.useDB(ctx, func(db *gorm.DB) error {
+		result := db.Table(policyTable).
+			Where("navigation_id = ? AND version = ?", record.NavigationID, version).
+			Updates(map[string]any{
+				"enabled":          record.Enabled,
+				"parent_override":  record.ParentOverride,
+				"order_override":   record.OrderOverride,
+				"catalog_revision": record.CatalogRevision,
+				"updated_at":       record.UpdatedAt,
+				"version":          gorm.Expr("version + 1"),
+			})
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected == 0 {
+			return database.ErrOptimisticConflict
+		}
+		return nil
+	})
 }
 func IsNotFound(err error) bool { return errors.Is(err, database.ErrNotFound) }
 func IsConflict(err error) bool { return errors.Is(err, database.ErrOptimisticConflict) }

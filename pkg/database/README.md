@@ -1,6 +1,8 @@
 # database
 
-`pkg/database` 为上层业务提供稳定的 Schema、Repository 和事务能力。底层统一使用 GORM，但 GORM 类型、dialector、session、tag 和错误翻译都留在包内；业务实体和公开接口不依赖第三方类型。
+`pkg/database` 为上层业务提供稳定的资源、租约、事务与错误能力。底层统一使用 GORM；GORM 类型只允许出现在本包的显式 session bridge 和模块 `repo` 数据库 Adapter，不能进入模块 Service、Model、port 或 composition 公共契约。
+
+当前处于 `DATA-057` 单轨迁移期：Todo 与 Navigation 已使用 concrete record + direct GORM；IAM 与 Organization 尚使用旧 Schema/Repository，后续批次迁移完成后会删除旧通用抽象。本段只描述可验证的过渡状态，不表示允许新增旧式 Repository 调用方。
 
 ## 怎么运行
 
@@ -62,6 +64,20 @@ Schema 支持表、列、主键、nullable、长度、默认值、普通/唯一�
 
 ## 怎么使用 Repository
 
+新代码在模块 `repo` 内通过 `UseGORM`/`UseGORMTx` callback 使用当前租约的 session，并用具体 record 表达持久化结构：
+
+```go
+err := access.Use(ctx, func(client database.Client) error {
+	return database.UseGORM(ctx, client, func(db *gorm.DB) error {
+		return db.Table("accounts").Where("id = ?", id).First(&record).Error
+	})
+})
+```
+
+callback 返回时 session context 会被取消，`*gorm.DB` 不得保存或向上层返回。`Client.WithinTx` 仍拥有提交/回滚，只有事务 callback 内可以使用 `UseGORMTx`。查询必须绑定参数，更新必须显式限制条件并检查 `RowsAffected`；业务错误在 module repo 边界转换。
+
+以下 generic Repository 仅记录 IAM/Organization 尚未迁移的当前事实，禁止新增使用：
+
 ```go
 accounts, err := database.NewRepository[Account](client, schema)
 if err != nil {
@@ -106,4 +122,4 @@ err := client.WithinTx(ctx, func(ctx context.Context, tx database.Tx) error {
 
 ## 当前非目标
 
-不提供任意 SQL 逃逸口、GORM session 逃逸口、破坏性/版本化迁移、读写分离、分库分表或多租户。确有业务需要时，应扩展项目自有契约并重新确认边界，不能让上层直接依赖 GORM。
+不提供向 Service/Model/port 传播的 GORM session、破坏性/版本化迁移、读写分离、分库分表或多租户。确有业务需要时，应在 module repo Adapter 内评估并重新确认边界，不能让业务核心直接依赖 GORM。

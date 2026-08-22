@@ -42,7 +42,7 @@ func TestRepositorySQLiteContract(t *testing.T) {
 	}
 	defer resource.Close()
 	access := resourceAccess{resource: resource}
-	repository, err := repo.New(access, repo.Schema())
+	repository, err := repo.New(access)
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
 	}
@@ -92,7 +92,7 @@ func (a resourceAccess) WithinTx(ctx context.Context, use func(context.Context, 
 func TestRepositoryPreservesCancellation(t *testing.T) {
 	cancelled, cancel := context.WithCancel(t.Context())
 	cancel()
-	repository, err := repo.New(failingAccess{err: context.Canceled}, repo.Schema())
+	repository, err := repo.New(failingAccess{err: context.Canceled})
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
 	}

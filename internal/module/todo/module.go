@@ -47,7 +47,7 @@ type HTTPModule struct {
 
 // New 纯内存构造 Todo Service、Adapter 与 contribution。
 func New(dependencies Dependencies) (Module, error) {
-	repository, err := repo.New(dependencies.Database, repo.Schema())
+	repository, err := repo.New(dependencies.Database)
 	if err != nil {
 		return Module{}, fmt.Errorf("compose todo repository: %w", err)
 	}

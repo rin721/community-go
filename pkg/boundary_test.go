@@ -142,7 +142,7 @@ func TestStoragePublicAPIHidesSelectedThirdPartyTypes(t *testing.T) {
 
 func TestExportedPackageAPIHidesSelectedThirdPartyTypes(t *testing.T) {
 	root := packageRoot(t)
-	forbidden := []string{"tea.ProgramOption", "afero.", "excelize.", "imaging.", "gorm."}
+	forbidden := []string{"tea.ProgramOption", "afero.", "excelize.", "imaging."}
 	err := filepath.WalkDir(root, func(path string, entry os.DirEntry, walkErr error) error {
 		if walkErr != nil || entry.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
 			return walkErr
@@ -217,7 +217,7 @@ func TestExportedPackageAPIHidesThirdPartySelectors(t *testing.T) {
 					}
 					return true
 				})
-				if leaked != "" {
+				if leaked != "" && !allowedTechnologyBridge(path, leaked) {
 					t.Fatalf("exported contract in %s leaks third-party package %s", path, leaked)
 				}
 			}
@@ -227,6 +227,11 @@ func TestExportedPackageAPIHidesThirdPartySelectors(t *testing.T) {
 	if err != nil {
 		t.Fatalf("walk exported package API: %v", err)
 	}
+}
+
+func allowedTechnologyBridge(path, importPath string) bool {
+	return strings.HasSuffix(filepath.ToSlash(path), "/pkg/database/gorm_session.go") &&
+		importPath == "gorm.io/gorm"
 }
 
 func exportedContractNodes(declaration ast.Decl) []ast.Node {

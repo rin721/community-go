@@ -109,7 +109,7 @@ func TestPackageGraphRulesAcceptLegalFixtureAndRejectViolations(t *testing.T) {
 		{ImportPath: modulePath + "/internal/kernel/app/database", Imports: []string{modulePath + "/pkg/database"}},
 		{ImportPath: modulePath + "/internal/kernel/app/messaging/rabbitmq", Imports: []string{"github.com/rabbitmq/amqp091-go"}},
 		{ImportPath: modulePath + "/internal/module/todo/service", Imports: []string{modulePath + "/internal/module/todo/model"}},
-		{ImportPath: modulePath + "/internal/module/todo/repo", Imports: []string{modulePath + "/pkg/database"}},
+		{ImportPath: modulePath + "/internal/module/todo/repo", Imports: []string{modulePath + "/pkg/database", "gorm.io/gorm"}},
 		{ImportPath: modulePath + "/internal/module/auth/adapter/jwt", Imports: []string{"github.com/lestrrat-go/jwx/v3/jwt"}},
 		{ImportPath: modulePath + "/internal/module/todo/binding/http", Imports: []string{
 			modulePath + "/internal/module/todo/service", modulePath + "/pkg/httpx", "github.com/danielgtaylor/huma/v2",
@@ -258,6 +258,7 @@ func validatePackageGraph(graph []packageNode) error {
 			}
 			if sourceOwner, sourceIsModule := applicationModuleOwner(node.ImportPath); sourceIsModule &&
 				thirdPartyImport(imported) && !moduleAdapterPackage(node.ImportPath) &&
+				!allowedModuleRepositoryImport(node.ImportPath, imported) &&
 				!allowedModuleHTTPBindingImport(node.ImportPath, imported) {
 				return fmt.Errorf("application module %s package %s imports third-party package outside its adapter: %s", sourceOwner, node.ImportPath, imported)
 			}
@@ -829,6 +830,16 @@ func moduleAdapterPackage(importPath string) bool {
 	}
 	parts := strings.Split(strings.TrimPrefix(importPath, prefix), "/")
 	return len(parts) >= 3 && parts[1] == "adapter"
+}
+
+// allowedModuleRepositoryImport 只允许模块 repo 这一数据库 Adapter 直接使用 GORM。
+func allowedModuleRepositoryImport(source, imported string) bool {
+	prefix := modulePath + "/internal/module/"
+	if !strings.HasPrefix(source, prefix) || !strings.HasPrefix(imported, "gorm.io/gorm") {
+		return false
+	}
+	parts := strings.Split(strings.TrimPrefix(source, prefix), "/")
+	return len(parts) >= 2 && parts[1] == "repo"
 }
 
 func thirdPartyImport(importPath string) bool {

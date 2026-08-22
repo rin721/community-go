@@ -4,10 +4,11 @@ Auth 是应用组合根选择的横切认证、授权与审计模块。它通过
 
 ## 当前职责
 
-- 提供 Bearer `RequestAuthenticator`、`Authorizer`、`Audit` 和 `CredentialVerifier` 等通用契约。
-- 在明确的 composition 位置装配 JWT/开发认证策略，执行 operation policy、授权结果和低敏审计。
+- 提供 Bearer `RequestAuthenticator`、`Authorizer`、`Audit`、`CredentialVerifier` 和消费方 `DecisionPoint` port 等通用契约。
+- `Principal` 显式区分 `AuthorizationSource`：`token-scopes`（Bearer/JWT、CLI/development，精确 Scope 直判）与 `iam-rbac`（Scopes 必须为空、revision 非零，必须经注入的 `DecisionPoint` 判断）；两来源构造互斥，未知来源 fail closed。
+- 在明确的 composition 位置装配 JWT/开发认证策略，执行 operation policy、授权结果和低敏审计；只有 Auth decision 边界记录一次低敏结果。
 - JWT/JWK Adapter 使用 `jwx/v3` 完成标准解析与签名校验；项目边界负责 issuer/audience/algorithm/claim、受控 JWKS 网络访问和 lifecycle。未知 `kid` 的并发刷新全局合并，请求取消与刷新超时保持可识别，不改写成普通无效凭据。
-- composition 把 IAM `SessionIdentity` 适配为 Auth `Principal`，再作为 `webuiSession` 来源交给统一 operation gate；Auth 不拥有 IAM Repository、密码哈希、Session 表、HTTP 页面或 CLI。
+- composition 的 identity-access 子装配把 IAM `Authorization` facet 适配为 Auth `DecisionPoint`、把 IAM Session 适配为 `iam-rbac` Principal 并交给统一 operation gate；Auth 不拥有 IAM Repository、密码哈希、Session 表、HTTP 页面、CLI 或 Casbin。
 
 ## 变更入口
 

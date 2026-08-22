@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/rin721/go-scaffold-template/internal/module/iam/model"
-	iampermission "github.com/rin721/go-scaffold-template/internal/module/iam/permission"
 	"github.com/rin721/go-scaffold-template/internal/module/iam/repo"
 	permissioncatalog "github.com/rin721/go-scaffold-template/internal/permission"
 	"github.com/rin721/go-scaffold-template/pkg/clock"
@@ -38,6 +37,9 @@ var (
 	ErrUnknownPermission  = errors.New("iam permission is not in catalog")
 	ErrImmutableOwner     = errors.New("iam owner role is immutable")
 	ErrIncompatibleState  = errors.New("iam persistent state is incompatible with permission catalog")
+	// ErrVersionConflict 表示关系替换请求携带的 expected version 已过期，
+	// 客户端必须重新读取最新快照后由用户确认，不允许静默覆盖或自动 merge。
+	ErrVersionConflict = errors.New("iam relationship version is stale")
 )
 
 type PasswordHasher interface {
@@ -50,6 +52,23 @@ type PasswordVerification struct {
 	Match       bool
 	NeedsRehash bool
 }
+
+// AuthorizationPublisher 是 IAM Service 在授权 mutation 中使用的 runtime
+// 契约；由 module-local composition 注入 authorization.Runtime 实现。
+// candidate 必须在事务 commit 前完整构造，commit 后只做原子发布。
+type AuthorizationPublisher interface {
+	// Mutate 串行化授权 mutation 的数据库事务、commit 与 publish 三段。
+	Mutate(func() error) error
+	// BuildCandidate 在未提交事务内构造完整候选 evaluator。
+	BuildCandidate(context.Context, repo.PolicySnapshot) error
+	// PublishCandidate 在 commit 成功后原子发布候选，不返回错误。
+	PublishCandidate()
+	// ProjectPermissions 用同 revision 的 evaluator 导出账号有效权限键，
+	// 只用于 Session/WebUI 体验投影；服务端授权逐 operation 走 Decide。
+	// subject 是账号 ID，restricted 表示首次登录只导出自助权限。
+	ProjectPermissions(context.Context, string, uint64, bool) ([]permissioncatalog.Key, error)
+}
+
 type Config struct {
 	SetupToken                   string
 	IdleTimeout, AbsoluteTimeout time.Duration
@@ -59,6 +78,7 @@ type Config struct {
 type Session struct {
 	ID, CSRFToken                                           string
 	Identity                                                model.SessionIdentity
+	AuthorizationRevision                                   uint64
 	CreatedAt, LastSeenAt, IdleExpiresAt, AbsoluteExpiresAt time.Time
 }
 type AccountList struct {
@@ -70,6 +90,29 @@ type RoleList struct {
 	Items         []model.Role
 	Offset, Limit int
 	Total         int64
+}
+
+// AccountRolesView 是账号角色关系的可编辑快照（乐观并发读取侧）。
+type AccountRolesView struct {
+	AccountID             string
+	AccountVersion        uint64
+	AuthorizationRevision uint64
+	RoleIDs               []string
+}
+
+// RolePermissionsView 是角色权限关系的可编辑快照（乐观并发读取侧）。
+type RolePermissionsView struct {
+	RoleID                string
+	RoleVersion           uint64
+	AuthorizationRevision uint64
+	PermissionKeys        []permissioncatalog.Key
+}
+
+// AssignmentResult 是关系替换的写入结果（新版本、revision 与 diff 计数）。
+type AssignmentResult struct {
+	EntityVersion         uint64
+	AuthorizationRevision uint64
+	Added, Removed        int
 }
 
 type resolvedSession struct {
@@ -87,17 +130,18 @@ func SessionFromContext(ctx context.Context) (string, Session, bool) {
 }
 
 type Service struct {
-	store     *repo.Store
-	clock     clock.Clock
-	ids       idgen.Generator
-	passwords PasswordHasher
-	config    Config
-	catalog   permissioncatalog.Catalog
-	dummyHash string
+	store         *repo.Store
+	clock         clock.Clock
+	ids           idgen.Generator
+	passwords     PasswordHasher
+	config        Config
+	catalog       permissioncatalog.Catalog
+	authorization AuthorizationPublisher
+	dummyHash     string
 }
 
-func New(store *repo.Store, currentClock clock.Clock, ids idgen.Generator, passwords PasswordHasher, config Config, catalog permissioncatalog.Catalog) (*Service, error) {
-	if store == nil || currentClock == nil || ids == nil || passwords == nil {
+func New(store *repo.Store, currentClock clock.Clock, ids idgen.Generator, passwords PasswordHasher, config Config, catalog permissioncatalog.Catalog, authorization AuthorizationPublisher) (*Service, error) {
+	if store == nil || currentClock == nil || ids == nil || passwords == nil || authorization == nil {
 		return nil, fmt.Errorf("iam service dependencies are incomplete")
 	}
 	if config.IdleTimeout <= 0 || config.AbsoluteTimeout <= config.IdleTimeout || config.MaxFailedAttempts <= 0 || config.LockDuration <= 0 {
@@ -107,7 +151,7 @@ func New(store *repo.Store, currentClock clock.Clock, ids idgen.Generator, passw
 	if err != nil {
 		return nil, fmt.Errorf("create iam fixed-cost verifier: %w", err)
 	}
-	return &Service{store: store, clock: currentClock, ids: ids, passwords: passwords, config: config, catalog: catalog, dummyHash: dummy}, nil
+	return &Service{store: store, clock: currentClock, ids: ids, passwords: passwords, config: config, catalog: catalog, authorization: authorization, dummyHash: dummy}, nil
 }
 
 func (s *Service) Setup(ctx context.Context, setupToken, username, displayName, password string) (Session, error) {
@@ -139,43 +183,52 @@ func (s *Service) Setup(ctx context.Context, setupToken, username, displayName, 
 		return Session{}, err
 	}
 	var result Session
-	err = s.store.WithinTx(ctx, func(txCtx context.Context, r *repo.Unit) error {
+	err = s.authorizeMutation(ctx, func(txCtx context.Context, r *repo.Unit) (bool, error) {
 		count, err := r.CountAccounts(txCtx)
 		if err != nil {
-			return err
+			return false, err
 		}
 		if count != 0 {
-			return ErrSetupClosed
+			return false, ErrSetupClosed
 		}
 		ar := accountRecord(account)
 		if err := r.CreateAccount(txCtx, &ar); err != nil {
-			return mapSetupConflict(err)
+			return false, mapSetupConflict(err)
 		}
 		credential := repo.CredentialRecord{AccountID: account.ID, PasswordHash: hash, UpdatedAt: now}
 		if err := r.CreateCredential(txCtx, &credential); err != nil {
-			return err
+			return false, err
 		}
 		rr := roleRecord(owner)
 		if err := r.CreateRole(txCtx, &rr); err != nil {
-			return err
+			return false, err
 		}
 		assignment := repo.AccountRoleRecord{AccountID: account.ID, RoleID: owner.ID, Active: true, UpdatedAt: now}
 		if err := r.CreateAccountRole(txCtx, &assignment); err != nil {
-			return err
+			return false, err
 		}
 		for _, definition := range s.catalog.Definitions() {
 			item := repo.RolePermissionRecord{RoleID: owner.ID, PermissionKey: string(definition.Key), Active: true, UpdatedAt: now}
 			if err := r.CreateRolePermission(txCtx, &item); err != nil {
-				return err
+				return false, err
 			}
 		}
-		result, err = s.createSession(txCtx, r, account, allCatalogKeys(s.catalog))
-		return err
+		return true, nil
+	}, func(txCtx context.Context, r *repo.Unit) error {
+		session, err := s.createSession(txCtx, r, account)
+		if err != nil {
+			return err
+		}
+		result = session
+		return nil
 	})
 	if repo.IsDuplicate(err) {
 		return Session{}, ErrSetupClosed
 	}
-	return result, err
+	if err != nil {
+		return Session{}, err
+	}
+	return s.projectSession(ctx, result)
 }
 
 func (s *Service) Login(ctx context.Context, username, password string) (Session, error) {
@@ -247,20 +300,16 @@ func (s *Service) Login(ctx context.Context, username, password string) (Session
 		account.FailedAttempts = 0
 		account.LockedUntil = nil
 		account.Version++
-		permissions, err := permissionsFor(txCtx, r, account.ID)
-		if err != nil {
-			return err
-		}
-		if account.MustChangePassword {
-			permissions = firstLoginPermissions(permissions)
-		}
-		result, err = s.createSession(txCtx, r, modelAccount(account), permissions)
+		result, err = s.createSession(txCtx, r, modelAccount(account))
 		return err
 	})
 	if err == nil && outcome != nil {
 		return Session{}, outcome
 	}
-	return result, err
+	if err != nil {
+		return Session{}, err
+	}
+	return s.projectSession(ctx, result)
 }
 
 // Compatible 在监听器启动前校验已有 IAM 状态与当前精确权限目录相容；空库保留 setup 入口。
@@ -304,26 +353,27 @@ func (s *Service) Compatible(ctx context.Context) error {
 	})
 }
 
-// ReconcileOwnerCatalog 在模块目录扩展时把新增权限赋予 system owner，并使现有 owner Session 失效。
+// ReconcileOwnerCatalog 在模块目录扩展时把新增权限赋予 system owner，并使
+// 现有 owner Session 失效；无新增权限时为 no-op，不 bump revision。
 func (s *Service) ReconcileOwnerCatalog(ctx context.Context) error {
-	return s.store.WithinTx(ctx, func(txCtx context.Context, r *repo.Unit) error {
+	return s.authorizeMutation(ctx, func(txCtx context.Context, r *repo.Unit) (bool, error) {
 		count, err := r.CountAccounts(txCtx)
 		if err != nil || count == 0 {
-			return err
+			return false, err
 		}
 		owner, err := r.OwnerRole(txCtx)
 		if err != nil || !owner.Active || owner.Archived || !owner.System {
-			return fmt.Errorf("%w: active system owner role is required", ErrIncompatibleState)
+			return false, fmt.Errorf("%w: active system owner role is required", ErrIncompatibleState)
 		}
 		items, err := r.ListActiveRolePermissions(txCtx)
 		if err != nil {
-			return err
+			return false, err
 		}
 		ownerKeys := map[permissioncatalog.Key]struct{}{}
 		for _, item := range items {
 			key := permissioncatalog.Key(item.PermissionKey)
 			if _, known := s.catalog.Lookup(key); !known {
-				return fmt.Errorf("%w: unknown active permission %q", ErrIncompatibleState, key)
+				return false, fmt.Errorf("%w: unknown active permission %q", ErrIncompatibleState, key)
 			}
 			if item.RoleID == owner.ID {
 				ownerKeys[key] = struct{}{}
@@ -337,31 +387,31 @@ func (s *Service) ReconcileOwnerCatalog(ctx context.Context) error {
 			}
 			item := repo.RolePermissionRecord{RoleID: owner.ID, PermissionKey: string(definition.Key), Active: true, UpdatedAt: now}
 			if err := r.CreateRolePermission(txCtx, &item); err != nil {
-				return err
+				return false, err
 			}
 			changed = true
 		}
 		if !changed {
-			return nil
+			return false, nil
 		}
 		if err := touchOwner(txCtx, r, owner, now); err != nil {
-			return err
+			return false, err
 		}
 		assignments, err := r.ListAccountRolesByRole(txCtx, owner.ID)
 		if err != nil {
-			return err
+			return false, err
 		}
 		for _, assignment := range assignments {
 			account, err := accountByID(txCtx, r, assignment.AccountID)
 			if err != nil {
-				return err
+				return false, err
 			}
 			if err := bumpAndRevoke(txCtx, r, account, now); err != nil {
-				return err
+				return false, err
 			}
 		}
-		return nil
-	})
+		return true, nil
+	}, nil)
 }
 
 func (s *Service) Resolve(ctx context.Context, sessionID string) (Session, error) {
@@ -370,7 +420,7 @@ func (s *Service) Resolve(ctx context.Context, sessionID string) (Session, error
 	}
 	var session repo.SessionRecord
 	var account repo.AccountRecord
-	var permissions []permissioncatalog.Key
+	var revision uint64
 	err := s.store.WithinTx(ctx, func(txCtx context.Context, r *repo.Unit) error {
 		var err error
 		session, err = r.SessionByHash(txCtx, digest(sessionID))
@@ -385,12 +435,9 @@ func (s *Service) Resolve(ctx context.Context, sessionID string) (Session, error
 		if err != nil || account.Status != string(model.AccountActive) || account.SecurityRevision != session.SecurityRevision {
 			return ErrSessionInvalid
 		}
-		permissions, err = permissionsFor(txCtx, r, account.ID)
+		revision, err = r.CurrentAuthorizationRevision(txCtx)
 		if err != nil {
 			return err
-		}
-		if account.MustChangePassword {
-			permissions = firstLoginPermissions(permissions)
 		}
 		if now.Sub(session.LastSeenAt) >= time.Minute {
 			session.LastSeenAt = now
@@ -402,7 +449,9 @@ func (s *Service) Resolve(ctx context.Context, sessionID string) (Session, error
 	if err != nil {
 		return Session{}, err
 	}
-	return sessionOutput(sessionID, session, modelAccount(account), permissions), nil
+	result := sessionOutput(sessionID, session, modelAccount(account), nil)
+	result.AuthorizationRevision = revision
+	return s.projectSession(ctx, result)
 }
 
 func (s *Service) Logout(ctx context.Context, sessionID string) error {
@@ -521,6 +570,7 @@ func (s *Service) CreateAccount(ctx context.Context, username, displayName, pass
 	if err != nil {
 		return model.Account{}, err
 	}
+	account.Version = 1
 	record := accountRecord(account)
 	err = s.store.WithinTx(ctx, func(txCtx context.Context, r *repo.Unit) error {
 		if err := r.CreateAccount(txCtx, &record); err != nil {
@@ -616,6 +666,7 @@ func (s *Service) CreateRole(ctx context.Context, code, name, description string
 	if err != nil {
 		return model.Role{}, err
 	}
+	role.Version = 1
 	record := roleRecord(role)
 	err = s.store.Use(ctx, func(r *repo.Unit) error { return r.CreateRole(ctx, &record) })
 	return role, err
@@ -644,51 +695,75 @@ func (s *Service) ListRoles(ctx context.Context, offset, limit int) (RoleList, e
 }
 func (s *Service) Permissions() []permissioncatalog.Definition { return s.catalog.Definitions() }
 
-func (s *Service) AccountRoleIDs(ctx context.Context, accountID string) ([]string, error) {
-	var result []string
+// AccountRolesSnapshot 返回账号角色关系的可编辑快照：账号版本、
+// authorization revision 与当前 active RoleID 集合。
+func (s *Service) AccountRolesSnapshot(ctx context.Context, accountID string) (AccountRolesView, error) {
+	var result AccountRolesView
 	err := s.store.Use(ctx, func(r *repo.Unit) error {
-		if _, err := r.AccountByID(ctx, accountID); err != nil {
+		account, err := r.AccountByID(ctx, accountID)
+		if err != nil {
 			return err
 		}
 		items, err := r.ListAccountRolesByAccount(ctx, accountID, true)
 		if err != nil {
 			return err
 		}
-		result = make([]string, len(items))
+		roleIDs := make([]string, len(items))
 		for index, item := range items {
-			result[index] = item.RoleID
+			roleIDs[index] = item.RoleID
 		}
-		sort.Strings(result)
+		sort.Strings(roleIDs)
+		revision, err := r.CurrentAuthorizationRevision(ctx)
+		if err != nil {
+			return err
+		}
+		result = AccountRolesView{AccountID: accountID, AccountVersion: account.Version, AuthorizationRevision: revision, RoleIDs: roleIDs}
 		return nil
 	})
 	return result, err
 }
 
-func (s *Service) RolePermissionKeys(ctx context.Context, roleID string) ([]permissioncatalog.Key, error) {
-	var result []permissioncatalog.Key
+// RolePermissionsSnapshot 返回角色权限关系的可编辑快照：角色版本、
+// authorization revision 与当前 active PermissionKey 集合。
+func (s *Service) RolePermissionsSnapshot(ctx context.Context, roleID string) (RolePermissionsView, error) {
+	var result RolePermissionsView
 	err := s.store.Use(ctx, func(r *repo.Unit) error {
-		if _, err := r.RoleByID(ctx, roleID); err != nil {
+		role, err := r.RoleByID(ctx, roleID)
+		if err != nil {
 			return err
 		}
 		items, err := r.ListRolePermissions(ctx, roleID, true)
 		if err != nil {
 			return err
 		}
-		result = make([]permissioncatalog.Key, len(items))
+		keys := make([]permissioncatalog.Key, len(items))
 		for index, item := range items {
-			result[index] = permissioncatalog.Key(item.PermissionKey)
+			keys[index] = permissioncatalog.Key(item.PermissionKey)
 		}
-		sort.Slice(result, func(left, right int) bool { return result[left] < result[right] })
+		sort.Slice(keys, func(left, right int) bool { return keys[left] < keys[right] })
+		revision, err := r.CurrentAuthorizationRevision(ctx)
+		if err != nil {
+			return err
+		}
+		result = RolePermissionsView{RoleID: roleID, RoleVersion: role.Version, AuthorizationRevision: revision, PermissionKeys: keys}
 		return nil
 	})
 	return result, err
 }
 
-func (s *Service) ReplaceAccountRoles(ctx context.Context, accountID string, roleIDs []string) error {
-	return s.store.WithinTx(ctx, func(txCtx context.Context, r *repo.Unit) error {
+// ReplaceAccountRoles 以 expected version + 完整期望集合替换账号角色关系；
+// 版本冲突返回 ErrVersionConflict；no-op 提交不改变版本/revision、不撤销
+// Session；有效变更原子更新关系、受影响账号安全状态/Session、authorization
+// revision 并发布新 evaluator。
+func (s *Service) ReplaceAccountRoles(ctx context.Context, accountID string, expectedVersion uint64, roleIDs []string) (AssignmentResult, error) {
+	var result AssignmentResult
+	err := s.authorizeMutation(ctx, func(txCtx context.Context, r *repo.Unit) (bool, error) {
 		account, err := accountByID(txCtx, r, accountID)
 		if err != nil {
-			return err
+			return false, err
+		}
+		if account.Version != expectedVersion {
+			return false, ErrVersionConflict
 		}
 		owner, ownerErr := ownerRole(txCtx, r)
 		previousOwner := false
@@ -700,30 +775,47 @@ func (s *Service) ReplaceAccountRoles(ctx context.Context, accountID string, rol
 			if _, ok := next[owner.ID]; !ok {
 				count, err := activeOwnerCount(txCtx, r)
 				if err != nil {
-					return err
+					return false, err
 				}
 				if count <= 1 {
-					return model.ErrOwnerInvariant
+					return false, model.ErrOwnerInvariant
 				}
 			}
 		}
 		for roleID := range next {
 			role, err := r.RoleByID(txCtx, roleID)
 			if err != nil || !role.Active || role.Archived {
-				return repo.ErrNotFound
+				return false, repo.ErrNotFound
 			}
 		}
-		now := s.clock.Now().UTC()
-		existing, err := r.ListAccountRolesByAccount(txCtx, accountID, false)
+		existing, err := r.ListAccountRolesByAccount(txCtx, accountID, true)
 		if err != nil {
-			return err
+			return false, err
+		}
+		current := map[string]struct{}{}
+		for _, item := range existing {
+			current[item.RoleID] = struct{}{}
+		}
+		added, removed := diffNames(current, next)
+		if len(added) == 0 && len(removed) == 0 {
+			revision, err := r.CurrentAuthorizationRevision(txCtx)
+			if err != nil {
+				return false, err
+			}
+			result = AssignmentResult{EntityVersion: account.Version, AuthorizationRevision: revision}
+			return false, nil
+		}
+		now := s.clock.Now().UTC()
+		all, err := r.ListAccountRolesByAccount(txCtx, accountID, false)
+		if err != nil {
+			return false, err
 		}
 		seen := map[string]struct{}{}
-		for _, item := range existing {
+		for _, item := range all {
 			_, active := next[item.RoleID]
 			seen[item.RoleID] = struct{}{}
 			if err := r.UpdateAccountRole(txCtx, accountID, item.RoleID, active, now); err != nil {
-				return err
+				return false, err
 			}
 		}
 		for roleID := range next {
@@ -732,47 +824,84 @@ func (s *Service) ReplaceAccountRoles(ctx context.Context, accountID string, rol
 			}
 			item := repo.AccountRoleRecord{AccountID: accountID, RoleID: roleID, Active: true, UpdatedAt: now}
 			if err := r.CreateAccountRole(txCtx, &item); err != nil {
-				return err
+				return false, err
 			}
 		}
 		if ownerErr == nil && (previousOwner || contains(roleIDs, owner.ID)) {
 			if err := touchOwner(txCtx, r, owner, now); err != nil {
-				return err
+				return false, err
 			}
 		}
-		return bumpAndRevoke(txCtx, r, account, now)
-	})
-}
-
-func (s *Service) ReplaceRolePermissions(ctx context.Context, roleID string, keys []permissioncatalog.Key) error {
-	for _, key := range keys {
-		if _, ok := s.catalog.Lookup(key); !ok {
-			return fmt.Errorf("%w: %s", ErrUnknownPermission, key)
+		if err := bumpAndRevoke(txCtx, r, account, now); err != nil {
+			return false, err
 		}
-	}
-	return s.store.WithinTx(ctx, func(txCtx context.Context, r *repo.Unit) error {
-		role, err := r.RoleByID(txCtx, roleID)
+		result = AssignmentResult{EntityVersion: account.Version + 1, Added: len(added), Removed: len(removed)}
+		return true, nil
+	}, func(txCtx context.Context, r *repo.Unit) error {
+		revision, err := r.CurrentAuthorizationRevision(txCtx)
 		if err != nil {
 			return err
 		}
-		if role.Code == model.OwnerRoleCode {
-			return ErrImmutableOwner
+		result.AuthorizationRevision = revision
+		return nil
+	})
+	return result, err
+}
+
+// ReplaceRolePermissions 以 expected version + 完整期望集合替换角色权限；
+// 版本冲突返回 ErrVersionConflict；no-op 提交不改变版本/revision、不撤销
+// 受影响账号 Session；有效变更原子更新关系、账号安全状态/Session、
+// authorization revision 并发布新 evaluator。owner 角色不可编辑。
+func (s *Service) ReplaceRolePermissions(ctx context.Context, roleID string, expectedVersion uint64, keys []permissioncatalog.Key) (AssignmentResult, error) {
+	for _, key := range keys {
+		if _, ok := s.catalog.Lookup(key); !ok {
+			return AssignmentResult{}, fmt.Errorf("%w: %s", ErrUnknownPermission, key)
 		}
-		now := s.clock.Now().UTC()
+	}
+	var result AssignmentResult
+	err := s.authorizeMutation(ctx, func(txCtx context.Context, r *repo.Unit) (bool, error) {
+		role, err := r.RoleByID(txCtx, roleID)
+		if err != nil {
+			return false, err
+		}
+		if role.Code == model.OwnerRoleCode {
+			return false, ErrImmutableOwner
+		}
+		if role.Version != expectedVersion {
+			return false, ErrVersionConflict
+		}
 		next := map[string]struct{}{}
 		for _, key := range keys {
 			next[string(key)] = struct{}{}
 		}
-		existing, err := r.ListRolePermissions(txCtx, roleID, false)
+		existing, err := r.ListRolePermissions(txCtx, roleID, true)
 		if err != nil {
-			return err
+			return false, err
+		}
+		current := map[string]struct{}{}
+		for _, item := range existing {
+			current[item.PermissionKey] = struct{}{}
+		}
+		added, removed := diffNames(current, next)
+		if len(added) == 0 && len(removed) == 0 {
+			revision, err := r.CurrentAuthorizationRevision(txCtx)
+			if err != nil {
+				return false, err
+			}
+			result = AssignmentResult{EntityVersion: role.Version, AuthorizationRevision: revision}
+			return false, nil
+		}
+		now := s.clock.Now().UTC()
+		all, err := r.ListRolePermissions(txCtx, roleID, false)
+		if err != nil {
+			return false, err
 		}
 		seen := map[string]struct{}{}
-		for _, item := range existing {
+		for _, item := range all {
 			_, active := next[item.PermissionKey]
 			seen[item.PermissionKey] = struct{}{}
 			if err := r.UpdateRolePermission(txCtx, roleID, item.PermissionKey, active, now); err != nil {
-				return err
+				return false, err
 			}
 		}
 		for key := range next {
@@ -781,27 +910,86 @@ func (s *Service) ReplaceRolePermissions(ctx context.Context, roleID string, key
 			}
 			item := repo.RolePermissionRecord{RoleID: roleID, PermissionKey: key, Active: true, UpdatedAt: now}
 			if err := r.CreateRolePermission(txCtx, &item); err != nil {
-				return err
+				return false, err
 			}
 		}
-		assignments, err := r.ListAccountRolesByRole(txCtx, roleID)
+		if err := s.touchAssignedAccounts(txCtx, r, roleID, now); err != nil {
+			return false, err
+		}
+		if err := touchRole(txCtx, r, role, now); err != nil {
+			return false, err
+		}
+		result = AssignmentResult{EntityVersion: role.Version + 1, Added: len(added), Removed: len(removed)}
+		return true, nil
+	}, func(txCtx context.Context, r *repo.Unit) error {
+		revision, err := r.CurrentAuthorizationRevision(txCtx)
 		if err != nil {
 			return err
 		}
-		for _, assignment := range assignments {
-			account, err := accountByID(txCtx, r, assignment.AccountID)
+		result.AuthorizationRevision = revision
+		return nil
+	})
+	return result, err
+}
+
+// touchAssignedAccounts 撤销所有持有该角色的账号 Session 并 bump 其安全 revision。
+func (s *Service) touchAssignedAccounts(ctx context.Context, r *repo.Unit, roleID string, now time.Time) error {
+	assignments, err := r.ListAccountRolesByRole(ctx, roleID)
+	if err != nil {
+		return err
+	}
+	for _, assignment := range assignments {
+		account, err := accountByID(ctx, r, assignment.AccountID)
+		if err != nil {
+			return err
+		}
+		if err := bumpAndRevoke(ctx, r, account, now); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// authorizeMutation 是授权关系 mutation 的统一协议：在同一事务内完成业务
+// mutation、authorization revision bump、完成品 finalize（可选）与完整候选
+// evaluator 构造；事务 commit 成功后原子发布候选。mutate 返回 false 表示
+// no-op（关系未变化），不 bump revision、不构造候选、不发布。
+func (s *Service) authorizeMutation(ctx context.Context, mutate func(context.Context, *repo.Unit) (bool, error), finalize func(context.Context, *repo.Unit) error) error {
+	return s.authorization.Mutate(func() error {
+		now := s.clock.Now().UTC()
+		err := s.store.WithinTx(ctx, func(txCtx context.Context, r *repo.Unit) error {
+			changed, err := mutate(txCtx, r)
 			if err != nil {
 				return err
 			}
-			if err := bumpAndRevoke(txCtx, r, account, now); err != nil {
+			if !changed {
+				return nil
+			}
+			if _, err := r.UpdateAuthorizationRevision(txCtx, now); err != nil {
 				return err
 			}
+			if finalize != nil {
+				if err := finalize(txCtx, r); err != nil {
+					return err
+				}
+			}
+			snapshot, err := r.AuthorizationSnapshot(txCtx, s.catalog)
+			if err != nil {
+				return err
+			}
+			return s.authorization.BuildCandidate(txCtx, snapshot)
+		})
+		if err != nil {
+			return err
 		}
+		s.authorization.PublishCandidate()
 		return nil
 	})
 }
 
-func (s *Service) createSession(ctx context.Context, r *repo.Unit, account model.Account, permissions []permissioncatalog.Key) (Session, error) {
+// createSession 在事务内创建会话记录；Permissions 投影由调用方在事务外
+// 通过 projectSession 填充（evaluator 同 revision 导出）。
+func (s *Service) createSession(ctx context.Context, r *repo.Unit, account model.Account) (Session, error) {
 	id, err := randomToken()
 	if err != nil {
 		return Session{}, err
@@ -810,42 +998,36 @@ func (s *Service) createSession(ctx context.Context, r *repo.Unit, account model
 	if err != nil {
 		return Session{}, err
 	}
+	revision, err := r.CurrentAuthorizationRevision(ctx)
+	if err != nil {
+		return Session{}, err
+	}
 	now := s.clock.Now().UTC()
 	record := repo.SessionRecord{IDHash: digest(id), AccountID: account.ID, CSRFHash: digest(csrf), SecurityRevision: account.SecurityRevision, CreatedAt: now, LastSeenAt: now, IdleExpiresAt: now.Add(s.config.IdleTimeout), AbsoluteExpiresAt: now.Add(s.config.AbsoluteTimeout)}
 	if err := r.CreateSession(ctx, &record); err != nil {
 		return Session{}, err
 	}
-	result := sessionOutput(id, record, account, permissions)
+	result := sessionOutput(id, record, account, nil)
+	result.AuthorizationRevision = revision
 	result.CSRFToken = csrf
 	return result, nil
 }
 
-func permissionsFor(ctx context.Context, r *repo.Unit, accountID string) ([]permissioncatalog.Key, error) {
-	assignments, err := r.ListAccountRolesByAccount(ctx, accountID, true)
+// projectSession 在事务/写锁外填充 Session 的权限投影：用 evaluator 在
+// 会话 revision 下导出有效权限键（受限会话只导出自助权限），不再手写展开
+// 角色关系。投影失败时 fail closed，不返回空权限冒充当前状态。
+func (s *Service) projectSession(ctx context.Context, session Session) (Session, error) {
+	if session.ID == "" {
+		return Session{}, ErrSessionInvalid
+	}
+	permissions, err := s.authorization.ProjectPermissions(ctx, session.Identity.AccountID, session.AuthorizationRevision, session.Identity.MustChangePassword)
 	if err != nil {
-		return nil, err
+		return Session{}, fmt.Errorf("project iam session permissions: %w", err)
 	}
-	seen := map[permissioncatalog.Key]struct{}{}
-	for _, assignment := range assignments {
-		role, err := r.RoleByID(ctx, assignment.RoleID)
-		if err != nil || !role.Active || role.Archived {
-			continue
-		}
-		items, err := r.ListRolePermissions(ctx, role.ID, true)
-		if err != nil {
-			return nil, err
-		}
-		for _, item := range items {
-			seen[permissioncatalog.Key(item.PermissionKey)] = struct{}{}
-		}
-	}
-	result := make([]permissioncatalog.Key, 0, len(seen))
-	for key := range seen {
-		result = append(result, key)
-	}
-	sort.Slice(result, func(i, j int) bool { return result[i] < result[j] })
-	return result, nil
+	session.Identity.Permissions = permissions
+	return session, nil
 }
+
 func accountByID(ctx context.Context, r *repo.Unit, id string) (repo.AccountRecord, error) {
 	return r.AccountByID(ctx, id)
 }
@@ -891,6 +1073,9 @@ func activeOwnerCount(ctx context.Context, r *repo.Unit) (int64, error) {
 func touchOwner(ctx context.Context, r *repo.Unit, owner repo.RoleRecord, now time.Time) error {
 	return r.TouchRole(ctx, owner.ID, owner.Version, now)
 }
+func touchRole(ctx context.Context, r *repo.Unit, role repo.RoleRecord, now time.Time) error {
+	return r.TouchRole(ctx, role.ID, role.Version, now)
+}
 func bumpAndRevoke(ctx context.Context, r *repo.Unit, account repo.AccountRecord, now time.Time) error {
 	return bumpAndRevokeWith(ctx, r, account, now, nil, account.MustChangePassword)
 }
@@ -900,23 +1085,6 @@ func bumpAndRevokeWith(ctx context.Context, r *repo.Unit, account repo.AccountRe
 		return err
 	}
 	return r.RevokeAccountSessions(ctx, account.ID, now)
-}
-func allCatalogKeys(c permissioncatalog.Catalog) []permissioncatalog.Key {
-	items := c.Definitions()
-	keys := make([]permissioncatalog.Key, len(items))
-	for i, item := range items {
-		keys[i] = item.Key
-	}
-	return keys
-}
-func firstLoginPermissions(keys []permissioncatalog.Key) []permissioncatalog.Key {
-	result := make([]permissioncatalog.Key, 0, 2)
-	for _, key := range keys {
-		if key == iampermission.SelfRead || key == iampermission.SelfPasswordWrite {
-			result = append(result, key)
-		}
-	}
-	return result
 }
 func normalizePage(offset, limit int) (int, int, error) {
 	if offset < 0 || limit < 0 || limit > maxListLimit {
@@ -966,6 +1134,21 @@ func contains(values []string, value string) bool {
 		}
 	}
 	return false
+}
+
+// diffNames 计算相对于目标集合 next 的 added（新增）与 removed（移除）子集。
+func diffNames(current, next map[string]struct{}) (added, removed []string) {
+	for id := range next {
+		if _, ok := current[id]; !ok {
+			added = append(added, id)
+		}
+	}
+	for id := range current {
+		if _, ok := next[id]; !ok {
+			removed = append(removed, id)
+		}
+	}
+	return added, removed
 }
 func mapSetupConflict(err error) error {
 	if repo.IsDuplicate(err) {

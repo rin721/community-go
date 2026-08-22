@@ -25,3 +25,7 @@
 应用入口的 CORS 标准机制由 `rs/cors v1.11.1` 处理，Go 标准库 `http.CrossOriginProtection` 对 unsafe cross-site 请求提供 defense-in-depth。项目只允许配置中的 exact HTTP(S) Origin，空列表默认拒绝；不开放 wildcard、credentials 或 Private Network Access。被拒绝的 unsafe 请求在业务 Handler 前返回低敏 Problem。该入口策略不替代下述 IAM Session Origin/CSRF 守卫：无浏览器来源头的非浏览器请求可能通过标准库检查，但仍不能绕过 IAM mutation token。
 
 IAM 在 composition 提供普通 WebUI 业务 mutation 共用的窄 Origin/CSRF 守卫；Navigation 策略修改使用该守卫，但业务模块不读取 IAM Repository 或 Session 表。菜单隐藏不构成授权，所有 Navigation operation 仍由服务端 `navigation:menu:*` 权限判断。
+
+## 授权决策当前约束
+
+服务端授权只经 Auth `DecisionPoint`：`token-scopes` 来源（Bearer/JWT、CLI/development）按凭据携带的精确 Scope 直判；`iam-rbac` 来源（IAM Session）不携带 Scope，必须由 composition 注入的 IAM RBAC evaluator 判断。Casbin evaluator 只执行固定 exact Core RBAC（账号→角色→精确 PermissionKey），由 `PolicySnapshot` 构造不可变快照，发布后不再改写；任何关系变更都在事务内撤销受影响 Session 并 bump authorization revision。Principal 携带的 revision 与 evaluator 不一致时同步刷新，刷新失败、取消或仍不一致一律拒绝，不使用旧 policy 放行；多实例部署在 revision 协议下可 fail-closed，但尚未作为已验证的分布式承诺。授权审计只记录低基数 operation、结果、reason 与 revision 类别，完整 policy、角色/权限集合、token、Cookie 与 matcher 细节不进入日志或响应。

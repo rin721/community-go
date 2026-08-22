@@ -168,7 +168,7 @@ HTTP 的固定构造顺序是 `模块顶层 typed Handler + binding Huma registr
 **新增业务模块必须接入的基础契约**：
 
 - 若暴露 HTTP operation：必须提供 `handler/` + `binding/http` 的 Huma registration，**并在两处接入**：`internal/composition` 负责运行时装配（policy 汇总、observability operations、route binding、依赖注入），`internal/tools/contract-gen` 的 `registeredOperations()` 负责 build-time 渲染 `api/openapi.yaml` 与 operation inventory；两处必须引用同一模块 registration，不得另写 schema、method/path 或 policy 清单。
-- 若 operation 使用权限：模块贡献当前真实精确权限定义；禁止通配符、未知引用、预留未来模块 key，Catalog 也不承担角色关系或授权执行。
+- 若 operation 使用权限：模块贡献当前真实精确权限定义；禁止通配符、未知引用、预留未来模块 key，Catalog 也不承担角色关系。授权执行由 IAM 的 Casbin evaluator（`internal/module/iam/adapter/casbin`）承担：模块只定义 `binding/permission` 的 Key，管理员经 IAM 动态分配把这些 Key 授予业务角色，Auth 通过 `DecisionPoint` 逐 operation 判断；业务模块不得自建第二套授权判断或直接读取 IAM 角色关系。
 - 若拥有数据库 schema：每个模块使用自己的版本表和 source，显式注册到 Migration Catalog；执行顺序按 ModuleID 确定，不建立跨 set 事务或扫描目录自动注册。
 - 若有用户可见翻译：必须提供 i18n binding（自有语言资源 + `binding/i18n`），经 composition/kernel 聚合后通过注入的 `pkg/i18n.Translator` 消费；不得绕过注入直接读 `pkg/i18n` 默认配置。
 - `module.go` 只做纯内存装配并返回窄 Handler/Service 与 contribution；`internal/composition` 是唯一跨模块连接点。

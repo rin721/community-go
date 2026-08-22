@@ -278,6 +278,10 @@ func writeModuleBoundaryFixture(t *testing.T, root, relative, content string) {
 func validatePackageGraph(graph []packageNode) error {
 	for _, node := range graph {
 		for _, imported := range node.Imports {
+			if strings.HasPrefix(imported, "github.com/casbin/casbin/v3") &&
+				node.ImportPath != modulePath+"/internal/module/iam/adapter/casbin" {
+				return fmt.Errorf("package %s imports Casbin outside the IAM adapter boundary", node.ImportPath)
+			}
 			if imported == "github.com/rabbitmq/amqp091-go" &&
 				node.ImportPath != modulePath+"/internal/kernel/app/messaging/rabbitmq" {
 				return fmt.Errorf("package %s bypasses the RabbitMQ messaging adapter", node.ImportPath)

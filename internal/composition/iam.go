@@ -1,41 +1,44 @@
 package composition
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/rin721/go-scaffold-template/internal/module/auth"
 	authmodel "github.com/rin721/go-scaffold-template/internal/module/auth/model"
+	"github.com/rin721/go-scaffold-template/internal/module/iam"
 	"github.com/rin721/go-scaffold-template/internal/module/iam/repo"
 	"github.com/rin721/go-scaffold-template/internal/module/iam/service"
 	"github.com/rin721/go-scaffold-template/pkg/httpx"
 )
 
-// iamSessionAuthAdapter 是 IAM identity 到通用 Auth Principal 的唯一装配适配器。
-type iamSessionAuthAdapter struct{ service *service.Service }
+// iamSessionAuthAdapter 是 IAM Session identity 到 Auth iam-rbac Principal
+// 的唯一装配适配器。
+type iamSessionAuthAdapter struct {
+	sessions iam.SessionResolver
+}
 
-func newIAMSessionAuthAdapter(value *service.Service) (auth.RequestAuthenticator, error) {
-	if value == nil {
-		return nil, fmt.Errorf("iam session service is nil")
+func newIAMSessionAuthAdapter(sessions iam.SessionResolver) (auth.RequestAuthenticator, error) {
+	if sessions == nil {
+		return nil, fmt.Errorf("iam session resolver is nil")
 	}
-	return iamSessionAuthAdapter{service: value}, nil
+	return iamSessionAuthAdapter{sessions: sessions}, nil
 }
 func (a iamSessionAuthAdapter) AuthenticateRequest(request *http.Request) (*http.Request, error) {
 	cookie, err := request.Cookie(service.SessionCookieName)
 	if err != nil || cookie.Value == "" {
 		return nil, service.ErrSessionInvalid
 	}
-	session, err := a.service.Resolve(request.Context(), cookie.Value)
+	session, err := a.sessions.Resolve(request.Context(), cookie.Value)
 	if err != nil {
 		return nil, err
 	}
-	scopes := make([]authmodel.Scope, len(session.Identity.Permissions))
-	for index, key := range session.Identity.Permissions {
-		scopes[index] = authmodel.Scope(key)
-	}
-	principal, err := authmodel.NewPrincipal(session.Identity.AccountID, authmodel.ActorService, scopes, session.Identity.AuthenticatedAt, session.Identity.AuthenticatedAt)
+	principal, err := authmodel.NewIAMRBACPrincipal(
+		session.Identity.AccountID, authmodel.ActorService,
+		session.AuthorizationRevision, session.Identity.MustChangePassword,
+		session.Identity.AuthenticatedAt, session.Identity.AuthenticatedAt,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -54,17 +57,13 @@ var _ auth.RequestAuthenticator = iamSessionAuthAdapter{}
 
 // iamMutationGuardAdapter 在 composition 把 IAM Session 协议校验提供给普通业务 HTTP binding。
 type iamMutationGuardAdapter struct {
-	service        mutationSessionService
+	mutation       iam.MutationGuard
 	allowedOrigins map[string]struct{}
 }
 
-type mutationSessionService interface {
-	ValidateCSRF(context.Context, string, string) error
-}
-
-func newIAMMutationGuard(value mutationSessionService, allowedOrigins []string) (iamMutationGuardAdapter, error) {
-	if nilDependency(value) {
-		return iamMutationGuardAdapter{}, fmt.Errorf("iam mutation guard service is nil")
+func newIAMMutationGuard(guard iam.MutationGuard, allowedOrigins []string) (iamMutationGuardAdapter, error) {
+	if nilDependency(guard) {
+		return iamMutationGuardAdapter{}, fmt.Errorf("iam mutation guard is nil")
 	}
 	allowed := make(map[string]struct{}, len(allowedOrigins))
 	for _, origin := range allowedOrigins {
@@ -73,7 +72,7 @@ func newIAMMutationGuard(value mutationSessionService, allowedOrigins []string) 
 			allowed[origin] = struct{}{}
 		}
 	}
-	return iamMutationGuardAdapter{service: value, allowedOrigins: allowed}, nil
+	return iamMutationGuardAdapter{mutation: guard, allowedOrigins: allowed}, nil
 }
 func (adapter iamMutationGuardAdapter) ValidateMutation(request *http.Request) error {
 	if request == nil {
@@ -89,8 +88,10 @@ func (adapter iamMutationGuardAdapter) ValidateMutation(request *http.Request) e
 		}
 	}
 	id, _, ok := service.SessionFromContext(request.Context())
-	if !ok || adapter.service.ValidateCSRF(request.Context(), id, request.Header.Get("X-CSRF-Token")) != nil {
+	if !ok || adapter.mutation.ValidateCSRF(request.Context(), id, request.Header.Get("X-CSRF-Token")) != nil {
 		return &httpx.StatusError{StatusCode: http.StatusForbidden, Code: "csrf_invalid", Message: "CSRF token is invalid"}
 	}
 	return nil
 }
+
+var _ navigationMutationGuard = iamMutationGuardAdapter{}

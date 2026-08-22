@@ -4,6 +4,10 @@ export type IAMIdentity={accountId:string;username:string;displayName:string;per
 export type IAMSession={identity:IAMIdentity;csrfToken:string;createdAt:string;idleExpiresAt:string;absoluteExpiresAt:string};
 export type Account={id:string;username:string;displayName:string;status:"active"|"disabled";mustChangePassword:boolean;securityRevision:number;version:number};
 export type Role={id:string;code:string;name:string;description:string;active:boolean;archived:boolean;system:boolean;version:number};
+export type AccountRolesView={accountId:string;accountVersion:number;authorizationRevision:number;roleIds:string[]};
+export type RolePermissionsView={roleId:string;roleVersion:number;authorizationRevision:number;permissionKeys:string[]};
+export type AssignmentResult={entityId:string;entityVersion:number;authorizationRevision:number;added:number;removed:number};
+export type PermissionDefinition={key:string;ownerModuleId:string;descriptionMessageId:string};
 type ListResult<T>={items:T[];offset:number;limit:number;total:number};
 let csrfToken="";
 const originHeaders=()=>({Origin:window.location.origin});
@@ -17,11 +21,12 @@ export const listAccounts=()=>requestJSON<ListResult<Account>>("/api/v1/iam/acco
 export const createAccount=(username:string,displayName:string,password:string)=>requestJSON<Account>("/api/v1/iam/accounts",{method:"POST",body:JSON.stringify({username,displayName,password}),headers:mutationHeaders()});
 export const setAccountStatus=(id:string,status:Account["status"])=>requestJSON<void>(`/api/v1/iam/accounts/${id}/status`,{method:"PATCH",body:JSON.stringify({status}),headers:mutationHeaders()});
 export const resetAccountPassword=(id:string,password:string)=>requestJSON<void>(`/api/v1/iam/accounts/${id}/password-reset`,{method:"POST",body:JSON.stringify({password}),headers:mutationHeaders()});
-export const accountRoleIDs=(id:string)=>requestJSON<string[]>(`/api/v1/iam/accounts/${id}/roles`);
-export const replaceAccountRoles=(id:string,roleIDs:string[])=>requestJSON<void>(`/api/v1/iam/accounts/${id}/roles`,{method:"PUT",body:JSON.stringify({roleIDs}),headers:mutationHeaders()});
+export const accountRoleIDs=(id:string)=>requestJSON<AccountRolesView>(`/api/v1/iam/accounts/${id}/roles`).then((value)=>value.roleIds);
+export const accountRolesView=(id:string)=>requestJSON<AccountRolesView>(`/api/v1/iam/accounts/${id}/roles`);
+export const replaceAccountRoles=(id:string,expectedAccountVersion:number,roleIds:string[])=>requestJSON<AssignmentResult>(`/api/v1/iam/accounts/${id}/roles`,{method:"PUT",body:JSON.stringify({expectedAccountVersion,roleIds}),headers:mutationHeaders()});
 export const listRoles=()=>requestJSON<ListResult<Role>>("/api/v1/iam/roles?offset=0&limit=100").then((value)=>value.items);
 export const createRole=(code:string,name:string,description:string)=>requestJSON<Role>("/api/v1/iam/roles",{method:"POST",body:JSON.stringify({code,name,description}),headers:mutationHeaders()});
-export const rolePermissionKeys=(id:string)=>requestJSON<string[]>(`/api/v1/iam/roles/${id}/permissions`);
-export const replaceRolePermissions=(id:string,permissionKeys:string[])=>requestJSON<void>(`/api/v1/iam/roles/${id}/permissions`,{method:"PUT",body:JSON.stringify({permissionKeys}),headers:mutationHeaders()});
+export const rolePermissionsView=(id:string)=>requestJSON<RolePermissionsView>(`/api/v1/iam/roles/${id}/permissions`);
+export const replaceRolePermissions=(id:string,expectedRoleVersion:number,permissionKeys:string[])=>requestJSON<AssignmentResult>(`/api/v1/iam/roles/${id}/permissions`,{method:"PUT",body:JSON.stringify({expectedRoleVersion,permissionKeys}),headers:mutationHeaders()});
 export const listPermissions=()=>requestJSON<Array<{key:string;ownerModuleId:string;descriptionMessageId:string}>>("/api/v1/iam/permissions");
 export const principalFromSession=(session:IAMSession):PrincipalView=>({id:session.identity.accountId,username:session.identity.username,scopes:[...session.identity.permissions]});

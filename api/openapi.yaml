@@ -33,6 +33,30 @@ components:
         - securityRevision
         - version
       type: object
+    AccountRolesResponse:
+      additionalProperties: false
+      properties:
+        accountId:
+          type: string
+        accountVersion:
+          format: int64
+          minimum: 0
+          type: integer
+        authorizationRevision:
+          format: int64
+          minimum: 0
+          type: integer
+        roleIds:
+          items:
+            type: string
+          nullable: true
+          type: array
+      required:
+        - accountId
+        - accountVersion
+        - authorizationRevision
+        - roleIds
+      type: object
     Assignment:
       additionalProperties: false
       properties:
@@ -48,6 +72,32 @@ components:
       required:
         - accountId
         - positionIds
+      type: object
+    AssignmentResponse:
+      additionalProperties: false
+      properties:
+        added:
+          format: int64
+          type: integer
+        authorizationRevision:
+          format: int64
+          minimum: 0
+          type: integer
+        entityId:
+          type: string
+        entityVersion:
+          format: int64
+          minimum: 0
+          type: integer
+        removed:
+          format: int64
+          type: integer
+      required:
+        - entityId
+        - entityVersion
+        - authorizationRevision
+        - added
+        - removed
       type: object
     ChangePasswordInputBody:
       additionalProperties: false
@@ -431,12 +481,17 @@ components:
     PermissionKeysInputBody:
       additionalProperties: false
       properties:
+        expectedRoleVersion:
+          format: int64
+          minimum: 0
+          type: integer
         permissionKeys:
           items:
             type: string
           nullable: true
           type: array
       required:
+        - expectedRoleVersion
         - permissionKeys
       type: object
     PermissionResponse:
@@ -536,13 +591,42 @@ components:
     RoleIDsInputBody:
       additionalProperties: false
       properties:
+        expectedAccountVersion:
+          format: int64
+          minimum: 0
+          type: integer
         roleIds:
           items:
             type: string
           nullable: true
           type: array
       required:
+        - expectedAccountVersion
         - roleIds
+      type: object
+    RolePermissionsResponse:
+      additionalProperties: false
+      properties:
+        authorizationRevision:
+          format: int64
+          minimum: 0
+          type: integer
+        permissionKeys:
+          items:
+            type: string
+          nullable: true
+          type: array
+        roleId:
+          type: string
+        roleVersion:
+          format: int64
+          minimum: 0
+          type: integer
+      required:
+        - roleId
+        - roleVersion
+        - authorizationRevision
+        - permissionKeys
       type: object
     RoleResponse:
       additionalProperties: false
@@ -847,6 +931,22 @@ paths:
   /api/v1/iam/accounts/{id}/password-reset:
     post:
       operationId: iam.accounts.password.reset
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: Origin
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
+            type: string
       requestBody:
         content:
           application/json:
@@ -880,10 +980,7 @@ paths:
           content:
             application/json:
               schema:
-                items:
-                  type: string
-                nullable: true
-                type: array
+                $ref: "#/components/schemas/AccountRolesResponse"
           description: OK
           headers:
             Cache-Control:
@@ -901,6 +998,22 @@ paths:
         - IAM
     put:
       operationId: iam.accounts.roles.replace
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: Origin
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
+            type: string
       requestBody:
         content:
           application/json:
@@ -908,8 +1021,16 @@ paths:
               $ref: "#/components/schemas/RoleIDsInputBody"
         required: true
       responses:
-        "204":
-          description: No Content
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssignmentResponse"
+          description: OK
+          headers:
+            Cache-Control:
+              schema:
+                type: string
         default:
           content:
             application/problem+json:
@@ -923,6 +1044,22 @@ paths:
   /api/v1/iam/accounts/{id}/status:
     patch:
       operationId: iam.accounts.status
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: Origin
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
+            type: string
       requestBody:
         content:
           application/json:
@@ -1129,10 +1266,7 @@ paths:
           content:
             application/json:
               schema:
-                items:
-                  type: string
-                nullable: true
-                type: array
+                $ref: "#/components/schemas/RolePermissionsResponse"
           description: OK
           headers:
             Cache-Control:
@@ -1150,6 +1284,22 @@ paths:
         - IAM
     put:
       operationId: iam.roles.permissions.replace
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: Origin
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
+            type: string
       requestBody:
         content:
           application/json:
@@ -1157,8 +1307,16 @@ paths:
               $ref: "#/components/schemas/PermissionKeysInputBody"
         required: true
       responses:
-        "204":
-          description: No Content
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssignmentResponse"
+          description: OK
+          headers:
+            Cache-Control:
+              schema:
+                type: string
         default:
           content:
             application/problem+json:

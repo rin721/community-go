@@ -4,22 +4,23 @@ import (
 	"context"
 	"fmt"
 
-	iamservice "github.com/rin721/go-scaffold-template/internal/module/iam/service"
+	"github.com/rin721/go-scaffold-template/internal/module/iam"
 	organizationservice "github.com/rin721/go-scaffold-template/internal/module/organization/service"
 )
 
-// organizationAccountDirectoryAdapter 是 Organization 到 IAM 账号事实的唯一装配适配器。
-type organizationAccountDirectoryAdapter struct{ iam *iamservice.Service }
+// organizationAccountDirectoryAdapter 是 Organization 到 IAM AccountDirectory
+// facet 的唯一装配适配器。
+type organizationAccountDirectoryAdapter struct{ accounts iam.AccountDirectory }
 
-func newOrganizationAccountDirectory(iam *iamservice.Service) (organizationservice.AccountDirectory, error) {
-	if iam == nil {
-		return nil, fmt.Errorf("organization account directory IAM service is nil")
+func newOrganizationAccountDirectory(accounts iam.AccountDirectory) (organizationservice.AccountDirectory, error) {
+	if accounts == nil {
+		return nil, fmt.Errorf("organization account directory IAM facet is nil")
 	}
-	return organizationAccountDirectoryAdapter{iam: iam}, nil
+	return organizationAccountDirectoryAdapter{accounts: accounts}, nil
 }
 
 func (adapter organizationAccountDirectoryAdapter) RequireAssignableAccount(ctx context.Context, accountID string) error {
-	return adapter.iam.RequireAssignableAccount(ctx, accountID)
+	return adapter.accounts.RequireAssignableAccount(ctx, accountID)
 }
 
 var _ organizationservice.AccountDirectory = organizationAccountDirectoryAdapter{}

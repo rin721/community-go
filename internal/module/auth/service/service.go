@@ -22,6 +22,27 @@ type AuditSink interface {
 	Record(context.Context, model.AuditEvent) error
 }
 
+// AuthorizationRequest 是 Auth 交给 DecisionPoint 的最小判断输入；
+// Permission 语义为精确 PermissionKey，Auth 不解释其 owner。
+type AuthorizationRequest struct {
+	Subject    string
+	Permission model.Scope
+	Revision   uint64
+	Restricted bool
+}
+
+// AuthorizationDecision 是 DecisionPoint 返回的低基数判断结果。
+type AuthorizationDecision struct {
+	Allowed bool
+	Reason  model.DecisionReason
+}
+
+// DecisionPoint 是 Auth 消费方拥有的 RBAC 决策 port；由 composition 把
+// IAM Authorization facet 适配注入。Auth 不 import IAM，不知道 Casbin。
+type DecisionPoint interface {
+	Decide(context.Context, AuthorizationRequest) (AuthorizationDecision, error)
+}
+
 // Authenticator 是 HTTP middleware 使用的最小入口。
 type Authenticator interface {
 	Authenticate(context.Context, model.Credential) (model.Principal, error)
@@ -31,25 +52,28 @@ type Authenticator interface {
 
 // Service 是 Auth module 对 transport 与跨模块 Adapter 暴露的完成品。
 type Service struct {
-	clock       clock.Clock
-	verifier    CredentialVerifier
-	development *model.Principal
-	audit       AuditSink
-	byOperation map[string]model.Policy
-	byAction    map[model.Action]model.Policy
+	clock         clock.Clock
+	verifier      CredentialVerifier
+	development   *model.Principal
+	audit         AuditSink
+	decisionPoint DecisionPoint
+	byOperation   map[string]model.Policy
+	byAction      map[model.Action]model.Policy
 }
 
-// New 构造不执行 I/O 的 Auth Service，并冻结 policy authority。
-func New(currentClock clock.Clock, verifier CredentialVerifier, development *model.Principal, audit AuditSink, policies []model.Policy) (*Service, error) {
-	return newService(currentClock, verifier, development, false, audit, policies)
+// New 构造不执行 I/O 的 Auth Service，并冻结 policy authority；
+// decisionPoint 是 iam-rbac 来源主体的必选依赖。
+func New(currentClock clock.Clock, verifier CredentialVerifier, development *model.Principal, audit AuditSink, decisionPoint DecisionPoint, policies []model.Policy) (*Service, error) {
+	return newService(currentClock, verifier, development, false, audit, decisionPoint, policies)
 }
 
-// NewLocal 构造只接受显式 CLI operator 的 Auth Service，不启用 HTTP 认证入口。
+// NewLocal 构造只接受显式 CLI operator 的 Auth Service，不启用 HTTP 认证入口，
+// 也不需要 DecisionPoint（CLI operator 永远是 token-scopes 来源）。
 func NewLocal(currentClock clock.Clock, audit AuditSink, policies []model.Policy) (*Service, error) {
-	return newService(currentClock, nil, nil, true, audit, policies)
+	return newService(currentClock, nil, nil, true, audit, nil, policies)
 }
 
-func newService(currentClock clock.Clock, verifier CredentialVerifier, development *model.Principal, localOnly bool, audit AuditSink, policies []model.Policy) (*Service, error) {
+func newService(currentClock clock.Clock, verifier CredentialVerifier, development *model.Principal, localOnly bool, audit AuditSink, decisionPoint DecisionPoint, policies []model.Policy) (*Service, error) {
 	if currentClock == nil || audit == nil {
 		return nil, fmt.Errorf("auth service dependencies are incomplete")
 	}
@@ -58,6 +82,9 @@ func newService(currentClock clock.Clock, verifier CredentialVerifier, developme
 	}
 	if localOnly && (verifier != nil || development != nil) || verifier != nil && development != nil {
 		return nil, fmt.Errorf("auth service authentication profiles conflict")
+	}
+	if decisionPoint == nil && !localOnly {
+		return nil, fmt.Errorf("auth service has no decision point")
 	}
 	byOperation := make(map[string]model.Policy, len(policies))
 	byAction := make(map[model.Action]model.Policy, len(policies))
@@ -81,7 +108,7 @@ func newService(currentClock clock.Clock, verifier CredentialVerifier, developme
 	}
 	return &Service{
 		clock: currentClock, verifier: verifier, development: development, audit: audit,
-		byOperation: byOperation, byAction: byAction,
+		decisionPoint: decisionPoint, byOperation: byOperation, byAction: byAction,
 	}, nil
 }
 
@@ -151,7 +178,7 @@ func (s *Service) AuthorizeOperation(ctx context.Context, principal model.Princi
 	if !exists {
 		return model.Decision{Reason: model.ReasonMissingPolicy}, nil
 	}
-	return decide(ctx, principal, policy, model.ResourceFacts{})
+	return s.decide(ctx, principal, policy, model.ResourceFacts{})
 }
 
 // EnforceOperation 执行 operation policy 并在返回前完成低敏审计。
@@ -181,7 +208,7 @@ func (s *Service) AuthorizeAction(ctx context.Context, principal model.Principal
 	if !exists {
 		return model.Decision{Reason: model.ReasonMissingPolicy}, nil
 	}
-	return decide(ctx, principal, policy, resource)
+	return s.decide(ctx, principal, policy, resource)
 }
 
 // EnforceAction 执行业务对象 policy，并把资源标识交给低敏 Sink 脱敏后记录。
@@ -205,7 +232,7 @@ func (s *Service) EnforceAction(ctx context.Context, principal model.Principal, 
 	return nil
 }
 
-func decide(ctx context.Context, principal model.Principal, policy model.Policy, resource model.ResourceFacts) (model.Decision, error) {
+func (s *Service) decide(ctx context.Context, principal model.Principal, policy model.Policy, resource model.ResourceFacts) (model.Decision, error) {
 	if ctx == nil {
 		return model.Decision{}, fmt.Errorf("authorization context is nil")
 	}
@@ -218,8 +245,27 @@ func decide(ctx context.Context, principal model.Principal, policy model.Policy,
 	if principal.Subject == "" {
 		return model.Decision{}, model.ErrUnauthenticated
 	}
-	if !principal.HasScope(policy.Scope) {
-		return model.Decision{Reason: model.ReasonMissingScope}, nil
+	switch principal.AuthorizationSource {
+	case model.AuthorizationTokenScopes:
+		if !principal.HasScope(policy.Scope) {
+			return model.Decision{Reason: model.ReasonMissingScope}, nil
+		}
+	case model.AuthorizationIAMRBAC:
+		if s == nil || s.decisionPoint == nil {
+			return model.Decision{}, fmt.Errorf("iam rbac decision point is unavailable")
+		}
+		decision, err := s.decisionPoint.Decide(ctx, AuthorizationRequest{
+			Subject: principal.Subject, Permission: policy.Scope,
+			Revision: principal.AuthorizationRevision, Restricted: principal.Restricted,
+		})
+		if err != nil {
+			return model.Decision{}, fmt.Errorf("iam rbac decision failed: %w", err)
+		}
+		if !decision.Allowed {
+			return model.Decision{Reason: model.ReasonRBACDenied}, nil
+		}
+	default:
+		return model.Decision{}, fmt.Errorf("principal authorization source %q is unknown", principal.AuthorizationSource)
 	}
 	if resource.OwnerSubject != "" && resource.OwnerSubject != principal.Subject {
 		return model.Decision{Reason: model.ReasonOwnerMismatch}, nil

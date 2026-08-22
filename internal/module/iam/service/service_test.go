@@ -11,6 +11,7 @@ import (
 	"time"
 
 	passwordadapter "github.com/rin721/go-scaffold-template/internal/module/iam/adapter/password"
+	"github.com/rin721/go-scaffold-template/internal/module/iam/authorization"
 	migrationbinding "github.com/rin721/go-scaffold-template/internal/module/iam/binding/migration"
 	iampermission "github.com/rin721/go-scaffold-template/internal/module/iam/binding/permission"
 	"github.com/rin721/go-scaffold-template/internal/module/iam/model"
@@ -45,10 +46,10 @@ func TestSetupLoginRBACAndRevisionInvalidation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := iam.ReplaceRolePermissions(t.Context(), role.ID, []permissioncatalog.Key{iampermission.SelfRead}); err != nil {
+	if _, err := iam.ReplaceRolePermissions(t.Context(), role.ID, 1, []permissioncatalog.Key{iampermission.SelfRead}); err != nil {
 		t.Fatal(err)
 	}
-	if err := iam.ReplaceAccountRoles(t.Context(), account.ID, []string{role.ID}); err != nil {
+	if _, err := iam.ReplaceAccountRoles(t.Context(), account.ID, 1, []string{role.ID}); err != nil {
 		t.Fatal(err)
 	}
 	first, err := iam.Login(t.Context(), "MEMBER_01", "abcdefghijklmno")
@@ -189,7 +190,7 @@ func TestLastOwnerCannotBeDisabledOrUnassigned(t *testing.T) {
 	if err := iam.SetAccountStatus(t.Context(), session.Identity.AccountID, model.AccountDisabled); !errors.Is(err, model.ErrOwnerInvariant) {
 		t.Fatalf("disable owner error = %v", err)
 	}
-	if err := iam.ReplaceAccountRoles(t.Context(), session.Identity.AccountID, nil); !errors.Is(err, model.ErrOwnerInvariant) {
+	if _, err := iam.ReplaceAccountRoles(t.Context(), session.Identity.AccountID, 1, nil); !errors.Is(err, model.ErrOwnerInvariant) {
 		t.Fatalf("unassign owner error = %v", err)
 	}
 }
@@ -209,7 +210,7 @@ func TestConcurrentOwnerDisableCannotRemoveEveryActiveOwner(t *testing.T) {
 	if err != nil || len(roles.Items) != 1 {
 		t.Fatalf("roles = %#v, %v", roles, err)
 	}
-	if err := iam.ReplaceAccountRoles(t.Context(), second.ID, []string{roles.Items[0].ID}); err != nil {
+	if _, err := iam.ReplaceAccountRoles(t.Context(), second.ID, 1, []string{roles.Items[0].ID}); err != nil {
 		t.Fatal(err)
 	}
 	start := make(chan struct{})
@@ -269,7 +270,11 @@ func serviceForResource(t *testing.T, resource database.Resource, definitions []
 	if err != nil {
 		t.Fatal(err)
 	}
-	iam, err := service.New(store, clock.Fixed(time.Date(2026, 8, 22, 1, 0, 0, 0, time.UTC)), idgen.UUID(), passwordadapter.Hasher{}, service.Config{SetupToken: "setup-secret", IdleTimeout: 30 * time.Minute, AbsoluteTimeout: 12 * time.Hour, MaxFailedAttempts: 3, LockDuration: 15 * time.Minute}, catalog)
+	runtime, err := authorization.New(store, catalog)
+	if err != nil {
+		t.Fatal(err)
+	}
+	iam, err := service.New(store, clock.Fixed(time.Date(2026, 8, 22, 1, 0, 0, 0, time.UTC)), idgen.UUID(), passwordadapter.Hasher{}, service.Config{SetupToken: "setup-secret", IdleTimeout: 30 * time.Minute, AbsoluteTimeout: 12 * time.Hour, MaxFailedAttempts: 3, LockDuration: 15 * time.Minute}, catalog, runtime)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -283,6 +288,123 @@ func storeForResource(t *testing.T, resource database.Resource) *repo.Store {
 		t.Fatal(err)
 	}
 	return store
+}
+
+// TestRelationshipReplaceVersionConflictAndNoOp 覆盖 dynamic assignment 的
+// expected version 语义：过期版本返回 409 类错误；no-op 不改变版本与 revision、
+// 不撤销 Session；有效变更返回 diff 与新版本。
+func TestRelationshipReplaceVersionConflictAndNoOp(t *testing.T) {
+	iam, resource := newService(t)
+	defer resource.Close()
+	session, err := iam.Setup(t.Context(), "setup-secret", "owner", "Owner", "123456789012345")
+	if err != nil {
+		t.Fatal(err)
+	}
+	account, err := iam.CreateAccount(t.Context(), "member", "成员", "abcdefghijklmno")
+	if err != nil {
+		t.Fatal(err)
+	}
+	role, err := iam.CreateRole(t.Context(), "reader", "只读", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 过期 expected version → 稳定冲突。
+	if _, err := iam.ReplaceAccountRoles(t.Context(), account.ID, 99, []string{role.ID}); !errors.Is(err, service.ErrVersionConflict) {
+		t.Fatalf("stale account version error = %v", err)
+	}
+	if _, err := iam.ReplaceRolePermissions(t.Context(), role.ID, 99, []permissioncatalog.Key{iampermission.SelfRead}); !errors.Is(err, service.ErrVersionConflict) {
+		t.Fatalf("stale role version error = %v", err)
+	}
+	// 正确版本写入角色权限，获得 added 计数与 role version 递增。
+	result, err := iam.ReplaceRolePermissions(t.Context(), role.ID, 1, []permissioncatalog.Key{iampermission.SelfRead})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Added != 1 || result.Removed != 0 || result.EntityVersion != 2 || result.AuthorizationRevision != 3 {
+		t.Fatalf("role permission replace result = %#v", result)
+	}
+	view, err := iam.RolePermissionsSnapshot(t.Context(), role.ID)
+	if err != nil || view.RoleVersion != 2 || len(view.PermissionKeys) != 1 || view.PermissionKeys[0] != iampermission.SelfRead {
+		t.Fatalf("role permissions snapshot = %#v, %v", view, err)
+	}
+	// 账号角色替换成功；旧 Session 失效。
+	if _, err := iam.ReplaceAccountRoles(t.Context(), account.ID, 1, []string{role.ID}); err != nil {
+		t.Fatal(err)
+	}
+	first, err := iam.Login(t.Context(), "member", "abcdefghijklmno")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// no-op 再提交同一集合：版本/revision 不变，Session 不被撤销。
+	before, err := iam.AccountRolesSnapshot(t.Context(), account.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	noop, err := iam.ReplaceAccountRoles(t.Context(), account.ID, before.AccountVersion, []string{role.ID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if noop.Added != 0 || noop.Removed != 0 || noop.EntityVersion != before.AccountVersion || noop.AuthorizationRevision != before.AuthorizationRevision {
+		t.Fatalf("no-op result = %#v, before = %#v", noop, before)
+	}
+	if _, err := iam.Resolve(t.Context(), first.ID); err != nil {
+		t.Fatalf("no-op must not revoke member session: %v", err)
+	}
+	// 版本冲突后不静默覆盖：期望集合保持不变。
+	if _, err := iam.ReplaceAccountRoles(t.Context(), account.ID, noop.EntityVersion, []string{role.ID, "role-ghost"}); !errors.Is(err, repo.ErrNotFound) {
+		t.Fatalf("ghost role error = %v", err)
+	}
+	_ = session
+}
+
+// TestReplaceRemovesPermissionRevokesAssignedSessionsAndPublishes 验证有效
+// 角色权限移除会撤销持有者的 Session，且新登录账号不再拥有该权限。
+func TestReplaceRemovesPermissionRevokesAssignedSessionsAndPublishes(t *testing.T) {
+	iam, resource := newService(t)
+	defer resource.Close()
+	if _, err := iam.Setup(t.Context(), "setup-secret", "owner", "Owner", "123456789012345"); err != nil {
+		t.Fatal(err)
+	}
+	account, err := iam.CreateAccount(t.Context(), "member", "成员", "abcdefghijklmno")
+	if err != nil {
+		t.Fatal(err)
+	}
+	role, err := iam.CreateRole(t.Context(), "reader", "只读", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := iam.ReplaceRolePermissions(t.Context(), role.ID, 1, []permissioncatalog.Key{iampermission.SelfRead, iampermission.AccountRead}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := iam.ReplaceAccountRoles(t.Context(), account.ID, 1, []string{role.ID}); err != nil {
+		t.Fatal(err)
+	}
+	session, err := iam.Login(t.Context(), "member", "abcdefghijklmno")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 移除 AccountRead：持有者 Session 被撤销。
+	result, err := iam.ReplaceRolePermissions(t.Context(), role.ID, 2, []permissioncatalog.Key{iampermission.SelfRead})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Removed != 1 || result.Added != 0 {
+		t.Fatalf("remove result = %#v", result)
+	}
+	if _, err := iam.Resolve(t.Context(), session.ID); !errors.Is(err, service.ErrSessionInvalid) {
+		t.Fatalf("member session after permission removal = %v", err)
+	}
+	replacement, err := iam.Login(t.Context(), "member", "abcdefghijklmno")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if replacement.Identity.SecurityRevision != session.Identity.SecurityRevision+1 {
+		t.Fatalf("replacement security revision = %d, want %d", replacement.Identity.SecurityRevision, session.Identity.SecurityRevision+1)
+	}
+	view, err := iam.RolePermissionsSnapshot(t.Context(), role.ID)
+	if err != nil || len(view.PermissionKeys) != 1 || view.PermissionKeys[0] != iampermission.SelfRead {
+		t.Fatalf("role permissions snapshot = %#v, %v", view, err)
+	}
 }
 
 func historicalHash(value string) string {

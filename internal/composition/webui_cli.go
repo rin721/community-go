@@ -80,13 +80,13 @@ func (a *Application) executeIAMResetPassword(ctx context.Context, username, pas
 		if err := migrationService.Compatible(operationCtx); err != nil {
 			return fmt.Errorf("verify application migration compatibility: %w", err)
 		}
-		if err := iamModule.Service.ReconcileOwnerCatalog(operationCtx); err != nil {
+		if err := iamModule.Administration.ReconcileOwnerCatalog(operationCtx); err != nil {
 			return fmt.Errorf("reconcile iam owner catalog: %w", err)
 		}
-		if err := iamModule.Service.Compatible(operationCtx); err != nil {
+		if err := iamModule.Administration.Compatible(operationCtx); err != nil {
 			return fmt.Errorf("verify iam catalog compatibility: %w", err)
 		}
-		return iamModule.Service.ResetPasswordByUsername(operationCtx, username, password)
+		return iamModule.Administration.ResetPasswordByUsername(operationCtx, username, password)
 	}); err != nil {
 		return fmt.Errorf("execute webui password reset: %w", err)
 	}

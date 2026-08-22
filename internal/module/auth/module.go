@@ -28,6 +28,9 @@ type Dependencies struct {
 	Config        configbinding.Config
 	Policies      []model.Policy
 	SessionSource RequestAuthenticator
+	// DecisionPoint 是 iam-rbac 来源主体的 RBAC 决策 port；由 composition
+	// 注入 IAM Authorization facet 的适配实现。
+	DecisionPoint service.DecisionPoint
 }
 
 // Module 是 Auth 局部装配后交给 composition root 的完成品。
@@ -104,7 +107,7 @@ func NewHTTP(dependencies Dependencies) (Module, error) {
 	default:
 		return Module{}, fmt.Errorf("compose auth module: unsupported mode %q", dependencies.Config.Mode)
 	}
-	authService, err := service.New(dependencies.Clock, verifier, development, audit, dependencies.Policies)
+	authService, err := service.New(dependencies.Clock, verifier, development, audit, dependencies.DecisionPoint, dependencies.Policies)
 	if err != nil {
 		return Module{}, fmt.Errorf("compose auth service: %w", err)
 	}

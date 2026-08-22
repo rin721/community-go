@@ -39,6 +39,9 @@ type pageInput struct {
 type idInput struct {
 	ID string `path:"id"`
 }
+
+// mutationInput 是带 {id} path 参数的 mutation 公共字段；huma 对 embedded
+// struct 的 path 参数绑定不可靠，使用它的输入类型必须在自身结构体扁平声明。
 type mutationInput struct {
 	ID        string `path:"id"`
 	Origin    string `header:"Origin" required:"true"`
@@ -54,27 +57,40 @@ type createAccountInput struct {
 	}
 }
 type statusInput struct {
-	mutationInput
-	Body struct {
+	ID        string `path:"id"`
+	Origin    string `header:"Origin" required:"true"`
+	CSRFToken string `header:"X-CSRF-Token" required:"true"`
+	Body      struct {
 		Status model.AccountStatus `json:"status" enum:"active,disabled"`
 	}
 }
 type passwordInput struct {
-	mutationInput
-	Body struct {
+	ID        string `path:"id"`
+	Origin    string `header:"Origin" required:"true"`
+	CSRFToken string `header:"X-CSRF-Token" required:"true"`
+	Body      struct {
 		Password string `json:"password" minLength:"15" maxLength:"128"`
 	}
 }
+
+// roleIDsInput 扁平声明路径/Header 与 body，避免 embedded struct 的 path
+// 参数绑定歧义；huma 只直接绑定本结构体字段。
 type roleIDsInput struct {
-	mutationInput
-	Body struct {
-		RoleIDs []string `json:"roleIds"`
+	ID        string `path:"id"`
+	Origin    string `header:"Origin" required:"true"`
+	CSRFToken string `header:"X-CSRF-Token" required:"true"`
+	Body      struct {
+		ExpectedAccountVersion uint64   `json:"expectedAccountVersion"`
+		RoleIDs                []string `json:"roleIds"`
 	}
 }
 type permissionKeysInput struct {
-	mutationInput
-	Body struct {
-		PermissionKeys []permissioncatalog.Key `json:"permissionKeys"`
+	ID        string `path:"id"`
+	Origin    string `header:"Origin" required:"true"`
+	CSRFToken string `header:"X-CSRF-Token" required:"true"`
+	Body      struct {
+		ExpectedRoleVersion uint64                  `json:"expectedRoleVersion"`
+		PermissionKeys      []permissioncatalog.Key `json:"permissionKeys"`
 	}
 }
 type changePasswordInput struct {
@@ -204,15 +220,21 @@ func RegisterHuma(api huma.API, handler *Handler) {
 	registerMutation(api, handler, protected(opResetPassword, http.MethodPost, "/api/v1/iam/accounts/{id}/password-reset", string(iampermission.AccountWrite), "execute"), func(ctx context.Context, in *passwordInput) error {
 		return handler.service.ResetPassword(ctx, in.ID, in.Body.Password)
 	})
-	huma.Register(api, protected(opAccountRolesRead, http.MethodGet, "/api/v1/iam/accounts/{id}/roles", string(iampermission.AccountRead), "read"), func(ctx context.Context, in *idInput) (*jsonOutput[[]string], error) {
-		items, err := handler.service.AccountRoleIDs(ctx, in.ID)
+	huma.Register(api, protected(opAccountRolesRead, http.MethodGet, "/api/v1/iam/accounts/{id}/roles", string(iampermission.AccountRead), "read"), func(ctx context.Context, in *idInput) (*jsonOutput[accountRolesResponse], error) {
+		view, err := handler.service.AccountRolesSnapshot(ctx, in.ID)
 		if err != nil {
 			return nil, problem(ctx, err)
 		}
-		return jsonEnvelope(items), nil
+		return jsonEnvelope(accountRolesOutput(view)), nil
 	})
-	registerMutation(api, handler, protected(opAccountRoles, http.MethodPut, "/api/v1/iam/accounts/{id}/roles", string(iampermission.AccountWrite), "replace"), func(ctx context.Context, in *roleIDsInput) error {
-		return handler.service.ReplaceAccountRoles(ctx, in.ID, in.Body.RoleIDs)
+	accountRolesReplace := protected(opAccountRoles, http.MethodPut, "/api/v1/iam/accounts/{id}/roles", string(iampermission.AccountWrite), "replace")
+	accountRolesReplace.Middlewares = huma.Middlewares{handler.requireMutation}
+	huma.Register(api, accountRolesReplace, func(ctx context.Context, in *roleIDsInput) (*jsonOutput[assignmentResponse], error) {
+		result, err := handler.service.ReplaceAccountRoles(ctx, in.ID, in.Body.ExpectedAccountVersion, in.Body.RoleIDs)
+		if err != nil {
+			return nil, problem(ctx, err)
+		}
+		return jsonEnvelope(assignmentOutput(in.ID, result)), nil
 	})
 
 	huma.Register(api, protected(opRoles, http.MethodGet, "/api/v1/iam/roles", string(iampermission.RoleRead), "list"), func(ctx context.Context, in *pageInput) (*jsonOutput[listResponse[roleResponse]], error) {
@@ -236,15 +258,21 @@ func RegisterHuma(api huma.API, handler *Handler) {
 		}
 		return jsonEnvelope(roleOutput(item)), nil
 	})
-	huma.Register(api, protected(opRolePermissionsRead, http.MethodGet, "/api/v1/iam/roles/{id}/permissions", string(iampermission.RoleRead), "read"), func(ctx context.Context, in *idInput) (*jsonOutput[[]permissioncatalog.Key], error) {
-		items, err := handler.service.RolePermissionKeys(ctx, in.ID)
+	huma.Register(api, protected(opRolePermissionsRead, http.MethodGet, "/api/v1/iam/roles/{id}/permissions", string(iampermission.RoleRead), "read"), func(ctx context.Context, in *idInput) (*jsonOutput[rolePermissionsResponse], error) {
+		view, err := handler.service.RolePermissionsSnapshot(ctx, in.ID)
 		if err != nil {
 			return nil, problem(ctx, err)
 		}
-		return jsonEnvelope(items), nil
+		return jsonEnvelope(rolePermissionsOutput(view)), nil
 	})
-	registerMutation(api, handler, protected(opRolePermissions, http.MethodPut, "/api/v1/iam/roles/{id}/permissions", string(iampermission.RoleWrite), "replace"), func(ctx context.Context, in *permissionKeysInput) error {
-		return handler.service.ReplaceRolePermissions(ctx, in.ID, in.Body.PermissionKeys)
+	permissionsReplace := protected(opRolePermissions, http.MethodPut, "/api/v1/iam/roles/{id}/permissions", string(iampermission.RoleWrite), "replace")
+	permissionsReplace.Middlewares = huma.Middlewares{handler.requireMutation}
+	huma.Register(api, permissionsReplace, func(ctx context.Context, in *permissionKeysInput) (*jsonOutput[assignmentResponse], error) {
+		result, err := handler.service.ReplaceRolePermissions(ctx, in.ID, in.Body.ExpectedRoleVersion, in.Body.PermissionKeys)
+		if err != nil {
+			return nil, problem(ctx, err)
+		}
+		return jsonEnvelope(assignmentOutput(in.ID, result)), nil
 	})
 	huma.Register(api, protected(opPermissions, http.MethodGet, "/api/v1/iam/permissions", string(iampermission.PermissionRead), "list"), func(_ context.Context, _ *struct{}) (*jsonOutput[[]permissionResponse], error) {
 		definitions := handler.service.Permissions()

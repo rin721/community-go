@@ -26,6 +26,18 @@ const (
 	ActorDevelopment ActorKind = "development"
 )
 
+// AuthorizationSource 区分主体的授权决策来源；两者构造互斥，未知来源拒绝。
+type AuthorizationSource string
+
+const (
+	// AuthorizationTokenScopes 表示凭据携带的精确 scope 直接决定授权，
+	// revision 必须为零（Bearer/JWT、CLI/development）。
+	AuthorizationTokenScopes AuthorizationSource = "token-scopes"
+	// AuthorizationIAMRBAC 表示授权由注入的 DecisionPoint 按 IAM RBAC
+	// evaluator 判断，Scopes 必须为空且 revision 非零。
+	AuthorizationIAMRBAC AuthorizationSource = "iam-rbac"
+)
+
 // Scope 是认证主体携带的精确权限范围。
 type Scope string
 
@@ -38,15 +50,44 @@ const (
 
 // Principal 是不暴露第三方 claims 的已验证主体。
 type Principal struct {
-	Subject         string
-	Kind            ActorKind
-	Scopes          []Scope
+	Subject               string
+	Kind                  ActorKind
+	AuthorizationSource   AuthorizationSource
+	Scopes                []Scope
+	AuthorizationRevision uint64
+	// Restricted 表示 IAM 会话要求修改密码，只能使用自助权限；
+	// 仅 iam-rbac 来源可携带，token-scopes 构造时恒为 false。
+	Restricted      bool
 	AuthenticatedAt time.Time
 	IssuedAt        time.Time
 }
 
-// NewPrincipal 构造规范化且不可包含空 scope 的 Principal。
+// NewPrincipal 构造 token-scopes 来源的规范化且不含空 scope 的 Principal。
+// 构造不变量：来源必须为 token-scopes，revision 必须为零。
 func NewPrincipal(subject string, kind ActorKind, scopes []Scope, authenticatedAt, issuedAt time.Time) (Principal, error) {
+	principal, err := newPrincipal(subject, kind, scopes, 0, false, authenticatedAt, issuedAt)
+	if err != nil {
+		return Principal{}, err
+	}
+	principal.AuthorizationSource = AuthorizationTokenScopes
+	return principal, nil
+}
+
+// NewIAMRBACPrincipal 构造由注入 DecisionPoint 决策的 Principal。
+// 构造不变量：来源必须为 iam-rbac，revision 必须非零，Scopes 必须为空。
+func NewIAMRBACPrincipal(subject string, kind ActorKind, revision uint64, restricted bool, authenticatedAt, issuedAt time.Time) (Principal, error) {
+	if revision == 0 {
+		return Principal{}, fmt.Errorf("iam rbac principal revision is zero")
+	}
+	principal, err := newPrincipal(subject, kind, nil, revision, restricted, authenticatedAt, issuedAt)
+	if err != nil {
+		return Principal{}, err
+	}
+	principal.AuthorizationSource = AuthorizationIAMRBAC
+	return principal, nil
+}
+
+func newPrincipal(subject string, kind ActorKind, scopes []Scope, revision uint64, restricted bool, authenticatedAt, issuedAt time.Time) (Principal, error) {
 	subject = strings.TrimSpace(subject)
 	if subject == "" || kind == "" || authenticatedAt.IsZero() || issuedAt.IsZero() {
 		return Principal{}, ErrUnauthenticated
@@ -67,11 +108,13 @@ func NewPrincipal(subject string, kind ActorKind, scopes []Scope, authenticatedA
 	sort.Slice(normalized, func(i, j int) bool { return normalized[i] < normalized[j] })
 	return Principal{
 		Subject: subject, Kind: kind, Scopes: normalized,
+		AuthorizationRevision: revision, Restricted: restricted,
 		AuthenticatedAt: authenticatedAt.UTC(), IssuedAt: issuedAt.UTC(),
 	}, nil
 }
 
 // HasScope 判断 Principal 是否拥有精确 scope；不支持隐式通配符。
+// 只适用于 token-scopes 来源；iam-rbac 来源必须经 DecisionPoint 判断。
 func (p Principal) HasScope(scope Scope) bool {
 	for _, candidate := range p.Scopes {
 		if candidate == scope {
@@ -122,7 +165,9 @@ const (
 	ReasonUnauthenticated DecisionReason = "unauthenticated"
 	ReasonMissingPolicy   DecisionReason = "missing_policy"
 	ReasonMissingScope    DecisionReason = "missing_scope"
-	ReasonOwnerMismatch   DecisionReason = "owner_mismatch"
+	// ReasonRBACDenied 表示 iam-rbac 来源被注入 DecisionPoint 业务拒绝。
+	ReasonRBACDenied    DecisionReason = "rbac_denied"
+	ReasonOwnerMismatch DecisionReason = "owner_mismatch"
 )
 
 // Decision 是显式 fail-closed 的授权结果。
@@ -163,5 +208,5 @@ func PrincipalFromContext(ctx context.Context) (Principal, bool) {
 		return Principal{}, false
 	}
 	principal, ok := ctx.Value(principalContextKey{}).(Principal)
-	return principal, ok && principal.Subject != "" && principal.Kind != "" && !principal.AuthenticatedAt.IsZero()
+	return principal, ok && principal.Subject != "" && principal.Kind != "" && principal.AuthorizationSource != "" && !principal.AuthenticatedAt.IsZero()
 }

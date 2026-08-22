@@ -289,7 +289,7 @@ func (s *Service) Complete(ctx context.Context, command CompleteCommand) (model.
 
 func validateActor(actor Actor) (Actor, error) {
 	actor.Subject = strings.TrimSpace(actor.Subject)
-	if actor.Subject == "" || strings.TrimSpace(actor.Kind) == "" || len(actor.Scopes) == 0 {
+	if actor.Subject == "" || strings.TrimSpace(actor.Kind) == "" {
 		return Actor{}, fault.New(fault.CodePermissionDenied, "Todo actor is not authorized")
 	}
 	return actor, nil

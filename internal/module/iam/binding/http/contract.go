@@ -100,6 +100,25 @@ type permissionResponse struct {
 	OwnerModuleID        string `json:"ownerModuleId"`
 	DescriptionMessageID string `json:"descriptionMessageId"`
 }
+type accountRolesResponse struct {
+	AccountID             string   `json:"accountId"`
+	AccountVersion        uint64   `json:"accountVersion"`
+	AuthorizationRevision uint64   `json:"authorizationRevision"`
+	RoleIDs               []string `json:"roleIds"`
+}
+type rolePermissionsResponse struct {
+	RoleID                string                  `json:"roleId"`
+	RoleVersion           uint64                  `json:"roleVersion"`
+	AuthorizationRevision uint64                  `json:"authorizationRevision"`
+	PermissionKeys        []permissioncatalog.Key `json:"permissionKeys"`
+}
+type assignmentResponse struct {
+	EntityID              string `json:"entityId"`
+	EntityVersion         uint64 `json:"entityVersion"`
+	AuthorizationRevision uint64 `json:"authorizationRevision"`
+	Added                 int    `json:"added"`
+	Removed               int    `json:"removed"`
+}
 type listResponse[T any] struct {
 	Items  []T   `json:"items"`
 	Offset int   `json:"offset"`
@@ -113,6 +132,15 @@ func accountOutput(v model.Account) accountResponse {
 func roleOutput(v model.Role) roleResponse {
 	return roleResponse{v.ID, v.Code, v.Name, v.Description, v.Active, v.Archived, v.System, v.Version}
 }
+func accountRolesOutput(v service.AccountRolesView) accountRolesResponse {
+	return accountRolesResponse{AccountID: v.AccountID, AccountVersion: v.AccountVersion, AuthorizationRevision: v.AuthorizationRevision, RoleIDs: v.RoleIDs}
+}
+func rolePermissionsOutput(v service.RolePermissionsView) rolePermissionsResponse {
+	return rolePermissionsResponse{RoleID: v.RoleID, RoleVersion: v.RoleVersion, AuthorizationRevision: v.AuthorizationRevision, PermissionKeys: v.PermissionKeys}
+}
+func assignmentOutput(id string, v service.AssignmentResult) assignmentResponse {
+	return assignmentResponse{EntityID: id, EntityVersion: v.EntityVersion, AuthorizationRevision: v.AuthorizationRevision, Added: v.Added, Removed: v.Removed}
+}
 
 func serviceError(err error) error {
 	switch {
@@ -124,7 +152,7 @@ func serviceError(err error) error {
 		return statusError(http.StatusTooManyRequests, "account_locked", err)
 	case errors.Is(err, service.ErrAccountDisabled):
 		return statusError(http.StatusForbidden, "account_disabled", err)
-	case errors.Is(err, service.ErrSetupClosed), errors.Is(err, model.ErrOwnerInvariant), errors.Is(err, service.ErrImmutableOwner), errors.Is(err, service.ErrUnknownPermission), repo.IsDuplicate(err), repo.IsConflict(err):
+	case errors.Is(err, service.ErrSetupClosed), errors.Is(err, model.ErrOwnerInvariant), errors.Is(err, service.ErrImmutableOwner), errors.Is(err, service.ErrUnknownPermission), errors.Is(err, service.ErrVersionConflict), repo.IsDuplicate(err), repo.IsConflict(err):
 		return statusError(http.StatusConflict, "conflict", err)
 	case repo.IsNotFound(err):
 		return statusError(http.StatusNotFound, "not_found", err)

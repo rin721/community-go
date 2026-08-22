@@ -316,62 +316,6 @@ func (f *applicationGenerationFactory) Prepare(
 	if err != nil {
 		return abort(err)
 	}
-	policies := generation.blueprint.policyCopy()
-	permissionCatalog := generation.blueprint.permissions
-	iamConfig, err := iamconfig.Decode(snapshot)
-	if err != nil {
-		return abort(err)
-	}
-	generation.iamModule, err = iam.NewHTTP(iam.HTTPDependencies{Dependencies: iam.Dependencies{
-		Database: databaseAccess, Clock: clock.System(), IDGenerator: idgen.UUID(), Config: iamConfig, Permissions: permissionCatalog,
-	}, AllowedOrigins: httpConfig.CORS.AllowedOrigins})
-	if err != nil {
-		return abort(err)
-	}
-	accountDirectory, err := newOrganizationAccountDirectory(generation.iamModule.Service)
-	if err != nil {
-		return abort(err)
-	}
-	generation.organizationModule, err = organization.NewHTTP(organization.Dependencies{Database: databaseAccess, Clock: clock.System(), IDGenerator: idgen.UUID(), AccountDirectory: accountDirectory})
-	if err != nil {
-		return abort(err)
-	}
-	navigationCatalog, err := newNavigationCatalogAdapter(generation.blueprint.webuiCatalog)
-	if err != nil {
-		return abort(err)
-	}
-	generation.navigationModule, err = navigation.NewHTTP(navigation.Dependencies{Database: databaseAccess, Clock: clock.System(), Catalog: navigationCatalog})
-	if err != nil {
-		return abort(err)
-	}
-	sessionSource, err := newIAMSessionAuthAdapter(generation.iamModule.Service)
-	if err != nil {
-		return abort(err)
-	}
-	generation.authModule, err = auth.NewHTTP(auth.Dependencies{
-		Clock: clock.System(), Logger: generation.logger.value(), Config: authConfig, Policies: policies,
-		SessionSource: sessionSource,
-	})
-	if err != nil {
-		return abort(err)
-	}
-	authorizer, err := newTodoAuthorizerAdapter(generation.authModule.Service)
-	if err != nil {
-		return abort(err)
-	}
-	operationGate, err := newOperationGate(generation.authModule.Service, generation.authModule.BearerSource, generation.authModule.SessionSource)
-	if err != nil {
-		return abort(err)
-	}
-	mutationGuard, err := newIAMMutationGuard(generation.iamModule.Service, httpConfig.CORS.AllowedOrigins)
-	if err != nil {
-		return abort(err)
-	}
-
-	todoConfig, err := configbinding.Decode(snapshot)
-	if err != nil {
-		return abort(err)
-	}
 	databaseConfig, err := databaseapp.Decode(snapshot)
 	if err != nil {
 		return abort(err)
@@ -383,11 +327,44 @@ func (f *applicationGenerationFactory) Prepare(
 	if err := migrationService.Compatible(ctx); err != nil {
 		return abort(fmt.Errorf("verify application migration compatibility: %w", err))
 	}
-	if err := generation.iamModule.Service.ReconcileOwnerCatalog(ctx); err != nil {
-		return abort(fmt.Errorf("reconcile iam owner catalog: %w", err))
+	iamConfig, err := iamconfig.Decode(snapshot)
+	if err != nil {
+		return abort(err)
 	}
-	if err := generation.iamModule.Service.Compatible(ctx); err != nil {
-		return abort(fmt.Errorf("verify iam catalog compatibility: %w", err))
+	identity, err := composeIdentityAccess(ctx, identityAccessInput{
+		Database: databaseAccess, Logger: generation.logger.value(),
+		IAMConfig: iamConfig, AuthConfig: authConfig,
+		Permissions: generation.blueprint.permissions, Policies: generation.blueprint.policyCopy(),
+		AllowedOrigins: httpConfig.CORS.AllowedOrigins,
+	})
+	if err != nil {
+		return abort(err)
+	}
+	generation.iamModule = identity.IAM
+	generation.authModule = identity.Auth
+	operationGate := identity.OperationGate
+	mutationGuard := identity.MutationGuard
+
+	generation.organizationModule, err = organization.NewHTTP(organization.Dependencies{Database: databaseAccess, Clock: clock.System(), IDGenerator: idgen.UUID(), AccountDirectory: identity.AccountDirectory})
+	if err != nil {
+		return abort(err)
+	}
+	navigationCatalog, err := newNavigationCatalogAdapter(generation.blueprint.webuiCatalog)
+	if err != nil {
+		return abort(err)
+	}
+	generation.navigationModule, err = navigation.NewHTTP(navigation.Dependencies{Database: databaseAccess, Clock: clock.System(), Catalog: navigationCatalog})
+	if err != nil {
+		return abort(err)
+	}
+	authorizer, err := newTodoAuthorizerAdapter(generation.authModule.Service)
+	if err != nil {
+		return abort(err)
+	}
+
+	todoConfig, err := configbinding.Decode(snapshot)
+	if err != nil {
+		return abort(err)
 	}
 	if err := generation.navigationModule.Service.Compatible(ctx); err != nil {
 		return abort(fmt.Errorf("verify navigation catalog compatibility: %w", err))

@@ -4,7 +4,7 @@
 
 - 研究门禁：已通过。
 - 文档与整体方案任务：已通过完成性审计，R001–R013 已收敛全部当前选型、owner/reload 矩阵、实施依赖和停止条件，适用纯文档直接实施例外。
-- 非文档任务：用户已于 2026-08-22 明确确认剩余整体计划并授权实施；已完成 Batch A（`SEC-057-001`）及修订后的 `CACHE-057-001`、`SERDE-057-001`、`AUTHN-057-001`、`RESIL-057-001`、`LIMIT-057-001`、`SEC-057-002`、`HTTP-057-001/002`，其余任务按冻结依赖顺序实施。
+- 非文档任务：用户已于 2026-08-22 明确确认剩余整体计划并授权实施；Batch A 至 `ARCH-057-002` 的全部实施任务和 `VER-057-001` 最终审计均已完成。
 
 ## 原始目标逐能力闭环
 
@@ -49,7 +49,7 @@
 | DATA-057-003 | E | 删除反射式 generic Repository/Schema/Query | DATA-057-002、整体计划已确认 | 已完成 | 删除 BaseRepository、Schema/Field/Index/Reference、Query/Filter/Order/Page/Changes、dynamic model 及旧测试；无 AutoMigrate/兼容层/GORM 业务泄漏 |
 | ARCH-057-001 | 文档 | 建立 owner/reload 矩阵并冻结最小静态 Blueprint 设计 | R011 | 已完成 | 每项 reload 收益、准入、并存、排空与目标 owner 明确；首片不静态化全部 Service |
 | ARCH-057-002 | F | 实施启动期 immutable applicationBlueprint | HTTP-057-001 registration 形态冻结，宜在 HTTP-057-002 后；整体计划已确认 | 已完成 | permission/WebUI/policy/contract 只构造一次；Generation 删除重复入口；多 section reload 行为不退化；无 proxy/容器/平行框架 |
-| VER-057-001 | 全部 | 执行与每批相匹配的测试、race/vet、生成、文档和安全门禁 | 对应实施任务；整体计划已确认 | 已确认 | 所有已执行/未执行项和剩余风险如实记录 |
+| VER-057-001 | 全部 | 执行与每批相匹配的测试、race/vet、生成、文档和安全门禁 | 对应实施任务；整体计划已确认 | 已完成 | 每批定向测试及全量 test/race/vet/build/generate/docs/vuln 门禁已记录；仅既有 DB artifact 阻塞和无外部 DSN 的运行态验证明确保留 |
 
 ## 整体实施顺序与确认方式
 
@@ -146,16 +146,24 @@ HTTP 第一片失败、Data 边界泄漏或 Blueprint 无净删除时，不以�
 | 2026-08-22 | ARCH-057-002 架构门禁 | 多 section reload 测试断言 Factory 与新 Generation 的 Blueprint identity 不变，同时保持 generation ID、resource built/reused、listener route、readiness 与 compatibility 断言；policy getter 返回独立 slice。未增加 proxy、Service Locator、反射 DI、容器或第二套 lifecycle |
 | 2026-08-22 | ARCH-057-002 完整质量门禁 | composition/cmd 定向 test 与 composition race 通过；`Verify-Quality.ps1` 的 gofmt、tidy diff、layout、generate/clean diff、全量 test/race、vet、CGO-free build 均通过，最终仍只因范围外两个既有 tracked app.db 返回失败。OpenAPI/operation inventory 与 WebUI registry 生成保持 clean |
 | 2026-08-22 | HTTP 第一片完整质量与安全门禁 | 定向测试、`go test ./... -count=1`、`go test -race ./... -count=1`、`go vet ./...`、`Verify-Docs.ps1`、`git diff --check` 与 `govulncheck -show verbose ./...` 通过；漏洞为 0 reachable、0 imported-package，仍仅有不可达 GO-2026-6222/5932。`Verify-Quality.ps1` 的 gofmt/tidy/layout/generate/test/race/vet/CGO-free build 通过，最终只因范围外两个既有 tracked `old-backend/**/app.db` 返回失败，本任务未修改或删除 |
+| 2026-08-22 | VER-057-001 最终残留审计 | 全部实施任务均为已完成；production 搜索未发现 `patrickmn/go-cache`、`pkg/codec`、`pkg/resilience`、`RecoveringStore`、`AsyncRecorder`、旧 HTTP contract/dispatcher、generic Repository DSL 或 `AutoMigrate` 调用。`kin-openapi` 仅为 Huma 间接 module，`gopkg.in/yaml.v3` 仅由测试依赖链带入；未保留兼容层或第二轨 |
+| 2026-08-22 | VER-057-001 最终门禁与剩余边界 | 当前 HEAD 的 docs-guard、`git diff --check` 与 `govulncheck ./...` 通过，漏洞为 0 reachable、0 imported-package；各实施提交均已执行匹配的完整质量门禁。统一 `Verify-Quality.ps1` 中 gofmt/tidy/layout/generate/test/race/vet/CGO-free build 全部通过，最终仅因范围外两个既有 tracked `old-backend/**/app.db` 返回失败；Postgres/MySQL 未提供 DSN，故只验证 migration set contract，不声称运行态 CRUD 已执行 |
 
 ## Commit
 
 - 研究与计划：`b8445d1 docs(architecture): establish technology selection baseline`
 - Batch A：`32a4987 fix(http): upgrade OpenAPI validator security baseline`
-- CACHE-057-001：本轮 Conventional Commit（以 Git 历史为准）
-- AUTHN-057-001：本轮 Conventional Commit（以 Git 历史为准）
-- RESIL-057-001：本轮 Conventional Commit（以 Git 历史为准）
-- PLAN-057-001：本轮 Conventional Commit（以 Git 历史为准）
-- SERDE-057-001：本轮 Conventional Commit（以 Git 历史为准）
-- LIMIT-057-001：本轮 Conventional Commit（以 Git 历史为准）
-- SEC-057-002：本轮 Conventional Commit（以 Git 历史为准）
-- HTTP-057-001：本轮 Conventional Commit（以 Git 历史为准）
+- CACHE-057-001：`92dace1 refactor(cache): retire default L1 cache`
+- AUTHN-057-001：`1e9fd58 fix(auth): harden credential verification`
+- RESIL-057-001：`74db2b4 refactor(resilience): adopt bounded execution retries`
+- PLAN-057-001：`4ad496c docs(architecture): finalize 057 implementation plan`、`3050c48 docs(architecture): close 057 planning gaps`
+- SERDE-057-001：`46763cc refactor(serde): adopt maintained yaml package`
+- LIMIT-057-001：`907eb4d refactor(http): adopt standard rate limiter`
+- SEC-057-002：`b849ce0 refactor(security): adopt standard CORS protections`
+- HTTP-057-001：`653a567 refactor(http): adopt Huma contract slice`
+- HTTP-057-002：`7f1f7ac refactor(http): complete Huma contract migration`
+- OBS-057-001：`0a8cf11 refactor(observability): adopt otelhttp instrumentation`
+- DATA-057-001：`8a580a0 refactor(database): adopt direct GORM repositories`
+- DATA-057-002：`d22903c refactor(database): migrate module repository units`
+- DATA-057-003：`9e3ea0b refactor(database): remove generic repository DSL`
+- ARCH-057-002：`3adcd71 refactor(composition): add immutable application blueprint`

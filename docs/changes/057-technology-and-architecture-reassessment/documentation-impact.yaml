@@ -3,7 +3,7 @@ change: 057-technology-and-architecture-reassessment
 areas:
   - id: startup
     decision: reviewed-no-change
-    reason: 已实施的 cache、AuthN 与 resilience 任务不改变应用启动、首次使用或服务入口；JWKS lifecycle 仍由原 Supervisor participant 拥有，Execution 删除无真实资源支撑的后台 goroutine 后无需新增启动步骤。
+    reason: 已实施任务不改变命令、配置文件位置、首次使用或服务入口；Application.New 新增静态 Blueprint 校验但无需运维步骤，JWKS lifecycle 仍由原 Supervisor participant 拥有。
   - id: capability
     decision: updated
     documents:
@@ -22,8 +22,10 @@ areas:
       - internal/kernel/README.md
     reason: 记录 Auth JWT/JWK 共享刷新与取消语义、IAM 凭据演进所有权、Kernel Execution 同步 memory backend 和受控 retry 观测边界；HTTP 模块以 Huma registration 作为单一契约源；全部 module Data repository 已迁移 direct GORM，旧 generic API 已删除，并限制 ORM 只进入 session bridge 与 module repo Adapter。
   - id: configuration
-    decision: reviewed-no-change
-    reason: 本批只替换 HTTP instrumentation，不改变配置键、默认值、reload 语义或 management listener 配置。
+    decision: updated
+    documents:
+      - docs/configuration/README.md
+    reason: 整体实施只删除失效 L1、HTTP retry 与 recovery 配置并同步当前示例和 binding；最终 Blueprint 切片不新增配置键，不改变剩余配置的 reload 或 management listener 语义。
   - id: operations
     decision: reviewed-no-change
     reason: Telemetry lease、exporter lifecycle、diagnostics、Prometheus 与外部 collector 验收边界均保持，现有运行能力矩阵无需改变。
@@ -41,7 +43,10 @@ areas:
       - docs/changes/057-technology-and-architecture-reassessment/README.md
       - docs/changes/057-technology-and-architecture-reassessment/design.md
       - docs/changes/057-technology-and-architecture-reassessment/tasks.md
-    reason: R008-R013 已冻结 Config、HTTP、Data、Security、Observability 与 owner/reload 的采用/拒绝结论、接入边界、单轨删除范围和实施依赖；静态 Blueprint 明确为首个架构切片。
+    reason: R008-R013 已冻结 Config、HTTP、Data、Security、Observability 与 owner/reload 的采用/拒绝结论和接入边界；静态 Blueprint 首个架构切片已完成，Generation 保留动态资源事务职责。
   - id: documentation
-    decision: reviewed-no-change
-    reason: docs-guard 仅迁移同一 YAML v3 API 的官方 module path，文档治理 schema、扫描范围和失败语义均未改变。
+    decision: updated
+    documents:
+      - docs/README.md
+      - docs/changes/README.md
+    reason: 当前 authority、能力导航、模块指南与 057 证据已随单轨实现同步；文档治理 schema、扫描范围和失败语义未改变。

@@ -249,6 +249,56 @@ func TestApplicationWebUICatalogProtectsIAMSecurityAndExposesNavigation(t *testi
 	}
 }
 
+// TestApplicationWebUICatalogMenuHierarchy 锁定当前应用的侧边栏菜单层级分类：
+// 只有 ops 使用两级结构，iam/organization 拥有顶级组父节点且组内顺序父先子后，
+// navigation 保持平铺；任何模块声明变化都必须在此处同步断言。
+func TestApplicationWebUICatalogMenuHierarchy(t *testing.T) {
+	catalog, err := applicationWebUICatalog()
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifest := catalog.ManifestFor(func(string) webuicontract.Access { return webuicontract.AccessAllowed })
+	byID := make(map[string]webuicontract.ManifestMenu, len(manifest.Menu))
+	for _, item := range manifest.Menu {
+		byID[item.ID] = item
+	}
+	// 顶级父节点（ParentID 为空）与子项归属。
+	type wantEdge struct{ parent, child string }
+	edges := []wantEdge{
+		{parent: "", child: "ops.dashboard"},
+		{parent: "ops.dashboard", child: "ops.capabilities"},
+		{parent: "", child: "iam.access"},
+		{parent: "iam.access", child: "iam.security"},
+		{parent: "iam.access", child: "iam.accounts"},
+		{parent: "iam.access", child: "iam.roles"},
+		{parent: "iam.access", child: "iam.permissions"},
+		{parent: "", child: "organization.directory"},
+		{parent: "organization.directory", child: "organization.departments"},
+		{parent: "organization.directory", child: "organization.positions"},
+		{parent: "organization.directory", child: "organization.assignments"},
+		{parent: "", child: "navigation.menus"},
+	}
+	for _, edge := range edges {
+		item, ok := byID[edge.child]
+		if !ok {
+			t.Fatalf("menu item %q is missing from manifest: %#v", edge.child, manifest.Menu)
+		}
+		if item.ParentID != edge.parent {
+			t.Fatalf("menu item %q parent = %q, want %q", edge.child, item.ParentID, edge.parent)
+		}
+	}
+	// 父节点顺序必须位于子项之前（组头先于组内页面）。
+	for _, group := range []struct{ parent, firstChild string }{
+		{parent: "iam.access", firstChild: "iam.security"},
+		{parent: "organization.directory", firstChild: "organization.departments"},
+	} {
+		if byID[group.parent].Order >= byID[group.firstChild].Order {
+			t.Fatalf("group parent %q order %d must precede first child %q order %d",
+				group.parent, byID[group.parent].Order, group.firstChild, byID[group.firstChild].Order)
+		}
+	}
+}
+
 func TestOperationPoliciesIncludeIAMSessionAuthorization(t *testing.T) {
 	blueprint, err := newApplicationBlueprint()
 	if err != nil {

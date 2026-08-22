@@ -134,6 +134,14 @@ WebUI i18n 是所有接入模块必须遵守的规范契约。模块只要贡献
 
 宿主启动阶段只装载 `webui.host` locale。运行时 manifest 先校验 `catalogRevision` 与 generated registry，再把 `navigationRevision` 纳入 route query 失效边界；两者不能互相替代。菜单由静态 Catalog、数据库 NavigationPolicy snapshot、access 和 availability 共同投影，策略只能改变已注册 NavigationID 的 enabled、parent 与 order，Route/Entry/组件路径/ViewOperationID/owner 始终来自代码。每次 Manifest 请求都读取并校验一个当前策略快照；首版不使用 cache、watcher 或后台 goroutine。策略页面保存后只能通过宿主 SDK 的 `refreshManifest` 刷新，不能直接修改宿主菜单状态。随后按 eligible route/navigation 懒加载模块 namespace；`availability` 缺失、未知或不支持 degraded capability 时按 unavailable 处理。
 
+### 菜单层级分类（063）
+
+webui 契约 `Navigation.ParentID` 原生支持多级菜单，宿主 `SidebarMenu` 按 `manifest.menu.parentId` 递归渲染。当前应用对业务模块已做层级分类（063）：`iam.access`（身份与权限管理，落地页 `iam.accounts`）为 IAM 顶级组父节点，`iam.security/accounts/roles/permissions` 为其子项；`organization.directory`（组织管理，落地页 `organization.departments`）为 Organization 顶级组父节点，`organization.departments/positions/assignments` 为其子项；`ops.dashboard` 保持两级（工作台 → 能力清单）；`navigation.menus` 保持平铺。规则：
+
+- 分类父节点必须引用同模块已实现路由作为落地页（不新建页面），并满足 `validateBindings` 的同模块 ParentID、无环、图标目录与 Order 约束；父节点顺序必须在子项之前。
+- 父节点落地页不可加载（access 拒绝或 availability 不可用）时，Manifest 会连带隐藏整棵子树（既有门禁语义）。新增分类父节点时应选择同组内普遍可访问的已实现路由作为落地页。
+- 新增分类父节点必须同步三处：模块 locale（组标题 en-US/zh-CN，满足强制 i18n）、`internal/module/navigation/binding/webui/web/mock.ts`（菜单管理页 mock 数据）、重新生成 `webui/src/generated/webui-registry.ts`（mock manifest `menu` 树）；`pnpm generate:check` 守护一致性。
+
 后端错误码只能映射到稳定的 message ID，不能直接映射到中文/英文展示文本。正确形态是：
 
 ```ts

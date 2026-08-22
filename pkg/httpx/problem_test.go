@@ -37,10 +37,10 @@ func TestWriteProblemUsesRFC9457AndRedactsInternalError(t *testing.T) {
 func TestProblemOfPreservesSafeStatusContractAndRetryAfter(t *testing.T) {
 	problem, retryAfter := ProblemOf(nil, &StatusError{
 		StatusCode: http.StatusTooManyRequests, Code: "rate_limited",
-		Message: "request quota exceeded", RetryAfter: 3, Err: errors.New("private limiter state"),
+		Message: "local request rate exceeded", RetryAfter: 3, Err: errors.New("private limiter state"),
 	})
 	if problem.Status != http.StatusTooManyRequests || problem.Code != "rate_limited" ||
-		problem.Detail != "request quota exceeded" || retryAfter != 3 {
+		problem.Detail != "local request rate exceeded" || retryAfter != 3 {
 		t.Fatalf("ProblemOf() = %#v, retry=%d", problem, retryAfter)
 	}
 }

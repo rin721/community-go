@@ -8,11 +8,11 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/rin721/go-scaffold-template/pkg/idgen"
 	"github.com/rin721/go-scaffold-template/pkg/logger"
+	"golang.org/x/time/rate"
 )
 
 const headerRequestID = "X-Request-ID"
@@ -384,67 +384,33 @@ func RejectUpgrade() Middleware {
 	}
 }
 
-// RateLimiter 使用惰性补充的令牌桶限制入口请求速率。
-type RateLimiter struct {
-	mu              sync.Mutex
-	tokens          float64
-	capacity        float64
-	tokensPerSecond float64
-	lastRefill      time.Time
-}
-
-// NewRateLimiter 创建不持有后台 goroutine 的入口限流器。
-func NewRateLimiter(tokensPerSecond int) *RateLimiter {
-	return NewRateLimiterWithBurst(tokensPerSecond, tokensPerSecond)
-}
+// RateLimiter 使用 Go 官方扩展库的并发安全令牌桶限制入口请求速率。
+// 第三方类型只存在于该薄实现内部，不进入配置或业务契约。
+type RateLimiter struct{ limiter *rate.Limiter }
 
 // NewRateLimiterWithBurst 创建显式速率和突发容量的无 goroutine 令牌桶。
-func NewRateLimiterWithBurst(tokensPerSecond, burst int) *RateLimiter {
+func NewRateLimiterWithBurst(tokensPerSecond, burst int) (*RateLimiter, error) {
 	if tokensPerSecond <= 0 {
-		tokensPerSecond = 1
+		return nil, fmt.Errorf("rate limit requests per second must be positive")
 	}
 	if burst <= 0 {
-		burst = tokensPerSecond
+		return nil, fmt.Errorf("rate limit burst must be positive")
 	}
-	rate := float64(tokensPerSecond)
-	return &RateLimiter{
-		tokens:          float64(burst),
-		capacity:        float64(burst),
-		tokensPerSecond: rate,
-		lastRefill:      time.Now(),
-	}
-}
-
-func (r *RateLimiter) allow(now time.Time) bool {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	elapsed := now.Sub(r.lastRefill).Seconds()
-	if elapsed > 0 {
-		r.tokens += elapsed * r.tokensPerSecond
-		if r.tokens > r.capacity {
-			r.tokens = r.capacity
-		}
-		r.lastRefill = now
-	}
-	if r.tokens < 1 {
-		return false
-	}
-	r.tokens--
-	return true
+	return &RateLimiter{limiter: rate.NewLimiter(rate.Limit(tokensPerSecond), burst)}, nil
 }
 
 // Middleware 返回 HTTP 中间件，限流状态由 RateLimiter 实例持有。
 func (r *RateLimiter) Middleware() Middleware {
-	if r == nil {
-		r = NewRateLimiter(1)
-	}
 	return func(next Handler) Handler {
 		return func(ctx *Context) error {
+			if r == nil || r.limiter == nil {
+				return fmt.Errorf("rate limiter is nil")
+			}
 			if err := ctx.Request.Context().Err(); err != nil {
 				return ctx.Request.Context().Err()
 			}
-			if !r.allow(time.Now()) {
-				return &StatusError{StatusCode: http.StatusTooManyRequests, Code: "rate_limited", Message: "request quota exceeded", RetryAfter: 1}
+			if !r.limiter.Allow() {
+				return &StatusError{StatusCode: http.StatusTooManyRequests, Code: "rate_limited", Message: "local request rate exceeded", RetryAfter: 1}
 			}
 			return next(ctx)
 		}
@@ -455,20 +421,20 @@ func (r *RateLimiter) Middleware() Middleware {
 type OverloadLimiter struct{ slots chan struct{} }
 
 // NewOverloadLimiter 创建不启动后台 goroutine 的并发门禁。
-func NewOverloadLimiter(maxInFlight int) *OverloadLimiter {
+func NewOverloadLimiter(maxInFlight int) (*OverloadLimiter, error) {
 	if maxInFlight <= 0 {
-		maxInFlight = 1
+		return nil, fmt.Errorf("max in-flight requests must be positive")
 	}
-	return &OverloadLimiter{slots: make(chan struct{}, maxInFlight)}
+	return &OverloadLimiter{slots: make(chan struct{}, maxInFlight)}, nil
 }
 
 // Middleware 在容量耗尽时返回 503，不排队占用未知预算。
 func (l *OverloadLimiter) Middleware() Middleware {
-	if l == nil {
-		l = NewOverloadLimiter(1)
-	}
 	return func(next Handler) Handler {
 		return func(ctx *Context) error {
+			if l == nil || l.slots == nil {
+				return fmt.Errorf("overload limiter is nil")
+			}
 			select {
 			case l.slots <- struct{}{}:
 				defer func() { <-l.slots }()
@@ -478,9 +444,4 @@ func (l *OverloadLimiter) Middleware() Middleware {
 			}
 		}
 	}
-}
-
-// RateLimit 使用默认 RateLimiter 创建限流中间件。
-func RateLimit(tokensPerSecond int) Middleware {
-	return NewRateLimiter(tokensPerSecond).Middleware()
 }

@@ -76,8 +76,20 @@ func resolveServerConfig(cfg *ServerConfig) (resolvedServerConfig, error) {
 		cfg.RateLimit.RequestsPerSecond < 0 || cfg.RateLimit.Burst < 0 {
 		return resolvedServerConfig{}, fmt.Errorf("server request budgets must be non-negative")
 	}
-	if (cfg.RateLimit.RequestsPerSecond == 0) != (cfg.RateLimit.Burst == 0) {
-		return resolvedServerConfig{}, fmt.Errorf("server rate limit and burst must both be zero or positive")
+	rateLimit := cfg.RateLimit
+	if rateLimit.Mode == "" && rateLimit.RequestsPerSecond == 0 && rateLimit.Burst == 0 {
+		rateLimit = defaults.RateLimit
+	} else {
+		switch rateLimit.Mode {
+		case RateLimitModeLocal:
+			if rateLimit.RequestsPerSecond <= 0 || rateLimit.Burst <= 0 {
+				return resolvedServerConfig{}, fmt.Errorf("local server rate limit and burst must be positive")
+			}
+		case RateLimitModeDisabled:
+			// disabled 明确关闭速率门禁，保留数值只为允许从默认配置覆盖 mode。
+		default:
+			return resolvedServerConfig{}, fmt.Errorf("unsupported server rate limit mode %q", rateLimit.Mode)
+		}
 	}
 	if err := validateTrustedProxyCIDRs(cfg.TrustedProxyCIDRs); err != nil {
 		return resolvedServerConfig{}, err
@@ -113,9 +125,7 @@ func resolveServerConfig(cfg *ServerConfig) (resolvedServerConfig, error) {
 		resolved.MaxInFlight = cfg.MaxInFlight
 	}
 	resolved.TrustedProxyCIDRs = append([]string(nil), cfg.TrustedProxyCIDRs...)
-	if cfg.RateLimit.RequestsPerSecond > 0 {
-		resolved.RateLimit = cfg.RateLimit
-	}
+	resolved.RateLimit = rateLimit
 	if len(cfg.CORS.AllowedOrigins) > 0 || len(cfg.CORS.AllowedMethods) > 0 || len(cfg.CORS.AllowedHeaders) > 0 {
 		resolved.CORS = cloneCORSConfig(cfg.CORS)
 	}

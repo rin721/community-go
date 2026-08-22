@@ -61,6 +61,7 @@ func DefaultServerConfig() ServerConfig {
 		MaxRequestBodyBytes: DefaultMaxRequestBodyBytes,
 		MaxInFlight:         DefaultServerMaxInFlight,
 		RateLimit: RateLimitConfig{
+			Mode:              RateLimitModeLocal,
 			RequestsPerSecond: DefaultServerRequestsPerSecond,
 			Burst:             DefaultServerRateLimitBurst,
 		},

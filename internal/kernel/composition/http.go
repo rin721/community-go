@@ -80,6 +80,7 @@ func (httpDefaults) Defaults(ctx context.Context) (config.Object, config.Control
 		config.FieldOf("maxInFlight", maxInFlight),
 		config.FieldOf("trustedProxyCIDRs", httpStringList(value.TrustedProxyCIDRs)),
 		config.FieldOf("rateLimit", config.ObjectValue(config.Object{
+			config.FieldOf("mode", config.String(string(value.RateLimit.Mode))),
 			config.FieldOf("requestsPerSecond", requestsPerSecond),
 			config.FieldOf("burst", burst),
 		})),

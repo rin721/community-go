@@ -175,7 +175,11 @@ func TestRequestTimeoutUsesApplicationDeadline(t *testing.T) {
 
 func TestRateAndOverloadLimitsFailWithoutQueueing(t *testing.T) {
 	rateRouter := NewRouter(nil)
-	rateRouter.Use(NewRateLimiterWithBurst(1, 1).Middleware())
+	rateLimiter, err := NewRateLimiterWithBurst(1, 1)
+	if err != nil {
+		t.Fatalf("NewRateLimiterWithBurst() error = %v", err)
+	}
+	rateRouter.Use(rateLimiter.Middleware())
 	rateRouter.Handle(MethodGet, "/", func(ctx *Context) error { return ctx.NoContent(http.StatusNoContent) })
 	rateRouter.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/", nil))
 	rateRecorder := httptest.NewRecorder()
@@ -188,9 +192,14 @@ func TestRateAndOverloadLimitsFailWithoutQueueing(t *testing.T) {
 	entered := make(chan struct{})
 	release := make(chan struct{})
 	overloadRouter := NewRouter(nil)
-	overloadRouter.Use(NewOverloadLimiter(1).Middleware())
+	overloadLimiter, err := NewOverloadLimiter(1)
+	if err != nil {
+		t.Fatalf("NewOverloadLimiter() error = %v", err)
+	}
+	overloadRouter.Use(overloadLimiter.Middleware())
+	var enteredOnce sync.Once
 	overloadRouter.Handle(MethodGet, "/", func(ctx *Context) error {
-		close(entered)
+		enteredOnce.Do(func() { close(entered) })
 		<-release
 		return ctx.NoContent(http.StatusNoContent)
 	})
@@ -206,6 +215,59 @@ func TestRateAndOverloadLimitsFailWithoutQueueing(t *testing.T) {
 	assertProblem(t, overloadRecorder, http.StatusServiceUnavailable, "server_overloaded")
 	close(release)
 	wait.Wait()
+	releasedRecorder := httptest.NewRecorder()
+	overloadRouter.ServeHTTP(releasedRecorder, httptest.NewRequest(http.MethodGet, "/", nil))
+	if releasedRecorder.Code != http.StatusNoContent {
+		t.Fatalf("request after overload release status = %d", releasedRecorder.Code)
+	}
+}
+
+func TestRateLimiterRejectsInvalidBudgetAndRefills(t *testing.T) {
+	for _, values := range [][2]int{{0, 1}, {1, 0}, {-1, 1}, {1, -1}} {
+		if _, err := NewRateLimiterWithBurst(values[0], values[1]); err == nil {
+			t.Fatalf("NewRateLimiterWithBurst(%d, %d) error = nil", values[0], values[1])
+		}
+	}
+	if _, err := NewOverloadLimiter(0); err == nil {
+		t.Fatal("NewOverloadLimiter(0) error = nil")
+	}
+
+	limiter, err := NewRateLimiterWithBurst(100, 1)
+	if err != nil {
+		t.Fatalf("NewRateLimiterWithBurst() error = %v", err)
+	}
+	if !limiter.limiter.Allow() || limiter.limiter.Allow() {
+		t.Fatal("limiter initial burst behavior is invalid")
+	}
+	time.Sleep(20 * time.Millisecond)
+	if !limiter.limiter.Allow() {
+		t.Fatal("limiter did not refill within the expected budget")
+	}
+}
+
+func TestRateLimiterPreservesCancellationWithoutConsumingToken(t *testing.T) {
+	limiter, err := NewRateLimiterWithBurst(1, 1)
+	if err != nil {
+		t.Fatalf("NewRateLimiterWithBurst() error = %v", err)
+	}
+	handlerCalls := 0
+	handler := limiter.Middleware()(func(*Context) error {
+		handlerCalls++
+		return nil
+	})
+	canceledContext, cancel := context.WithCancel(context.Background())
+	cancel()
+	canceledRequest := httptest.NewRequest(http.MethodGet, "/", nil).WithContext(canceledContext)
+	if err := handler(&Context{ResponseWriter: httptest.NewRecorder(), Request: canceledRequest}); !errors.Is(err, context.Canceled) {
+		t.Fatalf("canceled request error = %v", err)
+	}
+	activeRequest := httptest.NewRequest(http.MethodGet, "/", nil)
+	if err := handler(&Context{ResponseWriter: httptest.NewRecorder(), Request: activeRequest}); err != nil {
+		t.Fatalf("active request error = %v", err)
+	}
+	if handlerCalls != 1 {
+		t.Fatalf("handler calls = %d", handlerCalls)
+	}
 }
 
 func requestWithHeader(method, name, value string) *http.Request {

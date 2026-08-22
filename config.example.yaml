@@ -250,6 +250,9 @@ http:
   # 默认不信任 X-Forwarded-For；只有直连 peer 命中 CIDR 时才采用转发地址。
   trustedProxyCIDRs: []
   rateLimit:
+    # local 是当前 Generation 私有的进程级 load shedding；disabled 只关闭速率门禁。
+    # 100/200 是脚手架起点，不是生产容量结论，部署时应按 SLO 与网关能力校准。
+    mode: local
     requestsPerSecond: 100
     burst: 200
   cors:

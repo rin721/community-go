@@ -38,9 +38,20 @@ type ServerConfig struct {
 
 // RateLimitConfig 定义单进程入口令牌桶；跨副本配额不在本契约范围。
 type RateLimitConfig struct {
+	Mode              RateLimitMode
 	RequestsPerSecond int
 	Burst             int
 }
+
+// RateLimitMode 声明单进程入口速率保护是否启用。
+type RateLimitMode string
+
+const (
+	// RateLimitModeLocal 使用当前 Application Generation 私有的本地令牌桶。
+	RateLimitModeLocal RateLimitMode = "local"
+	// RateLimitModeDisabled 不安装入口速率中间件；并发过载门禁仍然生效。
+	RateLimitModeDisabled RateLimitMode = "disabled"
+)
 
 // CORSConfig 定义显式跨域 allowlist；空 origin 列表表示拒绝跨域。
 type CORSConfig struct {

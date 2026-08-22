@@ -62,6 +62,81 @@ func TestApplicationRouterStripsWebUIPrefixForStandardHandlers(t *testing.T) {
 	}
 }
 
+func TestApplicationRouterRateLimitModesAndGenerationLocalState(t *testing.T) {
+	capabilities := kernelcomposition.Capabilities{Logger: logger.NewTestLogger(), IDGenerator: idgen.UUID()}
+	webuiHandler := http.NotFoundHandler()
+	apiHandler := http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+		writer.WriteHeader(http.StatusNoContent)
+	})
+	localConfig := httpx.DefaultServerConfig()
+	localConfig.RateLimit.RequestsPerSecond = 1
+	localConfig.RateLimit.Burst = 1
+
+	newRouter := func(t *testing.T, cfg httpx.ServerConfig) httpx.Router {
+		t.Helper()
+		router, err := applicationRouter(capabilities, cfg, webuiHandler, apiHandler)
+		if err != nil {
+			t.Fatalf("applicationRouter() error = %v", err)
+		}
+		return router
+	}
+	serve := func(router httpx.Router, request *http.Request) int {
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
+		return recorder.Code
+	}
+
+	firstGeneration := newRouter(t, localConfig)
+	if status := serve(firstGeneration, httptest.NewRequest(http.MethodGet, "/", nil)); status != http.StatusNoContent {
+		t.Fatalf("first local request status = %d", status)
+	}
+	if status := serve(firstGeneration, httptest.NewRequest(http.MethodGet, "/", nil)); status != http.StatusTooManyRequests {
+		t.Fatalf("second local request status = %d", status)
+	}
+	secondGeneration := newRouter(t, localConfig)
+	if status := serve(secondGeneration, httptest.NewRequest(http.MethodGet, "/", nil)); status != http.StatusNoContent {
+		t.Fatalf("new generation first request status = %d", status)
+	}
+
+	disabledConfig := localConfig
+	disabledConfig.RateLimit.Mode = httpx.RateLimitModeDisabled
+	disabledRouter := newRouter(t, disabledConfig)
+	for index := 0; index < 2; index++ {
+		if status := serve(disabledRouter, httptest.NewRequest(http.MethodGet, "/", nil)); status != http.StatusNoContent {
+			t.Fatalf("disabled request %d status = %d", index+1, status)
+		}
+	}
+}
+
+func TestApplicationRouterCORSPreflightDoesNotConsumeRateToken(t *testing.T) {
+	config := httpx.DefaultServerConfig()
+	config.RateLimit.RequestsPerSecond = 1
+	config.RateLimit.Burst = 1
+	config.CORS.AllowedOrigins = []string{"https://console.example"}
+	router, err := applicationRouter(
+		kernelcomposition.Capabilities{Logger: logger.NewTestLogger(), IDGenerator: idgen.UUID()},
+		config,
+		http.NotFoundHandler(),
+		http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) { writer.WriteHeader(http.StatusNoContent) }),
+	)
+	if err != nil {
+		t.Fatalf("applicationRouter() error = %v", err)
+	}
+	preflight := httptest.NewRequest(http.MethodOptions, "/", nil)
+	preflight.Header.Set("Origin", "https://console.example")
+	preflight.Header.Set("Access-Control-Request-Method", http.MethodGet)
+	preflightRecorder := httptest.NewRecorder()
+	router.ServeHTTP(preflightRecorder, preflight)
+	if preflightRecorder.Code != http.StatusNoContent {
+		t.Fatalf("preflight status = %d", preflightRecorder.Code)
+	}
+	requestRecorder := httptest.NewRecorder()
+	router.ServeHTTP(requestRecorder, httptest.NewRequest(http.MethodGet, "/", nil))
+	if requestRecorder.Code != http.StatusNoContent {
+		t.Fatalf("request after preflight status = %d", requestRecorder.Code)
+	}
+}
+
 func TestExampleConfigSatisfiesApplicationBindings(t *testing.T) {
 	temporary := t.TempDir()
 	databasePath := filepath.Join(temporary, "example.db")

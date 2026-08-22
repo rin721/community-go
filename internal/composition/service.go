@@ -110,13 +110,12 @@ func applicationRouter(
 	if err != nil {
 		return nil, fmt.Errorf("compose trusted proxy policy: %w", err)
 	}
-	rateLimiter := httpx.NewRateLimiterWithBurst(
-		httpConfig.RateLimit.RequestsPerSecond,
-		httpConfig.RateLimit.Burst,
-	)
-	overload := httpx.NewOverloadLimiter(httpConfig.MaxInFlight)
+	overload, err := httpx.NewOverloadLimiter(httpConfig.MaxInFlight)
+	if err != nil {
+		return nil, fmt.Errorf("compose HTTP overload limiter: %w", err)
+	}
 	router := httpx.NewRouter(nil)
-	router.Use(
+	middlewares := []httpx.Middleware{
 		httpx.RequestID(capabilities.IDGenerator),
 		httpx.Recovery(capabilities.Logger),
 		httpx.AccessLog(capabilities.Logger),
@@ -127,9 +126,23 @@ func applicationRouter(
 		httpx.BodyLimit(httpConfig.MaxRequestBodyBytes),
 		httpx.AcceptJSON(),
 		httpx.CORS(httpConfig.CORS),
-		rateLimiter.Middleware(),
-		overload.Middleware(),
-	)
+	}
+	switch httpConfig.RateLimit.Mode {
+	case httpx.RateLimitModeLocal:
+		rateLimiter, rateErr := httpx.NewRateLimiterWithBurst(
+			httpConfig.RateLimit.RequestsPerSecond,
+			httpConfig.RateLimit.Burst,
+		)
+		if rateErr != nil {
+			return nil, fmt.Errorf("compose HTTP rate limiter: %w", rateErr)
+		}
+		middlewares = append(middlewares, rateLimiter.Middleware())
+	case httpx.RateLimitModeDisabled:
+	default:
+		return nil, fmt.Errorf("compose HTTP rate limiter: unsupported mode %q", httpConfig.RateLimit.Mode)
+	}
+	middlewares = append(middlewares, overload.Middleware())
+	router.Use(middlewares...)
 	// Chi Mount 为子 Router 维护 RoutePath，但不会改写普通 http.Handler 看到的
 	// request.URL.Path。WebUI handler 使用标准库 ServeMux 声明相对路径，因此在
 	// Composition 边界统一剥离公开前缀，避免 manifest/Auth 落入 404。

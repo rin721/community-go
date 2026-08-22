@@ -36,7 +36,7 @@
 | SEC-057-001 | A | 升级 kin-openapi 并重建 Go 1.26 漏洞扫描证据 | 用户确认 Batch A | 已完成 | v0.147.0、生成/请求负向测试、全仓 govulncheck 和旧版本残留搜索通过 |
 | CACHE-057-001 | B | 单轨退役默认 L1 与 go-cache，收紧 Redis typed cache 的 miss/error 语义 | 用户于 2026-08-22 确认修订后的该任务 | 已完成 | 删除本地状态/goroutine/专属配置和 go-cache；Redis typed cache/tag/disabled/cancel/error 语义测试通过；不新增 L1 依赖 |
 | SERDE-057-001 | B | 迁移官方稳定 YAML v3 路径并退役无消费者 Codec | 用户于 2026-08-22 确认剩余整体计划 | 已完成 | project direct import 使用 go.yaml.in/yaml/v3 v3.0.5；删除 gopkg direct requirement 与 pkg/codec；config/i18n/OpenAPI/docs fixture 和完整门禁通过；不直引 v4 RC |
-| LIMIT-057-001 | B | 用 x/time/rate 替换通用 token bucket，修正入口保护配置语义 | 用户于 2026-08-22 确认剩余整体计划 | 已确认 | x/time/rate v0.15.0 隐藏在项目薄边界；删除自研 refill/lock；增加 local/disabled 严格模式；保留 generation-local 与 channel 503；mode/burst/refill/concurrency/CORS/management/reload、完整 Go 与漏洞门禁通过；不增加主体或分布式 quota |
+| LIMIT-057-001 | B | 用 x/time/rate 替换通用 token bucket，修正入口保护配置语义 | 用户于 2026-08-22 确认剩余整体计划 | 已完成 | x/time/rate v0.15.0 隐藏在项目薄边界；删除自研 refill/lock；增加 local/disabled 严格模式；保留 generation-local 与 channel 503；mode/burst/refill/concurrency/CORS/management/reload、完整 Go 与漏洞门禁通过；不增加主体或分布式 quota |
 | SEC-057-002 | B | 用 rs/cors + CrossOriginProtection 收敛浏览器跨域/跨站机制 | R012、用户于 2026-08-22 确认剩余整体计划 | 已确认 | exact/default-deny/Problem/handler-not-called 保留；标准 Vary/preflight 由库处理；IAM Origin+Session+CSRF 不退化；删除手工 header/string-set；不新增 wildcard/credentials/PNA |
 | AUTHN-057-001 | B | 保留 jwx/v3 与 x/crypto/argon2，补 JWT 取消/负向矩阵和受限 PHC/NeedsRehash/渐进重哈希 | 用户于 2026-08-22 确认修订后的该任务 | 已完成 | 第三方类型不泄漏；取消原因保留；敌对 PHC 在 Argon2 前拒绝；登录事务重哈希与完整安全门禁通过；不引入 jwx/v4、OIDC 或小众 Wrapper |
 | RESIL-057-001 | C | 以 backoff/v7 收敛 Execution retry，并退役无依据的 HTTP/recovery/breaker 状态 | 用户于 2026-08-22 确认修订后的该任务 | 已完成 | backoff/v7 隐藏在 Execution 内部；profile 明确 attempts/jitter/attempt+total budget；HTTP one-shot；删除 pkg/resilience、RecoveringStore、AsyncRecorder 及旧配置/API；Todo/Schedule/Messaging 语义和完整门禁通过 |
@@ -107,6 +107,9 @@ HTTP 第一片失败、Data 边界泄漏或 Blueprint 无净删除时，不以�
 | 2026-08-22 | SERDE 定向、全仓与生成门禁 | config/i18n/HTTP contract/docs-guard 定向测试、`go test ./... -count=1`、`go test -race ./... -count=1`、`Verify-Docs.ps1`、gofmt/tidy diff、project layout、generate/clean diff、vet、CGO-free build 与 `git diff --check` 均通过；`Verify-Quality.ps1` 最终仍只因范围外 `old-backend` 两个既有 tracked app.db 返回失败，本任务未修改或删除 |
 | 2026-08-22 | SERDE 漏洞与依赖门禁 | `govulncheck -show verbose ./...` 为 0 reachable、0 imported-package 漏洞，module 层仍只有不可达 GO-2026-6222/5932；主模块 direct YAML dependency 仅为 `go.yaml.in/yaml/v3 v3.0.5`，`gopkg.in/yaml.v3` 只经测试依赖留在 module graph/go.sum，不再由项目代码直接 import |
 | 2026-08-22 | LIMIT-057-001 确认前深化研究 | 当前 token bucket 自研通用算法且 0/0 实际回落 100/200 默认值；官方 x/time/rate v0.15.0 适配 fail-fast Allow。channel semaphore 精确表达非阻塞 503，保留优于机械换 x/sync。任务增加 local/disabled 严格模式并明确 generation-local，继续待确认；未修改源码、配置或依赖 |
+| 2026-08-22 | LIMIT-057-001 实施 | 引入 `golang.org/x/time/rate v0.15.0` 并只保留在 `pkg/httpx.RateLimiter` 内；删除自研 mutex/token/refill 与静默构造 fallback；配置新增严格 `local/disabled` mode，local 正数预算、disabled 不安装速率中间件；保留 channel 503、generation-local 状态与 application/management listener 边界，不增加主体或分布式 quota |
+| 2026-08-22 | LIMIT 定向与行为门禁 | httpx、Kernel HTTP composition、application composition、Ops 与 cmd/app 定向测试通过；覆盖无效 mode/预算/并发、burst 耗尽与 refill、429/503/Retry-After、disabled、CORS preflight 不耗 token、新 Generation 独立满 bucket和示例配置完整绑定 |
+| 2026-08-22 | LIMIT 完整质量与安全门禁 | `go test ./... -count=1`、`go test -race ./... -count=1`、`Verify-Docs.ps1` 与 `git diff --check` 通过；`Verify-Quality.ps1` 的 gofmt、tidy diff、project layout、generate/clean diff、全量 test/race、vet、CGO-free build 均通过，最终仍只因范围外 `old-backend` 两个既有 tracked app.db 返回失败；`govulncheck` 为 0 reachable、0 imported-package 漏洞，module 层仍只有不可达 GO-2026-6222/5932 |
 | 2026-08-22 | AUTHN-057-001 确认前深化研究 | jwx/v4 仍强制全项目 `GOEXPERIMENT=jsonv2`，上游暂不建议新代码采用，v3 继续常规修复；Argon2 高层候选不能同时证明成熟主流与敌对 PHC 资源上限。任务修订为保留 jwx/v3 与官方 x/crypto/argon2，补取消、受限 PHC、NeedsRehash 和事务内渐进迁移，继续待确认；未修改源码或依赖 |
 | 2026-08-22 | AUTHN-057-001 实施 | 用户确认修订后任务；JWT 未知 key 共享刷新从攻击者可控 kid 分组收敛为 JWKS resource 全局合并，请求取消/刷新 timeout 完整向上；密码 port 改为项目 verification result + error，PHC 在 Argon2 前做 canonical/version/19–64 MiB/2–3 次/p1–4/salt/digest/总长门禁，成功登录事务内渐进重哈希 |
 | 2026-08-22 | AUTHN 定向与 race | `go test` 与 `go test -race` 覆盖 auth/iam Adapter、Service、binding 和 composition；claims/time/algorithm/key/malformed/multisig/duplicate kid/并发随机未知 kid/cancel/timeout、PHC/mismatch/资源预算/rehash/低敏错误均通过 |
@@ -129,3 +132,4 @@ HTTP 第一片失败、Data 边界泄漏或 Blueprint 无净删除时，不以�
 - RESIL-057-001：本轮 Conventional Commit（以 Git 历史为准）
 - PLAN-057-001：本轮 Conventional Commit（以 Git 历史为准）
 - SERDE-057-001：本轮 Conventional Commit（以 Git 历史为准）
+- LIMIT-057-001：本轮 Conventional Commit（以 Git 历史为准）

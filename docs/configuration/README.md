@@ -63,6 +63,10 @@ go run ./cmd/app config init --output .data/generated-config.yaml
 
 Bootstrap CLI、migration one-shot、Todo CLI 和长期 Service 都必须识别同一套官方应用配置节。某个运行模式可以只创建自己需要的资源，但不能把其他官方配置节当作未知字段拒绝。
 
+## HTTP 入口保护
+
+`http.rateLimit.mode` 只接受 `local` 或 `disabled`。默认 `local` 使用当前 Application Generation 私有的进程级 token bucket，要求 `requestsPerSecond` 与 `burst` 都为正；reload 后新代从完整 burst 开始，旧代独立排空。`disabled` 只关闭速率门禁，`maxInFlight` 的非阻塞 503 过载门禁仍然生效。`100/200/128` 是待按真实容量和 SLO 校准的脚手架起点，不代表跨副本、按主体或按路由的业务 quota；management listener 不经过该 application 入口策略。
+
 ## Tracing
 
 `observability.tracing.enabled` 默认为 `false`。启用后必须提供合法 endpoint、采样和批处理参数。生产环境优先使用安全传输；HTTP endpoint 只适合明确受控的本地或测试环境，并需要显式配置 `insecure: true`。

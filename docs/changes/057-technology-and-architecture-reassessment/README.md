@@ -4,7 +4,7 @@
 
 - 研究门禁：**已通过**。
 - 纯文档实施：**已完成，按纯文档例外直接验证并提交**。
-- 非文档实施：**Batch A、`CACHE-057-001` 与 `AUTHN-057-001` 已完成**；其余 Batch B–E 任务仍待确认。
+- 非文档实施：**Batch A、`CACHE-057-001`、`AUTHN-057-001` 与 `RESIL-057-001` 已完成**；其余 Batch B–E 任务仍待确认。
 
 ## 范围
 
@@ -34,6 +34,7 @@
 - HTTP 自研 token bucket 应由 `golang.org/x/time/rate v0.15.0` 替换，但现有非阻塞 channel semaphore 直接表达 503 过载策略，应保留。限流修订计划增加显式 `local/disabled` 模式，保持 generation-local，不冒充分布式或主体 quota。
 - AuthN 保留成熟且活跃维护的 `jwx/v3` 与 Go 官方 `x/crypto/argon2`；不为版本号迁移到仍强制实验性 jsonv2 的 JWX v4，也不引入无法消除敌对 PHC 资源风险的小众 Argon2 Wrapper。项目只保留认证策略、生命周期、受限 PHC 与 `NeedsRehash` 边界，不自行实现 JOSE 或密码学。
 - resilience 深化研究确认 `failsafe-go` 对当前需求范围过宽且仍为 pre-v1；修订计划改为用成熟、窄且零运行时依赖的 `cenkalti/backoff/v7` 承担 Execution retry loop，删除 HTTP 通用隐式重试、无消费者自研 breaker，以及没有真实外部 primary 支撑的 Execution 恢复/异步状态机。`gobreaker/v2` 只在出现真实下游 failure domain 后进入 Adapter 级候选。
+- `RESIL-057-001` 已完成上述单轨收敛：Execution 公开策略不暴露第三方类型，区分不可重试、caller cancellation/deadline 与 attempts exhausted；HTTP Client 对 status/transport failure 均只发送一次；memory Store 同步记录且不再启动推测性 lifecycle。
 - 模块自有 Repository port、permission key、migration SQL 和 operation 语义具有项目特有价值；通用算法和框架机制不应继续默认自研。
 - 当前 Application Generation 把业务对象图与动态资源平面一起重建，已经超出早期研究建议的最小动态范围。后续先建立 owner/reload 矩阵，再用最小切片验证静态对象图与动态资源平面分工，不做一次性 Kernel 重写。
 - 030、037、038 等历史任务是实施证据，不再自动构成继续沿用其依赖或承载架构的理由；安全、维护状态和新用例必须按本基线刷新。

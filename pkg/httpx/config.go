@@ -12,9 +12,6 @@ type ClientConfig struct {
 	Timeout              time.Duration
 	MaxResponseBodyBytes int64
 	Transport            http.RoundTripper
-	RetryCount           int
-	RetryWaitTime        time.Duration
-	RetryMaxWaitTime     time.Duration
 }
 
 // RouterConfig 定义 Router 构造参数。
@@ -57,9 +54,6 @@ type resolvedClientConfig struct {
 	Timeout              time.Duration
 	MaxResponseBodyBytes int64
 	Transport            http.RoundTripper
-	RetryCount           int
-	RetryWaitTime        time.Duration
-	RetryMaxWaitTime     time.Duration
 }
 
 type resolvedRouterConfig struct {

@@ -1,5 +1,5 @@
-// Package execution 提供幂等 / 失败重试 / 执行记录的稳定操作执行契约，供需要这些能力的
-// 业务模块（如订单、支付、库存）消费。重试引擎复用 pkg/resilience；可重试判断复用 pkg/fault。
+// Package execution 提供幂等、失败重试与执行记录的稳定操作执行契约，供需要这些能力的
+// 业务模块消费。第三方退避引擎只存在于包内部；业务错误分类复用 pkg/fault。
 package execution
 
 import (
@@ -7,8 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"time"
-
-	"github.com/rin721/go-scaffold-template/pkg/resilience"
 )
 
 // Key 标识一次业务操作的幂等单元（如订单创建、支付扣款、库存扣减）。
@@ -36,14 +34,24 @@ type Result struct {
 // Operation 是业务执行体，返回业务结果与错误。
 type Operation func(ctx context.Context) (any, error)
 
+// RetryPolicy 定义一次受托管执行的完整重试预算。
+// MaxAttempts 为零时按一次执行处理；所有 duration 为零时表示不额外设置该项预算。
+type RetryPolicy struct {
+	MaxAttempts    int
+	InitialDelay   time.Duration
+	MaxDelay       time.Duration
+	JitterFactor   float64
+	AttemptTimeout time.Duration
+	TotalTimeout   time.Duration
+}
+
 // Execution 描述一次受托管执行。
 type Execution struct {
 	Key          Key
-	Policy       resilience.RetryPolicy // 复用 pkg/resilience；Retryable 用 fault.Retryable
-	Timeout      time.Duration          // 0 表示不额外超时
-	LeaseTTL     time.Duration          // 运行占用期限；0 表示由 Store 保持不过期
-	RetentionTTL time.Duration          // 成功完成后的去重窗口；0 表示由 Store 保持不过期
-	Trigger      string                 // 低敏触发者/来源，用于执行记录
+	Policy       RetryPolicy
+	LeaseTTL     time.Duration // 运行占用期限；0 表示由 Store 保持不过期
+	RetentionTTL time.Duration // 成功完成后的去重窗口；0 表示由 Store 保持不过期
+	Trigger      string        // 低敏触发者/来源，用于执行记录
 	Operation    Operation
 	// PolicyName 是给装配方（Kernel App）使用的命令式策略选择标识：业务模块可通过
 	// 独立配置声明命名策略并按此名引用，避免多个模块被绑定到同一套固定策略。
@@ -65,6 +73,7 @@ type Record struct {
 	Trigger   string
 	Trace     string // 全链路追踪标识（低敏，如 trace/span ID），用于跨系统关联定位
 	Duration  time.Duration
+	Attempts  int // 实际调用 Operation 的次数，用于低敏诊断
 	CreatedAt time.Time
 }
 

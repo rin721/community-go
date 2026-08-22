@@ -13,8 +13,6 @@ func resolveClientConfig(cfg *ClientConfig) (resolvedClientConfig, error) {
 	resolved := resolvedClientConfig{
 		Timeout:              defaults.Timeout,
 		MaxResponseBodyBytes: defaults.MaxResponseBodyBytes,
-		RetryWaitTime:        defaults.RetryWaitTime,
-		RetryMaxWaitTime:     defaults.RetryMaxWaitTime,
 	}
 	if cfg == nil {
 		return resolved, nil
@@ -26,12 +24,6 @@ func resolveClientConfig(cfg *ClientConfig) (resolvedClientConfig, error) {
 	if cfg.MaxResponseBodyBytes < 0 {
 		return resolvedClientConfig{}, fmt.Errorf("max response body bytes must be non-negative")
 	}
-	if cfg.RetryCount < 0 {
-		return resolvedClientConfig{}, fmt.Errorf("retry count must be non-negative")
-	}
-	if cfg.RetryWaitTime < 0 || cfg.RetryMaxWaitTime < 0 {
-		return resolvedClientConfig{}, fmt.Errorf("retry wait times must be non-negative")
-	}
 	resolved.BaseURL = cfg.BaseURL
 	if cfg.Timeout > 0 {
 		resolved.Timeout = cfg.Timeout
@@ -40,14 +32,6 @@ func resolveClientConfig(cfg *ClientConfig) (resolvedClientConfig, error) {
 		resolved.MaxResponseBodyBytes = cfg.MaxResponseBodyBytes
 	}
 	resolved.Transport = cfg.Transport
-	resolved.RetryCount = cfg.RetryCount
-	if cfg.RetryWaitTime > 0 {
-		resolved.RetryWaitTime = cfg.RetryWaitTime
-	}
-	if cfg.RetryMaxWaitTime > 0 {
-		resolved.RetryMaxWaitTime = cfg.RetryMaxWaitTime
-	}
-
 	return resolved, nil
 }
 

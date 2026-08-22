@@ -156,16 +156,18 @@ todo:
   maxListLimit: 100
 
 execution:
-  # 后台任务执行能力（幂等 / 重试 / 执行记录）；当前默认 memory backend，自带降级 + 恢复治理 + 异步记录。
+  # 后台任务执行能力（幂等 / 重试 / 同步执行记录）；当前 memory backend 仅进程内可见。
   driver: memory
   policies:
     # 按模块命名策略：业务模块以 Execution.PolicyName 引用，实现模块间策略隔离。
     # Todo「完成」用例使用 "todo"。
     todo:
       retryMaxAttempts: 3
-      retryInitialWaitMs: 50
-      retryMaxWaitMs: 500
-      timeoutMs: 2000
+      retryInitialDelayMs: 50
+      retryMaxDelayMs: 500
+      retryJitterFactor: 0.2
+      retryAttemptTimeoutMs: 2000
+      retryTotalTimeoutMs: 7000
 
 scheduler:
   # 调度默认关闭；只有模块通过 Contribution.Schedules 声明的任务才会被统一装配。

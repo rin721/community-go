@@ -80,6 +80,8 @@ R007 已证明当前没有真实出站 HTTP Client 消费者或 breaker failure 
 - 删除 `RecoveringStore`、`AsyncRecorder`、Recovery API/配置/diagnostics 和 goroutine。当前 MemoryStore 直接同步承载幂等与记录，Health 只表达 enabled/ready；未来 durable Store 先设计跨副本 Claim 与不可用时 fail-closed/degraded 语义。
 - RabbitMQ broker redelivery/重连、Scheduler coordination retry、配置稳定读取和 HTTP 入口 overload 各自保留协议 owner，不并入通用策略层。
 
+实施结果（2026-08-22）：本批已按上述设计完成，没有保留旧 API 或兼容层。Execution memory backend 不再拥有 shutdown finalizer；重试 observer 经既有 Logger 依赖输出受控 Debug 字段。忽略的本地 `config.yaml` 未被任务改写，现行配置迁移以 `config.example.yaml` 与配置 authority 为准。
+
 ### Batch D：高耦合真实用例 PoC
 
 - HTTP：选一组现有 operation，比较当前 typed DSL 与 Huma v2 的声明量、生成一致性、错误/鉴权/政策扩展、chi 接入和升级成本。

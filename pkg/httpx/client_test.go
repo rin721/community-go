@@ -138,32 +138,45 @@ func TestClientDoesNotRetryByDefault(t *testing.T) {
 	}
 }
 
-func TestClientRetriesTemporaryServerStatus(t *testing.T) {
+func TestClientDoesNotRetryServerStatus(t *testing.T) {
 	var attempts int
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		attempts++
-		if attempts == 1 {
-			http.Error(w, "temporary", http.StatusServiceUnavailable)
-			return
-		}
-		_, _ = w.Write([]byte(`{"ok":true}`))
+		http.Error(w, "temporary", http.StatusServiceUnavailable)
 	}))
 	defer server.Close()
 
-	client := mustNewClient(t, &ClientConfig{
-		RetryCount:    1,
-		RetryWaitTime: time.Millisecond,
-	})
+	client := mustNewClient(t, nil)
 	resp, err := client.Do(context.Background(), Request{URL: server.URL})
-	if err != nil {
-		t.Fatalf("Do returned error: %v", err)
+	if err == nil {
+		t.Fatal("Do returned nil error")
 	}
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("status = %d, want 200", resp.StatusCode)
+	if resp == nil || resp.StatusCode != http.StatusServiceUnavailable {
+		t.Fatalf("response = %+v, want 503", resp)
 	}
-	if attempts != 2 {
-		t.Fatalf("attempts = %d, want 2", attempts)
+	if attempts != 1 {
+		t.Fatalf("attempts = %d, want 1", attempts)
 	}
+}
+
+func TestClientDoesNotRetryTransportError(t *testing.T) {
+	var attempts int
+	client := mustNewClient(t, &ClientConfig{Transport: roundTripperFunc(func(*http.Request) (*http.Response, error) {
+		attempts++
+		return nil, errors.New("transport unavailable")
+	})})
+	if _, err := client.Do(context.Background(), Request{URL: "https://example.test"}); err == nil {
+		t.Fatal("Do returned nil error")
+	}
+	if attempts != 1 {
+		t.Fatalf("attempts = %d, want 1", attempts)
+	}
+}
+
+type roundTripperFunc func(*http.Request) (*http.Response, error)
+
+func (fn roundTripperFunc) RoundTrip(request *http.Request) (*http.Response, error) {
+	return fn(request)
 }
 
 func TestClientReturnsStatusErrorForUnexpectedStatus(t *testing.T) {
@@ -283,8 +296,6 @@ func TestNewClientRejectsInvalidConfig(t *testing.T) {
 	}{
 		{name: "negative timeout", cfg: &ClientConfig{Timeout: -1}, want: "timeout"},
 		{name: "negative max body", cfg: &ClientConfig{MaxResponseBodyBytes: -1}, want: "max response"},
-		{name: "negative retry count", cfg: &ClientConfig{RetryCount: -1}, want: "retry count"},
-		{name: "negative retry wait", cfg: &ClientConfig{RetryWaitTime: -1}, want: "retry wait"},
 	}
 
 	for _, tt := range tests {

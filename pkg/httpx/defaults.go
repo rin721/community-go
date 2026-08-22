@@ -10,10 +10,6 @@ const (
 	DefaultClientTimeout = 10 * time.Second
 	// DefaultMaxResponseBodyBytes 是客户端默认最大响应体读取大小。
 	DefaultMaxResponseBodyBytes int64 = 10 << 20
-	// DefaultRetryWaitTime 是启用重试时的默认初始等待时间。
-	DefaultRetryWaitTime = 100 * time.Millisecond
-	// DefaultRetryMaxWaitTime 是启用重试时的默认最大等待时间。
-	DefaultRetryMaxWaitTime = 2 * time.Second
 )
 
 const (
@@ -42,8 +38,6 @@ func DefaultClientConfig() ClientConfig {
 	return ClientConfig{
 		Timeout:              DefaultClientTimeout,
 		MaxResponseBodyBytes: DefaultMaxResponseBodyBytes,
-		RetryWaitTime:        DefaultRetryWaitTime,
-		RetryMaxWaitTime:     DefaultRetryMaxWaitTime,
 	}
 }
 

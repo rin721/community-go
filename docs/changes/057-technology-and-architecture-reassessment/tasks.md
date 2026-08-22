@@ -4,7 +4,7 @@
 
 - 研究门禁：已通过。
 - 文档任务：已完成，适用纯文档直接实施例外。
-- 非文档任务：用户已于 2026-08-22 明确确认并完成 Batch A（`SEC-057-001`）及修订后的 `CACHE-057-001`、`AUTHN-057-001`；其余任务仍待确认。
+- 非文档任务：用户已于 2026-08-22 明确确认并完成 Batch A（`SEC-057-001`）及修订后的 `CACHE-057-001`、`AUTHN-057-001`、`RESIL-057-001`；其余任务仍待确认。
 
 ## 任务清单
 
@@ -18,7 +18,7 @@
 | SERDE-057-001 | B | 迁移官方稳定 YAML v3 路径并退役无消费者 Codec | 用户确认修订后的该任务 | 待确认 | project direct import 使用 go.yaml.in/yaml/v3 v3.0.5；删除 gopkg direct requirement 与 pkg/codec；config/i18n/OpenAPI/docs fixture 和完整门禁通过；不直引 v4 RC |
 | LIMIT-057-001 | B | 用 x/time/rate 替换通用 token bucket，修正入口保护配置语义 | 用户确认修订后的该任务 | 待确认 | x/time/rate v0.15.0 隐藏在项目薄边界；删除自研 refill/lock；增加 local/disabled 严格模式；保留 generation-local 与 channel 503；mode/burst/refill/concurrency/CORS/management/reload、完整 Go 与漏洞门禁通过；不增加主体或分布式 quota |
 | AUTHN-057-001 | B | 保留 jwx/v3 与 x/crypto/argon2，补 JWT 取消/负向矩阵和受限 PHC/NeedsRehash/渐进重哈希 | 用户于 2026-08-22 确认修订后的该任务 | 已完成 | 第三方类型不泄漏；取消原因保留；敌对 PHC 在 Argon2 前拒绝；登录事务重哈希与完整安全门禁通过；不引入 jwx/v4、OIDC 或小众 Wrapper |
-| RESIL-057-001 | C | 以 backoff/v7 收敛 Execution retry，并退役无依据的 HTTP/recovery/breaker 状态 | 用户确认修订后的该任务 | 待确认 | backoff/v7 隐藏在 Execution 内部；profile 明确 attempts/jitter/attempt+total budget；HTTP one-shot；删除 pkg/resilience、RecoveringStore、AsyncRecorder 及旧配置/API；Todo/Schedule/Messaging 语义和完整门禁通过 |
+| RESIL-057-001 | C | 以 backoff/v7 收敛 Execution retry，并退役无依据的 HTTP/recovery/breaker 状态 | 用户于 2026-08-22 确认修订后的该任务 | 已完成 | backoff/v7 隐藏在 Execution 内部；profile 明确 attempts/jitter/attempt+total budget；HTTP one-shot；删除 pkg/resilience、RecoveringStore、AsyncRecorder 及旧配置/API；Todo/Schedule/Messaging 语义和完整门禁通过 |
 | HTTP-057-001 | D | 用真实 operation 比较 Huma v2 与当前 typed DSL | Batch A 完成、用户确认该任务 | 待确认 | 生成、验证、鉴权/政策扩展、错误与迁移成本有可运行证据；只输出采用或拒绝结论 |
 | DATA-057-001 | D | 用真实复杂查询比较当前 Repository、GORM Gen 与 sqlc | 用户确认该任务 | 待确认 | 三方言、事务、分页、乐观锁、错误、测试与迁移成本可复核；模块 port 不变 |
 | CONFIG-057-001 | D | 比较 koanf 与当前 parser/provider 范围 | 用户确认该任务 | 待确认 | 明确可删除自研范围；strict candidate/owner/reload 语义不丢失 |
@@ -28,7 +28,7 @@
 
 ## 建议确认方式
 
-Batch A、修订后的 `CACHE-057-001` 与 `AUTHN-057-001` 已完成。R004、R005、R007 已分别材料性修订 `SERDE-057-001`、`LIMIT-057-001`、`RESIL-057-001`；此前确认不覆盖这些任务。下一轮可分别确认任一修订后的待确认任务 ID。Batch D/E 应依据前序证据重新提交更窄设计。
+Batch A、修订后的 `CACHE-057-001`、`AUTHN-057-001` 与 `RESIL-057-001` 已完成。下一轮可分别确认 `SERDE-057-001` 或 `LIMIT-057-001`；Batch D/E 应依据前序证据重新提交更窄设计。
 
 ## 停止与重新确认条件
 
@@ -65,6 +65,11 @@ Batch A、修订后的 `CACHE-057-001` 与 `AUTHN-057-001` 已完成。R004、R0
 | 2026-08-22 | AUTHN 完整质量门禁 | `Verify-Quality.ps1` 的 gofmt、tidy diff、project layout、generate/clean diff、全量 test、全量 race、vet、CGO-free build 均通过；最终 `Verify-Artifacts` 仍只命中范围外 `old-backend/` 两个既有 tracked app.db，本任务未修改或删除 |
 | 2026-08-22 | AUTHN 漏洞与依赖复核 | `govulncheck -show verbose ./...`：0 reachable、0 imported-package 漏洞；模块层仍为不可达 GO-2026-6222/5932。jwx/v3 v3.2.0 仍为 v3 最新；x/crypto v0.55 会连带直接 x/text 且不能消除 OpenPGP 记录，当前 Argon2 无可达风险，故不混入无收益升级 |
 | 2026-08-22 | RESIL-057-001 确认前深化研究 | 当前 HTTP Client 无 production 构造却会对非幂等方法隐式重试；pkg/resilience breaker 无消费者；Execution production 的 primary/local 均为 MemoryStore，恢复与异步状态机没有真实外部资源。官方刷新确认 backoff/v7 v7.0.0 为当前窄重试候选，failsafe-go v0.9.7 仍为 pre-v1 且范围/依赖过宽，gobreaker/v2 v2.4.0 无当前 failure domain。计划材料性修订并继续待确认；未修改源码、配置或依赖 |
+| 2026-08-22 | RESIL-057-001 实施确认 | 用户明确“确认实施，如果是技术选择，则由你确认”；修订计划进入已确认状态，技术细节按 R007 证据与本任务验收边界决策 |
+| 2026-08-22 | RESIL-057-001 实施 | 引入 `backoff/v7 v7.0.0` 并隐藏在 `pkg/execution`；项目策略明确 attempts/delay/jitter/attempt+total timeout，记录实际 attempts，低敏 observer 仅输出稳定字段；HTTP Client 删除所有隐式重试配置与循环；删除 `pkg/resilience`、RecoveringStore、AsyncRecorder、Recovery API/配置和相关 goroutine，Messaging 保持单次 attempt |
+| 2026-08-22 | RESIL 定向与全仓测试 | execution/httpx/Kernel Execution/Messaging/Schedule/Todo 定向测试通过；`go test ./... -count=1` 全部通过；status 与 transport failure 都验证只发送一次，不可重试/cancel/deadline/exhausted/budget/observer/幂等语义均有测试 |
+| 2026-08-22 | RESIL 完整质量门禁 | `Verify-Quality.ps1` 的 gofmt、tidy diff、project layout、generate/clean diff、全量 test、全量 race、vet、CGO-free build 均通过；最终 `Verify-Artifacts` 仍只命中范围外 `old-backend/` 两个既有 tracked app.db，本任务未修改或删除 |
+| 2026-08-22 | RESIL 文档与漏洞门禁 | `Verify-Docs.ps1` 与 `git diff --check` 通过；`govulncheck -show verbose ./...` 为 0 reachable、0 imported-package 漏洞，模块层仍仅有不可达 GO-2026-6222/5932；v7 与 OTLP 间接 v5 为不同 import major，职责互不泄漏 |
 
 ## Commit
 
@@ -72,3 +77,4 @@ Batch A、修订后的 `CACHE-057-001` 与 `AUTHN-057-001` 已完成。R004、R0
 - Batch A：`32a4987 fix(http): upgrade OpenAPI validator security baseline`
 - CACHE-057-001：本轮 Conventional Commit（以 Git 历史为准）
 - AUTHN-057-001：本轮 Conventional Commit（以 Git 历史为准）
+- RESIL-057-001：本轮 Conventional Commit（以 Git 历史为准）

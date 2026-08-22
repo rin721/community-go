@@ -3,24 +3,36 @@ change: 057-technology-and-architecture-reassessment
 areas:
   - id: startup
     decision: reviewed-no-change
-    reason: 已实施的 cache 与 AuthN 任务不改变应用启动、首次使用、服务入口或验收步骤；JWKS lifecycle 仍由原 Supervisor participant 拥有。
+    reason: 已实施的 cache、AuthN 与 resilience 任务不改变应用启动、首次使用或服务入口；JWKS lifecycle 仍由原 Supervisor participant 拥有，Execution 删除无真实资源支撑的后台 goroutine 后无需新增启动步骤。
   - id: capability
     decision: updated
     documents:
       - pkg/README.md
+      - pkg/execution/README.md
+      - pkg/httpx/README.md
       - docs/architecture/technology-selection.md
+      - docs/development/execution-capability.md
       - docs/operations/security.md
-    reason: 缓存已收敛为 Redis 单一 authority；AuthN 保留 jwx/v3 与 x/crypto/argon2；R007 又把 resilience 目标从 failsafe-go 大组合修订为 backoff/v7 窄接入，并明确退役无依据 HTTP/recovery/breaker 状态。pkg/README.md 仍描述当前已实现行为，待 RESIL 实施时同步，不提前改写为目标状态。
+    reason: 缓存已收敛为 Redis 单一 authority；AuthN 保留 jwx/v3 与 x/crypto/argon2；Execution 已以项目契约隔离 backoff/v7，HTTP Client 已 one-shot，并退役 pkg/resilience、无依据 recovery/async/breaker 状态。当前文档同步描述已实现边界。
   - id: module
     decision: updated
     documents:
       - internal/module/README.md
       - internal/module/auth/README.md
       - internal/module/iam/README.md
-    reason: 记录 Auth JWT/JWK 共享刷新与取消语义，以及 IAM 对参数感知密码校验和事务内渐进重哈希的所有权。
+      - internal/kernel/app/README.md
+    reason: 记录 Auth JWT/JWK 共享刷新与取消语义、IAM 凭据演进所有权，以及 Kernel Execution 同步 memory backend 和受控 retry 观测边界。
   - id: configuration
-    decision: reviewed-no-change
-    reason: 已删除的 CleanupInterval 不是应用配置；AuthN 实施沿用现有 JWT 与 IAM 参数 policy，没有新增、删除或改变配置键、默认值和 reload 行为。
+    decision: updated
+    documents:
+      - docs/configuration/README.md
+      - docs/operations/runtime-capabilities.md
+    reason: Execution 命名策略单轨改为 attempts、initial/max delay、jitter、attempt timeout 与 total timeout；删除 recovery、async 和旧 wait/timeout 配置，不保留兼容键。
+  - id: operations
+    decision: updated
+    documents:
+      - docs/operations/runtime-capabilities.md
+    reason: Execution 不再拥有 recovery/async goroutine 或 shutdown finalizer；运行矩阵改为同步 memory Store、完整 retry budget 和真实未覆盖边界。
   - id: api
     decision: reviewed-no-change
     reason: kin-openapi 安全补丁升级不改变公开 operation、OpenAPI authority、路由、DTO 或错误协议；go generate 后 api/openapi.yaml 与 operation inventory 均保持 clean diff，当前 API 使用说明无需改写。

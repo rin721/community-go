@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"time"
 )
 
 // Client 定义业务代码使用的 HTTP 客户端能力。
@@ -22,9 +21,6 @@ type standardClient struct {
 	client               *http.Client
 	baseURL              string
 	maxResponseBodyBytes int64
-	retryCount           int
-	retryWaitTime        time.Duration
-	retryMaxWaitTime     time.Duration
 }
 
 // NewClient 根据配置创建 HTTP 客户端。
@@ -45,9 +41,6 @@ func NewClient(cfg *ClientConfig) (Client, error) {
 		client:               client,
 		baseURL:              resolved.BaseURL,
 		maxResponseBodyBytes: resolved.MaxResponseBodyBytes,
-		retryCount:           resolved.RetryCount,
-		retryWaitTime:        resolved.RetryWaitTime,
-		retryMaxWaitTime:     resolved.RetryMaxWaitTime,
 	}, nil
 }
 
@@ -57,45 +50,25 @@ func (c *standardClient) Do(ctx context.Context, req Request) (*Response, error)
 		return nil, fmt.Errorf("build http request: %w", err)
 	}
 
-	var lastErr error
-	for attempt := 0; attempt <= c.retryCount; attempt++ {
-		httpReq, err := buildHTTPRequest(ctx, requestURL, payload, contentType, req)
-		if err != nil {
-			return nil, fmt.Errorf("build http request: %w", err)
-		}
-
-		httpResp, err := c.client.Do(httpReq)
-		if err != nil {
-			lastErr = fmt.Errorf("do http request: %w", err)
-			if !c.shouldRetry(ctx, attempt) {
-				return nil, lastErr
-			}
-			continue
-		}
-
-		resp, err := readHTTPResponse(httpResp, c.maxResponseBodyBytes)
-		if err != nil {
-			return nil, fmt.Errorf("read response body: %w", err)
-		}
-
-		if !statusAccepted(resp.StatusCode, req.AcceptStatus) {
-			statusErr := &StatusError{
-				StatusCode:  resp.StatusCode,
-				Code:        errorCodeHTTPStatus,
-				Message:     http.StatusText(resp.StatusCode),
-				BodySnippet: string(bodySnippet(resp.Body)),
-			}
-			if shouldRetryStatus(resp.StatusCode) && c.shouldRetry(ctx, attempt) {
-				lastErr = statusErr
-				continue
-			}
-			return resp, statusErr
-		}
-
-		return resp, nil
+	httpReq, err := buildHTTPRequest(ctx, requestURL, payload, contentType, req)
+	if err != nil {
+		return nil, fmt.Errorf("build http request: %w", err)
 	}
-
-	return nil, lastErr
+	httpResp, err := c.client.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("do http request: %w", err)
+	}
+	resp, err := readHTTPResponse(httpResp, c.maxResponseBodyBytes)
+	if err != nil {
+		return nil, fmt.Errorf("read response body: %w", err)
+	}
+	if !statusAccepted(resp.StatusCode, req.AcceptStatus) {
+		return resp, &StatusError{
+			StatusCode: resp.StatusCode, Code: errorCodeHTTPStatus,
+			Message: http.StatusText(resp.StatusCode), BodySnippet: string(bodySnippet(resp.Body)),
+		}
+	}
+	return resp, nil
 }
 
 func (c *standardClient) JSON(ctx context.Context, req Request, out any) (*Response, error) {
@@ -227,41 +200,6 @@ func readResponseBody(body io.Reader, maxBodyBytes int64) ([]byte, error) {
 		return nil, fmt.Errorf("response body exceeds %d bytes", maxBodyBytes)
 	}
 	return data, nil
-}
-
-func shouldRetryStatus(statusCode int) bool {
-	return statusCode == http.StatusTooManyRequests || statusCode >= http.StatusInternalServerError
-}
-
-func (c *standardClient) shouldRetry(ctx context.Context, attempt int) bool {
-	if attempt >= c.retryCount {
-		return false
-	}
-
-	wait := retryWait(attempt, c.retryWaitTime, c.retryMaxWaitTime)
-	if wait <= 0 {
-		return true
-	}
-
-	timer := time.NewTimer(wait)
-	defer timer.Stop()
-
-	select {
-	case <-ctx.Done():
-		return false
-	case <-timer.C:
-		return true
-	}
-}
-
-func retryWait(attempt int, wait time.Duration, maxWait time.Duration) time.Duration {
-	for range attempt {
-		wait *= 2
-		if maxWait > 0 && wait > maxWait {
-			return maxWait
-		}
-	}
-	return wait
 }
 
 func bodySnippet(body []byte) []byte {

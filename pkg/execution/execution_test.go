@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/rin721/go-scaffold-template/pkg/fault"
-	"github.com/rin721/go-scaffold-template/pkg/resilience"
 )
 
 func TestMemoryClaimAllowsFirstAndRejectsConcurrent(t *testing.T) {
@@ -61,11 +60,10 @@ func TestExecutorRetryExhausted(t *testing.T) {
 	result, err := executor.Execute(context.Background(), Execution{
 		Key:       "k",
 		Operation: op,
-		Policy: resilience.RetryPolicy{
-			MaxAttempts: 3,
-			InitialWait: time.Millisecond,
-			MaxWait:     time.Millisecond,
-			Retryable:   fault.Retryable,
+		Policy: RetryPolicy{
+			MaxAttempts:  3,
+			InitialDelay: time.Millisecond,
+			MaxDelay:     time.Millisecond,
 		},
 	})
 	if err == nil {
@@ -87,6 +85,9 @@ func TestExecutorRetryExhausted(t *testing.T) {
 	if !strings.Contains(records[0].Error, "boom") {
 		t.Fatalf("record missing cause text: %+v", records[0])
 	}
+	if records[0].Attempts != 3 {
+		t.Fatalf("record attempts=%d want 3", records[0].Attempts)
+	}
 }
 
 func TestExecutorRetrySucceedsAfterTransient(t *testing.T) {
@@ -103,11 +104,10 @@ func TestExecutorRetrySucceedsAfterTransient(t *testing.T) {
 	result, err := executor.Execute(context.Background(), Execution{
 		Key:       "k2",
 		Operation: op,
-		Policy: resilience.RetryPolicy{
-			MaxAttempts: 3,
-			InitialWait: time.Millisecond,
-			MaxWait:     time.Millisecond,
-			Retryable:   fault.Retryable,
+		Policy: RetryPolicy{
+			MaxAttempts:  3,
+			InitialDelay: time.Millisecond,
+			MaxDelay:     time.Millisecond,
 		},
 	})
 	if err != nil {
@@ -133,14 +133,15 @@ func TestExecutorNonRetryableSingleAttempt(t *testing.T) {
 	if _, err := executor.Execute(context.Background(), Execution{
 		Key:       "k3",
 		Operation: op,
-		Policy: resilience.RetryPolicy{
-			MaxAttempts: 5,
-			InitialWait: time.Millisecond,
-			MaxWait:     time.Millisecond,
-			Retryable:   fault.Retryable,
+		Policy: RetryPolicy{
+			MaxAttempts:  5,
+			InitialDelay: time.Millisecond,
+			MaxDelay:     time.Millisecond,
 		},
 	}); err == nil {
 		t.Fatalf("want error")
+	} else if errors.Is(err, ErrRetryExhausted) {
+		t.Fatalf("non-retryable error must not be marked exhausted: %v", err)
 	}
 	if attempts != 1 {
 		t.Fatalf("attempts=%d want 1 for non-retryable", attempts)
@@ -149,6 +150,11 @@ func TestExecutorNonRetryableSingleAttempt(t *testing.T) {
 
 func TestExecutorValidation(t *testing.T) {
 	executor := NewExecutor(NewMemoryStore())
+	if _, err := executor.Execute(nil, Execution{
+		Key: "k", Operation: func(context.Context) (any, error) { return nil, nil },
+	}); !errors.Is(err, ErrNilContext) {
+		t.Fatalf("nil context: %v", err)
+	}
 	if _, err := executor.Execute(context.Background(), Execution{
 		Operation: func(context.Context) (any, error) { return nil, nil },
 	}); !errors.Is(err, ErrEmptyKey) {
@@ -225,13 +231,13 @@ func TestMemoryCompletionRetentionStartsAtCompletion(t *testing.T) {
 	}
 }
 
-// TestExecutorTimeoutDoesNotRecurse 回归验证 Timeout>0 时不会因超时包装闭包自递归而挂死。
+// TestExecutorAttemptTimeoutAllowsSuccessfulOperation 验证单次预算不改变健康执行。
 func TestExecutorTimeoutDoesNotRecurse(t *testing.T) {
 	store := NewMemoryStore()
 	executor := NewExecutor(store)
 	var calls int32
 	res, err := executor.Execute(context.Background(), Execution{
-		Key: "with-timeout", Timeout: time.Second,
+		Key: "with-timeout", Policy: RetryPolicy{MaxAttempts: 1, AttemptTimeout: time.Second},
 		Operation: func(context.Context) (any, error) {
 			atomic.AddInt32(&calls, 1)
 			return "ok", nil
@@ -251,13 +257,13 @@ func TestExecutorTimeoutDoesNotRecurse(t *testing.T) {
 // TestExecutorTimeoutExpiry 验证单次操作超时后返回可区分错误，而非无限递归或无限重试。
 func TestExecutorTimeoutExpiry(t *testing.T) {
 	executor := NewExecutor(NewMemoryStore())
-	deadline := errors.New("deadline")
 	_, err := executor.Execute(context.Background(), Execution{
-		Key: "expired", Timeout: 20 * time.Millisecond,
-		Policy: resilience.RetryPolicy{MaxAttempts: 2, InitialWait: time.Millisecond, MaxWait: time.Millisecond},
+		Key: "expired",
+		Policy: RetryPolicy{MaxAttempts: 2, InitialDelay: time.Millisecond, MaxDelay: time.Millisecond,
+			AttemptTimeout: 20 * time.Millisecond, TotalTimeout: time.Second},
 		Operation: func(ctx context.Context) (any, error) {
 			<-ctx.Done()
-			return nil, deadline
+			return nil, fault.Wrap(ctx.Err(), fault.CodeUnavailable, "attempt timeout", true)
 		},
 	})
 	if err == nil {
@@ -265,5 +271,47 @@ func TestExecutorTimeoutExpiry(t *testing.T) {
 	}
 	if !errors.Is(err, ErrRetryExhausted) {
 		t.Fatalf("error=%v want ErrRetryExhausted", err)
+	}
+}
+
+func TestExecutorTotalTimeoutPreservesDeadlineCause(t *testing.T) {
+	executor := NewExecutor(NewMemoryStore())
+	_, err := executor.Execute(context.Background(), Execution{
+		Key: "total-timeout",
+		Policy: RetryPolicy{MaxAttempts: 10, InitialDelay: time.Second, MaxDelay: time.Second,
+			TotalTimeout: 20 * time.Millisecond},
+		Operation: func(context.Context) (any, error) {
+			return nil, fault.Wrap(errors.New("temporary"), fault.CodeUnavailable, "dependency", true)
+		},
+	})
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("error=%v want context deadline", err)
+	}
+	if errors.Is(err, ErrRetryExhausted) {
+		t.Fatalf("budget deadline must not be marked attempts exhausted: %v", err)
+	}
+}
+
+func TestExecutorRetryObserverReceivesControlledEvent(t *testing.T) {
+	var events []RetryEvent
+	executor := NewExecutor(NewMemoryStore(), WithRetryObserver(func(event RetryEvent) {
+		events = append(events, event)
+	}))
+	var calls int
+	_, err := executor.Execute(context.Background(), Execution{
+		Key: "observed", Policy: RetryPolicy{MaxAttempts: 2, InitialDelay: time.Millisecond, MaxDelay: time.Millisecond},
+		Operation: func(context.Context) (any, error) {
+			calls++
+			if calls == 1 {
+				return nil, fault.Wrap(errors.New("secret detail"), fault.CodeUnavailable, "dependency", true)
+			}
+			return nil, nil
+		},
+	})
+	if err != nil {
+		t.Fatalf("execute: %v", err)
+	}
+	if len(events) != 1 || events[0].Attempt != 1 || events[0].ErrorCode != fault.CodeUnavailable {
+		t.Fatalf("events=%+v", events)
 	}
 }

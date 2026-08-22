@@ -3,7 +3,7 @@
 ## 状态与依据
 
 - 研究门禁：已通过，依据 [R001](research/R001-current-capability-and-architecture-audit/report.md)、[R002](research/R002-mainstream-options-and-security/report.md) 及各专项深化研究。
-- 已实施授权：纯文档规则、研究、计划、当前 authority 更新、Batch A，以及用户于 2026-08-22 分别确认的修订后 `CACHE-057-001`、`AUTHN-057-001`。
+- 已实施授权：纯文档规则、研究、计划、当前 authority 更新、Batch A，以及用户于 2026-08-22 分别确认的修订后 `CACHE-057-001`、`AUTHN-057-001`、`RESIL-057-001`。
 - 其余非文档变更：待用户在当前计划报告后的后续消息中按任务 ID 或实施批次确认。
 
 ## 目标
@@ -47,7 +47,8 @@
 - 保留：zap、chi、GORM 连接/事务、golang-migrate、go-redis、gocron、amqp091-go、OpenTelemetry/Prometheus 和当前简单 Core RBAC。
 - 已完成安全升级：kin-openapi v0.147.0，并保持项目 OperationGate 为真实认证/授权 owner。
 - 已完成退役：当前无真实消费者且一致性边界不完整的默认 L1 与 `patrickmn/go-cache` 已移除，Redis 是唯一缓存 authority，typed Client 不再拥有本地状态或生命周期。
-- 后续升级：把已归档 `gopkg.in/yaml.v3` 直接依赖迁移到官方稳定 v3，并退役无消费者 `pkg/codec`；用 `x/time/rate` 替换 HTTP 自研 token bucket，同时保留简单非阻塞过载门禁并修正显式启停语义；保留 `jwx/v3` 和 `x/crypto/argon2`，补 JWT 取消/负向矩阵及受限 PHC/NeedsRehash；以 `cenkalti/backoff/v7` 替换 Execution 自研 retry loop，并退役 HTTP 隐式重试、无消费者 breaker 和没有真实外部 primary 的 Execution 恢复/异步状态机。未来 L1、YAML v4、JWX v4、breaker 与组合 resilience 框架都只能在真实需求和稳定门禁满足后重新选型。
+- 已完成 resilience 收敛：`cenkalti/backoff/v7` 隐藏在 Execution 内部，项目拥有完整 budget 与错误语义；HTTP Client one-shot；旧自研 resilience、无消费者 breaker 和没有真实 primary 的恢复/异步状态机已退役。
+- 后续升级：把已归档 `gopkg.in/yaml.v3` 直接依赖迁移到官方稳定 v3，并退役无消费者 `pkg/codec`；用 `x/time/rate` 替换 HTTP 自研 token bucket，同时保留简单非阻塞过载门禁并修正显式启停语义。未来 L1、YAML v4、JWX v4、breaker 与组合 resilience 框架都只能在真实需求和稳定门禁满足后重新选型。
 - 合理自研：模块 Repository port、permission/operation/migration 业务语义，以及认证 Adapter 内的项目安全策略、受限 PHC 格式和凭据演进；JOSE 与 Argon2 算法继续由成熟库实现。
 - 高耦合 PoC：Huma 对当前 HTTP DSL、GORM Gen/sqlc 对当前反射 Repository、koanf 对当前通用配置解析部分。
 - 架构重构候选：恢复启动期静态业务对象图与经证明可换代的动态资源平面分工。

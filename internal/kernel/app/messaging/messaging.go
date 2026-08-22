@@ -19,7 +19,6 @@ import (
 	pkglogger "github.com/rin721/go-scaffold-template/pkg/logger"
 	pkgmessaging "github.com/rin721/go-scaffold-template/pkg/messaging"
 	pkgobservability "github.com/rin721/go-scaffold-template/pkg/observability"
-	"github.com/rin721/go-scaffold-template/pkg/resilience"
 )
 
 const (
@@ -585,9 +584,11 @@ func (c *consumerRuntime) handle(ctx context.Context, incoming Incoming) Disposi
 	ctx = pkgobservability.WithTraceID(ctx, incoming.TraceID)
 	ctx = pkgexecution.WithTrace(ctx, incoming.TraceID)
 	result, err := c.owner.dependencies.Execution.Execute(ctx, pkgexecution.Execution{
-		Key:     pkgexecution.Key("message:" + string(c.binding.ID()) + ":" + incoming.Message.Contract().String() + ":" + string(incoming.Message.ID())),
-		Policy:  resilience.RetryPolicy{MaxAttempts: 1, Retryable: func(error) bool { return false }},
-		Timeout: c.binding.Delivery().HandlerTimeout(), LeaseTTL: c.binding.Delivery().ProcessingLease(),
+		Key: pkgexecution.Key("message:" + string(c.binding.ID()) + ":" + incoming.Message.Contract().String() + ":" + string(incoming.Message.ID())),
+		Policy: pkgexecution.RetryPolicy{
+			MaxAttempts: 1, AttemptTimeout: c.binding.Delivery().HandlerTimeout(),
+		},
+		LeaseTTL:     c.binding.Delivery().ProcessingLease(),
 		RetentionTTL: c.binding.Delivery().IdempotencyRetention(), Trigger: "message." + string(c.binding.ID()),
 		Operation: func(executionCtx context.Context) (result any, runErr error) {
 			defer func() {

@@ -8,7 +8,7 @@
 2. [WebUI 开发指南](webui.md)：WebUI Binding、manifest、Session、CSRF、生成 registry 和宿主边界。
 3. [API 文档](../../api/README.md)：公开 HTTP operation 的 code-first 契约、生成器注册点、OpenAPI 产物和 breaking 约束。
 4. [开发日志规范](logging.md)：Service 生命周期、外部 I/O、状态转换、错误边界和低敏结构化日志。
-5. [业务模块接入 execution 能力](execution-capability.md)：幂等、失败重试、执行记录、Trace、恢复治理和多实例边界。
+5. [业务模块接入 execution 能力](execution-capability.md)：幂等、失败重试、attempt/total budget、同步记录、Trace 和单进程边界。
 6. [业务模块接入定时调度能力](scheduled-task-capability.md)：cron/fixedDelay 声明、分布式执行权、Execution 协作和 Generation 切换。
 7. [业务模块接入消息系统适配能力](messaging-capability.md)：Message Contract/Binding、Provider、Publisher、Consumer、RabbitMQ 可靠性和运维协作。
 

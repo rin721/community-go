@@ -371,9 +371,11 @@ execution:
   policies:
     todo:
       retryMaxAttempts: 3
-      retryInitialWaitMs: 50
-      retryMaxWaitMs: 500
-      timeoutMs: 2000
+      retryInitialDelayMs: 50
+      retryMaxDelayMs: 500
+      retryJitterFactor: 0.2
+      retryAttemptTimeoutMs: 2000
+      retryTotalTimeoutMs: 7000
 http:
   addr: %q
 `, filepath.ToSlash(databasePath), filepath.ToSlash(storagePath), address)

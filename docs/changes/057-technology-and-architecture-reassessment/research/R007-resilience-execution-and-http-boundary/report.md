@@ -79,6 +79,12 @@ OSV Go module 查询在核验日没有返回上述三个 module 的公开漏洞�
 
 这改变依赖选择、公共 execution 字段、HTTP config 与 lifecycle，属于材料性计划修订。此前任何 Batch A 或其它任务确认都不覆盖它；必须等待用户明确确认“修订后的 `RESIL-057-001`”后才能实施。
 
+## 实施结果（2026-08-22）
+
+用户确认修订计划后，`RESIL-057-001` 已按上述边界单轨实施：`backoff/v7 v7.0.0` 只存在于 `pkg/execution` 内部，项目 policy、错误和观测契约不暴露第三方类型；基础 HTTP Client 对 transport/status failure 均 one-shot；旧 `pkg/resilience`、RecoveringStore、AsyncRecorder、Recovery API/配置与后台 goroutine已删除。Messaging 显式使用单次 attempt，把 redelivery 留给 broker owner。
+
+全仓 test/race/vet/build、生成物 clean diff、文档门禁与漏洞扫描通过；artifact 门禁只被范围外两个既有 tracked `old-backend/**/app.db` 阻塞。该结果把本报告的目标结论更新为当前事实，但不扩大到 durable Store、真实出站下游或 breaker。
+
 ## 局限与刷新触发器
 
 - 本研究没有引入真实外部 HTTP 服务、durable Execution Store 或多副本部署，因此不声称 breaker、分布式幂等或 degraded write 已验证。

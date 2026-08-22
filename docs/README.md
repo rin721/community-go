@@ -26,7 +26,7 @@
 - [CLI 契约](../pkg/cli/README.md)：命令、flag、交互式提示和执行边界。
 - [HTTP 能力](../pkg/httpx/README.md)：HTTP client、router、server、middleware 和 contract 边界。
 - [Database 能力](../pkg/database/README.md)：数据库、迁移、Repository 和事务边界。
-- [Execution 能力](../pkg/execution/README.md)：幂等、失败重试、执行记录、Trace 和恢复治理的公共契约。
+- [Execution 能力](../pkg/execution/README.md)：幂等、失败重试、完整预算、同步记录和 Trace 的公共契约。
 - [Schedule 能力](../pkg/schedule/README.md)：定时任务声明契约。
 - [Messaging 能力](../pkg/messaging/README.md)：项目自有消息契约与模块声明能力。
 

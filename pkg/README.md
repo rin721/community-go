@@ -35,12 +35,11 @@
 | [`idgen`](idgen/README.md) | `google/uuid` | 构造 ID generator，提供请求和资源 ID。 |
 | [`clock`](clock/README.md) | 标准库 `time` | 构造系统时钟或固定时钟，封装时间格式边界。 |
 | [`secrets`](secrets/README.md) | 标准库 `crypto/rand`、`crypto/hmac`、`crypto/pbkdf2` | 封装敏感值、脱敏、随机 token、HMAC、KDF 和 secret source。 |
-| [`resilience`](resilience/README.md) | 标准库 | 提供 retry、timeout 和 circuit breaker 策略执行器。 |
 | [`concurrency`](concurrency/README.md) | `x/sync` + 标准库 | 提供项目自有 singleflight、固定 worker pool 和 context 感知任务执行，不导出 errgroup 类型。 |
 | [`codec`](codec/README.md) | `encoding/json`、`yaml.v3`、`msgpack` | 构造 JSON/YAML/msgpack 编解码器，提供内容类型、大小限制和统一错误语义。 |
 | [`testkit`](testkit/README.md) | 标准库 + 项目包 | 提供 fake clock、临时文件、健康 fixture 和底层库测试辅助。 |
 | [`observability`](observability/README.md) | 项目自有契约 | 提供 HTTP observation、后台 `Work` span、Metrics endpoint 与低敏 diagnostics；Prometheus/OTel/OTLP 只存在于 Kernel App 实现。 |
-| [`execution`](execution/README.md) | 项目自有契约 + 标准库 + `pkg/resilience`/`fault`/`concurrency`/`health` | 提供幂等键/执行记录存储与带失败重试的受托管操作执行契约 `OperationExecutor`；执行记录可携带经 context 传递的全链路追踪标识（`WithTrace`/`TraceFrom`）；外部依赖治理 Store `RecoveringStore`（主存储故障降级到本地、有界记录缓冲 + 溢出策略、退避/抖动/最大频率探测、可用性验证、恢复后回放并原子切回主实现，`Snapshot()`/`OnStateChange`/`Health()` 观测）与执行记录异步持久化 `AsyncRecorder`（幂等占用/完成同步、记录异步有界队列 + 溢出策略 + 排空式 Shutdown）；backend 由 Kernel App 在选择后注入。 |
+| [`execution`](execution/README.md) | 项目契约 + `backoff/v7`（包内）+ `fault`/`concurrency` | 提供进程内幂等、同步执行记录、命名重试策略、attempt/total budget 和低敏重试观测；第三方类型不进入业务契约，memory backend 不冒充 durable/recovery 能力。 |
 | [`schedule`](schedule/README.md) | 项目自有声明契约；`gocron/v2` 只存在于内部 Adapter | 模块声明 cron/fixedDelay、任务级并发和分布式执行策略；不暴露 scheduler、生命周期或注册权。 |
 | [`messaging`](messaging/README.md) | 项目自有 Contract/Binding/Publisher；`amqp091-go` 只存在于内部 RabbitMQ Adapter | 模块声明消息 Contract、生产/消费关系、交付预算、重要性和并发；composition 解析逻辑 Route 并治理 confirm、ack、重投、死信、恢复和 Consumer 代际，不暴露 Broker Client 或物理 topology。 |
 | [`coordination`](coordination/README.md) | 项目自有租约契约；production Adapter 复用 Cache 的 `go-redis/v9` client | 表达 acquire/renew/release、未获得、不可用与失权；不把 Redis 类型或 token 暴露给业务模块。 |

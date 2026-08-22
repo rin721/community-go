@@ -46,11 +46,8 @@ pkg/httpx/
 | `Timeout` | 单次请求总超时 | `10s` |
 | `MaxResponseBodyBytes` | 最大响应体读取大小 | `10MiB` |
 | `Transport` | 自定义 `http.RoundTripper` | `nil`，使用标准库默认 Transport |
-| `RetryCount` | 请求重试次数 | `0`，默认不重试 |
-| `RetryWaitTime` | 启用重试后的初始等待时间 | `100ms` |
-| `RetryMaxWaitTime` | 启用重试后的最大等待时间 | `2s` |
 
-`RetryCount` 只对网络错误、`429` 和 `5xx` 状态码生效。默认不重试，避免对非幂等请求产生隐式副作用；业务确实需要重试时，应显式配置并确认接口幂等性。
+基础 Client 每次 `Do` 只发送一次请求，不对 transport error、`429` 或 `5xx` 隐式重试。真实下游 Adapter 若需要重试，必须拥有 operation 幂等依据、status/transport 分类、`Retry-After` 上限、总 budget 与观测，不能把这些语义重新放回全局 Client 开关。
 
 ### RouterConfig
 
@@ -224,4 +221,4 @@ func (g *Gateway) Find(ctx context.Context, id string, out any) error {
 
 长期 Service 使用 `ListenerHub` 独占物理 TCP listener。每个不可变 Application Generation 创建自己的 `Server` 和虚拟 listener route；候选先通过 `StartWithListener` 进入 Serve-ready，commit 再把新连接 dispatch 到新 route。旧 route 的 pending connection 先交付旧 Server，然后 `Shutdown` 排空 active connection/request。`ListenerHub` 是 composition owner 的基础设施，不应进入业务模块或作为运行时查询入口。
 
-首版不实现熔断、链路追踪、OpenAPI、TLS 证书管理、HTTP/2 特化配置或服务发现。需要这些能力时，应在明确场景后单独扩展，并继续保持业务侧只依赖 `httpx` 的项目契约。
+基础 Client 不实现通用重试或熔断；Server 的 OpenAPI、安全和观测能力由各自现行文档说明。新增出站韧性必须在明确下游 failure domain 后单独设计，并继续保持业务侧只依赖项目契约。

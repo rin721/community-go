@@ -51,7 +51,7 @@ go run ./cmd/app config init --output .data/generated-config.yaml
 | `cache` | Kernel Cache App | 缓存 backend 与 Redis 参数 |
 | `i18n` | Kernel I18n App | 默认语言、消息文件（统一维护于 `./locales`）和缺失翻译策略 |
 | `storage` | Kernel Storage App | 本地、S3、MinIO 对象存储配置 |
-| `execution` | Kernel Execution App | 幂等、重试、执行记录 backend 与命名策略 |
+| `execution` | Kernel Execution App | 单进程幂等、同步记录与完整重试预算的命名策略 |
 | `scheduler` | Application Schedule Component | cron/fixedDelay、全局并发、关闭预算、执行权租约与任务级运维覆盖 |
 | `messaging` | Application Messaging Component | 命名 Provider、逻辑 Route、confirm/handoff/恢复与 RabbitMQ topology 要求 |
 | `todo` | Todo 模块 | Todo 业务约束 |
@@ -72,6 +72,12 @@ Bootstrap CLI、migration one-shot、Todo CLI 和长期 Service 都必须识别�
 `scheduler.enabled` 默认为 `false`。业务模块通过 `module.Contribution.Schedules` 声明真实任务；配置只能按已声明 Task ID 覆盖启用状态与协调不可用策略，未知 Task ID 会让候选 Generation 在 Commit 前失败。
 
 严格分布式任务需要 `cache.driver: redis`。Redis 暂时不可用时不会默认降级为本地执行，而是按任务声明进入 `skip`、`pause` 或 `fail`；best-effort 任务只有显式声明 `local` 才允许弱化。配置字段、声明示例和保证边界见 [定时调度能力](../development/scheduled-task-capability.md)。
+
+## Execution
+
+`execution.driver` 当前支持 `memory` 与 `disabled`。默认策略及 `policies.<name>` 使用 `retryMaxAttempts`、`retryInitialDelayMs`、`retryMaxDelayMs`、`retryJitterFactor`、`retryAttemptTimeoutMs` 和 `retryTotalTimeoutMs`。旧 wait/timeout、recovery 与 async 字段已经删除，strict binder 会拒绝它们；已有本地配置应根据 `config.example.yaml` 迁移，或在备份后重新运行 `config init` 生成。
+
+memory backend 只在单进程内可见，记录同步写入，不提供外部持久化、恢复回放或分布式幂等保证。
 
 ## 密钥与环境差异
 

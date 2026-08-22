@@ -1,108 +1,82 @@
-# 业务模块接入 execution 能力（幂等 / 重试 / 执行记录）
+# 业务模块接入 execution 能力
 
-> 权威文档：本文是「应用模块如何接入 `execution` 能力」的唯一现行入口。实现与契约以
-> `pkg/execution`、`internal/kernel/app/execution`、`internal/kernel/composition` 及业务模块代码为准。
+> 本文是应用模块接入 `execution` 的唯一现行入口。实现以 `pkg/execution`、`internal/kernel/app/execution`、composition 与实际业务调用方为准。
 
-## 1. 业务模块应该拿到什么
+## 1. 消费边界
 
-业务模块**不直接构造** backend、不感知恢复治理、不读 `Capabilities` 全集，也不反向依赖
-`kernel/app/execution` 的具体实现。它只消费一个由调用方定义、经 composition 注入的**最小稳定契约**，
-核心是：
+业务模块不直接构造 backend，也不读取 `Capabilities` 全集。模块在使用侧定义窄 port，由 composition 以 `pkg/execution.OperationExecutor` 适配并注入：
 
 ```go
-// pkg/execution.OperationExecutor 是底层能力输出的稳定执行契约。
 type OperationExecutor interface {
     Execute(ctx context.Context, exec Execution) (Result, error)
 }
 ```
 
-模块应在自己的 `service` 层定义一个**窄 port**（由使用方定义抽象；Adapter 由 composition 提供并依赖该契约），
-而不是把 `Capabilities.Execution` 或 `pkg/execution.OperationExecutor` 直接塞进业务代码深处。
-
-## 2. 执行入口与关键类型
-
-来自 `pkg/execution`（权威 godoc）：
+## 2. 执行契约
 
 ```go
 type Execution struct {
-    Key        Key                 // 幂等键 = 业务域 + 业务/请求 ID
-    Policy     resilience.RetryPolicy // 直接给策略（未用命名策略时）
-    Timeout    time.Duration        // 0 = 不额外超时
-    LeaseTTL     time.Duration      // running 占用窗口；0 = Store 保持不过期
-    RetentionTTL time.Duration      // 成功完成后的去重窗口；0 = Store 保持不过期
-    Trigger    string               // 低敏触发者/来源，写入执行记录
-    Operation  Operation            // func(ctx) (any, error) 业务执行体
-    PolicyName string               // 引用配置里按模块声明的命名策略（推荐）
+    Key          Key
+    Policy       RetryPolicy
+    LeaseTTL     time.Duration
+    RetentionTTL time.Duration
+    Trigger      string
+    Operation    Operation
+    PolicyName   string
 }
 
-type Result struct {
-    Status    Status // completed | running | failed
-    Duplicate bool   // 重复提交且已完成 = true，不再执行 Operation
-    RecordID  string
+type RetryPolicy struct {
+    MaxAttempts    int
+    InitialDelay   time.Duration
+    MaxDelay       time.Duration
+    JitterFactor   float64
+    AttemptTimeout time.Duration
+    TotalTimeout   time.Duration
 }
 ```
 
-- 幂等：同 `Key` 重复提交 → `Result.Duplicate=true`，`Operation` 不执行、不重试。
-- 重试：对可重试错误按策略退避；重试次数、间隔在策略中治理。
-- 执行记录：自动落记录，并携带经 `context` 传递的低敏全链路追踪标识。
-- `LeaseTTL`：由调用场景显式提供 running 占用窗口，处理进程消失后允许重新取得执行权。
-- `RetentionTTL`：从成功完成时起计算去重窗口；调度能力当前同时使用 `scheduler.occurrenceRetention` 作为
-  lease 与 retention，消息消费则分别声明处理 lease 与 Message ID 去重窗口。
+- 同 `Key` 已完成时返回 `Duplicate=true`，不再执行 Operation。
+- `fault.Retryable` 决定错误是否可重试；只有 attempts 确实耗尽才返回 `ErrRetryExhausted`。
+- caller cancellation/deadline 与不可重试错误保留原原因链。
+- `LeaseTTL` 约束 running 占用；`RetentionTTL` 从成功完成时起约束去重窗口。
+- `Record.Attempts` 记录实际调用次数；执行记录与幂等状态同步写入 Store。
 
-## 3. 按模块声明命名策略（策略隔离）
-
-在应用配置中按模块名核对这些策略，多个模块互不绑定同一套固定参数：
+## 3. 命名策略
 
 ```yaml
 execution:
-  driver: memory            # 当前 memory backend（自带降级 + 恢复 + 异步记录 + 观测）
+  driver: memory
   policies:
     todo:
       retryMaxAttempts: 3
-      retryInitialWaitMs: 50
-      retryMaxWaitMs: 500
-      timeoutMs: 2000
+      retryInitialDelayMs: 50
+      retryMaxDelayMs: 500
+      retryJitterFactor: 0.2
+      retryAttemptTimeoutMs: 2000
+      retryTotalTimeoutMs: 7000
 ```
 
-策略配置字段：`retryMaxAttempts` / `retryInitialWaitMs` / `retryMaxWaitMs` / `timeoutMs`。
-未知 `PolicyName` 会让 `Execute` 返回可识别错误，**不会静默回退**。
+`PolicyName` 未知会直接失败，不静默回退。`MaxAttempts=1` 表示只执行一次；超过一次时 initial delay 必须为正。total timeout 同时约束所有 attempts 与等待时间，不能小于单次 timeout。
 
-## 4. 在业务代码中使用
+## 4. 业务使用
 
 ```go
-// executor 是经 composition 注入的模块自有执行 port
 res, err := executor.Execute(ctx, pkgexecution.Execution{
-    Key:        pkgexecution.Key("todo:complete:" + command.ID), // 幂等键
+    Key:        pkgexecution.Key("todo:complete:" + command.ID),
     PolicyName: "todo",
     Operation: func(ctx context.Context) (any, error) {
-        return s.repository.Save(ctx, todo) // 业务执行体
+        return s.repository.Save(ctx, todo)
     },
 })
-// err != nil：执行治理失败，按错误语义处理（重试耗尽 / backend 失败 / 取消 / 超时）
-// res.Duplicate==true：重复提交已完成，不重跑
 ```
 
-如需写全链路追踪：在进入前 `ctx = pkgexecution.WithTrace(ctx, traceID)`。
+消息 consumer 明确使用单次 attempt，让 broker redelivery 保持唯一 delivery retry owner；Scheduler 的协调重试也不并入 Execution attempts，避免 N×M 放大。
 
-## 5. 观测
+## 5. 观测与真实边界
 
-- `Access.Recovery()`：恢复治理快照（状态 / 缓冲 / 丢弃 / 状态变化次数）。
-- `Access.Health()`：Healthy=pass，Degraded/Recovering=warn。
-- 状态变化自动输出日志（Degraded=Warn，Recovering/Healthy=Info），异步记录失败输出 Warn。
-- 异步记录失败日志只记录 `owner=execution`、`phase=async-record`、`error_type` 和 `cause_type`，不记录原始错误文本、
-  幂等键、执行结果或业务参数。需要验证真实编码/脱敏时使用临时文件 logger，而不是只断言内存 TestLogger。
+- `Access.Health()` 只报告 memory backend 是否 enabled/ready。
+- 每次实际重试通过注入 Logger 输出 Debug，字段仅为 `owner`、`phase`、`attempt`、`next_delay` 与稳定错误码。
+- memory backend 只提供单实例幂等，不是外部主存储、恢复系统或分布式一致性能力。
+- durable Store、降级写、回放、异步 record pipeline 与 circuit breaker 均未实现；出现真实资源和 SLO 后重新研究。
 
-## 6. 边界（必须明确）
-
-- 本地 memory 降级只是**单实例容错手段**，不提供与分布式 Cache 相同强度的幂等/跨进程一次语义；
-  多实例下不保证跨实例去重一致。
-- 真实外部主存储（Cache=Redis / 数据库）尚未接入：当前主存储为 memory，恢复/回放/去重语义已通过
-  故障注入在装配层端到端验证；真实主存储接入仍需独立研究、计划和外部资源验证，本项目当前不把它写成已交付默认能力。
-- 业务模块对一次业务操作应自行选择合适幂等键并明确其生命周期（何时算重复、何时过期）。
-
-## 相关入口
-
-- 契约：`pkg/execution`（`OperationExecutor` / `Execution` / `Result` / `WithTrace`）
-- 组件：`internal/kernel/app/execution`（`Access.Execute` / `Recovery` / `Health`）
-- 装配：`internal/kernel/composition` → `Capabilities.Execution`
-- 接入示例：当前 Todo 模块的 service、composition 和策略命名实现；变更过程证据只在对应历史 change 中查阅。
+相关入口：`pkg/execution` 契约、`internal/kernel/app/execution` 组件、`internal/kernel/composition` 装配，以及 Todo/Schedule/Messaging 真实调用方。

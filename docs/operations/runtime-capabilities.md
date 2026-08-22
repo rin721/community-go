@@ -9,7 +9,7 @@
 | Cache/Coordination | 配置中的 cache/Redis 节 | Kernel App 连接与 lease/close owner | 单元测试、模拟依赖 | 真实 Redis、多实例故障恢复 |
 | Storage | storage 配置节、Storage Capability | Kernel App Manager 与对象存储资源 owner | Go 测试、契约边界 | 真实 S3 兼容服务和生产凭据 |
 | Observability | logger、diagnostics、metrics、OTLP 配置 | Kernel App observability 与注入 Logger | Go 测试、低敏日志检查 | 外部 collector/后端接收验证 |
-| Execution | `pkg/execution` 与模块接入文档 | Application execution policy、记录和 shutdown | Go 测试、故障注入 | 外部持久化 backend、多实例部署 |
+| Execution | `pkg/execution` 与模块接入文档 | Application 命名 policy；memory Store 同步拥有幂等与记录 | attempts/budget/cancel/错误分类、HTTP one-shot、消息单次 attempt 的 Go/race 测试 | 外部持久化 backend、degraded write、breaker、多实例部署 |
 | Schedule | 模块 Schedule Binding、scheduler 配置 | 统一 scheduler、Execution、coordination lease | Go 测试与本地静态检查 | 真实多实例 owner 交接 |
 | Messaging | Message Contract/Binding、RabbitMQ 配置 | Provider Adapter、consumer generation 与 ack/retry | Go 测试与静态门禁 | RabbitMQ 真实协议需外部运行证据 |
 | Admin WebUI | `webui/`、WebUI 本地启动指南 | Vite 宿主、静态 WebUI Catalog、数据库 NavigationPolicy、IAM typed HTTP 与 Auth decision | IAM、Organization、Navigation 页面与 Manifest 策略刷新通过 Go/WebUI/Playwright/视觉门禁 | PostgreSQL/MySQL 实库、Docker/release 与真实部署环境仍需独立验证 |

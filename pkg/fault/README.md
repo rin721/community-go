@@ -53,5 +53,5 @@ func finish(primary error, closeErr error) error {
 ## 边界说明
 
 - `Code` 是跨基础能力复用的粗粒度分类，不替代业务领域错误码。
-- `Retryable` 只表示调用方可以考虑重试；是否真的重试应由 `resilience` 策略或业务幂等性决定。
+- `Retryable` 只表示调用方可以考虑重试；是否真的重试由 `execution.RetryPolicy` 或具体协议 owner 结合幂等性与 budget 决定。
 - 错误消息不得包含密码、Token、完整 DSN 等敏感值；需要记录配置时只记录脱敏后的上下文。

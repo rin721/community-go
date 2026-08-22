@@ -3,16 +3,24 @@ change: 057-technology-and-architecture-reassessment
 areas:
   - id: startup
     decision: reviewed-no-change
-    reason: composition integration test 仅移除无资源 typed Client 的 Close 清理；应用启动、首次使用、服务入口与验收步骤不变。
+    reason: 已实施的 cache 与 AuthN 任务不改变应用启动、首次使用、服务入口或验收步骤；JWKS lifecycle 仍由原 Supervisor participant 拥有。
   - id: capability
     decision: updated
     documents:
       - pkg/README.md
       - docs/architecture/technology-selection.md
-    reason: 缓存能力退役默认 L1 与 go-cache，收敛为 Redis 单一 authority，并同步错误、资源和未来选型边界。
+      - docs/operations/security.md
+    reason: 缓存已收敛为 Redis 单一 authority；AuthN 保留 jwx/v3 与 x/crypto/argon2，并同步 JWT 取消/刷新及受限 PHC/渐进重哈希边界。
+  - id: module
+    decision: updated
+    documents:
+      - internal/module/README.md
+      - internal/module/auth/README.md
+      - internal/module/iam/README.md
+    reason: 记录 Auth JWT/JWK 共享刷新与取消语义，以及 IAM 对参数感知密码校验和事务内渐进重哈希的所有权。
   - id: configuration
     decision: reviewed-no-change
-    reason: 删除的是调用方私有 pkg/cache CleanupInterval 字段而非应用配置 schema；config.example.yaml 仅同步生命周期说明，现有配置键、默认值和 reload 行为不变。
+    reason: 已删除的 CleanupInterval 不是应用配置；AuthN 实施沿用现有 JWT 与 IAM 参数 policy，没有新增、删除或改变配置键、默认值和 reload 行为。
   - id: api
     decision: reviewed-no-change
     reason: kin-openapi 安全补丁升级不改变公开 operation、OpenAPI authority、路由、DTO 或错误协议；go generate 后 api/openapi.yaml 与 operation inventory 均保持 clean diff，当前 API 使用说明无需改写。

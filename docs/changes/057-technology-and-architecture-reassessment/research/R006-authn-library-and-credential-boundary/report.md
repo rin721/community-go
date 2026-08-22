@@ -88,3 +88,12 @@ PHC parser 必须严格限制输入总长、variant、version、字段数量、�
 - GitHub stars 只用于评估采用线索，不是安全证明；最终拒绝 Wrapper 的关键原因是它们不能消除项目所需的受限资源边界。
 - 若 `encoding/json/v2` 脱离 experiment、jwx 停止 v3 常规修复或 v3 出现安全公告，应重新比较 v4 与 `jwkfetch` 的完整迁移成本。
 - 若出现真实 OIDC 流程或跨服务身份协议，应新建研究，不把当前 JWT resource-server Adapter 扩展成万能认证框架。
+
+## 实施结果
+
+用户于 2026-08-22 确认修订后的 `AUTHN-057-001`，随后完成单轨实施：
+
+- 保留 `jwx/v3 v3.2.0`；未知 `kid` 的并发刷新按整个 JWKS resource 合并，而不是按攻击者可控的 `kid` 分组。共享刷新由 Verifier lifecycle 与既有 timeout 约束，每个调用方可独立取消等待；取消和 deadline 经 Auth Service 保持可识别，普通签名/claim 拒绝仍统一为 unauthenticated。
+- `PasswordHasher` 改为项目自有 `PasswordVerification{Match, NeedsRehash}` + error；IAM Adapter 在调用 `x/crypto/argon2` 前严格验证 canonical PHC、version、19–64 MiB memory、2–3 iterations、1–4 parallelism、salt/digest 长度和总输入上限。成功匹配的历史参数在创建 Session 前于同一事务重哈希，损坏或超预算记录保留错误链但对外仍 fail-closed。
+- 当前依赖刷新确认 `jwx/v3 v3.2.0` 仍为 v3 最新。`x/crypto v0.55.0` 虽为最新，但其 OpenPGP module 记录与 Argon2 无关且没有 fixed version；升级还会连带项目直接使用的 `x/text`，因此本任务保留已无可达漏洞的 `x/crypto v0.54.0`，不把无认证收益的 i18n 依赖升级混入 AUTHN。
+- 定向与全仓测试、race、vet、生成、CGO-free build、文档和漏洞扫描均通过；完整质量脚本最终仍只命中范围外、既有且未修改的 `old-backend/` 两个 tracked `app.db`。

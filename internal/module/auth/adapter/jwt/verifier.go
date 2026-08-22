@@ -29,6 +29,7 @@ const (
 	participantName = "module.auth.jwt-jwks"
 	maxTokenBytes   = 16 << 10
 	maxRedirects    = 3
+	refreshGroupKey = "jwks"
 )
 
 // Config 是 JWT Adapter 实际使用的项目自有配置。
@@ -52,10 +53,11 @@ type Verifier struct {
 	clock      clock.Clock
 	algorithms map[string]struct{}
 
-	mu     sync.RWMutex
-	cache  *jwk.Cache
-	cancel context.CancelFunc
-	ready  bool
+	mu       sync.RWMutex
+	cache    *jwk.Cache
+	lifetime context.Context
+	cancel   context.CancelFunc
+	ready    bool
 
 	refresh singleflight.Group
 }
@@ -141,6 +143,7 @@ func (v *Verifier) Start(ctx context.Context) error {
 		return fmt.Errorf("register JWT JWKS resource: %w", errors.Join(err, shutdownErr))
 	}
 	v.cache = cache
+	v.lifetime = lifetime
 	v.cancel = func() {
 		stopOnParent()
 		cancel()
@@ -158,6 +161,7 @@ func (v *Verifier) Stop(ctx context.Context) error {
 	cache := v.cache
 	cancel := v.cancel
 	v.cache = nil
+	v.lifetime = nil
 	v.cancel = nil
 	v.ready = false
 	v.mu.Unlock()
@@ -197,13 +201,13 @@ func (v *Verifier) Verify(ctx context.Context, credential model.Credential) (mod
 	}
 	set, err := v.keySet(ctx)
 	if err != nil {
-		return model.Principal{}, model.ErrUnauthenticated
+		return model.Principal{}, verificationFailure(ctx, err)
 	}
 	key, exists := set.LookupKeyID(kid)
 	if !exists {
-		set, err = v.refreshUnknownKey(ctx, kid)
+		set, err = v.refreshUnknownKey(ctx)
 		if err != nil {
-			return model.Principal{}, model.ErrUnauthenticated
+			return model.Principal{}, verificationFailure(ctx, err)
 		}
 		key, exists = set.LookupKeyID(kid)
 	}
@@ -267,27 +271,44 @@ func (v *Verifier) keySet(ctx context.Context) (jwk.Set, error) {
 	return cache.Lookup(ctx, v.config.JWKSURL)
 }
 
-func (v *Verifier) refreshUnknownKey(ctx context.Context, kid string) (jwk.Set, error) {
-	value, err, _ := v.refresh.Do(kid, func() (any, error) {
+func (v *Verifier) refreshUnknownKey(ctx context.Context) (jwk.Set, error) {
+	result := v.refresh.DoChan(refreshGroupKey, func() (any, error) {
 		v.mu.RLock()
 		cache := v.cache
+		lifetime := v.lifetime
 		ready := v.ready
 		v.mu.RUnlock()
-		if !ready || cache == nil {
+		if !ready || cache == nil || lifetime == nil {
 			return nil, model.ErrUnauthenticated
 		}
-		refreshCtx, cancel := context.WithTimeout(ctx, v.config.RefreshTimeout)
+		// 共享刷新属于 Verifier 生命周期；每个调用方只取消自己的等待，避免一个请求中断其他并发验证。
+		refreshCtx, cancel := context.WithTimeout(lifetime, v.config.RefreshTimeout)
 		defer cancel()
 		return cache.Refresh(refreshCtx, v.config.JWKSURL)
 	})
-	if err != nil {
-		return nil, err
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case completed := <-result:
+		if completed.Err != nil {
+			return nil, completed.Err
+		}
+		set, ok := completed.Val.(jwk.Set)
+		if !ok || set == nil {
+			return nil, model.ErrUnauthenticated
+		}
+		return set, nil
 	}
-	set, ok := value.(jwk.Set)
-	if !ok || set == nil {
-		return nil, model.ErrUnauthenticated
+}
+
+func verificationFailure(ctx context.Context, err error) error {
+	if ctx != nil && ctx.Err() != nil {
+		return ctx.Err()
 	}
-	return set, nil
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return err
+	}
+	return model.ErrUnauthenticated
 }
 
 func keyMatchesAlgorithm(key jwk.Key, expected jwa.SignatureAlgorithm) bool {

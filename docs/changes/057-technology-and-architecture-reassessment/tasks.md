@@ -4,7 +4,7 @@
 
 - 研究门禁：已通过。
 - 文档任务：已完成，适用纯文档直接实施例外。
-- 非文档任务：用户已于 2026-08-22 明确确认并完成 Batch A（`SEC-057-001`）及修订后的 `CACHE-057-001`；其余任务仍待确认。
+- 非文档任务：用户已于 2026-08-22 明确确认并完成 Batch A（`SEC-057-001`）及修订后的 `CACHE-057-001`、`AUTHN-057-001`；其余任务仍待确认。
 
 ## 任务清单
 
@@ -17,7 +17,7 @@
 | CACHE-057-001 | B | 单轨退役默认 L1 与 go-cache，收紧 Redis typed cache 的 miss/error 语义 | 用户于 2026-08-22 确认修订后的该任务 | 已完成 | 删除本地状态/goroutine/专属配置和 go-cache；Redis typed cache/tag/disabled/cancel/error 语义测试通过；不新增 L1 依赖 |
 | SERDE-057-001 | B | 迁移官方稳定 YAML v3 路径并退役无消费者 Codec | 用户确认修订后的该任务 | 待确认 | project direct import 使用 go.yaml.in/yaml/v3 v3.0.5；删除 gopkg direct requirement 与 pkg/codec；config/i18n/OpenAPI/docs fixture 和完整门禁通过；不直引 v4 RC |
 | LIMIT-057-001 | B | 用 x/time/rate 替换通用 token bucket，修正入口保护配置语义 | 用户确认修订后的该任务 | 待确认 | x/time/rate v0.15.0 隐藏在项目薄边界；删除自研 refill/lock；增加 local/disabled 严格模式；保留 generation-local 与 channel 503；mode/burst/refill/concurrency/CORS/management/reload、完整 Go 与漏洞门禁通过；不增加主体或分布式 quota |
-| AUTHN-057-001 | B | 保留 jwx/v3 与 x/crypto/argon2，补 JWT 取消/负向矩阵和受限 PHC/NeedsRehash/渐进重哈希 | 用户确认修订后的该任务 | 待确认 | 第三方类型不泄漏；取消原因保留；敌对 PHC 在 Argon2 前拒绝；登录事务重哈希与完整安全门禁通过；不引入 jwx/v4、OIDC 或小众 Wrapper |
+| AUTHN-057-001 | B | 保留 jwx/v3 与 x/crypto/argon2，补 JWT 取消/负向矩阵和受限 PHC/NeedsRehash/渐进重哈希 | 用户于 2026-08-22 确认修订后的该任务 | 已完成 | 第三方类型不泄漏；取消原因保留；敌对 PHC 在 Argon2 前拒绝；登录事务重哈希与完整安全门禁通过；不引入 jwx/v4、OIDC 或小众 Wrapper |
 | RESIL-057-001 | C | 建立命名策略 profile，比较 failsafe-go 与窄组合并替换重复状态机 | Batch A 完成、用户确认 Batch C | 待确认 | HTTP/execution 的幂等、budget、错误分类、观测明确；旧自研机制按单轨删除 |
 | HTTP-057-001 | D | 用真实 operation 比较 Huma v2 与当前 typed DSL | Batch A 完成、用户确认该任务 | 待确认 | 生成、验证、鉴权/政策扩展、错误与迁移成本有可运行证据；只输出采用或拒绝结论 |
 | DATA-057-001 | D | 用真实复杂查询比较当前 Repository、GORM Gen 与 sqlc | 用户确认该任务 | 待确认 | 三方言、事务、分页、乐观锁、错误、测试与迁移成本可复核；模块 port 不变 |
@@ -28,7 +28,7 @@
 
 ## 建议确认方式
 
-Batch A 与修订后的 `CACHE-057-001` 已完成。R004、R005、R006 已分别材料性修订 `SERDE-057-001`、`LIMIT-057-001`、`AUTHN-057-001`；此前确认不覆盖这些任务。下一轮可分别确认任一修订后的任务 ID。Batch C/D/E 应依据前序证据重新提交更窄设计。
+Batch A、修订后的 `CACHE-057-001` 与 `AUTHN-057-001` 已完成。R004、R005 已分别材料性修订 `SERDE-057-001`、`LIMIT-057-001`；此前确认不覆盖这些任务。下一轮可分别确认任一修订后的待确认任务 ID。Batch C/D/E 应依据前序证据重新提交更窄设计。
 
 ## 停止与重新确认条件
 
@@ -59,9 +59,15 @@ Batch A 与修订后的 `CACHE-057-001` 已完成。R004、R005、R006 已分别
 | 2026-08-22 | SERDE-057-001 确认前深化研究 | v4 当前仅有 v4.0.0-rc.6；官方稳定 v3.0.5 活跃安全维护。项目 YAML 只在 config/i18n/contract/tooling 边界，pkg/codec 无消费者。任务修订为稳定 v3 import 迁移 + Codec 退役，继续待确认；未修改源码或依赖 |
 | 2026-08-22 | LIMIT-057-001 确认前深化研究 | 当前 token bucket 自研通用算法且 0/0 实际回落 100/200 默认值；官方 x/time/rate v0.15.0 适配 fail-fast Allow。channel semaphore 精确表达非阻塞 503，保留优于机械换 x/sync。任务增加 local/disabled 严格模式并明确 generation-local，继续待确认；未修改源码、配置或依赖 |
 | 2026-08-22 | AUTHN-057-001 确认前深化研究 | jwx/v4 仍强制全项目 `GOEXPERIMENT=jsonv2`，上游暂不建议新代码采用，v3 继续常规修复；Argon2 高层候选不能同时证明成熟主流与敌对 PHC 资源上限。任务修订为保留 jwx/v3 与官方 x/crypto/argon2，补取消、受限 PHC、NeedsRehash 和事务内渐进迁移，继续待确认；未修改源码或依赖 |
+| 2026-08-22 | AUTHN-057-001 实施 | 用户确认修订后任务；JWT 未知 key 共享刷新从攻击者可控 kid 分组收敛为 JWKS resource 全局合并，请求取消/刷新 timeout 完整向上；密码 port 改为项目 verification result + error，PHC 在 Argon2 前做 canonical/version/19–64 MiB/2–3 次/p1–4/salt/digest/总长门禁，成功登录事务内渐进重哈希 |
+| 2026-08-22 | AUTHN 定向与 race | `go test` 与 `go test -race` 覆盖 auth/iam Adapter、Service、binding 和 composition；claims/time/algorithm/key/malformed/multisig/duplicate kid/并发随机未知 kid/cancel/timeout、PHC/mismatch/资源预算/rehash/低敏错误均通过 |
+| 2026-08-22 | Argon2 本机成本证据 | Windows amd64、AMD Ryzen 7 7735HS、`-benchtime=1x`：Hash 约 55.1 ms/64 MiB，Verify 约 59.5 ms/64 MiB；仅作为当前机器起点，不冒充部署 SLO |
+| 2026-08-22 | AUTHN 完整质量门禁 | `Verify-Quality.ps1` 的 gofmt、tidy diff、project layout、generate/clean diff、全量 test、全量 race、vet、CGO-free build 均通过；最终 `Verify-Artifacts` 仍只命中范围外 `old-backend/` 两个既有 tracked app.db，本任务未修改或删除 |
+| 2026-08-22 | AUTHN 漏洞与依赖复核 | `govulncheck -show verbose ./...`：0 reachable、0 imported-package 漏洞；模块层仍为不可达 GO-2026-6222/5932。jwx/v3 v3.2.0 仍为 v3 最新；x/crypto v0.55 会连带直接 x/text 且不能消除 OpenPGP 记录，当前 Argon2 无可达风险，故不混入无收益升级 |
 
 ## Commit
 
 - 研究与计划：`b8445d1 docs(architecture): establish technology selection baseline`
 - Batch A：`32a4987 fix(http): upgrade OpenAPI validator security baseline`
 - CACHE-057-001：本轮 Conventional Commit（以 Git 历史为准）
+- AUTHN-057-001：本轮 Conventional Commit（以 Git 历史为准）

@@ -3,6 +3,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -113,6 +114,9 @@ func (s *Service) Authenticate(ctx context.Context, credential model.Credential)
 	}
 	principal, err := s.verifier.Verify(ctx, credential)
 	if err != nil {
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return model.Principal{}, err
+		}
 		return model.Principal{}, model.ErrUnauthenticated
 	}
 	return principal, nil

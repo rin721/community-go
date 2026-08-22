@@ -31,6 +31,19 @@ func TestServiceFailsClosedAndEnforcesOperationAndOwner(t *testing.T) {
 	if err != nil || verified.Subject != principal.Subject {
 		t.Fatalf("Authenticate() = %#v, %v", verified, err)
 	}
+	verifier.err = context.Canceled
+	if _, err := service.Authenticate(t.Context(), model.Credential{Scheme: "Bearer", Value: "opaque"}); !errors.Is(err, context.Canceled) {
+		t.Fatalf("Authenticate(canceled verifier) error = %v", err)
+	}
+	verifier.err = context.DeadlineExceeded
+	if _, err := service.Authenticate(t.Context(), model.Credential{Scheme: "Bearer", Value: "opaque"}); !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("Authenticate(timed out verifier) error = %v", err)
+	}
+	verifier.err = errors.New("signature rejected")
+	if _, err := service.Authenticate(t.Context(), model.Credential{Scheme: "Bearer", Value: "opaque"}); !errors.Is(err, model.ErrUnauthenticated) {
+		t.Fatalf("Authenticate(rejected verifier) error = %v", err)
+	}
+	verifier.err = nil
 	decision, err := service.AuthorizeOperation(t.Context(), verified, "getTodo")
 	if err != nil || !decision.Allowed {
 		t.Fatalf("AuthorizeOperation(read) = %#v, %v", decision, err)
@@ -83,10 +96,11 @@ func TestServiceRejectsIncompleteAndDuplicatePolicies(t *testing.T) {
 type testVerifier struct {
 	ready     bool
 	principal model.Principal
+	err       error
 }
 
 func (v *testVerifier) Verify(context.Context, model.Credential) (model.Principal, error) {
-	return v.principal, nil
+	return v.principal, v.err
 }
 
 func (v *testVerifier) Ready() bool { return v.ready }

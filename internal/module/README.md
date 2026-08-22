@@ -33,6 +33,6 @@ HTTP 模块遵循固定的代码优先源头与分层：模块顶层 `handler/` 
 
 只有能力评估同时证明资源跨业务复用且由进程统一选择，才进入完整 `pkg -> internal/kernel/app -> internal/kernel/composition` 链。只满足跨业务复用的普通库可以评估留在 `pkg`，但不自动获得 Kernel 组件；SDK、Client、cache、连接或 goroutine 本身都不是升级理由。
 
-当前 Auth/JWT 遵循“模块内 Adapter、项目 port 输出”；Observability 因跨业务复用且由进程统一选择和治理，位于 `pkg/observability -> internal/kernel/app/observability -> internal/kernel/composition`。Ops 只消费项目契约，不拥有或导出 Prometheus/OTel 具体实现；运行状态见[运行能力矩阵](../../docs/operations/runtime-capabilities.md)。
+当前 Auth/JWT 遵循“模块内 Adapter、项目 port 输出”，JWK cache lifecycle、共享刷新、取消和超时都收口在 Auth Adapter；IAM 的 Argon2id Adapter 只依赖官方密码学实现并向 Service 返回项目自有 verification result，PHC 资源策略和事务内渐进重哈希不向其他模块扩散。Observability 因跨业务复用且由进程统一选择和治理，位于 `pkg/observability -> internal/kernel/app/observability -> internal/kernel/composition`。Ops 只消费项目契约，不拥有或导出 Prometheus/OTel 具体实现；运行状态见[运行能力矩阵](../../docs/operations/runtime-capabilities.md)。
 
 禁止自动扫描、`init` 注册、Service Locator、全局可变 Registry，以及让 Handler 直接访问 Repository。

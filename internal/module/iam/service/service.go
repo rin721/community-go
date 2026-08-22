@@ -42,7 +42,13 @@ var (
 
 type PasswordHasher interface {
 	Hash(string) (string, error)
-	Compare(string, string) bool
+	Verify(string, string) (PasswordVerification, error)
+}
+
+// PasswordVerification 是 IAM Service 拥有的密码校验结果，不暴露具体哈希库类型。
+type PasswordVerification struct {
+	Match       bool
+	NeedsRehash bool
 }
 type Config struct {
 	SetupToken                   string
@@ -175,7 +181,7 @@ func (s *Service) Setup(ctx context.Context, setupToken, username, displayName, 
 func (s *Service) Login(ctx context.Context, username, password string) (Session, error) {
 	username, err := model.NormalizeUsername(username)
 	if err != nil {
-		_ = s.passwords.Compare(s.dummyHash, password)
+		_, _ = s.passwords.Verify(s.dummyHash, password)
 		return Session{}, ErrInvalidCredentials
 	}
 	var result Session
@@ -183,24 +189,28 @@ func (s *Service) Login(ctx context.Context, username, password string) (Session
 	err = s.store.WithinTx(ctx, func(txCtx context.Context, r *repo.Unit) error {
 		account, findErr := r.AccountByUsername(txCtx, username)
 		if findErr != nil {
-			_ = s.passwords.Compare(s.dummyHash, password)
+			_, _ = s.passwords.Verify(s.dummyHash, password)
 			return ErrInvalidCredentials
 		}
 		credential, findErr := r.CredentialByAccount(txCtx, account.ID)
 		if findErr != nil {
-			_ = s.passwords.Compare(s.dummyHash, password)
+			_, _ = s.passwords.Verify(s.dummyHash, password)
 			return ErrInvalidCredentials
 		}
 		now := s.clock.Now().UTC()
 		if account.Status != string(model.AccountActive) {
-			_ = s.passwords.Compare(credential.PasswordHash, password)
+			_, _ = s.passwords.Verify(credential.PasswordHash, password)
 			return ErrAccountDisabled
 		}
 		if account.LockedUntil != nil && now.Before(*account.LockedUntil) {
-			_ = s.passwords.Compare(credential.PasswordHash, password)
+			_, _ = s.passwords.Verify(credential.PasswordHash, password)
 			return ErrAccountLocked
 		}
-		if !s.passwords.Compare(credential.PasswordHash, password) {
+		verification, verifyErr := s.passwords.Verify(credential.PasswordHash, password)
+		if verifyErr != nil {
+			return credentialVerificationError(verifyErr)
+		}
+		if !verification.Match {
 			attempts := account.FailedAttempts + 1
 			var locked *time.Time
 			if attempts >= s.config.MaxFailedAttempts {
@@ -218,6 +228,15 @@ func (s *Service) Login(ctx context.Context, username, password string) (Session
 			}
 			outcome = ErrInvalidCredentials
 			return nil
+		}
+		if verification.NeedsRehash {
+			rehashed, hashErr := s.passwords.Hash(password)
+			if hashErr != nil {
+				return fmt.Errorf("rehash password credential: %w", hashErr)
+			}
+			if updateErr := r.UpdateCredential(txCtx, account.ID, rehashed, now); updateErr != nil {
+				return updateErr
+			}
 		}
 		zero := 0
 		var unlocked *time.Time
@@ -443,7 +462,14 @@ func (s *Service) ChangePassword(ctx context.Context, accountID, currentPassword
 			return err
 		}
 		credential, err := r.CredentialByAccount(txCtx, accountID)
-		if err != nil || !s.passwords.Compare(credential.PasswordHash, currentPassword) {
+		if err != nil {
+			return ErrInvalidCredentials
+		}
+		verification, verifyErr := s.passwords.Verify(credential.PasswordHash, currentPassword)
+		if verifyErr != nil {
+			return credentialVerificationError(verifyErr)
+		}
+		if !verification.Match {
 			return ErrInvalidCredentials
 		}
 		now := s.clock.Now().UTC()
@@ -452,6 +478,10 @@ func (s *Service) ChangePassword(ctx context.Context, accountID, currentPassword
 		}
 		return bumpAndRevokeWith(txCtx, r, account, now, nil, false)
 	})
+}
+
+func credentialVerificationError(err error) error {
+	return errors.Join(ErrInvalidCredentials, fmt.Errorf("verify stored password credential: %w", err))
 }
 func (s *Service) ResetPassword(ctx context.Context, accountID, newPassword string) error {
 	if err := model.ValidatePassword(newPassword); err != nil {

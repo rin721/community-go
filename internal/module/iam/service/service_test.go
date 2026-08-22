@@ -2,8 +2,11 @@ package service_test
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
+	"fmt"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -18,6 +21,7 @@ import (
 	"github.com/rin721/go-scaffold-template/pkg/database"
 	dbmigrate "github.com/rin721/go-scaffold-template/pkg/database/migrate"
 	"github.com/rin721/go-scaffold-template/pkg/idgen"
+	"golang.org/x/crypto/argon2"
 )
 
 func TestSetupLoginRBACAndRevisionInvalidation(t *testing.T) {
@@ -88,6 +92,62 @@ func TestLoginFailureIsPersistedUntilLockout(t *testing.T) {
 	}
 	if _, err := iam.Login(t.Context(), "owner", "123456789012345"); !errors.Is(err, service.ErrAccountLocked) {
 		t.Fatalf("locked account login error = %v", err)
+	}
+}
+
+func TestLoginRehashesHistoricalCredential(t *testing.T) {
+	iam, resource := newService(t)
+	defer resource.Close()
+	session, err := iam.Setup(t.Context(), "setup-secret", "owner", "Owner", "123456789012345")
+	if err != nil {
+		t.Fatal(err)
+	}
+	legacy := historicalHash("123456789012345")
+	store := storeForResource(t, resource)
+	if err := store.Use(t.Context(), func(unit *repo.Unit) error {
+		return unit.UpdateCredential(t.Context(), session.Identity.AccountID, legacy, time.Date(2026, 8, 21, 1, 0, 0, 0, time.UTC))
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := iam.Login(t.Context(), "owner", "123456789012345"); err != nil {
+		t.Fatalf("Login() error = %v", err)
+	}
+	var current string
+	if err := store.Use(t.Context(), func(unit *repo.Unit) error {
+		credential, findErr := unit.CredentialByAccount(t.Context(), session.Identity.AccountID)
+		current = credential.PasswordHash
+		return findErr
+	}); err != nil {
+		t.Fatal(err)
+	}
+	verification, err := passwordadapter.Verify(current, "123456789012345")
+	if err != nil || !verification.Match || verification.NeedsRehash || current == legacy {
+		t.Fatalf("rehash = %#v, error = %v, changed = %t", verification, err, current != legacy)
+	}
+}
+
+func TestLoginRejectsUnboundedStoredCredentialWithoutLeakingIt(t *testing.T) {
+	iam, resource := newService(t)
+	defer resource.Close()
+	session, err := iam.Setup(t.Context(), "setup-secret", "owner", "Owner", "123456789012345")
+	if err != nil {
+		t.Fatal(err)
+	}
+	salt := base64.RawStdEncoding.EncodeToString(make([]byte, 16))
+	digest := base64.RawStdEncoding.EncodeToString(make([]byte, 32))
+	corrupted := fmt.Sprintf("$argon2id$v=%d$m=4294967295,t=3,p=2$%s$%s", argon2.Version, salt, digest)
+	store := storeForResource(t, resource)
+	if err := store.Use(t.Context(), func(unit *repo.Unit) error {
+		return unit.UpdateCredential(t.Context(), session.Identity.AccountID, corrupted, time.Date(2026, 8, 21, 1, 0, 0, 0, time.UTC))
+	}); err != nil {
+		t.Fatal(err)
+	}
+	_, err = iam.Login(t.Context(), "owner", "123456789012345")
+	if !errors.Is(err, service.ErrInvalidCredentials) {
+		t.Fatalf("Login(corrupted credential) error = %v", err)
+	}
+	if strings.Contains(err.Error(), corrupted) {
+		t.Fatalf("Login() leaked stored credential: %v", err)
 	}
 }
 
@@ -204,10 +264,7 @@ func newService(t *testing.T) (*service.Service, database.Resource) {
 
 func serviceForResource(t *testing.T, resource database.Resource, definitions []permissioncatalog.Definition) *service.Service {
 	t.Helper()
-	store, err := repo.New(resourceAccess{resource})
-	if err != nil {
-		t.Fatal(err)
-	}
+	store := storeForResource(t, resource)
 	catalog, err := permissioncatalog.BuildCatalog(definitions...)
 	if err != nil {
 		t.Fatal(err)
@@ -217,6 +274,21 @@ func serviceForResource(t *testing.T, resource database.Resource, definitions []
 		t.Fatal(err)
 	}
 	return iam
+}
+
+func storeForResource(t *testing.T, resource database.Resource) *repo.Store {
+	t.Helper()
+	store, err := repo.New(resourceAccess{resource})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return store
+}
+
+func historicalHash(value string) string {
+	salt := []byte("historical-salt!")
+	digest := argon2.IDKey([]byte(value), salt, 2, 32*1024, 1, 32)
+	return fmt.Sprintf("$argon2id$v=%d$m=32768,t=2,p=1$%s$%s", argon2.Version, base64.RawStdEncoding.EncodeToString(salt), base64.RawStdEncoding.EncodeToString(digest))
 }
 
 type resourceAccess struct{ resource database.Resource }

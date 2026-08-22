@@ -3,7 +3,7 @@
 ## 状态与依据
 
 - 研究门禁：已通过，依据 [R001](research/R001-current-capability-and-architecture-audit/report.md)、[R002](research/R002-mainstream-options-and-security/report.md) 及各专项深化研究。
-- 已实施授权：纯文档规则、研究、计划、当前 authority 更新、Batch A 与用户于 2026-08-22 确认的修订后 `CACHE-057-001`。
+- 已实施授权：纯文档规则、研究、计划、当前 authority 更新、Batch A，以及用户于 2026-08-22 分别确认的修订后 `CACHE-057-001`、`AUTHN-057-001`。
 - 其余非文档变更：待用户在当前计划报告后的后续消息中按任务 ID 或实施批次确认。
 
 ## 目标

@@ -6,6 +6,7 @@ Auth 是应用组合根选择的横切认证、授权与审计模块。它通过
 
 - 提供 Bearer `RequestAuthenticator`、`Authorizer`、`Audit` 和 `CredentialVerifier` 等通用契约。
 - 在明确的 composition 位置装配 JWT/开发认证策略，执行 operation policy、授权结果和低敏审计。
+- JWT/JWK Adapter 使用 `jwx/v3` 完成标准解析与签名校验；项目边界负责 issuer/audience/algorithm/claim、受控 JWKS 网络访问和 lifecycle。未知 `kid` 的并发刷新全局合并，请求取消与刷新超时保持可识别，不改写成普通无效凭据。
 - composition 把 IAM `SessionIdentity` 适配为 Auth `Principal`，再作为 `webuiSession` 来源交给统一 operation gate；Auth 不拥有 IAM Repository、密码哈希、Session 表、HTTP 页面或 CLI。
 
 ## 变更入口

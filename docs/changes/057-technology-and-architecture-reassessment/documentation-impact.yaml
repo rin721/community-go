@@ -13,7 +13,7 @@ areas:
       - docs/architecture/technology-selection.md
       - docs/development/execution-capability.md
       - docs/operations/security.md
-    reason: 缓存已收敛为 Redis 单一 authority；AuthN 保留 jwx/v3 与 x/crypto/argon2；Execution 已以项目契约隔离 backoff/v7，HTTP Client 已 one-shot，并退役 pkg/resilience、无依据 recovery/async/breaker 状态。当前文档同步描述已实现边界。
+    reason: 缓存已收敛为 Redis 单一 authority；AuthN 保留 jwx/v3 与 x/crypto/argon2；Execution 已以项目契约隔离 backoff/v7，HTTP Client 已 one-shot。整体方案进一步确认配置保留、HTTP 采用 Huma、Data 采用 direct GORM concrete repo 与静态 Blueprint 目标；当前 authority 明确区分已实现和待实施。
   - id: module
     decision: updated
     documents:
@@ -35,4 +35,12 @@ areas:
     reason: Execution 不再拥有 recovery/async goroutine 或 shutdown finalizer；运行矩阵改为同步 memory Store、完整 retry budget 和真实未覆盖边界。
   - id: api
     decision: reviewed-no-change
-    reason: kin-openapi 安全补丁升级不改变公开 operation、OpenAPI authority、路由、DTO 或错误协议；go generate 后 api/openapi.yaml 与 operation inventory 均保持 clean diff，当前 API 使用说明无需改写。
+    reason: 当前已实现 API 仍未变化；Huma 只是已确认的目标技术和待实施任务，不能提前改写 API 使用说明。实施必须保持 operation ID、Problem、鉴权/权限和生成 inventory 契约。
+  - id: architecture
+    decision: updated
+    documents:
+      - docs/architecture/technology-selection.md
+      - docs/changes/057-technology-and-architecture-reassessment/README.md
+      - docs/changes/057-technology-and-architecture-reassessment/design.md
+      - docs/changes/057-technology-and-architecture-reassessment/tasks.md
+    reason: R008-R011 已冻结 Config、HTTP、Data 与 owner/reload 的采用/拒绝结论、接入边界、单轨删除范围和实施依赖；静态 Blueprint 明确为首个架构切片。

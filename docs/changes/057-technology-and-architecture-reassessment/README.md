@@ -4,7 +4,8 @@
 
 - 研究门禁：**已通过**。
 - 纯文档实施：**已完成，按纯文档例外直接验证并提交**。
-- 非文档实施：**Batch A、`CACHE-057-001`、`AUTHN-057-001` 与 `RESIL-057-001` 已完成**；其余 Batch B–E 任务仍待确认。
+- 整体方案：**已完成**。R001–R011 已覆盖全部当前能力、剩余技术选择和 owner/reload 承载架构，实施任务、依赖和停止条件已冻结。
+- 非文档实施：**Batch A、`CACHE-057-001`、`AUTHN-057-001` 与 `RESIL-057-001` 已完成**；其余任务在本次整体计划报告后等待统一确认。
 
 ## 范围
 
@@ -21,20 +22,27 @@
 5. [R005 HTTP 入口速率与过载保护边界复核](research/R005-http-entry-rate-and-overload-boundary/report.md)
 6. [R006 认证库与凭据校验边界复核](research/R006-authn-library-and-credential-boundary/report.md)
 7. [R007 重试、Execution 恢复与 HTTP Client 策略边界复核](research/R007-resilience-execution-and-http-boundary/report.md)
-8. [需求](requirements.md)
-9. [设计](design.md)
-10. [任务与确认状态](tasks.md)
+8. [R008 配置流水线与 koanf 适配性复核](research/R008-config-pipeline-and-koanf-fit/report.md)
+9. [R009 HTTP 契约框架与 Huma 适配性复核](research/R009-http-contract-framework-fit/report.md)
+10. [R010 数据 Repository 与 ORM 边界复核](research/R010-data-repository-and-orm-boundary/report.md)
+11. [R011 Owner/reload 与静态 Blueprint 边界复核](research/R011-owner-reload-and-static-blueprint/report.md)
+12. [需求](requirements.md)
+13. [设计](design.md)
+14. [任务与确认状态](tasks.md)
 
 ## 关键结论
 
 - 保留有成熟生态支撑且边界合理的能力，例如 `zap`、`chi`、GORM 的连接/事务基线、`golang-migrate`、`go-redis`、`gocron`、`amqp091-go`、OpenTelemetry 和 Prometheus。
-- `kin-openapi` 已从 `v0.142.0` 单轨升级到 `v0.147.0`，补齐 request validation panic 回归与 OperationGate fail-closed 证据；后续替换 HTTP DSL 的 PoC 仍独立待确认。
+- `kin-openapi` 已从 `v0.142.0` 单轨升级到 `v0.147.0`，补齐 request validation panic 回归与 OperationGate fail-closed 证据；R009 已完成后续框架选择，Huma 第一片仍待实施确认。
 - cache 深化追踪确认当前没有 production typed L1 消费者，默认 L1 又缺少容量上界和跨实例失效；`CACHE-057-001` 已单轨退役 L1 与 `patrickmn/go-cache`，Redis 成为唯一 authority，并收紧 miss/error 语义。Otter v2/ttlcache v3 只保留为满足明确收益、内存和陈旧预算后的候选。
 - YAML v4 当前仍为 RC，不符合稳定生产依赖基线；修订计划先迁移到官方维护的稳定 `go.yaml.in/yaml/v3 v3.0.5`，并删除无仓库内消费者的 `pkg/codec`。JSON 继续使用标准库，MessagePack 只保留在 cache 私有边界并由 CACHE 任务决定其 wire 语义。
 - HTTP 自研 token bucket 应由 `golang.org/x/time/rate v0.15.0` 替换，但现有非阻塞 channel semaphore 直接表达 503 过载策略，应保留。限流修订计划增加显式 `local/disabled` 模式，保持 generation-local，不冒充分布式或主体 quota。
 - AuthN 保留成熟且活跃维护的 `jwx/v3` 与 Go 官方 `x/crypto/argon2`；不为版本号迁移到仍强制实验性 jsonv2 的 JWX v4，也不引入无法消除敌对 PHC 资源风险的小众 Argon2 Wrapper。项目只保留认证策略、生命周期、受限 PHC 与 `NeedsRehash` 边界，不自行实现 JOSE 或密码学。
 - resilience 深化研究确认 `failsafe-go` 对当前需求范围过宽且仍为 pre-v1；修订计划改为用成熟、窄且零运行时依赖的 `cenkalti/backoff/v7` 承担 Execution retry loop，删除 HTTP 通用隐式重试、无消费者自研 breaker，以及没有真实外部 primary 支撑的 Execution 恢复/异步状态机。`gobreaker/v2` 只在出现真实下游 failure domain 后进入 Adapter 级候选。
 - `RESIL-057-001` 已完成上述单轨收敛：Execution 公开策略不暴露第三方类型，区分不可重试、caller cancellation/deadline 与 attempts exhausted；HTTP Client 对 status/transport failure 均只发送一次；memory Store 同步记录且不再启动推测性 lifecycle。
+- 配置流水线保留：不引入 koanf/Viper。当前 YAML、mapstructure、fsnotify 已占据成熟通用接缝，项目继续拥有重复/形状冲突、稳定文件、provenance/digest、binding owner 与候选事务。
+- HTTP 契约目标选择 Huma v2：只接管 typed binding、OpenAPI/JSON Schema、validation 和 route registration；chi、OperationGate、项目 Problem、module operation/policy ownership 与 server lifecycle 保持项目 authority。迁移完成后删除自研 contract/codec 和重复 kin-openapi request-validation 路径。
+- Data 保留 GORM 连接/事务/错误/租约，拒绝当前无收益的 GORM Gen/sqlc；以 module repo Adapter 内 concrete record + direct GORM 单轨退役反射式 BaseRepository/Schema/Query，业务 port 和 migration SQL 不变。
 - 模块自有 Repository port、permission key、migration SQL 和 operation 语义具有项目特有价值；通用算法和框架机制不应继续默认自研。
-- 当前 Application Generation 把业务对象图与动态资源平面一起重建，已经超出早期研究建议的最小动态范围。后续先建立 owner/reload 矩阵，再用最小切片验证静态对象图与动态资源平面分工，不做一次性 Kernel 重写。
+- Application Generation 继续承载 resource/server/participant/runtime module 的候选事务；纯 permission/WebUI/policy/HTTP contract 声明移到启动期 `applicationBlueprint`。当前不强行静态化全部 Service，也不做一次性 Kernel 重写。
 - 030、037、038 等历史任务是实施证据，不再自动构成继续沿用其依赖或承载架构的理由；安全、维护状态和新用例必须按本基线刷新。

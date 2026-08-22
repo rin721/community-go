@@ -31,8 +31,8 @@
 | 日志 | `pkg/logger` 以窄接口封装 `zap v1.28.0`，composition 拥有 sink 与 Sync/Close | **保留**；没有证据证明迁移 `log/slog` 能抵消行为、性能和迁移成本 | 保持 `zap` 为实现；`log/slog` 只作为后续基准候选，不向业务暴露具体 logger 类型 |
 | HTTP server/router | `net/http + chi v5.3.1`，项目拥有 server 生命周期与错误语义 | **保留** | `chi` 只承担路由；标准库承担 server/transport；项目边界继续拥有 Problem Details、超时和关闭语义 |
 | HTTP Client | `pkg/httpx` 在 `net/http` 上自研请求、响应和隐式 transport/429/5xx 重试；当前无 production Client 构造 | **保留标准库核心，退役无依据的通用重试**；基础 Client 应 one-shot，不替下游猜测非幂等与 `Retry-After` 语义 | `net/http` 为 transport；`otelhttp` 承担标准观测。未来真实下游 Adapter 按 operation/profile 明确幂等、status/transport 分类、`Retry-After` 上限、budget 与观测，再决定是否使用 backoff/v7；不恢复全局 retry 开关 |
-| HTTP 契约/OpenAPI | `pkg/httpx/contract` 自研 typed DSL；`kin-openapi v0.147.0` 参与生成与请求验证 | **安全升级已完成，替换 PoC 待确认**；不能因 030 已落地就排除成熟框架 | 继续使用本次研究时最新的 `kin-openapi v0.147.0`；以 `Huma v2` 作为保持 code-first 与 chi 的首选 PoC，`ogen` 只在改为 spec-first 时比较；模块仍拥有 operation 语义，真实认证/授权由项目 `OperationGate` fail-closed 执行 |
-| ORM/Repository | `GORM v1.31.2` 活跃；`pkg/database` 又实现反射式 Schema、Query 和通用 Repository | **保留 GORM 连接/事务基线，复核自研 Repository 架构** | 用 IAM/Organization/Navigation 的真实 join、分页、乐观锁与三方言查询比较当前实现、`gorm.io/gen` 和 `sqlc`；业务仍依赖模块自有 Repository port，不暴露 GORM 类型 |
+| HTTP 契约/OpenAPI | `pkg/httpx/contract` 约 1,069 行自研 typed DSL/renderer/codec；运行时又把文档交给 kin-openapi 校验 | **采用 Huma v2，分片后单轨迁移** | `Huma v2.39.1` 负责 typed input/output、OpenAPI/JSON Schema、validation 与 chi registration；项目保留 OperationGate、Problem、operation/policy metadata、生成 inventory 和 server lifecycle。完成后删除自研 contract/codec/dispatcher 与重复 kin-openapi validation；ogen 仅在未来改为 spec-first 时重评 |
+| ORM/Repository | `GORM v1.31.2` 活跃；`pkg/database` 另有约 900 行反射式 Schema/Repository，当前 production 查询没有 join/CTE/window | **保留 GORM resource/transaction，direct GORM concrete repo 替换自研 generic repository** | GORM 类型只在 technology-specific session bridge 与 module repo Adapter；业务仍依赖模块 port，migration SQL 仍是 authority。当前查询不足以抵消 GORM Gen/sqlc 的生成与三方言成本，出现 SQL-heavy 用例后按查询重评 |
 | Migration | 使用 `golang-migrate` 与模块自有 migration set | **保留** | `golang-migrate` 负责版本执行；模块拥有 SQL 与兼容语义，不使用 GORM AutoMigrate 替代发布 migration |
 | Cache | 默认 L1、`patrickmn/go-cache`、本地 tag/cleanup 状态已退役；typed Client 无资源且 production 暂无消费者，Redis 是唯一数据与 tag authority | **保留 Redis 与项目缓存语义**；只有 `ErrNotFound` 作为 miss，取消、disabled、backend 与 codec 错误向上返回 | `go-redis/v9` 继续只存在于 Adapter，项目保留 typed key/tag/错误边界。真实消费者给出命中率、内存和陈旧预算后，高并发/weight 场景优先 PoC `Otter v2`，简单 TTL/容量场景 PoC `ttlcache v3` |
 | JWT/JWK | Auth Adapter 使用最新 v3 线 `jwx/v3 v3.2.0`，显式治理 JWK 生命周期及 issuer/audience/algorithm；未知 key 并发刷新已全局合并，调用取消与刷新超时可识别 | **保留成熟 v3，安全强化已完成**；不为版本号把实验性构建约束扩散到全项目 | `jwx/v3` 继续拥有 JOSE/JWT/JWK 通用机制，项目 Adapter 拥有网络、claim、algorithm、取消、错误和 lifecycle；jsonv2 稳定或 v3 支持变化后再评 v4 + jwkfetch。真实 OIDC 用例出现时优先比较 `coreos/go-oidc/v3 + x/oauth2`，不自研 discovery/nonce/token 验证 |
@@ -42,7 +42,7 @@
 | 限流/过载 | 单进程 token bucket 自研 mutex/refill；0/0 实际回落 100/200 默认值；并发门禁是非阻塞 channel；两者随 Application Generation 重建 | **替换 token bucket，保留简单过载实现并修正配置语义** | `golang.org/x/time/rate v0.15.0` 隐藏在 `pkg/httpx` 薄边界并使用 fail-fast Allow；增加 `local/disabled` 严格模式。保留 channel 503，保持 generation-local；默认值只是待负载校准的 scaffold 起点。主体或分布式 quota 另立网关/共享计数研究 |
 | 重试/熔断 | Execution 已以项目自有 policy 隔离 `backoff/v7 v7.0.0`；HTTP Client one-shot；旧 `pkg/resilience`、无消费者 breaker、RecoveringStore/AsyncRecorder 已退役 | **当前边界已收敛，按真实 failure domain 扩展** | 项目保留命名 profile、幂等、错误分类、attempt/total budget 与低敏观测。`sony/gobreaker/v2` 只在真实共享下游出现后进入 Adapter；不引入当前范围过宽且 pre-v1 的 failsafe-go |
 | 序列化 | 标准 `encoding/json`、cache 私有 `msgpack/v5`、已归档 `gopkg.in/yaml.v3`；自研 `pkg/codec` 无仓库内消费者 | **保留标准 JSON；迁移官方稳定 YAML v3；退役无价值 Codec；cache wire format 独立决策** | 直接 YAML import 迁移到 `go.yaml.in/yaml/v3 v3.0.5`；v4 当前仅 RC，不进入 production direct dependency。删除 `pkg/codec`，各协议 owner 直接使用库；MessagePack/JSON/CBOR 的 cache wire 选择归 CACHE 任务，不机械换格式 |
-| 配置 | 自研 strict binding/defaults/watch/atomic file，YAML + mapstructure；Viper 只是工具依赖的间接依赖 | **保留项目语义，复核是否过度承担通用解析** | 比较当前 parser 与 `koanf v2` 的 provider/parser 组合；只替换能减少依赖和自研解析的部分，owner、未知节拒绝、候选验证和失败保留旧代仍属项目语义 |
+| 配置 | 项目实现 strict source merge、stable file、provenance/digest、binding/default 与 candidate transaction；YAML、mapstructure、fsnotify 位于窄接缝 | **保留，不引入 koanf/Viper** | `mapstructure/v2` 继续 strict decode，`fsnotify` 继续通知，YAML 按 R004 走官方稳定 v3；koanf 仍需重写冲突、稳定读取、owner 与 reload，不能形成净删除。新增远程 provider 时按来源重评 |
 | 定时调度 | `gocron/v2` 触发器 + 项目 schedule binding/execution/Redis lease | **保留** | `gocron/v2` 继续只在内部 Adapter；项目契约拥有任务身份、execution、准入、失权和诊断；耐久任务/工作流不是该能力，需按真实需求另评 `Temporal`、`River` 或 `Asynq` |
 | Messaging | 官方 `amqp091-go` + 项目 message contract/binding/consumer lifecycle | **保留，等待真实 RabbitMQ 门禁** | RabbitMQ Adapter 继续隔离 broker 类型；Kafka/NATS 不在没有业务语义时预选 |
 | Observability | OpenTelemetry、OTLP、Prometheus 已在 Kernel Adapter，项目拥有低敏 observation 契约 | **保留并补标准 instrumentation** | 优先官方 `otelhttp` 等 instrumentation，不自研 trace propagation；项目保留采样、字段脱敏、diagnostics 和 exporter 生命周期边界 |
@@ -51,16 +51,16 @@
 
 ### 1. 恢复静态对象图与动态资源平面分工
 
-当前 Application Generation 会一起重建底层资源、业务模块、路由、Scheduler、Messaging 和管理面。既有研究曾明确建议“只有确需运行期安全替换的底层资源进入动态 Capability 平面，业务对象图使用普通构造函数”，但当前实现范围已经扩大。
+当前 Application Generation 会一起重建底层资源、业务模块、路由、Scheduler、Messaging、管理面和纯静态 catalog/contract。R011 已区分真正需要候选事务的运行态与无 reload 价值的代码声明。
 
 后续必须以真实配置变化和可用性收益逐项证明热重载价值。默认目标是：
 
-- 业务 Model/Service/Handler 与不需要换代的库保持启动期静态显式构造；
+- permission、WebUI、operation policy 和 HTTP contract definitions 进入启动期 immutable `applicationBlueprint`；
 - 只有能定义候选构造、准入、排空、回滚和资源所有权的能力进入动态平面；
 - 不适合并存或热换的能力明确 `RestartRequired`，不为“无感”叠加兼容状态机；
-- 暂不引入 Fx/反射 DI；只有对象图样板出现可测量成本时再评估。
+- runtime Service/Handler 当前仍依赖当代 config/resource 与跨模块 port，暂留 Generation；没有稳定 handle 证据前不引入 proxy、Fx 或反射 DI。
 
-这是一项目标架构，尚未实施。迁移必须先绘制 capability/consumer/owner/reload 矩阵，再选择最小垂直切片，不允许一次性重写 Kernel。
+该目标已经形成 owner/reload 矩阵，最小切片是 `applicationBlueprint`。它依赖 Huma 第一片冻结 contract registration 形态，实施后用构造次数、identity 和 reload 行为证明收益；不允许一次性重写 Kernel。
 
 ### 2. 把技术策略从通用 Client 中拆出
 
@@ -75,7 +75,8 @@ HTTP 重试、熔断、限流、缓存加载和执行恢复都涉及不同的幂
 1. **安全止血**：升级受公告影响的依赖，重建与 Go 1.26 匹配的扫描工具，运行 `govulncheck`、测试和契约负向门禁。
 2. **低耦合替换**：默认 L1 已退役；后续迁移官方稳定 YAML v3 路径并删除无消费者 Codec；以 `x/time/rate` 单轨替换 token bucket、修正显式启停配置但保留 channel 过载门禁；保留 jwx/v3 与 x/crypto/argon2 并补认证安全/演进语义。未来 L1、YAML v4 与 JWX v4 必须由真实需求、稳定版本和量化门禁重新授权。
 3. **策略层重构**：以 backoff/v7 收敛 Execution retry；HTTP Client 改为 one-shot；删除无消费者 breaker 和没有真实外部 primary 的恢复/异步状态机。未来下游 breaker 或组合策略按真实 failure domain 另立研究。
-4. **高耦合 PoC**：以真实模块比较 Huma、当前 HTTP DSL；以真实查询比较当前 Repository、GORM Gen、sqlc。
-5. **架构切片**：根据 owner/reload 矩阵把一个不需要动态换代的模块或能力移回静态平面，证明启动、重载、停止和回滚收益后再扩大。
+4. **HTTP 单轨迁移**：先以代表性 operation 验证 Huma + OperationGate + Problem + static generation，再迁移全部模块并删除旧 contract/codec/kin-openapi validation。
+5. **Data 单轨迁移**：建立受租约约束的 GORM session bridge，分 Todo/Navigation 与 IAM/Organization 两批迁移 concrete repository，最后删除 generic Schema/Query/Repository。
+6. **架构切片**：在 Huma registration 形态冻结后引入启动期 `applicationBlueprint`，移出纯 catalog/policy/contract；runtime graph 继续由 Generation 原子切换。
 
 每一步都是非文档变更，必须使用 057 的明确任务 ID，在计划报告后的后续消息中获得确认；新事实改变依赖、公共接口、迁移或生命周期边界时重新研究和确认。

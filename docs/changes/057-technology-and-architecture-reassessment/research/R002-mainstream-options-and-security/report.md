@@ -85,3 +85,14 @@
 [R005](../R005-http-entry-rate-and-overload-boundary/report.md) 确认 `golang.org/x/time/rate v0.15.0` 的并发安全 token bucket 与 fail-fast `Allow` 精确覆盖当前自研通用算法；Go 官方 module metadata 显示其要求 Go 1.25，兼容当前 Go 1.26.6。现有 channel semaphore 已精确表达固定权重、非阻塞 503，换用 `x/sync/semaphore` 没有可验证收益。`LIMIT-057-001` 因发现 0/0 实际回落默认值的配置歧义而材料性修订：增加 `local/disabled` 严格模式，保持 limiter generation-local，并继续排除主体与分布式 quota。
 
 [R007](../R007-resilience-execution-and-http-boundary/report.md) 进一步确认当前没有 production `pkg/httpx.Client` 构造或真实 breaker failure domain，而 Execution production 的 primary/local 均是 MemoryStore。原“failsafe-go 组合策略首选”推断因此被修订：当前真实有界 retry 选择零运行时依赖、错误原因清晰的 `cenkalti/backoff/v7 v7.0.0`；HTTP 隐式重试、无消费者 breaker、RecoveringStore/AsyncRecorder 直接退役。`failsafe-go v0.9.7` 维护活跃但 pre-v1 且范围/依赖过宽，`sony/gobreaker/v2 v2.4.0` 成熟但没有当前接入位置，均保留为有真实用例后的条件候选。
+
+## 整体方案刷新（2026-08-22）
+
+R002 的候选资格不是最终采用结论，后续专项已完成当前任务所需判断：
+
+- [R008](../R008-config-pipeline-and-koanf-fit/report.md)：拒绝引入 koanf/Viper，保留项目 strict configuration transaction；
+- [R009](../R009-http-contract-framework-fit/report.md)：选择 Huma v2，按代表性第一片后全量单轨迁移；
+- [R010](../R010-data-repository-and-orm-boundary/report.md)：选择 direct GORM concrete repository，当前拒绝 GORM Gen/sqlc；
+- [R011](../R011-owner-reload-and-static-blueprint/report.md)：冻结 `applicationBlueprint` 首片，Generation 保留运行态事务。
+
+因此本报告早期“必须经真实用例 PoC 才能成为实施结论”的概括，已由 R008–R011 的代码级专项研究收窄。HTTP 仍以可撤回的 production first slice 验证协议细节，但技术选择和目标删除范围不再留到实施期临时决定。

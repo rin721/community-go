@@ -4,7 +4,7 @@
 
 本变更不选择“一套框架接管一切”，而是建立两层决策：先判断通用实现是否应复用成熟方案，再判断当前架构是否为合适载体。输出是可追踪矩阵和分批实施队列，不是技术名录。
 
-依据：[R001 当前实现与架构事实](research/R001-current-capability-and-architecture-audit/report.md)、[R002 外部候选与安全事实](research/R002-mainstream-options-and-security/report.md)、[R003 L1 必要性与候选适配](research/R003-cache-l1-necessity-and-candidate-fit/report.md)、[R004 序列化与 YAML 稳定路径](research/R004-serde-runtime-boundary-and-yaml-path/report.md)、[R005 HTTP 入口速率与过载边界](research/R005-http-entry-rate-and-overload-boundary/report.md)、[R006 认证库与凭据边界](research/R006-authn-library-and-credential-boundary/report.md)、[R007 resilience、Execution 与 HTTP Client 边界](research/R007-resilience-execution-and-http-boundary/report.md)。
+依据：[R001 当前实现与架构事实](research/R001-current-capability-and-architecture-audit/report.md)、[R002 外部候选与安全事实](research/R002-mainstream-options-and-security/report.md)、[R003 L1 必要性与候选适配](research/R003-cache-l1-necessity-and-candidate-fit/report.md)、[R004 序列化与 YAML 稳定路径](research/R004-serde-runtime-boundary-and-yaml-path/report.md)、[R005 HTTP 入口速率与过载边界](research/R005-http-entry-rate-and-overload-boundary/report.md)、[R006 认证库与凭据边界](research/R006-authn-library-and-credential-boundary/report.md)、[R007 resilience、Execution 与 HTTP Client 边界](research/R007-resilience-execution-and-http-boundary/report.md)、[R008 配置与 koanf](research/R008-config-pipeline-and-koanf-fit/report.md)、[R009 HTTP 与 Huma](research/R009-http-contract-framework-fit/report.md)、[R010 Data/ORM](research/R010-data-repository-and-orm-boundary/report.md)、[R011 owner/reload 与 Blueprint](research/R011-owner-reload-and-static-blueprint/report.md)。
 
 ## 决策流程
 
@@ -29,9 +29,9 @@
 
 ## 承载架构目标
 
-### 静态对象图
+### 静态 Blueprint
 
-业务 Model/Service/Handler、无共享资源的库和不支持安全换代的对象，默认由显式构造函数在启动期构建。配置变化若无法定义候选准入、并存、排空和回滚，则明确 `RestartRequired`。
+纯代码定义且不读取 Snapshot、不持有资源和运行状态的 permission、WebUI、operation policy 与 HTTP contract definitions，由显式构造函数在启动期构建为 immutable `applicationBlueprint`。当前 Service/Handler 仍依赖当代资源、配置和跨模块 port，暂留 Generation；未来若要静态化，必须先证明稳定 access、配置策略和排空语义。
 
 ### 动态资源平面
 
@@ -39,7 +39,7 @@
 
 ### 迁移方式
 
-先制作 capability/consumer/owner/reload 矩阵，再选一个无热换价值且调用面小的垂直切片。保持公开行为不变，比较构造复杂度、reload 状态数、停止顺序和故障恢复证据；通过后才扩大，不引入 Fx/反射 DI。
+R011 已形成 capability/consumer/owner/reload 矩阵，首片固定为静态 Blueprint。保持公开行为不变，比较构造次数、reload 状态、停止顺序和故障恢复证据；通过后也不自动扩大到 Service，不引入 Fx/反射 DI。
 
 ## 实施批次
 
@@ -62,7 +62,7 @@
 - 限流：以 `golang.org/x/time/rate v0.15.0` 替换进程内 token bucket 数学与锁；项目薄边界继续拥有 fail-fast 429、Problem 与 Retry-After，不暴露第三方类型。
 - 限流配置：增加有类型的 `local/disabled` 模式，缺省保持 `local`；`local` 必须使用正速率和 burst，构造不再静默修正错误。保留 `100/200` 作为现有 scaffold 起点并明确必须按负载/SLO 校准，不把它描述为生产容量保证。
 - 过载：保留 channel-based 非阻塞 in-flight semaphore 与 503，不机械改用已有 `x/sync/semaphore`，也不变成等待队列或 weighted bulkhead。
-- 生命周期：RateLimiter 与 OverloadLimiter 保持 generation-local；新代从新 policy 状态开始，旧代独立排空。不为跨代 token 复用新增 pool/handoff，整体 Generation 范围留给 Batch E。
+- 生命周期：RateLimiter 与 OverloadLimiter 保持 generation-local；新代从新 policy 状态开始，旧代独立排空。不为跨代 token 复用新增 pool/handoff，整体 Generation 范围留给 Batch F。
 - 范围排除：不在本任务增加 Principal/IP/Operation/租户维度、Redis/网关/集中计数、登录防爆破或分布式 quota。
 - AuthN：保留 `jwx/v3` 和 `x/crypto/argon2` 两项成熟实现；修正 JWT 运行中取消传递并补安全负向矩阵。密码 port 使用项目 verification result + error，Adapter 在调用 Argon2 前完成受限 PHC 校验并返回 `NeedsRehash`，Service 在成功登录事务内迁移 hash。
 - AuthN 不引入仍要求 `GOEXPERIMENT=jsonv2` 的 JWX v4，不引入高层 Argon2 Wrapper、OIDC 或新密码学实现。jsonv2 稳定或 v3 支持状态变化后再刷新选型。
@@ -82,17 +82,36 @@ R007 已证明当前没有真实出站 HTTP Client 消费者或 breaker failure 
 
 实施结果（2026-08-22）：本批已按上述设计完成，没有保留旧 API 或兼容层。Execution memory backend 不再拥有 shutdown finalizer；重试 observer 经既有 Logger 依赖输出受控 Debug 字段。忽略的本地 `config.yaml` 未被任务改写，现行配置迁移以 `config.example.yaml` 与配置 authority 为准。
 
-### Batch D：高耦合真实用例 PoC
+### Batch D：HTTP 契约单轨迁移
 
-- HTTP：选一组现有 operation，比较当前 typed DSL 与 Huma v2 的声明量、生成一致性、错误/鉴权/政策扩展、chi 接入和升级成本。
-- Data：选 IAM/Organization/Navigation 的复杂查询，比较当前 Repository、GORM Gen 和 sqlc 的三方言、事务、乐观锁、分页、错误映射与迁移成本。
-- Config：只比较 koanf 能否减少 parser/provider 自研；strict candidate、owner、reload 失败保留旧代仍归项目。
+R009 已完成候选比较并选择 Huma v2，不再把技术选型推迟到实施期：
 
-PoC 代码若不能作为最终单轨实现的一部分，应放在任务明确的隔离位置，并在结论后删除；不得把两套 production 实现长期留在仓库。
+1. `HTTP-057-001` 以公开 JSON body、受保护 path/query list、乐观锁 mutation 和统一 Problem 为代表性第一片。模块 binding 定义 typed input/output 与同点 registration；Huma metadata 携带项目 operation/security/policy，OperationGate 仍在 handler 前 fail-closed。
+2. 第一片必须同时服务 runtime 和无资源 contract generation，验证 OpenAPI/inventory、tailing JSON、unknown/invalid parameter、content type/body budget、取消、认证/授权和低敏错误。
+3. 第一片门禁通过后，`HTTP-057-002` 迁移所有 IAM/Organization/Navigation/Todo operation；删除旧 `pkg/httpx/contract`、dispatcher、手工 codec/renderer 和 kin-openapi request validation。若 kin-openapi 无直接消费者则删除依赖。
+4. 第一片失败则单轨撤回 Huma，不保留 compatibility layer；失败结论需回到计划重新确认。
 
-### Batch E：架构切片
+Huma 只进入 transport binding，Service/Model 不导入其类型；chi、项目 Problem、server/listener 和生产 middleware 不变。
 
-形成完整 owner/reload 矩阵并提交更新计划。任何公共装配、生命周期或 reload 语义变化都属于材料性架构变更，必须在 Batch E 实施前再次确认。
+### Batch E：Data Repository 单轨迁移
+
+R010 已确认当前没有复杂 join/SQL-heavy 用例，选择 direct GORM 而非 GORM Gen/sqlc：
+
+1. `DATA-057-001` 建立受 `Client/Tx/Borrow` lifetime 约束的 GORM session callback；先迁移 Todo/Navigation concrete record/repository。
+2. `DATA-057-002` 迁移 IAM/Organization 的 multi-repository Unit 与 transaction，覆盖 unique/FK/not-found/version conflict/session revoke/catalog reconcile。
+3. `DATA-057-003` 删除 generic `BaseRepository/Schema/Query/Changes`、反射 model 和全部旧测试/文档；migration SQL 保持唯一 schema authority，禁止 AutoMigrate。
+
+GORM 只能出现在 technology-specific bridge 与 module repo Adapter。若迁移需要让 GORM 泄漏到 Service/Model/port，或三方言出现大量不可控分支，则停止并重新研究。
+
+### Batch F：静态 Blueprint 架构切片
+
+R011 已建立 owner/reload 矩阵。`ARCH-057-002` 在 Huma registration 形态冻结后引入启动期 immutable `applicationBlueprint`，提升 permission/WebUI/operation policy/HTTP contract definition；Generation 继续拥有 resource/server/participant/runtime module 与候选兼容性检查。
+
+验收必须证明多 section reload 时 Blueprint identity/构造次数不变，而 generation ID、资源 build/reuse、route handoff、auth/readiness、migration compatibility 和排空语义不退化。当前不把全部 Service 静态化，不新增 proxy、Service Locator、Fx 或反射 DI。
+
+### Config 决策
+
+`CONFIG-057-001` 已由 R008 以纯文档研究完成：不引入 koanf/Viper。现有 YAML、mapstructure 与 fsnotify 是成熟接缝；项目 strict merge、stable file、provenance/digest、binding owner 和 candidate transaction 保留。无生产实施批次。
 
 ## 失败、回退与验证语义
 
@@ -109,5 +128,6 @@ PoC 代码若不能作为最终单轨实现的一部分，应放在任务明确�
 - Batch A：`go.mod`、`go.sum`、`internal/transport/http/`、`pkg/httpx/contract/`、安全验证记录。
 - Batch B：`pkg/cache/`、`internal/kernel/app/cache/`、缓存文档与依赖清单、配置/codec 消费者、`pkg/httpx/production_middleware.go`、IAM auth Adapter。
 - Batch C：`pkg/httpx/`、`pkg/resilience/`（删除）、`pkg/execution/`、`internal/kernel/app/execution/`、Todo/Schedule/Messaging 调用方、composition/config/docs 及 `go.mod/go.sum`。
-- Batch D：限定 PoC、真实模块 Adapter/测试与生成门禁；不直接改变 production authority。
-- Batch E：`internal/composition/`、`internal/kernel/`、模块构造与 lifecycle 测试。
+- Batch D：`go.mod/go.sum`、模块 `binding/http`、`internal/transport/http/`、composition、生成器、OpenAPI/inventory 与旧 `pkg/httpx/contract` 删除范围。
+- Batch E：`pkg/database/` technology-specific session bridge、四个模块 repo Adapter/contract tests，以及 generic repository/schema/query 删除范围。
+- Batch F：`internal/composition/` 的 Blueprint/factory/generation、静态 catalog/contract 入口与 reload/lifecycle 测试；不改变 Kernel generation transaction。

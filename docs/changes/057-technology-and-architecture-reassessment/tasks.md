@@ -3,7 +3,7 @@
 ## 当前状态
 
 - 研究门禁：已通过。
-- 文档任务：已完成，适用纯文档直接实施例外。
+- 文档与整体方案任务：已完成，R001–R011 已收敛全部当前选型、owner/reload 矩阵、实施依赖和停止条件，适用纯文档直接实施例外。
 - 非文档任务：用户已于 2026-08-22 明确确认并完成 Batch A（`SEC-057-001`）及修订后的 `CACHE-057-001`、`AUTHN-057-001`、`RESIL-057-001`；其余任务仍待确认。
 
 ## 任务清单
@@ -13,22 +13,34 @@
 | RES-057-001 | 文档 | 审计当前能力、依赖、调用方与承载架构 | 无 | 已完成 | R001 可复核，事实/推断/目标分离 |
 | RES-057-002 | 文档 | 以官方来源核验成熟候选、维护与安全状态 | RES-057-001 | 已完成 | R002 有版本日期、适用边界、局限和刷新触发器 |
 | DOC-057-001 | 文档 | 更新 AGENTS、研究规范、模块指南、pkg/architecture authority 和导航 | RES-057-001, RES-057-002 | 已完成 | 技术决策基线单一可发现，文档门禁通过 |
+| PLAN-057-001 | 文档 | 落实剩余整体技术选择、owner/reload 矩阵和完整实施依赖 | R008-R011 | 已完成 | Config/HTTP/Data/Architecture 有明确采用或拒绝、接入边界、任务拆分、停止条件和统一确认入口 |
 | SEC-057-001 | A | 升级 kin-openapi 并重建 Go 1.26 漏洞扫描证据 | 用户确认 Batch A | 已完成 | v0.147.0、生成/请求负向测试、全仓 govulncheck 和旧版本残留搜索通过 |
 | CACHE-057-001 | B | 单轨退役默认 L1 与 go-cache，收紧 Redis typed cache 的 miss/error 语义 | 用户于 2026-08-22 确认修订后的该任务 | 已完成 | 删除本地状态/goroutine/专属配置和 go-cache；Redis typed cache/tag/disabled/cancel/error 语义测试通过；不新增 L1 依赖 |
 | SERDE-057-001 | B | 迁移官方稳定 YAML v3 路径并退役无消费者 Codec | 用户确认修订后的该任务 | 待确认 | project direct import 使用 go.yaml.in/yaml/v3 v3.0.5；删除 gopkg direct requirement 与 pkg/codec；config/i18n/OpenAPI/docs fixture 和完整门禁通过；不直引 v4 RC |
 | LIMIT-057-001 | B | 用 x/time/rate 替换通用 token bucket，修正入口保护配置语义 | 用户确认修订后的该任务 | 待确认 | x/time/rate v0.15.0 隐藏在项目薄边界；删除自研 refill/lock；增加 local/disabled 严格模式；保留 generation-local 与 channel 503；mode/burst/refill/concurrency/CORS/management/reload、完整 Go 与漏洞门禁通过；不增加主体或分布式 quota |
 | AUTHN-057-001 | B | 保留 jwx/v3 与 x/crypto/argon2，补 JWT 取消/负向矩阵和受限 PHC/NeedsRehash/渐进重哈希 | 用户于 2026-08-22 确认修订后的该任务 | 已完成 | 第三方类型不泄漏；取消原因保留；敌对 PHC 在 Argon2 前拒绝；登录事务重哈希与完整安全门禁通过；不引入 jwx/v4、OIDC 或小众 Wrapper |
 | RESIL-057-001 | C | 以 backoff/v7 收敛 Execution retry，并退役无依据的 HTTP/recovery/breaker 状态 | 用户于 2026-08-22 确认修订后的该任务 | 已完成 | backoff/v7 隐藏在 Execution 内部；profile 明确 attempts/jitter/attempt+total budget；HTTP one-shot；删除 pkg/resilience、RecoveringStore、AsyncRecorder 及旧配置/API；Todo/Schedule/Messaging 语义和完整门禁通过 |
-| HTTP-057-001 | D | 用真实 operation 比较 Huma v2 与当前 typed DSL | Batch A 完成、用户确认该任务 | 待确认 | 生成、验证、鉴权/政策扩展、错误与迁移成本有可运行证据；只输出采用或拒绝结论 |
-| DATA-057-001 | D | 用真实复杂查询比较当前 Repository、GORM Gen 与 sqlc | 用户确认该任务 | 待确认 | 三方言、事务、分页、乐观锁、错误、测试与迁移成本可复核；模块 port 不变 |
-| CONFIG-057-001 | D | 比较 koanf 与当前 parser/provider 范围 | 用户确认该任务 | 待确认 | 明确可删除自研范围；strict candidate/owner/reload 语义不丢失 |
-| ARCH-057-001 | E | 建立 owner/reload 矩阵并设计最小静态对象图切片 | 前置 PoC 结论、用户确认设计 | 待确认 | 每项 reload 收益/并存/排空/回滚明确，更新计划后再次报告 |
-| ARCH-057-002 | E | 实施一个静态/动态平面分工切片 | ARCH-057-001 后再次确认 | 待确认 | 行为不退化，构造/状态/停止复杂度有证据改善，无平行框架或兼容层 |
+| CONFIG-057-001 | 文档 | 比较 koanf/Viper 与当前配置流水线并形成采用/拒绝结论 | R008 | 已完成 | 结论为不引入；保留 strict candidate、stable file、owner/reload，明确未来远程 provider 刷新条件 |
+| HTTP-057-001 | D | 引入 Huma v2 并完成代表性 operation 第一片 | R009、SERDE-057-001、用户确认整体剩余计划 | 待确认 | Huma 只进 binding；public body、protected list、version mutation、Problem 可运行；静态生成无资源；OperationGate fail-closed；依赖/安全/生成门禁通过；失败则完整撤回 |
+| HTTP-057-002 | D | 全量迁移 HTTP operation 并删除旧 contract/binding 路径 | HTTP-057-001 门禁通过 | 待确认 | IAM/Organization/Navigation/Todo 全迁移；删除 pkg/httpx/contract、dispatcher、手工 codec/renderer 与重复 validation；无 direct consumer 时删除 kin-openapi；Service/Model 无 Huma 类型 |
+| DATA-057-001 | E | 建立 GORM session bridge，迁移 Todo 与 Navigation concrete repository | R010、用户确认整体剩余计划 | 待确认 | session 不可逃逸 Borrow/Tx lifetime；CRUD/page/order/not-found/version conflict 三方言 contract 通过；业务 port 不变 |
+| DATA-057-002 | E | 迁移 IAM 与 Organization concrete repository/Unit | DATA-057-001 | 待确认 | multi-repository transaction、unique/FK、session revoke、catalog reconcile、optimistic update 与三方言通过；migration 不改写 |
+| DATA-057-003 | E | 删除反射式 generic Repository/Schema/Query | DATA-057-002 | 待确认 | 删除 BaseRepository、Schema/Field/Index/Reference、Query/Filter/Order/Page/Changes、dynamic model 及旧测试；无 AutoMigrate/兼容层/GORM 业务泄漏 |
+| ARCH-057-001 | 文档 | 建立 owner/reload 矩阵并冻结最小静态 Blueprint 设计 | R011 | 已完成 | 每项 reload 收益、准入、并存、排空与目标 owner 明确；首片不静态化全部 Service |
+| ARCH-057-002 | F | 实施启动期 immutable applicationBlueprint | HTTP-057-001 registration 形态冻结，宜在 HTTP-057-002 后 | 待确认 | permission/WebUI/policy/contract 只构造一次；Generation 删除重复入口；多 section reload 行为不退化；无 proxy/容器/平行框架 |
 | VER-057-001 | 全部 | 执行与每批相匹配的测试、race/vet、生成、文档和安全门禁 | 对应实施任务 | 待确认 | 所有已执行/未执行项和剩余风险如实记录 |
 
-## 建议确认方式
+## 整体实施顺序与确认方式
 
-Batch A、修订后的 `CACHE-057-001`、`AUTHN-057-001` 与 `RESIL-057-001` 已完成。下一轮可分别确认 `SERDE-057-001` 或 `LIMIT-057-001`；Batch D/E 应依据前序证据重新提交更窄设计。
+本次整体方案已冻结，不再要求用户逐项替 Agent 决定技术选型。后续一次明确确认“实施 057 剩余整体计划”即可启动，但执行仍按依赖拆分为可验证提交：
+
+1. `SERDE-057-001`，完成 Huma 前置 YAML 稳定路径；`LIMIT-057-001` 与其无代码依赖，可在同阶段独立完成。
+2. `HTTP-057-001` 第一片。只有第一片全部门禁通过才进入 `HTTP-057-002`；失败是材料变化，停止并重新报告。
+3. `DATA-057-001` -> `DATA-057-002` -> `DATA-057-003`，每一步必须保持 production 单轨可用，不提交长期新旧双轨。
+4. `ARCH-057-002` 在 Huma registration 形态冻结后实施；为减少返工，默认排在 `HTTP-057-002` 后。
+5. `VER-057-001` 不是最后补测，而是附着在每个实施任务的定向、全量、race/vet、生成、文档和漏洞门禁。
+
+HTTP 第一片失败、Data 边界泄漏或 Blueprint 无净删除时，不以“技术细节由 Agent 决定”为由越过重新确认门禁。
 
 ## 停止与重新确认条件
 
@@ -38,6 +50,16 @@ Batch A、修订后的 `CACHE-057-001`、`AUTHN-057-001` 与 `RESIL-057-001` 已
 - 公共接口、模块边界、HTTP authority、数据迁移、配置语义或外部副作用发生材料变化；
 - PoC 需要长期双轨、隐藏回退或新的万能抽象才能接入；
 - 架构切片无法证明实际收益，或会删除/破坏用户数据与 migration 历史。
+
+## 整体方案完成证据
+
+| 日期 | 范围 | 结果 |
+| --- | --- | --- |
+| 2026-08-22 | CONFIG/R008 | koanf v2.3.6、Viper v1.21.0 与当前 strict pipeline 对照完成；选择保留当前边界，不新增 production task |
+| 2026-08-22 | HTTP/R009 | Huma v2.39.1 与 ogen v1.24.0 官方源码、release、license、Go 版本与 OSV 核验完成；选择 Huma 分片后单轨迁移 |
+| 2026-08-22 | DATA/R010 | GORM Gen v0.3.28、sqlc v1.31.1 与全部真实 repo 查询核验完成；当前无复杂 join，选择 direct GORM concrete repo |
+| 2026-08-22 | ARCH/R011 | 完整 Generation 调用链与 section reload 测试复核；owner/reload 矩阵和 `applicationBlueprint` 首片冻结 |
+| 2026-08-22 | PLAN-057-001 文档门禁 | `Verify-Docs.ps1` 与 `git diff --check` 通过；本轮无源码、依赖、配置、进程、数据库或外部系统变更 |
 
 ## 本轮验证证据
 
@@ -78,3 +100,4 @@ Batch A、修订后的 `CACHE-057-001`、`AUTHN-057-001` 与 `RESIL-057-001` 已
 - CACHE-057-001：本轮 Conventional Commit（以 Git 历史为准）
 - AUTHN-057-001：本轮 Conventional Commit（以 Git 历史为准）
 - RESIL-057-001：本轮 Conventional Commit（以 Git 历史为准）
+- PLAN-057-001：本轮 Conventional Commit（以 Git 历史为准）

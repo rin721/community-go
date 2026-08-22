@@ -4,7 +4,7 @@
 
 - 研究门禁：已通过，依据 [R001](research/R001-current-capability-and-architecture-audit/report.md)、[R002](research/R002-mainstream-options-and-security/report.md) 及各专项深化研究。
 - 已实施授权：纯文档规则、研究、计划、当前 authority 更新、Batch A，以及用户于 2026-08-22 分别确认的修订后 `CACHE-057-001`、`AUTHN-057-001`、`RESIL-057-001`。
-- 其余非文档变更：待用户在当前计划报告后的后续消息中按任务 ID 或实施批次确认。
+- 整体方案已依据 R001–R011 收敛；其余非文档变更待用户在本次完整计划报告后的后续消息中统一确认。
 
 ## 目标
 
@@ -50,8 +50,10 @@
 - 已完成 resilience 收敛：`cenkalti/backoff/v7` 隐藏在 Execution 内部，项目拥有完整 budget 与错误语义；HTTP Client one-shot；旧自研 resilience、无消费者 breaker 和没有真实 primary 的恢复/异步状态机已退役。
 - 后续升级：把已归档 `gopkg.in/yaml.v3` 直接依赖迁移到官方稳定 v3，并退役无消费者 `pkg/codec`；用 `x/time/rate` 替换 HTTP 自研 token bucket，同时保留简单非阻塞过载门禁并修正显式启停语义。未来 L1、YAML v4、JWX v4、breaker 与组合 resilience 框架都只能在真实需求和稳定门禁满足后重新选型。
 - 合理自研：模块 Repository port、permission/operation/migration 业务语义，以及认证 Adapter 内的项目安全策略、受限 PHC 格式和凭据演进；JOSE 与 Argon2 算法继续由成熟库实现。
-- 高耦合 PoC：Huma 对当前 HTTP DSL、GORM Gen/sqlc 对当前反射 Repository、koanf 对当前通用配置解析部分。
-- 架构重构候选：恢复启动期静态业务对象图与经证明可换代的动态资源平面分工。
+- 配置：保留 strict candidate 流水线，不引入 koanf/Viper；成熟解析、strict decode 与 file notify 继续由窄第三方接缝提供。
+- HTTP：采用 Huma v2 作为 typed contract/binding 目标；迁移后删除自研 Schema/renderer/codec/dispatcher 与重复 request validation，但保留项目 OperationGate、Problem、chi 与 operation/policy authority。
+- Data：保留 GORM resource/transaction/migration 基线；module repo 使用 concrete record + direct GORM，单轨退役反射式 BaseRepository/Schema/Query；当前不引入 GORM Gen/sqlc。
+- 架构：建立启动期 immutable `applicationBlueprint`，只提升纯 catalog/policy/contract 定义；动态资源、server、participant 与 runtime module 暂留 Generation。
 
 ## 非目标
 
@@ -67,4 +69,5 @@
 2. 当前能力矩阵逐项给出结论、明确候选、项目职责边界与接入位置。
 3. 研究报告包含代码/依赖事实、官方外部证据、局限和刷新条件。
 4. 非文档任务有稳定 ID、依赖、验证、停止条件和确认状态。
-5. 文档拓扑校验与 `git diff --check` 通过；未执行的漏洞扫描和 PoC 如实保留为待办。
+5. Config/HTTP/Data/Architecture 不再以笼统 PoC 留到实施期选型；采用、拒绝、接入边界、单轨删除范围和失败撤回条件均有明确研究依据。
+6. 文档拓扑校验与 `git diff --check` 通过；未执行的 runtime slice、漏洞扫描和迁移验证如实保留为实施门禁。

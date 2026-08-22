@@ -24,7 +24,11 @@
 | [R005](R005-http-entry-rate-and-overload-boundary/report.md) | HTTP 入口速率与过载保护边界 | active | 用 x/time/rate 替换 token bucket；保留简单 channel 503；修正 local/disabled 配置并保持 generation-local |
 | [R006](R006-authn-library-and-credential-boundary/report.md) | 认证库与凭据校验边界 | active | 保留 jwx/v3 与 x/crypto/argon2；不引入实验性 v4 或小众 Wrapper，补取消、受限 PHC 与渐进重哈希 |
 | [R007](R007-resilience-execution-and-http-boundary/report.md) | 重试、Execution 恢复与 HTTP Client 边界 | active | Execution 采用窄 backoff/v7；删除 HTTP 隐式重试、无消费者 breaker 和无真实外部 primary 的恢复/异步状态机 |
+| [R008](R008-config-pipeline-and-koanf-fit/report.md) | 配置流水线与 koanf 适配性 | active | 成熟库已位于 YAML、strict decode 与 file notify 接缝；koanf/Viper 无净删除，保留项目候选事务 |
+| [R009](R009-http-contract-framework-fit/report.md) | HTTP 契约框架与 Huma 适配性 | active | 选择 Huma v2 替换自研 contract/binding 通用机制；保留 chi、OperationGate、Problem 和模块 operation ownership |
+| [R010](R010-data-repository-and-orm-boundary/report.md) | 数据 Repository 与 ORM 边界 | active | 保留 GORM 资源/事务；direct GORM concrete repo 单轨替换反射式 BaseRepository，当前拒绝 Gen/sqlc |
+| [R011](R011-owner-reload-and-static-blueprint/report.md) | Owner/reload 与静态 Blueprint | active | Generation 保留运行态事务；纯 catalog/contract/policy 提升到启动期 applicationBlueprint |
 
 ## 研究门禁
 
-关键问题已有可复核证据，事实、推断和目标设计已分离；SEC-057-001 已完成当前工具链漏洞扫描。Cache、serde、HTTP limit、AuthN 与 resilience 的深化研究已经形成可确认的修订计划，但禁止据此宣称候选已适配或授权生产迁移。因此研究门禁通过，非文档计划保持待确认。
+关键问题已有可复核证据，事实、推断和目标设计已分离；SEC-057-001 已完成当前工具链漏洞扫描。Config、HTTP、Data 与 owner/reload 的剩余专项已经收敛为明确采用、拒绝和架构切片结论，057 的整体实施依赖与验收门禁不再留给实施期临时选型。研究门禁通过；尚未完成的非文档任务仍须在本次整体计划报告之后获得确认。

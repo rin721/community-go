@@ -10,7 +10,7 @@ areas:
       - pkg/README.md
       - docs/architecture/technology-selection.md
       - docs/operations/security.md
-    reason: 缓存已收敛为 Redis 单一 authority；AuthN 保留 jwx/v3 与 x/crypto/argon2，并同步 JWT 取消/刷新及受限 PHC/渐进重哈希边界。
+    reason: 缓存已收敛为 Redis 单一 authority；AuthN 保留 jwx/v3 与 x/crypto/argon2；R007 又把 resilience 目标从 failsafe-go 大组合修订为 backoff/v7 窄接入，并明确退役无依据 HTTP/recovery/breaker 状态。pkg/README.md 仍描述当前已实现行为，待 RESIL 实施时同步，不提前改写为目标状态。
   - id: module
     decision: updated
     documents:

@@ -9,7 +9,7 @@ technologies: ["kin-openapi", "Huma", "ogen", "GORM", "sqlc", "Otter", "ttlcache
 applicable_scenarios: ["057 技术矩阵", "安全升级", "依赖替换 PoC", "后续模块能力评估"]
 non_applicable_scenarios: ["未经 PoC 的生产迁移结论", "GitHub 热度排名", "具体业务需求尚未出现的重量级平台选型"]
 status: active
-summary: "官方证据支持保留多项现有成熟依赖；SEC-057-001 已升级 kin-openapi。R003/R004/R005 分别修订 cache、serde 与 HTTP 入口限流计划：退役无收益 L1、迁移稳定 YAML v3、用 x/time/rate 替换 token bucket 但保留简单过载门禁。其余高耦合能力仍按真实用例分批确认。"
+summary: "官方证据支持保留多项现有成熟依赖；SEC-057-001 已升级 kin-openapi。R003/R004/R005 分别修订 cache、serde 与 HTTP 入口限流计划；R007 又把 resilience 从 failsafe-go 大组合修订为 Execution 内部采用 backoff/v7，并退役无依据 HTTP/recovery/breaker 状态。其余高耦合能力仍按真实用例分批确认。"
 evidence:
   types: ["official-repository", "official-release", "security-advisory", "standard-library-doc", "security-standard"]
   primary_sources:

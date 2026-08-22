@@ -30,7 +30,7 @@
 | --- | --- | --- | --- |
 | 日志 | `pkg/logger` 以窄接口封装 `zap v1.28.0`，composition 拥有 sink 与 Sync/Close | **保留**；没有证据证明迁移 `log/slog` 能抵消行为、性能和迁移成本 | 保持 `zap` 为实现；`log/slog` 只作为后续基准候选，不向业务暴露具体 logger 类型 |
 | HTTP server/router | `net/http + chi v5.3.1`，项目拥有 server 生命周期与错误语义 | **保留** | `chi` 只承担路由；标准库承担 server/transport；项目边界继续拥有 Problem Details、超时和关闭语义 |
-| HTTP Client | `pkg/httpx` 在 `net/http` 上自研请求、响应和可选重试 | **保留标准库核心，重构策略层**；通用 Client 不应默认决定非幂等重试 | `net/http` 为 transport；`otelhttp` 承担标准观测；`failsafe-go` 为 retry/timeout/circuit/bulkhead 首选 PoC，策略由具体下游 profile 显式注入 |
+| HTTP Client | `pkg/httpx` 在 `net/http` 上自研请求、响应和隐式 transport/429/5xx 重试；当前无 production Client 构造 | **保留标准库核心，退役无依据的通用重试**；基础 Client 应 one-shot，不替下游猜测非幂等与 `Retry-After` 语义 | `net/http` 为 transport；`otelhttp` 承担标准观测。未来真实下游 Adapter 按 operation/profile 明确幂等、status/transport 分类、`Retry-After` 上限、budget 与观测，再决定是否使用 backoff/v7；不恢复全局 retry 开关 |
 | HTTP 契约/OpenAPI | `pkg/httpx/contract` 自研 typed DSL；`kin-openapi v0.147.0` 参与生成与请求验证 | **安全升级已完成，替换 PoC 待确认**；不能因 030 已落地就排除成熟框架 | 继续使用本次研究时最新的 `kin-openapi v0.147.0`；以 `Huma v2` 作为保持 code-first 与 chi 的首选 PoC，`ogen` 只在改为 spec-first 时比较；模块仍拥有 operation 语义，真实认证/授权由项目 `OperationGate` fail-closed 执行 |
 | ORM/Repository | `GORM v1.31.2` 活跃；`pkg/database` 又实现反射式 Schema、Query 和通用 Repository | **保留 GORM 连接/事务基线，复核自研 Repository 架构** | 用 IAM/Organization/Navigation 的真实 join、分页、乐观锁与三方言查询比较当前实现、`gorm.io/gen` 和 `sqlc`；业务仍依赖模块自有 Repository port，不暴露 GORM 类型 |
 | Migration | 使用 `golang-migrate` 与模块自有 migration set | **保留** | `golang-migrate` 负责版本执行；模块拥有 SQL 与兼容语义，不使用 GORM AutoMigrate 替代发布 migration |
@@ -40,7 +40,7 @@
 | Permission/AuthZ | code-defined permission catalog + IAM 数据库存储 Core RBAC；当前没有租户、资源关系或 ABAC | **保留当前简单模型** | 出现 domain RBAC/ABAC 时比较 `Casbin v3`；出现跨资源 ReBAC/集中决策时比较 `OpenFGA`；没有真实语义前不引入外部 policy engine |
 | CORS/安全头/CSRF | CORS、安全头和 Same-Origin/CSRF 为项目中间件；当前安全头只覆盖三个基础 header | **专项复核，不机械全换** | CORS 比较 `rs/cors`；安全头比较 `unrolled/secure` 与项目显式 policy；依据 API 与 WebUI 交付方式补齐 HSTS/CSP/COOP 等部署语义，CSRF 继续由 IAM session 边界拥有 |
 | 限流/过载 | 单进程 token bucket 自研 mutex/refill；0/0 实际回落 100/200 默认值；并发门禁是非阻塞 channel；两者随 Application Generation 重建 | **替换 token bucket，保留简单过载实现并修正配置语义** | `golang.org/x/time/rate v0.15.0` 隐藏在 `pkg/httpx` 薄边界并使用 fail-fast Allow；增加 `local/disabled` 严格模式。保留 channel 503，保持 generation-local；默认值只是待负载校准的 scaffold 起点。主体或分布式 quota 另立网关/共享计数研究 |
-| 重试/熔断 | `pkg/resilience` 自研固定指数退避和只能手工 Reset 的连续失败 breaker | **替换候选优先** | `failsafe-go` 作为组合策略首选；若只需 breaker，比较 `sony/gobreaker/v2`，重试退避可比较已在依赖树中的 `cenkalti/backoff/v5`；项目只保留策略命名、错误分类和观测边界 |
+| 重试/熔断 | `pkg/resilience` 自研固定退避/timeout/breaker；只有 Execution 使用 retry/timeout，breaker 无消费者。Execution 又为 memory primary/local 启动无真实外部资源的恢复与异步状态机 | **Execution retry 采用窄成熟库；其余无依据状态退役** | `cenkalti/backoff/v7 v7.0.0` 只在 Execution 内部承担 retry/backoff；项目保留命名 profile、幂等、错误分类、attempt/total budget 与观测。删除 HTTP 隐式 retry、pkg/resilience breaker、RecoveringStore/AsyncRecorder。`sony/gobreaker/v2` 只在真实下游 failure domain 出现后进入 Adapter；不引入当前范围过宽且 pre-v1 的 failsafe-go |
 | 序列化 | 标准 `encoding/json`、cache 私有 `msgpack/v5`、已归档 `gopkg.in/yaml.v3`；自研 `pkg/codec` 无仓库内消费者 | **保留标准 JSON；迁移官方稳定 YAML v3；退役无价值 Codec；cache wire format 独立决策** | 直接 YAML import 迁移到 `go.yaml.in/yaml/v3 v3.0.5`；v4 当前仅 RC，不进入 production direct dependency。删除 `pkg/codec`，各协议 owner 直接使用库；MessagePack/JSON/CBOR 的 cache wire 选择归 CACHE 任务，不机械换格式 |
 | 配置 | 自研 strict binding/defaults/watch/atomic file，YAML + mapstructure；Viper 只是工具依赖的间接依赖 | **保留项目语义，复核是否过度承担通用解析** | 比较当前 parser 与 `koanf v2` 的 provider/parser 组合；只替换能减少依赖和自研解析的部分，owner、未知节拒绝、候选验证和失败保留旧代仍属项目语义 |
 | 定时调度 | `gocron/v2` 触发器 + 项目 schedule binding/execution/Redis lease | **保留** | `gocron/v2` 继续只在内部 Adapter；项目契约拥有任务身份、execution、准入、失权和诊断；耐久任务/工作流不是该能力，需按真实需求另评 `Temporal`、`River` 或 `Asynq` |
@@ -64,7 +64,7 @@
 
 ### 2. 把技术策略从通用 Client 中拆出
 
-HTTP 重试、熔断、限流、缓存加载和执行恢复都涉及幂等、失败分类、budget 与观测。基础 Client 只负责可靠 transport 和资源边界；调用场景或命名 profile 决定策略。这样成熟 resilience 库可以在项目策略边界内接入，而不用迎合现有每个 Client 的私有重试实现。
+HTTP 重试、熔断、限流、缓存加载和执行恢复都涉及不同的幂等、失败分类、budget 与观测。它们不能因为都叫“韧性”就共享一个万能状态机。基础 HTTP Client 只负责单次可靠 transport 和资源边界；真实下游 Adapter 决定是否重试或熔断。Execution 的命名 profile 只治理受幂等/记录托管的业务 attempt，并在内部复用 backoff/v7。没有真实外部 primary 或 failure domain 时，恢复与 breaker 状态应退役而不是预先抽象。
 
 ### 3. 让模块拥有业务查询和授权语义
 
@@ -74,7 +74,7 @@ HTTP 重试、熔断、限流、缓存加载和执行恢复都涉及幂等、失
 
 1. **安全止血**：升级受公告影响的依赖，重建与 Go 1.26 匹配的扫描工具，运行 `govulncheck`、测试和契约负向门禁。
 2. **低耦合替换**：默认 L1 已退役；后续迁移官方稳定 YAML v3 路径并删除无消费者 Codec；以 `x/time/rate` 单轨替换 token bucket、修正显式启停配置但保留 channel 过载门禁；保留 jwx/v3 与 x/crypto/argon2 并补认证安全/演进语义。未来 L1、YAML v4 与 JWX v4 必须由真实需求、稳定版本和量化门禁重新授权。
-3. **策略层重构**：统一 HTTP/execution 的 retry、timeout、circuit、bulkhead 语义，再决定 `failsafe-go` 或较小组合。
+3. **策略层重构**：以 backoff/v7 收敛 Execution retry；HTTP Client 改为 one-shot；删除无消费者 breaker 和没有真实外部 primary 的恢复/异步状态机。未来下游 breaker 或组合策略按真实 failure domain 另立研究。
 4. **高耦合 PoC**：以真实模块比较 Huma、当前 HTTP DSL；以真实查询比较当前 Repository、GORM Gen、sqlc。
 5. **架构切片**：根据 owner/reload 矩阵把一个不需要动态换代的模块或能力移回静态平面，证明启动、重载、停止和回滚收益后再扩大。
 

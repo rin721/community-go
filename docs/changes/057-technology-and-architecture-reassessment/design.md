@@ -4,7 +4,7 @@
 
 本变更不选择“一套框架接管一切”，而是建立两层决策：先判断通用实现是否应复用成熟方案，再判断当前架构是否为合适载体。输出是可追踪矩阵和分批实施队列，不是技术名录。
 
-依据：[R001 当前实现与架构事实](research/R001-current-capability-and-architecture-audit/report.md)、[R002 外部候选与安全事实](research/R002-mainstream-options-and-security/report.md)、[R003 L1 必要性与候选适配](research/R003-cache-l1-necessity-and-candidate-fit/report.md)、[R004 序列化与 YAML 稳定路径](research/R004-serde-runtime-boundary-and-yaml-path/report.md)、[R005 HTTP 入口速率与过载边界](research/R005-http-entry-rate-and-overload-boundary/report.md)、[R006 认证库与凭据边界](research/R006-authn-library-and-credential-boundary/report.md)。
+依据：[R001 当前实现与架构事实](research/R001-current-capability-and-architecture-audit/report.md)、[R002 外部候选与安全事实](research/R002-mainstream-options-and-security/report.md)、[R003 L1 必要性与候选适配](research/R003-cache-l1-necessity-and-candidate-fit/report.md)、[R004 序列化与 YAML 稳定路径](research/R004-serde-runtime-boundary-and-yaml-path/report.md)、[R005 HTTP 入口速率与过载边界](research/R005-http-entry-rate-and-overload-boundary/report.md)、[R006 认证库与凭据边界](research/R006-authn-library-and-credential-boundary/report.md)、[R007 resilience、Execution 与 HTTP Client 边界](research/R007-resilience-execution-and-http-boundary/report.md)。
 
 ## 决策流程
 
@@ -71,7 +71,14 @@
 
 ### Batch C：策略层重构
 
-先建立 HTTP/execution 下游 profile，显式表达幂等、可重试错误、总 budget、timeout、circuit、bulkhead 与观测。再以 failsafe-go 为首选 PoC、gobreaker/backoff 为较小组合对照，删除被替代的自研通用状态机。
+R007 已证明当前没有真实出站 HTTP Client 消费者或 breaker failure domain，Execution 也没有外部 primary。Batch C 不再引入组合大框架，而按实际边界单轨收敛：
+
+- `pkg/httpx` 删除 `RetryCount/RetryWaitTime/RetryMaxWaitTime` 和隐式 transport/status retry；基础 Client 每次只发送一次。未来真实下游 Adapter 自行声明幂等依据、`Retry-After`、错误分类、budget 和观测。
+- `pkg/execution` 使用项目自有 retry policy；命名 profile 明确 max attempts、initial/max delay、jitter、attempt timeout 与 total timeout。内部以 `cenkalti/backoff/v7 v7.0.0` 承担 retry/backoff，每次调用创建独立实例，显式关闭库默认 15 分钟 elapsed budget，由 context 成为总 budget authority。
+- 不可重试错误保留原错误链；caller cancellation/deadline 保留；只有实际 attempts 耗尽才附加 `ErrRetryExhausted`。第三方类型不进入业务、`Execution` 或 Kernel Access 契约。
+- 删除 `pkg/resilience` 及无消费者 breaker；`sony/gobreaker/v2` 只在真实共享下游 failure domain 出现后按 Adapter 重新研究，不建立全局 breaker。
+- 删除 `RecoveringStore`、`AsyncRecorder`、Recovery API/配置/diagnostics 和 goroutine。当前 MemoryStore 直接同步承载幂等与记录，Health 只表达 enabled/ready；未来 durable Store 先设计跨副本 Claim 与不可用时 fail-closed/degraded 语义。
+- RabbitMQ broker redelivery/重连、Scheduler coordination retry、配置稳定读取和 HTTP 入口 overload 各自保留协议 owner，不并入通用策略层。
 
 ### Batch D：高耦合真实用例 PoC
 
@@ -99,6 +106,6 @@ PoC 代码若不能作为最终单轨实现的一部分，应放在任务明确�
 
 - Batch A：`go.mod`、`go.sum`、`internal/transport/http/`、`pkg/httpx/contract/`、安全验证记录。
 - Batch B：`pkg/cache/`、`internal/kernel/app/cache/`、缓存文档与依赖清单、配置/codec 消费者、`pkg/httpx/production_middleware.go`、IAM auth Adapter。
-- Batch C：`pkg/httpx/`、`pkg/resilience/`、`pkg/execution/` 及 composition policy。
+- Batch C：`pkg/httpx/`、`pkg/resilience/`（删除）、`pkg/execution/`、`internal/kernel/app/execution/`、Todo/Schedule/Messaging 调用方、composition/config/docs 及 `go.mod/go.sum`。
 - Batch D：限定 PoC、真实模块 Adapter/测试与生成门禁；不直接改变 production authority。
 - Batch E：`internal/composition/`、`internal/kernel/`、模块构造与 lifecycle 测试。

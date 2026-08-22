@@ -8,7 +8,7 @@ areas:
     decision: updated
     documents:
       - docs/architecture/technology-selection.md
-    reason: 缓存已收敛为 Redis 单一 authority；AuthN 保留 jwx/v3 与 x/crypto/argon2；Execution 已以项目契约隔离 backoff/v7，HTTP Client 已 one-shot；Serde 已迁移官方稳定 YAML v3 并删除零消费者 Codec；入口限速以项目薄边界接入 x/time/rate；CORS 已接入 rs/cors 与标准库 CrossOriginProtection。整体方案进一步确认 HTTP 采用 Huma、Data 采用 direct GORM concrete repo、HTTP instrumentation 采用 otelhttp，以及静态 Blueprint 目标；当前 authority 明确区分已实现和待实施。
+    reason: 缓存、AuthN、Execution、Serde、限流、CORS、Huma HTTP 与 otelhttp instrumentation 已按成熟方案收敛；Data 与静态 Blueprint 仍按已确认计划待实施，authority 明确区分已实现和待实施。
   - id: module
     decision: updated
     documents:
@@ -17,18 +17,14 @@ areas:
       - internal/module/iam/README.md
       - internal/module/todo/README.md
       - internal/kernel/app/README.md
+      - pkg/observability/README.md
     reason: 记录 Auth JWT/JWK 共享刷新与取消语义、IAM 凭据演进所有权、Kernel Execution 同步 memory backend 和受控 retry 观测边界；HTTP 模块现以 Huma registration 作为单一契约源。
   - id: configuration
-    decision: updated
-    documents:
-      - docs/configuration/README.md
-      - docs/operations/runtime-capabilities.md
-    reason: HTTP rateLimit 增加 local/disabled 严格模式，明确数值校验、generation-local reload、management 排除和容量校准责任。
+    decision: reviewed-no-change
+    reason: 本批只替换 HTTP instrumentation，不改变配置键、默认值、reload 语义或 management listener 配置。
   - id: operations
-    decision: updated
-    documents:
-      - docs/operations/runtime-capabilities.md
-    reason: Execution 不再拥有 recovery/async goroutine 或 shutdown finalizer；运行矩阵改为同步 memory Store、完整 retry budget 和真实未覆盖边界；HTTP 入口保护增加成熟 token bucket 与保留的 channel overload 生命周期和验证边界。
+    decision: reviewed-no-change
+    reason: Telemetry lease、exporter lifecycle、diagnostics、Prometheus 与外部 collector 验收边界均保持，现有运行能力矩阵无需改变。
   - id: api
     decision: updated
     documents:

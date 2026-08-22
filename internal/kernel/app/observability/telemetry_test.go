@@ -12,7 +12,10 @@ import (
 
 	"github.com/rin721/go-scaffold-template/pkg/httpx"
 	pkgobservability "github.com/rin721/go-scaffold-template/pkg/observability"
+	"go.opentelemetry.io/otel/codes"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type fixedLease[T any] struct{ current T }
@@ -78,6 +81,43 @@ func TestHTTPKeepsTelemetryLeaseForWholeRequestAndRecordsStableOperation(t *test
 	text := string(payload)
 	if !strings.Contains(text, `operation="getTodo"`) || strings.Contains(text, "secret-object-id") {
 		t.Fatalf("metrics payload leaked or missed operation:\n%s", text)
+	}
+}
+
+func TestHTTPUsesSingleOTelHTTPServerSpanWithoutSensitiveURL(t *testing.T) {
+	metricsState, err := buildMetrics(t.Context(), struct{}{}, struct{}{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	metrics := &metricsAccess{delegate: fixedLease[*metricsResource]{current: metricsState}}
+	recorder := tracetest.NewSpanRecorder()
+	provider := sdktrace.NewTracerProvider(sdktrace.WithSampler(sdktrace.AlwaysSample()), sdktrace.WithSpanProcessor(recorder))
+	resource := &telemetryResource{provider: provider, tracer: provider.Tracer("test"), metrics: metrics}
+	resource.lastError.Store("")
+	resource.started.Store(true)
+	telemetry := &telemetryAccess{delegate: fixedLease[*telemetryResource]{current: resource}}
+	var downstreamTarget string
+	handler := telemetry.HTTP([]pkgobservability.Operation{{ID: "getTodo", Method: http.MethodGet, Path: "/api/v1/todos/{id}"}})(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		downstreamTarget = request.URL.RequestURI()
+		writer.WriteHeader(http.StatusInternalServerError)
+	}))
+	handler.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/api/v1/todos/secret-object-id?token=secret-query", nil))
+	if downstreamTarget != "/api/v1/todos/secret-object-id?token=secret-query" {
+		t.Fatalf("downstream target = %q", downstreamTarget)
+	}
+	spans := recorder.Ended()
+	if len(spans) != 1 {
+		t.Fatalf("server span count = %d", len(spans))
+	}
+	span := spans[0]
+	if span.Name() != "getTodo" || span.SpanKind() != trace.SpanKindServer || span.Status().Code != codes.Error {
+		t.Fatalf("span = name:%q kind:%v status:%v", span.Name(), span.SpanKind(), span.Status())
+	}
+	for _, value := range span.Attributes() {
+		text := value.Value.Emit()
+		if strings.Contains(text, "secret-object-id") || strings.Contains(text, "secret-query") {
+			t.Fatalf("span attribute leaked request target: %s=%q", value.Key, text)
+		}
 	}
 }
 

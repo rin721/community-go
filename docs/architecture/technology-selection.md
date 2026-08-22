@@ -45,7 +45,7 @@
 | 配置 | 项目实现 strict source merge、stable file、provenance/digest、binding/default 与 candidate transaction；YAML、mapstructure、fsnotify 位于窄接缝 | **保留，不引入 koanf/Viper** | `mapstructure/v2` 继续 strict decode，`fsnotify` 继续通知，YAML 按 R004 走官方稳定 v3；koanf 仍需重写冲突、稳定读取、owner 与 reload，不能形成净删除。新增远程 provider 时按来源重评 |
 | 定时调度 | `gocron/v2` 触发器 + 项目 schedule binding/execution/Redis lease | **保留** | `gocron/v2` 继续只在内部 Adapter；项目契约拥有任务身份、execution、准入、失权和诊断；耐久任务/工作流不是该能力，需按真实需求另评 `Temporal`、`River` 或 `Asynq` |
 | Messaging | 官方 `amqp091-go` + 项目 message contract/binding/consumer lifecycle | **保留，等待真实 RabbitMQ 门禁** | RabbitMQ Adapter 继续隔离 broker 类型；Kafka/NATS 不在没有业务语义时预选 |
-| Observability | OTel provider/exporter 与 Prometheus 已正确隔离，但 HTTP TraceContext/server span/status attributes 仍手工实现；otelhttp 仅残留旧 go.sum、未实际使用 | **采用官方 otelhttp，保留项目资源与诊断边界** | `otelhttp v0.70.0` + OTel v1.45.0 负责 HTTP propagation/semantic conventions/span/status；项目保留 Generation lease、稳定 operation、Prometheus metrics、trace ID bridge、bounded processor 和 exporter lifecycle |
+| Observability | OTel provider/exporter 与 Prometheus 保持隔离；手工 HTTP TraceContext/server span/status instrumentation 已删除 | **采用官方 otelhttp，保留项目资源与诊断边界，已实施** | `otelhttp v0.70.0` + OTel v1.45.0 负责 HTTP propagation/semantic conventions/span/status；项目保留 Generation lease、稳定 operation、Prometheus metrics、trace ID bridge、bounded processor 和 exporter lifecycle，并在交给标准 instrumentation 前把 URL 收敛为低基数 route template |
 
 ## 需要架构解决的问题
 
@@ -76,7 +76,7 @@ HTTP 重试、熔断、限流、缓存加载和执行恢复都涉及不同的幂
 2. **低耦合替换**：默认 L1 已退役；后续迁移官方稳定 YAML v3 路径并删除无消费者 Codec；以 `x/time/rate` 单轨替换 token bucket、修正显式启停配置但保留 channel 过载门禁；保留 jwx/v3 与 x/crypto/argon2 并补认证安全/演进语义。未来 L1、YAML v4 与 JWX v4 必须由真实需求、稳定版本和量化门禁重新授权。
 3. **策略层重构**：以 backoff/v7 收敛 Execution retry；HTTP Client 改为 one-shot；删除无消费者 breaker 和没有真实外部 primary 的恢复/异步状态机。未来下游 breaker 或组合策略按真实 failure domain 另立研究。
 4. **HTTP 单轨迁移**：先以代表性 operation 验证 Huma + OperationGate + Problem + static generation，再迁移全部模块并删除旧 contract/codec/kin-openapi validation。
-5. **浏览器安全与标准 instrumentation**：CORS 以 rs/cors/CrossOriginProtection 单轨替换手工协议部分；Huma 全量迁移后以 otelhttp 替换手工 HTTP span/propagation。
+5. **浏览器安全与标准 instrumentation**：CORS 已以 rs/cors/CrossOriginProtection 单轨替换手工协议部分；Huma 全量迁移后已以 otelhttp 替换手工 HTTP span/propagation。
 6. **Data 单轨迁移**：建立受租约约束的 GORM session bridge，分 Todo/Navigation 与 IAM/Organization 两批迁移 concrete repository，最后删除 generic Schema/Query/Repository。
 7. **架构切片**：在 Huma registration 形态冻结后引入启动期 `applicationBlueprint`，移出纯 catalog/policy/contract；runtime graph 继续由 Generation 原子切换。
 

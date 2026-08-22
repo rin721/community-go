@@ -14,9 +14,11 @@ import (
 	"github.com/rin721/go-scaffold-template/internal/kernel/app"
 	"github.com/rin721/go-scaffold-template/pkg/httpx"
 	pkgobservability "github.com/rin721/go-scaffold-template/pkg/observability"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+	metricnoop "go.opentelemetry.io/otel/metric/noop"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -31,6 +33,8 @@ type telemetryResource struct {
 	metrics   metricsRecorder
 	started   atomic.Bool
 	lastError atomic.Value
+	httpOnce  sync.Once
+	http      http.Handler
 }
 
 type telemetryAccess struct{ delegate app.Lease[*telemetryResource] }
@@ -156,29 +160,60 @@ func (r *telemetryResource) observe(ctx context.Context, work pkgobservability.W
 }
 
 func (r *telemetryResource) serveHTTP(writer http.ResponseWriter, request *http.Request, next http.Handler, operations []pkgobservability.Operation) {
-	operation := resolveOperation(request.Method, request.URL.Path, operations)
-	traceContext := propagation.TraceContext{}
-	ctx := traceContext.Extract(request.Context(), propagation.HeaderCarrier(request.Header))
-	ctx, span := r.tracer.Start(ctx, operation, trace.WithSpanKind(trace.SpanKindServer), trace.WithAttributes(
-		attribute.String("http.request.method", request.Method), attribute.String("http.route", operation),
-	))
-	if spanID := span.SpanContext().TraceID(); spanID.IsValid() {
-		ctx = httpx.WithTraceID(ctx, spanID.String())
-	}
-	request = request.WithContext(ctx)
-	capture := &statusWriter{ResponseWriter: writer, status: http.StatusOK}
-	startedAt := time.Now()
-	r.captureMetricsError(r.metrics.IncInFlight())
-	defer func() {
-		r.captureMetricsError(r.metrics.DecInFlight())
-		r.captureMetricsError(r.metrics.ObserveHTTP(operation, request.Method, capture.status, time.Since(startedAt)))
-		span.SetAttributes(attribute.Int("http.response.status_code", capture.status))
-		if capture.status >= 500 {
-			span.SetStatus(codes.Error, "server_error")
-		}
-		span.End()
-	}()
-	next.ServeHTTP(capture, request)
+	operation, route := resolveOperationRoute(request.Method, request.URL.Path, operations)
+	// otelhttp 按标准语义采集 URL 属性。传入仅含稳定 route template 的副本，
+	// 再在下游恢复原始 URL，既保留业务路由语义又不泄漏对象 ID 或 query。
+	observation := httpObservation{request: request, operation: operation, route: route}
+	sanitized := request.Clone(context.WithValue(request.Context(), httpObservationContextKey{}, observation))
+	sanitizedURL := *request.URL
+	sanitizedURL.Path, sanitizedURL.RawPath, sanitizedURL.RawQuery = route, "", ""
+	sanitized.URL, sanitized.RequestURI = &sanitizedURL, route
+	// 每个 generation resource 只构造一次 instrumentation；请求级动态事实通过
+	// 私有 context 值传入，避免每个请求重复注册 OTel instruments。
+	r.httpOnce.Do(func() {
+		r.http = otelhttp.NewHandler(http.HandlerFunc(func(response http.ResponseWriter, traced *http.Request) {
+			current, ok := traced.Context().Value(httpObservationContextKey{}).(httpObservation)
+			if !ok || current.request == nil {
+				http.Error(response, "telemetry request metadata unavailable", http.StatusServiceUnavailable)
+				return
+			}
+			ctx := traced.Context()
+			if labeler, ok := otelhttp.LabelerFromContext(ctx); ok {
+				labeler.Add(attribute.String("http.route", current.route))
+			}
+			if traceID := trace.SpanFromContext(ctx).SpanContext().TraceID(); traceID.IsValid() {
+				ctx = httpx.WithTraceID(ctx, traceID.String())
+			}
+			downstream := traced.Clone(ctx)
+			originalURL := *current.request.URL
+			downstream.URL, downstream.RequestURI = &originalURL, current.request.RequestURI
+			capture := &statusWriter{ResponseWriter: response, status: http.StatusOK}
+			startedAt := time.Now()
+			r.captureMetricsError(r.metrics.IncInFlight())
+			defer func() {
+				r.captureMetricsError(r.metrics.DecInFlight())
+				r.captureMetricsError(r.metrics.ObserveHTTP(current.operation, current.request.Method, capture.status, time.Since(startedAt)))
+			}()
+			next.ServeHTTP(capture, downstream)
+		}), "http.server",
+			otelhttp.WithTracerProvider(r.provider),
+			otelhttp.WithMeterProvider(metricnoop.NewMeterProvider()),
+			otelhttp.WithPropagators(propagation.TraceContext{}),
+			otelhttp.WithSpanNameFormatter(func(_ string, request *http.Request) string {
+				if current, ok := request.Context().Value(httpObservationContextKey{}).(httpObservation); ok {
+					return current.operation
+				}
+				return "unmatched"
+			}),
+		)
+	})
+	r.http.ServeHTTP(writer, sanitized)
+}
+
+type httpObservationContextKey struct{}
+type httpObservation struct {
+	request          *http.Request
+	operation, route string
 }
 
 func (r *telemetryResource) diagnostics() pkgobservability.Diagnostics {
@@ -374,12 +409,17 @@ func (w *statusWriter) Write(payload []byte) (int, error) {
 }
 
 func resolveOperation(method, requestPath string, operations []pkgobservability.Operation) string {
+	operation, _ := resolveOperationRoute(method, requestPath, operations)
+	return operation
+}
+
+func resolveOperationRoute(method, requestPath string, operations []pkgobservability.Operation) (string, string) {
 	for _, operation := range operations {
 		if method == operation.Method && matchPath(operation.Path, requestPath) {
-			return operation.ID
+			return operation.ID, operation.Path
 		}
 	}
-	return "unmatched"
+	return "unmatched", "/unmatched"
 }
 
 func matchPath(pattern, requestPath string) bool {

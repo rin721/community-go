@@ -36,7 +36,6 @@
 | [`clock`](clock/README.md) | 标准库 `time` | 构造系统时钟或固定时钟，封装时间格式边界。 |
 | [`secrets`](secrets/README.md) | 标准库 `crypto/rand`、`crypto/hmac`、`crypto/pbkdf2` | 封装敏感值、脱敏、随机 token、HMAC、KDF 和 secret source。 |
 | [`concurrency`](concurrency/README.md) | `x/sync` + 标准库 | 提供项目自有 singleflight、固定 worker pool 和 context 感知任务执行，不导出 errgroup 类型。 |
-| [`codec`](codec/README.md) | `encoding/json`、`yaml.v3`、`msgpack` | 构造 JSON/YAML/msgpack 编解码器，提供内容类型、大小限制和统一错误语义。 |
 | [`testkit`](testkit/README.md) | 标准库 + 项目包 | 提供 fake clock、临时文件、健康 fixture 和底层库测试辅助。 |
 | [`observability`](observability/README.md) | 项目自有契约 | 提供 HTTP observation、后台 `Work` span、Metrics endpoint 与低敏 diagnostics；Prometheus/OTel/OTLP 只存在于 Kernel App 实现。 |
 | [`execution`](execution/README.md) | 项目契约 + `backoff/v7`（包内）+ `fault`/`concurrency` | 提供进程内幂等、同步执行记录、命名重试策略、attempt/total budget 和低敏重试观测；第三方类型不进入业务契约，memory backend 不冒充 durable/recovery 能力。 |

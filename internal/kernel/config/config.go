@@ -15,7 +15,7 @@ import (
 	"strings"
 
 	"github.com/go-viper/mapstructure/v2"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v3"
 
 	"github.com/rin721/go-scaffold-template/pkg/secrets"
 )

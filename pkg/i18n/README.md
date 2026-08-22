@@ -6,7 +6,7 @@
 
 - `go-i18n/v2` 覆盖消息文件、语言匹配、模板变量和复数规则，适合后端服务、CLI 和多语言业务文本的长期维护。
 - `golang.org/x/text/language` 是 Go 官方国际化基础库，用于语言标签解析和匹配，稳定性优先于手写字符串匹配。
-- `gopkg.in/yaml.v3` 只用于加载 YAML 资源文件；业务代码不依赖 YAML 解析类型。
+- `go.yaml.in/yaml/v3` 只用于加载 YAML 资源文件；业务代码不依赖 YAML 解析类型。
 - 本包不把 go-i18n 的 `Bundle`、`Localizer`、`Message` 暴露给业务层。后续如需替换消息库，应保持 `Translator`、`Config` 和 `Message` 的项目契约稳定。
 
 ## 设计目标

@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	goi18n "github.com/nicksnyder/go-i18n/v2/i18n"
+	"go.yaml.in/yaml/v3"
 	"golang.org/x/text/language"
-	"gopkg.in/yaml.v3"
 )
 
 func resolveConfig(cfg *Config) (resolvedConfig, error) {

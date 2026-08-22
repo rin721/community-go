@@ -33,9 +33,9 @@
 | `DEP-059-001` | UI-059-001 | 再次扫描并退役零消费者 HeroUI | 删除 package 与 lock 记录；旧 symbol/import 搜索为零；不新增替代依赖 | 已完成；`@heroui/react` 从 package.json/lockfile 移除，全仓 import 搜索为零，`pnpm install --frozen-lockfile` 通过 |
 | `PERF-059-001` | BOUNDARY-059-001, PAGE-059-001 | 复核 production chunk graph 与冷启动/首次路由网络加载 | 页面保持 async chunk；未访问/无权/disabled 模块不 eager load；不引入 runtime plugin loader 或全量 prefetch | 已完成；build chunk graph 证据保存（evidence/perf-chunk-graph.txt），页面独立 chunk、locale 按语言独立 |
 | `TEST-059-001` | BOUNDARY-059-001, SHELL-059-001, SHELL-059-002, MOTION-059-001, LOAD-059-001, UI-059-001, PAGE-059-001, DEP-059-001, PERF-059-001 | 补齐 unit/architecture/i18n/E2E 回归 | 需求 059-001 至 022 均有自动化或构建/浏览器证据；已有 route/access/logout/module flow 不回归 | 已完成；56 单测（含 shell/menu/theme/motion/route-search/app-shell/i18n/ui）通过；lint/i18n/架构/模块 lint 通过；10 个 E2E 全通过 |
-| `VIS-059-001` | TEST-059-001 | 生成并人工复核多视口/主题/交互视觉矩阵 | 1440、1024、390 light/dark 与关键 overlay/skeleton 有截图和差异结论 | 进行中；19 张截图已生成并在本地 `webui/test-results/**`（被 gitignore），覆盖 1440/1024/390、light/dark、sidebar expanded/collapsed、submenu、search、theme drawer、reduced-motion、mobile drawer 与各业务页面；人工复核待用户完成 |
-| `DOC-059-001` | VIS-059-001 | 同步 WebUI authority 与变更证据 | `webui/README.md`、`docs/development/webui.md`、documentation impact 与 tasks 证据准确 | 进行中；webui/README、webui.md、documentation-impact.yaml 已更新 |
-| `GIT-059-001` | DOC-059-001 | 审查、验证并提交 059 | 只 stage 059 文件；Conventional Commit；不 push | 待执行 |
+| `VIS-059-001` | TEST-059-001 | 生成并人工复核多视口/主题/交互视觉矩阵 | 1440、1024、390 light/dark 与关键 overlay/skeleton 有截图和差异结论 | 已完成；19 张截图生成于本地 `webui/test-results/**`（被 gitignore），覆盖 1440/1024/390、light/dark、sidebar expanded/collapsed、submenu、search、theme drawer、reduced-motion、mobile drawer 与各业务页面；用户已接受当前截图为视觉验收 |
+| `DOC-059-001` | VIS-059-001 | 同步 WebUI authority 与变更证据 | `webui/README.md`、`docs/development/webui.md`、documentation impact 与 tasks 证据准确 | 已完成；webui/README、webui.md、documentation-impact.yaml 与 tasks 证据已同步 |
+| `GIT-059-001` | DOC-059-001 | 审查、验证并提交 059 | 只 stage 059 文件；Conventional Commit；不 push | 已完成；commit `b36dcc6`，只含 059 文件，未 push |
 
 ## 4. 实施顺序
 

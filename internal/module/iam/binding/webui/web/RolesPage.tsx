@@ -69,7 +69,7 @@ export default function RolesPage() {
     <PageHeader eyebrow={t("webui.iam.brand")} title={t("webui.iam.roles.title")} description={t("webui.iam.roles.description")} />
     <Surface className="toolbar"><Field label={t("webui.iam.roles.code")} value={code} onChange={(event) => setCode(event.target.value)} /><Field label={t("webui.iam.roles.name")} value={name} onChange={(event) => setName(event.target.value)} /><Button onClick={() => void createRole(code, name, "").then(refresh)}>{t("webui.iam.create")}</Button></Surface>
     <Surface className="management-panel">
-      <label>{t("webui.iam.roles.selected")}<select value={selectedID} onChange={(event) => setSelectedID(event.target.value)}>{items.map((item) => <option key={item.id} value={item.id}>{item.name} ({item.code})</option>)}</select></label>
+      <label>{t("webui.iam.roles.selected")}<select className="field-input" value={selectedID} onChange={(event) => setSelectedID(event.target.value)}>{items.map((item) => <option key={item.id} value={item.id}>{item.name} ({item.code})</option>)}</select></label>
       {selected?.system
         ? <p className="admin-note">{t("webui.iam.roles.systemReadonly")}</p>
         : <div className="permission-matrix">{groups.map((group) => <fieldset key={group.ownerModuleId}><legend>{group.ownerModuleId}</legend>{group.definitions.map((definition) => <label key={definition.key} className="permission-row"><input type="checkbox" checked={selectedKeys.includes(definition.key)} onChange={() => toggle(definition.key)} />{definition.key}<span className="permission-description">{t(definition.descriptionMessageId)}</span></label>)}</fieldset>)}</div>}

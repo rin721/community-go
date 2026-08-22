@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { type ManifestRoute } from "@webui/sdk/runtime";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { translateMessage } from "../i18n";
+import { motionDuration } from "../motion";
+import { useOverlayOpenPhase } from "./shell/overlay";
 
 export function RouteSearch({ open, routes, onClose }: { open: boolean; routes: ManifestRoute[]; onClose: () => void }) {
   const { i18n: hostI18n, t } = useWebUITranslation("webui.host");
@@ -13,6 +15,7 @@ export function RouteSearch({ open, routes, onClose }: { open: boolean; routes: 
   const dialogRef = useRef<HTMLElement>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
   const navigate = useNavigate();
+  const { phase, mounted } = useOverlayOpenPhase(open, motionDuration("standard"));
 
   useEffect(() => {
     if (!open) return;
@@ -88,8 +91,9 @@ export function RouteSearch({ open, routes, onClose }: { open: boolean; routes: 
     focusable[nextIndex]?.focus();
   };
 
-  if (!open) return null;
-  return <div className="search-overlay" role="presentation" onMouseDown={onClose}>
+  if (!mounted) return null;
+  const overlayClass = phase === "exiting" ? "search-overlay exiting" : phase === "entering" ? "search-overlay entering" : "search-overlay open";
+  return <div className={overlayClass} role="presentation" onMouseDown={onClose}>
     <section ref={dialogRef} className="route-search" role="dialog" aria-modal="true" aria-label={t("webui.host.search")} onKeyDown={handleDialogKeyDown} onMouseDown={(event) => event.stopPropagation()}>
       <div className="search-input-row">
         <Search size={19} aria-hidden="true" />

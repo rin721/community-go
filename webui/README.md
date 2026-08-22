@@ -32,3 +32,12 @@ Linux 使用 `bash scripts/verify-webui.sh`。质量链覆盖生成检查、冻�
 - 业务 WebUI 页面由对应 `internal/module/<id>` 持有；宿主 SDK 和跨模块资源规则由 WebUI 开发文档与 lint 约束。
 - WebUI 当前已证明本地 Vite 开发和静态构建；Docker/release 尚未证明会打包或托管 `webui/dist`。
 - 新增页面、模块、路由、生成契约或运行方式时，必须更新对应 authority 并提交 `documentation-impact.yaml`。
+
+## 宿主骨架与体验（059）
+
+- `webui/src/styles.css` 是平台样式唯一 authority：分区组织（token/reset/Shell/overlay/public UI/loading/responsive/reduced-motion），
+  layout/z-index/motion 由语义 token 提供（`--shell-*`、`--z-*`、`--motion-*`），业务 selector 禁止进入该文件。
+- 宿主组件按 `webui/src/components/shell/*` 拆分（Sidebar/Header/WorkspaceTabs/AccountMenu/SidebarMenu/ShellSkeleton），
+  AppShell 保留现有公开 props 并在本文件 re-export 纯函数，模块只消费 `@webui/sdk/*`。
+- loading 使用 Shell/Page/Data skeleton 单轨；reduced-motion 同时尊重显式偏好与系统 `prefers-reduced-motion`。
+- 新增平台样式、动效时长或 shell 交互时，同步更新 `webui/src/motion.ts` 与 `webui/src/theme.ts` 并补测试。

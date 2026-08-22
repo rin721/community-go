@@ -7,5 +7,5 @@ const { webuiRoot, modulesRoot, moduleFacet } = resolveLayoutPaths(project);
 const moduleTests = `${modulesRoot.replaceAll("\\", "/")}/*/${moduleFacet}/**/*.test.ts`;
 
 export default mergeConfig(viteConfig as any, defineConfig({
-  test: { include: [`${webuiRoot.replaceAll("\\", "/")}/src/**/*.test.ts`, moduleTests] },
+  test: { include: [`${webuiRoot.replaceAll("\\", "/")}/src/**/*.test.{ts,tsx}`, moduleTests] },
 }));

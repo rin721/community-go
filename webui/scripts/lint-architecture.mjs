@@ -44,6 +44,9 @@ for (const file of await sourceFiles(webuiSourceRoot)) {
   if (relativeFile.includes("/sdk/") || relativeFile.includes("/generated/")) continue;
   const source = await readFile(file, "utf8");
   if (/internal\/module\//.test(source)) errors.push(`${relativeFile}: WebUI platform source must not import business modules`);
+  // 059 BOUNDARY-001：宿主不得读取 Manifest 的 moduleId 分支业务；平台源码（含测试 fixture）中任何
+  // moduleId 属性访问都视为 ModuleID 特判，类型声明（moduleId: string）不含点号访问，不受影响。
+  if (/\.moduleId\b/.test(source)) errors.push(`${relativeFile}: WebUI platform source must not branch by ModuleID`);
 }
 
 if (errors.length > 0) {

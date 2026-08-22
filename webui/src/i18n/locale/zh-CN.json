@@ -89,6 +89,8 @@
   "webui.host.footer": "Community Go Admin WebUI",
   "webui.host.i18n.missing": "翻译资源缺失",
   "webui.host.loading.label": "正在加载",
+  "webui.host.shell.loading.label": "后台骨架加载中",
+  "webui.host.page.loading.label": "页面内容加载中",
   "webui.host.status.available": "Available",
   "webui.host.status.degraded": "Degraded",
   "webui.host.status.unavailable": "Unavailable",

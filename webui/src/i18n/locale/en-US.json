@@ -89,6 +89,8 @@
   "webui.host.footer": "Community Go Admin WebUI",
   "webui.host.i18n.missing": "Translation resource missing",
   "webui.host.loading.label": "Loading",
+  "webui.host.shell.loading.label": "Loading shell geometry",
+  "webui.host.page.loading.label": "Loading page content",
   "webui.host.status.available": "Available",
   "webui.host.status.degraded": "Degraded",
   "webui.host.status.unavailable": "Unavailable",

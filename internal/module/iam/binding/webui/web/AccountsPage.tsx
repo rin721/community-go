@@ -44,7 +44,7 @@ export default function AccountsPage() {
     <PageHeader eyebrow={t("webui.iam.brand")} title={t("webui.iam.accounts.title")} description={t("webui.iam.accounts.description")} />
     <Surface className="toolbar"><Field label={t("webui.iam.username")} value={username} onChange={(event) => setUsername(event.target.value)} /><Field label={t("webui.iam.displayName")} value={name} onChange={(event) => setName(event.target.value)} /><Field label={t("webui.iam.password")} type="password" value={password} onChange={(event) => setPassword(event.target.value)} /><Button onClick={() => void createAccount(username, name, password).then(refresh)}>{t("webui.iam.create")}</Button></Surface>
     <Surface className="management-panel">
-      <label>{t("webui.iam.accounts.selected")}<select value={selectedID} onChange={(event) => setSelectedID(event.target.value)}>{items.map((item) => <option key={item.id} value={item.id}>{item.displayName} (@{item.username})</option>)}</select></label>
+      <label>{t("webui.iam.accounts.selected")}<select className="field-input" value={selectedID} onChange={(event) => setSelectedID(event.target.value)}>{items.map((item) => <option key={item.id} value={item.id}>{item.displayName} (@{item.username})</option>)}</select></label>
       <div className="role-checklist">{candidates.map((role) => <label key={role.id} className="permission-row"><input type="checkbox" checked={roleIDs.includes(role.id)} onChange={() => toggle(role.id)} />{role.name} ({role.code})</label>)}</div>
       {message && <p className="admin-meta">{message}</p>}
       <div className="admin-meta">{t("webui.iam.accounts.revision")} rev {expectedVersion}</div>

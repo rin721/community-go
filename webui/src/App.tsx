@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-
 import { HostRuntimeProvider, type HostRuntime, type Manifest, type ManifestRoute, type PrincipalView } from "@webui/sdk/runtime";
 import { ensureRouteLocale, translateMessage } from "./i18n";
 import { AppShell, BlankLayout } from "./components/AppShell";
+import { PageSkeleton } from "./components/shell/ShellSkeleton";
 import { webuiEntryRegistry, webuiRevision } from "./generated/webui-registry";
 import { loadManifest, loadSession, logout, type WebUISession } from "./api";
 import { SystemStatePage } from "./pages/SystemStatePage";
@@ -64,7 +65,7 @@ function ManifestPage({ route, manifest }: { route: ManifestRoute; manifest: Man
   if (!routeIsLoadable(route)) return <SystemStatePage kind="unavailable" />;
   const Page = entryComponents[route.entryId];
   if (!Page) return <SystemStatePage kind="missingEntry" />;
-  return <RouteResourceBoundary route={route}><RouteErrorBoundary key={route.id}><Suspense fallback={<PageLoading />}><Page /></Suspense></RouteErrorBoundary></RouteResourceBoundary>;
+  return <RouteResourceBoundary route={route}><RouteErrorBoundary key={route.id}><Suspense fallback={<PageSkeleton />}><Page /></Suspense></RouteErrorBoundary></RouteResourceBoundary>;
 }
 
 function routeIsLoadable(route: ManifestRoute): boolean {
@@ -80,7 +81,7 @@ function RouteResourceBoundary({ route, children }: { route: ManifestRoute; chil
     void ensureRouteLocale(route).then(() => { if (active) setState("ready"); }).catch(() => { if (active) setState("error"); });
     return () => { active = false; };
   }, [route]);
-  if (state === "loading") return <PageLoading />;
+  if (state === "loading") return <PageSkeleton />;
   if (state === "error") return <SystemStatePage kind="routeError" />;
   return <>{children}</>;
 }
@@ -104,8 +105,6 @@ function RootRedirect({ manifest }: { manifest: Manifest }) {
     ?? manifest.routes.find((candidate) => candidate.unauthenticatedDefault && candidate.deliveryState === "implemented" && routeIsLoadable(candidate));
   return <Navigate to={route?.path ?? "/404"} replace />;
 }
-
-function PageLoading() { return <div className="page-loading" aria-label={translateMessage("webui.host.loading.label")}><span /><span /><span /></div>; }
 
 function StandaloneNotFound() {
   const location = useLocation();

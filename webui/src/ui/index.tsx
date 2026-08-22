@@ -1,5 +1,7 @@
 import { useEffect, useId, useRef, type ButtonHTMLAttributes, type HTMLAttributes, type InputHTMLAttributes, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
 import type { CapabilityState } from "../contracts";
+import { motionDuration } from "../motion";
+import { useOverlayOpenPhase } from "../components/shell/overlay";
 
 export function PageHeader({ eyebrow, title, description, actions }: { eyebrow?: string; title: string; description?: string; actions?: ReactNode }) {
   return <header className="page-header"><div>{eyebrow && <p className="page-eyebrow">{eyebrow}</p>}<h1>{title}</h1>{description && <p className="page-description">{description}</p>}</div>{actions && <div className="page-actions">{actions}</div>}</header>;
@@ -112,8 +114,9 @@ export function InlineAlert({ tone = "info", title, detail, action }: { tone?: "
 }
 
 export function Toast({ open, tone = "info", title, detail, closeLabel, onClose, action }: { open: boolean; tone?: "info" | "success" | "warning" | "danger"; title: string; detail?: string; closeLabel: string; onClose: () => void; action?: ReactNode }) {
-  if (!open) return null;
-  return <div className={`ui-toast ui-toast-${tone}`} role={tone === "danger" ? "alert" : "status"} aria-live={tone === "danger" ? "assertive" : "polite"}><div className="ui-toast-copy"><strong>{title}</strong>{detail && <p>{detail}</p>}</div><div className="ui-toast-actions">{action}{<button type="button" className="icon-button" onClick={onClose} aria-label={closeLabel}>×</button>}</div></div>;
+  const { mounted, phase } = useOverlayOpenPhase(open, motionDuration("standard"));
+  if (!mounted) return null;
+  return <div className={`ui-toast ui-toast-${tone} ${phase === "entering" ? "entering" : phase === "exiting" ? "exiting" : "open"}`} role={tone === "danger" ? "alert" : "status"} aria-live={tone === "danger" ? "assertive" : "polite"}><div className="ui-toast-copy"><strong>{title}</strong>{detail && <p>{detail}</p>}</div><div className="ui-toast-actions">{action}{<button type="button" className="icon-button" onClick={onClose} aria-label={closeLabel}>×</button>}</div></div>;
 }
 
 export function ConfirmDialog({ open, title, description, confirmLabel, cancelLabel, closeLabel, onConfirm, onCancel }: { open: boolean; title: string; description?: string; confirmLabel: string; cancelLabel: string; closeLabel: string; onConfirm: () => void; onCancel: () => void }) {

@@ -41,12 +41,21 @@ function readTheme(): ThemePreferences {
   }
 }
 
+// effectiveReduceMotion 把显式偏好与系统 prefers-reduced-motion 合并：
+// 显式开关表示“始终减少”，关闭表示“跟随系统”；系统变化时重新应用。
+// matchMedia 可注入，便于在无 window 的测试环境验证决策。
+export function effectiveReduceMotion(reduceMotion: boolean, matchMedia?: (query: string) => { matches: boolean }): boolean {
+  if (reduceMotion) return true;
+  if (!matchMedia && typeof window !== "undefined") matchMedia = (query) => window.matchMedia(query);
+  return Boolean(matchMedia?.("(prefers-reduced-motion: reduce)").matches);
+}
+
 function applyTheme(theme: ThemePreferences) {
   const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
   document.documentElement.dataset.colorScheme = theme.mode === "system" ? (prefersDark ? "dark" : "light") : theme.mode;
   document.documentElement.dataset.themePreset = theme.preset;
   document.documentElement.dataset.density = theme.density;
-  document.documentElement.dataset.motion = theme.reduceMotion ? "reduce" : "full";
+  document.documentElement.dataset.motion = effectiveReduceMotion(theme.reduceMotion) ? "reduce" : "full";
   document.documentElement.style.colorScheme = document.documentElement.dataset.colorScheme;
 }
 
@@ -59,10 +68,17 @@ export function useThemePreferences() {
   }, []);
   useEffect(() => {
     applyTheme(theme);
-    const media = window.matchMedia("(prefers-color-scheme: dark)");
-    const handleChange = () => theme.mode === "system" && applyTheme(theme);
-    media.addEventListener("change", handleChange);
-    return () => media.removeEventListener("change", handleChange);
+    const colorScheme = window.matchMedia("(prefers-color-scheme: dark)");
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const handleColorSchemeChange = () => theme.mode === "system" && applyTheme(theme);
+    // 系统减少动效变化必须重新应用，即使显式开关已开启也保持响应系统后续变化。
+    const handleReducedMotionChange = () => applyTheme(theme);
+    colorScheme.addEventListener("change", handleColorSchemeChange);
+    reducedMotion.addEventListener("change", handleReducedMotionChange);
+    return () => {
+      colorScheme.removeEventListener("change", handleColorSchemeChange);
+      reducedMotion.removeEventListener("change", handleReducedMotionChange);
+    };
   }, [theme]);
   return { theme, setTheme, resetTheme: () => setTheme(defaultTheme) };
 }

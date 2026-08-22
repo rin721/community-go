@@ -78,11 +78,11 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/api/v1/iam/accounts?*", async (route) => {
     await route.fulfill({ json: { items: [{ id: "user-1", username: "operator", displayName: "Operator", status: "active", mustChangePassword: false, securityRevision: 1, version: 1 }], offset: 0, limit: 100, total: 1 } });
   });
-  await page.route("**/api/v1/iam/accounts/user-1/roles", async (route) => { await route.fulfill({ json: ["role-owner"] }); });
+  await page.route("**/api/v1/iam/accounts/user-1/roles", async (route) => { await route.fulfill({ json: { accountId: "user-1", accountVersion: 1, authorizationRevision: 1, roleIds: ["role-owner"] } }); });
   await page.route("**/api/v1/iam/roles?*", async (route) => {
     await route.fulfill({ json: { items: [{ id: "role-owner", code: "owner", name: "System owner", description: "", active: true, archived: false, system: true, version: 1 }], offset: 0, limit: 100, total: 1 } });
   });
-  await page.route("**/api/v1/iam/roles/role-owner/permissions", async (route) => { await route.fulfill({ json: ["iam:account:read"] }); });
+  await page.route("**/api/v1/iam/roles/role-owner/permissions", async (route) => { await route.fulfill({ json: { roleId: "role-owner", roleVersion: 1, authorizationRevision: 1, permissionKeys: ["iam:account:read"] } }); });
   await page.route("**/api/v1/iam/permissions", async (route) => { await route.fulfill({ json: [{ key: "iam:account:read", ownerModuleId: "iam", descriptionMessageId: "permission.iam.account.read" }] }); });
   await page.route("**/api/v1/organization/departments?*", async (route) => { await route.fulfill({ json: { items: [{ id: "dept-root", code: "engineering", name: "Engineering", active: true, archived: false, version: 1 }], offset: 0, limit: 100, total: 1 } }); });
   await page.route("**/api/v1/organization/departments/tree", async (route) => { await route.fulfill({ json: [{ id: "dept-root", code: "engineering", name: "Engineering", active: true, archived: false, version: 1, children: [{ id: "dept-child", code: "platform", name: "Platform", parentId: "dept-root", active: true, archived: false, version: 1, children: [] }] }] }); });
@@ -147,6 +147,60 @@ test("login loads a module-owned dashboard and captures desktop/mobile visual ev
   await page.screenshot({ path: testInfo.outputPath("dashboard-mobile.png"), fullPage: true });
 });
 
+test("059 shell interactions keep sidebar, search, theme and reduced-motion consistent", async ({ page }, testInfo) => {
+  (page as unknown as { setWebUIState: (state: { authenticated: boolean }) => void }).setWebUIState({ authenticated: true });
+  await page.goto("/dashboard");
+  await expect(page.getByRole("heading", { name: "Runtime status" })).toBeVisible();
+
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await page.screenshot({ path: testInfo.outputPath("shell-1024.png"), fullPage: true });
+
+  // desktop sidebar 展开/收起共用同一布局 token：收起后 sidebar 宽度变化且不出现网格跳动。
+  const sidebar = page.locator(".app-sidebar");
+  const expandedWidth = await sidebar.evaluate((element) => getComputedStyle(element).width);
+  await page.getByRole("button", { name: "Collapse sidebar" }).click();
+  const collapsedWidth = await sidebar.evaluate((element) => getComputedStyle(element).width);
+  expect(Number.parseFloat(collapsedWidth)).toBeLessThan(Number.parseFloat(expandedWidth));
+  await page.screenshot({ path: testInfo.outputPath("shell-sidebar-collapsed.png"), fullPage: true });
+  await page.getByRole("button", { name: "Expand sidebar" }).click();
+
+  // 递归子菜单：展开子菜单容器常驻 DOM 并保持可见。
+  await page.getByRole("button", { name: "Expand submenu" }).click();
+  await expect(page.getByRole("link", { name: "Capability list" })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("shell-submenu.png"), fullPage: true });
+
+  // route search 提供 dialog 语义并可跳转。
+  await page.getByRole("button", { name: "Search pages Ctrl K" }).click();
+  await expect(page.getByRole("dialog", { name: "Search pages" })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("shell-search.png"), fullPage: true });
+  await page.keyboard.press("Escape");
+
+  // theme drawer 可打开并记录外观面板。
+  await page.getByRole("button", { name: "Theme settings" }).click();
+  await expect(page.getByRole("dialog", { name: "Theme settings" })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("shell-theme-drawer.png"), fullPage: true });
+  await page.keyboard.press("Escape");
+
+  // 显式减少动效：data-motion 切换到 reduce，CSS 层统一降级。
+  await page.getByRole("button", { name: "Theme settings" }).click();
+  const themeDialog = page.getByRole("dialog", { name: "Theme settings" });
+  await themeDialog.getByRole("tab", { name: "General" }).click();
+  await themeDialog.getByLabel("Reduce page motion").check();
+  await expect(page.locator("html")).toHaveAttribute("data-motion", "reduce");
+  await page.screenshot({ path: testInfo.outputPath("shell-reduced-motion.png"), fullPage: true });
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".drawer-backdrop")).not.toHaveClass(/visible/);
+  await expect(page.locator(".theme-drawer")).not.toHaveClass(/open/);
+
+  // mobile：打开抽屉后背景锁定（inert），关闭恢复触发按钮。
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("button", { name: "Open menu" }).click();
+  await expect(page.locator(".app-sidebar")).toHaveClass(/mobile-open/);
+  await page.screenshot({ path: testInfo.outputPath("shell-mobile-drawer.png"), fullPage: true });
+  await page.locator(".app-sidebar").getByRole("button", { name: "Close menu" }).click();
+  await expect(page.locator(".app-sidebar")).not.toHaveClass(/mobile-open/);
+});
+
 test("unavailable route stops business management requests", async ({ page }) => {
   const state = page as unknown as { setWebUIState: (state: { authenticated?: boolean; availability?: "available" | "degraded" | "unavailable"; access?: "allowed" | "denied" }) => void; managementRequestCount: () => number };
   state.setWebUIState({ authenticated: true, availability: "unavailable" });
@@ -180,8 +234,8 @@ test("security page and host logout preserve the private session boundary", asyn
   state.setWebUIState({ authenticated: true });
   await page.goto("/account/security");
   await expect(page.getByRole("heading", { name: "Account security" })).toBeVisible();
-  await page.locator(".account-menu summary").click();
-  await page.getByRole("button", { name: "Log out" }).click();
+  await page.getByRole("button", { name: "operator" }).click();
+  await page.getByRole("menuitem", { name: "Log out" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.getByRole("dialog").getByRole("button", { name: "Sign out" }).click();
   await page.waitForURL("**/login");

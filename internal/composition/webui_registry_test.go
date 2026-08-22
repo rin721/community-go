@@ -82,6 +82,84 @@ func TestGenerateWebUIRegistryForCatalogAcceptsIndependentModuleFixture(t *testi
 	}
 }
 
+// TestGenerateWebUIRegistryExcludesDisabledModule 证明静态可插拔的 disabled 模块在 catalog 投影阶段
+// 被完全移除：其 entry、locale 不进入生成的 registry，route 与 menu 也不进入 manifest 投影。
+// 059 BOUNDARY-001 回归：普通模块只需声明自身 facet 与 composition registration。
+func TestGenerateWebUIRegistryExcludesDisabledModule(t *testing.T) {
+	repositoryRoot := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(repositoryRoot, ".scaffold"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(repositoryRoot, "webui", "src", "generated"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(repositoryRoot, ".scaffold", "layout.json"), []byte(`{"schemaVersion":1,"roots":{"webui":"webui","modules":"internal/module","tools":".tools/bin","release":"dist"},"webui":{"moduleFacet":"binding/webui/web","source":"webui/src","platformStyles":"webui/src/styles.css","registryOutput":"webui/src/generated/webui-registry.ts"},"generatedArtifacts":{"openapi":"api/openapi.yaml","operationInventory":"internal/transport/http/api/operation_inventory.gen.go"}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(repositoryRoot, "webui", "src", "styles.css"), []byte(":root{}"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, moduleID := range []string{"fixture", "retired"} {
+		webRoot := filepath.Join(repositoryRoot, "internal", "module", moduleID, "binding", "webui", "web")
+		if err := os.MkdirAll(filepath.Join(webRoot, "locale"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(webRoot, "Page.tsx"), []byte("export default function Page() { return null; }\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(webRoot, "locale", "en-US.json"), []byte(`{"webui.`+moduleID+`.title":"`+moduleID+`"}`), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	fixture := moduleFixtureBinding("fixture")
+	retired := moduleFixtureBinding("retired")
+	catalog, err := webuicontract.BuildApplicationCatalog([]webuicontract.ModuleRegistration{
+		{Binding: fixture, Activation: webuicontract.ActivationEnabled},
+		{Binding: retired, Activation: webuicontract.ActivationDisabled},
+	}, webuicontract.SDKInventory{"runtime": 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	generated, err := GenerateWebUIRegistryForCatalog(catalog, repositoryRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(generated, "retired") {
+		t.Fatalf("disabled module leaked into generated registry:\n%s", generated)
+	}
+	for _, expected := range []string{
+		`"fixture.page": () => import("../../../internal/module/fixture/binding/webui/web/Page")`,
+		`"webui.fixture": () => import("../../../internal/module/fixture/binding/webui/web/locale/en-US.json")`,
+	} {
+		if !strings.Contains(generated, expected) {
+			t.Fatalf("enabled fixture registry is missing %s:\n%s", expected, generated)
+		}
+	}
+	manifest := catalog.ManifestFor(func(string) webuicontract.Access { return webuicontract.AccessAllowed })
+	for _, route := range manifest.Routes {
+		if route.ModuleID == "retired" {
+			t.Fatalf("disabled module route leaked into manifest: %#v", route)
+		}
+	}
+	for _, item := range manifest.Menu {
+		if item.ModuleID == "retired" {
+			t.Fatalf("disabled module menu leaked into manifest: %#v", item)
+		}
+	}
+}
+
+func moduleFixtureBinding(moduleID string) webuicontract.Binding {
+	return webuicontract.Binding{
+		ModuleID:   moduleID,
+		Entries:    []webuicontract.Entry{{ID: moduleID + ".page", SourcePath: "Page.tsx"}},
+		Routes:     []webuicontract.Route{{ID: moduleID + ".page", Path: "/" + moduleID, EntryID: moduleID + ".page", TitleMessageID: "webui." + moduleID + ".title", Layout: webuicontract.RouteLayoutApp, DeliveryState: webuicontract.DeliveryImplemented, Default: true}},
+		Navigation: []webuicontract.Navigation{{ID: moduleID + ".page", RouteID: moduleID + ".page", TitleMessageID: "webui." + moduleID + ".title", IconID: "circle"}},
+		Locales:    []webuicontract.Locale{{Language: "en-US", Namespace: "webui." + moduleID, SourcePath: "locale/en-US.json"}},
+		Requires:   []webuicontract.SDKRequirement{{ID: "runtime", MajorVersion: 1}},
+	}
+}
+
 func TestApplicationWebUICatalogProtectsIAMSecurityAndExposesNavigation(t *testing.T) {
 	catalog, err := applicationWebUICatalog()
 	if err != nil {

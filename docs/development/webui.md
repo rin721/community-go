@@ -55,6 +55,8 @@ IAM 用户密码可通过 `go run ./cmd/app iam reset-password --username <用�
 
 模块样式必须放在模块自己的 `binding/webui/web/*.module.css`，页面根节点使用模块 CSS Module scope；宿主 `webui/src/styles.css` 只允许保留 reset、design token、Shell/platform 和公共 SDK UI 规则。业务 selector 不得回流宿主全局 CSS。`pnpm lint:architecture` 会按目录动态发现所有模块，但通过结果仍只覆盖当前源码和静态规则。
 
+宿主 Shell 按 `webui/src/components/shell/*` 拆分：`AppSidebar`（品牌、递归菜单、移动抽屉语义）、`AppHeader`（topbar 与工具优先级）、`WorkspaceTabs`（已访问页签与 roving keyboard）、`AccountMenu`（账号 popover，统一 dismiss/focus）、`SidebarMenu`（递归菜单树与子菜单常驻 DOM）、`ShellSkeleton`/`PageSkeleton`（几何占位）。`AppShell` 保留现有公开 props，只负责 manifest/principal/logout 转宿主 view model 并协调 overlay、visited tabs 与 route content。平台样式 token（`--shell-*` 布局、`--z-*` 层级、`--motion-*` 时长与 easing、surface/border/radius/shadow/spacing）集中在 `styles.css` token 分区；前端侧同一个动效常量维护在 `webui/src/motion.ts`，overlay 四态状态机在 `webui/src/components/shell/overlay.ts`。reduced-motion 决策由 `webui/src/theme.ts` 合并显式偏好与系统 `prefers-reduced-motion`，最终落到 `data-motion` 供样式统一降级。
+
 ## 强制 i18n 契约
 
 WebUI i18n 是所有接入模块必须遵守的规范契约。模块只要贡献页面、菜单或状态，就必须在自身 WebUI Binding 中声明 locale namespace 和资源文件；没有 locale Binding 的模块不得进入生产 registry。locale namespace 的 owner 始终是业务模块，宿主只负责聚合、加载、语言选择、fallback 和缺失资源状态。

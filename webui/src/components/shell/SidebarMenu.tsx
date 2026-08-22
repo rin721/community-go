@@ -1,0 +1,53 @@
+import { Activity, ChevronDown, CircleUserRound } from "lucide-react";
+import { Link } from "react-router-dom";
+import type { ManifestMenu, ManifestRoute } from "@webui/sdk/runtime";
+import { translateMessage } from "../../i18n";
+
+// SidebarMenuEntry 是宿主菜单树节点：item 是 Manifest 声明，route 是已通过 access/availability 门禁的路由。
+export type SidebarMenuEntry = { item: ManifestMenu; route: ManifestRoute; children: SidebarMenuEntry[] };
+
+// buildMenuTree 把扁平菜单声明按 parentId 组装成稳定递归树；无法匹配的节点归入根。
+export function buildMenuTree(entries: Array<{ item: ManifestMenu; route: ManifestRoute }>): SidebarMenuEntry[] {
+  const nodes = entries.map(({ item, route }) => ({ item, route, children: [] as SidebarMenuEntry[] }));
+  const byID = new Map(nodes.map((node) => [node.item.id, node]));
+  const roots: SidebarMenuEntry[] = [];
+  for (const node of nodes) {
+    const parent = node.item.parentId ? byID.get(node.item.parentId) : undefined;
+    if (parent) parent.children.push(node);
+    else roots.push(node);
+  }
+  return roots;
+}
+
+// findMenuAncestors 返回当前 route 所属的祖先菜单 id 链（不含 route 自身），用于 active/展开语义。
+export function findMenuAncestors(entries: SidebarMenuEntry[], routeID?: string): string[] {
+  for (const entry of entries) {
+    if (entry.route.id === routeID) return [];
+    const childAncestors = findMenuAncestors(entry.children, routeID);
+    if (childAncestors.length > 0 || entry.children.some((child) => child.route.id === routeID)) return [entry.item.id, ...childAncestors];
+  }
+  return [];
+}
+
+// menuContainsRoute 判断节点或其后代是否承载当前 route，用于 active 祖先的高亮。
+export function menuContainsRoute(entry: SidebarMenuEntry, routeID?: string): boolean {
+  return entry.route.id === routeID || entry.children.some((child) => menuContainsRoute(child, routeID));
+}
+
+export function MenuIcon({ iconID }: { iconID: string }) {
+  if (iconID === "activity") return <Activity size={18} />;
+  if (iconID === "user") return <CircleUserRound size={18} />;
+  return <span className="menu-icon-fallback" />;
+}
+
+// SidebarMenu 递归渲染菜单树。子菜单容器常驻 DOM（grid row + opacity 表达 open/closed），
+// closed subtree 通过 inert/aria-hidden 移出焦点与可访问树，避免隐藏链接进入键盘路径。
+export function SidebarMenu({ entries, currentRouteID, expandedMenuIDs, onToggle, level = 0 }: { entries: SidebarMenuEntry[]; currentRouteID?: string; expandedMenuIDs: Set<string>; onToggle: (menuID: string) => void; level?: number }) {
+  return <>{entries.map((entry) => {
+    const hasChildren = entry.children.length > 0;
+    const expanded = expandedMenuIDs.has(entry.item.id);
+    const active = menuContainsRoute(entry, currentRouteID);
+    const label = translateMessage(entry.item.titleMessageId);
+    return <div className="sidebar-menu-group" key={entry.item.id}><div className={active ? "sidebar-entry active" : "sidebar-entry"}><Link to={entry.route.path} title={label} aria-label={label} className={entry.route.id === currentRouteID ? "sidebar-link active" : "sidebar-link"} style={{ paddingLeft: `${11 + level * 14}px` }}><MenuIcon iconID={entry.item.iconId} /><span aria-hidden="true">{label}</span></Link>{hasChildren && <button className="sidebar-group-toggle" onClick={() => onToggle(entry.item.id)} aria-expanded={expanded} aria-label={translateMessage(expanded ? "webui.host.menu.collapse" : "webui.host.menu.expand")}><ChevronDown size={14} /></button>}</div>{hasChildren && <div className={`sidebar-submenu${expanded ? " open" : ""}`} aria-hidden={!expanded} inert={!expanded}><div className="sidebar-submenu-inner"><SidebarMenu entries={entry.children} currentRouteID={currentRouteID} expandedMenuIDs={expandedMenuIDs} onToggle={onToggle} level={level + 1} /></div></div>}</div>;
+  })}</>;
+}

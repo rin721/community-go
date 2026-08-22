@@ -32,6 +32,38 @@ const (
 	RouteLayoutBlank RouteLayout = "blank"
 )
 
+// ZoneID 标识宿主骨架分区；zone 是分区注入点的稳定枚举（Go 与前端共享契约）。
+type ZoneID string
+
+const (
+	// ZoneHeaderActions 是顶栏操作区注入点（全局快捷入口、环境快捷操作）。
+	ZoneHeaderActions ZoneID = "header-actions"
+	// ZoneSidebarPanels 是侧边栏辅助面板区注入点（辅助信息面板、模块状态摘要）。
+	ZoneSidebarPanels ZoneID = "sidebar-panels"
+	// ZonePageHeader 是页面页头区域注入点（页头动作、状态摘要）。
+	ZonePageHeader ZoneID = "page-header"
+	// ZoneWorkspaceTabActions 是标签页栏操作区注入点（页签级操作控件）。
+	ZoneWorkspaceTabActions ZoneID = "workspace-tabs"
+	// ZoneFooterStatus 是底部状态栏注入点（版本/revision/模块状态项）。
+	ZoneFooterStatus ZoneID = "footer-status"
+)
+
+// PageHeaderItemKind 区分页头注入内容的呈现形态。
+type PageHeaderItemKind string
+
+const (
+	PageHeaderItemKindAction PageHeaderItemKind = "action"
+	PageHeaderItemKindStatus PageHeaderItemKind = "status"
+)
+
+// FooterStatusKind 区分底部状态注入内容的呈现形态。
+type FooterStatusKind string
+
+const (
+	FooterStatusKindStatus FooterStatusKind = "status"
+	FooterStatusKindMeta   FooterStatusKind = "meta"
+)
+
 // Access 表示当前请求对页面查看 operation 的访问结果。
 type Access string
 
@@ -80,13 +112,27 @@ type ModuleRegistration struct {
 }
 
 // Binding 是模块拥有的不可变 WebUI 声明。声明 Entry 的模块必须同时声明 locale 与
-// mock 数据源；SourcePath 只用于构建期生成。
+// mock 数据源；SourcePath 只用于构建期生成。分区注入点（HeaderActions 等）是
+// 既有 route/menu 之上新增的类型化骨架注入面，语义保持向后兼容。
 type Binding struct {
 	ModuleID   string
 	Entries    []Entry
 	Routes     []Route
 	Navigation []Navigation
-	Locales    []Locale
+	// HeaderActions 是顶栏操作区注入点。
+	HeaderActions []HeaderAction
+	// SidebarPanels 是侧边栏辅助面板区注入点。
+	SidebarPanels []SidebarPanel
+	// PageHeaderItems 是页头区域注入点。
+	PageHeaderItems []PageHeaderItem
+	// WorkspaceTabActions 是标签页栏操作区注入点。
+	WorkspaceTabActions []WorkspaceTabAction
+	// FooterStatusItems 是底部状态栏注入点。
+	FooterStatusItems []FooterStatusItem
+	// ActionPermissions 是模块页面内动作的权限钩子声明（OperationID 集合）。
+	// Manifest 投影为 actionPermissions 供 SDK useActionAccess 控制呈现，不构成授权。
+	ActionPermissions []ActionPermission
+	Locales           []Locale
 	// MockSource 是模块浏览器端 mock 数据路由表的源文件（webui facet 相对路径，如 mock.ts）。
 	// 声明 Entry 的模块必须提供，保证显式声明 mock 环境时整个 WebUI 有完整本地数据。
 	MockSource string
@@ -121,6 +167,54 @@ type Navigation struct {
 	TitleMessageID string
 	IconID         string
 	Order          int
+}
+
+// ZoneContributionBase 是所有分区注入点的公共字段；每类 zone 用独立结构体组合它，
+// 避免万能 map/any 容器。EntryID 复用 Binding.Entries 声明（渲染组件仍懒加载）。
+type ZoneContributionBase struct {
+	ID             string
+	EntryID        string
+	TitleMessageID string
+	// OperationID 是可选的动作级权限钩子；非空时必须存在于应用 operation inventory，
+	// Manifest 投影时经 access 判定（呈现控制，不构成授权）。
+	OperationID string
+	Order       int
+}
+
+// HeaderAction 是顶栏操作区注入点。
+type HeaderAction struct {
+	ZoneContributionBase
+	IconID string
+}
+
+// SidebarPanel 是侧边栏辅助面板区注入点。
+type SidebarPanel struct {
+	ZoneContributionBase
+	IconID string
+}
+
+// PageHeaderItem 是页头区域注入点。
+type PageHeaderItem struct {
+	ZoneContributionBase
+	Kind PageHeaderItemKind
+}
+
+// WorkspaceTabAction 是标签页栏操作区注入点。
+type WorkspaceTabAction struct {
+	ZoneContributionBase
+	IconID string
+}
+
+// FooterStatusItem 是底部状态栏注入点。
+type FooterStatusItem struct {
+	ZoneContributionBase
+	Kind FooterStatusKind
+}
+
+// ActionPermission 是模块页面内动作的权限钩子：OperationID 必须存在于应用
+// operation inventory；Manifest 投影为 actionPermissions，供前端做呈现控制。
+type ActionPermission struct {
+	OperationID string
 }
 
 // Locale 是模块拥有的浏览器语言资源。
@@ -160,10 +254,33 @@ type NavigationPolicySnapshot struct {
 
 // Manifest 是可安全返回给浏览器的运行时视图，不包含文件系统路径。
 type Manifest struct {
-	CatalogRevision    string          `json:"catalogRevision"`
-	NavigationRevision string          `json:"navigationRevision"`
-	Routes             []ManifestRoute `json:"routes"`
-	Menu               []ManifestMenu  `json:"menu"`
+	CatalogRevision    string                       `json:"catalogRevision"`
+	NavigationRevision string                       `json:"navigationRevision"`
+	Routes             []ManifestRoute              `json:"routes"`
+	Menu               []ManifestMenu               `json:"menu"`
+	Zones              []ManifestZone               `json:"zones"`
+	ActionPermissions  []ManifestActionPermission   `json:"actionPermissions,omitempty"`
+}
+
+// ManifestZone 是剥离构建期字段后的分区注入点：已通过 access/availability 门禁的
+// 模块骨架贡献。Kind 只对 page-header/footer-status 注入点有意义，其余 zone 为空。
+type ManifestZone struct {
+	ModuleID       string `json:"moduleId"`
+	Zone           ZoneID `json:"zone"`
+	ID             string `json:"id"`
+	EntryID        string `json:"entryId"`
+	TitleMessageID string `json:"titleMessageId"`
+	IconID         string `json:"iconId,omitempty"`
+	Kind           string `json:"kind,omitempty"`
+	Order          int    `json:"order"`
+	Access         Access `json:"access"`
+}
+
+// ManifestActionPermission 是动作级权限钩子的运行时视图：服务端按 operation 判定
+// access 后投影，前端据此控制触发器的呈现（不构成授权）。
+type ManifestActionPermission struct {
+	OperationID string `json:"operationId"`
+	Access      Access `json:"access"`
 }
 
 // ManifestRoute 是剥离构建期字段后的路由。
@@ -251,11 +368,11 @@ func (c Catalog) ManifestFor(accessLookup func(string) Access) Manifest {
 func (c Catalog) ManifestForWithAvailability(accessLookup func(string) Access, availabilityLookup func(string) Availability) Manifest {
 	policy, err := BuildNavigationPolicySnapshot(c)
 	if err != nil {
-		return Manifest{CatalogRevision: c.Revision}
+		return Manifest{CatalogRevision: c.Revision, Zones: []ManifestZone{}}
 	}
 	manifest, err := c.ManifestForWithNavigation(policy, accessLookup, availabilityLookup)
 	if err != nil {
-		return Manifest{CatalogRevision: c.Revision}
+		return Manifest{CatalogRevision: c.Revision, Zones: []ManifestZone{}}
 	}
 	return manifest
 }
@@ -271,8 +388,16 @@ func (c Catalog) ManifestForWithNavigation(policy NavigationPolicySnapshot, acce
 	if availabilityLookup == nil {
 		availabilityLookup = func(string) Availability { return Availability{State: AvailabilityUnavailable} }
 	}
-	manifest := Manifest{CatalogRevision: c.Revision, NavigationRevision: policy.Revision}
+	manifest := Manifest{CatalogRevision: c.Revision, NavigationRevision: policy.Revision, Zones: []ManifestZone{}}
 	loadableRoutes := map[string]bool{}
+	actionAccess := map[string]Access{}
+	recordAction := func(operationID string, access Access) {
+		access = normalizeAccess(access)
+		current, exists := actionAccess[operationID]
+		if !exists || accessRank(access) > accessRank(current) {
+			actionAccess[operationID] = access
+		}
+	}
 	for _, binding := range c.Bindings {
 		for _, route := range binding.Routes {
 			if route.DeliveryState != DeliveryImplemented {
@@ -307,6 +432,28 @@ func (c Catalog) ManifestForWithNavigation(policy NavigationPolicySnapshot, acce
 				TitleMessageID: item.TitleMessageID, IconID: item.IconID, Order: effective.Order,
 			})
 		}
+		for _, contribution := range bindingZoneContributions(binding) {
+			// zone 与 route 不同：denied 不投影；无 OperationID 的贡献只受 availability 门禁。
+			if contribution.OperationID == "" {
+				if availabilityLookup(contribution.ID).State != AvailabilityAvailable {
+					continue
+				}
+				manifest.Zones = append(manifest.Zones, contribution.toManifest(binding.ModuleID, AccessAllowed))
+				continue
+			}
+			access := normalizeAccess(accessLookup(contribution.OperationID))
+			recordAction(contribution.OperationID, access)
+			if access == AccessDenied || availabilityLookup(contribution.ID).State != AvailabilityAvailable {
+				continue
+			}
+			manifest.Zones = append(manifest.Zones, contribution.toManifest(binding.ModuleID, access))
+		}
+		for _, permission := range binding.ActionPermissions {
+			recordAction(permission.OperationID, normalizeAccess(accessLookup(permission.OperationID)))
+		}
+	}
+	for _, operationID := range sortedActionOperations(actionAccess) {
+		manifest.ActionPermissions = append(manifest.ActionPermissions, ManifestActionPermission{OperationID: operationID, Access: actionAccess[operationID]})
 	}
 	manifest.Menu = retainMenuWithVisibleParents(manifest.Menu)
 	sort.Slice(manifest.Routes, func(i, j int) bool { return manifest.Routes[i].ID < manifest.Routes[j].ID })
@@ -316,7 +463,131 @@ func (c Catalog) ManifestForWithNavigation(policy NavigationPolicySnapshot, acce
 		}
 		return manifest.Menu[i].ID < manifest.Menu[j].ID
 	})
+	sort.Slice(manifest.Zones, func(i, j int) bool {
+		leftRank, rightRank := zoneSortRank(manifest.Zones[i].Zone), zoneSortRank(manifest.Zones[j].Zone)
+		if leftRank != rightRank {
+			return leftRank < rightRank
+		}
+		if manifest.Zones[i].Order != manifest.Zones[j].Order {
+			return manifest.Zones[i].Order < manifest.Zones[j].Order
+		}
+		return manifest.Zones[i].ID < manifest.Zones[j].ID
+	})
 	return manifest, nil
+}
+
+// zoneSortRank 按骨架布局顺序（顶栏→侧边栏→页头→页签→底部）稳定排序，
+// 避免 zone 标识的字母序与用户视觉顺序不一致。
+func zoneSortRank(zone ZoneID) int {
+	switch zone {
+	case ZoneHeaderActions:
+		return 0
+	case ZoneSidebarPanels:
+		return 1
+	case ZonePageHeader:
+		return 2
+	case ZoneWorkspaceTabActions:
+		return 3
+	case ZoneFooterStatus:
+		return 4
+	}
+	return 99
+}
+
+// normalizeAccess 把未知 access 收敛为 deny（fail closed），保持判定语义单一。
+func normalizeAccess(access Access) Access {
+	if access != AccessAllowed && access != AccessAuthenticationRequired && access != AccessDenied {
+		return AccessDenied
+	}
+	return access
+}
+
+// accessRank 定义动作权限的从严排序：denied > authentication-required > allowed。
+func accessRank(access Access) int {
+	switch normalizeAccess(access) {
+	case AccessDenied:
+		return 2
+	case AccessAuthenticationRequired:
+		return 1
+	default:
+		return 0
+	}
+}
+
+// sortedActionOperations 返回排序后的动作 operation ID 列表（Manifest 输出稳定）。
+func sortedActionOperations(values map[string]Access) []string {
+	result := make([]string, 0, len(values))
+	for operationID := range values {
+		result = append(result, operationID)
+	}
+	sort.Strings(result)
+	return result
+}
+
+// zoneContributionRef 是 flatten 后的分区注入点引用，供校验与 Manifest 投影共用。
+type zoneContributionRef struct {
+	Zone           ZoneID
+	ID             string
+	EntryID        string
+	TitleMessageID string
+	IconID         string
+	Kind           string
+	OperationID    string
+	Order          int
+}
+
+func (ref zoneContributionRef) toManifest(moduleID string, access Access) ManifestZone {
+	return ManifestZone{
+		ModuleID: moduleID, Zone: ref.Zone, ID: ref.ID, EntryID: ref.EntryID,
+		TitleMessageID: ref.TitleMessageID, IconID: ref.IconID, Kind: ref.Kind,
+		Order: ref.Order, Access: access,
+	}
+}
+
+// ZoneContribution 是分区注入点的统一扁平视图（Go 生成器与 Manifest 投影共用），
+// 不暴露模块内部字段；字段与 zoneContributionRef 同步。
+type ZoneContribution struct {
+	Zone           ZoneID
+	ID             string
+	EntryID        string
+	TitleMessageID string
+	IconID         string
+	Kind           string
+	OperationID    string
+	Order          int
+}
+
+// ZoneContributions 展开 Binding 的五类分区注入点为统一视图；纯声明投影，不做门禁。
+func (b Binding) ZoneContributions() []ZoneContribution {
+	refs := bindingZoneContributions(b)
+	contributions := make([]ZoneContribution, len(refs))
+	for index, ref := range refs {
+		contributions[index] = ZoneContribution(ref)
+	}
+	return contributions
+}
+
+// bindingZoneContributions 把 Binding 的五类分区注入点展开为统一引用列表。
+// 纯声明投影，不在此处做门禁；门禁在 ManifestForWithNavigation 内按 access/availability 判定。
+func bindingZoneContributions(binding Binding) []zoneContributionRef {
+	refs := make([]zoneContributionRef, 0,
+		len(binding.HeaderActions)+len(binding.SidebarPanels)+len(binding.PageHeaderItems)+len(binding.WorkspaceTabActions)+len(binding.FooterStatusItems))
+	for _, item := range binding.HeaderActions {
+		refs = append(refs, zoneContributionRef{Zone: ZoneHeaderActions, ID: item.ID, EntryID: item.EntryID, TitleMessageID: item.TitleMessageID, IconID: item.IconID, OperationID: item.OperationID, Order: item.Order})
+	}
+	for _, item := range binding.SidebarPanels {
+		refs = append(refs, zoneContributionRef{Zone: ZoneSidebarPanels, ID: item.ID, EntryID: item.EntryID, TitleMessageID: item.TitleMessageID, IconID: item.IconID, OperationID: item.OperationID, Order: item.Order})
+	}
+	for _, item := range binding.PageHeaderItems {
+		refs = append(refs, zoneContributionRef{Zone: ZonePageHeader, ID: item.ID, EntryID: item.EntryID, TitleMessageID: item.TitleMessageID, Kind: string(item.Kind), OperationID: item.OperationID, Order: item.Order})
+	}
+	for _, item := range binding.WorkspaceTabActions {
+		refs = append(refs, zoneContributionRef{Zone: ZoneWorkspaceTabActions, ID: item.ID, EntryID: item.EntryID, TitleMessageID: item.TitleMessageID, IconID: item.IconID, OperationID: item.OperationID, Order: item.Order})
+	}
+	for _, item := range binding.FooterStatusItems {
+		refs = append(refs, zoneContributionRef{Zone: ZoneFooterStatus, ID: item.ID, EntryID: item.EntryID, TitleMessageID: item.TitleMessageID, Kind: string(item.Kind), OperationID: item.OperationID, Order: item.Order})
+	}
+	return refs
 }
 
 const (
@@ -454,6 +725,11 @@ func projectImplementedRoutes(binding Binding) (Binding, error) {
 		implementedRoutes[route.ID] = struct{}{}
 		implementedEntries[route.EntryID] = struct{}{}
 	}
+	// zone 引用的 entry 是与路由页面同轨的可加载组件：只要绑定未被
+	// BuildApplicationCatalog 整体丢弃（无任何 implemented route），这些 entry 必须保留。
+	for _, contribution := range bindingZoneContributions(binding) {
+		implementedEntries[contribution.EntryID] = struct{}{}
+	}
 	projected.Entries = nil
 	for _, entry := range binding.Entries {
 		if _, ok := implementedEntries[entry.ID]; ok {
@@ -465,7 +741,27 @@ func projectImplementedRoutes(binding Binding) (Binding, error) {
 			projected.Navigation = append(projected.Navigation, item)
 		}
 	}
+	projected.HeaderActions = retainZonesByEntry(projected.HeaderActions, implementedEntries, func(item HeaderAction) string { return item.EntryID })
+	projected.SidebarPanels = retainZonesByEntry(projected.SidebarPanels, implementedEntries, func(item SidebarPanel) string { return item.EntryID })
+	projected.PageHeaderItems = retainZonesByEntry(projected.PageHeaderItems, implementedEntries, func(item PageHeaderItem) string { return item.EntryID })
+	projected.WorkspaceTabActions = retainZonesByEntry(projected.WorkspaceTabActions, implementedEntries, func(item WorkspaceTabAction) string { return item.EntryID })
+	projected.FooterStatusItems = retainZonesByEntry(projected.FooterStatusItems, implementedEntries, func(item FooterStatusItem) string { return item.EntryID })
 	return projected, nil
+}
+
+// retainZonesByEntry 只保留引用已实现 entry 的分区注入点，与 route/navigation 的
+// implemented 投影保持同轨；items 无元素时返回 nil，不产生空 slice 噪声。
+func retainZonesByEntry[T any](items []T, implementedEntries map[string]struct{}, entryID func(T) string) []T {
+	if len(items) == 0 {
+		return nil
+	}
+	kept := items[:0]
+	for _, item := range items {
+		if _, ok := implementedEntries[entryID(item)]; ok {
+			kept = append(kept, item)
+		}
+	}
+	return kept
 }
 
 func normalizeAvailability(route Route, availability Availability) Availability {
@@ -587,6 +883,7 @@ func validateBindings(bindings []Binding) error {
 	routes := map[string]RouteOwner{}
 	paths := map[string]string{}
 	navigation := map[string]string{}
+	zones := map[string]string{}
 	locales := map[string]string{}
 	defaultRouteID := ""
 	unauthenticatedDefaultRouteID := ""
@@ -671,8 +968,8 @@ func validateBindings(bindings []Binding) error {
 			paths[route.Path] = binding.ModuleID
 		}
 		for _, item := range binding.Navigation {
-			if item.ID == "" || item.RouteID == "" || item.TitleMessageID == "" || item.IconID == "" {
-				return fmt.Errorf("webui module %q navigation is incomplete", binding.ModuleID)
+			if item.ID == "" || item.RouteID == "" || item.TitleMessageID == "" || item.IconID == "" || !ValidIconID(item.IconID) {
+				return fmt.Errorf("webui module %q navigation is incomplete or uses an icon outside the catalog", binding.ModuleID)
 			}
 			if _, exists := navigation[item.ID]; exists {
 				return fmt.Errorf("webui navigation %q is duplicated", item.ID)
@@ -689,6 +986,24 @@ func validateBindings(bindings []Binding) error {
 					return fmt.Errorf("webui navigation %q references unknown parent %q", item.ID, item.ParentID)
 				}
 			}
+		}
+		for _, contribution := range bindingZoneContributions(binding) {
+			if err := validateZoneContribution(binding, contribution, entries, zones); err != nil {
+				return err
+			}
+		}
+		if refs := bindingZoneContributions(binding); len(refs) > maximumZoneContributionsPerModule {
+			return fmt.Errorf("webui module %q declares %d zone contributions, exceeding the limit %d", binding.ModuleID, len(refs), maximumZoneContributionsPerModule)
+		}
+		seenActions := map[string]struct{}{}
+		for _, permission := range binding.ActionPermissions {
+			if strings.TrimSpace(permission.OperationID) == "" {
+				return fmt.Errorf("webui module %q declares an empty action permission", binding.ModuleID)
+			}
+			if _, exists := seenActions[permission.OperationID]; exists {
+				return fmt.Errorf("webui module %q action permission %q is duplicated", binding.ModuleID, permission.OperationID)
+			}
+			seenActions[permission.OperationID] = struct{}{}
 		}
 		for _, locale := range binding.Locales {
 			if locale.Namespace == "" || strings.TrimSpace(locale.SourcePath) == "" {
@@ -730,7 +1045,61 @@ func (c Catalog) ValidateOperationReferences(operations map[string]struct{}) err
 				}
 			}
 		}
+		for _, contribution := range bindingZoneContributions(binding) {
+			if contribution.OperationID != "" {
+				if _, ok := operations[contribution.OperationID]; !ok {
+					return fmt.Errorf("webui zone %q references unknown operation %q", contribution.ID, contribution.OperationID)
+				}
+			}
+		}
+		for _, permission := range binding.ActionPermissions {
+			if _, ok := operations[permission.OperationID]; !ok {
+				return fmt.Errorf("webui action permission references unknown operation %q", permission.OperationID)
+			}
+		}
 	}
+	return nil
+}
+
+// maximumZoneContributionsPerModule 限制单模块分区注入点总数，防止声明集合失控。
+const maximumZoneContributionsPerModule = 48
+
+// validateZoneContribution 校验单个分区注入点引用：ID 唯一、Entry 属于本模块、
+// 图标属于受控目录（有图标字段的 zone）、Kind 合法、Order 与数量在界内。
+func validateZoneContribution(binding Binding, contribution zoneContributionRef, entries map[string]string, zones map[string]string) error {
+	if strings.TrimSpace(contribution.ID) == "" || strings.TrimSpace(contribution.TitleMessageID) == "" {
+		return fmt.Errorf("webui module %q zone contribution is incomplete", binding.ModuleID)
+	}
+	if _, exists := zones[contribution.ID]; exists {
+		return fmt.Errorf("webui zone %q is duplicated", contribution.ID)
+	}
+	if owner, exists := entries[contribution.EntryID]; !exists || owner != binding.ModuleID {
+		return fmt.Errorf("webui zone %q references unknown entry %q", contribution.ID, contribution.EntryID)
+	}
+	if contribution.Order < minimumNavigationOrder || contribution.Order > maximumNavigationOrder {
+		return fmt.Errorf("webui zone %q order %d is outside supported range", contribution.ID, contribution.Order)
+	}
+	if contribution.IconID != "" && !ValidIconID(contribution.IconID) {
+		return fmt.Errorf("webui zone %q uses icon %q outside the catalog", contribution.ID, contribution.IconID)
+	}
+	switch contribution.Zone {
+	case ZonePageHeader:
+		if contribution.Kind != string(PageHeaderItemKindAction) && contribution.Kind != string(PageHeaderItemKindStatus) {
+			return fmt.Errorf("webui zone %q has unsupported page header kind %q", contribution.ID, contribution.Kind)
+		}
+	case ZoneFooterStatus:
+		if contribution.Kind != string(FooterStatusKindStatus) && contribution.Kind != string(FooterStatusKindMeta) {
+			return fmt.Errorf("webui zone %q has unsupported footer status kind %q", contribution.ID, contribution.Kind)
+		}
+	case ZoneHeaderActions, ZoneSidebarPanels, ZoneWorkspaceTabActions:
+		// 有图标字段的 zone 必须声明图标（页面呈现需要一致的图标语义）。
+		if contribution.IconID == "" {
+			return fmt.Errorf("webui zone %q must declare an icon for zone %s", contribution.ID, contribution.Zone)
+		}
+	default:
+		return fmt.Errorf("webui zone %q has unsupported zone id %q", contribution.ID, contribution.Zone)
+	}
+	zones[contribution.ID] = binding.ModuleID
 	return nil
 }
 
@@ -788,6 +1157,12 @@ func cloneBindings(values []Binding) []Binding {
 		result[i].Entries = append([]Entry(nil), values[i].Entries...)
 		result[i].Routes = append([]Route(nil), values[i].Routes...)
 		result[i].Navigation = append([]Navigation(nil), values[i].Navigation...)
+		result[i].HeaderActions = append([]HeaderAction(nil), values[i].HeaderActions...)
+		result[i].SidebarPanels = append([]SidebarPanel(nil), values[i].SidebarPanels...)
+		result[i].PageHeaderItems = append([]PageHeaderItem(nil), values[i].PageHeaderItems...)
+		result[i].WorkspaceTabActions = append([]WorkspaceTabAction(nil), values[i].WorkspaceTabActions...)
+		result[i].FooterStatusItems = append([]FooterStatusItem(nil), values[i].FooterStatusItems...)
+		result[i].ActionPermissions = append([]ActionPermission(nil), values[i].ActionPermissions...)
 		result[i].Locales = append([]Locale(nil), values[i].Locales...)
 		result[i].Requires = append([]SDKRequirement(nil), values[i].Requires...)
 		for routeIndex := range result[i].Routes {

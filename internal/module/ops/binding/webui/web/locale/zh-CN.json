@@ -118,5 +118,12 @@
   "webui.ops.capabilities.refresh.success.close": "关闭刷新成功提示",
   "webui.ops.capabilities.refresh.failed.title": "刷新完成但仍有失败项",
   "webui.ops.capabilities.refresh.failed.detail": "页面保留真实结果，失败能力仍按当前状态标记。",
-  "webui.ops.capabilities.refresh.failed.close": "关闭刷新失败提示"
+  "webui.ops.capabilities.refresh.failed.close": "关闭刷新失败提示",
+  "webui.ops.capabilities.entry.title": "能力清单",
+  "webui.ops.footer.status.title": "管理数据源",
+  "webui.ops.footer.status.connected": "数据源可用",
+  "webui.ops.footer.status.unreachable": "数据源不可达",
+  "webui.ops.footer.status.mock": "模拟环境数据源",
+  "webui.ops.footer.status.loading": "探测中…",
+  "webui.ops.footer.status.retry": "重新探测"
 }

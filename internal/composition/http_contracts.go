@@ -63,6 +63,7 @@ func applicationWebUISDKInventory() webuicontract.SDKInventory {
 		"query":   1,
 		"ui":      1,
 		"mock":    1,
+		"zone":    1,
 	}
 }
 

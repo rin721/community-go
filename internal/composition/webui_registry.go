@@ -93,6 +93,7 @@ func GenerateWebUIRegistryForCatalogWithLayout(catalog webuicontract.Catalog, re
 	entries := make([]struct{ id, source string }, 0)
 	locales := make([]webuicontract.Locale, 0)
 	mocks := make([]struct{ moduleID, source string }, 0)
+	zones := make([]struct{ zone, id, source string }, 0)
 	for _, binding := range catalog.Bindings {
 		if len(binding.Entries) > 0 && len(binding.Locales) == 0 {
 			return "", fmt.Errorf("validate webui module %q: locale binding is required when entries are declared", binding.ModuleID)
@@ -100,6 +101,7 @@ func GenerateWebUIRegistryForCatalogWithLayout(catalog webuicontract.Catalog, re
 		if strings.TrimSpace(binding.MockSource) == "" && len(binding.Entries) > 0 {
 			return "", fmt.Errorf("validate webui module %q: mock source is required when entries are declared", binding.ModuleID)
 		}
+		entrySources := make(map[string]string, len(binding.Entries))
 		for _, entry := range binding.Entries {
 			ownerRoot, err := layout.ModuleWebRoot(repositoryRoot, binding.ModuleID)
 			if err != nil {
@@ -114,6 +116,14 @@ func GenerateWebUIRegistryForCatalogWithLayout(catalog webuicontract.Catalog, re
 				return "", fmt.Errorf("resolve webui entry %q import: %w", entry.ID, err)
 			}
 			entries = append(entries, struct{ id, source string }{entry.ID, source})
+			entrySources[entry.ID] = source
+		}
+		for _, contribution := range binding.ZoneContributions() {
+			source, exists := entrySources[contribution.EntryID]
+			if !exists {
+				return "", fmt.Errorf("validate webui zone %q: entry %q is missing from module %q", contribution.ID, contribution.EntryID, binding.ModuleID)
+			}
+			zones = append(zones, struct{ zone, id, source string }{string(contribution.Zone), contribution.ID, source})
 		}
 		for _, locale := range binding.Locales {
 			ownerRoot, err := layout.ModuleWebRoot(repositoryRoot, binding.ModuleID)
@@ -147,6 +157,12 @@ func GenerateWebUIRegistryForCatalogWithLayout(catalog webuicontract.Catalog, re
 	}
 	sort.Slice(mocks, func(i, j int) bool { return mocks[i].moduleID < mocks[j].moduleID })
 	sort.Slice(entries, func(i, j int) bool { return entries[i].id < entries[j].id })
+	sort.Slice(zones, func(i, j int) bool {
+		if zones[i].zone != zones[j].zone {
+			return zones[i].zone < zones[j].zone
+		}
+		return zones[i].id < zones[j].id
+	})
 	sort.Slice(locales, func(i, j int) bool {
 		if locales[i].Language != locales[j].Language {
 			return locales[i].Language < locales[j].Language
@@ -190,6 +206,22 @@ func GenerateWebUIRegistryForCatalogWithLayout(catalog webuicontract.Catalog, re
 	builder.WriteString("export const webuiMockRegistry = {\n")
 	for _, mock := range mocks {
 		fmt.Fprintf(&builder, "  %q: () => import(%q),\n", mock.moduleID, mock.source)
+	}
+	builder.WriteString("} as const;\n\n")
+	builder.WriteString("export const webuiZoneRegistry = {\n")
+	currentZone := ""
+	for _, contribution := range zones {
+		if contribution.zone != currentZone {
+			if currentZone != "" {
+				builder.WriteString("  },\n")
+			}
+			fmt.Fprintf(&builder, "  %q: {\n", contribution.zone)
+			currentZone = contribution.zone
+		}
+		fmt.Fprintf(&builder, "    %q: () => import(%q),\n", contribution.id, contribution.source)
+	}
+	if currentZone != "" {
+		builder.WriteString("  },\n")
 	}
 	builder.WriteString("} as const;\n\n")
 	mockManifest, err := projectWebUIMockManifest(catalog)
@@ -294,12 +326,15 @@ func validateWebUILocaleCoverage(repositoryRoot string, layout projectlayout.Lay
 		}
 		resources = append(resources, localeResource{language: locale.Language, namespace: locale.Namespace, messages: messages})
 	}
-	messageIDs := make([]string, 0, len(binding.Routes)+len(binding.Navigation))
+	messageIDs := make([]string, 0, len(binding.Routes)+len(binding.Navigation)+len(binding.ZoneContributions()))
 	for _, route := range binding.Routes {
 		messageIDs = append(messageIDs, route.TitleMessageID)
 	}
 	for _, item := range binding.Navigation {
 		messageIDs = append(messageIDs, item.TitleMessageID)
+	}
+	for _, contribution := range binding.ZoneContributions() {
+		messageIDs = append(messageIDs, contribution.TitleMessageID)
 	}
 	for _, messageID := range messageIDs {
 		parts := strings.Split(messageID, ".")

@@ -57,6 +57,32 @@ func TestGenerateWebUIRegistryIncludesEntriesAndLocales(t *testing.T) {
 	}
 }
 
+// TestGenerateWebUIRegistryIncludesZoneContributions 证明 062 分区注入点进入生成
+// webuiZoneRegistry 且 mock manifest 同步投影 zones（含动作权限投影）。
+func TestGenerateWebUIRegistryIncludesZoneContributions(t *testing.T) {
+	generated, err := GenerateWebUIRegistry()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, expected := range []string{
+		`export const webuiZoneRegistry = {`,
+		`"header-actions": {`,
+		`"ops.capabilities-entry": () => import("../../../internal/module/ops/binding/webui/web/HeaderAction")`,
+		`"footer-status": {`,
+		`"ops.management-status": () => import("../../../internal/module/ops/binding/webui/web/FooterStatus")`,
+		`"actionPermissions": [`,
+		`"operationId": "ops.diagnostics"`,
+	} {
+		if !strings.Contains(generated, expected) {
+			t.Fatalf("generated registry does not contain %s:\n%s", expected, generated)
+		}
+	}
+	// mock manifest 的 zones 与 actionPermissions 存在且可序列化（host boot 依赖）。
+	if !strings.Contains(generated, `"zones": [`) {
+		t.Fatalf("mock manifest misses zones projection:\n%s", generated)
+	}
+}
+
 func TestGenerateWebUIRegistryForCatalogAcceptsIndependentModuleFixture(t *testing.T) {
 	repositoryRoot := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(repositoryRoot, ".scaffold"), 0o755); err != nil {
@@ -89,7 +115,7 @@ func TestGenerateWebUIRegistryForCatalogAcceptsIndependentModuleFixture(t *testi
 		ModuleID:   "fixture",
 		Entries:    []webuicontract.Entry{{ID: "fixture.page", SourcePath: "Page.tsx"}},
 		Routes:     []webuicontract.Route{{ID: "fixture.page", Path: "/fixture", EntryID: "fixture.page", TitleMessageID: "webui.fixture.title", Layout: webuicontract.RouteLayoutApp, DeliveryState: webuicontract.DeliveryImplemented, Default: true}},
-		Navigation: []webuicontract.Navigation{{ID: "fixture.page", RouteID: "fixture.page", TitleMessageID: "webui.fixture.title", IconID: "circle"}},
+		Navigation: []webuicontract.Navigation{{ID: "fixture.page", RouteID: "fixture.page", TitleMessageID: "webui.fixture.title", IconID: "menu"}},
 		Locales:    []webuicontract.Locale{{Language: "en-US", Namespace: "webui.fixture", SourcePath: "locale/en-US.json"}},
 		MockSource: "mock.ts",
 		Requires:   []webuicontract.SDKRequirement{{ID: "runtime", MajorVersion: 1}},
@@ -188,7 +214,7 @@ func moduleFixtureBinding(moduleID string) webuicontract.Binding {
 		ModuleID:   moduleID,
 		Entries:    []webuicontract.Entry{{ID: moduleID + ".page", SourcePath: "Page.tsx"}},
 		Routes:     []webuicontract.Route{{ID: moduleID + ".page", Path: "/" + moduleID, EntryID: moduleID + ".page", TitleMessageID: "webui." + moduleID + ".title", Layout: webuicontract.RouteLayoutApp, DeliveryState: webuicontract.DeliveryImplemented, Default: true}},
-		Navigation: []webuicontract.Navigation{{ID: moduleID + ".page", RouteID: moduleID + ".page", TitleMessageID: "webui." + moduleID + ".title", IconID: "circle"}},
+		Navigation: []webuicontract.Navigation{{ID: moduleID + ".page", RouteID: moduleID + ".page", TitleMessageID: "webui." + moduleID + ".title", IconID: "menu"}},
 		Locales:    []webuicontract.Locale{{Language: "en-US", Namespace: "webui." + moduleID, SourcePath: "locale/en-US.json"}},
 		MockSource: "mock.ts",
 		Requires:   []webuicontract.SDKRequirement{{ID: "runtime", MajorVersion: 1}},

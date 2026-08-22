@@ -118,5 +118,12 @@
   "webui.ops.capabilities.refresh.success.close": "Dismiss refresh success",
   "webui.ops.capabilities.refresh.failed.title": "Refresh completed with failures",
   "webui.ops.capabilities.refresh.failed.detail": "Real results remain visible while failed capabilities keep their current state.",
-  "webui.ops.capabilities.refresh.failed.close": "Dismiss refresh failure"
+  "webui.ops.capabilities.refresh.failed.close": "Dismiss refresh failure",
+  "webui.ops.capabilities.entry.title": "Capabilities",
+  "webui.ops.footer.status.title": "Management source",
+  "webui.ops.footer.status.connected": "Source connected",
+  "webui.ops.footer.status.unreachable": "Source unreachable",
+  "webui.ops.footer.status.mock": "Mock data source",
+  "webui.ops.footer.status.loading": "Probing…",
+  "webui.ops.footer.status.retry": "Re-probe"
 }

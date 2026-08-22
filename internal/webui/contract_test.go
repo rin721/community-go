@@ -11,7 +11,7 @@ func testBinding(moduleID string, defaultRoute bool) Binding {
 		ModuleID:   moduleID,
 		Entries:    []Entry{{ID: moduleID + ".page", SourcePath: "web/Page.tsx"}},
 		Routes:     []Route{{ID: moduleID + ".page", Path: "/" + moduleID, EntryID: moduleID + ".page", TitleMessageID: moduleID + ".title", Layout: RouteLayoutApp, DeliveryState: DeliveryImplemented, Default: defaultRoute}},
-		Navigation: []Navigation{{ID: moduleID + ".page", RouteID: moduleID + ".page", TitleMessageID: moduleID + ".title", IconID: "circle"}},
+		Navigation: []Navigation{{ID: moduleID + ".page", RouteID: moduleID + ".page", TitleMessageID: moduleID + ".title", IconID: "menu"}},
 		Locales:    []Locale{{Language: "zh-CN", Namespace: moduleID, SourcePath: "web/zh-CN.json"}},
 		MockSource: "web/mock.ts",
 	}
@@ -318,5 +318,345 @@ func TestApplicationCatalogFixtureStateMatrix(t *testing.T) {
 				t.Fatalf("menu projection = %v, want %v: %#v", got, testCase.wantMenu, manifest)
 			}
 		})
+	}
+}
+
+// zoneTestBinding 在 testBinding 基础上声明一个分区注入点与其专属 entry。
+func zoneTestBinding(moduleID string, defaultRoute bool) Binding {
+	binding := testBinding(moduleID, defaultRoute)
+	binding.Entries = append(binding.Entries, Entry{ID: moduleID + ".header", SourcePath: "web/Header.tsx"})
+	binding.HeaderActions = []HeaderAction{{
+		ZoneContributionBase: ZoneContributionBase{
+			ID: moduleID + ".global", EntryID: moduleID + ".header",
+			TitleMessageID: moduleID + ".header.title", OperationID: moduleID + ".action", Order: 10,
+		},
+		IconID: "settings",
+	}}
+	return binding
+}
+
+func TestManifestProjectsZonesWithAccessAndAvailabilityGates(t *testing.T) {
+	binding := zoneTestBinding("ops", true)
+	catalog, err := BuildCatalog(binding)
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifest := catalog.ManifestForWithAvailability(
+		func(operation string) Access {
+			if operation == "ops.action" {
+				return AccessAllowed
+			}
+			return AccessDenied
+		},
+		func(zoneID string) Availability {
+			if zoneID == "ops.global" {
+				return Availability{State: AvailabilityAvailable}
+			}
+			return Availability{State: AvailabilityUnavailable}
+		},
+	)
+	if len(manifest.Zones) != 1 {
+		t.Fatalf("unexpected zone projection: %#v", manifest.Zones)
+	}
+	zone := manifest.Zones[0]
+	if zone.Zone != ZoneHeaderActions || zone.ID != "ops.global" || zone.EntryID != "ops.header" || zone.IconID != "settings" || zone.Access != AccessAllowed || zone.ModuleID != "ops" {
+		t.Fatalf("unexpected projected zone: %#v", zone)
+	}
+}
+
+func TestManifestZoneGatesFailsClosed(t *testing.T) {
+	binding := zoneTestBinding("ops", true)
+	binding.SidebarPanels = []SidebarPanel{{
+		ZoneContributionBase: ZoneContributionBase{
+			ID: "ops.panel", EntryID: "ops.header", TitleMessageID: "ops.panel.title",
+			OperationID: "ops.admin.action", Order: 20,
+		},
+		IconID: "list",
+	}}
+	binding.FooterStatusItems = []FooterStatusItem{{
+		ZoneContributionBase: ZoneContributionBase{
+			ID: "ops.status", EntryID: "ops.header", TitleMessageID: "ops.status.title", Order: 30,
+		},
+		Kind: FooterStatusKindStatus,
+	}}
+	catalog, err := BuildCatalog(binding)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, test := range []struct {
+		name      string
+		access    func(string) Access
+		available func(string) Availability
+		wantZones int
+	}{
+		{
+			name:      "denied operation hides operation-gated zones",
+			access:    func(string) Access { return AccessDenied },
+			available: func(string) Availability { return Availability{State: AvailabilityAvailable} },
+			wantZones: 1, // 只有无 OperationID 的底部状态项不受 access 门禁影响
+		},
+		{
+			name:      "unavailable hides every zone",
+			access:    func(string) Access { return AccessAllowed },
+			available: func(string) Availability { return Availability{State: AvailabilityUnavailable} },
+			wantZones: 0,
+		},
+		{
+			name:      "authentication required zone is projected for shell",
+			access:    func(string) Access { return AccessAuthenticationRequired },
+			available: func(string) Availability { return Availability{State: AvailabilityAvailable} },
+			wantZones: 3,
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			manifest := catalog.ManifestForWithAvailability(test.access, test.available)
+			if len(manifest.Zones) != test.wantZones {
+				t.Fatalf("zone projection = %v, want %d: %#v", manifest.Zones, test.wantZones, manifest)
+			}
+		})
+	}
+	// 全部 allowed + available：三个注入点都投影，且无 OperationID 的项按 AccessAllowed 呈现。
+	manifest := catalog.ManifestForWithAvailability(func(string) Access { return AccessAllowed }, func(string) Availability { return Availability{State: AvailabilityAvailable} })
+	if len(manifest.Zones) != 3 {
+		t.Fatalf("expected three projected zones: %#v", manifest.Zones)
+	}
+	for _, zone := range manifest.Zones {
+		if zone.Access == "" || zone.Access == AccessDenied {
+			t.Fatalf("projected zone carries unexpected access: %#v", zone)
+		}
+	}
+}
+
+func TestManifestZoneAccessAuthenticationRequiredProjection(t *testing.T) {
+	binding := zoneTestBinding("ops", true)
+	catalog, err := BuildCatalog(binding)
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifest := catalog.ManifestForWithAvailability(
+		func(operation string) Access { return AccessAuthenticationRequired },
+		func(string) Availability { return Availability{State: AvailabilityAvailable} },
+	)
+	if len(manifest.Zones) != 1 || manifest.Zones[0].Access != AccessAuthenticationRequired {
+		t.Fatalf("authentication-required zone should be projected for the authenticated shell: %#v", manifest.Zones)
+	}
+}
+
+func TestBuildCatalogRejectsInvalidZoneContributions(t *testing.T) {
+	duplicate := zoneTestBinding("ops", true)
+	duplicate.SidebarPanels = []SidebarPanel{{
+		ZoneContributionBase: ZoneContributionBase{ID: "ops.global", EntryID: "ops.header", TitleMessageID: "ops.panel.title", Order: 20},
+		IconID: "list",
+	}}
+	if _, err := BuildCatalog(duplicate); err == nil {
+		t.Fatal("duplicate zone id was accepted")
+	}
+	unknownEntry := zoneTestBinding("ops", true)
+	unknownEntry.HeaderActions[0].EntryID = "missing"
+	if _, err := BuildCatalog(unknownEntry); err == nil {
+		t.Fatal("zone referencing a foreign entry was accepted")
+	}
+	foreignEntry := zoneTestBinding("ops", true)
+	foreignEntry.HeaderActions[0].EntryID = "auth.page"
+	if _, err := BuildCatalog(foreignEntry, testBinding("auth", false)); err == nil {
+		t.Fatal("zone referencing another module entry was accepted")
+	}
+	badIcon := zoneTestBinding("ops", true)
+	badIcon.HeaderActions[0].IconID = "unicorn"
+	if _, err := BuildCatalog(badIcon); err == nil {
+		t.Fatal("zone with icon outside the catalog was accepted")
+	}
+	missingIcon := zoneTestBinding("ops", true)
+	missingIcon.HeaderActions[0].IconID = ""
+	if _, err := BuildCatalog(missingIcon); err == nil {
+		t.Fatal("icon zone without an icon was accepted")
+	}
+	badKind := zoneTestBinding("ops", true)
+	badKind.PageHeaderItems = []PageHeaderItem{{
+		ZoneContributionBase: ZoneContributionBase{ID: "ops.pageitem", EntryID: "ops.header", TitleMessageID: "ops.pageitem.title", Order: 20},
+		Kind:                 PageHeaderItemKind("hero"),
+	}}
+	if _, err := BuildCatalog(badKind); err == nil {
+		t.Fatal("page header item with unsupported kind was accepted")
+	}
+	badOrder := zoneTestBinding("ops", true)
+	badOrder.HeaderActions[0].Order = maximumNavigationOrder + 1
+	if _, err := BuildCatalog(badOrder); err == nil {
+		t.Fatal("zone order outside the supported range was accepted")
+	}
+	tooMany := zoneTestBinding("ops", true)
+	tooMany.HeaderActions = nil
+	for index := 0; index < maximumZoneContributionsPerModule+1; index++ {
+		tooMany.HeaderActions = append(tooMany.HeaderActions, HeaderAction{
+			ZoneContributionBase: ZoneContributionBase{
+				ID: "ops.bulk" + string(rune(index+int('a'))), EntryID: "ops.header",
+				TitleMessageID: "ops.bulk.title", Order: index,
+			},
+			IconID: "menu",
+		})
+	}
+	if _, err := BuildCatalog(tooMany); err == nil {
+		t.Fatal("zone contribution over the per-module limit was accepted")
+	}
+}
+
+func TestValidateOperationReferencesRejectsUnknownZoneOperation(t *testing.T) {
+	binding := zoneTestBinding("ops", true)
+	catalog, err := BuildCatalog(binding)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := catalog.ValidateOperationReferences(map[string]struct{}{"known": {}}); err == nil {
+		t.Fatal("unknown zone operation was accepted")
+	}
+}
+
+func TestBuildCatalogRejectsNavigationIconOutsideCatalog(t *testing.T) {
+	binding := testBinding("ops", true)
+	binding.Navigation[0].IconID = "unicorn"
+	if _, err := BuildCatalog(binding); err == nil {
+		t.Fatal("navigation icon outside the catalog was accepted")
+	}
+}
+
+func TestManifestActionPermissionsProjectStrictestAccess(t *testing.T) {
+	binding := zoneTestBinding("ops", true)
+	binding.HeaderActions[0].OperationID = "ops.shared"
+	binding.SidebarPanels = []SidebarPanel{{
+		ZoneContributionBase: ZoneContributionBase{ID: "ops.panel", EntryID: "ops.header", TitleMessageID: "ops.panel.title", OperationID: "ops.shared", Order: 20},
+		IconID: "list",
+	}}
+	binding.ActionPermissions = []ActionPermission{{OperationID: "ops.pageonly"}}
+	catalog, err := BuildCatalog(binding)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// ops.shared 同时由两个 zone 引用；从严语义取最严格 access。
+	manifest := catalog.ManifestForWithAvailability(func(operation string) Access {
+		switch operation {
+		case "ops.shared", "ops.pageonly":
+			return AccessDenied
+		}
+		return AccessAllowed
+	}, func(string) Availability { return Availability{State: AvailabilityAvailable} })
+	// denied 动作不投影 zone，但 actionPermissions 必须保留该动作的 denied 判定。
+	if len(manifest.Zones) != 0 {
+		t.Fatalf("denied zone should not be projected: %#v", manifest.Zones)
+	}
+	byOperation := map[string]Access{}
+	for _, permission := range manifest.ActionPermissions {
+		byOperation[permission.OperationID] = permission.Access
+	}
+	if byOperation["ops.shared"] != AccessDenied {
+		t.Fatalf("ops.shared should be denied in action permissions: %#v", manifest.ActionPermissions)
+	}
+	if byOperation["ops.pageonly"] != AccessDenied {
+		t.Fatalf("page-only action should be denied: %#v", manifest.ActionPermissions)
+	}
+	// 从严：allowed 与 denied 并存时取 denied。
+	manifest = catalog.ManifestForWithAvailability(func(operation string) Access {
+		switch operation {
+		case "ops.pageonly":
+			return AccessDenied
+		}
+		return AccessAllowed
+	}, func(string) Availability { return Availability{State: AvailabilityAvailable} })
+	if len(manifest.Zones) != 2 {
+		t.Fatalf("allowed zones should be projected: %#v", manifest.Zones)
+	}
+	byOperation = map[string]Access{}
+	for _, permission := range manifest.ActionPermissions {
+		byOperation[permission.OperationID] = permission.Access
+	}
+	if byOperation["ops.pageonly"] != AccessDenied || byOperation["ops.shared"] != AccessAllowed {
+		t.Fatalf("action permissions violate strictest-wins: %#v", manifest.ActionPermissions)
+	}
+	// 排序稳定。
+	previous := ""
+	for _, permission := range manifest.ActionPermissions {
+		if permission.OperationID <= previous {
+			t.Fatalf("action permissions are not sorted: %#v", manifest.ActionPermissions)
+		}
+		previous = permission.OperationID
+	}
+}
+
+func TestValidateOperationReferencesRejectsUnknownActionPermission(t *testing.T) {
+	binding := zoneTestBinding("ops", true)
+	binding.ActionPermissions = []ActionPermission{{OperationID: "missing"}}
+	catalog, err := BuildCatalog(binding)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := catalog.ValidateOperationReferences(map[string]struct{}{"known": {}}); err == nil {
+		t.Fatal("unknown action permission was accepted")
+	}
+}
+
+func TestBuildCatalogRejectsDuplicateActionPermission(t *testing.T) {
+	binding := zoneTestBinding("ops", true)
+	binding.ActionPermissions = []ActionPermission{{OperationID: "ops.action"}, {OperationID: "ops.action"}}
+	if _, err := BuildCatalog(binding); err == nil {
+		t.Fatal("duplicate action permission was accepted")
+	}
+}
+
+func TestProjectApplicationCatalogDropsZonesOfNotImplementedModule(t *testing.T) {
+	notImplemented := zoneTestBinding("future", false)
+	notImplemented.Routes[0].DeliveryState = DeliveryNotImplemented
+	catalog, err := BuildApplicationCatalog([]ModuleRegistration{
+		{Binding: notImplemented, Activation: ActivationEnabled},
+	}, SDKInventory{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(catalog.Bindings) != 0 {
+		t.Fatalf("module with only not-implemented routes leaked into catalog: %#v", catalog.Bindings)
+	}
+	// 已实现模块的 zone entry 必须保留在投影 catalog 中。
+	implemented := zoneTestBinding("ops", true)
+	catalog, err = BuildApplicationCatalog([]ModuleRegistration{
+		{Binding: implemented, Activation: ActivationEnabled},
+	}, SDKInventory{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(catalog.Bindings) != 1 || len(catalog.Bindings[0].HeaderActions) != 1 {
+		t.Fatalf("implemented module zone was dropped: %#v", catalog.Bindings)
+	}
+	entryFound := false
+	for _, entry := range catalog.Bindings[0].Entries {
+		if entry.ID == "ops.header" {
+			entryFound = true
+		}
+	}
+	if !entryFound {
+		t.Fatalf("zone entry was dropped from projected catalog: %#v", catalog.Bindings[0].Entries)
+	}
+}
+
+func TestManifestZoneOrderingIsStable(t *testing.T) {
+	binding := zoneTestBinding("ops", true)
+	binding.HeaderActions = append(binding.HeaderActions,
+		HeaderAction{ZoneContributionBase: ZoneContributionBase{ID: "ops.b", EntryID: "ops.header", TitleMessageID: "ops.b.title", Order: 5}, IconID: "menu"},
+		HeaderAction{ZoneContributionBase: ZoneContributionBase{ID: "ops.a", EntryID: "ops.header", TitleMessageID: "ops.a.title", Order: 5}, IconID: "menu"},
+	)
+	binding.FooterStatusItems = []FooterStatusItem{{ZoneContributionBase: ZoneContributionBase{ID: "ops.status", EntryID: "ops.header", TitleMessageID: "ops.status.title", Order: 1}, Kind: FooterStatusKindStatus}}
+	catalog, err := BuildCatalog(binding)
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifest := catalog.ManifestForWithAvailability(func(string) Access { return AccessAllowed }, func(string) Availability { return Availability{State: AvailabilityAvailable} })
+	want := []string{"header-actions", "header-actions", "header-actions", "footer-status"}
+	if len(manifest.Zones) != len(want) {
+		t.Fatalf("unexpected zone count: %#v", manifest.Zones)
+	}
+	for index, zone := range manifest.Zones {
+		if string(zone.Zone) != want[index] {
+			t.Fatalf("zones are not ordered by skeleton layout rank: %#v", manifest.Zones)
+		}
+	}
+	if manifest.Zones[0].ID != "ops.a" || manifest.Zones[1].ID != "ops.b" || manifest.Zones[2].ID != "ops.global" {
+		t.Fatalf("zones are not ordered by id within the same order: %#v", manifest.Zones)
 	}
 }

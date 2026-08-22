@@ -162,6 +162,7 @@ HTTP 的固定构造顺序是 `模块顶层 typed Handler + binding Huma registr
 | permission binding | `binding/permission` 的精确 Key/owner/description message ID | composition 显式聚合 Permission Catalog，并校验 operation/WebUI 引用 | `internal/module/<name>/binding/permission` |
 | i18n binding | `binding/i18n`（模块自有语言资源 + 窄契约，如 `MessageFiles()`/`fs.FS`/catalog） | composition 显式聚合进 Non-Essential I18n 装配，再按模块注入 `pkg/i18n.Translator` | `internal/module/<name>/binding/i18n` 与模块内语言资源 |
 | middleware | `middleware/`（横切策略） | composition 挂载 | `internal/module/<name>/middleware` |
+| WebUI binding | `binding/webui`（Route/Navigation/Locale/MockSource + 分区注入点 HeaderActions/SidebarPanels/PageHeaderItems/WorkspaceTabActions/FooterStatusItems 与 ActionPermissions） | `internal/composition` 唯一 WebUI 模块列表选中；生成 `webuiRegistry` 与 `webuiZoneRegistry`，Manifest 按 access/availability 投影 | `internal/module/<name>/binding/webui/web`（页面、zone 组件、locale、mock、CSS Module） |
 | schedule binding | `module.go` 构造 `pkg/schedule.Binding` | `module.Contribution.Schedules`，由 application composition 统一聚合 | 模块 Service 与 `module.go` |
 | message binding | 模块 `binding/message` 或 `module.go` 构造 `pkg/messaging` Contract/Producer/Consumer Binding | `module.Contribution.Messages`，由 application composition 聚合 Catalog、解析 Route 并注入窄 Publisher | 模块 wire contract、payload Adapter、Service Handler 与 `module.go` |
 
@@ -175,6 +176,7 @@ HTTP 的固定构造顺序是 `模块顶层 typed Handler + binding Huma registr
 - 配置边界：`pkg/*` 只提供通用能力和基础默认；`kernel/app/*` 负责应用层默认与装配，不隐式依赖 `pkg/*.DefaultConfig()`。
 - 若声明定时任务：业务逻辑留在模块 Service，`module.go` 只构造不可变 Binding；触发、并发、协调、Execution、Tracing、健康与 Generation 切换均由统一底层能力负责。
 - 若声明消息生产/消费：payload 编解码与业务 Handler 留在模块，`module.go` 只构造不可变 Contract/Binding；Provider、confirm、ack/retry/DLX、Execution、Tracing、健康与 Consumer 代际均由统一消息能力负责。
+- 若提供浏览器界面：除了 Route/Navigation/Locale/MockSource，还需要按需声明分区注入点（顶栏快捷入口、侧边栏辅助面板、页头注入、页签操作、底部状态）与页面内动作的权限钩子（`ActionPermissions`）；分区与交互规范的完整契约见 [WebUI 开发指南](webui.md) 的「骨架分区注入点（zone）与交互规范」节。轻量接入只写模块自身 Binding 与 `web/` facet（zone 组件、locale、mock），不修改宿主核心/SDK adapter/生成器源码；SDK capability 主版本变化是独立平台事件。
 
 ## 5. 资源和运行 owner
 

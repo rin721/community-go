@@ -79,11 +79,52 @@ IAM 用户密码可通过 `go run ./cmd/app iam reset-password --username <用�
 - CORS 与 IAM HTTP 必须消费同一候选中的 `http.cors.allowedOrigins`；空列表继续拒绝跨域，不能为本地开发建立通配例外。
 - 页面菜单和 manifest 访问状态不构成授权；实际 operation 仍由服务端 Auth policy 决定。
 
-模块页面只能依赖 `@webui/sdk/*` 和自身 API，不得导入宿主 Router、菜单、Session Store 或内部全局状态。新增页面时先修改模块 WebUI Binding，再运行生成检查。SDK 公开面按 runtime、http、i18n、query、navigation、ui、feedback 分包；禁止 `resolve/get`、万能 Context 和第三方 client 穿透。
+模块页面只能依赖 `@webui/sdk/*` 和自身 API，不得导入宿主 Router、菜单、Session Store 或内部全局状态。新增页面时先修改模块 WebUI Binding，再运行生成检查。SDK 公开面按 runtime、http、i18n、query、navigation、ui、zone、feedback、mock 分包；禁止 `resolve/get`、万能 Context 和第三方 client 穿透。
 
 模块样式必须放在模块自己的 `binding/webui/web/*.module.css`，页面根节点使用模块 CSS Module scope；宿主 `webui/src/styles.css` 只允许保留 reset、design token、Shell/platform 和公共 SDK UI 规则。业务 selector 不得回流宿主全局 CSS。`pnpm lint:architecture` 会按目录动态发现所有模块，但通过结果仍只覆盖当前源码和静态规则。
 
 宿主 Shell 按 `webui/src/components/shell/*` 拆分：`AppSidebar`（品牌、递归菜单、移动抽屉语义）、`AppHeader`（topbar 与工具优先级）、`WorkspaceTabs`（已访问页签与 roving keyboard）、`AccountMenu`（账号 popover，统一 dismiss/focus）、`SidebarMenu`（递归菜单树与子菜单常驻 DOM）、`ShellSkeleton`/`PageSkeleton`（几何占位）。`AppShell` 保留现有公开 props，只负责 manifest/principal/logout 转宿主 view model 并协调 overlay、visited tabs 与 route content。平台样式 token（`--shell-*` 布局、`--z-*` 层级、`--motion-*` 时长与 easing、surface/border/radius/shadow/spacing）集中在 `styles.css` token 分区；前端侧同一个动效常量维护在 `webui/src/motion.ts`，overlay 四态状态机在 `webui/src/components/shell/overlay.ts`。reduced-motion 决策由 `webui/src/theme.ts` 合并显式偏好与系统 `prefers-reduced-motion`，最终落到 `data-motion` 供样式统一降级。
+
+## 骨架分区注入点（zone）与交互规范
+
+WebUI 以「骨架 + 注入点」承载业务模块的 UI 扩展（062）：骨架分区组件定义结构与视觉基调，模块通过类型化注入点向指定分区贡献内容，不修改骨架核心。分区注入点是源码/构建期静态插拔（Binding 声明 → 生成 `webuiZoneRegistry` → Manifest `zones` 投影 → 宿主懒加载），与 route 页面同轨。
+
+### 分区与声明
+
+| Zone | 骨架位置 | Binding 字段 |
+| --- | --- | --- |
+| `header-actions` | 顶栏操作区（全局快捷入口） | `HeaderActions` |
+| `sidebar-panels` | 侧边栏辅助面板区 | `SidebarPanels` |
+| `page-header` | 页面页头区（全局页头注入） | `PageHeaderItems` |
+| `workspace-tabs` | 标签页栏操作区 | `WorkspaceTabActions` |
+| `footer-status` | 底部状态栏 | `FooterStatusItems` |
+
+zone 贡献的公共字段：`ID`（全局唯一）、`EntryID`（复用 `Binding.Entries` 的懒加载组件）、`TitleMessageID`（强制 locale 覆盖）、`OperationID`（可选动作权限钩子）、`Order`；有图标的 zone 同时声明 `IconID`（必须属于受控图标目录）。`Binding.ActionPermissions` 声明页面内动作的权限钩子（OperationID 集合）。所有 ZoneID、entry 归属、图标、kind、order 与数量上限都由 `validateBindings` 校验，未知状态 fail closed。
+
+### Manifest 投影与权限
+
+- `Manifest.zones` 只投影通过门禁的贡献：OperationID denied 不投影；availability 非 available 不投影（zone 不支持 degraded 部分能力）；无 OperationID 的贡献只受 availability 门禁。
+- `Manifest.actionPermissions` 投影全部声明动作的从严 access（denied > authentication-required > allowed），`useActionAccess(operationId)` 据此控制页面触发器的呈现；未声明/未投影的 operation 前端不做呈现限制（服务端授权继续 fail closed）。
+- 页面菜单、zone 与 action 的访问状态不构成授权；实际 operation 仍由服务端 Auth policy 决定。
+
+### SDK zone 与宿主渲染
+
+- `@webui/sdk/zone`（major 1）：`useZoneContributions(zone)`、`useActionAccess(operationId)`、`ZoneSlot`（消费宿主注入的渲染器）、`ZoneComponentProps`（模块 zone 组件只接收 `{ contribution, navigate }`）。
+- 宿主在 `webui/src/zone/ZoneRenderer.tsx` 注入渲染器（`webui/src/zone/registry.ts` 是 zone lazy registry 的唯一装载点，只 import 生成产物）；单贡献错误由 zone 级边界隔离，不拖垮 Shell。
+- 模块 zone 组件放在自身 `binding/webui/web/*.tsx`，样式走模块 CSS Module；只依赖 `@webui/sdk/*` 与自身 API。
+
+### 交互状态链（`@webui/sdk/ui`）
+
+所有可交互元素（按钮、链接、菜单项、标签项、卡片入口、弹窗触发器）统一状态模型：`idle(hover/focus/active) -> pending（防重复提交、aria-busy）-> success/failure 反馈（error code -> message ID）`，禁用按原因分类（permission/unavailable/busy/invalid）写入 `data-action-state`。
+
+- `ActionTrigger`：统一触发原语，`operationId` 命中动作权限钩子（denied 默认隐藏，可配置为禁用），`onAction` 返回 Promise 时自动 pending，失败经 `onError` 走错误码 → message ID 链路（组件不内联业务文案）。
+- `BulkActionBar`：数据表批量操作条（选中 N 项 → 确认弹窗 → pending 提交），与 `DataTable` 选择列联动。
+- `FormSubmitActions`：表单提交/重置统一行为（pending、禁用原因、成功后由页面 owner 复位）。
+- 菜单层级缩进使用 `--menu-indent-base`/`--menu-indent-step` token；祖先激活链、collapsed 语义与 059 动效/reduced-motion 决策保持一致。
+
+### 图标目录
+
+`iconId` 受控于宿主目录（Go `internal/webui/icons.go` 校验 authority + 前端 `webui/src/icon-catalog.ts` Lucide 映射），两侧一致性由 Go 测试守护；模块 Navigation/zone 只能声明目录内图标，自定义图标 entry 属于后续独立研究。
 
 ## 强制 i18n 契约
 

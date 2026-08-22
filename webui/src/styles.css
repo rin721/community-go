@@ -67,6 +67,9 @@
   --shell-header-height: 64px;
   --shell-tabs-height: 44px;
   --shell-content-max: 1600px;
+  /* 062 导航层级 token：菜单缩进与激活链不再散落魔法像素 */
+  --menu-indent-base: 11px;
+  --menu-indent-step: 14px;
   /* desktop 用一个当前值同时驱动 Sidebar inline-size 与 workspace offset */
   --shell-sidebar-current: var(--shell-sidebar-expanded);
 
@@ -655,6 +658,29 @@ kbd {
   padding: var(--space-4) clamp(18px, 3vw, 40px) var(--space-5);
   color: var(--text-muted);
   font-size: 11px;
+}
+.app-footer-zones {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+/* sidebar 分区注入点：位于导航下方、revision 元信息上方；collapsed 时由模块组件
+   自行基于 --shell-sidebar-collapsed 呈现（宿主只提供容器） */
+.sidebar-zones {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-top: 1px solid var(--border);
+  margin-top: auto;
+}
+/* zone 贡献懒加载占位：不伪造业务值 */
+.zone-slot-loading {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
 }
 
 /* mobile backdrop 基础（桌面隐藏，720px 断点内启用） */
@@ -1382,6 +1408,37 @@ kbd {
 .ui-button-danger {
   color: #fff;
   background: #ef4444;
+}
+/* 062 交互状态链：pending 保持明确反馈（aria-busy 已声明），禁用原因不改变外观模糊度 */
+.ui-button[data-action-state="pending"] {
+  cursor: progress;
+  opacity: 0.85;
+}
+.ui-button[data-action-state^="disabled-"] {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+/* bulk action bar：批量选择后的操作条 */
+.bulk-action-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.bulk-action-count {
+  margin-right: auto;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+/* form actions：表单提交/重置统一行为区 */
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
 }
 .form-field {
   display: grid;

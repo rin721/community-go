@@ -18,6 +18,24 @@ export type DeliveryState = "implemented" | "not-implemented";
 export type RouteLayout = "app" | "blank";
 export type CapabilityState = "available" | "degraded" | "unavailable" | "not-implemented";
 
+// ZoneID 是宿主骨架分区的稳定枚举（与 Go 侧 internal/webui.ZoneID 一致）。
+export type ZoneID = "header-actions" | "sidebar-panels" | "page-header" | "workspace-tabs" | "footer-status";
+
+export type ManifestZone = {
+  moduleId: string;
+  zone: ZoneID;
+  id: string;
+  entryId: string;
+  titleMessageId: string;
+  iconId?: string;
+  kind?: "action" | "status" | "meta";
+  order: number;
+  access: Access;
+};
+
+// ManifestActionPermission 是动作级权限钩子的运行时视图（服务端投影，前端只控呈现）。
+export type ManifestActionPermission = { operationId: string; access: Access };
+
 export type ManifestRoute = {
   moduleId: string;
   id: string;
@@ -44,7 +62,7 @@ export type ManifestMenu = {
   order: number;
 };
 
-export type Manifest = { catalogRevision: string; navigationRevision: string; routes: ManifestRoute[]; menu: ManifestMenu[] };
+export type Manifest = { catalogRevision: string; navigationRevision: string; routes: ManifestRoute[]; menu: ManifestMenu[]; zones?: ManifestZone[]; actionPermissions?: ManifestActionPermission[] };
 export type PrincipalView = { id: string; username: string; scopes: string[] };
 
 export type HostRuntime = {
@@ -65,6 +83,12 @@ export function useHostRuntime(): HostRuntime {
   const runtime = useContext(HostRuntimeContext);
   if (!runtime) throw new Error("webui_host_runtime_missing");
   return runtime;
+}
+
+// useOptionalHostRuntime 返回 undefined 而非抛错：骨架分区/作用域组件在宿主运行时
+// 缺失时（如独立组件测试、无 Provider 的静态渲染）应优雅降级为空，而不是拖垮渲染。
+export function useOptionalHostRuntime(): HostRuntime | undefined {
+  return useContext(HostRuntimeContext);
 }
 
 /** useWebUITranslation 约束业务模块只能通过宿主公开的 namespace 翻译契约取文案。 */

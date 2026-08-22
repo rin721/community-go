@@ -12,6 +12,7 @@ import { AppSidebar, shouldIsolateMobileSidebar } from "./shell/AppSidebar";
 import { AppHeader } from "./shell/AppHeader";
 import { buildMenuTree, findMenuAncestors, type SidebarMenuEntry } from "./shell/SidebarMenu";
 import { getWorkspaceTabTargetIndex, isWorkspaceTabClosable, workspaceTabID, WorkspaceTabs } from "./shell/WorkspaceTabs";
+import { ZoneItems } from "../zone/ZoneItems";
 
 export { buildMenuTree, findMenuAncestors, getWorkspaceTabTargetIndex, isWorkspaceTabClosable, shouldIsolateMobileSidebar, workspaceTabID };
 export type { SidebarMenuEntry };
@@ -142,7 +143,7 @@ export function AppShell({ manifest, principal, onLogout }: { manifest: Manifest
       <AppHeader collapsed={collapsed} onToggleSidebar={toggleSidebar} mobileMenuButtonRef={mobileMenuButtonRef} onOpenMobileMenu={() => setMobileOpen(true)} showBreadcrumb={theme.layout.showBreadcrumb} currentRoute={currentRoute} pathname={location.pathname} hostLanguage={hostI18n.language} availableLanguages={availableLanguages} onLanguageChange={(language) => void changeLanguage(language)} theme={theme} onToggleColorScheme={toggleColorScheme} onOpenTheme={() => setThemeOpen(true)} onOpenSearch={() => setSearchOpen(true)} onToggleFullscreen={toggleFullscreen} principal={principal} onRequestLogout={() => setLogoutOpen(true)} />
       {theme.layout.showTabs && <WorkspaceTabs routes={visitedRoutes} currentRouteID={currentRoute?.id} panelLabel={translateMessage("webui.host.tabs.list")} onNavigate={(path) => navigate(path)} onCloseTab={closeTab} onRefresh={refreshCurrentRoute} onKeyDown={handleWorkspaceTabKeyDown} />}
       <main id="webui-workspace-panel" className="page-viewport" role={theme.layout.showTabs ? "tabpanel" : undefined} aria-labelledby={theme.layout.showTabs && activeWorkspaceTabID ? workspaceTabID(activeWorkspaceTabID) : undefined}><Outlet /></main>
-      {theme.layout.showFooter && <footer className="app-footer"><span>{translateMessage("webui.host.footer")}</span><span>{new Date().getFullYear()}</span></footer>}
+      {theme.layout.showFooter && <footer className="app-footer"><span>{translateMessage("webui.host.footer")}</span><span className="app-footer-zones"><ZoneItems zone="footer-status" /></span><span>{new Date().getFullYear()}</span></footer>}
     </div>
     <RouteSearch open={searchOpen} routes={accessibleRoutes} onClose={() => setSearchOpen(false)} />
     <ThemeDrawer open={themeOpen} theme={theme} onChange={setTheme} onReset={resetTheme} onClose={() => setThemeOpen(false)} />

@@ -21,6 +21,7 @@
       "@webui/sdk/feedback": ["src/sdk/feedback/index.tsx"],
       "@webui/sdk/ui": ["src/sdk/ui/index.tsx"],
       "@webui/sdk/mock": ["src/sdk/mock/index.ts"],
+      "@webui/sdk/zone": ["src/sdk/zone/index.tsx"],
       "react": ["node_modules/@types/react"],
       "react/*": ["node_modules/@types/react/*"],
       "react-i18next": ["node_modules/react-i18next"],

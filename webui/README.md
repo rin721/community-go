@@ -41,3 +41,11 @@ Linux 使用 `bash scripts/verify-webui.sh`。质量链覆盖生成检查、冻�
   AppShell 保留现有公开 props 并在本文件 re-export 纯函数，模块只消费 `@webui/sdk/*`。
 - loading 使用 Shell/Page/Data skeleton 单轨；reduced-motion 同时尊重显式偏好与系统 `prefers-reduced-motion`。
 - 新增平台样式、动效时长或 shell 交互时，同步更新 `webui/src/motion.ts` 与 `webui/src/theme.ts` 并补测试。
+
+## 骨架分区注入点与交互规范（062）
+
+- 分区注入点（zone）是骨架各区域的类型化扩展：`header-actions`（顶栏）/ `sidebar-panels`（侧边栏）/ `page-header`（页头）/ `workspace-tabs`（页签栏）/ `footer-status`（底部）；
+  Binding 声明 → 生成 `webuiZoneRegistry`（`webui/src/generated/webui-registry.ts`）→ Manifest `zones`/`actionPermissions` 投影 → 宿主 `webui/src/zone/*` 懒加载渲染。
+- SDK capability `zone`（major 1）：`@webui/sdk/zone` 提供 `useZoneContributions`、`useActionAccess`、`ZoneSlot`；模块 zone 组件只接收 `{ contribution, navigate }`。
+- 交互状态链原语：`ActionTrigger`（pending/防重复/禁用原因/权限呈现）、`BulkActionBar`、`FormSubmitActions`；图标目录 authority 在 `webui/src/icon-catalog.ts`（Go `internal/webui/icons.go` 校验，测试守护一致）。
+- 完整契约与接入步骤见 [WebUI 开发指南](../docs/development/webui.md)。

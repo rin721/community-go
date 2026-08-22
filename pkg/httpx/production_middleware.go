@@ -7,11 +7,13 @@ import (
 	"net"
 	"net/http"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
 	"github.com/rin721/go-scaffold-template/pkg/idgen"
 	"github.com/rin721/go-scaffold-template/pkg/logger"
+	"github.com/rs/cors"
 	"golang.org/x/time/rate"
 )
 
@@ -192,46 +194,97 @@ func SecureHeaders() Middleware {
 	}
 }
 
-// CORS 只允许显式 origin/method/header；空 origin allowlist 表示拒绝跨域。
-func CORS(cfg CORSConfig) Middleware {
-	origins := stringSet(cfg.AllowedOrigins, false)
-	methods := stringSet(cfg.AllowedMethods, true)
-	headers := stringSet(cfg.AllowedHeaders, true)
+// CORS 组合成熟 CORS 协议实现与标准库跨站保护；空 origin allowlist 表示拒绝跨域。
+// 项目继续拥有 exact allowlist、稳定 Problem 和拒绝时不调用业务 Handler 的语义。
+func CORS(cfg CORSConfig) (Middleware, error) {
+	if err := validateCORSConfig(cfg); err != nil {
+		return nil, err
+	}
+	origins := make(map[string]struct{}, len(cfg.AllowedOrigins))
+	methods := make(map[string]struct{}, len(cfg.AllowedMethods))
+	headers := make(map[string]struct{}, len(cfg.AllowedHeaders))
+	protection := http.NewCrossOriginProtection()
+	for _, origin := range cfg.AllowedOrigins {
+		origins[origin] = struct{}{}
+		if err := protection.AddTrustedOrigin(origin); err != nil {
+			return nil, fmt.Errorf("add trusted CORS origin: %w", err)
+		}
+	}
+	for _, method := range cfg.AllowedMethods {
+		methods[method] = struct{}{}
+	}
+	for _, header := range cfg.AllowedHeaders {
+		headers[strings.ToLower(header)] = struct{}{}
+	}
+	protocol := cors.New(cors.Options{
+		AllowOriginFunc: func(origin string) bool {
+			_, allowed := origins[origin]
+			return allowed
+		},
+		AllowedMethods:       append([]string(nil), cfg.AllowedMethods...),
+		AllowedHeaders:       append([]string(nil), cfg.AllowedHeaders...),
+		OptionsSuccessStatus: http.StatusNoContent,
+	})
 	return func(next Handler) Handler {
 		return func(ctx *Context) error {
 			origin := ctx.Request.Header.Get("Origin")
-			if origin == "" {
-				return next(ctx)
+			if origin != "" && !SameOrigin(ctx.Request, origin) && !safeCrossOriginMethod(ctx.Request.Method) {
+				if _, allowed := origins[origin]; !allowed {
+					return &StatusError{StatusCode: http.StatusForbidden, Code: "cors_origin_denied", Message: "cross-origin request is not allowed"}
+				}
 			}
-			if SameOrigin(ctx.Request, origin) {
-				return next(ctx)
-			}
-			if _, allowed := origins[origin]; !allowed {
+			if err := protection.Check(ctx.Request); err != nil {
 				return &StatusError{StatusCode: http.StatusForbidden, Code: "cors_origin_denied", Message: "cross-origin request is not allowed"}
 			}
-			header := ctx.ResponseWriter.Header()
-			header.Add("Vary", "Origin")
-			header.Set("Access-Control-Allow-Origin", origin)
-			if ctx.Request.Method == string(MethodOptions) {
-				requestedMethod := strings.ToUpper(ctx.Request.Header.Get("Access-Control-Request-Method"))
+			if origin != "" && !SameOrigin(ctx.Request, origin) && ctx.Request.Method == http.MethodOptions && ctx.Request.Header.Get("Access-Control-Request-Method") != "" {
+				if _, allowed := origins[origin]; !allowed {
+					return &StatusError{StatusCode: http.StatusForbidden, Code: "cors_origin_denied", Message: "cross-origin request is not allowed"}
+				}
+				requestedMethod := ctx.Request.Header.Get("Access-Control-Request-Method")
 				if _, allowed := methods[requestedMethod]; !allowed {
 					return &StatusError{StatusCode: http.StatusForbidden, Code: "cors_method_denied", Message: "cross-origin method is not allowed"}
 				}
+				normalizedHeaders := make([]string, 0)
+				normalizedSeen := make(map[string]struct{})
 				for _, requestedHeader := range strings.Split(ctx.Request.Header.Get("Access-Control-Request-Headers"), ",") {
-					requestedHeader = strings.ToUpper(strings.TrimSpace(requestedHeader))
+					requestedHeader = strings.ToLower(strings.TrimSpace(requestedHeader))
 					if requestedHeader == "" {
 						continue
 					}
 					if _, allowed := headers[requestedHeader]; !allowed {
 						return &StatusError{StatusCode: http.StatusForbidden, Code: "cors_header_denied", Message: "cross-origin header is not allowed"}
 					}
+					if _, duplicate := normalizedSeen[requestedHeader]; !duplicate {
+						normalizedHeaders = append(normalizedHeaders, requestedHeader)
+						normalizedSeen[requestedHeader] = struct{}{}
+					}
 				}
-				header.Set("Access-Control-Allow-Methods", strings.Join(cfg.AllowedMethods, ","))
-				header.Set("Access-Control-Allow-Headers", strings.Join(cfg.AllowedHeaders, ","))
-				return ctx.NoContent(http.StatusNoContent)
+				sort.Strings(normalizedHeaders)
+				ctx.Request.Header.Set("Access-Control-Request-Headers", strings.Join(normalizedHeaders, ","))
 			}
-			return next(ctx)
+
+			var nextErr error
+			nextCalled := false
+			protocol.Handler(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+				nextCalled = true
+				ctx.ResponseWriter = writer
+				ctx.Request = request
+				nextErr = next(ctx)
+			})).ServeHTTP(ctx.ResponseWriter, ctx.Request)
+			if !nextCalled {
+				return nil
+			}
+			return nextErr
 		}
+	}, nil
+}
+
+func safeCrossOriginMethod(method string) bool {
+	switch method {
+	case http.MethodGet, http.MethodHead, http.MethodOptions:
+		return true
+	default:
+		return false
 	}
 }
 
@@ -249,17 +302,6 @@ func SameOrigin(request *http.Request, origin string) bool {
 		scheme = "https"
 	}
 	return origin == scheme+"://"+request.Host
-}
-
-func stringSet(values []string, uppercase bool) map[string]struct{} {
-	result := make(map[string]struct{}, len(values))
-	for _, value := range values {
-		if uppercase {
-			value = strings.ToUpper(value)
-		}
-		result[value] = struct{}{}
-	}
-	return result
 }
 
 // BodyLimit 限制请求体大小。

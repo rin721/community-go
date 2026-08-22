@@ -22,7 +22,7 @@
 | 能力 | 当前底层技术 | 项目边界 |
 | --- | --- | --- |
 | [`logger`](logger/README.md) | `go.uber.org/zap` | 业务依赖窄 Logger；构造方通过 Resource 独占 Sync/Close 和文件 sink；提供 noop/test logger 和审计字段。 |
-| [`httpx`](httpx/README.md) | `net/http` + `go-chi/chi/v5` + `x/time/rate` | 构造 HTTP 客户端、路由和服务端；Server 由单一 owner 预绑定、阻塞 Serve，并显式拆分 graceful Stop 与有损 ForceStop；提供 recovery、request id、access log、secure headers、CORS、body limit，以及 generation-local 的成熟 token bucket 与简单过载门禁。`httpx/contract` 提供代码优先的模块自有契约 DSL 与 typed Handler 适配，封装 schema/OpenAPI 渲染内部使用的第三方库。 |
+| [`httpx`](httpx/README.md) | `net/http` + `go-chi/chi/v5` + `rs/cors` + `x/time/rate` | 构造 HTTP 客户端、路由和服务端；Server 由单一 owner 预绑定、阻塞 Serve，并显式拆分 graceful Stop 与有损 ForceStop；提供 recovery、request id、access log、secure headers，以及封装 `rs/cors`/`CrossOriginProtection` 的浏览器边界、generation-local 的成熟 token bucket 与简单过载门禁。`httpx/contract` 提供代码优先的模块自有契约 DSL 与 typed Handler 适配，封装 schema/OpenAPI 渲染内部使用的第三方库。 |
 | [`i18n`](i18n/README.md) | `go-i18n/v2` + `x/text/language` + `yaml.v3` | 构造翻译器并加载本地化资源；Kernel 组合输出身份稳定、内部可换代的 Translator facade。 |
 | [`database`](database/README.md) | `gorm`、SQLite、PostgreSQL、MySQL | 提供项目自有 Schema、Repository、事务、迁移与资源契约，不暴露 GORM 类型。 |
 | [`cache`](cache/README.md) | `go-redis/v9`、`msgpack` | 以无资源 typed Client 隔离 Redis 与 wire format；Kernel 治理 disabled/Redis 后端、coordination 与连接生命周期。 |

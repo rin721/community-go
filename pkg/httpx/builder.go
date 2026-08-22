@@ -150,7 +150,8 @@ func validateCORSConfig(cfg CORSConfig) error {
 	seen := make(map[string]struct{}, len(cfg.AllowedOrigins))
 	for _, origin := range cfg.AllowedOrigins {
 		parsed, err := url.Parse(origin)
-		if err != nil || parsed.Scheme != "http" && parsed.Scheme != "https" || parsed.Host == "" || parsed.Path != "" {
+		if err != nil || parsed.Scheme != "http" && parsed.Scheme != "https" || parsed.Host == "" || parsed.Path != "" ||
+			parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" || strings.Contains(origin, "*") {
 			return fmt.Errorf("CORS origin %q must be an absolute HTTP origin", origin)
 		}
 		if _, exists := seen[origin]; exists {

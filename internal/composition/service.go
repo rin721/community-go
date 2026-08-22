@@ -110,6 +110,10 @@ func applicationRouter(
 	if err != nil {
 		return nil, fmt.Errorf("compose trusted proxy policy: %w", err)
 	}
+	corsMiddleware, err := httpx.CORS(httpConfig.CORS)
+	if err != nil {
+		return nil, fmt.Errorf("compose HTTP CORS policy: %w", err)
+	}
 	overload, err := httpx.NewOverloadLimiter(httpConfig.MaxInFlight)
 	if err != nil {
 		return nil, fmt.Errorf("compose HTTP overload limiter: %w", err)
@@ -125,7 +129,7 @@ func applicationRouter(
 		httpx.RequestTimeout(httpConfig.RequestTimeout),
 		httpx.BodyLimit(httpConfig.MaxRequestBodyBytes),
 		httpx.AcceptJSON(),
-		httpx.CORS(httpConfig.CORS),
+		corsMiddleware,
 	}
 	switch httpConfig.RateLimit.Mode {
 	case httpx.RateLimitModeLocal:

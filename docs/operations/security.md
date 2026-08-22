@@ -22,4 +22,6 @@
 
 浏览器请求使用 `__Host-community-go_iam_session` 安全 Cookie；不安全请求必须同时满足同源校验和绑定 Session 的 `X-CSRF-Token`。密码、setup token、Session ID、CSRF token 和 Authorization 不进入日志、Web Storage 或错误详情。
 
+应用入口的 CORS 标准机制由 `rs/cors v1.11.1` 处理，Go 标准库 `http.CrossOriginProtection` 对 unsafe cross-site 请求提供 defense-in-depth。项目只允许配置中的 exact HTTP(S) Origin，空列表默认拒绝；不开放 wildcard、credentials 或 Private Network Access。被拒绝的 unsafe 请求在业务 Handler 前返回低敏 Problem。该入口策略不替代下述 IAM Session Origin/CSRF 守卫：无浏览器来源头的非浏览器请求可能通过标准库检查，但仍不能绕过 IAM mutation token。
+
 IAM 在 composition 提供普通 WebUI 业务 mutation 共用的窄 Origin/CSRF 守卫；Navigation 策略修改使用该守卫，但业务模块不读取 IAM Repository 或 Session 表。菜单隐藏不构成授权，所有 Navigation operation 仍由服务端 `navigation:menu:*` 权限判断。

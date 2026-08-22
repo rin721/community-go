@@ -7,6 +7,7 @@
 - 客户端优先使用 `net/http`：标准库长期稳定，原生支持连接池、`context.Context` 取消、超时、`Transport` 替换和 `httptest` 验证，能覆盖脚手架的通用出站请求场景。
 - 服务端继续使用 `net/http` 作为基础协议，并使用 `chi/v5` 负责路由匹配和标准中间件组合。chi 轻量、兼容标准库、维护活跃，适合长期 REST API 项目。
 - 单进程入口速率保护使用 Go 官方扩展库 `golang.org/x/time/rate` 的并发安全 token bucket；第三方类型只留在 `RateLimiter` 薄实现内，项目继续拥有 429、Problem、配置和 generation 生命周期语义。
+- CORS 标准 header、完整 preflight `Vary` 与列表规范化由 `rs/cors` 负责，unsafe cross-site defense-in-depth 使用 Go 标准库 `http.CrossOriginProtection`；两者都隐藏在项目 `CORS` 边界内。项目仍拥有 exact/default-deny、稳定 Problem 和拒绝时不调用业务 Handler 的策略。
 - 首版不引入 `resty`、`fasthttp` 或完整 Web 框架。通用脚手架更需要稳定边界和低依赖面；只有出现明确场景时，才在包内部重新评估第三方客户端或框架。
 - chi 只作为本包内部路由实现，业务代码不直接依赖 chi 类型。
 
@@ -70,6 +71,8 @@ pkg/httpx/
 | `MaxHeaderBytes` | 最大请求头大小 | `http.DefaultMaxHeaderBytes` |
 
 `RateLimit.Mode` 只有 `local` 与 `disabled`。`local` 要求 `RequestsPerSecond` 和 `Burst` 都为正，并在每个 Application Generation 创建独立的满 bucket；`disabled` 不安装速率中间件，但固定权重、非阻塞的 `MaxInFlight` 过载门禁仍返回 503。默认 `100/200/128` 只是脚手架起点，部署方必须依据容量、SLO 和入口网关校准；该能力不是按用户、IP、路由或跨副本一致的业务 quota。
+
+`CORSConfig` 只接受显式 HTTP(S) Origin、method 与 header，不支持 wildcard、credentials 或 Private Network Access。安全的跨域实际请求可以执行但不会获得 allow header；不允许的 unsafe cross-site 请求在业务 Handler 前返回项目 403 Problem。该入口防护不替代 IAM Session 的严格 Origin 与 `X-CSRF-Token` 校验。
 
 ## 客户端基础示例
 

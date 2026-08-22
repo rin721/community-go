@@ -14,7 +14,7 @@ areas:
       - docs/architecture/technology-selection.md
       - docs/development/execution-capability.md
       - docs/operations/security.md
-    reason: 缓存已收敛为 Redis 单一 authority；AuthN 保留 jwx/v3 与 x/crypto/argon2；Execution 已以项目契约隔离 backoff/v7，HTTP Client 已 one-shot；Serde 已迁移官方稳定 YAML v3 并删除零消费者 Codec；入口限速已以项目薄边界接入 x/time/rate。整体方案进一步确认 HTTP 采用 Huma、Data 采用 direct GORM concrete repo、浏览器安全采用 rs/cors/CrossOriginProtection、HTTP instrumentation 采用 otelhttp，以及静态 Blueprint 目标；当前 authority 明确区分已实现和待实施。
+    reason: 缓存已收敛为 Redis 单一 authority；AuthN 保留 jwx/v3 与 x/crypto/argon2；Execution 已以项目契约隔离 backoff/v7，HTTP Client 已 one-shot；Serde 已迁移官方稳定 YAML v3 并删除零消费者 Codec；入口限速以项目薄边界接入 x/time/rate；CORS 已接入 rs/cors 与标准库 CrossOriginProtection。整体方案进一步确认 HTTP 采用 Huma、Data 采用 direct GORM concrete repo、HTTP instrumentation 采用 otelhttp，以及静态 Blueprint 目标；当前 authority 明确区分已实现和待实施。
   - id: module
     decision: updated
     documents:

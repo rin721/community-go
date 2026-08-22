@@ -83,33 +83,61 @@ func TestTrustedProxyOnlyUsesForwardedAddressForTrustedPeer(t *testing.T) {
 
 func TestCORSDefaultsDenyAndExplicitPreflightAllows(t *testing.T) {
 	tests := []struct {
-		name string
-		cfg  CORSConfig
-		want int
+		name     string
+		cfg      CORSConfig
+		method   string
+		headers  string
+		want     int
+		wantCode string
 	}{
-		{name: "default deny", cfg: DefaultServerConfig().CORS, want: http.StatusForbidden},
+		{name: "default deny", cfg: DefaultServerConfig().CORS, method: http.MethodPost, want: http.StatusForbidden, wantCode: "cors_origin_denied"},
 		{name: "explicit allow", cfg: CORSConfig{
 			AllowedOrigins: []string{"https://console.example"}, AllowedMethods: []string{http.MethodPost}, AllowedHeaders: []string{"Content-Type"},
-		}, want: http.StatusNoContent},
+		}, method: http.MethodPost, headers: "Content-Type", want: http.StatusNoContent},
+		{name: "method deny", cfg: CORSConfig{
+			AllowedOrigins: []string{"https://console.example"}, AllowedMethods: []string{http.MethodGet}, AllowedHeaders: []string{"Content-Type"},
+		}, method: http.MethodPost, headers: "Content-Type", want: http.StatusForbidden, wantCode: "cors_method_denied"},
+		{name: "header deny", cfg: CORSConfig{
+			AllowedOrigins: []string{"https://console.example"}, AllowedMethods: []string{http.MethodPost}, AllowedHeaders: []string{"Authorization"},
+		}, method: http.MethodPost, headers: "Content-Type", want: http.StatusForbidden, wantCode: "cors_header_denied"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			router := NewRouter(nil)
-			router.Use(CORS(test.cfg))
+			middleware, err := CORS(test.cfg)
+			if err != nil {
+				t.Fatalf("CORS() error = %v", err)
+			}
+			router.Use(middleware)
+			handlerCalls := 0
 			router.Handle(MethodOptions, "/api/v1/todos", func(ctx *Context) error {
+				handlerCalls++
 				return ctx.NoContent(http.StatusNoContent)
 			})
 			request := httptest.NewRequest(http.MethodOptions, "/api/v1/todos", nil)
 			request.Header.Set("Origin", "https://console.example")
-			request.Header.Set("Access-Control-Request-Method", http.MethodPost)
-			request.Header.Set("Access-Control-Request-Headers", "Content-Type")
+			request.Header.Set("Access-Control-Request-Method", test.method)
+			request.Header.Set("Access-Control-Request-Headers", test.headers)
 			recorder := httptest.NewRecorder()
 			router.ServeHTTP(recorder, request)
 			if recorder.Code != test.want {
 				t.Fatalf("status = %d, want %d; body = %s", recorder.Code, test.want, recorder.Body.String())
 			}
-			if test.want == http.StatusNoContent && recorder.Header().Get("Access-Control-Allow-Origin") != "https://console.example" {
+			if handlerCalls != 0 {
+				t.Fatalf("preflight handler calls = %d", handlerCalls)
+			}
+			if test.wantCode != "" {
+				assertProblem(t, recorder, test.want, test.wantCode)
+				return
+			}
+			if recorder.Header().Get("Access-Control-Allow-Origin") != "https://console.example" {
 				t.Fatalf("allow origin = %q", recorder.Header().Get("Access-Control-Allow-Origin"))
+			}
+			vary := strings.Join(recorder.Header().Values("Vary"), ",")
+			for _, name := range []string{"Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers"} {
+				if !strings.Contains(vary, name) {
+					t.Fatalf("Vary = %q, missing %q", vary, name)
+				}
 			}
 		})
 	}
@@ -117,7 +145,11 @@ func TestCORSDefaultsDenyAndExplicitPreflightAllows(t *testing.T) {
 
 func TestCORSAllowsSameOriginPostWithoutCrossOriginAllowlist(t *testing.T) {
 	router := NewRouter(nil)
-	router.Use(CORS(DefaultServerConfig().CORS))
+	middleware, err := CORS(DefaultServerConfig().CORS)
+	if err != nil {
+		t.Fatalf("CORS() error = %v", err)
+	}
+	router.Use(middleware)
 	router.Handle(MethodPost, "/api/v1/webui/auth/setup", func(ctx *Context) error {
 		return ctx.NoContent(http.StatusNoContent)
 	})
@@ -130,6 +162,71 @@ func TestCORSAllowsSameOriginPostWithoutCrossOriginAllowlist(t *testing.T) {
 	}
 	if recorder.Header().Get("Access-Control-Allow-Origin") != "" {
 		t.Fatalf("same-origin response unexpectedly emitted CORS header %q", recorder.Header().Get("Access-Control-Allow-Origin"))
+	}
+}
+
+func TestCORSActualRequestAndCrossSiteProtectionMatrix(t *testing.T) {
+	cfg := CORSConfig{
+		AllowedOrigins: []string{"https://console.example"},
+		AllowedMethods: []string{http.MethodGet, http.MethodPost},
+		AllowedHeaders: []string{"Content-Type"},
+	}
+	tests := []struct {
+		name            string
+		method          string
+		origin          string
+		fetchSite       string
+		want            int
+		wantAllowOrigin bool
+		wantHandler     bool
+	}{
+		{name: "no origin unsafe non-browser", method: http.MethodPost, want: http.StatusNoContent, wantHandler: true},
+		{name: "allowed unsafe origin", method: http.MethodPost, origin: "https://console.example", fetchSite: "cross-site", want: http.StatusNoContent, wantAllowOrigin: true, wantHandler: true},
+		{name: "disallowed safe origin", method: http.MethodGet, origin: "https://evil.example", fetchSite: "cross-site", want: http.StatusNoContent, wantHandler: true},
+		{name: "disallowed unsafe origin", method: http.MethodPost, origin: "https://evil.example", fetchSite: "cross-site", want: http.StatusForbidden},
+		{name: "scheme mismatch is cross origin", method: http.MethodPost, origin: "https://api.example", want: http.StatusForbidden},
+		{name: "cross-site unsafe without origin", method: http.MethodPost, fetchSite: "cross-site", want: http.StatusForbidden},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			middleware, err := CORS(cfg)
+			if err != nil {
+				t.Fatalf("CORS() error = %v", err)
+			}
+			handlerCalls := 0
+			router := NewRouter(nil)
+			router.Use(middleware)
+			router.Handle(Method(test.method), "/", func(ctx *Context) error {
+				handlerCalls++
+				return ctx.NoContent(http.StatusNoContent)
+			})
+			request := httptest.NewRequest(test.method, "http://api.example/", nil)
+			if test.origin != "" {
+				request.Header.Set("Origin", test.origin)
+			}
+			if test.fetchSite != "" {
+				request.Header.Set("Sec-Fetch-Site", test.fetchSite)
+			}
+			recorder := httptest.NewRecorder()
+			router.ServeHTTP(recorder, request)
+			if recorder.Code != test.want {
+				t.Fatalf("status = %d, want %d; body = %s", recorder.Code, test.want, recorder.Body.String())
+			}
+			if (handlerCalls == 1) != test.wantHandler {
+				t.Fatalf("handler calls = %d", handlerCalls)
+			}
+			if got := recorder.Header().Get("Access-Control-Allow-Origin"); (got != "") != test.wantAllowOrigin {
+				t.Fatalf("allow origin = %q", got)
+			}
+		})
+	}
+}
+
+func TestCORSRejectsNonExactOriginConfiguration(t *testing.T) {
+	for _, origin := range []string{"https://*.example", "https://user@example.com", "https://example.com?tenant=one", "https://example.com#fragment"} {
+		if _, err := CORS(CORSConfig{AllowedOrigins: []string{origin}}); err == nil {
+			t.Fatalf("CORS(%q) error = nil", origin)
+		}
 	}
 }
 

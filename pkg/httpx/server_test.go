@@ -188,6 +188,7 @@ func TestNewServerRejectsInvalidConfig(t *testing.T) {
 		{name: "missing rate mode", cfg: &ServerConfig{RateLimit: RateLimitConfig{RequestsPerSecond: 1, Burst: 1}}, handler: http.NewServeMux(), want: "rate limit mode"},
 		{name: "unsupported rate mode", cfg: &ServerConfig{RateLimit: RateLimitConfig{Mode: "shared", RequestsPerSecond: 1, Burst: 1}}, handler: http.NewServeMux(), want: "rate limit mode"},
 		{name: "local rate missing budget", cfg: &ServerConfig{RateLimit: RateLimitConfig{Mode: RateLimitModeLocal}}, handler: http.NewServeMux(), want: "must be positive"},
+		{name: "wildcard CORS origin", cfg: &ServerConfig{CORS: CORSConfig{AllowedOrigins: []string{"https://*.example"}}}, handler: http.NewServeMux(), want: "CORS origin"},
 	}
 
 	for _, tt := range tests {

@@ -45,7 +45,7 @@ func NewRouteBinding(gate OperationGate, registrations ...humabinding.Registrati
 	router.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteProblem(w, r, &httpx.StatusError{StatusCode: http.StatusMethodNotAllowed, Code: "method_not_allowed", Message: "method not allowed"})
 	})
-	router.Use(requireSingleJSONDocument)
+	router.Use(requireSingleJSONDocument, httpx.AcceptJSONHandler())
 	api := newHumaAPI(router, gate)
 	for index, registration := range registrations {
 		if registration == nil {

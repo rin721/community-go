@@ -8,6 +8,7 @@ import (
 	migrationconfig "github.com/rin721/go-scaffold-template/internal/module/migration/binding/config"
 	opsconfig "github.com/rin721/go-scaffold-template/internal/module/ops/binding/config"
 	todoconfig "github.com/rin721/go-scaffold-template/internal/module/todo/binding/config"
+	"github.com/rin721/go-scaffold-template/internal/webuihost"
 )
 
 // applicationOwnedConfigurationBindings 返回统一正式配置中由应用模块拥有的 section。
@@ -20,5 +21,6 @@ func applicationOwnedConfigurationBindings() []config.Binding {
 		todoconfig.Binding(),
 		opsconfig.Binding(),
 		composed.ObservabilityConfiguration(),
+		webuihost.Binding(),
 	}
 }

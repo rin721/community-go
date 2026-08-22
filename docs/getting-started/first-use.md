@@ -14,8 +14,10 @@ Invoke-RestMethod http://127.0.0.1:9090/readyz
 
 ## 2. 检查 Admin WebUI 宿主
 
-1. 按[全栈 WebUI 本地启动](../../README.md#全栈-webui-本地启动)启动 Go 服务和 Vite。
-2. 打开 `https://127.0.0.1:5173`。
+WebUI 有模式 B（默认，Go 服务托管 `http://127.0.0.1:8080`）与模式 A（Vite `https://127.0.0.1:5173`）两种启动路径，见[全栈 WebUI 启动（两种模式）](../../README.md#全栈-webui-启动（两种模式）)：
+
+1. 按所选模式启动 Go 服务（和模式 A 的 Vite）。
+2. 打开 `http://127.0.0.1:8080`（模式 B）或 `https://127.0.0.1:5173`（模式 A）。
 3. 确认宿主能加载当前 manifest，且静态 registry 的 `catalogRevision` 匹配；菜单策略使用独立 `navigationRevision`。
 4. 使用临时或已明确选择的 fresh database 执行 `db migrate up`，确认 `iam`、`organization`、`navigation` 与 `todo` 四个 set 均兼容；默认 `.data/app.db` 不会被 Agent 自动重置。
 5. 通过 `/setup` 原子创建首个 owner，随后验证登录、账号安全、用户、角色、权限、部门、岗位、账号组织分配和菜单策略页面；setup token 不得写入仓库、截图、日志或前端公开配置。
@@ -24,7 +26,7 @@ Organization 页面只维护组织目录：一个账号可选择一个主部门�
 
 Navigation 页面只允许调整已注册菜单的 enabled、parent 和 order。保存后当前页面刷新 Manifest 与 `navigationRevision`；禁用菜单会从侧栏移除，但其代码注册路由仍保留，直接访问仍由服务端权限决定。
 
-Vite 本地 HTTPS 的证书提示属于开发环境行为。IAM typed HTTP、Origin/CSRF 与阶段边界以[WebUI 本地启动指南](webui.md)与 `webui/` 代码为准。
+Vite 本地 HTTPS 的证书提示属于模式 A 的开发环境行为；模式 B 的纯 HTTP 只对 loopback 生效（Session Cookie 带 Secure），对外部署需 TLS 终结。IAM typed HTTP、Origin/CSRF 与阶段边界以[WebUI 本地启动指南](webui.md)与 `webui/` 代码为准。
 
 ## 3. 验证 Todo CLI
 
@@ -53,5 +55,5 @@ git diff --exit-code -- api internal/transport/http/api
 ## 5. 验收边界
 
 - 本文不覆盖浏览器 E2E、视觉验收、真实 Redis、对象存储、RabbitMQ、PostgreSQL/MySQL 或生产部署；这些属于对应主题的独立证据。
-- 当前 WebUI 是本地 Vite 开发交付，Docker/release 尚未证明会托管 `webui/dist`。
+- 当前 WebUI 已支持模式 B（Go 服务托管）：镜像构建期装配 `webui/dist`、release 归档包含 `webui/dist`；容器 runtime 与远端 CI 的浏览器/容器验收仍在独立验证边界。
 - 测试数据和 setup 账号仅用于本地验收，不能写入提交、日志或共享环境。

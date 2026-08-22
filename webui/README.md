@@ -30,7 +30,7 @@ Linux 使用 `bash scripts/verify-webui.sh`。质量链覆盖生成检查、冻�
 ## 边界
 
 - 业务 WebUI 页面由对应 `internal/module/<id>` 持有；宿主 SDK 和跨模块资源规则由 WebUI 开发文档与 lint 约束。
-- WebUI 当前已证明本地 Vite 开发和静态构建；Docker/release 尚未证明会打包或托管 `webui/dist`。
+- WebUI 已证明本地 Vite 开发、静态构建与 Go 服务托管（模式 B）：Docker 镜像构建期装配 `webui/dist`，release 归档包含 `webui/dist`；托管目录、托管前构建脚本与模式切换由 `config.yaml` 的 `webui.hosting` 声明。容器 runtime 与远端 CI 的浏览器/容器验收仍在独立验证边界。
 - 新增页面、模块、路由、生成契约或运行方式时，必须更新对应 authority 并提交 `documentation-impact.yaml`。
 
 ## 宿主骨架与体验（059）

@@ -43,6 +43,9 @@ archives:
       - config.example.yaml
       - api/openapi.yaml
       - docs/operations/*.md
+      # Go 服务托管模式（模式 B）需要的 WebUI 构建产物；release job 在
+      # goreleaser 前执行 verify-webui.sh，产物在本机已经存在。
+      - webui/dist/**
 
 checksum:
   name_template: checksums.txt

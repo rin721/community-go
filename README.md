@@ -32,11 +32,16 @@ Invoke-RestMethod http://127.0.0.1:9090/readyz
 
 停止服务使用 `Ctrl+C`，正常退出会打印 draining/stopped 相关日志。
 
-## 全栈 WebUI 本地启动
+## 全栈 WebUI 启动（两种模式）
 
-根 `webui/` 是当前质量链已接入的 Admin WebUI。本地联调需要两个终端；先准备 setup token，再启动 Go 服务：
+根 `webui/` 是当前质量链已接入的 Admin WebUI，由 `config.yaml` 的 `webui.hosting.enabled` 选择运行模式（默认 `true`）：
 
-终端 A（仓库根目录）：
+- **模式 B（默认）：Go 服务单进程托管**——Go Service 在业务 listener 同时提供页面与 API，浏览器访问一个地址；
+- **模式 A：前后端分离开发模式**——Vite dev server 提供页面并代理 API/management，适合需要 HMR 的联调。
+
+### 模式 B：Go 服务托管（默认）
+
+首次启动需要先生成配置、迁移数据库并装配 WebUI 产物；development 环境产物缺失时，Service 启动前会自动执行托管前构建脚本（node：registry 生成 -> 依赖安装 -> 构建打包），因此最小启动路径为：
 
 ```powershell
 $env:APP_IAM__LOCAL__SETUPTOKEN = "change-me-before-use"
@@ -45,20 +50,15 @@ go run ./cmd/app db migrate up
 go run ./cmd/app
 ```
 
-终端 B（仓库根目录）：
+浏览器访问 `http://127.0.0.1:8080` 完成首次设置；页面深链（如 `/dashboard`）回退到 SPA，`/api` 与 `/management` 路径保持 JSON 语义。需要显式重建产物时执行 `go run ./cmd/app webui build`。生产环境（`logger.environment: production`）缺产物会快速失败，镜像构建期必须装配好 `webui/dist`，运行时容器不含 node。
 
-```powershell
-corepack enable
-corepack install --global pnpm@10.22.0
-Set-Location webui
-pnpm install
-pnpm generate:check
-pnpm dev
-```
+### 模式 A：前后端分离（Vite HMR）
 
-浏览器访问 `https://127.0.0.1:5173` 可检查当前宿主、manifest 和 IAM/Organization/Navigation/Ops 页面。IAM 已拥有本地账号、凭据、Session、Core RBAC、用户/角色/权限管理及独立 migration set；Organization 已拥有部门、岗位和账号组织分配，但组织关系不进入权限决策；Navigation 只管理代码已注册菜单的启停、父级和排序，禁用菜单不注销路由或改变服务端授权；Auth 只保留通用 Principal、JWT、operation decision 和审计。Vite 开发服务器使用本地 HTTPS；完整启动步骤见 [WebUI 本地启动指南](docs/getting-started/webui.md)。
+把 `config.yaml` 的 `webui.hosting.enabled` 改为 `false`，按[WebUI 本地启动指南](docs/getting-started/webui.md)在两个终端分别启动 Go Service 与 Vite（本地 HTTPS，`https://127.0.0.1:5173`），完整步骤与常见问题见该指南。
 
-启动后可按 [首次使用与最小验收](docs/getting-started/first-use.md) 验证当前可用的 WebUI 宿主、Todo CLI/API 和 management readiness。当前 Docker/release 尚未打包或托管 `webui/dist`，不能把本地 Vite 启动当作生产静态交付。
+两种模式共用同一套 IAM Session/CORS 语义：同源请求不依赖 `http.cors.allowedOrigins` 白名单；Session Cookie 带 `Secure` 属性，纯 HTTP 只对 loopback（localhost/127.0.0.1）有效，非 loopback 部署必须由 TLS 终结的反向代理承载。
+
+模式 B 下可检查当前宿主、manifest 和 IAM/Organization/Navigation/Ops 页面。IAM 已拥有本地账号、凭据、Session、Core RBAC、用户/角色/权限管理及独立 migration set；Organization 已拥有部门、岗位和账号组织分配，但组织关系不进入权限决策；Navigation 只管理代码已注册菜单的启停、父级和排序，禁用菜单不注销路由或改变服务端授权；Auth 只保留通用 Principal、JWT、operation decision 和审计。启动后可按 [首次使用与最小验收](docs/getting-started/first-use.md) 验证当前可用的 WebUI 宿主、Todo CLI/API 和 management readiness；两种模式的切换与产物装配细节见 [WebUI 本地启动指南](docs/getting-started/webui.md)。
 
 如果本地已经存在 `config.yaml`，`config init` 会拒绝覆盖。不要为了“重新生成”随手使用 `--force`；需要对比时先输出到临时路径，详细关系见 [本地启动指南](docs/getting-started/local-development.md) 与 [配置说明](docs/configuration/README.md)。
 

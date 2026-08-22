@@ -287,3 +287,22 @@ observability:
     batchTimeout: 5s
     exportTimeout: 3s
     shutdownTimeout: 5s
+
+webui:
+  # WebUI 构建产物托管组件。两种模式由 hosting.enabled 选择：
+  #   - true（默认）：Go 服务单进程托管模式（模式 B），业务 listener 同时提供页面与 API；
+  #   - false：前后端分离开发模式（模式 A，Vite dev server + Go Service）。
+  hosting:
+    # 默认由 Go 服务托管 WebUI 构建产物。
+    enabled: true
+    # 托管目录：WebUI 打包后的静态产物目录，默认等于布局声明的 WebUI 根拼接 /dist
+    #（当前 webui/dist）；该默认值由 internal/tools/project-layout --check-webui 与布局清单守护。
+    dir: ./webui/dist
+    # 托管前构建脚本路径：业务模块 WebUI 产物生成 -> 依赖安装 -> 构建打包。
+    # development 环境下产物缺失时，Service 启动前会执行一次本脚本；production 环境
+    # 缺产物会快速失败，镜像构建期必须先装配好产物（容器内无 node）。
+    buildScript: ./webui/scripts/build-webui.mjs
+    # 脚本运行时：node 或 bash。
+    buildRuntime: node
+    # 托管前构建脚本执行超时（同时约束 webui build CLI 与启动期自动构建）。
+    buildTimeout: 10m

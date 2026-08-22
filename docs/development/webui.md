@@ -38,6 +38,22 @@ pnpm generate:check
 
 跨平台静态质量总入口为仓库根的 `./scripts/Verify-WebUI.ps1` 或 `bash scripts/verify-webui.sh`，它固定执行生成检查、冻结安装、lint、模块 lint、typecheck、test 和 build；不启动 Go 服务或 Playwright。
 
+## 托管模式与产物装配
+
+WebUI 构建产物由托管前构建脚本统一装配，`config.yaml` 的 `webui.hosting` 声明托管目录（默认 `webui/dist`）与脚本路径/运行时（默认 node：`webui/scripts/build-webui.mjs`，Linux 可改用等价的 `build-webui.sh`）。脚本执行链：
+
+```text
+业务模块 WebUI 产物（registry 与 tsconfig，node scripts/generate.mjs + go run ./cmd/app webui generate）
+ -> 依赖安装（corepack pnpm install --frozen-lockfile）
+ -> 构建打包（corepack pnpm build -> webui/dist）
+```
+
+- 显式装配：`go run ./cmd/app webui build`（配置缺失时使用默认 node 脚本）。
+- development 下产物缺失时，Service 启动前自动执行一次该脚本；reload 不重复构建。
+- `logger.environment: production` 时缺产物快速失败；镜像构建期由 Dockerfile 的 `webui-build` stage 装配 `webui/dist`，distroless runtime 不含 node，运行期不执行脚本。
+- 托管目录/脚本默认值与布局清单的一致性由 `project-layout --check-webui` 质量门禁守护；生产 Service 不运行期读取 `.scaffold/layout.json`。
+- 静态托管只服务 GET/HEAD；`/api`、`/management` 前缀未命中保持 JSON 404/405，不回退 HTML；`/assets/*`（Vite hash 资源）使用不可变缓存头，`index.html` 与其余文件 `no-cache`；`AcceptJSON` 门禁只作用于 API 分组。
+
 `webui/` 是独立 React/Vite 宿主，开发服务器使用 HTTPS，并将 `/api/v1` 与 `/management` 代理到 Go 服务。开发 host、port 和两个 proxy target 由 `webui/.env.example` 对应的环境变量声明，Vite 与 Playwright 使用同一个 parser。生成 registry 的唯一来源是 `internal/composition` 的 WebUI Catalog；不要直接编辑 `src/generated/webui-registry.ts`。
 
 IAM 用户密码可通过 `go run ./cmd/app iam reset-password --username <用户名>` 重置；未传 `--password` 时由 CLI 的安全输入接口读取。命令先验证 migration 兼容性，再更新密码、设置首次改密并撤销该账号全部 Session。

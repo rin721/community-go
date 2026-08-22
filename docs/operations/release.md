@@ -11,6 +11,8 @@
 
 Linux 使用 `scripts/install-tools.sh` 与 `scripts/release-local.sh`。工具目录和 release 输出目录由 `.scaffold/layout.json` 提供（当前输出位于忽略的 `dist/`），包括 Windows/Linux amd64 archive、`checksums.txt`、每个 archive 的 SPDX JSON SBOM，以及本轮临时密钥生成并立即验证的 checksum signature/bundle。临时私钥在脚本结束前删除；`local-rc.pub` 只证明该本地 artifact set 在本轮后未变化，不证明公开发布者身份。
 
+Release archive 同时包含 `webui/dist/**`（Go 服务托管模式 B 的静态产物；release job 在 GoReleaser 前执行 `verify-webui.sh`，产物已经存在）。解压发布包并执行二进制即可进入模式 B；`config.example.yaml` 的 `webui.hosting` 默认启用托管。
+
 本地候选不创建 tag、不 push、不创建 GitHub Release、不上传 image 或 attestation。
 
 ## 正式发布

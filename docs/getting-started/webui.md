@@ -1,15 +1,39 @@
 # WebUI 本地启动指南
 
-本文说明如何在本地同时启动 Go Service 与独立 `webui/`。后端负责业务 HTTP、management、WebUI manifest 和本地 Session；Vite 只提供浏览器页面，并把请求代理到后端。
+本文说明 WebUI 的两种运行模式。后端负责业务 HTTP、management、WebUI manifest 和本地 Session；由 `config.yaml` 的 `webui.hosting.enabled` 选择托管方式（默认 `true`）：
 
-## 前置条件
+- **模式 B（默认）：Go 服务单进程托管**——Go Service 在业务 listener（默认 8080）同时提供页面与 API；
+- **模式 A：前后端分离**——Vite 只提供浏览器页面，并把请求代理到后端，适合 HMR 联调。
 
-- 已安装仓库要求的 Go、Node.js 与 pnpm；
+## 0. 前置条件
+
+- 已安装仓库要求的 Go、Node.js 与 pnpm（模式 B 首次自动构建需要；产物已存在时不需要）；
 - 以下命令从仓库根目录开始执行；
-- 本地端口 `8080`、`9090` 和 Vite 选择的端口可用；
+- 模式 A 需要本地端口 `8080`、`9090` 和 Vite 选择的端口可用；
 - 首次设置使用高熵 Setup Token，不能把真实值写入配置样例、源码或提交记录。
 
-## 1. 首次初始化
+## 模式 B：Go 服务托管（默认）
+
+```powershell
+$env:APP_IAM__LOCAL__SETUPTOKEN = '<从密码管理器取得的高熵随机值>'
+go run ./cmd/app config init   # 已有 config.yaml 时跳过
+go run ./cmd/app db migrate up # 已有数据库时跳过
+go run ./cmd/app
+```
+
+development 环境下若 `webui.hosting.dir`（默认 `webui/dist`）不存在，启动前会自动执行一次托管前构建脚本（默认 node：业务模块 registry 生成 -> 依赖安装 -> 构建打包）；日志会打印 `webui hosting assets are missing; running pre-hosting build script` 与 `webui hosting assets are ready`。需要显式重建产物：
+
+```powershell
+go run ./cmd/app webui build
+```
+
+浏览器访问 `http://127.0.0.1:8080`（页面与 API 同源，深链如 `/dashboard` 回退到 SPA）。`logger.environment: production` 时缺产物会快速失败，镜像构建期必须装配好 `webui/dist`，运行期容器不含 node。
+
+## 模式 A：前后端分离（Vite HMR）
+
+把 `config.yaml` 的 `webui.hosting.enabled` 改为 `false`，然后按以下步骤启动两个终端。
+
+## 1. 首次初始化（两种模式共用）
 
 只在尚无 `config.yaml` 时生成默认配置：
 
@@ -27,7 +51,7 @@ go run ./cmd/app db migrate up
 
 IAM 使用 `iam_schema_migrations` 创建账号、凭据、Session、角色与关系表；Organization 使用 `organization_schema_migrations` 创建部门、岗位与账号组织关系；Navigation 使用 `navigation_schema_migrations` 创建稀疏菜单策略；Todo 继续使用 `todo_schema_migrations`。包含旧 `schema_migrations` 或 `webui_*` 表的数据库会被只读 preflight 拒绝。不要直接删除、覆盖或让 Agent 自动处理现有本地数据；当前项目未发布时可显式选择新的本地数据库建立干净 baseline。
 
-## 2. 启动后端
+## 2. 启动后端（模式 A）
 
 在第一个 PowerShell 终端中设置仅供首次创建用户使用的高熵 Token，然后启动 Service：
 
@@ -54,9 +78,9 @@ http:
       - https://127.0.0.1:5173
 ```
 
-CORS 与 IAM Session 的 CSRF Origin 校验共用该列表。不要改成 `*`，生产配置应替换为真实部署 Origin。
+CORS 与 IAM Session 的 CSRF Origin 校验共用该列表。不要改成 `*`，生产配置应替换为真实部署 Origin。模式 B（同源访问）不需要在列表中增加自身 Origin，`SameOrigin` 精确比较会自动放行。
 
-## 3. 启动 WebUI
+## 3. 启动 WebUI（模式 A）
 
 在第二个 PowerShell 终端中执行：
 
@@ -73,9 +97,9 @@ Vite 使用项目配置的本地自签名证书。浏览器首次访问会提示
 
 生成命令为 `webui generate`，已经封装在 `pnpm generate` 与 `pnpm generate:check` 中。日常启动只需要执行 clean check，不要手工编辑 `src/generated/webui-registry.ts`。
 
-## 4. 首次设置与登录
+## 4. 首次设置与登录（两种模式共用）
 
-首次运行时，在 Vite 地址后访问 `/setup`，填写：
+首次运行时，在页面地址（模式 A 为 Vite 地址、模式 B 为 `http://127.0.0.1:8080`）后访问 `/setup`，填写：
 
 - 第一个终端设置的同一 Setup Token；
 - 3 至 64 位 ASCII 用户名（字母或数字开头，可使用 `._-`）；
@@ -92,12 +116,16 @@ Remove-Item Env:APP_IAM__LOCAL__SETUPTOKEN
 
 拥有 `navigation:menu:read/write` 的 owner 可访问 `/admin/menus`。页面只修改代码已注册菜单的启停、父级和排序；保存会刷新当前 Manifest。禁用菜单不会删除 Route、Entry 或改变 Auth decision。
 
-停止两个开发进程都使用 `Ctrl+C`。
+模式 A 停止两个开发进程都使用 `Ctrl+C`；模式 B 停止单个 Service 进程即可。
+
+Session Cookie 带 `Secure` 属性：模式 B 的纯 HTTP 只对 loopback（localhost/127.0.0.1）有效（浏览器将 loopback 视为潜在可信来源）；非 loopback 纯 HTTP 部署无法保全 Session，必须使用 TLS 终结的反向代理。
 
 ## 5. 常见问题
 
 | 现象 | 处理方式 |
 | --- | --- |
+| 启动失败提示 `webui hosting assets are unavailable` | 执行 `go run ./cmd/app webui build` 装配产物，或检查 `webui.hosting.dir`；production 环境必须在镜像/部署期预装产物。 |
+| 非 loopback 纯 HTTP 页面登录后 Cookie 不生效 | 模式 B 使用纯 HTTP 时仅支持 loopback；对外部署必须由 TLS 终结的反向代理承载。 |
 | 页面一直显示 manifest 或装配错误 | 先确认后端已 ready，再检查 Vite 终端的 `/api/v1` 代理请求。 |
 | Setup Token 返回 `invalid_credentials` | 确认环境变量与后端在同一终端启动，并使用完全一致的 Token。 |
 | `invalid_request` | 检查用户名为 3 至 64 位受控 ASCII、显示名称非空、密码为 15 至 128 个 Unicode 字符。 |

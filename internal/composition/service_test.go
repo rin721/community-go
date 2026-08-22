@@ -15,6 +15,7 @@ import (
 	kernelcomposition "github.com/rin721/go-scaffold-template/internal/kernel/composition"
 	kernellogging "github.com/rin721/go-scaffold-template/internal/kernel/logging"
 	"github.com/rin721/go-scaffold-template/internal/module/migration"
+	"github.com/rin721/go-scaffold-template/internal/webuihost"
 	"github.com/rin721/go-scaffold-template/pkg/httpx"
 	"github.com/rin721/go-scaffold-template/pkg/idgen"
 	"github.com/rin721/go-scaffold-template/pkg/logger"
@@ -41,6 +42,7 @@ func TestApplicationRouterStripsWebUIPrefixForStandardHandlers(t *testing.T) {
 		httpx.DefaultServerConfig(),
 		webuiHandler,
 		apiHandler,
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("applicationRouter() error = %v", err)
@@ -62,6 +64,68 @@ func TestApplicationRouterStripsWebUIPrefixForStandardHandlers(t *testing.T) {
 	}
 }
 
+func TestApplicationRouterHostedModeServesWebUIAndKeepsAPIJSON(t *testing.T) {
+	fixture := t.TempDir()
+	indexHTML := "<!doctype html><html><body id=\"root\"></body></html>"
+	if err := os.WriteFile(filepath.Join(fixture, "index.html"), []byte(indexHTML), 0o644); err != nil {
+		t.Fatalf("write fixture index.html: %v", err)
+	}
+	webuiHandler := http.NotFoundHandler()
+	apiHandler := http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if request.URL.Path == "/api/v1/known" {
+			writer.Header().Set("Content-Type", "application/json")
+			_, _ = writer.Write([]byte(`{"ok":true}`))
+			return
+		}
+		httpx.WriteProblem(writer, request, &httpx.StatusError{StatusCode: http.StatusNotFound, Code: "route_not_found", Message: "route not found"})
+	})
+	staticHandler, err := webuihost.NewSPAHandler(fixture, []string{"/api", "/management"}, []string{"/assets"})
+	if err != nil {
+		t.Fatalf("NewSPAHandler() error = %v", err)
+	}
+	router, err := applicationRouter(
+		kernelcomposition.Capabilities{Logger: logger.NewTestLogger(), IDGenerator: idgen.UUID()},
+		httpx.DefaultServerConfig(),
+		webuiHandler,
+		apiHandler,
+		staticHandler,
+	)
+	if err != nil {
+		t.Fatalf("applicationRouter() error = %v", err)
+	}
+	tests := []struct {
+		path      string
+		wantCode  int
+		wantJSON  bool
+		wantIndex bool
+	}{
+		{path: "/", wantCode: http.StatusOK, wantIndex: true},
+		{path: "/dashboard", wantCode: http.StatusOK, wantIndex: true},
+		{path: "/api/v1/known", wantCode: http.StatusOK, wantJSON: true},
+		{path: "/api/v1/unknown", wantCode: http.StatusNotFound, wantJSON: true},
+		{path: "/management/readyz", wantCode: http.StatusNotFound, wantJSON: true},
+	}
+	for _, test := range tests {
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, test.path, nil))
+		if recorder.Code != test.wantCode {
+			t.Fatalf("GET %s status = %d, want %d; body = %s", test.path, recorder.Code, test.wantCode, recorder.Body.String())
+		}
+		if test.wantJSON && !bytes.Contains(recorder.Body.Bytes(), []byte("{")) {
+			t.Fatalf("GET %s body = %s, want JSON", test.path, recorder.Body.String())
+		}
+		if test.wantIndex && !bytes.Contains(recorder.Body.Bytes(), []byte("id=\"root\"")) {
+			t.Fatalf("GET %s body = %s, want SPA index fallback", test.path, recorder.Body.String())
+		}
+	}
+	// 非 API 的非 GET 方法保持 JSON 405（不进入 SPA）。
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, httptest.NewRequest(http.MethodPost, "/dashboard", nil))
+	if recorder.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("POST /dashboard status = %d, want 405", recorder.Code)
+	}
+}
+
 func TestApplicationRouterRateLimitModesAndGenerationLocalState(t *testing.T) {
 	capabilities := kernelcomposition.Capabilities{Logger: logger.NewTestLogger(), IDGenerator: idgen.UUID()}
 	webuiHandler := http.NotFoundHandler()
@@ -74,7 +138,7 @@ func TestApplicationRouterRateLimitModesAndGenerationLocalState(t *testing.T) {
 
 	newRouter := func(t *testing.T, cfg httpx.ServerConfig) httpx.Router {
 		t.Helper()
-		router, err := applicationRouter(capabilities, cfg, webuiHandler, apiHandler)
+		router, err := applicationRouter(capabilities, cfg, webuiHandler, apiHandler, nil)
 		if err != nil {
 			t.Fatalf("applicationRouter() error = %v", err)
 		}
@@ -118,6 +182,7 @@ func TestApplicationRouterCORSPreflightDoesNotConsumeRateToken(t *testing.T) {
 		config,
 		http.NotFoundHandler(),
 		http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) { writer.WriteHeader(http.StatusNoContent) }),
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("applicationRouter() error = %v", err)

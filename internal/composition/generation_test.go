@@ -738,6 +738,9 @@ management:
   maxInFlight: 16
 observability:
   serviceName: generation-a
+webui:
+  hosting:
+    enabled: false
 `, filepath.ToSlash(databasePath), filepath.ToSlash(filepath.Join(directory, "storage")), titleMax, maxHeaderBytes)
 }
 
@@ -828,4 +831,103 @@ func doGenerationRequest(t *testing.T, request *http.Request) int {
 	defer response.Body.Close()
 	_, _ = io.Copy(io.Discard, response.Body)
 	return response.StatusCode
+}
+
+func TestGenerationHostingModeServesWebUIAssets(t *testing.T) {
+	directory := t.TempDir()
+	webUIDir := filepath.Join(directory, "dist")
+	if err := os.MkdirAll(webUIDir, 0o755); err != nil {
+		t.Fatalf("mkdir webui dist: %v", err)
+	}
+	indexHTML := "<!doctype html><html><body id=\"hosting-root\"></body></html>"
+	if err := os.WriteFile(filepath.Join(webUIDir, "index.html"), []byte(indexHTML), 0o644); err != nil {
+		t.Fatalf("write hosted index.html: %v", err)
+	}
+	configPath := filepath.Join(directory, "config.yaml")
+	payload := strings.Replace(
+		generationConfig(directory, 120, 1<<20, filepath.Join(directory, "hosting.db")),
+		"webui:\n  hosting:\n    enabled: false",
+		"webui:\n  hosting:\n    enabled: true\n    dir: "+filepath.ToSlash(webUIDir),
+		1,
+	)
+	if payload == generationConfig(directory, 120, 1<<20, filepath.Join(directory, "hosting.db")) {
+		t.Fatal("hosting section was not replaced in generation config")
+	}
+	writeGenerationConfig(t, configPath, payload)
+	coordinator, _ := newGenerationTestCoordinator(t, configPath)
+	if err := coordinator.Start(t.Context()); err != nil {
+		t.Fatalf("Start() error = %v", err)
+	}
+	t.Cleanup(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := coordinator.Stop(ctx); err != nil {
+			t.Errorf("Stop() error = %v", err)
+		}
+	})
+	diagnostics := coordinator.Diagnostics()
+	if !diagnostics.Ready || diagnostics.BoundAddress == "" {
+		t.Fatalf("diagnostics = %#v", diagnostics)
+	}
+	address := diagnostics.BoundAddress
+	rootResponse, err := http.Get("http://" + address + "/")
+	if err != nil {
+		t.Fatalf("GET / error = %v", err)
+	}
+	rootPayload, _ := io.ReadAll(rootResponse.Body)
+	rootResponse.Body.Close()
+	if rootResponse.StatusCode != http.StatusOK || !bytes.Contains(rootPayload, []byte("hosting-root")) {
+		t.Fatalf("GET / = %d %q, want hosted SPA", rootResponse.StatusCode, rootPayload)
+	}
+	dashboardResponse, err := http.Get("http://" + address + "/dashboard")
+	if err != nil {
+		t.Fatalf("GET /dashboard error = %v", err)
+	}
+	dashboardPayload, _ := io.ReadAll(dashboardResponse.Body)
+	dashboardResponse.Body.Close()
+	if dashboardResponse.StatusCode != http.StatusOK || !bytes.Contains(dashboardPayload, []byte("hosting-root")) {
+		t.Fatalf("GET /dashboard = %d, want SPA fallback", dashboardResponse.StatusCode)
+	}
+	if status := listTodos(t, address); status != http.StatusOK {
+		t.Fatalf("GET /api/v1/todos status = %d, want 200", status)
+	}
+	manifestResponse, err := http.Get("http://" + address + webuiHTTPPrefix + "/manifest")
+	if err != nil {
+		t.Fatalf("GET %s error = %v", webuiHTTPPrefix+"/manifest", err)
+	}
+	manifestPayload, _ := io.ReadAll(manifestResponse.Body)
+	manifestResponse.Body.Close()
+	if manifestResponse.StatusCode != http.StatusOK || !bytes.Contains(manifestPayload, []byte(`"catalogRevision"`)) {
+		t.Fatalf("GET %s = %d %q, want manifest JSON", webuiHTTPPrefix+"/manifest", manifestResponse.StatusCode, manifestPayload)
+	}
+	managementResponse, err := http.Get("http://" + address + "/management/metrics")
+	if err != nil {
+		t.Fatalf("GET /management/metrics error = %v", err)
+	}
+	managementPayload, _ := io.ReadAll(managementResponse.Body)
+	managementResponse.Body.Close()
+	if managementResponse.StatusCode != http.StatusNotFound || bytes.Contains(managementPayload, []byte("hosting-root")) {
+		t.Fatalf("GET /management/metrics = %d, must not fall back to SPA", managementResponse.StatusCode)
+	}
+}
+
+func TestGenerationHostingProductionFailsFastOnMissingAssets(t *testing.T) {
+	directory := t.TempDir()
+	configPath := filepath.Join(directory, "config.yaml")
+	payload := strings.Replace(
+		generationConfig(directory, 120, 1<<20, filepath.Join(directory, "production.db")),
+		"logger:\n  environment: development",
+		"logger:\n  environment: production",
+		1,
+	)
+	// production 环境要求 JWT auth 模式；本测试不访问真实 JWKS，只验证托管目录 fail-fast。
+	payload = strings.Replace(payload, "auth:\n  mode: development-anonymous", "auth:\n  mode: jwt\n  jwt:\n    issuer: https://issuer.example\n    audience: test-api\n    jwksURL: https://issuer.example/.well-known/jwks.json", 1)
+	payload = strings.Replace(payload, "webui:\n  hosting:\n    enabled: false", "webui:\n  hosting:\n    enabled: true", 1)
+	writeGenerationConfig(t, configPath, payload)
+	coordinator, _ := newGenerationTestCoordinator(t, configPath)
+	if err := coordinator.Start(t.Context()); err == nil {
+		t.Fatal("Start() error = nil, want fail-fast on missing webui assets in production")
+	} else if !strings.Contains(err.Error(), "webui hosting assets are unavailable") {
+		t.Fatalf("Start() error = %v, want webui hosting asset guidance", err)
+	}
 }

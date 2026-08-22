@@ -13,6 +13,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'go mod tidy -diff failed' }
     go run ./internal/tools/project-layout --check-identity
     if ($LASTEXITCODE -ne 0) { throw 'project layout identity check failed' }
+    go run ./internal/tools/project-layout --check-webui
+    if ($LASTEXITCODE -ne 0) { throw 'project layout webui consistency check failed' }
     go generate ./...
     if ($LASTEXITCODE -ne 0) { throw 'go generate failed' }
     $openapi = (& node webui/scripts/project-layout.mjs --field openapiOutput).Trim()

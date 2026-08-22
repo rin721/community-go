@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/rin721/go-scaffold-template/internal/kernel"
 	kernelcomposition "github.com/rin721/go-scaffold-template/internal/kernel/composition"
@@ -100,6 +101,7 @@ func applicationRouter(
 	httpConfig httpx.ServerConfig,
 	webuiHandler http.Handler,
 	apiRoutes http.Handler,
+	staticHandler http.Handler,
 ) (httpx.Router, error) {
 	if apiRoutes == nil {
 		return nil, fmt.Errorf("application API routes are nil")
@@ -129,7 +131,6 @@ func applicationRouter(
 		httpx.RejectUpgrade(),
 		httpx.RequestTimeout(httpConfig.RequestTimeout),
 		httpx.BodyLimit(httpConfig.MaxRequestBodyBytes),
-		httpx.AcceptJSON(),
 		corsMiddleware,
 	}
 	switch httpConfig.RateLimit.Mode {
@@ -148,16 +149,48 @@ func applicationRouter(
 	}
 	middlewares = append(middlewares, overload.Middleware())
 	router.Use(middlewares...)
+	// 托管模式下非 API 路径交给静态处理器；否则整棵树都是 API 语义。
+	rootHandler := apiRoutes
+	if staticHandler != nil {
+		rootHandler = hostedRootHandler(apiRoutes, staticHandler)
+	}
 	// Chi Mount 为子 Router 维护 RoutePath，但不会改写普通 http.Handler 看到的
 	// request.URL.Path。WebUI handler 使用标准库 ServeMux 声明相对路径，因此在
 	// Composition 边界统一剥离公开前缀，避免 manifest/Auth 落入 404。
+	// JSON Accept 门禁只作用于 API 分组：manifest 与其它的 /api 请求一致。
+	manifest := httpx.AcceptJSONHandler()(webuiHandler)
 	router.Handle(httpx.MethodGet, webuiHTTPPrefix+"/manifest", func(ctx *httpx.Context) error {
-		http.StripPrefix(webuiHTTPPrefix, webuiHandler).ServeHTTP(ctx.ResponseWriter, ctx.Request)
+		http.StripPrefix(webuiHTTPPrefix, manifest).ServeHTTP(ctx.ResponseWriter, ctx.Request)
 		return nil
 	})
-	router.Mount("/", apiRoutes)
+	router.Mount("/", rootHandler)
 	return router, nil
 }
+
+// hostedRootHandler 在单进程托管模式下把 /api 前缀（含 manifest 之外的业务 API）
+// 分发给 API 路由，其余路径交给 WebUI 静态处理器（SPA fallback 与排除前缀语义
+// 由 webuihost 处理器负责，避免 API/management 路径回退到 HTML）。
+func hostedRootHandler(apiRoutes http.Handler, staticHandler http.Handler) http.Handler {
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		requestPath := request.URL.Path
+		if requestPath == apiPrefix || strings.HasPrefix(requestPath, apiPrefix+"/") {
+			apiRoutes.ServeHTTP(writer, request)
+			return
+		}
+		staticHandler.ServeHTTP(writer, request)
+	})
+}
+
+// apiPrefix 是业务 API 分组在宿主 Router 上的前缀；具体 operation 路径由
+// internal/transport/http 与模块 contracts 声明。
+const apiPrefix = "/api"
+
+// managementHTTPPrefix 是 WebUI 开发代理约定的 management 面路径前缀；
+// 托管模式下该前缀永远不回退到 SPA HTML，保持 JSON 404/405 语义。
+const managementHTTPPrefix = "/management"
+
+// webUIImmutablePrefix 是 Vite 产物中带内容 hash 的静态资源前缀，可长期缓存。
+const webUIImmutablePrefix = "/assets"
 
 func operationPoliciesFromDefinitions(definitions []humabinding.Definition) ([]authmodel.Policy, error) {
 	policies := make([]authmodel.Policy, 0, 8)

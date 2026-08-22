@@ -11,6 +11,7 @@ if [[ -n "${unformatted}" ]]; then
 fi
 go mod tidy -diff
 go run ./internal/tools/project-layout --check-identity
+go run ./internal/tools/project-layout --check-webui
 go generate ./...
 openapi_output="$(node webui/scripts/project-layout.mjs --field openapiOutput)"
 operation_inventory_output="$(node webui/scripts/project-layout.mjs --field operationInventoryOutput)"

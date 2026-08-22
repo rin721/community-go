@@ -239,7 +239,6 @@ func TestProtocolBudgetsReturnStableProblems(t *testing.T) {
 		code string
 	}{
 		{name: "body", use: BodyLimit(4), req: httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{"value":"large"}`)), want: http.StatusRequestEntityTooLarge, code: "request_body_too_large"},
-		{name: "accept", use: AcceptJSON(), req: requestWithHeader(http.MethodGet, "Accept", "text/html"), want: http.StatusNotAcceptable, code: "not_acceptable"},
 		{name: "upgrade", use: RejectUpgrade(), req: requestWithHeader(http.MethodGet, "Upgrade", "websocket"), want: http.StatusUpgradeRequired, code: "upgrade_not_supported"},
 	}
 	for _, test := range tests {
@@ -254,6 +253,40 @@ func TestProtocolBudgetsReturnStableProblems(t *testing.T) {
 			recorder := httptest.NewRecorder()
 			router.ServeHTTP(recorder, test.req)
 			assertProblem(t, recorder, test.want, test.code)
+		})
+	}
+}
+
+func TestAcceptJSONHandlerGatesHTTPHandlerChains(t *testing.T) {
+	next := http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		writer.WriteHeader(http.StatusNoContent)
+	})
+	tests := []struct {
+		name   string
+		accept string
+		want   int
+	}{
+		{name: "empty accept", accept: "", want: http.StatusNoContent},
+		{name: "json", accept: "application/json", want: http.StatusNoContent},
+		{name: "wildcard", accept: "*/*", want: http.StatusNoContent},
+		{name: "browser html", accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", want: http.StatusNoContent},
+		{name: "html only", accept: "text/html", want: http.StatusNotAcceptable},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			recorder := httptest.NewRecorder()
+			request := httptest.NewRequest(http.MethodGet, "/api/v1/ping", nil)
+			if test.accept != "" {
+				request.Header.Set("Accept", test.accept)
+			}
+			AcceptJSONHandler()(next).ServeHTTP(recorder, request)
+			if test.want == http.StatusNoContent {
+				if recorder.Code != http.StatusNoContent {
+					t.Fatalf("status = %d, want 204; body = %s", recorder.Code, recorder.Body.String())
+				}
+				return
+			}
+			assertProblem(t, recorder, test.want, "not_acceptable")
 		})
 	}
 }

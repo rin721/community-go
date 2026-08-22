@@ -3,6 +3,7 @@ set -euo pipefail
 
 image="${1:?usage: container-smoke.sh <image>}"
 management_url="${CONTAINER_SMOKE_MANAGEMENT_URL:-http://127.0.0.1:9090}"
+business_url="${CONTAINER_SMOKE_BUSINESS_URL:-http://127.0.0.1:8080}"
 container_name="go-scaffold-template-smoke-${GITHUB_RUN_ID:-local}-$$"
 volume_name="${container_name}-data"
 
@@ -31,6 +32,13 @@ for _ in $(seq 1 40); do
 done
 curl --fail --silent "${management_url}/readyz" >/dev/null
 curl --fail --silent "${management_url}/build" | grep -F '"version"' >/dev/null
+
+# 模式 B（Go 服务托管）：业务 listener 必须提供 WebUI 首页且 API 路径不回退 HTML。
+curl --fail --silent "${business_url}/" | grep -F '<div id="root">' >/dev/null
+if curl --fail --silent "${business_url}/api/v1/iam/session" | grep -F '<div id="root">' >/dev/null; then
+  echo "business API path fell back to webui HTML" >&2
+  exit 1
+fi
 
 if [[ "$(docker inspect --format '{{.Config.User}}' "${container_name}")" != "nonroot:nonroot" ]]; then
   echo "container user is not nonroot:nonroot" >&2

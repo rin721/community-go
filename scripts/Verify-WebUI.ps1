@@ -8,6 +8,9 @@ try {
     go run ./cmd/app webui generate --check
     if ($LASTEXITCODE -ne 0) { throw 'WebUI registry check failed' }
 
+    & node --check webui/scripts/build-webui.mjs
+    if ($LASTEXITCODE -ne 0) { throw 'build-webui.mjs syntax check failed' }
+
     $webuiRoot = (& node webui/scripts/project-layout.mjs --field webuiRoot).Trim()
     if ([string]::IsNullOrWhiteSpace($webuiRoot)) { throw 'layout did not provide webui root' }
     Push-Location $webuiRoot

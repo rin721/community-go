@@ -30,6 +30,8 @@ func TestProcessGeneratedConfigurationSupportsMigrationAndServiceStartup(t *test
 	t.Setenv(environmentPrefix+"STORAGE__LOCAL__BASEPATH", filepath.ToSlash(storagePath))
 	t.Setenv(environmentPrefix+"HTTP__ADDR", businessAddress)
 	t.Setenv(environmentPrefix+"MANAGEMENT__ADDR", managementAddress)
+	// 本测试没有 webui/dist 产物且不验证静态托管，显式关闭托管模式。
+	t.Setenv(environmentPrefix+"WEBUI__HOSTING__ENABLED", "false")
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -61,6 +63,7 @@ func TestProcessGeneratedConfigurationSupportsMigrationAndServiceStartup(t *test
 		"http:", "addr: 127.0.0.1:8080",
 		"management:", "addr: 127.0.0.1:9090", "metricsAccess: public",
 		"observability:", "serviceName: go-scaffold-template", "sampleRatio: 0.1",
+		"webui:", "hosting:", "enabled: true", "dir: webui/dist", "buildScript: webui/scripts/build-webui.mjs", "buildRuntime: node",
 	} {
 		if !bytes.Contains(content, []byte(expected)) {
 			t.Fatalf("generated config missing %q:\n%s", expected, content)
@@ -221,6 +224,8 @@ http:
 	if err := os.WriteFile(configPath, []byte(payload), 0o600); err != nil {
 		t.Fatalf("write service config: %v", err)
 	}
+	// 本测试没有 webui/dist 产物且不验证静态托管，显式关闭托管模式。
+	t.Setenv("GO_SCAFFOLD2_TEST_011_WEBUI__HOSTING__ENABLED", "false")
 	runTestMigration(t, configPath, "GO_SCAFFOLD2_TEST_011_")
 
 	process := newTestProcess(t, strings.NewReader(""), &bytes.Buffer{}, &bytes.Buffer{})
@@ -429,6 +434,9 @@ http:
 		t.Fatal("Todo CLI did not create SQLite database")
 	}
 	assertFileCanBeRenamed(t, databasePath)
+
+	// 本测试没有 webui/dist 产物且不验证静态托管，显式关闭托管模式。
+	t.Setenv("GO_SCAFFOLD2_TEST_014_WEBUI__HOSTING__ENABLED", "false")
 
 	serviceContext, cancelService := context.WithCancel(t.Context())
 	serviceDone := make(chan error, 1)

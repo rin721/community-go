@@ -60,8 +60,17 @@ go run ./cmd/app config init --output .data/generated-config.yaml
 | `http` | Kernel HTTP composition | 业务 HTTP listener 与请求治理 |
 | `management` | Ops 模块 | management listener、readiness、metrics access |
 | `observability` | Kernel Observability composition | service name、tracing exporter 与采样参数 |
+| `webui` | 应用 WebUI 托管组件（`internal/webuihost`） | 托管开关、托管目录（默认 `webui/dist`）、托管前构建脚本路径与运行时 |
 
 Bootstrap CLI、migration one-shot、Todo CLI 和长期 Service 都必须识别同一套官方应用配置节。某个运行模式可以只创建自己需要的资源，但不能把其他官方配置节当作未知字段拒绝。
+
+## WebUI 托管
+
+`webui.hosting.enabled`（默认 `true`）选择 WebUI 运行模式：`true` 为 Go 服务单进程托管（模式 B，业务 listener 同时提供页面与 API），`false` 为前后端分离开发模式（模式 A，Vite 提供页面）。
+
+- `webui.hosting.dir`（默认 `webui/dist`）是托管目录，默认值必须与布局清单（`.scaffold/layout.json` 的 `roots.webui` + `/dist`）一致，由 `./scripts/Verify-Quality.ps1` / `verify-quality.sh` 中的 `project-layout --check-webui` 守护；生产 Service 不运行期读取布局清单。
+- `webui.hosting.buildScript` 与 `buildRuntime`（默认 node）声明托管前构建脚本：业务模块 WebUI 产物生成 -> 依赖安装（frozen lockfile）-> 构建打包。`go run ./cmd/app webui build` 显式执行；development 环境下产物缺失时 Service 启动前自动执行一次；`logger.environment: production` 时缺产物快速失败。
+- 同源请求不依赖 `http.cors.allowedOrigins`；Session Cookie 带 `Secure` 属性，纯 HTTP 仅限 loopback，生产部署需 TLS 终结。启动与切换步骤见 [WebUI 本地启动指南](../getting-started/webui.md)。
 
 ## HTTP 入口保护
 

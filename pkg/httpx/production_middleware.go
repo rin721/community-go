@@ -390,16 +390,18 @@ func containsIP(networks []*net.IPNet, value net.IP) bool {
 	return false
 }
 
-// AcceptJSON 拒绝无法接收 JSON 或 Problem Details 的显式 Accept。
-func AcceptJSON() Middleware {
-	return func(next Handler) Handler {
-		return func(ctx *Context) error {
-			accept := ctx.Request.Header.Get("Accept")
+// AcceptJSONHandler 返回适用于 http.Handler 链的 JSON Accept 门禁。
+// 只用于必须返回 JSON/Problem 的 API 分组边界；静态页面等其它表示不得经过它。
+func AcceptJSONHandler() func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+			accept := request.Header.Get("Accept")
 			if accept == "" || acceptsJSON(accept) {
-				return next(ctx)
+				next.ServeHTTP(writer, request)
+				return
 			}
-			return &StatusError{StatusCode: http.StatusNotAcceptable, Code: "not_acceptable", Message: "response representation is not acceptable"}
-		}
+			WriteProblem(writer, request, &StatusError{StatusCode: http.StatusNotAcceptable, Code: "not_acceptable", Message: "response representation is not acceptable"})
+		})
 	}
 }
 

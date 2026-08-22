@@ -34,6 +34,9 @@ func runMain(stdin io.Reader, stdout, stderr io.Writer, args []string) int {
 	if len(args) >= 2 && args[0] == "webui" && args[1] == "generate" {
 		return generateWebUIRegistry(stdout, stderr, len(args) > 2 && args[2] == "--check")
 	}
+	if len(args) == 2 && args[0] == "webui" && args[1] == "build" {
+		return runWebUIBuild(stdout, stderr)
+	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	return execute(ctx, newProcess(stdin, stdout, stderr), args)
@@ -47,6 +50,19 @@ func generateWebUIRegistry(stdout, stderr io.Writer, check bool) int {
 	if check {
 		_, _ = fmt.Fprintln(stdout, "webui registry is current")
 	}
+	return applicationcomposition.ExitSuccess
+}
+
+// runWebUIBuild 执行托管前构建脚本（配置缺失时使用默认 node 脚本），
+// 脚本与进程上下文共享标准流，失败时保留退出码原因。
+func runWebUIBuild(stdout, stderr io.Writer) int {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	if err := applicationcomposition.RunWebUIBuild(ctx, applicationcomposition.DefaultConfigPath, environmentPrefix, io.MultiWriter(stdout, stderr)); err != nil {
+		_, _ = fmt.Fprintf(stderr, "webui build: %v\n", err)
+		return applicationcomposition.ExitError
+	}
+	_, _ = fmt.Fprintln(stdout, "webui build completed")
 	return applicationcomposition.ExitSuccess
 }
 

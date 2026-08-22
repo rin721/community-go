@@ -6,6 +6,8 @@ cd "${repository_root}"
 
 go run ./cmd/app webui generate --check
 
+node --check webui/scripts/build-webui.mjs
+
 webui_root="$(node webui/scripts/project-layout.mjs --field webuiRoot)"
 [[ -n "${webui_root}" ]] || { echo "layout did not provide webui root" >&2; exit 1; }
 cd "${webui_root}"

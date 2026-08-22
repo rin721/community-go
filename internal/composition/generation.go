@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"runtime"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -37,6 +38,7 @@ import (
 	configbinding "github.com/rin721/go-scaffold-template/internal/module/todo/binding/config"
 	todohttp "github.com/rin721/go-scaffold-template/internal/module/todo/binding/http"
 	httptransport "github.com/rin721/go-scaffold-template/internal/transport/http"
+	"github.com/rin721/go-scaffold-template/internal/webuihost"
 	"github.com/rin721/go-scaffold-template/pkg/clock"
 	"github.com/rin721/go-scaffold-template/pkg/httpx"
 	"github.com/rin721/go-scaffold-template/pkg/i18n"
@@ -70,6 +72,10 @@ type applicationGenerationFactory struct {
 	currentMu sync.RWMutex
 	current   *applicationGeneration
 	build     opsmodel.BuildInfo
+
+	// webUIBuild 记录托管前构建是否已在本进程尝试过；reload 不重复构建。
+	webUIBuildMu   sync.Mutex
+	webUIBuildDone bool
 }
 
 type applicationGeneration struct {
@@ -180,6 +186,21 @@ func (f *applicationGenerationFactory) Prepare(
 		defer cancel()
 		cleanupErr := generation.abort(cleanupCtx)
 		return nil, errors.Join(cause, cleanupErr)
+	}
+
+	webUIHostConfig, err := webuihost.Decode(snapshot)
+	if err != nil {
+		return abort(err)
+	}
+	if err := f.ensureWebUIHostAssets(ctx, webUIHostConfig, snapshot); err != nil {
+		return abort(err)
+	}
+	// 托管模式下目录必须可用；在候选资源与参与者启动前快速失败，
+	// 避免生产环境在缺失产物时继续申请资源或访问外部依赖。
+	if webUIHostConfig.Hosting.Enabled {
+		if err := webuihost.ValidateDir(webUIHostConfig.Hosting.Dir); err != nil {
+			return abort(fmt.Errorf("webui hosting assets are unavailable: %w; run `go run ./cmd/app webui build` first or configure webui.hosting.dir", err))
+		}
 	}
 
 	loggerDigest, err := snapshot.SectionDigest("logger")
@@ -493,11 +514,18 @@ func (f *applicationGenerationFactory) Prepare(
 	webuiHandler := http.NewServeMux()
 	manifestHandler = withOptionalAuthentication(generation.authModule.SessionSource, manifestHandler)
 	webuiHandler.Handle("/manifest", manifestHandler)
+	var staticHandler http.Handler
+	if webUIHostConfig.Hosting.Enabled {
+		staticHandler, err = webuihost.NewSPAHandler(webUIHostConfig.Hosting.Dir, []string{apiPrefix, managementHTTPPrefix}, []string{webUIImmutablePrefix})
+		if err != nil {
+			return abort(err)
+		}
+	}
 	router, err := applicationRouter(kernelcomposition.Capabilities{
 		Logger: generation.logger.value(), Clock: clock.System(), IDGenerator: idgen.UUID(), Validator: validation.New(),
 		Database: generation.database.value(), Cache: generation.cache.value(),
 		I18n: generation.i18n.value(), Storage: generation.storage.value(),
-	}, httpConfig, webuiHandler, apiRoutes)
+	}, httpConfig, webuiHandler, apiRoutes, staticHandler)
 	if err != nil {
 		return abort(err)
 	}
@@ -549,6 +577,54 @@ func (f *applicationGenerationFactory) Prepare(
 }
 
 func (f *applicationGenerationFactory) Failures() <-chan error { return f.failures }
+
+// ensureWebUIHostAssets 在托管模式下按需补齐 WebUI 构建产物，每进程至多执行一次。
+//
+// 只有托管启用且托管目录无效时才可能构建：development 环境允许在首次 generation
+// 前执行一次托管前构建脚本（reload 不重复构建）；production 环境不执行脚本，
+// 由后续目录校验快速失败并给出修复指引。
+func (f *applicationGenerationFactory) ensureWebUIHostAssets(ctx context.Context, hostConfig webuihost.Config, snapshot config.Snapshot) error {
+	f.webUIBuildMu.Lock()
+	defer f.webUIBuildMu.Unlock()
+	if f.webUIBuildDone {
+		return nil
+	}
+	f.webUIBuildDone = true
+	if !hostConfig.Hosting.Enabled {
+		return nil
+	}
+	if err := webuihost.ValidateDir(hostConfig.Hosting.Dir); err == nil {
+		return nil
+	}
+	if !environmentIsDevelopment(snapshot) {
+		return nil
+	}
+	logging := f.logging.Logger()
+	logging.Debug("webui hosting assets are missing; running pre-hosting build script",
+		logger.String("script", hostConfig.Hosting.BuildScript),
+		logger.String("runtime", string(hostConfig.Hosting.BuildRuntime)),
+	)
+	snippet := webuihost.NewSnippetBuffer(4096)
+	if err := webuihost.RunBuild(ctx, hostConfig.Hosting.BuildRuntime, hostConfig.Hosting.BuildScript, hostConfig.Hosting.BuildTimeout, snippet); err != nil {
+		return fmt.Errorf("auto build webui hosting assets: %w; output: %s", err, snippet.Snippet())
+	}
+	if err := webuihost.ValidateDir(hostConfig.Hosting.Dir); err != nil {
+		return fmt.Errorf("webui hosting assets missing after build script: %w; output: %s", err, snippet.Snippet())
+	}
+	logging.Debug("webui hosting assets are ready")
+	return nil
+}
+
+// environmentIsDevelopment 按 logger 配置返回是否处于 development 环境；
+// 未显式配置时沿用 pkg/logger 的默认值 development。
+func environmentIsDevelopment(snapshot config.Snapshot) bool {
+	value, ok := snapshot.Value("logger.environment")
+	if !ok {
+		return true
+	}
+	environment, ok := value.(string)
+	return ok && strings.EqualFold(environment, "development")
+}
 
 func (f *applicationGenerationFactory) Stop(ctx context.Context) error {
 	var joined error

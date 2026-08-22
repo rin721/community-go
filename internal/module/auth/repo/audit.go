@@ -35,12 +35,14 @@ type AuditEventRecord struct {
 
 // AuditFilter 是查询的低敏过滤条件；空字段表示不过滤。
 type AuditFilter struct {
-	Operation  string
-	Outcome    string
-	ActorKind  string
+	Operation   string
+	Action      string
+	Outcome     string
+	ActorKind   string
 	SubjectHash string
-	Since      *time.Time
-	Until      *time.Time
+	ResourceType string
+	Since       *time.Time
+	Until       *time.Time
 }
 
 type Store struct{ access Access }
@@ -122,6 +124,9 @@ func applyAuditFilter(query *gorm.DB, filter AuditFilter) *gorm.DB {
 	if filter.Operation != "" {
 		query = query.Where("operation = ?", filter.Operation)
 	}
+	if filter.Action != "" {
+		query = query.Where("action = ?", filter.Action)
+	}
 	if filter.Outcome != "" {
 		query = query.Where("outcome = ?", filter.Outcome)
 	}
@@ -130,6 +135,9 @@ func applyAuditFilter(query *gorm.DB, filter AuditFilter) *gorm.DB {
 	}
 	if filter.SubjectHash != "" {
 		query = query.Where("subject_hash = ?", filter.SubjectHash)
+	}
+	if filter.ResourceType != "" {
+		query = query.Where("resource_type = ?", filter.ResourceType)
 	}
 	if filter.Since != nil {
 		query = query.Where("occurred_at >= ?", filter.Since.UTC())

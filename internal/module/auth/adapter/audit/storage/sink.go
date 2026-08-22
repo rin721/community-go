@@ -98,8 +98,8 @@ func (s *Sink) List(ctx context.Context, filter service.AuditQueryFilter, offset
 		return service.AuditQueryResult{}, err
 	}
 	repoFilter := repo.AuditFilter{
-		Operation: filter.Operation, Outcome: filter.Outcome, ActorKind: filter.ActorKind,
-		SubjectHash: filter.SubjectHash, Since: filter.Since, Until: filter.Until,
+		Operation: filter.Operation, Action: filter.Action, Outcome: filter.Outcome, ActorKind: filter.ActorKind,
+		SubjectHash: filter.SubjectHash, ResourceType: filter.ResourceType, Since: filter.Since, Until: filter.Until,
 	}
 	var total int64
 	var records []repo.AuditEventRecord

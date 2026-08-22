@@ -54,6 +54,32 @@ type PasswordVerification struct {
 	NeedsRehash bool
 }
 
+// OperationOutcome 是操作审计的低基数结果分类（等同 auth 审计语义的值域，
+// 由模块自有窄类型独立声明，避免跨模块 import）。
+type OperationOutcome string
+
+const (
+	OperationSucceeded OperationOutcome = "succeeded"
+	OperationFailed    OperationOutcome = "failed"
+)
+
+// OperationAuditRequest 是 IAM 写操作审计的低敏字段域：只携带稳定动作、
+// 资源类型/ID 与结果分类；不携带对象内容、密码或权限集合原文。
+// Actor 由 writer 实现从当前 Principal 推导。
+type OperationAuditRequest struct {
+	Operation    string
+	Action       string
+	ResourceType string
+	ResourceID   string
+	Outcome      OperationOutcome
+}
+
+// OperationAuditWriter 是 IAM 写操作审计的窄 port；由 composition 注入
+// Auth OperationAuditWriter 的适配实现。
+type OperationAuditWriter interface {
+	RecordOperation(context.Context, OperationAuditRequest) error
+}
+
 // AuthorizationPublisher 是 IAM Service 在授权 mutation 中使用的 runtime
 // 契约；由 module-local composition 注入 authorization.Runtime 实现。
 // candidate 必须在事务 commit 前完整构造，commit 后只做原子发布。
@@ -138,7 +164,31 @@ type Service struct {
 	config        Config
 	catalog       permissioncatalog.Catalog
 	authorization AuthorizationPublisher
+	operationAudit OperationAuditWriter
 	dummyHash     string
+}
+
+// WithOperationAudit 注入业务写操作审计 writer（由 composition 提供 Auth
+// 适配实现）；未注入时写操作审计为 no-op，不阻断业务主路径。
+func (s *Service) WithOperationAudit(writer OperationAuditWriter) {
+	if s != nil && writer != nil {
+		s.operationAudit = writer
+	}
+}
+
+// auditOperation 在写操作完成边界记录低敏操作审计；writer 未注入或审计
+// 失败都不阻断业务结果（低敏上报由 writer/Auth 侧负责）。
+func (s *Service) auditOperation(ctx context.Context, operation, action, resourceType, resourceID string, err error) {
+	if s == nil || s.operationAudit == nil {
+		return
+	}
+	outcome := OperationSucceeded
+	if err != nil {
+		outcome = OperationFailed
+	}
+	_ = s.operationAudit.RecordOperation(ctx, OperationAuditRequest{
+		Operation: operation, Action: action, ResourceType: resourceType, ResourceID: resourceID, Outcome: outcome,
+	})
 }
 
 func New(store *repo.Store, currentClock clock.Clock, ids idgen.Generator, passwords PasswordHasher, config Config, catalog permissioncatalog.Catalog, authorization AuthorizationPublisher) (*Service, error) {
@@ -541,7 +591,7 @@ func (s *Service) ResetPassword(ctx context.Context, accountID, newPassword stri
 	if err != nil {
 		return err
 	}
-	return s.store.WithinTx(ctx, func(txCtx context.Context, r *repo.Unit) error {
+	err = s.store.WithinTx(ctx, func(txCtx context.Context, r *repo.Unit) error {
 		account, err := accountByID(txCtx, r, accountID)
 		if err != nil {
 			return err
@@ -553,6 +603,8 @@ func (s *Service) ResetPassword(ctx context.Context, accountID, newPassword stri
 		account.MustChangePassword = true
 		return bumpAndRevokeWith(txCtx, r, account, now, nil, true)
 	})
+	s.auditOperation(ctx, "iam.accounts.password.reset", "reset", "account", accountID, err)
+	return err
 }
 
 func (s *Service) CreateAccount(ctx context.Context, username, displayName, password string) (model.Account, error) {
@@ -579,6 +631,7 @@ func (s *Service) CreateAccount(ctx context.Context, username, displayName, pass
 		}
 		return r.CreateCredential(txCtx, &repo.CredentialRecord{AccountID: account.ID, PasswordHash: hash, UpdatedAt: account.UpdatedAt})
 	})
+	s.auditOperation(ctx, "iam.accounts.create", "create", "account", account.ID, err)
 	return account, err
 }
 func (s *Service) ListAccounts(ctx context.Context, offset, limit int) (AccountList, error) {
@@ -626,7 +679,7 @@ func (s *Service) SetAccountStatus(ctx context.Context, accountID string, status
 	if status != model.AccountActive && status != model.AccountDisabled {
 		return model.ErrInvalidName
 	}
-	return s.store.WithinTx(ctx, func(txCtx context.Context, r *repo.Unit) error {
+	err := s.store.WithinTx(ctx, func(txCtx context.Context, r *repo.Unit) error {
 		account, err := accountByID(txCtx, r, accountID)
 		if err != nil {
 			return err
@@ -656,6 +709,8 @@ func (s *Service) SetAccountStatus(ctx context.Context, accountID string, status
 		statusValue := string(status)
 		return bumpAndRevokeWith(txCtx, r, account, now, &statusValue, account.MustChangePassword)
 	})
+	s.auditOperation(ctx, "iam.accounts.status", "update", "account", accountID, err)
+	return err
 }
 
 func (s *Service) CreateRole(ctx context.Context, code, name, description string) (model.Role, error) {
@@ -670,6 +725,7 @@ func (s *Service) CreateRole(ctx context.Context, code, name, description string
 	role.Version = 1
 	record := roleRecord(role)
 	err = s.store.Use(ctx, func(r *repo.Unit) error { return r.CreateRole(ctx, &record) })
+	s.auditOperation(ctx, "iam.roles.create", "create", "role", role.ID, err)
 	return role, err
 }
 func (s *Service) ListRoles(ctx context.Context, offset, limit int) (RoleList, error) {
@@ -846,6 +902,7 @@ func (s *Service) ReplaceAccountRoles(ctx context.Context, accountID string, exp
 		result.AuthorizationRevision = revision
 		return nil
 	})
+	s.auditOperation(ctx, "iam.accounts.roles.replace", "replace", "account", accountID, err)
 	return result, err
 }
 
@@ -930,6 +987,7 @@ func (s *Service) ReplaceRolePermissions(ctx context.Context, roleID string, exp
 		result.AuthorizationRevision = revision
 		return nil
 	})
+	s.auditOperation(ctx, "iam.roles.permissions.replace", "replace", "role", roleID, err)
 	return result, err
 }
 

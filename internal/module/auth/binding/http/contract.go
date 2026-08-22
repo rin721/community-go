@@ -49,14 +49,16 @@ type auditEventListResponse struct {
 }
 
 type auditListInput struct {
-	Offset     int    `query:"offset" minimum:"0" default:"0"`
-	Limit      int    `query:"limit" minimum:"1" maximum:"100" default:"20"`
-	Operation  string `query:"operation"`
-	Outcome    string `query:"outcome"`
-	ActorKind  string `query:"actorKind"`
+	Offset      int    `query:"offset" minimum:"0" default:"0"`
+	Limit       int    `query:"limit" minimum:"1" maximum:"100" default:"20"`
+	Operation   string `query:"operation"`
+	Action      string `query:"action"`
+	Outcome     string `query:"outcome"`
+	ActorKind   string `query:"actorKind"`
 	SubjectHash string `query:"subjectHash"`
-	Since      string `query:"since"`
-	Until      string `query:"until"`
+	ResourceType string `query:"resourceType"`
+	Since       string `query:"since"`
+	Until       string `query:"until"`
 }
 
 func serviceError(err error) error {
@@ -77,9 +79,11 @@ func parseOptionalTime(value string) (*time.Time, error) {
 func (handler *Handler) queryFilter(input *auditListInput) (authservice.AuditQueryFilter, error) {
 	var filter authservice.AuditQueryFilter
 	filter.Operation = input.Operation
+	filter.Action = input.Action
 	filter.Outcome = input.Outcome
 	filter.ActorKind = input.ActorKind
 	filter.SubjectHash = input.SubjectHash
+	filter.ResourceType = input.ResourceType
 	since, err := parseOptionalTime(input.Since)
 	if err != nil {
 		return authservice.AuditQueryFilter{}, err

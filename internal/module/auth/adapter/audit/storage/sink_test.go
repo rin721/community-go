@@ -2,6 +2,7 @@ package auditstorage
 
 import (
 	"context"
+	"errors"
 	"path/filepath"
 	"testing"
 	"time"
@@ -23,6 +24,18 @@ func newTestService(currentClock clock.Clock) (*authservice.Service, error) {
 	return authservice.NewLocal(currentClock, noopAudit{}, []authmodel.Policy{
 		{Operation: "auth.audit.list", Mode: authmodel.PolicyProtected, Scope: "auth:audit:read", Action: "auth.audit.list"},
 	})
+}
+
+// newTestServiceWithSink 使用给定 audit sink（与 storage 一致）构造 service，
+// 使 RecordOperation 与 ListAuditEvents 消费同一持久化面。
+func newTestServiceWithSink(currentClock clock.Clock, sink authservice.AuditSink) (*authservice.Service, error) {
+	service, err := authservice.NewLocal(currentClock, sink, []authmodel.Policy{
+		{Operation: "auth.audit.list", Mode: authmodel.PolicyProtected, Scope: "auth:audit:read", Action: "auth.audit.list"},
+	})
+	if err != nil {
+		return nil, err
+	}
+	return service, nil
 }
 
 type accessFor struct{ resource database.Resource }
@@ -124,6 +137,22 @@ func TestSinkRecordsAndListsLowSensitivityEvents(t *testing.T) {
 	if filtered.Items[0].Outcome != authmodel.AuditSucceeded || filtered.Items[0].Decision != authmodel.ReasonAllowed {
 		t.Fatalf("filtered decision/outcome mismatch: %#v", filtered.Items[0])
 	}
+
+	byAction, err := sink.List(t.Context(), authservice.AuditQueryFilter{Action: "revoke"}, 0, 20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if byAction.Total != 1 || byAction.Items[0].Action != "revoke" {
+		t.Fatalf("action filter failed: %#v", byAction)
+	}
+
+	byResource, err := sink.List(t.Context(), authservice.AuditQueryFilter{ResourceType: "account"}, 0, 20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if byResource.Total != 2 {
+		t.Fatalf("resource type filter failed: %#v", byResource)
+	}
 }
 
 func TestSinkTrimsOldestEventsAtLimit(t *testing.T) {
@@ -178,5 +207,77 @@ func TestServiceQueryFailClosedWithoutReader(t *testing.T) {
 	}
 	if result.Total != 1 {
 		t.Fatalf("unexpected reader result: %#v", result)
+	}
+}
+
+// TestRecordOperationWritesLowSensitivityEvent 验证业务写操作审计经 service
+// 写入同一低敏审计面，并保留 subject/resource 摘要语义。
+func TestRecordOperationWritesLowSensitivityEvent(t *testing.T) {
+	store, resource := newTestStore(t)
+	defer resource.Close()
+	fixed := clock.Fixed(time.Date(2026, 8, 24, 0, 0, 0, 0, time.UTC))
+	sink, err := New(store, fixed, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	svc, err := newTestServiceWithSink(fixed, sink)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.WithAuditReader(sink); err != nil {
+		t.Fatal(err)
+	}
+	// 无 principal 时 fail closed。
+	unauth := authmodel.OperationAuditRequest{Operation: "iam.accounts.create", Action: "create", ResourceType: "account", ResourceID: "acct-1", Outcome: authmodel.AuditSucceeded}
+	if err := svc.RecordOperation(t.Context(), unauth); !errors.Is(err, authmodel.ErrUnauthenticated) {
+		t.Fatalf("record without principal error = %v", err)
+	}
+	principal, err := authmodel.NewIAMRBACPrincipal("account-0", authmodel.ActorService, 1, false, time.Now().UTC(), time.Now().UTC())
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := authmodel.WithPrincipal(t.Context(), principal)
+	req := authmodel.OperationAuditRequest{Operation: "iam.accounts.create", Action: "create", ResourceType: "account", ResourceID: "acct-1", Outcome: authmodel.AuditSucceeded}
+	if err := svc.RecordOperation(ctx, req); err != nil {
+		t.Fatal(err)
+	}
+	result, err := svc.ListAuditEvents(t.Context(), authservice.AuditQueryFilter{Action: "create"}, 0, 20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Total != 1 || result.Items[0].Operation != "iam.accounts.create" {
+		t.Fatalf("operation audit not recorded: %#v", result)
+	}
+	if result.Items[0].Action != "create" || result.Items[0].ResourceType != "account" || result.Items[0].Outcome != authmodel.AuditSucceeded {
+		t.Fatalf("operation audit fields mismatch: %#v", result.Items[0])
+	}
+	if result.Items[0].SubjectHash == "" || result.Items[0].SubjectHash == "account-0" {
+		t.Fatalf("operation audit leaks raw subject: %#v", result.Items[0])
+	}
+}
+
+// TestRecordOperationFailsClosedOnIncompleteRequest 验证字段缺失 fail closed。
+func TestRecordOperationFailsClosedOnIncompleteRequest(t *testing.T) {
+	store, resource := newTestStore(t)
+	defer resource.Close()
+	fixed := clock.Fixed(time.Date(2026, 8, 24, 0, 0, 0, 0, time.UTC))
+	sink, err := New(store, fixed, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	svc, err := newTestService(fixed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.WithAuditReader(sink); err != nil {
+		t.Fatal(err)
+	}
+	principal, err := authmodel.NewIAMRBACPrincipal("account-0", authmodel.ActorService, 1, false, time.Now().UTC(), time.Now().UTC())
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := authmodel.WithPrincipal(t.Context(), principal)
+	if err := svc.RecordOperation(ctx, authmodel.OperationAuditRequest{Outcome: authmodel.AuditSucceeded}); err == nil {
+		t.Fatal("incomplete operation audit request must fail closed")
 	}
 }

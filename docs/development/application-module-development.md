@@ -170,6 +170,7 @@ HTTP 的固定构造顺序是 `模块顶层 typed Handler + binding Huma registr
 
 - 若暴露 HTTP operation：必须提供 `handler/` + `binding/http` 的 Huma registration，**并在两处接入**：`internal/composition` 负责运行时装配（policy 汇总、observability operations、route binding、依赖注入），`internal/tools/contract-gen` 的 `registeredOperations()` 负责 build-time 渲染 `api/openapi.yaml` 与 operation inventory；两处必须引用同一模块 registration，不得另写 schema、method/path 或 policy 清单。
 - 064 实例：`auth.audit.list`（审计只读查询）、`iam.sessions.list/revoke`（会话集中管理）均按本节接入——Auth/IAM 各自扩展 `binding/http`、`binding/permission` 与 migration（Auth 新增 `auth_schema_migrations`），沿用 `webuiSession`/protected policy 与精确权限键；审计的持久化 Sink 由 Auth 模块内部装配（composition 只注入数据库租约，不 import 模块 adapter）。
+- 065 实例（业务操作审计）：IAM/Organization/Navigation 在写操作完成边界经**模块自有窄 `OperationAuditWriter` port** 记录低敏操作审计；模块不 import Auth 实现，composition 是唯一连接点（把 Auth `OperationAuditWriter` 适配为各模块 port）。成功与最终失败都记录，审计写与业务事务解耦（失败低敏上报但不回滚业务结果）。
 - 若 operation 使用权限：模块贡献当前真实精确权限定义；禁止通配符、未知引用、预留未来模块 key，Catalog 也不承担角色关系。授权执行由 IAM 的 Casbin evaluator（`internal/module/iam/adapter/casbin`）承担：模块只定义 `binding/permission` 的 Key，管理员经 IAM 动态分配把这些 Key 授予业务角色，Auth 通过 `DecisionPoint` 逐 operation 判断；业务模块不得自建第二套授权判断或直接读取 IAM 角色关系。
 - 若拥有数据库 schema：每个模块使用自己的版本表和 source，显式注册到 Migration Catalog；执行顺序按 ModuleID 确定，不建立跨 set 事务或扫描目录自动注册。
 - 若有用户可见翻译：必须提供 i18n binding（自有语言资源 + `binding/i18n`），经 composition/kernel 聚合后通过注入的 `pkg/i18n.Translator` 消费；不得绕过注入直接读 `pkg/i18n` 默认配置。

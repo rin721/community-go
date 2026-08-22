@@ -131,3 +131,56 @@ func (access resourceAccess) WithinTx(ctx context.Context, use func(context.Cont
 }
 
 func pointer(value *string) **string { return &value }
+
+type recordingOperationAudit struct {
+	requests []service.OperationAuditRequest
+}
+
+func (r *recordingOperationAudit) RecordOperation(_ context.Context, request service.OperationAuditRequest) error {
+	r.requests = append(r.requests, request)
+	return nil
+}
+
+func TestWriteOperationsAuditOrganizationOutcome(t *testing.T) {
+	organization, resource := newService(t, accountDirectory{})
+	defer resource.Close()
+	audit := &recordingOperationAudit{}
+	organization.WithOperationAudit(audit)
+
+	department, err := organization.CreateDepartment(t.Context(), "eng", "Engineering", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	position, err := organization.CreatePosition(t.Context(), "lead", "Lead")
+	if err != nil {
+		t.Fatal(err)
+	}
+	parentDepartment, err := organization.CreateDepartment(t.Context(), "parent", "Parent", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := organization.UpdateDepartment(t.Context(), service.UpdateDepartmentCommand{ID: department.ID, Version: department.Version, ParentID: pointer(&parentDepartment.ID)}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := organization.UpdatePosition(t.Context(), service.UpdatePositionCommand{ID: position.ID, Version: position.Version, Name: ptr("Lead Engineer")}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := organization.ReplaceAssignment(t.Context(), "acct-1", &department.ID, []string{position.ID}); err != nil {
+		t.Fatal(err)
+	}
+
+	byOperation := map[string]bool{}
+	for _, request := range audit.requests {
+		byOperation[request.Operation] = true
+		if request.ResourceID == "" || request.Outcome != service.OperationSucceeded {
+			t.Fatalf("operation audit abnormal: %#v", request)
+		}
+	}
+	for _, expected := range []string{"organization.departments.create", "organization.positions.create", "organization.departments.update", "organization.positions.update", "organization.assignments.replace"} {
+		if !byOperation[expected] {
+			t.Fatalf("operation audit missing %q: %#v", expected, audit.requests)
+		}
+	}
+}
+
+func ptr(value string) *string { return &value }

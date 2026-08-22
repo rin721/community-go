@@ -520,6 +520,96 @@ func sessionDigest(value string) []byte {
 	return sum[:]
 }
 
+type recordingOperationAudit struct {
+	requests []service.OperationAuditRequest
+}
+
+func (r *recordingOperationAudit) RecordOperation(_ context.Context, request service.OperationAuditRequest) error {
+	r.requests = append(r.requests, request)
+	return nil
+}
+
+func TestWriteOperationsAuditOperationOutcome(t *testing.T) {
+	iam, resource := newService(t)
+	defer resource.Close()
+	audit := &recordingOperationAudit{}
+	iam.WithOperationAudit(audit)
+
+	if _, err := iam.Setup(t.Context(), "setup-secret", "owner", "Owner", "123456789012345"); err != nil {
+		t.Fatal(err)
+	}
+	account, err := iam.CreateAccount(t.Context(), "member", "Member", "abcdefghijklmno")
+	if err != nil {
+		t.Fatal(err)
+	}
+	role, err := iam.CreateRole(t.Context(), "reader", "Reader", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := iam.SetAccountStatus(t.Context(), account.ID, model.AccountDisabled); err != nil {
+		t.Fatal(err)
+	}
+	if err := iam.ResetPassword(t.Context(), account.ID, "ponmlkjihgfedcb"); err != nil {
+		t.Fatal(err)
+	}
+	rolesView, err := iam.AccountRolesSnapshot(t.Context(), account.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := iam.ReplaceAccountRoles(t.Context(), account.ID, rolesView.AccountVersion, []string{role.ID}); err != nil {
+		t.Fatal(err)
+	}
+	permissionsView, err := iam.RolePermissionsSnapshot(t.Context(), role.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := iam.ReplaceRolePermissions(t.Context(), role.ID, permissionsView.RoleVersion, []permissioncatalog.Key{iampermission.SelfRead}); err != nil {
+		t.Fatal(err)
+	}
+
+	operations := map[string]bool{}
+	for _, request := range audit.requests {
+		operations[request.Operation] = true
+		if request.ResourceType != "account" && request.ResourceType != "role" {
+			t.Fatalf("operation audit resource type unexpected: %#v", request)
+		}
+		if request.ResourceID == "" {
+			t.Fatalf("operation audit resource id is empty: %#v", request)
+		}
+		if request.Outcome != service.OperationSucceeded {
+			t.Fatalf("operation audit outcome is not succeeded: %#v", request)
+		}
+	}
+	for _, expected := range []string{"iam.accounts.create", "iam.roles.create", "iam.accounts.status", "iam.accounts.password.reset", "iam.accounts.roles.replace", "iam.roles.permissions.replace"} {
+		if !operations[expected] {
+			t.Fatalf("operation audit missing %q: %#v", expected, audit.requests)
+		}
+	}
+}
+
+func TestWriteOperationAuditRecordsFailureWithoutBlocking(t *testing.T) {
+	iam, resource := newService(t)
+	defer resource.Close()
+	audit := &recordingOperationAudit{}
+	iam.WithOperationAudit(audit)
+
+	// 失败写操作：重置不存在账号应记录 failed 且不阻塞业务错误返回。
+	err := iam.ResetPassword(t.Context(), "missing-account", "ponmlkjihgfedcb")
+	if err == nil {
+		t.Fatal("reset password for missing account should fail")
+	}
+	_ = err
+	found := false
+	for _, request := range audit.requests {
+		if request.ResourceType == "account" && request.Outcome == service.OperationFailed {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("failed operation audit missing: %#v", audit.requests)
+	}
+}
+
 func TestSessionListRejectsUnknownAccount(t *testing.T) {
 	iam, resource := newService(t)
 	defer resource.Close()

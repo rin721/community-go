@@ -42,6 +42,9 @@ type Module struct {
 type HTTPModule struct {
 	Module
 	Handler *httpbinding.Handler
+	// Service 是 HTTP profile 的完成品服务，供 composition 注入跨模块能力
+	// （如业务操作审计 writer）与窄协议装配；普通模块协作仍走 Module facet。
+	Service *service.Service
 }
 
 func New(dependencies Dependencies) (Module, error) {
@@ -83,5 +86,5 @@ func NewHTTP(dependencies HTTPDependencies) (HTTPModule, error) {
 	if err != nil {
 		return HTTPModule{}, fmt.Errorf("compose iam HTTP handler: %w", err)
 	}
-	return HTTPModule{Module: core, Handler: handler}, nil
+	return HTTPModule{Module: core, Handler: handler, Service: iamService}, nil
 }

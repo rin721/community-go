@@ -2,7 +2,7 @@
 
 WebUI 基线由 `internal/composition` 统一装配，模块只在确有浏览器界面需求时提供 `binding/webui`。IAM 提供首次设置、登录、账号安全、用户、角色、权限与会话管理页面和离线密码重置 CLI；Organization 提供组织目录页面；Auth 提供低敏审计日志页面；Navigation 提供已注册菜单策略页面；Ops 提供真实 management build/probe/diagnostics/metrics 看板；Todo 没有 WebUI Binding。
 
-审计查询页（`/admin/audit`，Auth owner）与账号会话管理页（`/admin/sessions`，IAM owner，归入「身份与权限管理」组）属于 064 能力：两者都只呈现低敏/摘要数据（审计 subject/resource 为哈希，会话仅 IDHash 摘要），并通过 `auth:audit:read` / `iam:session:read|revoke` 权限键投影访问状态；页面不修改宿主，遵循模块接入四步。
+审计查询页（`/admin/audit`，Auth owner）与账号会话管理页（`/admin/sessions`，IAM owner，归入「身份与权限管理」组）属于 064/065 能力：两者都只呈现低敏/摘要数据（审计 subject/resource 为哈希，会话仅 IDHash 摘要），并通过 `auth:audit:read` / `iam:session:read|revoke` 权限键投影访问状态；审计页支持按 operation/action/resourceType/outcome 筛选（065，含业务写操作审计事件）；页面不修改宿主，遵循模块接入四步。
 
 ## 适用语境与当前门禁范围
 

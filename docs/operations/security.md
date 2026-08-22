@@ -30,7 +30,8 @@ IAM 在 composition 提供普通 WebUI 业务 mutation 共用的窄 Origin/CSRF 
 
 服务端授权只经 Auth `DecisionPoint`：`token-scopes` 来源（Bearer/JWT、CLI/development）按凭据携带的精确 Scope 直判；`iam-rbac` 来源（IAM Session）不携带 Scope，必须由 composition 注入的 IAM RBAC evaluator 判断。Casbin evaluator 只执行固定 exact Core RBAC（账号→角色→精确 PermissionKey），由 `PolicySnapshot` 构造不可变快照，发布后不再改写；任何关系变更都在事务内撤销受影响 Session 并 bump authorization revision。Principal 携带的 revision 与 evaluator 不一致时同步刷新，刷新失败、取消或仍不一致一律拒绝，不使用旧 policy 放行；多实例部署在 revision 协议下可 fail-closed，但尚未作为已验证的分布式承诺。授权审计只记录低基数 operation、结果、reason 与 revision 类别，完整 policy、角色/权限集合、token、Cookie 与 matcher 细节不进入日志或响应。
 
-## 审计持久化与会话管理（064）
+## 审计持久化与会话管理（064/065）
 
-- 认证/授权审计默认写入持久化低敏表 `auth_audit_events`（Auth module 自有迁移；`auth:audit:read` 权限键只读查询，owner 自动覆盖）。日志记录保留为 debug 级补充，不作为查询 authority。事件只保存脱敏字段（operation/action/actor_kind/subject_hash/resource_type/resource_hash/decision/outcome），查询结果同样脱敏；表默认受控保留上限（超出删除最旧事件，不自动归档）。审计查询不提供删除/篡改接口。
+- 认证/授权审计默认写入持久化低敏表 `auth_audit_events`（Auth module 自有迁移；`auth:audit:read` 权限键只读查询，owner 自动覆盖）。日志记录保留为 debug 级补充，不作为查询 authority。事件只保存脱敏字段（operation/action/actor_kind/subject_hash/resource_type/resource_hash/decision/outcome），查询结果同样脱敏；表默认受控保留上限（超出删除最旧事件，不自动归档）。审计查询不提供删除/篡改接口，支持按 operation/action/resourceType/outcome/actorKind/时间窗过滤。
+- **业务操作审计（065）**：IAM、Organization、Navigation 的写操作（创建/变更/替换/启停等）经模块自有窄 port 注入同一低敏审计面，记录「谁在何时对什么资源做了什么、结果如何」；不包含对象内容、before/after、密码、token、权限集合或策略全文。审计写与业务事务解耦：失败低敏上报但不回滚业务结果。
 - IAM 提供账号会话集中管理：`iam:session:read`/`iam:session:revoke` 权限键控制列表与批量吊销；列表只暴露 SessionID 摘要（hex）与过期信息，不泄露明文；批量吊销沿用既有安全修订与 owner 不变量语义（当前登录会话是否包含在集合内由调用方决策）。

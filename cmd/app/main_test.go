@@ -465,8 +465,8 @@ http:
 		}
 		if time.Now().After(deadline) {
 			cancelService()
-			<-serviceDone
-			t.Fatal("service did not expose Todo created by CLI")
+			serviceErr := <-serviceDone
+			t.Fatalf("service did not expose Todo created by CLI: serviceErr=%v\nstderr=%s", serviceErr, stderr.String())
 		}
 		time.Sleep(20 * time.Millisecond)
 	}

@@ -58,6 +58,6 @@ Linux 使用 `bash scripts/verify-webui.sh`。质量链覆盖生成检查、冻�
 
 ## 账号与权限体系进阶页面（064）
 
-- Auth 审计日志页（`/admin/audit`）：只读展示低敏授权决策（subject/resource 仅摘要），`auth:audit:read` 权限键投影访问状态；持久化 Sink 由 Auth 模块内部装配，composition 只注入数据库租约。
+- Auth 审计日志页（`/admin/audit`）：只读展示低敏授权决策与业务写操作审计（subject/resource 仅摘要、支持 action/resourceType/outcome 筛选），`auth:audit:read` 权限键投影访问状态；持久化 Sink 由 Auth 模块内部装配。
 - IAM 会话管理页（`/admin/sessions`，归入「身份与权限管理」组）：列表只显示 SessionID 摘要（hex）与过期信息，支持批量吊销，沿用安全修订与 owner 不变量；`iam:session:read/revoke` 权限键投影。
-- 两页均遵循模块接入四步（Binding/locale/mock/CSS + 生成链），宿主源码零改动。
+- 065：IAM/Organization/Navigation 业务写操作经窄 port 注入同一低敏审计面，审计页可查询「谁改了什么」；两页均遵循模块接入四步（Binding/locale/mock/CSS + 生成链），宿主源码零改动。

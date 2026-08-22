@@ -132,3 +132,32 @@ func (access resourceAccess) WithinTx(ctx context.Context, use func(context.Cont
 		return client.WithinTx(ctx, func(txCtx context.Context, tx database.Tx) error { return use(txCtx, client, tx) })
 	})
 }
+
+type recordingOperationAudit struct {
+	requests []service.OperationAuditRequest
+}
+
+func (r *recordingOperationAudit) RecordOperation(_ context.Context, request service.OperationAuditRequest) error {
+	r.requests = append(r.requests, request)
+	return nil
+}
+
+func TestMenuPolicyUpdateAuditsOperation(t *testing.T) {
+	catalog := &fakeCatalog{snapshot: service.CatalogSnapshot{Revision: "catalog-a", Definitions: []model.Definition{{ID: "root", ModuleID: "ops", RouteID: "root", DefaultOrder: 10, Manageable: true}}}}
+	navigation, resource := newService(t, catalog)
+	defer resource.Close()
+	audit := &recordingOperationAudit{}
+	navigation.WithOperationAudit(audit)
+
+	order := 15
+	if _, err := navigation.Update(t.Context(), service.UpdateCommand{NavigationID: "root", Enabled: true, OrderOverride: &order}); err != nil {
+		t.Fatal(err)
+	}
+	if len(audit.requests) != 1 {
+		t.Fatalf("menu policy update audit count = %d: %#v", len(audit.requests), audit.requests)
+	}
+	request := audit.requests[0]
+	if request.Operation != "navigation.menus.update" || request.ResourceType != "menu" || request.ResourceID != "root" || request.Outcome != service.OperationSucceeded {
+		t.Fatalf("menu policy update audit abnormal: %#v", request)
+	}
+}

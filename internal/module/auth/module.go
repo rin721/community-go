@@ -49,6 +49,9 @@ type Module struct {
 	SessionSource  RequestAuthenticator
 	HTTPMiddleware func(http.Handler) http.Handler
 	AuditHandler   *httpbinding.Handler
+	// OperationAudit 是业务写操作审计的窄 port 输出；composition 把它适配为
+	// 各业务模块的自有窄接口并注入。
+	OperationAudit service.OperationAuditWriter
 	Contribution   module.Contribution
 }
 
@@ -164,7 +167,7 @@ func NewHTTP(dependencies Dependencies) (Module, error) {
 	if err := module.ValidateContributions(contribution); err != nil {
 		return Module{}, fmt.Errorf("validate auth contribution: %w", err)
 	}
-	return Module{Service: authService, BearerSource: bearerSource, SessionSource: dependencies.SessionSource, HTTPMiddleware: httpMiddleware, AuditHandler: auditHandler, Contribution: contribution}, nil
+	return Module{Service: authService, BearerSource: bearerSource, SessionSource: dependencies.SessionSource, HTTPMiddleware: httpMiddleware, AuditHandler: auditHandler, OperationAudit: authService, Contribution: contribution}, nil
 }
 
 // NewLocal 构造 CLI profile；operator 必须由命令执行边界显式提供。

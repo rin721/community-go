@@ -19,6 +19,29 @@ type NavigationCatalog interface {
 	Snapshot() CatalogSnapshot
 	Validate(CatalogSnapshot, []model.Policy) (string, error)
 }
+
+// OperationOutcome 是操作审计的低基数结果分类（模块自有窄类型）。
+type OperationOutcome string
+
+const (
+	OperationSucceeded OperationOutcome = "succeeded"
+	OperationFailed    OperationOutcome = "failed"
+)
+
+// OperationAuditRequest 是 Navigation 菜单策略写操作审计的低敏字段域。
+type OperationAuditRequest struct {
+	Operation    string
+	Action       string
+	ResourceType string
+	ResourceID   string
+	Outcome      OperationOutcome
+}
+
+// OperationAuditWriter 是 Navigation 写操作审计的窄 port；由 composition
+// 注入 Auth OperationAuditWriter 的适配实现。
+type OperationAuditWriter interface {
+	RecordOperation(context.Context, OperationAuditRequest) error
+}
 type UpdateCommand struct {
 	NavigationID   string
 	Enabled        bool
@@ -27,9 +50,10 @@ type UpdateCommand struct {
 	Version        uint64
 }
 type Service struct {
-	store   *repo.Store
-	clock   clock.Clock
-	catalog NavigationCatalog
+	store          *repo.Store
+	clock          clock.Clock
+	catalog        NavigationCatalog
+	operationAudit OperationAuditWriter
 }
 
 func New(store *repo.Store, currentClock clock.Clock, catalog NavigationCatalog) (*Service, error) {
@@ -37,6 +61,29 @@ func New(store *repo.Store, currentClock clock.Clock, catalog NavigationCatalog)
 		return nil, fmt.Errorf("navigation service dependencies are incomplete")
 	}
 	return &Service{store: store, clock: currentClock, catalog: catalog}, nil
+}
+
+// WithOperationAudit 注入菜单策略写操作审计 writer（composition 提供 Auth 适配）；
+// 未注入时写操作审计为 no-op，不阻断业务主路径。
+func (s *Service) WithOperationAudit(writer OperationAuditWriter) {
+	if s != nil && writer != nil {
+		s.operationAudit = writer
+	}
+}
+
+// auditOperation 在写操作完成边界记录低敏操作审计；writer 未注入或审计失败
+// 都不阻断业务结果。
+func (s *Service) auditOperation(ctx context.Context, operation, action, resourceType, resourceID string, err error) {
+	if s == nil || s.operationAudit == nil {
+		return
+	}
+	outcome := OperationSucceeded
+	if err != nil {
+		outcome = OperationFailed
+	}
+	_ = s.operationAudit.RecordOperation(ctx, OperationAuditRequest{
+		Operation: operation, Action: action, ResourceType: resourceType, ResourceID: resourceID, Outcome: outcome,
+	})
 }
 
 func (service *Service) Menus(ctx context.Context) ([]model.Menu, error) {
@@ -117,8 +164,10 @@ func (service *Service) Update(ctx context.Context, command UpdateCommand) (mode
 		if repo.IsConflict(err) {
 			return model.Snapshot{}, model.ErrConflict
 		}
+		service.auditOperation(ctx, "navigation.menus.update", "update", "menu", command.NavigationID, err)
 		return model.Snapshot{}, err
 	}
+	service.auditOperation(ctx, "navigation.menus.update", "update", "menu", command.NavigationID, nil)
 	return service.Snapshot(ctx)
 }
 

@@ -371,6 +371,7 @@ func (f *applicationGenerationFactory) Prepare(
 	if err != nil {
 		return abort(err)
 	}
+	generation.organizationModule.Service.WithOperationAudit(organizationOperationAuditAdapter{writer: identity.Auth.OperationAudit})
 	navigationCatalog, err := newNavigationCatalogAdapter(generation.blueprint.webuiCatalog)
 	if err != nil {
 		return abort(err)
@@ -379,6 +380,7 @@ func (f *applicationGenerationFactory) Prepare(
 	if err != nil {
 		return abort(err)
 	}
+	generation.navigationModule.Service.WithOperationAudit(navigationOperationAuditAdapter{writer: identity.Auth.OperationAudit})
 	authorizer, err := newTodoAuthorizerAdapter(generation.authModule.Service)
 	if err != nil {
 		return abort(err)

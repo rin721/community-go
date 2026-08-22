@@ -25,12 +25,14 @@ type AuditSink interface {
 
 // AuditQueryFilter 是审计只读查询的可选低敏过滤条件；空字段表示不过滤。
 type AuditQueryFilter struct {
-	Operation  string
-	Outcome    string
-	ActorKind  string
-	SubjectHash string
-	Since      *time.Time
-	Until      *time.Time
+	Operation    string
+	Action       string
+	Outcome      string
+	ActorKind    string
+	SubjectHash  string
+	ResourceType string
+	Since        *time.Time
+	Until        *time.Time
 }
 
 // AuditEventView 是查询返回的低敏事件视图（不含原始 token/claims/对象内容）。
@@ -57,6 +59,14 @@ type AuditQueryResult struct {
 // 注入 adapter/audit/storage Sink 实现。查询不提供删除/篡改入口。
 type AuditReader interface {
 	List(context.Context, AuditQueryFilter, int, int) (AuditQueryResult, error)
+}
+
+// OperationAuditWriter 是业务模块写操作审计的窄 port：业务模块在写操作
+// 成功/失败边界调用，携带低敏字段域；实现方负责从当前 Principal 推导
+// actor 并写入同一低敏审计面。审计写失败低敏上报（由实现方记录），
+// 不阻断业务结果。
+type OperationAuditWriter interface {
+	RecordOperation(context.Context, model.OperationAuditRequest) error
 }
 
 // AuthorizationRequest 是 Auth 交给 DecisionPoint 的最小判断输入；
@@ -339,6 +349,46 @@ func (s *Service) ListAuditEvents(ctx context.Context, filter AuditQueryFilter, 
 		return AuditQueryResult{}, err
 	}
 	return s.auditReader.List(ctx, filter, offset, limit)
+}
+
+// RecordOperation 把业务写操作审计事件写入低敏审计面（操作审计）。
+// actor 从当前 transport Principal 推导；无 principal 时 fail closed。
+// 审计写失败向上返回低敏错误（不吞错），由调用方决定是否呈现；
+// 不修改业务对象，也不回滚业务结果。
+func (s *Service) RecordOperation(ctx context.Context, request model.OperationAuditRequest) error {
+	if s == nil {
+		return fmt.Errorf("auth operation audit service is nil")
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if request.Operation == "" || request.ResourceType == "" || request.ResourceID == "" || request.Outcome == "" {
+		return fmt.Errorf("auth operation audit request is incomplete")
+	}
+	principal, ok := model.PrincipalFromContext(ctx)
+	if !ok {
+		return model.ErrUnauthenticated
+	}
+	event := model.AuditEvent{
+		Operation: request.Operation, Action: request.Action, Principal: principal,
+		Resource:  model.ResourceFacts{Type: request.ResourceType, ID: request.ResourceID},
+		Decision:  model.Decision{Allowed: request.Outcome != model.AuditDenied && request.Outcome != model.AuditFailed, Reason: operationAuditReason(request.Outcome)},
+		Outcome:   request.Outcome,
+	}
+	return s.Record(ctx, event)
+}
+
+// operationAuditReason 把操作审计 outcome 映射为低基数决策原因，避免暴露
+// 对象内容或授权细节。
+func operationAuditReason(outcome model.AuditOutcome) model.DecisionReason {
+	switch outcome {
+	case model.AuditSucceeded:
+		return model.ReasonAllowed
+	case model.AuditDenied:
+		return model.ReasonRBACDenied
+	default:
+		return model.ReasonOwnerMismatch
+	}
 }
 
 func normalizeAuditPage(offset, limit int) (int, int, error) {

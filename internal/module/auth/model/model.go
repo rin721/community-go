@@ -197,6 +197,17 @@ type AuditEvent struct {
 	Outcome   AuditOutcome
 }
 
+// OperationAuditRequest 是业务模块写操作审计的低敏字段域：只携带稳定动作、
+// 资源类型/ID（写入时统一哈希）、结果分类，不携带对象内容、before/after、
+// 密码、token 或权限集合原文。Actor 由写入方从当前 Principal 推导。
+type OperationAuditRequest struct {
+	Operation    string
+	Action       Action
+	ResourceType string
+	ResourceID   string
+	Outcome      AuditOutcome
+}
+
 type principalContextKey struct{}
 
 // WithPrincipal 把已验证 Principal 写入单次 transport context。

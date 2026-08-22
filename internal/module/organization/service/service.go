@@ -21,6 +21,29 @@ type AccountDirectory interface {
 	RequireAssignableAccount(context.Context, string) error
 }
 
+// OperationOutcome 是操作审计的低基数结果分类（模块自有窄类型）。
+type OperationOutcome string
+
+const (
+	OperationSucceeded OperationOutcome = "succeeded"
+	OperationFailed    OperationOutcome = "failed"
+)
+
+// OperationAuditRequest 是 Organization 写操作审计的低敏字段域。
+type OperationAuditRequest struct {
+	Operation    string
+	Action       string
+	ResourceType string
+	ResourceID   string
+	Outcome      OperationOutcome
+}
+
+// OperationAuditWriter 是 Organization 写操作审计的窄 port；由 composition
+// 注入 Auth OperationAuditWriter 的适配实现。
+type OperationAuditWriter interface {
+	RecordOperation(context.Context, OperationAuditRequest) error
+}
+
 type DepartmentList struct {
 	Items         []model.Department
 	Offset, Limit int
@@ -50,10 +73,11 @@ type UpdatePositionCommand struct {
 }
 
 type Service struct {
-	store    *repo.Store
-	clock    clock.Clock
-	ids      idgen.Generator
-	accounts AccountDirectory
+	store          *repo.Store
+	clock          clock.Clock
+	ids            idgen.Generator
+	accounts       AccountDirectory
+	operationAudit OperationAuditWriter
 }
 
 func New(store *repo.Store, currentClock clock.Clock, ids idgen.Generator, accounts AccountDirectory) (*Service, error) {
@@ -61,6 +85,29 @@ func New(store *repo.Store, currentClock clock.Clock, ids idgen.Generator, accou
 		return nil, fmt.Errorf("organization service dependencies are incomplete")
 	}
 	return &Service{store: store, clock: currentClock, ids: ids, accounts: accounts}, nil
+}
+
+// WithOperationAudit 注入业务写操作审计 writer（composition 提供 Auth 适配）；
+// 未注入时写操作审计为 no-op，不阻断业务主路径。
+func (s *Service) WithOperationAudit(writer OperationAuditWriter) {
+	if s != nil && writer != nil {
+		s.operationAudit = writer
+	}
+}
+
+// auditOperation 在写操作完成边界记录低敏操作审计；writer 未注入或审计失败
+// 都不阻断业务结果。
+func (s *Service) auditOperation(ctx context.Context, operation, action, resourceType, resourceID string, err error) {
+	if s == nil || s.operationAudit == nil {
+		return
+	}
+	outcome := OperationSucceeded
+	if err != nil {
+		outcome = OperationFailed
+	}
+	_ = s.operationAudit.RecordOperation(ctx, OperationAuditRequest{
+		Operation: operation, Action: action, ResourceType: resourceType, ResourceID: resourceID, Outcome: outcome,
+	})
 }
 
 func (s *Service) CreateDepartment(ctx context.Context, code, name string, parentID *string) (model.Department, error) {
@@ -79,6 +126,7 @@ func (s *Service) CreateDepartment(ctx context.Context, code, name string, paren
 		}
 		return unit.CreateDepartment(txCtx, &record)
 	})
+	s.auditOperation(ctx, "organization.departments.create", "create", "department", department.ID, err)
 	return department, err
 }
 
@@ -171,6 +219,7 @@ func (s *Service) UpdateDepartment(ctx context.Context, command UpdateDepartment
 		result = departmentModel(current)
 		return nil
 	})
+	s.auditOperation(ctx, "organization.departments.update", "update", "department", command.ID, err)
 	return result, err
 }
 
@@ -185,6 +234,7 @@ func (s *Service) CreatePosition(ctx context.Context, code, name string) (model.
 	}
 	record := positionRecord(position)
 	err = s.store.Use(ctx, func(unit *repo.Unit) error { return unit.CreatePosition(ctx, &record) })
+	s.auditOperation(ctx, "organization.positions.create", "create", "position", position.ID, err)
 	return position, err
 }
 func (s *Service) ListPositions(ctx context.Context, offset, limit int, activeOnly bool) (PositionList, error) {
@@ -251,6 +301,7 @@ func (s *Service) UpdatePosition(ctx context.Context, command UpdatePositionComm
 		result = positionModel(current)
 		return nil
 	})
+	s.auditOperation(ctx, "organization.positions.update", "update", "position", command.ID, err)
 	return result, err
 }
 
@@ -331,6 +382,7 @@ func (s *Service) ReplaceAssignment(ctx context.Context, accountID string, depar
 	if err != nil {
 		return model.Assignment{}, err
 	}
+	s.auditOperation(ctx, "organization.assignments.replace", "replace", "account", accountID, nil)
 	return model.Assignment{AccountID: accountID, DepartmentID: cloneString(departmentID), PositionIDs: positionIDs}, nil
 }
 

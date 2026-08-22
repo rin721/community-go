@@ -31,7 +31,7 @@ func asAuthDatabaseAccess(access repo.Access) (authrepo.Access, error) {
 	}
 	adapted, ok := access.(authrepo.Access)
 	if !ok {
-		return nil, fmt.Errorf("auth audit database access is incompatible")
+		return nil, fmt.Errorf("auth audit database access is incompatible (%T does not implement auth audit access)", access)
 	}
 	return adapted, nil
 }
@@ -119,6 +119,8 @@ func composeIdentityAccess(ctx context.Context, input identityAccessInput) (iden
 	if err != nil {
 		return identityAccess{}, fmt.Errorf("compose auth module: %w", err)
 	}
+	// 业务写操作审计：把 Auth OperationAuditWriter 适配为 IAM 窄 port 并注入。
+	iamModule.Service.WithOperationAudit(iamOperationAuditAdapter{writer: authModule.OperationAudit})
 	operationGate, err := newOperationGate(authModule.Service, authModule.BearerSource, authModule.SessionSource)
 	if err != nil {
 		return identityAccess{}, err

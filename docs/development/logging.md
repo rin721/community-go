@@ -107,3 +107,13 @@ Logger 的 API、配置和资源所有权见 [`pkg/logger`](../../pkg/logger/REA
 - production 源码不得使用 `logger.String("error", err.Error())` 记录原始错误文本；应使用稳定 `error_type`、`cause_type` 或经过审查的错误码。
 
 构建通过不能替代日志语义、脱敏或真实过滤验证。
+
+## 8. 业务操作审计（065）
+
+`pkg/logger` 只承载进程外消费的运行日志（sink 模型），**不提供日志查询 API**；可查询的「谁在何时对什么资源做了什么」由业务操作审计承担，与授权决策审计共用同一低敏审计面（`auth_audit_events` + `auth.audit.list` + WebUI 审计页）。
+
+- **必须审计的写操作（业务模块）**：IAM（创建账号、启用/禁用、重置密码、替换账号角色、创建角色、替换角色权限）、Organization（创建/更新部门与岗位、修改账号组织分配）、Navigation（更新菜单策略）；其他业务写操作按真实变更语义对齐。
+- **字段域（低敏）**：operation（稳定动作标识）、action、resource_type、resource_id（写入时统一摘要）、outcome（succeeded/failed/denied）、actor（由 writer 从当前 Principal 推导并摘要）。**不记录**对象内容、before/after 全文、密码、token、权限集合、部门树或策略全文。
+- **成功/失败语义**：写操作成功与最终失败都记录；审计写入与业务事务解耦——审计失败低敏上报（修复不可忽略），但不回滚业务结果、不产出成功假象。
+- **接入方式**：业务模块在写操作完成边界调用模块自有窄 `OperationAuditWriter` port（模块不 import Auth 实现）；composition 是唯一连接点，把 Auth `OperationAuditWriter` 适配为各模块 port。
+- **验证**：每个接入模块的服务测试用 fake writer 断言操作/资源/outcome 与失败记录；持久化 Sink 测试断言低敏（subject/resource 摘要、无对象内容）；查询测试覆盖 action/resource_type 过滤。

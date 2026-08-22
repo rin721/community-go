@@ -14,19 +14,23 @@ const (
 	OperationCompleteTodo                   OperationID = "completeTodo"
 	OperationCreateTodo                     OperationID = "createTodo"
 	OperationGetTodo                        OperationID = "getTodo"
+	OperationIamAccountsArchive             OperationID = "iam.accounts.archive"
 	OperationIamAccountsCreate              OperationID = "iam.accounts.create"
 	OperationIamAccountsList                OperationID = "iam.accounts.list"
 	OperationIamAccountsPasswordReset       OperationID = "iam.accounts.password.reset"
 	OperationIamAccountsRolesRead           OperationID = "iam.accounts.roles.read"
 	OperationIamAccountsRolesReplace        OperationID = "iam.accounts.roles.replace"
 	OperationIamAccountsStatus              OperationID = "iam.accounts.status"
+	OperationIamAccountsUpdate              OperationID = "iam.accounts.update"
 	OperationIamLogin                       OperationID = "iam.login"
 	OperationIamLogout                      OperationID = "iam.logout"
 	OperationIamPermissionsList             OperationID = "iam.permissions.list"
+	OperationIamRolesArchive                OperationID = "iam.roles.archive"
 	OperationIamRolesCreate                 OperationID = "iam.roles.create"
 	OperationIamRolesList                   OperationID = "iam.roles.list"
 	OperationIamRolesPermissionsRead        OperationID = "iam.roles.permissions.read"
 	OperationIamRolesPermissionsReplace     OperationID = "iam.roles.permissions.replace"
+	OperationIamRolesUpdate                 OperationID = "iam.roles.update"
 	OperationIamSelfPasswordChange          OperationID = "iam.self.password.change"
 	OperationIamSessionRead                 OperationID = "iam.session.read"
 	OperationIamSessionsList                OperationID = "iam.sessions.list"
@@ -51,19 +55,23 @@ var operationInventory = [...]Operation{
 	{ID: OperationCompleteTodo, Method: "PATCH", Path: "/api/v1/todos/{id}/complete", Policy: "protected", Scope: "todos:write", Action: "todo.complete"},
 	{ID: OperationCreateTodo, Method: "POST", Path: "/api/v1/todos", Policy: "protected", Scope: "todos:write", Action: "todo.create"},
 	{ID: OperationGetTodo, Method: "GET", Path: "/api/v1/todos/{id}", Policy: "protected", Scope: "todos:read", Action: "todo.read"},
+	{ID: OperationIamAccountsArchive, Method: "POST", Path: "/api/v1/iam/accounts/{id}/archive", Policy: "protected", Scope: "iam:account:write", Action: "iam.accounts.archive"},
 	{ID: OperationIamAccountsCreate, Method: "POST", Path: "/api/v1/iam/accounts", Policy: "protected", Scope: "iam:account:write", Action: "iam.accounts.create"},
 	{ID: OperationIamAccountsList, Method: "GET", Path: "/api/v1/iam/accounts", Policy: "protected", Scope: "iam:account:read", Action: "iam.accounts.list"},
 	{ID: OperationIamAccountsPasswordReset, Method: "POST", Path: "/api/v1/iam/accounts/{id}/password-reset", Policy: "protected", Scope: "iam:account:write", Action: "iam.accounts.password.reset"},
 	{ID: OperationIamAccountsRolesRead, Method: "GET", Path: "/api/v1/iam/accounts/{id}/roles", Policy: "protected", Scope: "iam:account:read", Action: "iam.accounts.roles.read"},
 	{ID: OperationIamAccountsRolesReplace, Method: "PUT", Path: "/api/v1/iam/accounts/{id}/roles", Policy: "protected", Scope: "iam:account:write", Action: "iam.accounts.roles.replace"},
 	{ID: OperationIamAccountsStatus, Method: "PATCH", Path: "/api/v1/iam/accounts/{id}/status", Policy: "protected", Scope: "iam:account:write", Action: "iam.accounts.status"},
+	{ID: OperationIamAccountsUpdate, Method: "PATCH", Path: "/api/v1/iam/accounts/{id}", Policy: "protected", Scope: "iam:account:write", Action: "iam.accounts.update"},
 	{ID: OperationIamLogin, Method: "POST", Path: "/api/v1/iam/login", Policy: "public", Scope: "", Action: ""},
 	{ID: OperationIamLogout, Method: "POST", Path: "/api/v1/iam/logout", Policy: "protected", Scope: "iam:account:self:read", Action: "iam.logout"},
 	{ID: OperationIamPermissionsList, Method: "GET", Path: "/api/v1/iam/permissions", Policy: "protected", Scope: "iam:permission:read", Action: "iam.permissions.list"},
+	{ID: OperationIamRolesArchive, Method: "POST", Path: "/api/v1/iam/roles/{id}/archive", Policy: "protected", Scope: "iam:role:write", Action: "iam.roles.archive"},
 	{ID: OperationIamRolesCreate, Method: "POST", Path: "/api/v1/iam/roles", Policy: "protected", Scope: "iam:role:write", Action: "iam.roles.create"},
 	{ID: OperationIamRolesList, Method: "GET", Path: "/api/v1/iam/roles", Policy: "protected", Scope: "iam:role:read", Action: "iam.roles.list"},
 	{ID: OperationIamRolesPermissionsRead, Method: "GET", Path: "/api/v1/iam/roles/{id}/permissions", Policy: "protected", Scope: "iam:role:read", Action: "iam.roles.permissions.read"},
 	{ID: OperationIamRolesPermissionsReplace, Method: "PUT", Path: "/api/v1/iam/roles/{id}/permissions", Policy: "protected", Scope: "iam:role:write", Action: "iam.roles.permissions.replace"},
+	{ID: OperationIamRolesUpdate, Method: "PATCH", Path: "/api/v1/iam/roles/{id}", Policy: "protected", Scope: "iam:role:write", Action: "iam.roles.update"},
 	{ID: OperationIamSelfPasswordChange, Method: "POST", Path: "/api/v1/iam/self/password", Policy: "protected", Scope: "iam:account:self:password:write", Action: "iam.self.password.change"},
 	{ID: OperationIamSessionRead, Method: "GET", Path: "/api/v1/iam/session", Policy: "protected", Scope: "iam:account:self:read", Action: "iam.session.read"},
 	{ID: OperationIamSessionsList, Method: "GET", Path: "/api/v1/iam/sessions", Policy: "protected", Scope: "iam:account:self:read", Action: "iam.sessions.list"},

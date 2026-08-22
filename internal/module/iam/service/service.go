@@ -302,6 +302,10 @@ func (s *Service) Login(ctx context.Context, username, password string) (Session
 			return ErrInvalidCredentials
 		}
 		now := s.clock.Now().UTC()
+		if account.Archived {
+			_, _ = s.passwords.Verify(credential.PasswordHash, password)
+			return ErrAccountDisabled
+		}
 		if account.Status != string(model.AccountActive) {
 			_, _ = s.passwords.Verify(credential.PasswordHash, password)
 			return ErrAccountDisabled
@@ -483,7 +487,7 @@ func (s *Service) Resolve(ctx context.Context, sessionID string) (Session, error
 			return ErrSessionInvalid
 		}
 		account, err = r.AccountByID(txCtx, session.AccountID)
-		if err != nil || account.Status != string(model.AccountActive) || account.SecurityRevision != session.SecurityRevision {
+		if err != nil || account.Status != string(model.AccountActive) || account.Archived || account.SecurityRevision != session.SecurityRevision {
 			return ErrSessionInvalid
 		}
 		revision, err = r.CurrentAuthorizationRevision(txCtx)
@@ -576,7 +580,7 @@ func (s *Service) ChangePassword(ctx context.Context, accountID, currentPassword
 		if err = r.UpdateCredential(txCtx, accountID, hash, now); err != nil {
 			return err
 		}
-		return bumpAndRevokeWith(txCtx, r, account, now, nil, false)
+		return bumpAndRevokeWith(txCtx, r, account, now, nil, nil, false)
 	})
 }
 
@@ -596,12 +600,15 @@ func (s *Service) ResetPassword(ctx context.Context, accountID, newPassword stri
 		if err != nil {
 			return err
 		}
+		if account.Archived {
+			return ErrAccountDisabled
+		}
 		now := s.clock.Now().UTC()
 		if err = r.UpdateCredential(txCtx, accountID, hash, now); err != nil {
 			return err
 		}
 		account.MustChangePassword = true
-		return bumpAndRevokeWith(txCtx, r, account, now, nil, true)
+		return bumpAndRevokeWith(txCtx, r, account, now, nil, nil, true)
 	})
 	s.auditOperation(ctx, "iam.accounts.password.reset", "reset", "account", accountID, err)
 	return err
@@ -634,7 +641,7 @@ func (s *Service) CreateAccount(ctx context.Context, username, displayName, pass
 	s.auditOperation(ctx, "iam.accounts.create", "create", "account", account.ID, err)
 	return account, err
 }
-func (s *Service) ListAccounts(ctx context.Context, offset, limit int) (AccountList, error) {
+func (s *Service) ListAccounts(ctx context.Context, offset, limit int, query string) (AccountList, error) {
 	offset, limit, err := normalizePage(offset, limit)
 	if err != nil {
 		return AccountList{}, err
@@ -643,11 +650,15 @@ func (s *Service) ListAccounts(ctx context.Context, offset, limit int) (AccountL
 	var total int64
 	err = s.store.Use(ctx, func(r *repo.Unit) error {
 		var listErr error
-		total, listErr = r.CountAccounts(ctx)
+		if strings.TrimSpace(query) == "" {
+			total, listErr = r.CountAccounts(ctx)
+		} else {
+			total, listErr = r.CountAccountsMatching(ctx, query)
+		}
 		if listErr != nil {
 			return listErr
 		}
-		records, listErr = r.ListAccounts(ctx, offset, limit)
+		records, listErr = r.ListAccounts(ctx, offset, limit, query)
 		return listErr
 	})
 	items := make([]model.Account, len(records))
@@ -684,6 +695,9 @@ func (s *Service) SetAccountStatus(ctx context.Context, accountID string, status
 		if err != nil {
 			return err
 		}
+		if account.Archived {
+			return ErrAccountDisabled
+		}
 		if status == model.AccountDisabled {
 			owner, err := ownerRole(txCtx, r)
 			if err == nil {
@@ -707,9 +721,77 @@ func (s *Service) SetAccountStatus(ctx context.Context, accountID string, status
 		}
 		now := s.clock.Now().UTC()
 		statusValue := string(status)
-		return bumpAndRevokeWith(txCtx, r, account, now, &statusValue, account.MustChangePassword)
+		return bumpAndRevokeWith(txCtx, r, account, now, &statusValue, nil, account.MustChangePassword)
 	})
 	s.auditOperation(ctx, "iam.accounts.status", "update", "account", accountID, err)
+	return err
+}
+
+// UpdateAccountInfo 更新账号显示名并沿用安全变更语义：成功变更后 bump 安全
+// revision 并撤销该账号全部 Session（与改密/启停一致）。过期版本返回
+// ErrVersionConflict。
+func (s *Service) UpdateAccountInfo(ctx context.Context, accountID string, expectedVersion uint64, displayName string) error {
+	displayName, err := model.NormalizeName(displayName)
+	if err != nil {
+		return err
+	}
+	err = s.store.WithinTx(ctx, func(txCtx context.Context, r *repo.Unit) error {
+		account, err := accountByID(txCtx, r, accountID)
+		if err != nil {
+			return err
+		}
+		if account.Version != expectedVersion {
+			return ErrVersionConflict
+		}
+		if account.Archived {
+			return ErrAccountDisabled
+		}
+		now := s.clock.Now().UTC()
+		revision := account.SecurityRevision + 1
+		if err := r.UpdateAccount(txCtx, account.ID, account.Version, repo.AccountChanges{DisplayName: &displayName, SecurityRevision: &revision, UpdatedAt: now}); err != nil {
+			return err
+		}
+		return r.RevokeAccountSessions(txCtx, account.ID, now)
+	})
+	s.auditOperation(ctx, "iam.accounts.update", "update", "account", accountID, err)
+	return err
+}
+
+// ArchiveAccount 把账号置为归档终态：归档账号不可登录、不可分配、全部 Session
+// 撤销。owner 不变量保持（最后一个 active owner 不可归档）。不做物理删除与恢复。
+func (s *Service) ArchiveAccount(ctx context.Context, accountID string) error {
+	err := s.store.WithinTx(ctx, func(txCtx context.Context, r *repo.Unit) error {
+		account, err := accountByID(txCtx, r, accountID)
+		if err != nil {
+			return err
+		}
+		if account.Archived {
+			return nil
+		}
+		owner, err := ownerRole(txCtx, r)
+		if err == nil {
+			assigned, err := hasRole(txCtx, r, accountID, owner.ID)
+			if err != nil {
+				return err
+			}
+			if assigned {
+				count, err := activeOwnerCount(txCtx, r)
+				if err != nil {
+					return err
+				}
+				if count <= 1 {
+					return model.ErrOwnerInvariant
+				}
+				if err := touchOwner(txCtx, r, owner, s.clock.Now().UTC()); err != nil {
+					return err
+				}
+			}
+		}
+		now := s.clock.Now().UTC()
+		archived := true
+		return bumpAndRevokeWith(txCtx, r, account, now, nil, &archived, account.MustChangePassword)
+	})
+	s.auditOperation(ctx, "iam.accounts.archive", "archive", "account", accountID, err)
 	return err
 }
 
@@ -728,7 +810,7 @@ func (s *Service) CreateRole(ctx context.Context, code, name, description string
 	s.auditOperation(ctx, "iam.roles.create", "create", "role", role.ID, err)
 	return role, err
 }
-func (s *Service) ListRoles(ctx context.Context, offset, limit int) (RoleList, error) {
+func (s *Service) ListRoles(ctx context.Context, offset, limit int, query string) (RoleList, error) {
 	offset, limit, err := normalizePage(offset, limit)
 	if err != nil {
 		return RoleList{}, err
@@ -737,11 +819,15 @@ func (s *Service) ListRoles(ctx context.Context, offset, limit int) (RoleList, e
 	var total int64
 	err = s.store.Use(ctx, func(r *repo.Unit) error {
 		var listErr error
-		total, listErr = r.CountRoles(ctx)
+		if strings.TrimSpace(query) == "" {
+			total, listErr = r.CountRoles(ctx)
+		} else {
+			total, listErr = r.CountRolesMatching(ctx, query)
+		}
 		if listErr != nil {
 			return listErr
 		}
-		records, listErr = r.ListRoles(ctx, offset, limit)
+		records, listErr = r.ListRoles(ctx, offset, limit, query)
 		return listErr
 	})
 	items := make([]model.Role, len(records))
@@ -751,6 +837,76 @@ func (s *Service) ListRoles(ctx context.Context, offset, limit int) (RoleList, e
 	return RoleList{Items: items, Offset: offset, Limit: limit, Total: total}, err
 }
 func (s *Service) Permissions() []permissioncatalog.Definition { return s.catalog.Definitions() }
+
+// UpdateRoleInfo 更新自定义角色的名称与描述；owner 角色不可修改。名称/描述是
+// 展示字段，变更不改变授权关系，因此不 bump authorization revision、不撤销
+// Session；角色版本递增用于保持乐观并发语义。
+func (s *Service) UpdateRoleInfo(ctx context.Context, roleID string, expectedVersion uint64, name, description string) (model.Role, error) {
+	name, err := model.NormalizeName(name)
+	if err != nil {
+		return model.Role{}, err
+	}
+	description = strings.TrimSpace(description)
+	var result model.Role
+	err = s.store.WithinTx(ctx, func(txCtx context.Context, r *repo.Unit) error {
+		role, err := r.RoleByID(txCtx, roleID)
+		if err != nil {
+			return err
+		}
+		if role.Code == model.OwnerRoleCode {
+			return ErrImmutableOwner
+		}
+		if role.Version != expectedVersion {
+			return ErrVersionConflict
+		}
+		if role.Archived {
+			return repo.ErrNotFound
+		}
+		now := s.clock.Now().UTC()
+		if err := r.UpdateRoleInfo(txCtx, role.ID, role.Version, repo.RoleChanges{Name: &name, Description: &description, UpdatedAt: now}); err != nil {
+			return err
+		}
+		role.Name, role.Description, role.Version, role.UpdatedAt = name, description, role.Version+1, now
+		result = modelRole(role)
+		return nil
+	})
+	s.auditOperation(ctx, "iam.roles.update", "update", "role", roleID, err)
+	return result, err
+}
+
+// ArchiveRole 把自定义角色置为归档终态：归档角色移出可分配集合、不产生授权
+// 规则；已分配该角色的账号保留历史记录但不再获得其权限。该操作改变授权关系，
+// 必须走 authorizeMutation 协议：事务内 bump authorization revision、撤销持
+// 有者账号 Session 与安全 revision、commit 后原子发布新 evaluator。owner 角色
+// 不可归档。
+func (s *Service) ArchiveRole(ctx context.Context, roleID string) error {
+	err := s.authorizeMutation(ctx, func(txCtx context.Context, r *repo.Unit) (bool, error) {
+		role, err := r.RoleByID(txCtx, roleID)
+		if err != nil {
+			return false, err
+		}
+		if role.Code == model.OwnerRoleCode {
+			return false, ErrImmutableOwner
+		}
+		if role.Archived {
+			return false, nil
+		}
+		now := s.clock.Now().UTC()
+		archived := true
+		if err := r.UpdateRoleInfo(txCtx, role.ID, role.Version, repo.RoleChanges{Archived: &archived, Active: boolPointer(false), UpdatedAt: now}); err != nil {
+			return false, err
+		}
+		if err := s.touchAssignedAccounts(txCtx, r, roleID, now); err != nil {
+			return false, err
+		}
+		return true, nil
+	}, nil)
+	s.auditOperation(ctx, "iam.roles.archive", "archive", "role", roleID, err)
+	return err
+}
+
+// boolPointer 返回指向给定值的布尔指针，用于把归档角色同时置为 inactive。
+func boolPointer(value bool) *bool { return &value }
 
 // AccountRolesSnapshot 返回账号角色关系的可编辑快照：账号版本、
 // authorization revision 与当前 active RoleID 集合。
@@ -818,6 +974,9 @@ func (s *Service) ReplaceAccountRoles(ctx context.Context, accountID string, exp
 		account, err := accountByID(txCtx, r, accountID)
 		if err != nil {
 			return false, err
+		}
+		if account.Archived {
+			return false, ErrAccountDisabled
 		}
 		if account.Version != expectedVersion {
 			return false, ErrVersionConflict
@@ -1192,7 +1351,7 @@ func (s *Service) RequireAssignableAccount(ctx context.Context, accountID string
 		if err != nil {
 			return err
 		}
-		if account.Status != string(model.AccountActive) {
+		if account.Status != string(model.AccountActive) || account.Archived {
 			return ErrAccountDisabled
 		}
 		return nil
@@ -1216,7 +1375,7 @@ func activeOwnerCount(ctx context.Context, r *repo.Unit) (int64, error) {
 	var count int64
 	for _, item := range assignments {
 		account, err := accountByID(ctx, r, item.AccountID)
-		if err == nil && account.Status == string(model.AccountActive) {
+		if err == nil && account.Status == string(model.AccountActive) && !account.Archived {
 			count++
 		}
 	}
@@ -1229,11 +1388,11 @@ func touchRole(ctx context.Context, r *repo.Unit, role repo.RoleRecord, now time
 	return r.TouchRole(ctx, role.ID, role.Version, now)
 }
 func bumpAndRevoke(ctx context.Context, r *repo.Unit, account repo.AccountRecord, now time.Time) error {
-	return bumpAndRevokeWith(ctx, r, account, now, nil, account.MustChangePassword)
+	return bumpAndRevokeWith(ctx, r, account, now, nil, nil, account.MustChangePassword)
 }
-func bumpAndRevokeWith(ctx context.Context, r *repo.Unit, account repo.AccountRecord, now time.Time, status *string, mustChange bool) error {
+func bumpAndRevokeWith(ctx context.Context, r *repo.Unit, account repo.AccountRecord, now time.Time, status *string, archived *bool, mustChange bool) error {
 	revision := account.SecurityRevision + 1
-	if err := r.UpdateAccount(ctx, account.ID, account.Version, repo.AccountChanges{Status: status, MustChangePassword: &mustChange, SecurityRevision: &revision, UpdatedAt: now}); err != nil {
+	if err := r.UpdateAccount(ctx, account.ID, account.Version, repo.AccountChanges{Status: status, Archived: archived, MustChangePassword: &mustChange, SecurityRevision: &revision, UpdatedAt: now}); err != nil {
 		return err
 	}
 	return r.RevokeAccountSessions(ctx, account.ID, now)
@@ -1259,10 +1418,10 @@ func sessionOutput(id string, record repo.SessionRecord, account model.Account, 
 	return Session{ID: id, Identity: model.SessionIdentity{AccountID: account.ID, Username: account.Username, DisplayName: account.DisplayName, Permissions: append([]permissioncatalog.Key(nil), permissions...), MustChangePassword: account.MustChangePassword, SecurityRevision: account.SecurityRevision, AuthenticatedAt: record.CreatedAt}, CreatedAt: record.CreatedAt, LastSeenAt: record.LastSeenAt, IdleExpiresAt: record.IdleExpiresAt, AbsoluteExpiresAt: record.AbsoluteExpiresAt}
 }
 func accountRecord(v model.Account) repo.AccountRecord {
-	return repo.AccountRecord{ID: v.ID, Username: v.Username, DisplayName: v.DisplayName, Status: string(v.Status), MustChangePassword: v.MustChangePassword, SecurityRevision: v.SecurityRevision, FailedAttempts: v.FailedAttempts, LockedUntil: v.LockedUntil, Version: v.Version, CreatedAt: v.CreatedAt, UpdatedAt: v.UpdatedAt}
+	return repo.AccountRecord{ID: v.ID, Username: v.Username, DisplayName: v.DisplayName, Status: string(v.Status), Archived: v.Archived, MustChangePassword: v.MustChangePassword, SecurityRevision: v.SecurityRevision, FailedAttempts: v.FailedAttempts, LockedUntil: v.LockedUntil, Version: v.Version, CreatedAt: v.CreatedAt, UpdatedAt: v.UpdatedAt}
 }
 func modelAccount(v repo.AccountRecord) model.Account {
-	return model.Account{ID: v.ID, Username: v.Username, DisplayName: v.DisplayName, Status: model.AccountStatus(v.Status), MustChangePassword: v.MustChangePassword, SecurityRevision: v.SecurityRevision, FailedAttempts: v.FailedAttempts, LockedUntil: v.LockedUntil, Version: v.Version, CreatedAt: v.CreatedAt, UpdatedAt: v.UpdatedAt}
+	return model.Account{ID: v.ID, Username: v.Username, DisplayName: v.DisplayName, Status: model.AccountStatus(v.Status), Archived: v.Archived, MustChangePassword: v.MustChangePassword, SecurityRevision: v.SecurityRevision, FailedAttempts: v.FailedAttempts, LockedUntil: v.LockedUntil, Version: v.Version, CreatedAt: v.CreatedAt, UpdatedAt: v.UpdatedAt}
 }
 func roleRecord(v model.Role) repo.RoleRecord {
 	return repo.RoleRecord{ID: v.ID, Code: v.Code, Name: v.Name, Description: v.Description, Active: v.Active, Archived: v.Archived, System: v.System, Version: v.Version, CreatedAt: v.CreatedAt, UpdatedAt: v.UpdatedAt}

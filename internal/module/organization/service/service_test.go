@@ -57,7 +57,7 @@ func TestAssignmentUsesOneDepartmentAndDeduplicatedPositions(t *testing.T) {
 		t.Fatal(err)
 	}
 	accountID := "a9f41ec8-7a6a-4b79-b76f-eedc8f2eef66"
-	assignment, err := organization.ReplaceAssignment(t.Context(), accountID, &department.ID, []string{second.ID, first.ID, first.ID})
+	assignment, err := organization.ReplaceAssignment(t.Context(), accountID, 0, &department.ID, []string{second.ID, first.ID, first.ID})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,8 +78,39 @@ func TestRejectedAccountLeavesNoOrganizationRelationship(t *testing.T) {
 	organization, resource := newService(t, accountDirectory{err: errors.New("disabled")})
 	defer resource.Close()
 	accountID := "1c05bf1c-02fc-4508-8d24-b90a230585b4"
-	if _, err := organization.ReplaceAssignment(t.Context(), accountID, nil, nil); !errors.Is(err, model.ErrAccountInvalid) {
+	if _, err := organization.ReplaceAssignment(t.Context(), accountID, 0, nil, nil); !errors.Is(err, model.ErrAccountInvalid) {
 		t.Fatalf("assignment error = %v", err)
+	}
+}
+
+// TestAssignmentVersionConflict 验证组织分配乐观锁：过期 expectedVersion
+// 返回稳定冲突，正确版本成功且返回新版本。
+func TestAssignmentVersionConflict(t *testing.T) {
+	organization, resource := newService(t, accountDirectory{})
+	defer resource.Close()
+	department, err := organization.CreateDepartment(t.Context(), "sales", "销售部", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	accountID := "a9f41ec8-7a6a-4b79-b76f-eedc8f2eef66"
+	// 过期版本 → 稳定冲突。
+	if _, err := organization.ReplaceAssignment(t.Context(), accountID, 99, &department.ID, nil); !errors.Is(err, database.ErrOptimisticConflict) {
+		t.Fatalf("stale assignment version error = %v", err)
+	}
+	assignment, err := organization.ReplaceAssignment(t.Context(), accountID, 0, &department.ID, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if assignment.Version != 1 {
+		t.Fatalf("assignment version = %d, want 1", assignment.Version)
+	}
+	// 再次替换用新版本成功。
+	updated, err := organization.ReplaceAssignment(t.Context(), accountID, assignment.Version, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.DepartmentID != nil || updated.Version != 2 {
+		t.Fatalf("updated assignment = %#v", updated)
 	}
 }
 
@@ -165,7 +196,7 @@ func TestWriteOperationsAuditOrganizationOutcome(t *testing.T) {
 	if _, err := organization.UpdatePosition(t.Context(), service.UpdatePositionCommand{ID: position.ID, Version: position.Version, Name: ptr("Lead Engineer")}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := organization.ReplaceAssignment(t.Context(), "acct-1", &department.ID, []string{position.ID}); err != nil {
+	if _, err := organization.ReplaceAssignment(t.Context(), "acct-1", 0, &department.ID, []string{position.ID}); err != nil {
 		t.Fatal(err)
 	}
 

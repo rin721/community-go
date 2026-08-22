@@ -26,6 +26,7 @@ type Access interface {
 
 type AccountRecord struct {
 	ID, Username, DisplayName, Status string
+	Archived                          bool
 	MustChangePassword                bool
 	SecurityRevision                  uint64
 	FailedAttempts                    int

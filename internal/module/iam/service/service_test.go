@@ -185,7 +185,7 @@ func TestLastOwnerCannotBeDisabledOrUnassigned(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	roles, err := iam.ListRoles(t.Context(), 0, 20)
+	roles, err := iam.ListRoles(t.Context(), 0, 20, "")
 	if err != nil || len(roles.Items) != 1 {
 		t.Fatalf("roles = %#v, %v", roles, err)
 	}
@@ -208,7 +208,7 @@ func TestConcurrentOwnerDisableCannotRemoveEveryActiveOwner(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	roles, err := iam.ListRoles(t.Context(), 0, 20)
+	roles, err := iam.ListRoles(t.Context(), 0, 20, "")
 	if err != nil || len(roles.Items) != 1 {
 		t.Fatalf("roles = %#v, %v", roles, err)
 	}
@@ -226,7 +226,7 @@ func TestConcurrentOwnerDisableCannotRemoveEveryActiveOwner(t *testing.T) {
 	close(start)
 	<-results
 	<-results
-	accounts, err := iam.ListAccounts(t.Context(), 0, 20)
+	accounts, err := iam.ListAccounts(t.Context(), 0, 20, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -616,4 +616,223 @@ func TestSessionListRejectsUnknownAccount(t *testing.T) {
 	if _, err := iam.ListSessions(t.Context(), "missing-account"); !errors.Is(err, repo.ErrNotFound) {
 		t.Fatalf("unknown account session list error = %v", err)
 	}
+}
+
+// TestAccountInfoUpdateRenamesAndRevokesSessions 验证账号显示名更新：成功变更
+// 后安全 revision 递增、Session 撤销、过期版本返回稳定冲突。
+func TestAccountInfoUpdateRenamesAndRevokesSessions(t *testing.T) {
+	iam, resource := newService(t)
+	defer resource.Close()
+	if _, err := iam.Setup(t.Context(), "setup-secret", "owner", "Owner", "123456789012345"); err != nil {
+		t.Fatal(err)
+	}
+	account, err := iam.CreateAccount(t.Context(), "member", "成员", "abcdefghijklmno")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := iam.UpdateAccountInfo(t.Context(), account.ID, 99, "新名字"); !errors.Is(err, service.ErrVersionConflict) {
+		t.Fatalf("stale account version error = %v", err)
+	}
+	session, err := iam.Login(t.Context(), "member", "abcdefghijklmno")
+	if err != nil {
+		t.Fatal(err)
+	}
+	accounts, err := iam.ListAccounts(t.Context(), 0, 20, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var currentVersion uint64
+	for _, item := range accounts.Items {
+		if item.ID == account.ID {
+			currentVersion = item.Version
+		}
+	}
+	if err := iam.UpdateAccountInfo(t.Context(), account.ID, currentVersion, "新名字"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := iam.Resolve(t.Context(), session.ID); !errors.Is(err, service.ErrSessionInvalid) {
+		t.Fatalf("session after rename error = %v", err)
+	}
+	replacement, err := iam.Login(t.Context(), "member", "abcdefghijklmno")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if replacement.Identity.DisplayName != "新名字" || replacement.Identity.SecurityRevision != session.Identity.SecurityRevision+1 {
+		t.Fatalf("replacement identity = %#v", replacement.Identity)
+	}
+}
+
+// TestArchiveAccountBlocksLoginAssignmentAndRevokesSessions 验证账号归档：
+// 归档后不可登录、组织分配失败（Assignable=false）、Session 撤销、owner 最后账号保护。
+func TestArchiveAccountBlocksLoginAssignmentAndRevokesSessions(t *testing.T) {
+	iam, resource := newService(t)
+	defer resource.Close()
+	session, err := iam.Setup(t.Context(), "setup-secret", "owner", "Owner", "123456789012345")
+	if err != nil {
+		t.Fatal(err)
+	}
+	account, err := iam.CreateAccount(t.Context(), "member", "成员", "abcdefghijklmno")
+	if err != nil {
+		t.Fatal(err)
+	}
+	memberSession, err := iam.Login(t.Context(), "member", "abcdefghijklmno")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := iam.ArchiveAccount(t.Context(), account.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := iam.Login(t.Context(), "member", "abcdefghijklmno"); !errors.Is(err, service.ErrAccountDisabled) {
+		t.Fatalf("login after archive error = %v", err)
+	}
+	if err := iam.RequireAssignableAccount(t.Context(), account.ID); !errors.Is(err, service.ErrAccountDisabled) {
+		t.Fatalf("assignable after archive error = %v", err)
+	}
+	if _, err := iam.Resolve(t.Context(), memberSession.ID); !errors.Is(err, service.ErrSessionInvalid) {
+		t.Fatalf("session after archive error = %v", err)
+	}
+	// 重复归档是 no-op。
+	if err := iam.ArchiveAccount(t.Context(), account.ID); err != nil {
+		t.Fatalf("repeat archive error = %v", err)
+	}
+	// 最后一个 owner 账号不可归档。
+	if err := iam.ArchiveAccount(t.Context(), session.Identity.AccountID); !errors.Is(err, model.ErrOwnerInvariant) {
+		t.Fatalf("archive last owner error = %v", err)
+	}
+}
+
+// TestRoleInfoUpdateDoesNotChangeAuthorizationRevision 验证角色改名/描述更新：
+// 不触发授权 revision change、不撤销持有者 Session；过期版本返回稳定冲突。
+func TestRoleInfoUpdateDoesNotChangeAuthorizationRevision(t *testing.T) {
+	iam, resource := newService(t)
+	defer resource.Close()
+	if _, err := iam.Setup(t.Context(), "setup-secret", "owner", "Owner", "123456789012345"); err != nil {
+		t.Fatal(err)
+	}
+	role, err := iam.CreateRole(t.Context(), "reader", "只读", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := iam.ReplaceRolePermissions(t.Context(), role.ID, 1, []permissioncatalog.Key{iampermission.SelfRead}); err != nil {
+		t.Fatal(err)
+	}
+	account, err := iam.CreateAccount(t.Context(), "member", "成员", "abcdefghijklmno")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := iam.ReplaceAccountRoles(t.Context(), account.ID, 1, []string{role.ID}); err != nil {
+		t.Fatal(err)
+	}
+	session, err := iam.Login(t.Context(), "member", "abcdefghijklmno")
+	if err != nil {
+		t.Fatal(err)
+	}
+	before, err := iam.RolePermissionsSnapshot(t.Context(), role.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := iam.UpdateRoleInfo(t.Context(), role.ID, 99, "只读升级", "描述"); !errors.Is(err, service.ErrVersionConflict) {
+		t.Fatalf("stale role version error = %v", err)
+	}
+	updated, err := iam.UpdateRoleInfo(t.Context(), role.ID, before.RoleVersion, "只读升级", "描述")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.Name != "只读升级" || updated.Description != "描述" {
+		t.Fatalf("updated role = %#v", updated)
+	}
+	after, err := iam.RolePermissionsSnapshot(t.Context(), role.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if after.AuthorizationRevision != before.AuthorizationRevision {
+		t.Fatalf("role info update changed authorization revision: %d -> %d", before.AuthorizationRevision, after.AuthorizationRevision)
+	}
+	// 改名不撤销持有者 Session。
+	if _, err := iam.Resolve(t.Context(), session.ID); err != nil {
+		t.Fatalf("member session after role rename = %v", err)
+	}
+	// owner 角色不可改名。
+	ownerRoles, err := iam.ListRoles(t.Context(), 0, 20, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, item := range ownerRoles.Items {
+		if item.Code == model.OwnerRoleCode {
+			if _, err := iam.UpdateRoleInfo(t.Context(), item.ID, item.Version, "x", ""); !errors.Is(err, service.ErrImmutableOwner) {
+				t.Fatalf("owner role info update error = %v", err)
+			}
+		}
+	}
+}
+
+// TestArchiveRoleRevokesPermissionAndSessions 验证角色归档：归档移出授权规则、
+// 持有者 Session 撤销、不可再分配、owner 不可归档。
+func TestArchiveRoleRevokesPermissionAndSessions(t *testing.T) {
+	iam, resource := newService(t)
+	defer resource.Close()
+	ownerSession, err := iam.Setup(t.Context(), "setup-secret", "owner", "Owner", "123456789012345")
+	if err != nil {
+		t.Fatal(err)
+	}
+	role, err := iam.CreateRole(t.Context(), "reader", "只读", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := iam.ReplaceRolePermissions(t.Context(), role.ID, 1, []permissioncatalog.Key{iampermission.SelfRead, iampermission.AccountRead}); err != nil {
+		t.Fatal(err)
+	}
+	account, err := iam.CreateAccount(t.Context(), "member", "成员", "abcdefghijklmno")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := iam.ReplaceAccountRoles(t.Context(), account.ID, 1, []string{role.ID}); err != nil {
+		t.Fatal(err)
+	}
+	session, err := iam.Login(t.Context(), "member", "abcdefghijklmno")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := iam.ArchiveRole(t.Context(), role.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := iam.Resolve(t.Context(), session.ID); !errors.Is(err, service.ErrSessionInvalid) {
+		t.Fatalf("member session after role archive = %v", err)
+	}
+	// 归档角色不可再分配。
+	accounts, err := iam.ListAccounts(t.Context(), 0, 20, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var accountVersion uint64
+	for _, item := range accounts.Items {
+		if item.ID == account.ID {
+			accountVersion = item.Version
+			break
+		}
+	}
+	if _, err := iam.ReplaceAccountRoles(t.Context(), account.ID, accountVersion, []string{role.ID}); !errors.Is(err, repo.ErrNotFound) {
+		t.Fatalf("assign archived role error = %v", err)
+	}
+	// 新登录不再获得该角色权限。
+	replacement, err := iam.Login(t.Context(), "member", "abcdefghijklmno")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(replacement.Identity.Permissions) != 0 {
+		t.Fatalf("permissions after role archive = %v", replacement.Identity.Permissions)
+	}
+	// owner 角色不可归档。
+	ownerRoles, err := iam.ListRoles(t.Context(), 0, 20, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, item := range ownerRoles.Items {
+		if item.Code == model.OwnerRoleCode {
+			if err := iam.ArchiveRole(t.Context(), item.ID); !errors.Is(err, service.ErrImmutableOwner) {
+				t.Fatalf("archive owner role error = %v", err)
+			}
+		}
+	}
+	_ = ownerSession
 }

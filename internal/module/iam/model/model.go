@@ -39,6 +39,7 @@ const (
 type Account struct {
 	ID, Username, DisplayName string
 	Status                    AccountStatus
+	Archived                  bool
 	MustChangePassword        bool
 	SecurityRevision, Version uint64
 	FailedAttempts            int
@@ -131,4 +132,9 @@ func NewRole(id, code, name, description string, system bool, now time.Time) (Ro
 	return Role{ID: id, Code: code, Name: name, Description: strings.TrimSpace(description), Active: true, System: system, CreatedAt: now, UpdatedAt: now}, nil
 }
 
-func (a Account) Assignable() bool { return a.Status == AccountActive }
+func (a Account) Assignable() bool { return a.Status == AccountActive && !a.Archived }
+
+// AccountName 是账号显示名的受控更新结果；空值表示未变更。
+type AccountName struct {
+	DisplayName string
+}

@@ -12,6 +12,10 @@ IAM（Identity and Access Management）拥有本地 Account、Credential、Sessi
 
 运行时支持创建自定义 Role、给账号分配 Role（AccountRole）与给 Role 分配 Catalog 内 PermissionKey（RolePermission），采用全量集合替换协议：读取返回 entity version、authorization revision 与完整集合快照，写入提交 `expectedVersion` + 期望集合；版本冲突返回稳定 409 且不静默覆盖，no-op 提交不改变版本/revision、不撤销 Session，有效变更返回 added/removed 计数与新版本。WebUI 角色权限页面由 Permission Catalog 按 OwnerModuleID 分组的 checkbox 矩阵生成，系统角色只读；账号角色页面使用 active/non-archived Role checklist。不支持运行时创建任意 PermissionKey、修改 Casbin model、按 URL/菜单生成后端 policy 或账号直授权。
 
+## 账号与角色生命周期（066）
+
+账号资料更新（改名）与账号归档、角色资料更新（名称/描述）与角色归档由 IAM 实现：改名与归档共用 `iam:account:write`/`iam:role:write` 与乐观并发版本协议；账号改名/归档与角色归档均视为安全变更，成功变更在事务内 bump SecurityRevision 并撤销受影响账号 Session（角色归档走完整授权发布链路，归档角色移出可分配与授权规则）；角色名称/描述更新是展示字段变更，不触发 authorization revision、不撤销 Session。归档是终态：归档账号/角色不可登录、不可分配、不产生授权规则；最后一个 active owner 账号与 owner 角色不可归档（`ErrImmutableOwner`/`ErrOwnerInvariant`）。不做物理删除与恢复。
+
 ## 对外边界
 
 IAM 通过窄 facet 对外输出：`Sessions`（Session 解析）、`Authorization`（evaluator 决策/投影）、`Accounts`（可指派账号校验）、`Administration`（owner reconcile/兼容/密码重置）与 `Mutation`（CSRF 校验）；根 composition 不取得 `*service.Service`，Auth 只消费 project `DecisionPoint`，HTTP/Huma 与业务模块不接触 Casbin 类型。composition 的 identity-access 子装配把 IAM `Authorization` facet 适配为 Auth `DecisionPoint`，把 IAM Session 适配为 `iam-rbac` Principal。

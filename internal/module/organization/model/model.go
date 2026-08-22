@@ -46,6 +46,7 @@ type Assignment struct {
 	AccountID    string
 	DepartmentID *string
 	PositionIDs  []string
+	Version      uint64
 }
 
 func NewDepartment(id, code, name string, parentID *string, now time.Time) (Department, error) {

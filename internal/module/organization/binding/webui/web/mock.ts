@@ -34,10 +34,10 @@ export const webuiMockRoutes: ReadonlyArray<WebUIMockRoute> = [
   } },
   { method: "PATCH", pattern: "/api/v1/organization/positions/{id}", handler: () => ({ ...positions[0], version: 2 }) },
   { method: "GET", pattern: "/api/v1/iam/accounts", handler: () => ({ items: accounts, offset: 0, limit: 100, total: accounts.length }) },
-  { method: "GET", pattern: "/api/v1/organization/accounts/{accountId}/assignment", handler: () => ({ accountId: "acct-1", departmentId: "dept-1", positionIds: ["pos-1"] }) },
+  { method: "GET", pattern: "/api/v1/organization/accounts/{accountId}/assignment", handler: () => ({ accountId: "acct-1", departmentId: "dept-1", positionIds: ["pos-1"], version: 1 }) },
   { method: "PUT", pattern: "/api/v1/organization/accounts/{accountId}/assignment", handler: (request) => {
-    const body = (request.body ?? {}) as { departmentId?: string; positionIds?: string[] };
-    return { accountId: "acct-1", departmentId: body.departmentId ?? "dept-1", positionIds: body.positionIds ?? [] };
+    const body = (request.body ?? {}) as { departmentId?: string; positionIds?: string[]; expectedVersion?: number };
+    return { accountId: "acct-1", departmentId: body.departmentId ?? "dept-1", positionIds: body.positionIds ?? [], version: (body.expectedVersion ?? 0) + 1 };
   } },
 ];
 

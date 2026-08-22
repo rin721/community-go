@@ -44,9 +44,10 @@ type DepartmentList struct {
 }
 
 type ListParams struct {
-	Offset     *int  `form:"offset"`
-	Limit      *int  `form:"limit"`
-	ActiveOnly *bool `form:"activeOnly"`
+	Offset     *int    `form:"offset"`
+	Limit      *int    `form:"limit"`
+	ActiveOnly *bool   `form:"activeOnly"`
+	Query      *string `form:"query"`
 }
 
 type TreeParams struct {
@@ -85,13 +86,15 @@ type PositionList struct {
 }
 
 type ReplaceAssignmentRequest struct {
-	AccountID    string   `json:"-"`
-	DepartmentID *string  `json:"departmentId,omitempty"`
-	PositionIDs  []string `json:"positionIds"`
+	AccountID       string   `json:"-"`
+	ExpectedVersion uint64   `json:"expectedVersion"`
+	DepartmentID    *string  `json:"departmentId,omitempty"`
+	PositionIDs     []string `json:"positionIds"`
 }
 
 type Assignment struct {
 	AccountID    string   `json:"accountId"`
 	DepartmentID *string  `json:"departmentId,omitempty"`
 	PositionIDs  []string `json:"positionIds"`
+	Version      uint64   `json:"version"`
 }

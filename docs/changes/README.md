@@ -71,4 +71,6 @@
 - [064 账号与权限体系进阶](064-account-permission-advancement/README.md)：已确认并实施完成；首批为「可查询低敏审计（Auth 持久化 Sink + `auth.audit.list` 查询 + `auth:audit:read`）」与「账号会话集中管理（IAM `iam.sessions.list/revoke` + `iam:session:*`）」两个闭环，配套审计页/会话管理页 WebUI、迁移、测试与文档；MFA/TOTP、组织数据权限、外部身份/多租户/ABAC 列为下一批候选方向（仅记录，不实施）。
 - [065 日志与审计体系进阶（业务操作审计）](065-logging-audit-system/README.md)：已确认并实施完成；日志体系已闭环保持现状、审计缺业务操作审计；在 Auth 暴露窄 `OperationAuditWriter` port 并让 IAM/Organization/Navigation 写操作复用同一低敏审计面（`auth_audit_events` + `auth.audit.list` + WebUI），`auth.audit.list` 支持 action/resourceType 过滤，`docs/development/logging.md` 固化操作审计规范；未建第二套审计/日志存储、未推翻 024/R005 Auth 收口决策、未引入外部日志平台。
 
-下一个任务序号为 `066`。已完成记录只保存历史证据；当前行为必须回到根 [README](../../README.md) 和对应主题文档确认。
+- [066 账号与权限体系闭环缺口补齐](066-account-permission-gap-closure/README.md)：已确认并实施完成；首批为 IAM 账号生命周期（资料更新、归档）与角色生命周期（资料更新、归档）、WebUI 管理页按钮级权限接入（既有 ActionPermissions/ActionTrigger）、列表过滤分页与 409 差异确认/分配乐观锁，全部落在既有模块边界与机制内、不新增权限键；组织数据权限、角色-菜单绑定、动态菜单、按钮独立权限键列为候选方向（仅记录，不实施）。
+
+下一个任务序号为 `067`。已完成记录只保存历史证据；当前行为必须回到根 [README](../../README.md) 和对应主题文档确认。

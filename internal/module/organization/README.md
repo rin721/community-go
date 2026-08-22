@@ -4,7 +4,7 @@ Organization 拥有部门、岗位与账号组织关系。它只维护组织目�
 
 ## 边界
 
-- `model/` 与 `service/` 维护部门无环树、岗位平面目录、引用保护和账号分配规则。
+- `model/` 与 `service/` 维护部门无环树、岗位平面目录、引用保护和账号分配规则；账号-部门/岗位分配使用 `expectedVersion` 乐观并发（`organization_account_departments.version`，冲突返回稳定 409）。
 - `repo/` 与 `binding/migration/` 独占 `organization_*` 表及 `organization_schema_migrations`。
 - `handler/` 与 `binding/http/` 提供 typed operation 和代码优先契约。
 - `binding/webui/` 提供部门、岗位和账号组织分配页面。

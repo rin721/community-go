@@ -22,5 +22,16 @@ func Binding() webui.Binding {
 		{ID: "iam.roles", ParentID: "iam.access", RouteID: "iam.roles", TitleMessageID: "webui.iam.roles.title", IconID: "shield", Order: 60},
 		{ID: "iam.permissions", ParentID: "iam.access", RouteID: "iam.permissions", TitleMessageID: "webui.iam.permissions.title", IconID: "key", Order: 70},
 		{ID: "iam.sessions", ParentID: "iam.access", RouteID: "iam.sessions", TitleMessageID: "webui.iam.sessions.title", IconID: "refresh", Order: 75},
+	}, ActionPermissions: []webui.ActionPermission{
+		{OperationID: "iam.accounts.create"},
+		{OperationID: "iam.accounts.status"},
+		{OperationID: "iam.accounts.update"},
+		{OperationID: "iam.accounts.archive"},
+		{OperationID: "iam.accounts.password.reset"},
+		{OperationID: "iam.accounts.roles.replace"},
+		{OperationID: "iam.roles.create"},
+		{OperationID: "iam.roles.update"},
+		{OperationID: "iam.roles.archive"},
+		{OperationID: "iam.roles.permissions.replace"},
 	}, Locales: []webui.Locale{{Language: "en-US", Namespace: "webui.iam", SourcePath: "locale/en-US.json"}, {Language: "zh-CN", Namespace: "webui.iam", SourcePath: "locale/zh-CN.json"}}, MockSource: "mock.ts", Requires: []webui.SDKRequirement{{ID: "runtime", MajorVersion: 1}, {ID: "http", MajorVersion: 1}, {ID: "i18n", MajorVersion: 1}, {ID: "ui", MajorVersion: 1}, {ID: "mock", MajorVersion: 1}}}
 }

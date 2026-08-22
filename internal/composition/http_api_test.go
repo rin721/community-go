@@ -8,14 +8,14 @@ func TestApplicationHTTPRegistrationsAreComplete(t *testing.T) {
 		t.Fatal(err)
 	}
 	definitions := blueprint.httpDefinitions
-	if len(definitions) != 34 {
+	if len(definitions) != 38 {
 		t.Fatalf("operation count = %d", len(definitions))
 	}
 	seen := make(map[string]struct{}, len(definitions))
 	for _, definition := range definitions {
 		seen[definition.ID] = struct{}{}
 	}
-	for _, id := range []string{"iam.setup", "navigation.menus.update", "organization.departments.update", "completeTodo", "auth.audit.list", "iam.sessions.list", "iam.sessions.revoke"} {
+	for _, id := range []string{"iam.setup", "navigation.menus.update", "organization.departments.update", "completeTodo", "auth.audit.list", "iam.sessions.list", "iam.sessions.revoke", "iam.accounts.update", "iam.accounts.archive", "iam.roles.update", "iam.roles.archive"} {
 		if _, ok := seen[id]; !ok {
 			t.Fatalf("missing operation %q", id)
 		}

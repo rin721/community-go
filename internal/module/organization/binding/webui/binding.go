@@ -16,5 +16,11 @@ func Binding() webuicontract.Binding {
 		{ID: "organization.departments", ParentID: "organization.directory", RouteID: "organization.departments", TitleMessageID: "webui.organization.departments.title", IconID: "building", Order: 90},
 		{ID: "organization.positions", ParentID: "organization.directory", RouteID: "organization.positions", TitleMessageID: "webui.organization.positions.title", IconID: "briefcase", Order: 100},
 		{ID: "organization.assignments", ParentID: "organization.directory", RouteID: "organization.assignments", TitleMessageID: "webui.organization.assignments.title", IconID: "users", Order: 110},
+	}, ActionPermissions: []webuicontract.ActionPermission{
+		{OperationID: "organization.departments.create"},
+		{OperationID: "organization.departments.update"},
+		{OperationID: "organization.positions.create"},
+		{OperationID: "organization.positions.update"},
+		{OperationID: "organization.assignments.replace"},
 	}, Locales: []webuicontract.Locale{{Language: "en-US", Namespace: "webui.organization", SourcePath: "locale/en-US.json"}, {Language: "zh-CN", Namespace: "webui.organization", SourcePath: "locale/zh-CN.json"}}, MockSource: "mock.ts", Requires: []webuicontract.SDKRequirement{{ID: "runtime", MajorVersion: 1}, {ID: "http", MajorVersion: 1}, {ID: "i18n", MajorVersion: 1}, {ID: "ui", MajorVersion: 1}, {ID: "mock", MajorVersion: 1}}}
 }

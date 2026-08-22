@@ -112,7 +112,7 @@ func TestOwnerRolePermissionsAreImmutable(t *testing.T) {
 	if _, err := iam.Setup(t.Context(), "setup-secret", "owner", "Owner", "123456789012345"); err != nil {
 		t.Fatal(err)
 	}
-	roles, err := iam.ListRoles(t.Context(), 0, 20)
+	roles, err := iam.ListRoles(t.Context(), 0, 20, "")
 	if err != nil || len(roles.Items) != 1 {
 		t.Fatalf("roles = %#v, %v", roles, err)
 	}

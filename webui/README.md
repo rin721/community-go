@@ -61,3 +61,8 @@ Linux 使用 `bash scripts/verify-webui.sh`。质量链覆盖生成检查、冻�
 - Auth 审计日志页（`/admin/audit`）：只读展示低敏授权决策与业务写操作审计（subject/resource 仅摘要、支持 action/resourceType/outcome 筛选），`auth:audit:read` 权限键投影访问状态；持久化 Sink 由 Auth 模块内部装配。
 - IAM 会话管理页（`/admin/sessions`，归入「身份与权限管理」组）：列表只显示 SessionID 摘要（hex）与过期信息，支持批量吊销，沿用安全修订与 owner 不变量；`iam:session:read/revoke` 权限键投影。
 - 065：IAM/Organization/Navigation 业务写操作经窄 port 注入同一低敏审计面，审计页可查询「谁改了什么」；两页均遵循模块接入四步（Binding/locale/mock/CSS + 生成链），宿主源码零改动。
+
+## 管理页按钮级权限与交互闭环（066）
+
+- IAM 用户/角色页、Organization 部门/岗位/分配页与 Navigation 菜单页的写操作按钮（创建/启停/重置/改名/归档/保存策略）均经模块 Binding `ActionPermissions` + SDK `ActionTrigger` 接入动作级权限投影：denied 时按钮隐藏或禁用，未声明/未投影的 operation 前端不做呈现限制（服务端授权继续 fail closed）。
+- 账号/角色列表支持关键字过滤与分页；角色权限与账号角色保存遇到 409 时展示 added/removed 差异并重新加载最新版本（不静默丢弃未保存选择）；Organization 分配使用 `expectedVersion` 乐观锁并在冲突时重载。

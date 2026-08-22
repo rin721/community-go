@@ -130,7 +130,7 @@ func (s *Service) CreateDepartment(ctx context.Context, code, name string, paren
 	return department, err
 }
 
-func (s *Service) ListDepartments(ctx context.Context, offset, limit int, activeOnly bool) (DepartmentList, error) {
+func (s *Service) ListDepartments(ctx context.Context, offset, limit int, activeOnly bool, query string) (DepartmentList, error) {
 	offset, limit, err := normalizePage(offset, limit)
 	if err != nil {
 		return DepartmentList{}, err
@@ -139,7 +139,7 @@ func (s *Service) ListDepartments(ctx context.Context, offset, limit int, active
 	var total int64
 	err = s.store.Use(ctx, func(unit *repo.Unit) error {
 		var listErr error
-		records, total, listErr = unit.ListDepartments(ctx, offset, limit, activeOnly)
+		records, total, listErr = unit.ListDepartments(ctx, offset, limit, activeOnly, query)
 		return listErr
 	})
 	items := make([]model.Department, len(records))
@@ -237,7 +237,7 @@ func (s *Service) CreatePosition(ctx context.Context, code, name string) (model.
 	s.auditOperation(ctx, "organization.positions.create", "create", "position", position.ID, err)
 	return position, err
 }
-func (s *Service) ListPositions(ctx context.Context, offset, limit int, activeOnly bool) (PositionList, error) {
+func (s *Service) ListPositions(ctx context.Context, offset, limit int, activeOnly bool, query string) (PositionList, error) {
 	offset, limit, err := normalizePage(offset, limit)
 	if err != nil {
 		return PositionList{}, err
@@ -246,7 +246,7 @@ func (s *Service) ListPositions(ctx context.Context, offset, limit int, activeOn
 	var total int64
 	err = s.store.Use(ctx, func(unit *repo.Unit) error {
 		var listErr error
-		records, total, listErr = unit.ListPositions(ctx, offset, limit, activeOnly)
+		records, total, listErr = unit.ListPositions(ctx, offset, limit, activeOnly, query)
 		return listErr
 	})
 	items := make([]model.Position, len(records))
@@ -315,6 +315,7 @@ func (s *Service) Assignment(ctx context.Context, accountID string) (model.Assig
 		if err == nil {
 			value := department.DepartmentID
 			result.DepartmentID = &value
+			result.Version = department.Version
 		} else if !repo.IsNotFound(err) {
 			return err
 		}
@@ -331,7 +332,7 @@ func (s *Service) Assignment(ctx context.Context, accountID string) (model.Assig
 	return result, err
 }
 
-func (s *Service) ReplaceAssignment(ctx context.Context, accountID string, departmentID *string, positionIDs []string) (model.Assignment, error) {
+func (s *Service) ReplaceAssignment(ctx context.Context, accountID string, expectedVersion uint64, departmentID *string, positionIDs []string) (model.Assignment, error) {
 	if err := s.accounts.RequireAssignableAccount(ctx, accountID); err != nil {
 		return model.Assignment{}, fmt.Errorf("%w: %w", model.ErrAccountInvalid, err)
 	}
@@ -350,7 +351,7 @@ func (s *Service) ReplaceAssignment(ctx context.Context, accountID string, depar
 			}
 		}
 		now := s.clock.Now().UTC()
-		if err := unit.ReplaceAccountDepartment(txCtx, accountID, departmentID, now); err != nil {
+		if err := unit.ReplaceAccountDepartment(txCtx, accountID, expectedVersion, departmentID, now); err != nil {
 			return err
 		}
 		existing, err := unit.ListAccountPositions(txCtx, accountID, false)
@@ -383,7 +384,11 @@ func (s *Service) ReplaceAssignment(ctx context.Context, accountID string, depar
 		return model.Assignment{}, err
 	}
 	s.auditOperation(ctx, "organization.assignments.replace", "replace", "account", accountID, nil)
-	return model.Assignment{AccountID: accountID, DepartmentID: cloneString(departmentID), PositionIDs: positionIDs}, nil
+	version := expectedVersion + 1
+	if expectedVersion == 0 && departmentID == nil {
+		version = 0
+	}
+	return model.Assignment{AccountID: accountID, DepartmentID: cloneString(departmentID), PositionIDs: positionIDs, Version: version}, nil
 }
 
 func validateParent(ctx context.Context, unit *repo.Unit, departmentID string, parentID *string) error {

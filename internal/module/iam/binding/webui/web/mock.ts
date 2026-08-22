@@ -22,8 +22,8 @@ const mockSession = {
 };
 
 const accounts = [
-  { id: "acct-1", username: "admin", displayName: "Mock Administrator", status: "active" as const, mustChangePassword: false, securityRevision: 1, version: 1 },
-  { id: "acct-2", username: "ops.reader", displayName: "Ops Reader", status: "active" as const, mustChangePassword: true, securityRevision: 2, version: 1 },
+  { id: "acct-1", username: "admin", displayName: "Mock Administrator", status: "active" as const, archived: false, mustChangePassword: false, securityRevision: 1, version: 1 },
+  { id: "acct-2", username: "ops.reader", displayName: "Ops Reader", status: "active" as const, archived: false, mustChangePassword: true, securityRevision: 2, version: 1 },
 ];
 
 const roles = [
@@ -47,9 +47,11 @@ export const webuiMockRoutes: ReadonlyArray<WebUIMockRoute> = [
   { method: "GET", pattern: "/api/v1/iam/accounts", handler: () => ({ items: accounts, offset: 0, limit: 100, total: accounts.length }) },
   { method: "POST", pattern: "/api/v1/iam/accounts", handler: (request) => {
     const body = (request.body ?? {}) as { username?: string; displayName?: string };
-    return { id: `acct-${accounts.length + 1}`, username: body.username ?? "new.account", displayName: body.displayName ?? "New Account", status: "active" as const, mustChangePassword: false, securityRevision: 1, version: 1 };
+    return { id: `acct-${accounts.length + 1}`, username: body.username ?? "new.account", displayName: body.displayName ?? "New Account", status: "active" as const, archived: false, mustChangePassword: false, securityRevision: 1, version: 1 };
   } },
   { method: "PATCH", pattern: "/api/v1/iam/accounts/{id}/status", handler: () => undefined },
+  { method: "PATCH", pattern: "/api/v1/iam/accounts/{id}", handler: () => undefined },
+  { method: "POST", pattern: "/api/v1/iam/accounts/{id}/archive", handler: () => undefined },
   { method: "POST", pattern: "/api/v1/iam/accounts/{id}/password-reset", handler: () => undefined },
   { method: "GET", pattern: "/api/v1/iam/accounts/{id}/roles", handler: () => ({ accountId: "acct-1", accountVersion: 1, authorizationRevision: 2, roleIds: roles.map((role) => role.id) }) },
   { method: "PUT", pattern: "/api/v1/iam/accounts/{id}/roles", handler: (request) => {
@@ -61,6 +63,8 @@ export const webuiMockRoutes: ReadonlyArray<WebUIMockRoute> = [
     const body = (request.body ?? {}) as { code?: string; name?: string; description?: string };
     return { id: `role-${roles.length + 1}`, code: body.code ?? "custom", name: body.name ?? "Custom Role", description: body.description ?? "", active: true, archived: false, system: false, version: 1 };
   } },
+  { method: "PATCH", pattern: "/api/v1/iam/roles/{id}", handler: () => ({ ...roles[1], version: 2 }) },
+  { method: "POST", pattern: "/api/v1/iam/roles/{id}/archive", handler: () => undefined },
   { method: "GET", pattern: "/api/v1/iam/roles/{id}/permissions", handler: () => ({ roleId: "role-1", roleVersion: 1, authorizationRevision: 2, permissionKeys: permissions.map((permission) => permission.key) }) },
   { method: "PUT", pattern: "/api/v1/iam/roles/{id}/permissions", handler: () => ({ entityId: "role-1", entityVersion: 1, authorizationRevision: 2, added: 1, removed: 0 }) },
   { method: "GET", pattern: "/api/v1/iam/permissions", handler: () => permissions },

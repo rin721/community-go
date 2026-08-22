@@ -7,7 +7,7 @@ import (
 	dbmigrate "github.com/rin721/go-scaffold-template/pkg/database/migrate"
 )
 
-const CurrentVersion uint = 2
+const CurrentVersion uint = 3
 const TableName = "iam_schema_migrations"
 
 //go:embed sqlite/*.sql postgres/*.sql mysql/*.sql
@@ -24,6 +24,9 @@ func Set() dbmigrate.Set {
 			"sqlite/000002_create_iam_authorization_state.up.sql": "33a3b11544919df138cd6c81909770b0aeeff3c3cfc9f583b4bcc1c3f725a78a", "sqlite/000002_create_iam_authorization_state.down.sql": "83ab2e5bb5bacc2cabce30f6d35cc6c4f5bc6c82c74b488ff99bf271950a90f9",
 			"postgres/000002_create_iam_authorization_state.up.sql": "17f05f90235f048c1aa7fb8b8351e556ca538023ae2e3a1d4849fcc08c85b9d4", "postgres/000002_create_iam_authorization_state.down.sql": "83ab2e5bb5bacc2cabce30f6d35cc6c4f5bc6c82c74b488ff99bf271950a90f9",
 			"mysql/000002_create_iam_authorization_state.up.sql": "af913ebc5b89e051a5075f76c9161511d3bdd01fa5e8a118edb976a4760b769f", "mysql/000002_create_iam_authorization_state.down.sql": "83ab2e5bb5bacc2cabce30f6d35cc6c4f5bc6c82c74b488ff99bf271950a90f9",
+			"sqlite/000003_create_iam_account_archived.up.sql": "24260ec82991f3eb3d6d94a77aee10087558c2a0be7a5bfc852a3f302d427286", "sqlite/000003_create_iam_account_archived.down.sql": "c4e2eb5fb56fbcbc92bc004a0b4f1292e96f1009d0973aeeeeb0083998681106",
+			"postgres/000003_create_iam_account_archived.up.sql": "54d6028cec58afd08d767f134a9c7b92796f84c5ff44a0fdfca86c53bb2b3a1a", "postgres/000003_create_iam_account_archived.down.sql": "c4e2eb5fb56fbcbc92bc004a0b4f1292e96f1009d0973aeeeeb0083998681106",
+			"mysql/000003_create_iam_account_archived.up.sql": "54d6028cec58afd08d767f134a9c7b92796f84c5ff44a0fdfca86c53bb2b3a1a", "mysql/000003_create_iam_account_archived.down.sql": "c4e2eb5fb56fbcbc92bc004a0b4f1292e96f1009d0973aeeeeb0083998681106",
 		},
 	}
 }

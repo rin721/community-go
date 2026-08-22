@@ -33,8 +33,9 @@ type setupInput struct {
 	}
 }
 type pageInput struct {
-	Offset int `query:"offset" minimum:"0" default:"0"`
-	Limit  int `query:"limit" minimum:"1" maximum:"100" default:"20"`
+	Offset int    `query:"offset" minimum:"0" default:"0"`
+	Limit  int    `query:"limit" minimum:"1" maximum:"100" default:"20"`
+	Query  string `query:"query" maxLength:"128"`
 }
 type idInput struct {
 	ID string `path:"id"`
@@ -63,6 +64,20 @@ type statusInput struct {
 	Body      struct {
 		Status model.AccountStatus `json:"status" enum:"active,disabled"`
 	}
+}
+type updateAccountInput struct {
+	ID        string `path:"id"`
+	Origin    string `header:"Origin" required:"true"`
+	CSRFToken string `header:"X-CSRF-Token" required:"true"`
+	Body      struct {
+		ExpectedAccountVersion uint64 `json:"expectedAccountVersion"`
+		DisplayName            string `json:"displayName" minLength:"1" maxLength:"128"`
+	}
+}
+type archiveInput struct {
+	ID        string `path:"id"`
+	Origin    string `header:"Origin" required:"true"`
+	CSRFToken string `header:"X-CSRF-Token" required:"true"`
 }
 type passwordInput struct {
 	ID        string `path:"id"`
@@ -108,6 +123,16 @@ type createRoleInput struct {
 		Code        string `json:"code" minLength:"2" maxLength:"64"`
 		Name        string `json:"name" minLength:"1" maxLength:"128"`
 		Description string `json:"description" maxLength:"1024"`
+	}
+}
+type updateRoleInput struct {
+	ID        string `path:"id"`
+	Origin    string `header:"Origin" required:"true"`
+	CSRFToken string `header:"X-CSRF-Token" required:"true"`
+	Body      struct {
+		ExpectedRoleVersion uint64 `json:"expectedRoleVersion"`
+		Name                string `json:"name" minLength:"1" maxLength:"128"`
+		Description         string `json:"description" maxLength:"1024"`
 	}
 }
 
@@ -238,7 +263,7 @@ func RegisterHuma(api huma.API, handler *Handler) {
 	})
 
 	huma.Register(api, protected(opAccounts, http.MethodGet, "/api/v1/iam/accounts", string(iampermission.AccountRead), "list"), func(ctx context.Context, in *pageInput) (*jsonOutput[listResponse[accountResponse]], error) {
-		result, err := handler.service.ListAccounts(ctx, in.Offset, in.Limit)
+		result, err := handler.service.ListAccounts(ctx, in.Offset, in.Limit, in.Query)
 		if err != nil {
 			return nil, problem(ctx, err)
 		}
@@ -261,6 +286,12 @@ func RegisterHuma(api huma.API, handler *Handler) {
 	registerMutation(api, handler, protected(opAccountStatus, http.MethodPatch, "/api/v1/iam/accounts/{id}/status", string(iampermission.AccountWrite), "update"), func(ctx context.Context, in *statusInput) error {
 		return handler.service.SetAccountStatus(ctx, in.ID, in.Body.Status)
 	})
+	registerMutation(api, handler, protected(opAccountUpdate, http.MethodPatch, "/api/v1/iam/accounts/{id}", string(iampermission.AccountWrite), "update"), func(ctx context.Context, in *updateAccountInput) error {
+		return handler.service.UpdateAccountInfo(ctx, in.ID, in.Body.ExpectedAccountVersion, in.Body.DisplayName)
+	})
+	registerMutation(api, handler, protected(opAccountArchive, http.MethodPost, "/api/v1/iam/accounts/{id}/archive", string(iampermission.AccountWrite), "archive"), func(ctx context.Context, in *archiveInput) error {
+		return handler.service.ArchiveAccount(ctx, in.ID)
+	})
 	registerMutation(api, handler, protected(opResetPassword, http.MethodPost, "/api/v1/iam/accounts/{id}/password-reset", string(iampermission.AccountWrite), "execute"), func(ctx context.Context, in *passwordInput) error {
 		return handler.service.ResetPassword(ctx, in.ID, in.Body.Password)
 	})
@@ -282,7 +313,7 @@ func RegisterHuma(api huma.API, handler *Handler) {
 	})
 
 	huma.Register(api, protected(opRoles, http.MethodGet, "/api/v1/iam/roles", string(iampermission.RoleRead), "list"), func(ctx context.Context, in *pageInput) (*jsonOutput[listResponse[roleResponse]], error) {
-		result, err := handler.service.ListRoles(ctx, in.Offset, in.Limit)
+		result, err := handler.service.ListRoles(ctx, in.Offset, in.Limit, in.Query)
 		if err != nil {
 			return nil, problem(ctx, err)
 		}
@@ -301,6 +332,18 @@ func RegisterHuma(api huma.API, handler *Handler) {
 			return nil, problem(ctx, err)
 		}
 		return jsonEnvelope(roleOutput(item)), nil
+	})
+	roleUpdate := protected(opRoleUpdate, http.MethodPatch, "/api/v1/iam/roles/{id}", string(iampermission.RoleWrite), "update")
+	roleUpdate.Middlewares = huma.Middlewares{handler.requireMutation}
+	huma.Register(api, roleUpdate, func(ctx context.Context, in *updateRoleInput) (*jsonOutput[roleResponse], error) {
+		item, err := handler.service.UpdateRoleInfo(ctx, in.ID, in.Body.ExpectedRoleVersion, in.Body.Name, in.Body.Description)
+		if err != nil {
+			return nil, problem(ctx, err)
+		}
+		return jsonEnvelope(roleOutput(item)), nil
+	})
+	registerMutation(api, handler, protected(opRoleArchive, http.MethodPost, "/api/v1/iam/roles/{id}/archive", string(iampermission.RoleWrite), "archive"), func(ctx context.Context, in *archiveInput) error {
+		return handler.service.ArchiveRole(ctx, in.ID)
 	})
 	huma.Register(api, protected(opRolePermissionsRead, http.MethodGet, "/api/v1/iam/roles/{id}/permissions", string(iampermission.RoleRead), "read"), func(ctx context.Context, in *idInput) (*jsonOutput[rolePermissionsResponse], error) {
 		view, err := handler.service.RolePermissionsSnapshot(ctx, in.ID)

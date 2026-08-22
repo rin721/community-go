@@ -14,6 +14,7 @@ type organizationListInput struct {
 	Offset     humabinding.Optional[int]  `query:"offset" minimum:"0"`
 	Limit      humabinding.Optional[int]  `query:"limit" minimum:"1" maximum:"100"`
 	ActiveOnly humabinding.Optional[bool] `query:"activeOnly"`
+	Query      humabinding.Optional[string] `query:"query" maxLength:"128"`
 }
 type organizationTreeInput struct {
 	ActiveOnly humabinding.Optional[bool] `query:"activeOnly"`
@@ -130,7 +131,7 @@ func HumaRegistration(operations organizationhandler.Operations) humabinding.Reg
 	return func(api huma.API) { Register(api, operations) }
 }
 func humaListParams(input *organizationListInput) organizationhandler.ListParams {
-	return organizationhandler.ListParams{Offset: input.Offset.Pointer(), Limit: input.Limit.Pointer(), ActiveOnly: input.ActiveOnly.Pointer()}
+	return organizationhandler.ListParams{Offset: input.Offset.Pointer(), Limit: input.Limit.Pointer(), ActiveOnly: input.ActiveOnly.Pointer(), Query: input.Query.Pointer()}
 }
 func protocolError(ctx context.Context, err error) error {
 	return httpx.NewProtocolProblemError(ctx, err)

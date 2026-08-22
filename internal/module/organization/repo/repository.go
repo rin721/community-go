@@ -38,6 +38,7 @@ type PositionRecord struct {
 type AccountDepartmentRecord struct {
 	AccountID, DepartmentID string
 	Assigned                bool
+	Version                 uint64
 	UpdatedAt               time.Time
 }
 type AccountPositionRecord struct {

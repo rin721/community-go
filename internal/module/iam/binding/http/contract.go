@@ -23,11 +23,15 @@ const (
 	opAccounts            = "iam.accounts.list"
 	opCreateAccount       = "iam.accounts.create"
 	opAccountStatus       = "iam.accounts.status"
+	opAccountUpdate       = "iam.accounts.update"
+	opAccountArchive      = "iam.accounts.archive"
 	opResetPassword       = "iam.accounts.password.reset"
 	opAccountRolesRead    = "iam.accounts.roles.read"
 	opAccountRoles        = "iam.accounts.roles.replace"
 	opRoles               = "iam.roles.list"
 	opCreateRole          = "iam.roles.create"
+	opRoleUpdate          = "iam.roles.update"
+	opRoleArchive         = "iam.roles.archive"
 	opRolePermissionsRead = "iam.roles.permissions.read"
 	opRolePermissions     = "iam.roles.permissions.replace"
 	opPermissions         = "iam.permissions.list"
@@ -83,6 +87,7 @@ type accountResponse struct {
 	Username           string              `json:"username"`
 	DisplayName        string              `json:"displayName"`
 	Status             model.AccountStatus `json:"status" enum:"active,disabled"`
+	Archived           bool                `json:"archived"`
 	MustChangePassword bool                `json:"mustChangePassword"`
 	SecurityRevision   uint64              `json:"securityRevision"`
 	Version            uint64              `json:"version"`
@@ -154,7 +159,7 @@ type sessionRevokeInput struct {
 }
 
 func accountOutput(v model.Account) accountResponse {
-	return accountResponse{v.ID, v.Username, v.DisplayName, v.Status, v.MustChangePassword, v.SecurityRevision, v.Version}
+	return accountResponse{v.ID, v.Username, v.DisplayName, v.Status, v.Archived, v.MustChangePassword, v.SecurityRevision, v.Version}
 }
 func roleOutput(v model.Role) roleResponse {
 	return roleResponse{v.ID, v.Code, v.Name, v.Description, v.Active, v.Archived, v.System, v.Version}

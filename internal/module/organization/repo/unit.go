@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/rin721/go-scaffold-template/pkg/database"
@@ -40,18 +41,22 @@ func (unit *Unit) DepartmentByID(ctx context.Context, id string) (DepartmentReco
 	return record, err
 }
 
-func (unit *Unit) ListDepartments(ctx context.Context, offset, limit int, activeOnly bool) ([]DepartmentRecord, int64, error) {
+func (unit *Unit) ListDepartments(ctx context.Context, offset, limit int, activeOnly bool, query string) ([]DepartmentRecord, int64, error) {
 	var records []DepartmentRecord
 	var total int64
 	err := unit.useDB(ctx, func(db *gorm.DB) error {
-		query := db.Table(departmentTable)
+		q := db.Table(departmentTable)
 		if activeOnly {
-			query = query.Where("active = ? AND archived = ?", true, false)
+			q = q.Where("active = ? AND archived = ?", true, false)
 		}
-		if err := query.Count(&total).Error; err != nil {
+		if strings.TrimSpace(query) != "" {
+			like := "%" + strings.TrimSpace(query) + "%"
+			q = q.Where("(code LIKE ? OR name LIKE ?)", like, like)
+		}
+		if err := q.Count(&total).Error; err != nil {
 			return err
 		}
-		return query.Order("code ASC").Offset(offset).Limit(limit).Find(&records).Error
+		return q.Order("code ASC").Offset(offset).Limit(limit).Find(&records).Error
 	})
 	return records, total, err
 }
@@ -102,18 +107,22 @@ func (unit *Unit) PositionByID(ctx context.Context, id string) (PositionRecord, 
 	return record, err
 }
 
-func (unit *Unit) ListPositions(ctx context.Context, offset, limit int, activeOnly bool) ([]PositionRecord, int64, error) {
+func (unit *Unit) ListPositions(ctx context.Context, offset, limit int, activeOnly bool, query string) ([]PositionRecord, int64, error) {
 	var records []PositionRecord
 	var total int64
 	err := unit.useDB(ctx, func(db *gorm.DB) error {
-		query := db.Table(positionTable)
+		q := db.Table(positionTable)
 		if activeOnly {
-			query = query.Where("active = ? AND archived = ?", true, false)
+			q = q.Where("active = ? AND archived = ?", true, false)
 		}
-		if err := query.Count(&total).Error; err != nil {
+		if strings.TrimSpace(query) != "" {
+			like := "%" + strings.TrimSpace(query) + "%"
+			q = q.Where("(code LIKE ? OR name LIKE ?)", like, like)
+		}
+		if err := q.Count(&total).Error; err != nil {
 			return err
 		}
-		return query.Order("code ASC").Offset(offset).Limit(limit).Find(&records).Error
+		return q.Order("code ASC").Offset(offset).Limit(limit).Find(&records).Error
 	})
 	return records, total, err
 }
@@ -144,23 +153,29 @@ func (unit *Unit) AccountDepartment(ctx context.Context, accountID string) (Acco
 	return record, err
 }
 
-func (unit *Unit) ReplaceAccountDepartment(ctx context.Context, accountID string, departmentID *string, now time.Time) error {
+func (unit *Unit) ReplaceAccountDepartment(ctx context.Context, accountID string, expectedVersion uint64, departmentID *string, now time.Time) error {
 	var existing AccountDepartmentRecord
 	err := unit.useDB(ctx, func(db *gorm.DB) error {
 		return db.Table(accountDepartmentTable).Where("account_id = ?", accountID).First(&existing).Error
 	})
 	if err == nil {
-		values := map[string]any{"assigned": departmentID != nil, "updated_at": now}
+		if existing.Version != expectedVersion {
+			return database.ErrOptimisticConflict
+		}
+		values := map[string]any{"assigned": departmentID != nil, "version": gorm.Expr("version + 1"), "updated_at": now}
 		if departmentID != nil {
 			values["department_id"] = *departmentID
 		}
-		return unit.update(ctx, accountDepartmentTable, "account_id = ?", []any{accountID}, values)
+		return unit.update(ctx, accountDepartmentTable, "account_id = ? AND version = ?", []any{accountID, expectedVersion}, values)
 	}
 	if !IsNotFound(err) || departmentID == nil {
 		return nilIfNotFound(err)
 	}
+	if expectedVersion != 0 {
+		return database.ErrOptimisticConflict
+	}
 	return unit.useDB(ctx, func(db *gorm.DB) error {
-		return db.Table(accountDepartmentTable).Create(&AccountDepartmentRecord{AccountID: accountID, DepartmentID: *departmentID, Assigned: true, UpdatedAt: now}).Error
+		return db.Table(accountDepartmentTable).Create(&AccountDepartmentRecord{AccountID: accountID, DepartmentID: *departmentID, Assigned: true, Version: 1, UpdatedAt: now}).Error
 	})
 }
 

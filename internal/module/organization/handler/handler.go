@@ -35,8 +35,8 @@ func New(organizationService *service.Service) (*Handler, error) {
 }
 
 func (h *Handler) ListDepartments(ctx context.Context, params ListParams) (DepartmentList, error) {
-	offset, limit, activeOnly := listValues(params)
-	result, err := h.service.ListDepartments(ctx, offset, limit, activeOnly)
+	offset, limit, activeOnly, query := listValues(params)
+	result, err := h.service.ListDepartments(ctx, offset, limit, activeOnly, query)
 	if err != nil {
 		return DepartmentList{}, present(err)
 	}
@@ -84,8 +84,8 @@ func (h *Handler) UpdateDepartment(ctx context.Context, request UpdateDepartment
 }
 
 func (h *Handler) ListPositions(ctx context.Context, params ListParams) (PositionList, error) {
-	offset, limit, activeOnly := listValues(params)
-	result, err := h.service.ListPositions(ctx, offset, limit, activeOnly)
+	offset, limit, activeOnly, query := listValues(params)
+	result, err := h.service.ListPositions(ctx, offset, limit, activeOnly, query)
 	if err != nil {
 		return PositionList{}, present(err)
 	}
@@ -121,7 +121,7 @@ func (h *Handler) GetAssignment(ctx context.Context, accountID string) (Assignme
 }
 
 func (h *Handler) ReplaceAssignment(ctx context.Context, request ReplaceAssignmentRequest) (Assignment, error) {
-	result, err := h.service.ReplaceAssignment(ctx, request.AccountID, request.DepartmentID, request.PositionIDs)
+	result, err := h.service.ReplaceAssignment(ctx, request.AccountID, request.ExpectedVersion, request.DepartmentID, request.PositionIDs)
 	if err != nil {
 		return Assignment{}, present(err)
 	}
@@ -141,8 +141,8 @@ func present(err error) error {
 	return &httpx.StatusError{StatusCode: status, Code: code, Message: code, Err: err}
 }
 
-func listValues(params ListParams) (int, int, bool) {
-	offset, limit, activeOnly := 0, 0, false
+func listValues(params ListParams) (int, int, bool, string) {
+	offset, limit, activeOnly, query := 0, 0, false, ""
 	if params.Offset != nil {
 		offset = *params.Offset
 	}
@@ -152,7 +152,10 @@ func listValues(params ListParams) (int, int, bool) {
 	if params.ActiveOnly != nil {
 		activeOnly = *params.ActiveOnly
 	}
-	return offset, limit, activeOnly
+	if params.Query != nil {
+		query = *params.Query
+	}
+	return offset, limit, activeOnly, query
 }
 func departmentDTO(value model.Department) Department {
 	return Department{ID: value.ID, Code: value.Code, Name: value.Name, ParentID: value.ParentID, Active: value.Active, Archived: value.Archived, Version: value.Version, CreatedAt: value.CreatedAt, UpdatedAt: value.UpdatedAt}
@@ -161,7 +164,7 @@ func positionDTO(value model.Position) Position {
 	return Position{ID: value.ID, Code: value.Code, Name: value.Name, Active: value.Active, Archived: value.Archived, Version: value.Version, CreatedAt: value.CreatedAt, UpdatedAt: value.UpdatedAt}
 }
 func assignmentDTO(value model.Assignment) Assignment {
-	return Assignment{AccountID: value.AccountID, DepartmentID: value.DepartmentID, PositionIDs: value.PositionIDs}
+	return Assignment{AccountID: value.AccountID, DepartmentID: value.DepartmentID, PositionIDs: value.PositionIDs, Version: value.Version}
 }
 func treeDTO(values []service.DepartmentNode) []DepartmentNode {
 	result := make([]DepartmentNode, len(values))

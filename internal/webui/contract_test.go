@@ -75,6 +75,27 @@ func TestBuildCatalogRejectsBrokenReferencesAndCycles(t *testing.T) {
 	}
 }
 
+func TestBuildCatalogAllowsCrossOwnerParentReferencesAndRejectsUnknownParent(t *testing.T) {
+	// 070：ParentID 可引用其他模块的 navigation（双向归属）——与声明顺序无关。
+	parent := testBinding("iam", true)
+	parent.Navigation[0].ID = "iam.access"
+	child := testBinding("settings", false)
+	child.Navigation[0].ID = "settings.entry"
+	child.Navigation[0].ParentID = "iam.access"
+	if _, err := BuildCatalog(child, parent); err != nil {
+		t.Fatalf("cross-owner parent reference was rejected: %v", err)
+	}
+	if _, err := BuildCatalog(parent, child); err != nil {
+		t.Fatalf("cross-owner parent reference depends on declaration order: %v", err)
+	}
+
+	unknown := testBinding("settings", false)
+	unknown.Navigation[0].ParentID = "missing.parent"
+	if _, err := BuildCatalog(unknown); err == nil {
+		t.Fatal("unknown parent reference was accepted")
+	}
+}
+
 func TestBuildCatalogRequiresLocaleForWebUIEntries(t *testing.T) {
 	binding := testBinding("ops", true)
 	binding.Locales = nil

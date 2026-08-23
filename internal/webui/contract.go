@@ -224,10 +224,24 @@ type Locale struct {
 	SourcePath string
 }
 
+// HostNavigation 是宿主声明的导航项（owner=host，070 双向归属）：
+// 用于平台分组/宿主平台页收纳业务模块页面；任何模块的 Navigation 都可引用它作为父级，
+// 它也可引用任何已声明 navigation 作为父级（宿主导航分组可编排任意页面）。
+type HostNavigation struct {
+	ID             string
+	RouteID        string
+	TitleMessageID string
+	IconID         string
+	Order          int
+	ParentID       string
+}
+
 // Catalog 是通过校验并冻结后的全部模块声明。
 type Catalog struct {
 	Bindings []Binding
-	Revision string
+	// HostNavigation 是宿主声明的导航项（070），随 manifest 投影。
+	HostNavigation []HostNavigation
+	Revision       string
 }
 
 // NavigationPolicy 是 Navigation Service 可提供的稀疏运行时策略；缺失项沿用静态声明。
@@ -313,25 +327,35 @@ type ManifestMenu struct {
 
 // BuildCatalog 校验并复制模块声明，按稳定顺序计算 SHA-256 revision。
 func BuildCatalog(bindings ...Binding) (Catalog, error) {
+	return BuildCatalogWithHosts(nil, bindings...)
+}
+
+// BuildCatalogWithHosts 与 BuildCatalog 相同，额外接受宿主导航声明（070）。
+func BuildCatalogWithHosts(hosts []HostNavigation, bindings ...Binding) (Catalog, error) {
 	copyBindings := cloneBindings(bindings)
-	if err := validateBindings(copyBindings); err != nil {
+	if err := validateBindings(copyBindings, hosts, false); err != nil {
 		return Catalog{}, err
 	}
 	sort.Slice(copyBindings, func(i, j int) bool { return copyBindings[i].ModuleID < copyBindings[j].ModuleID })
-	canonical, err := json.Marshal(copyBindings)
+	canonicalHosts := append([]HostNavigation(nil), hosts...)
+	sort.Slice(canonicalHosts, func(i, j int) bool { return canonicalHosts[i].ID < canonicalHosts[j].ID })
+	canonical, err := json.Marshal(struct {
+		Bindings []Binding
+		Hosts    []HostNavigation
+	}{Bindings: copyBindings, Hosts: canonicalHosts})
 	if err != nil {
 		return Catalog{}, fmt.Errorf("marshal webui catalog: %w", err)
 	}
 	digest := sha256.Sum256(canonical)
-	return Catalog{Bindings: copyBindings, Revision: hex.EncodeToString(digest[:])}, nil
+	return Catalog{Bindings: copyBindings, HostNavigation: canonicalHosts, Revision: hex.EncodeToString(digest[:])}, nil
 }
 
 // BuildApplicationCatalog 根据显式 registration 生成可部署 Catalog。
 // disabled 模块和 not-implemented route 在投影阶段被完全移除，不会进入生成器或 runtime manifest。
-func BuildApplicationCatalog(registrations []ModuleRegistration, inventory SDKInventory) (Catalog, error) {
+func BuildApplicationCatalog(registrations []ModuleRegistration, inventory SDKInventory, hosts ...HostNavigation) (Catalog, error) {
 	bindings := make([]Binding, 0, len(registrations))
 	for index, registration := range registrations {
-		if err := validateBindings([]Binding{registration.Binding}); err != nil {
+		if err := validateBindings([]Binding{registration.Binding}, hosts, true); err != nil {
 			return Catalog{}, fmt.Errorf("validate webui module registration %d: %w", index, err)
 		}
 		switch registration.Activation {
@@ -353,7 +377,7 @@ func BuildApplicationCatalog(registrations []ModuleRegistration, inventory SDKIn
 		}
 		bindings = append(bindings, projected)
 	}
-	return BuildCatalog(bindings...)
+	return BuildCatalogWithHosts(hosts, bindings...)
 }
 
 // ManifestFor 返回当前主体的安全 manifest；accessLookup 只接收 operation ID。
@@ -454,6 +478,16 @@ func (c Catalog) ManifestForWithNavigation(policy NavigationPolicySnapshot, acce
 	}
 	for _, operationID := range sortedActionOperations(actionAccess) {
 		manifest.ActionPermissions = append(manifest.ActionPermissions, ManifestActionPermission{OperationID: operationID, Access: actionAccess[operationID]})
+	}
+	// 070：宿主导航声明投影（owner=host；落地页可加载才投影，Retain 门禁统一生效）。
+	for _, host := range c.HostNavigation {
+		if !loadableRoutes[host.RouteID] {
+			continue
+		}
+		manifest.Menu = append(manifest.Menu, ManifestMenu{
+			ModuleID: "host", ID: host.ID, ParentID: host.ParentID, RouteID: host.RouteID,
+			TitleMessageID: host.TitleMessageID, IconID: host.IconID, Order: host.Order,
+		})
 	}
 	manifest.Menu = retainMenuWithVisibleParents(manifest.Menu)
 	sort.Slice(manifest.Routes, func(i, j int) bool { return manifest.Routes[i].ID < manifest.Routes[j].ID })
@@ -602,6 +636,10 @@ func BuildNavigationPolicySnapshot(catalog Catalog, overrides ...NavigationPolic
 		for _, item := range binding.Navigation {
 			policies[item.ID] = effectiveNavigationPolicy{NavigationID: item.ID, Enabled: true, ParentID: item.ParentID, Order: item.Order}
 		}
+	}
+	// 070：宿主导航项并入完整策略快照（固定 enabled），供跨 owner 父子引用与菜单投影。
+	for _, host := range catalog.HostNavigation {
+		policies[host.ID] = effectiveNavigationPolicy{NavigationID: host.ID, Enabled: true, ParentID: host.ParentID, Order: host.Order}
 	}
 	seen := make(map[string]struct{}, len(overrides))
 	for index, override := range overrides {
@@ -877,7 +915,7 @@ func validateOwnedSourcePath(ownerRoot, sourcePath string) error {
 	return nil
 }
 
-func validateBindings(bindings []Binding) error {
+func validateBindings(bindings []Binding, hosts []HostNavigation, deferParentCheck bool) error {
 	modules := map[string]struct{}{}
 	entries := map[string]string{}
 	routes := map[string]RouteOwner{}
@@ -980,13 +1018,6 @@ func validateBindings(bindings []Binding) error {
 			}
 			navigation[item.ID] = binding.ModuleID
 		}
-		for _, item := range binding.Navigation {
-			if item.ParentID != "" {
-				if owner, exists := navigation[item.ParentID]; !exists || owner != binding.ModuleID {
-					return fmt.Errorf("webui navigation %q references unknown parent %q", item.ID, item.ParentID)
-				}
-			}
-		}
 		for _, contribution := range bindingZoneContributions(binding) {
 			if err := validateZoneContribution(binding, contribution, entries, zones); err != nil {
 				return err
@@ -1032,7 +1063,45 @@ func validateBindings(bindings []Binding) error {
 			seenRequirements[requirement.ID] = struct{}{}
 		}
 	}
-	return validateNavigationCycles(bindings)
+	// 070：宿主声明的导航项并入导航集合（owner=host）；RouteID 可引用任意已存在 route。
+	// 该校验只在全量阶段执行（BuildApplicationCatalog 的逐模块预检不携带 hosts）。
+	if !deferParentCheck {
+		for _, host := range hosts {
+			if host.ID == "" || host.RouteID == "" || host.TitleMessageID == "" || host.IconID == "" || !ValidIconID(host.IconID) {
+				return fmt.Errorf("webui host navigation %q is incomplete or uses an icon outside the catalog", host.ID)
+			}
+			if _, exists := navigation[host.ID]; exists {
+				return fmt.Errorf("webui host navigation %q is duplicated", host.ID)
+			}
+			if _, exists := routes[host.RouteID]; !exists {
+				return fmt.Errorf("webui host navigation %q references unknown route %q", host.ID, host.RouteID)
+			}
+			navigation[host.ID] = "host"
+		}
+	}
+	// 070：ParentID 可引用任意已声明的 navigation（跨 owner，双向归属）；存在性在全部
+	// 模块声明收集完成后统一校验，避免声明顺序影响；环由 validateNavigationCycles 拒绝。
+	// deferParentCheck 用于 BuildApplicationCatalog 的逐模块预检（跨模块父引用由最终
+	// BuildCatalogWithHosts 全量校验覆盖）。
+	if !deferParentCheck {
+		for _, binding := range bindings {
+			for _, item := range binding.Navigation {
+				if item.ParentID != "" {
+					if _, exists := navigation[item.ParentID]; !exists {
+						return fmt.Errorf("webui navigation %q references unknown parent %q", item.ID, item.ParentID)
+					}
+				}
+			}
+		}
+		for _, host := range hosts {
+			if host.ParentID != "" {
+				if _, exists := navigation[host.ParentID]; !exists {
+					return fmt.Errorf("webui host navigation %q references unknown parent %q", host.ID, host.ParentID)
+				}
+			}
+		}
+	}
+	return validateNavigationCycles(bindings, hosts)
 }
 
 // ValidateOperationReferences rejects operation IDs outside the application inventory.
@@ -1108,13 +1177,18 @@ type RouteOwner struct {
 	Default  bool
 }
 
-func validateNavigationCycles(bindings []Binding) error {
+func validateNavigationCycles(bindings []Binding, hosts []HostNavigation) error {
 	parents := map[string]string{}
 	for _, binding := range bindings {
 		for _, item := range binding.Navigation {
 			if item.ParentID != "" {
 				parents[item.ID] = item.ParentID
 			}
+		}
+	}
+	for _, host := range hosts {
+		if host.ParentID != "" {
+			parents[host.ID] = host.ParentID
 		}
 	}
 	for node := range parents {

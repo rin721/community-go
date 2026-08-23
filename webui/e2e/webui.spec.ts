@@ -32,18 +32,28 @@ function manifest(authenticated: boolean, availability: "available" | "degraded"
       { moduleId: "navigation", id: "navigation.menus", path: "/admin/menus", entryId: "navigation.menus", titleMessageId: "webui.navigation.menus.title", layout: "app", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
       { moduleId: "ops", id: "ops.dashboard", path: "/dashboard", entryId: "ops.dashboard", titleMessageId: "webui.ops.dashboard.title", layout: "app", deliveryState: "implemented", default: true, unauthenticatedDefault: false, access, availability, availableCapabilities: availability === "unavailable" ? [] : ["diagnostics", "metrics"] },
       { moduleId: "ops", id: "ops.capabilities", path: "/dashboard/capabilities", entryId: "ops.capabilities", titleMessageId: "webui.ops.capabilities.title", layout: "app", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability, availableCapabilities: availability === "unavailable" ? [] : ["diagnostics"] },
+      { moduleId: "settings", id: "settings.profile", path: "/settings/profile", entryId: "settings.profile", titleMessageId: "webui.settings.profile.title", layout: "app", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
+      { moduleId: "settings", id: "settings.account", path: "/settings/account", entryId: "settings.account", titleMessageId: "webui.settings.account.title", layout: "app", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
+      { moduleId: "settings", id: "settings.appearance", path: "/settings/appearance", entryId: "settings.appearance", titleMessageId: "webui.settings.appearance.title", layout: "app", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
+      { moduleId: "settings", id: "settings.notifications", path: "/settings/notifications", entryId: "settings.notifications", titleMessageId: "webui.settings.notifications.title", layout: "app", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
     ],
     menu: authenticated && access !== "denied" ? [
       { moduleId: "ops", id: "ops.dashboard", routeId: "ops.dashboard", titleMessageId: "webui.ops.dashboard.title", iconId: "activity", order: 10 },
       { moduleId: "ops", id: "ops.capabilities", parentId: "ops.dashboard", routeId: "ops.capabilities", titleMessageId: "webui.ops.capabilities.title", iconId: "activity", order: 20 },
-      { moduleId: "iam", id: "iam.security", routeId: "iam.security", titleMessageId: "webui.iam.security.title", iconId: "user", order: 30 },
+      { moduleId: "iam", id: "iam.security", parentId: "settings.center", routeId: "iam.security", titleMessageId: "webui.iam.security.title", iconId: "user", order: 30 },
       { moduleId: "iam", id: "iam.accounts", routeId: "iam.accounts", titleMessageId: "webui.iam.accounts.title", iconId: "users", order: 40 },
       { moduleId: "iam", id: "iam.roles", routeId: "iam.roles", titleMessageId: "webui.iam.roles.title", iconId: "shield", order: 50 },
       { moduleId: "iam", id: "iam.permissions", routeId: "iam.permissions", titleMessageId: "webui.iam.permissions.title", iconId: "key", order: 60 },
       { moduleId: "organization", id: "organization.departments", routeId: "organization.departments", titleMessageId: "webui.organization.departments.title", iconId: "building", order: 70 },
       { moduleId: "organization", id: "organization.positions", routeId: "organization.positions", titleMessageId: "webui.organization.positions.title", iconId: "briefcase", order: 80 },
       { moduleId: "organization", id: "organization.assignments", routeId: "organization.assignments", titleMessageId: "webui.organization.assignments.title", iconId: "users", order: 90 },
-      ...(navigationEnabled ? [{ moduleId: "navigation", id: "navigation.menus", routeId: "navigation.menus", titleMessageId: "webui.navigation.menus.title", iconId: "menu", order: 100 }] : []),
+      { moduleId: "host", id: "host.center", routeId: "settings.profile", titleMessageId: "webui.host.navigation.center.title", iconId: "settings", order: 95 },
+      { moduleId: "settings", id: "settings.center", parentId: "host.center", routeId: "settings.profile", titleMessageId: "webui.settings.center.title", iconId: "settings", order: 96 },
+      { moduleId: "settings", id: "settings.profile", parentId: "settings.center", routeId: "settings.profile", titleMessageId: "webui.settings.profile.title", iconId: "user", order: 97 },
+      { moduleId: "settings", id: "settings.account", parentId: "settings.center", routeId: "settings.account", titleMessageId: "webui.settings.account.title", iconId: "shield", order: 98 },
+      { moduleId: "settings", id: "settings.appearance", parentId: "settings.center", routeId: "settings.appearance", titleMessageId: "webui.settings.appearance.title", iconId: "palette", order: 99 },
+      { moduleId: "settings", id: "settings.notifications", parentId: "settings.center", routeId: "settings.notifications", titleMessageId: "webui.settings.notifications.title", iconId: "bell", order: 100 },
+      ...(navigationEnabled ? [{ moduleId: "navigation", id: "navigation.menus", routeId: "navigation.menus", titleMessageId: "webui.navigation.menus.title", iconId: "menu", order: 110 }] : []),
     ] : [],
   };
 }
@@ -165,7 +175,7 @@ test("059 shell interactions keep sidebar, search, theme and reduced-motion cons
   await page.getByRole("button", { name: "Expand sidebar" }).click();
 
   // 递归子菜单：展开子菜单容器常驻 DOM 并保持可见。
-  await page.getByRole("button", { name: "Expand submenu" }).click();
+  await page.getByRole("button", { name: "Expand submenu" }).first().click();
   await expect(page.getByRole("link", { name: "Capability list" })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("shell-submenu.png"), fullPage: true });
 
@@ -405,4 +415,24 @@ test("069 theme preset drives heroui semantic colors and persists", async ({ pag
   expect(primary.trim()).toContain("188");
   await page.screenshot({ path: testInfo.outputPath("069-preset-cyan.png"), fullPage: true });
   await page.keyboard.press("Escape");
+});
+
+test("070 settings center renders with bidirectional menu hierarchy", async ({ page }, testInfo) => {
+  (page as unknown as { setWebUIState: (state: { authenticated: boolean }) => void }).setWebUIState({ authenticated: true });
+  await page.goto("/settings/profile");
+  await expect(page.getByRole("heading", { name: "Profile", exact: true })).toBeVisible();
+  // 双向归属菜单链：宿主导航 host.center（Management center）→ settings.center（设置）→ 四子页 + iam.security
+  await expect(page.locator(".app-sidebar").getByText("Management center")).toBeVisible();
+  await expect(page.locator(".app-sidebar").getByText("Settings", { exact: true })).toBeVisible();
+  await expect(page.locator(".app-sidebar").getByText("Account security")).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("070-settings-profile.png"), fullPage: true });
+  await page.goto("/settings/account");
+  await expect(page.getByRole("heading", { name: "Account", exact: true })).toBeVisible();
+  await page.goto("/settings/appearance");
+  await expect(page.getByRole("heading", { name: "Appearance", exact: true })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("070-settings-appearance.png"), fullPage: true });
+  await page.goto("/settings/notifications");
+  await expect(page.getByRole("heading", { name: "Notifications", exact: true })).toBeVisible();
+  await expect(page.getByText("These preferences are stored locally.", { exact: false })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("070-settings-notifications.png"), fullPage: true });
 });

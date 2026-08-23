@@ -17,6 +17,7 @@ var IconCatalog = map[string]struct{}{
 	"key":           {},
 	"list":          {},
 	"menu":          {},
+	"palette":       {},
 	"pencil":        {},
 	"plus":          {},
 	"refresh":       {},

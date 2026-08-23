@@ -1,0 +1,27 @@
+/* Settings center module styles; generic layout (toolbar/page-section/form-panel)
+   is provided by the platform (067/069). */
+.settingsModule :global(.settings-summary) {
+  display: grid;
+  gap: 10px;
+  max-width: 560px;
+}
+.settingsModule :global(.settings-summary > div) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.settingsModule :global(.settings-summary dt) {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.settingsModule :global(.settings-summary dd) {
+  margin: 0;
+  color: var(--text);
+  font-size: 13px;
+}
+.settingsModule :global(.settings-stack) {
+  display: grid;
+  gap: 12px;
+  max-width: 520px;
+}

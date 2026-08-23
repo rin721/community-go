@@ -1,5 +1,6 @@
 {
   "webui.host.brand": "Community Go",
+  "webui.host.navigation.center.title": "管理中心",
   "webui.host.brandSymbol": "CG",
   "webui.host.product": "管理后台",
   "webui.host.search": "搜索页面",

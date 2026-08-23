@@ -268,15 +268,23 @@ func TestApplicationWebUICatalogMenuHierarchy(t *testing.T) {
 		{parent: "", child: "ops.dashboard"},
 		{parent: "ops.dashboard", child: "ops.capabilities"},
 		{parent: "", child: "iam.access"},
-		{parent: "iam.access", child: "iam.security"},
 		{parent: "iam.access", child: "iam.accounts"},
 		{parent: "iam.access", child: "iam.roles"},
 		{parent: "iam.access", child: "iam.permissions"},
+		// 070 双向归属：账号安全页挂入 settings 设置中心分组（业务页面 → 设置组下级）。
+		{parent: "settings.center", child: "iam.security"},
 		{parent: "", child: "organization.directory"},
 		{parent: "organization.directory", child: "organization.departments"},
 		{parent: "organization.directory", child: "organization.positions"},
 		{parent: "organization.directory", child: "organization.assignments"},
 		{parent: "", child: "navigation.menus"},
+		// 070：宿主分组 host.center 收纳设置中心组；设置组收纳四子页与 iam.security。
+		{parent: "", child: "host.center"},
+		{parent: "host.center", child: "settings.center"},
+		{parent: "settings.center", child: "settings.profile"},
+		{parent: "settings.center", child: "settings.account"},
+		{parent: "settings.center", child: "settings.appearance"},
+		{parent: "settings.center", child: "settings.notifications"},
 	}
 	for _, edge := range edges {
 		item, ok := byID[edge.child]
@@ -289,8 +297,10 @@ func TestApplicationWebUICatalogMenuHierarchy(t *testing.T) {
 	}
 	// 父节点顺序必须位于子项之前（组头先于组内页面）。
 	for _, group := range []struct{ parent, firstChild string }{
-		{parent: "iam.access", firstChild: "iam.security"},
+		{parent: "iam.access", firstChild: "iam.accounts"},
 		{parent: "organization.directory", firstChild: "organization.departments"},
+		{parent: "host.center", firstChild: "settings.center"},
+		{parent: "settings.center", firstChild: "settings.profile"},
 	} {
 		if byID[group.parent].Order >= byID[group.firstChild].Order {
 			t.Fatalf("group parent %q order %d must precede first child %q order %d",

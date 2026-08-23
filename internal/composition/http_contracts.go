@@ -18,6 +18,7 @@ import (
 	todohttp "github.com/rin721/go-scaffold-template/internal/module/todo/binding/http"
 	todopermission "github.com/rin721/go-scaffold-template/internal/module/todo/binding/permission"
 	permissioncatalog "github.com/rin721/go-scaffold-template/internal/permission"
+	settingswebui "github.com/rin721/go-scaffold-template/internal/module/settings/binding/webui"
 	httptransport "github.com/rin721/go-scaffold-template/internal/transport/http"
 	"github.com/rin721/go-scaffold-template/internal/transport/http/humabinding"
 	webuicontract "github.com/rin721/go-scaffold-template/internal/webui"
@@ -61,6 +62,7 @@ func applicationWebUIModules() []webuicontract.ModuleRegistration {
 		{Binding: navigationwebui.Binding(), Activation: webuicontract.ActivationEnabled},
 		{Binding: opswebui.Binding(), Activation: webuicontract.ActivationEnabled},
 		{Binding: authwebui.Binding(), Activation: webuicontract.ActivationEnabled},
+		{Binding: settingswebui.Binding(), Activation: webuicontract.ActivationEnabled},
 	}
 }
 
@@ -82,6 +84,14 @@ func applicationWebUIAvailability(string) webuicontract.Availability {
 	return webuicontract.Availability{State: webuicontract.AvailabilityAvailable}
 }
 
+// applicationWebUIHostNavigation 是宿主导航声明（070，owner=host）：宿主分组可收纳
+// 任意业务模块组/页面，构成「宿主框架组织业务」的双向归属能力。
+func applicationWebUIHostNavigation() []webuicontract.HostNavigation {
+	return []webuicontract.HostNavigation{
+		{ID: "host.center", RouteID: "settings.profile", TitleMessageID: "webui.host.navigation.center.title", IconID: "settings", Order: 20},
+	}
+}
+
 // applicationWebUICatalog 是 WebUI runtime 与前端生成器共享的唯一声明汇总点。
 func applicationWebUICatalog() (webuicontract.Catalog, error) {
 	blueprint, err := newApplicationBlueprint()
@@ -93,7 +103,7 @@ func applicationWebUICatalog() (webuicontract.Catalog, error) {
 
 func buildApplicationWebUICatalog(definitions []humabinding.Definition, permissions permissioncatalog.Catalog, policies []authmodel.Policy) (webuicontract.Catalog, error) {
 	registrations := applicationWebUIModules()
-	catalog, err := webuicontract.BuildApplicationCatalog(registrations, applicationWebUISDKInventory())
+	catalog, err := webuicontract.BuildApplicationCatalog(registrations, applicationWebUISDKInventory(), applicationWebUIHostNavigation()...)
 	if err != nil {
 		return webuicontract.Catalog{}, err
 	}

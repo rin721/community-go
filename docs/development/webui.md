@@ -211,6 +211,13 @@ PageHeader（eyebrow/title/description/actions；标题用 HeroUI Typography.Hea
 - 布局 token（`--radius-*/--shadow-*`）引用 `--heroui-*` 变量；preset 语义色同步驱动 `--heroui-primary*` 与 `--primary`；暗色走 `<html>.dark`。
 - 遮罩/菜单等 RAC overlay 组件 SSR 输出为空：单测统一走 `webui/src/test-utils.tsx` 的 `renderClient`（jsdom + createRoot + act），e2e 以 role/aria 断言为最终门禁。
 
+## 菜单层级双向归属（070）
+
+- **跨 owner 父引用**：`Navigation.ParentID` 可引用任意已声明 navigation（同模块或其他模块），不再要求同 owner；无环/顺序/图标/落地页可加载门禁复用；`settings.center` 收纳 `iam.security` 为第一实例（业务页面 → 设置组下级）。
+- **宿主导航声明 HostNavigation**：composition 可为宿主声明导航项（owner=host，落地页可为任意已实现 route），宿主分组/平台页可被业务模块页面引用为父级；`host.center`（Management center）收纳 `settings.center` 构成「宿主框架组织业务」的完整双向链。
+- 路由与页面归属不变（落地页 RouteID 必须属于声明者）；菜单树仍由 manifest 投影 + 宿主递归渲染（零改动）。
+- 设置中心（模块 settings）：Profile/Account/Appearance/Notifications 四页 + `settings.center` 菜单；Appearance/Notifications 为前端偏好（localStorage），Account/Profile 复用 IAM 能力（跨模块 HTTP 先例）；通知偏好明确无后端服务。
+
 ## 强制 i18n 契约
 
 WebUI i18n 是所有接入模块必须遵守的规范契约。模块只要贡献页面、菜单或状态，就必须在自身 WebUI Binding 中声明 locale namespace 和资源文件；没有 locale Binding 的模块不得进入生产 registry。locale namespace 的 owner 始终是业务模块，宿主只负责聚合、加载、语言选择、fallback 和缺失资源状态。

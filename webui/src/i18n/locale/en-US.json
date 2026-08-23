@@ -1,5 +1,6 @@
 {
   "webui.host.brand": "Community Go",
+  "webui.host.navigation.center.title": "Management center",
   "webui.host.brandSymbol": "CG",
   "webui.host.product": "Admin Console",
   "webui.host.search": "Search pages",

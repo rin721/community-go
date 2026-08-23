@@ -87,7 +87,7 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/api/v1/organization/departments?*", async (route) => { await route.fulfill({ json: { items: [{ id: "dept-root", code: "engineering", name: "Engineering", active: true, archived: false, version: 1 }], offset: 0, limit: 100, total: 1 } }); });
   await page.route("**/api/v1/organization/departments/tree", async (route) => { await route.fulfill({ json: [{ id: "dept-root", code: "engineering", name: "Engineering", active: true, archived: false, version: 1, children: [{ id: "dept-child", code: "platform", name: "Platform", parentId: "dept-root", active: true, archived: false, version: 1, children: [] }] }] }); });
   await page.route("**/api/v1/organization/positions?*", async (route) => { await route.fulfill({ json: { items: [{ id: "position-manager", code: "manager", name: "Manager", active: true, archived: false, version: 1 }], offset: 0, limit: 100, total: 1 } }); });
-  await page.route("**/api/v1/organization/accounts/user-1/assignment", async (route) => { await route.fulfill({ json: { accountId: "user-1", departmentId: "dept-root", positionIds: ["position-manager"] } }); });
+  await page.route("**/api/v1/organization/accounts/user-1/assignment", async (route) => { await route.fulfill({ json: { accountId: "user-1", departmentId: "dept-root", positionIds: ["position-manager"], version: 1 } }); });
   await page.route("**/api/v1/navigation/menus**", async (route) => {
     if (route.request().method() === "PUT") {
       const body = route.request().postDataJSON() as { enabled: boolean };
@@ -278,7 +278,7 @@ test("organization management pages render tree, position and assignment evidenc
   await expect(page.getByText("Manager", { exact: true })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("organization-positions.png"), fullPage: true });
   await page.goto("/admin/account-organization");
-  await expect(page.getByRole("heading", { name: "Account organization" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Account organization", exact: true })).toBeVisible();
   await expect(page.getByLabel("Primary department")).toHaveValue("dept-root");
   await page.screenshot({ path: testInfo.outputPath("organization-assignment.png"), fullPage: true });
 });
@@ -295,4 +295,59 @@ test("navigation policy refreshes the manifest while keeping the registered rout
   await expect(page.getByRole("heading", { name: "Menus", exact: true, level: 1 })).toBeVisible();
   await expect(page.locator(".app-sidebar").getByText("Menus", { exact: true })).toHaveCount(0);
   await expect(page.locator(".revision code")).toContainText("e2e-navigat");
+});
+
+test("067 experience defaults reserve a stable scrollbar slot and reveal content", async ({ page }, testInfo) => {
+  (page as unknown as { setWebUIState: (state: { authenticated: boolean }) => void }).setWebUIState({ authenticated: true });
+  await page.goto("/admin/accounts");
+  await expect(page.getByRole("heading", { name: "Users" })).toBeVisible();
+  // 派生配置默认：稳定插槽（预留右侧）+ 阻尼平滑滚动开 + 弹入响应开
+  await expect(page.locator("html")).toHaveAttribute("data-experience-scrollbar", "stable");
+  await expect(page.locator("html")).toHaveAttribute("data-experience-smooth-scroll", "true");
+  await expect(page.locator("html")).toHaveAttribute("data-experience-reveal", "true");
+  // scrollbar-gutter 实际生效，Windows 实体滚动条不会挤压布局
+  const gutter = await page.locator(".page-viewport").evaluate((element) => getComputedStyle(element).scrollbarGutter);
+  expect(gutter).toBe("stable");
+  // 新布局骨架：首屏区块卡片本身可见且弹入完成；列表项随滚动进入视口再断言
+  await expect(page.locator(".page-section").first()).toHaveAttribute("data-reveal", "shown");
+  await page.screenshot({ path: testInfo.outputPath("067-accounts-layout.png"), fullPage: true });
+  await page.locator(".page-section").nth(2).scrollIntoViewIfNeeded();
+  await expect(page.locator(".card-grid [data-reveal]").first()).toHaveAttribute("data-reveal", "shown");
+  await page.goto("/dashboard");
+  await expect(page.getByRole("heading", { name: "Runtime status" })).toBeVisible();
+  await expect(page.locator(".stat-card").first()).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("067-dashboard-layout.png"), fullPage: true });
+});
+
+test("067 theme drawer experience panel drives derived configuration", async ({ page }, testInfo) => {
+  (page as unknown as { setWebUIState: (state: { authenticated: boolean }) => void }).setWebUIState({ authenticated: true });
+  await page.goto("/dashboard");
+  await expect(page.getByRole("heading", { name: "Runtime status" })).toBeVisible();
+  await page.getByRole("button", { name: "Theme settings" }).click();
+  const dialog = page.getByRole("dialog", { name: "Theme settings" });
+  await dialog.getByRole("tab", { name: "Experience" }).click();
+  await dialog.getByLabel("Damped smooth scroll").uncheck();
+  await expect(page.locator("html")).toHaveAttribute("data-experience-smooth-scroll", "false");
+  await dialog.getByLabel("Page scrollbar slot").selectOption("overlay");
+  await expect(page.locator("html")).toHaveAttribute("data-experience-scrollbar", "overlay");
+  await dialog.getByLabel("Damped smooth scroll").check();
+  await dialog.getByLabel("Page scrollbar slot").selectOption("stable");
+  await page.screenshot({ path: testInfo.outputPath("067-experience-drawer.png"), fullPage: true });
+  await page.keyboard.press("Escape");
+});
+
+test("067 organization pages never render missing translation placeholders", async ({ page }, testInfo) => {
+  (page as unknown as { setWebUIState: (state: { authenticated: boolean }) => void }).setWebUIState({ authenticated: true });
+  await page.goto("/admin/account-organization");
+  await expect(page.getByRole("heading", { name: "Account organization", exact: true })).toBeVisible();
+  await expect(page.getByText("Translation resource missing")).toHaveCount(0);
+  await expect(page.getByText("assignment version")).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("067-organization-assignment.png"), fullPage: true });
+  await page.goto("/admin/departments");
+  await expect(page.getByRole("heading", { name: "Platform" })).toBeVisible();
+  await expect(page.getByText("Translation resource missing")).toHaveCount(0);
+  await page.screenshot({ path: testInfo.outputPath("067-organization-departments.png"), fullPage: true });
+  await page.goto("/admin/positions");
+  await expect(page.getByText("Manager", { exact: true })).toBeVisible();
+  await expect(page.getByText("Translation resource missing")).toHaveCount(0);
 });

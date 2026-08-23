@@ -1,1 +1,36 @@
-.organizationModule :global(.toolbar){display:flex;gap:10px;align-items:end;margin:18px 0;padding:16px}.organizationModule :global(.toolbar > *){flex:1}.organizationModule :global(.admin-grid){display:grid;gap:12px}.organizationModule :global(.admin-card){display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px}.organizationModule :global(.admin-card h2){margin:0;font-size:15px}.organizationModule :global(.admin-card p){margin:5px 0 0;color:var(--text-secondary);font-size:12px}.organizationModule :global(.admin-meta){display:flex;gap:8px;align-items:center}.organizationModule :global(.assignment-panel){display:grid;gap:18px;margin-top:18px;padding:20px}.organizationModule :global(fieldset){display:flex;flex-wrap:wrap;gap:14px;border:1px solid var(--border);border-radius:8px;padding:14px}.organizationModule :global(fieldset label){display:flex;align-items:center;gap:6px}@media(max-width:720px){.organizationModule :global(.toolbar){display:grid}.organizationModule :global(.admin-card){align-items:flex-start;flex-direction:column}}
+/* 组织模块专属样式；通用布局（toolbar/item-card/page-section/stat-grid 等）由平台
+   webui/src/styles.css 提供，模块不再重复实现（067 布局骨架迁移）。 */
+.organizationModule :global(fieldset) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+}
+.organizationModule :global(fieldset legend) {
+  padding: 0 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.organizationModule :global(fieldset label) {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.organizationModule :global(.permission-row) {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+@media (max-width: 720px) {
+  .organizationModule :global(.toolbar) {
+    display: grid;
+  }
+}

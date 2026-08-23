@@ -1,6 +1,63 @@
-import { useEffect, useState } from "react";
-import { ActionTrigger, PageHeader, Surface } from "@webui/sdk/ui";
+import { useCallback, useEffect, useState } from "react";
+import { ActionTrigger, InlineAlert, PageHeader, PageSection } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { getAssignment, replaceAssignment, listAccounts, listDepartments, listPositions, type Account, type Department, type Position } from "./api";
 import styles from "./organization.module.css";
-export default function AssignmentsPage(){const {t}=useWebUITranslation("webui.organization");const [accounts,setAccounts]=useState<Account[]>([]);const [departments,setDepartments]=useState<Department[]>([]);const [positions,setPositions]=useState<Position[]>([]);const [accountId,setAccountId]=useState("");const [departmentId,setDepartmentId]=useState("");const [positionIds,setPositionIds]=useState<string[]>([]);const [expectedVersion,setExpectedVersion]=useState(0);const [message,setMessage]=useState("");const reloadAssignment=(id:string)=>void getAssignment(id).then((value)=>{setDepartmentId(value.departmentId||"");setPositionIds(value.positionIds);setExpectedVersion(value.version);setMessage("");});useEffect(()=>{void Promise.all([listAccounts(),listDepartments(),listPositions()]).then(([nextAccounts,nextDepartments,nextPositions])=>{setAccounts(nextAccounts);setDepartments(nextDepartments);setPositions(nextPositions);setAccountId(nextAccounts[0]?.id||"");});},[]);useEffect(()=>{if(accountId)reloadAssignment(accountId);},[accountId]);const toggle=(id:string)=>setPositionIds((current)=>current.includes(id)?current.filter((value)=>value!==id):[...current,id]);const save=()=>{if(!accountId)return;void replaceAssignment(accountId,expectedVersion,departmentId,positionIds).then((value)=>{setExpectedVersion(value.version);setMessage(t("webui.organization.assignments.saved"));}).catch(()=>{reloadAssignment(accountId);setMessage(t("webui.organization.assignments.conflict"));});};return <div className={`${styles.organizationModule} module-page`}><PageHeader eyebrow={t("webui.organization.brand")} title={t("webui.organization.assignments.title")} description={t("webui.organization.assignments.description")}/><Surface className="assignment-panel"><label className="form-field"><span>{t("webui.organization.account")}</span><select className="field-input" value={accountId} onChange={(event)=>setAccountId(event.target.value)}>{accounts.map((item)=><option key={item.id} value={item.id}>{item.displayName} (@{item.username})</option>)}</select></label><label className="form-field"><span>{t("webui.organization.department")}</span><select className="field-input" value={departmentId} onChange={(event)=>setDepartmentId(event.target.value)}><option value="">—</option>{departments.filter((item)=>item.active&&!item.archived).map((item)=><option key={item.id} value={item.id}>{item.name}</option>)}</select></label><fieldset><legend>{t("webui.organization.positions.label")}</legend>{positions.filter((item)=>item.active&&!item.archived).map((item)=><label key={item.id} className="permission-row"><input type="checkbox" checked={positionIds.includes(item.id)} onChange={()=>toggle(item.id)}/>{item.name}</label>)}</fieldset>{message&&<p className="admin-meta">{message}</p>}<div className="admin-meta">{t("webui.organization.assignments.revision")}: {expectedVersion}</div><ActionTrigger operationId="organization.assignments.replace" disabled={!accountId} onAction={save}>{t("webui.organization.assignments.save")}</ActionTrigger></Surface></div>}
+
+export default function AssignmentsPage() {
+  const { t } = useWebUITranslation("webui.organization");
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [positions, setPositions] = useState<Position[]>([]);
+  const [accountId, setAccountId] = useState("");
+  const [departmentId, setDepartmentId] = useState("");
+  const [positionIds, setPositionIds] = useState<string[]>([]);
+  const [expectedVersion, setExpectedVersion] = useState(0);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const reloadAssignment = useCallback((id: string) => {
+    void getAssignment(id).then((value) => {
+      setDepartmentId(value.departmentId || "");
+      setPositionIds(value.positionIds);
+      setExpectedVersion(value.version);
+      setMessage("");
+      setError("");
+    }).catch(() => setError(t("webui.organization.error")));
+  }, [t]);
+  useEffect(() => {
+    void Promise.all([listAccounts(), listDepartments(), listPositions()]).then(([nextAccounts, nextDepartments, nextPositions]) => {
+      setAccounts(nextAccounts);
+      setDepartments(nextDepartments);
+      setPositions(nextPositions);
+      setAccountId(nextAccounts[0]?.id || "");
+    }).catch(() => setError(t("webui.organization.error")));
+  }, [t]);
+  useEffect(() => { if (accountId) reloadAssignment(accountId); }, [accountId, reloadAssignment]);
+  const toggle = (id: string) => setPositionIds((current) => current.includes(id) ? current.filter((value) => value !== id) : [...current, id]);
+  const save = () => {
+    if (!accountId) return;
+    void replaceAssignment(accountId, expectedVersion, departmentId, positionIds).then((value) => {
+      setExpectedVersion(value.version);
+      setMessage(t("webui.organization.assignments.saved"));
+    }).catch(() => {
+      reloadAssignment(accountId);
+      setMessage(t("webui.organization.assignments.conflict"));
+    });
+  };
+  return <div className={`${styles.organizationModule} module-page`}>
+    <PageHeader eyebrow={t("webui.organization.brand")} title={t("webui.organization.assignments.title")} description={t("webui.organization.assignments.description")} />
+    <div className="page-sections">
+      <PageSection kicker={t("webui.organization.assignments.panel.kicker")} title={t("webui.organization.assignments.panel.title")}>
+        <form className="form-panel" onSubmit={(event) => { event.preventDefault(); save(); }}>
+          <label className="form-field"><span>{t("webui.organization.account")}</span><select className="field-input" value={accountId} onChange={(event) => setAccountId(event.target.value)}>{accounts.map((item) => <option key={item.id} value={item.id}>{item.displayName} (@{item.username})</option>)}</select></label>
+          <label className="form-field"><span>{t("webui.organization.department")}</span><select className="field-input" value={departmentId} onChange={(event) => setDepartmentId(event.target.value)}><option value="">—</option>{departments.filter((item) => item.active && !item.archived).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+          <fieldset><legend>{t("webui.organization.positions.label")}</legend>{positions.filter((item) => item.active && !item.archived).map((item) => <label key={item.id} className="permission-row"><input type="checkbox" checked={positionIds.includes(item.id)} onChange={() => toggle(item.id)} />{item.name}</label>)}</fieldset>
+          {error && <InlineAlert tone="danger" title={error} />}
+          {message && <p className="page-meta">{message}</p>}
+          <div className="page-meta">{t("webui.organization.assignments.revision")}: {expectedVersion}</div>
+          <ActionTrigger operationId="organization.assignments.replace" disabled={!accountId} onAction={save}>{t("webui.organization.assignments.save")}</ActionTrigger>
+        </form>
+      </PageSection>
+    </div>
+  </div>;
+}

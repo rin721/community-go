@@ -8,32 +8,15 @@
 .opsModule :global(.diagnostic-icon) { position: relative; display: grid; place-items: center; width: 27px; height: 27px; border-radius: 8px; color: var(--primary); background: var(--primary-soft); }
 .opsModule :global(.diagnostic-icon)::before { width: 9px; height: 9px; content: ""; border: 2px solid currentColor; border-radius: 50%; }
 .opsModule :global(.diagnostic-icon)::after { position: absolute; bottom: 6px; width: 13px; height: 2px; content: ""; background: currentColor; }
-.opsModule :global(.diagnostic-group) { margin-top: 22px; }
-.opsModule :global(.diagnostic-group-heading) { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 10px; }
-.opsModule :global(.diagnostic-group-heading h2) { margin: 0; color: var(--text); font-size: 15px; font-weight: 650; }
-.opsModule :global(.diagnostic-group-heading p) { margin: 4px 0 0; color: var(--text-secondary); font-size: 12px; line-height: 1.6; }
 .opsModule :global(.diagnostic-actions) { display: flex; align-items: center; justify-content: flex-end; gap: 5px; flex-wrap: wrap; }
 .opsModule :global(.diagnostic-actions .diagnostic-retry) { min-height: 24px; padding: 0 6px; font-size: 11px; }
 .opsModule :global(.form-error) { color: #dc2626; }
 .opsModule :global(.refresh-icon) { display: inline-block; width: 13px; height: 13px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; }
 .opsModule :global(.icon-spin) { animation: opsSpin .9s linear infinite; }
-.opsModule :global(.ops-summary) { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-bottom: 18px; }
-.opsModule :global(.summary-card) { display: flex; align-items: center; gap: 12px; min-height: 84px; padding: 15px 17px; }
-.opsModule :global(.summary-icon) { position: relative; display: grid; place-items: center; width: 38px; height: 38px; border-radius: 11px; color: var(--primary-strong); background: var(--primary-soft); }
-.opsModule :global(.summary-icon)::before { width: 15px; height: 15px; content: ""; border: 2px solid currentColor; border-radius: 5px; }
-.opsModule :global(.summary-icon-total)::after { position: absolute; top: 12px; right: 8px; width: 9px; height: 2px; content: ""; background: currentColor; box-shadow: 0 5px currentColor; }
-.opsModule :global(.summary-copy) { display: grid; gap: 5px; }
-.opsModule :global(.summary-copy strong) { color: var(--text); font-size: 22px; font-weight: 650; line-height: 1; letter-spacing: -.03em; }
-.opsModule :global(.summary-copy small) { color: var(--text-secondary); font-size: 11px; }
-.opsModule :global(.summary-healthy .summary-icon) { color: #059669; background: #ecfdf5; }
-.opsModule :global(.summary-healthy .summary-icon)::before { border-radius: 50%; }
-.opsModule :global(.summary-attention .summary-icon) { color: #d97706; background: #fffbeb; }
-.opsModule :global(.summary-attention .summary-icon)::before { width: 0; height: 0; border: 0; border-right: 8px solid transparent; border-bottom: 15px solid currentColor; border-left: 8px solid transparent; border-radius: 0; }
 .opsModule :global(.capability-preview) { display: block; max-width: 280px; overflow: hidden; color: var(--text-secondary); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 .opsModule :global(.capability-row-actions) { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
 .opsModule :global(.capability-row-actions .ui-button) { min-height: 27px; padding-inline: 7px; font-size: 11px; }
 .opsModule :global(.capability-detail-result) { max-height: 420px; margin: 0; overflow: auto; color: var(--text-secondary); font: 11px/1.65 ui-monospace, monospace; white-space: pre-wrap; word-break: break-word; }
-.opsModule :global(.ops-overview) { margin-top: 22px; }
 .opsModule :global(.ops-overview-grid) { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
 .opsModule :global(.ops-overview-card) { min-height: 238px; padding: 16px; }
 .opsModule :global(.ops-overview-heading) { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 17px; }
@@ -75,9 +58,6 @@
 
 @media (max-width: 720px) {
   .opsModule :global(.ops-grid) { grid-template-columns: 1fr; gap: 12px; }
-  .opsModule :global(.ops-summary) { grid-template-columns: 1fr; gap: 10px; }
-  .opsModule :global(.summary-card) { min-height: 68px; }
-  .opsModule :global(.summary-copy strong) { font-size: 20px; }
   .opsModule :global(.ops-overview-grid) { grid-template-columns: 1fr; }
   .opsModule :global(.ops-overview-card:last-child) { grid-column: auto; }
   .opsModule :global(.ops-overview-card) { min-height: 0; }
@@ -85,11 +65,10 @@
   .opsModule :global(.ops-metric-grid) { grid-template-columns: 1fr 1fr; }
   .opsModule :global(.ops-metric-tile) { min-height: 82px; padding: 12px; }
   .opsModule :global(.ops-metric-tile strong) { font-size: 20px; }
-  .opsModule :global(.diagnostic-group-heading) { display: grid; gap: 3px; }
   .opsModule :global(.diagnostic-actions) { gap: 2px; }
 }
 
-/* 062 footer-status ·ÖÇø×¢ÈëÏî£º×´Ì¬ pill + ÖØÊÔ¶¯×÷±£³ÖÐÐÄÚ½ô´Õ */
+/* 062 footer-status ï¿½ï¿½ï¿½ï¿½×¢ï¿½ï¿½ï¿½î£º×´Ì¬ pill + ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú½ï¿½ï¿½ */
 .footerStatus { display: inline-flex; align-items: center; gap: var(--space-2); }
 
 :global(.header-zone-action) { min-height: 28px; padding: 0 10px; font-size: 12px; }

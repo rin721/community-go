@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActionTrigger, Button, Field, PageHeader, StatusPill, Surface } from "@webui/sdk/ui";
+import { ActionTrigger, Button, Field, PageHeader, PageSection, RevealList, StatusPill } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { archiveRole, createRole, listPermissions, listRoles, replaceRolePermissions, rolePermissionsView, updateRoleInfo, type PermissionDefinition, type Role } from "./api";
 import styles from "./iam.module.css";
@@ -108,25 +108,30 @@ export default function RolesPage() {
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   return <div className={`${styles.iamModule} module-page`}>
     <PageHeader eyebrow={t("webui.iam.brand")} title={t("webui.iam.roles.title")} description={t("webui.iam.roles.description")} />
-    <Surface className="toolbar"><Field label={t("webui.iam.roles.code")} value={code} onChange={(event) => setCode(event.target.value)} /><Field label={t("webui.iam.roles.name")} value={name} onChange={(event) => setName(event.target.value)} /><ActionTrigger operationId="iam.roles.create" onAction={() => void createRole(code, name, "").then(() => { setCode(""); setName(""); return refresh(); }).catch(() => setMessage(t("webui.iam.error")))}>{t("webui.iam.create")}</ActionTrigger></Surface>
-    <Surface className="management-panel">
-      <label>{t("webui.iam.roles.selected")}<select className="field-input" value={selectedID} onChange={(event) => setSelectedID(event.target.value)}>{items.map((item) => <option key={item.id} value={item.id}>{item.name} ({item.code}){item.archived ? ` · ${t("webui.iam.roles.archived")}` : ""}</option>)}</select></label>
-      {selected?.system
-        ? <p className="admin-note">{t("webui.iam.roles.systemReadonly")}</p>
-        : <div className="permission-matrix">{groups.map((group) => <fieldset key={group.ownerModuleId}><legend>{group.ownerModuleId}</legend>{group.definitions.map((definition) => <label key={definition.key} className="permission-row"><input type="checkbox" checked={selectedKeys.includes(definition.key)} disabled={!selected || selected.archived} onChange={() => toggle(definition.key)} />{definition.key}<span className="permission-description">{t(definition.descriptionMessageId)}</span></label>)}</fieldset>)}</div>}
-      {message && <p className="admin-meta">{message}</p>}
-      <div className="admin-meta">{t("webui.iam.roles.pending")}: +{diff.added} −{diff.removed} · rev {expectedVersion}</div>
-      <ActionTrigger operationId="iam.roles.permissions.replace" disabled={!selected || selected.system || selected.archived || (diff.added === 0 && diff.removed === 0)} onAction={save}>{t("webui.iam.roles.savePermissions")}</ActionTrigger>
-      {selected && !selected.system && !selected.archived && focusedRoleID !== selected.id && <Button variant="secondary" onClick={() => { setFocusedRoleID(selected.id); setRoleName(selected.name); setRoleDescription(selected.description); }}>{t("webui.iam.roles.edit")}</Button>}
-      {focusedRoleID === selected?.id && <><Field label={t("webui.iam.roles.name")} value={roleName} onChange={(event) => setRoleName(event.target.value)} /><Field label={t("webui.iam.roles.description")} value={roleDescription} onChange={(event) => setRoleDescription(event.target.value)} /><ActionTrigger operationId="iam.roles.update" disabled={!roleName.trim()} onAction={edit}>{t("webui.iam.roles.savePermissions")}</ActionTrigger></>}
-      {selected && !selected.system && !selected.archived && <ActionTrigger operationId="iam.roles.archive" variant="danger" onAction={archive}>{t("webui.iam.roles.archive")}</ActionTrigger>}
-    </Surface>
-    <Surface className="toolbar">
-      <Field label={t("webui.iam.roles.filter")} value={query} onChange={(event) => setQuery(event.target.value)} />
-      <Button onClick={applyQuery}>{t("webui.iam.search")}</Button>
-    </Surface>
-    <div className="admin-grid">{items.map((item) => <Surface className="admin-card" key={item.id}><div><h2>{item.name}</h2><p>{item.code}</p></div><StatusPill state={item.active && !item.archived ? "available" : "unavailable"}>{item.system ? t("webui.iam.roles.system") : item.archived ? t("webui.iam.roles.archived") : t("webui.iam.roles.custom")}</StatusPill></Surface>)}</div>
-    <div className="admin-meta">{t("webui.iam.accounts.pagination", { page, total })}</div>
-    <div className="toolbar">{[...Array(pages).keys()].map((index) => <Button key={index} variant={index + 1 === page ? "primary" : "secondary"} onClick={() => { setPage(index + 1); void refresh(index + 1); }}>{index + 1}</Button>)}</div>
+    <div className="page-sections">
+      <PageSection kicker={t("webui.iam.roles.create.kicker")} title={t("webui.iam.roles.create.title")}>
+        <div className="toolbar"><Field label={t("webui.iam.roles.code")} value={code} onChange={(event) => setCode(event.target.value)} /><Field label={t("webui.iam.roles.name")} value={name} onChange={(event) => setName(event.target.value)} /><ActionTrigger operationId="iam.roles.create" onAction={() => void createRole(code, name, "").then(() => { setCode(""); setName(""); return refresh(); }).catch(() => setMessage(t("webui.iam.error")))}>{t("webui.iam.create")}</ActionTrigger></div>
+      </PageSection>
+      <PageSection kicker={t("webui.iam.roles.manage.kicker")} title={t("webui.iam.roles.manage.title")}>
+        <label className="form-field">{t("webui.iam.roles.selected")}<select className="field-input" value={selectedID} onChange={(event) => setSelectedID(event.target.value)}>{items.map((item) => <option key={item.id} value={item.id}>{item.name} ({item.code}){item.archived ? ` · ${t("webui.iam.roles.archived")}` : ""}</option>)}</select></label>
+        {selected?.system
+          ? <p className="admin-note">{t("webui.iam.roles.systemReadonly")}</p>
+          : <div className="permission-matrix">{groups.map((group) => <fieldset key={group.ownerModuleId}><legend>{group.ownerModuleId}</legend>{group.definitions.map((definition) => <label key={definition.key} className="permission-row"><input type="checkbox" checked={selectedKeys.includes(definition.key)} disabled={!selected || selected.archived} onChange={() => toggle(definition.key)} />{definition.key}<span className="permission-description">{t(definition.descriptionMessageId)}</span></label>)}</fieldset>)}</div>}
+        {message && <p className="page-meta">{message}</p>}
+        <div className="page-meta">{t("webui.iam.roles.pending")}: +{diff.added} −{diff.removed} · rev {expectedVersion}</div>
+        <div className="toolbar-actions">
+          <ActionTrigger operationId="iam.roles.permissions.replace" disabled={!selected || selected.system || selected.archived || (diff.added === 0 && diff.removed === 0)} onAction={save}>{t("webui.iam.roles.savePermissions")}</ActionTrigger>
+          {selected && !selected.system && !selected.archived && focusedRoleID !== selected.id && <Button variant="secondary" onClick={() => { setFocusedRoleID(selected.id); setRoleName(selected.name); setRoleDescription(selected.description); }}>{t("webui.iam.roles.edit")}</Button>}
+          {selected && !selected.system && !selected.archived && <ActionTrigger operationId="iam.roles.archive" variant="danger" onAction={archive}>{t("webui.iam.roles.archive")}</ActionTrigger>}
+        </div>
+        {focusedRoleID === selected?.id && <><Field label={t("webui.iam.roles.name")} value={roleName} onChange={(event) => setRoleName(event.target.value)} /><Field label={t("webui.iam.roles.description")} value={roleDescription} onChange={(event) => setRoleDescription(event.target.value)} /><ActionTrigger operationId="iam.roles.update" disabled={!roleName.trim()} onAction={edit}>{t("webui.iam.roles.savePermissions")}</ActionTrigger></>}
+      </PageSection>
+      <PageSection kicker={t("webui.iam.roles.list.kicker")} title={t("webui.iam.roles.list.title")} footer={<><div className="page-meta">{t("webui.iam.accounts.pagination", { page, total })}</div><div className="toolbar-actions">{[...Array(pages).keys()].map((index) => <Button key={index} variant={index + 1 === page ? "primary" : "secondary"} onClick={() => { setPage(index + 1); void refresh(index + 1); }}>{index + 1}</Button>)}</div></>}>
+        <div className="toolbar"><Field label={t("webui.iam.roles.filter")} value={query} onChange={(event) => setQuery(event.target.value)} /><Button onClick={applyQuery}>{t("webui.iam.search")}</Button></div>
+        <RevealList className="card-grid">
+          {items.map((item) => <div className="item-card" key={item.id}><div><h3>{item.name}</h3><p>{item.code}</p></div><StatusPill state={item.active && !item.archived ? "available" : "unavailable"}>{item.system ? t("webui.iam.roles.system") : item.archived ? t("webui.iam.roles.archived") : t("webui.iam.roles.custom")}</StatusPill></div>)}
+        </RevealList>
+      </PageSection>
+    </div>
   </div>;
 }

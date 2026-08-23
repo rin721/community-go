@@ -66,3 +66,10 @@ Linux 使用 `bash scripts/verify-webui.sh`。质量链覆盖生成检查、冻�
 
 - IAM 用户/角色页、Organization 部门/岗位/分配页与 Navigation 菜单页的写操作按钮（创建/启停/重置/改名/归档/保存策略）均经模块 Binding `ActionPermissions` + SDK `ActionTrigger` 接入动作级权限投影：denied 时按钮隐藏或禁用，未声明/未投影的 operation 前端不做呈现限制（服务端授权继续 fail closed）。
 - 账号/角色列表支持关键字过滤与分页；角色权限与账号角色保存遇到 409 时展示 added/removed 差异并重新加载最新版本（不静默丢弃未保存选择）；Organization 分配使用 `expectedVersion` 乐观锁并在冲突时重载。
+
+## 页面布局骨架与滚动/动效体验（067）
+
+- 平台布局骨架原语（`@webui/sdk/ui`）：`PageSection` 区块卡片、`StatGrid`/`StatCard` KPI 统计行、`DataCard` 数据表格卡片、`Reveal`/`RevealList` 弹入响应；通用布局样式（`toolbar`/`card-grid`/`item-card`/`page-meta`/`form-panel`）收编进 `styles.css` public UI 分区，全部业务模块页面已迁移（IAM/Organization/Auth/Navigation/Ops），模块 CSS 只保留专属 selector。
+- 滚动体验运行时（`webui/src/scroll/*`）：`SmoothScrollController` 以项目窄契约封装 `lenis`（唯一新增第三方，R067-002 结论）实现阻尼平滑滚动（`wrapper=.page-viewport`、`content=.page-flow`、触控原生惯性）；`EdgeBand` 边缘阻尼/橡皮筋；`data-snap-x` 磁吸吸附；`data-scroll-hijack="x|y"` 显式滚动场景劫持。页面滚动条默认 `scrollbar-gutter: stable`（稳定插槽、预留右侧）。
+- 派生配置设置：`ThemePreferences.experience`（smoothScroll/damping/edgeDamping/magneticSnap/scrollHijack/reveal/revealRhythm/scrollbar），落到 `<html data-experience-*>` 并由 ThemeDrawer「体验」面板调整；旧主题自动迁移；`data-motion=reduce` 统一降级（销毁 Lenis、停用橡皮筋/劫持、Reveal 立即可见）。
+- 组织模块修复：分配页 `assignments.saved/conflict/revision` 翻译键补全（阻塞「翻译资源缺失」占位）、部门/岗位/分配操作失败反馈与 locale 键一致性用例。

@@ -72,5 +72,6 @@
 - [065 日志与审计体系进阶（业务操作审计）](065-logging-audit-system/README.md)：已确认并实施完成；日志体系已闭环保持现状、审计缺业务操作审计；在 Auth 暴露窄 `OperationAuditWriter` port 并让 IAM/Organization/Navigation 写操作复用同一低敏审计面（`auth_audit_events` + `auth.audit.list` + WebUI），`auth.audit.list` 支持 action/resourceType 过滤，`docs/development/logging.md` 固化操作审计规范；未建第二套审计/日志存储、未推翻 024/R005 Auth 收口决策、未引入外部日志平台。
 
 - [066 账号与权限体系闭环缺口补齐](066-account-permission-gap-closure/README.md)：已确认并实施完成；首批为 IAM 账号生命周期（资料更新、归档）与角色生命周期（资料更新、归档）、WebUI 管理页按钮级权限接入（既有 ActionPermissions/ActionTrigger）、列表过滤分页与 409 差异确认/分配乐观锁，全部落在既有模块边界与机制内、不新增权限键；组织数据权限、角色-菜单绑定、动态菜单、按钮独立权限键列为候选方向（仅记录，不实施）。
+- [067 业务页面布局骨架与滚动/动效体验](067-webui-page-layout-scroll-motion/README.md)：已确认并实施完成；修复组织模块报错（`assignments.*` 翻译键缺失占位 + 操作失败无反馈）；建立 TailAdmin 式平台布局骨架（PageSection/StatGrid/StatCard/DataCard/Reveal 等进入 `@webui/sdk/ui`）并迁移全部业务模块页面；实现滚动/动效运行时（Lenis 窄封装 SmoothScrollController、滚动条稳定插槽、边缘阻尼/橡皮筋、磁吸吸附、显式滚动劫持、弹入响应）与 `ThemePreferences.experience` 派生配置（ThemeDrawer「体验」面板、旧主题迁移、reduced-motion 统一降级）；唯一新增第三方 `lenis`，技术选型 authority 已记录（R067-002）。
 
-下一个任务序号为 `067`。已完成记录只保存历史证据；当前行为必须回到根 [README](../../README.md) 和对应主题文档确认。
+下一个任务序号为 `068`。已完成记录只保存历史证据；当前行为必须回到根 [README](../../README.md) 和对应主题文档确认。

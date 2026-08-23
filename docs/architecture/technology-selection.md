@@ -46,6 +46,7 @@
 | 定时调度 | `gocron/v2` 触发器 + 项目 schedule binding/execution/Redis lease | **保留** | `gocron/v2` 继续只在内部 Adapter；项目契约拥有任务身份、execution、准入、失权和诊断；耐久任务/工作流不是该能力，需按真实需求另评 `Temporal`、`River` 或 `Asynq` |
 | Messaging | 官方 `amqp091-go` + 项目 message contract/binding/consumer lifecycle | **保留，等待真实 RabbitMQ 门禁** | RabbitMQ Adapter 继续隔离 broker 类型；Kafka/NATS 不在没有业务语义时预选 |
 | Observability | OTel provider/exporter 与 Prometheus 保持隔离；手工 HTTP TraceContext/server span/status instrumentation 已删除 | **采用官方 otelhttp，保留项目资源与诊断边界，已实施** | `otelhttp v0.70.0` + OTel v1.45.0 负责 HTTP propagation/semantic conventions/span/status；项目保留 Generation lease、稳定 operation、Prometheus metrics、trace ID bridge、bounded processor 和 exporter lifecycle，并在交给标准 instrumentation 前把 URL 收敛为低基数 route template |
+| WebUI 前端滚动/动效 | 宿主样式 authority 为 `webui/src/styles.css`；059 明确不引入动画库；067 为阻尼平滑滚动引入 `lenis 1.3.x`（MIT），在 `webui/src/scroll/smooth-scroll.ts` 以项目自有窄契约（可注入工厂）封装；弹入响应为自研 IntersectionObserver + CSS transition（`webui/src/motion/`），不引入动画库 | **引入 lenis 作为平滑滚动第三方（067 已实施）；动画库维持不引入** | `lenis` 只允许通过 `SmoothScrollController` 使用，类型不泄漏给模块；`syncTouch=false` 保留触控原生惯性；reduced-motion 或设置关闭时销毁回退原生滚动。弹入响应、边缘阻尼、磁吸吸附与滚动条插槽均为平台功能，由 `data-experience-*` 派生配置驱动（R067-002） |
 
 ## 需要架构解决的问题
 

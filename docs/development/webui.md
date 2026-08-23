@@ -130,6 +130,35 @@ zone 贡献的公共字段：`ID`（全局唯一）、`EntryID`（复用 `Bindin
 
 `iconId` 受控于宿主目录（Go `internal/webui/icons.go` 校验 authority + 前端 `webui/src/icon-catalog.ts` Lucide 映射），两侧一致性由 Go 测试守护；模块 Navigation/zone 只能声明目录内图标，自定义图标 entry 属于后续独立研究。
 
+## 页面布局骨架与滚动/动效体验（067）
+
+067 为全部业务模块页面建立了 TailAdmin 式平台布局骨架，并新增滚动体验运行时与派生配置设置。模块页面使用 `@webui/sdk/ui` 的平台原语，样式 authority 仍为 `webui/src/styles.css`。
+
+### 布局骨架原语（`@webui/sdk/ui`）
+
+| 原语 | 说明 |
+| --- | --- |
+| `PageSection`（区块卡片） | `kicker/title/description/actions` 卡头 + 卡体 + 可选 `footer`；内建弹入响应 |
+| `StatGrid`/`StatCard` | KPI 统计行（图标可选 + 数值 + 标签 + 趋势），`columns` 驱动列数与响应式降列 |
+| `DataCard` | 数据表格卡片：卡头（kicker/title/actions）+ 卡体（DataTable 等）+ 卡脚（Pagination） |
+| `Reveal`/`RevealList` | 视口弹入原语（见下），`RevealList` 按 index 派生 stagger delay |
+| `toolbar`/`card-grid`/`item-card`/`page-meta`/`form-panel` | 平台样式类，替代各模块重复实现的 `admin-grid/admin-card/toolbar` 等 |
+
+迁移规则：通用布局样式只进平台；模块 `*.module.css` 只保留模块专属 selector（ops-*/policy-*/session-*/audit-*/permission-matrix 等）。新增页面优先用上述原语组装，不要复制近似布局。
+
+### 滚动与动效运行时（`webui/src/scroll`、`webui/src/motion`）
+
+- **阻尼平滑滚动**：`SmoothScrollController`（`webui/src/scroll/smooth-scroll.ts`）是 `lenis` 的项目自有窄契约封装（唯一第三方依赖，R067-002 结论）：`wrapper=.page-viewport`、`content=.page-flow`、`syncTouch=false` 保留触控原生惯性；reduced-motion 或派生配置关闭时销毁回退原生滚动。`ScrollExperience`（`webui/src/scroll/ScrollExperience.tsx`）在 AppShell 挂载 panel 模式、BlankLayout 挂载 window 模式。
+- **页面滚动条插槽**：默认 `scrollbar-gutter: stable`（稳定插槽、预留右侧），避免 Windows 实体滚动条出现时挤压布局；派生配置 `scrollbar=overlay` 时切换 `scrollbar-gutter: auto`。
+- **边缘阻尼/橡皮筋**：`EdgeBand` 在滚动容器边界越界时对 `.page-flow` 施加瞬态 `--edge-band-offset` 位移并弹性回弹；纯函数 `computeEdgeBand` 有单测。
+- **磁吸吸附**：声明 `data-snap-x` 的横向滚动区（含 Shell 页签轨 `.workspace-tab-scroll`）启用 CSS `scroll-snap`。
+- **显式滚动场景劫持**：声明 `data-scroll-hijack="x|y"` 的区域把纵向（横向）滚轮输入转换为容器内横向（纵向）滚动；`DataTable.wrapperProps` 可透传该属性（如能力清单/审计表）。`MutationObserver` 跟随路由内容变化重复应用。
+- **弹入响应**：`Reveal`（`webui/src/motion/reveal.tsx`）用 IntersectionObserver + CSS transition 实现 spring 弹入，节奏档位 `calm/balanced/playful` 派生 `--reveal-duration/--reveal-ease/--reveal-offset`，`RevealList` 按 index 派生 `--reveal-delay` stagger；reduced-motion、`experience.reveal=false` 或缺省属性时元素直接可见。
+
+### 派生配置设置（`ThemePreferences.experience`）
+
+`theme.ts` 新增 `experience` 组：`smoothScroll`、`damping`（subtle/standard/relaxed）、`edgeDamping`、`magneticSnap`、`scrollHijack`、`reveal`、`revealRhythm`（calm/balanced/playful）、`scrollbar`（stable/overlay）；默认值为稳定插槽 + 平滑开 + standard + 边缘阻尼开 + 弹入开 + balanced。`applyTheme` 落到 `<html data-experience-*>`，旧 localStorage 主题自动迁移。ThemeDrawer 新增「体验」面板（host locale en-US/zh-CN）。`data-motion=reduce` 统一降级：销毁 Lenis、停用橡皮筋/劫持、Reveal 立即可见。
+
 ## 强制 i18n 契约
 
 WebUI i18n 是所有接入模块必须遵守的规范契约。模块只要贡献页面、菜单或状态，就必须在自身 WebUI Binding 中声明 locale namespace 和资源文件；没有 locale Binding 的模块不得进入生产 registry。locale namespace 的 owner 始终是业务模块，宿主只负责聚合、加载、语言选择、fallback 和缺失资源状态。

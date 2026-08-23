@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Button, Field, PageHeader, StatusPill, Surface } from "@webui/sdk/ui";
+import { Button, Field, PageHeader, PageSection, StatusPill } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { listAuditEvents, type AuditEventView, type AuditFilter } from "./api";
 import styles from "./auth.module.css";
@@ -33,28 +33,35 @@ export default function AuditPage() {
   };
   return <div className={`${styles.authModule} module-page`}>
     <PageHeader eyebrow={t("webui.auth.audit.title")} title={t("webui.auth.audit.title")} description={t("webui.auth.audit.description")} />
-    <Surface className="audit-toolbar">
-      <Field label={t("webui.auth.audit.operation")} value={operation} onChange={(event) => setOperation(event.target.value)} />
-      <Field label={t("webui.auth.audit.action")} value={action} onChange={(event) => setAction(event.target.value)} />
-      <Field label={t("webui.auth.audit.resourceType")} value={resourceType} onChange={(event) => setResourceType(event.target.value)} />
-      <Field label={t("webui.auth.audit.outcome")} value={outcome} onChange={(event) => setOutcome(event.target.value)} />
-      <Button onClick={applyFilter}>{t("webui.auth.audit.refresh")}</Button>
-    </Surface>
-    <Surface className="audit-list">
-      {items.length === 0
-        ? <p className="audit-empty">{t("webui.auth.audit.empty")}</p>
-        : <div className="audit-table-head"><span>{t("webui.auth.audit.occurredAt")}</span><span>{t("webui.auth.audit.operation")}</span><span>{t("webui.auth.audit.action")}</span><span>{t("webui.auth.audit.resourceType")}</span><span>{t("webui.auth.audit.resourceHash")}</span><span>{t("webui.auth.audit.subjectHash")}</span><span>{t("webui.auth.audit.outcome")}</span><span>{t("webui.auth.audit.decision")}</span></div>}
-      {items.map((item, index) => <div className="audit-row" key={`${item.occurredAt}-${index}`}>
-        <span className="audit-mono">{item.occurredAt}</span>
-        <span className="audit-mono">{item.operation}</span>
-        <span className="audit-mono">{item.action}</span>
-        <span>{item.resourceType}</span>
-        <span className="audit-mono">{item.resourceHash}</span>
-        <span className="audit-mono">{item.subjectHash}</span>
-        <span><StatusPill state={outcomeTone(item.outcome)}>{t(`webui.auth.audit.${item.outcome}`)}</StatusPill></span>
-        <span className="audit-mono">{item.decision}</span>
-      </div>)}
-      <div className="audit-meta">total {total}</div>
-    </Surface>
+    <div className="page-sections">
+      <PageSection kicker={t("webui.auth.audit.filter.kicker")} title={t("webui.auth.audit.filter.title")}>
+        <div className="toolbar">
+          <Field label={t("webui.auth.audit.operation")} value={operation} onChange={(event) => setOperation(event.target.value)} />
+          <Field label={t("webui.auth.audit.action")} value={action} onChange={(event) => setAction(event.target.value)} />
+          <Field label={t("webui.auth.audit.resourceType")} value={resourceType} onChange={(event) => setResourceType(event.target.value)} />
+          <Field label={t("webui.auth.audit.outcome")} value={outcome} onChange={(event) => setOutcome(event.target.value)} />
+          <Button onClick={applyFilter}>{t("webui.auth.audit.refresh")}</Button>
+        </div>
+      </PageSection>
+      <PageSection kicker={t("webui.auth.audit.list.kicker")} title={t("webui.auth.audit.list.title")} footer={<div className="page-meta">total {total}</div>}>
+        {items.length === 0
+          ? <p className="audit-empty">{t("webui.auth.audit.empty")}</p>
+          : <>
+              <div className="audit-table-head"><span>{t("webui.auth.audit.occurredAt")}</span><span>{t("webui.auth.audit.operation")}</span><span>{t("webui.auth.audit.action")}</span><span>{t("webui.auth.audit.resourceType")}</span><span>{t("webui.auth.audit.resourceHash")}</span><span>{t("webui.auth.audit.subjectHash")}</span><span>{t("webui.auth.audit.outcome")}</span><span>{t("webui.auth.audit.decision")}</span></div>
+              <div className="audit-scroll" data-scroll-hijack="x">
+                {items.map((item, index) => <div className="audit-row" key={`${item.occurredAt}-${index}`}>
+                  <span className="audit-mono">{item.occurredAt}</span>
+                  <span className="audit-mono">{item.operation}</span>
+                  <span className="audit-mono">{item.action}</span>
+                  <span>{item.resourceType}</span>
+                  <span className="audit-mono">{item.resourceHash}</span>
+                  <span className="audit-mono">{item.subjectHash}</span>
+                  <span><StatusPill state={outcomeTone(item.outcome)}>{t(`webui.auth.audit.${item.outcome}`)}</StatusPill></span>
+                  <span className="audit-mono">{item.decision}</span>
+                </div>)}
+              </div>
+            </>}
+      </PageSection>
+    </div>
   </div>;
 }

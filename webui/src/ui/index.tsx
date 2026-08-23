@@ -1,8 +1,11 @@
-import { useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type HTMLAttributes, type InputHTMLAttributes, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type CSSProperties, type HTMLAttributes, type InputHTMLAttributes, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
 import type { CapabilityState } from "../contracts";
 import { motionDuration } from "../motion";
+import { Reveal } from "../motion/reveal";
 import { useOverlayOpenPhase } from "../components/shell/overlay";
 import { useActionAccess, useZoneContributions, ZoneSlot } from "../sdk/zone";
+export { Reveal, RevealList, revealRhythms, revealStaggerStep } from "../motion/reveal";
+export type { RevealProps, RevealRhythm } from "../motion/reveal";
 
 export function PageHeader({ eyebrow, title, description, actions }: { eyebrow?: string; title: string; description?: string; actions?: ReactNode }) {
   const zoneItems = useZoneContributions("page-header");
@@ -63,9 +66,11 @@ type DataTableProps<Row> = {
   selectionLabel?: string;
   selectedKeys?: ReadonlySet<string>;
   onSelectedKeysChange?: (keys: Set<string>) => void;
+  /** wrapperProps 透传给 .data-table-wrap，供声明 data-* 滚动行为（067 显式滚动劫持）。 */
+  wrapperProps?: HTMLAttributes<HTMLDivElement> & { [key: `data-${string}`]: string | undefined };
 };
 
-export function DataTable<Row>({ columns, rows, ariaLabel, getRowKey = (_row, index) => String(index), loading = false, loadingLabel, emptyState, selectable = false, selectionLabel, selectedKeys, onSelectedKeysChange }: DataTableProps<Row>) {
+export function DataTable<Row>({ columns, rows, ariaLabel, getRowKey = (_row, index) => String(index), loading = false, loadingLabel, emptyState, selectable = false, selectionLabel, selectedKeys, onSelectedKeysChange, wrapperProps }: DataTableProps<Row>) {
   const visibleColumns = columns.filter((column) => column.visible !== false);
   const rowKeys = rows.map(getRowKey);
   const selected = selectedKeys ?? new Set<string>();
@@ -85,7 +90,7 @@ export function DataTable<Row>({ columns, rows, ariaLabel, getRowKey = (_row, in
     onSelectedKeysChange(allSelected ? new Set() : new Set(rowKeys));
   };
   const columnCount = visibleColumns.length + (selectable ? 1 : 0);
-  return <div className="data-table-wrap"><table className="data-table" aria-label={ariaLabel} aria-busy={loading}><thead><tr>{selectable && <th scope="col" className="data-table-selection"><input ref={headerSelectionRef} type="checkbox" checked={allSelected} onChange={toggleAll} aria-checked={partiallySelected ? "mixed" : allSelected} aria-label={selectionLabel} /></th>}{visibleColumns.map((column) => <th scope="col" className={column.className} key={column.id}>{column.header}</th>)}</tr></thead><tbody>{loading && <tr><td colSpan={columnCount}><Skeleton lines={3} label={loadingLabel ?? ""} /></td></tr>}{!loading && rows.length === 0 && <tr><td colSpan={columnCount}>{emptyState}</td></tr>}{!loading && rows.map((row, index) => { const key = getRowKey(row, index); return <tr key={key}>{selectable && <td className="data-table-selection"><input type="checkbox" checked={selected.has(key)} onChange={() => toggleKey(key)} aria-label={selectionLabel} /></td>}{visibleColumns.map((column) => <td className={column.className} key={column.id}>{column.cell(row, index)}</td>)}</tr>; })}</tbody></table></div>;
+  return <div className="data-table-wrap" {...wrapperProps}><table className="data-table" aria-label={ariaLabel} aria-busy={loading}><thead><tr>{selectable && <th scope="col" className="data-table-selection"><input ref={headerSelectionRef} type="checkbox" checked={allSelected} onChange={toggleAll} aria-checked={partiallySelected ? "mixed" : allSelected} aria-label={selectionLabel} /></th>}{visibleColumns.map((column) => <th scope="col" className={column.className} key={column.id}>{column.header}</th>)}</tr></thead><tbody>{loading && <tr><td colSpan={columnCount}><Skeleton lines={3} label={loadingLabel ?? ""} /></td></tr>}{!loading && rows.length === 0 && <tr><td colSpan={columnCount}>{emptyState}</td></tr>}{!loading && rows.map((row, index) => { const key = getRowKey(row, index); return <tr key={key}>{selectable && <td className="data-table-selection"><input type="checkbox" checked={selected.has(key)} onChange={() => toggleKey(key)} aria-label={selectionLabel} /></td>}{visibleColumns.map((column) => <td className={column.className} key={column.id}>{column.cell(row, index)}</td>)}</tr>; })}</tbody></table></div>;
 }
 
 export type PaginationItem = number | "ellipsis-left" | "ellipsis-right";
@@ -280,4 +285,89 @@ export function FormSubmitActions({ submitLabel, resetLabel, submitPending, subm
   className?: string;
 }) {
   return <div className={`form-actions ${className}`.trim()}><Button type="button" variant="secondary" onClick={onReset} disabled={resetDisabled || submitPending}>{resetLabel}</Button><ActionTrigger variant="primary" pending={submitPending} pendingLabel={submitPendingLabel} disabled={submitDisabled} disabledReason={submitDisabledReason} onAction={onSubmit}>{submitLabel}</ActionTrigger></div>;
+}
+
+// ---------------------------------------------------------------------------
+// 067 布局骨架原语：TailAdmin 式「区块卡片 + 统计行 + 数据表格卡片」。
+// 通用布局样式归平台（styles.css public UI 分区），模块不再各自复制；
+// PageSection/StatCard 内建弹入响应（Reveal），reduced-motion 与 experience.reveal
+// 关闭时直接可见（见 ../motion/reveal.tsx）。
+// ---------------------------------------------------------------------------
+
+// PageSectionProps 是区块卡片 props：kicker/title/description/actions 组成卡头，
+// children 进入卡体，footer 为可选卡脚。section 语义由 as 决定（默认 section）。
+export type PageSectionProps = {
+  as?: "section" | "div" | "article";
+  kicker?: ReactNode;
+  title?: ReactNode;
+  description?: ReactNode;
+  actions?: ReactNode;
+  footer?: ReactNode;
+  rhythm?: "calm" | "balanced" | "playful";
+  className?: string;
+  style?: CSSProperties;
+  children?: ReactNode;
+};
+
+export function PageSection({ as: As = "section", kicker, title, description, actions, footer, rhythm = "balanced", className = "", style, children }: PageSectionProps) {
+  return (
+    <Reveal as={As} rhythm={rhythm} className={`page-section ${className}`.trim()} style={style}>
+      {(kicker || title || description || actions) && (
+        <header className="page-section-header">
+          <div className="page-section-heading">
+            {kicker && <span className="section-kicker">{kicker}</span>}
+            {title && <h2 className="section-title">{title}</h2>}
+            {description && <p className="section-description">{description}</p>}
+          </div>
+          {actions && <div className="page-section-actions">{actions}</div>}
+        </header>
+      )}
+      <div className="page-section-body">{children}</div>
+      {footer && <footer className="page-section-footer">{footer}</footer>}
+    </Reveal>
+  );
+}
+
+// StatCardProps 是统计卡 props：icon 可选（任意 ReactNode 或空），value/label 必填，
+// trend 为可选趋势（pill/文本），tone 影响语义配色。
+export type StatCardProps = {
+  icon?: ReactNode;
+  value: ReactNode;
+  label: ReactNode;
+  trend?: ReactNode;
+  tone?: "default" | "positive" | "attention";
+  rhythm?: "calm" | "balanced" | "playful";
+  className?: string;
+};
+
+export function StatCard({ icon, value, label, trend, tone = "default", rhythm = "balanced", className = "" }: StatCardProps) {
+  return (
+    <Reveal as="div" rhythm={rhythm} className={`stat-card ${tone !== "default" ? `stat-tone-${tone}` : ""} ${className}`.trim()}>
+      {icon && <span className="stat-icon" aria-hidden="true">{icon}</span>}
+      <span className="stat-copy">
+        <strong className="stat-value">{value}</strong>
+        <small className="stat-label">{label}</small>
+      </span>
+      {trend && <span className="stat-trend">{trend}</span>}
+    </Reveal>
+  );
+}
+
+// StatGrid 是统计卡行容器；columns 驱动列数与响应式降列。
+export function StatGrid({ columns = 4, className = "", children }: { columns?: number; className?: string; children?: ReactNode }) {
+  return <div className={`stat-grid ${className}`.trim()} style={{ "--stat-columns": columns } as CSSProperties} data-stat-columns={columns}>{children}</div>;
+}
+
+// DataCard 是数据表格卡片：卡头（kicker/title/actions）+ 卡体（DataTable 等）+ 可选卡脚（分页）。
+export function DataCard({ kicker, title, description, actions, footer, className = "", children }: { kicker?: ReactNode; title?: ReactNode; description?: ReactNode; actions?: ReactNode; footer?: ReactNode; className?: string; children?: ReactNode }) {
+  return (
+    <section className={`data-card ${className}`.trim()}>
+      <Reveal as="div" className="data-card-heading" rhythm="balanced">
+        {(kicker || title || description) && <div className="data-card-copy">{kicker && <span className="section-kicker">{kicker}</span>}{title && <h2 className="section-title">{title}</h2>}{description && <p className="section-description">{description}</p>}</div>}
+        {actions && <div className="data-card-actions">{actions}</div>}
+      </Reveal>
+      <div className="data-card-body">{children}</div>
+      {footer && <footer className="data-card-footer">{footer}</footer>}
+    </section>
+  );
 }

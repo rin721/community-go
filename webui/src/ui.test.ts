@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { CapabilityBanner, ConfirmDialog, DataTable, DataToolbar, Drawer, EmptyState, FilterPanel, Pagination, Toast, createPaginationItems, getDataTableSelectionState } from "./ui";
+import { CapabilityBanner, ConfirmDialog, DataCard, DataTable, DataToolbar, Drawer, EmptyState, FilterPanel, PageSection, Pagination, StatCard, StatGrid, Toast, createPaginationItems, getDataTableSelectionState } from "./ui";
 
 describe("公共管理 UI 模式", () => {
   it("renders a selectable data table with an empty state", () => {
@@ -95,5 +95,39 @@ describe("公共管理 UI 模式", () => {
     expect(markup).toContain('aria-hidden="true"');
     expect(markup).toContain('disabled=""');
     expect(markup).toContain('inert=""');
+  });
+
+  it("renders the TailAdmin-style page section skeleton with header and body", () => {
+    const markup = renderToStaticMarkup(createElement(PageSection, { kicker: "Directory", title: "Departments", description: "Bounded hierarchy", actions: createElement("button", { type: "button" }, "Create"), children: createElement("p", null, "body") }));
+
+    expect(markup).toContain('class="page-section');
+    expect(markup).toContain("page-section-header");
+    expect(markup).toContain("page-section-body");
+    expect(markup).toContain("section-kicker");
+    expect(markup).toContain("section-title");
+    expect(markup).toContain('data-reveal-rhythm');
+  });
+
+  it("renders stat cards inside a responsive stat grid", () => {
+    const markup = renderToStaticMarkup(createElement(StatGrid, { columns: 3 }, createElement(StatCard, { value: "3", label: "Core probes", tone: "attention" }), createElement(StatCard, { value: "10", label: "Total" })));
+
+    expect(markup).toContain('class="stat-grid');
+    expect(markup).toContain('data-stat-columns="3"');
+    expect(markup).toContain("stat-tone-attention");
+    expect(markup).toContain("stat-value");
+  });
+
+  it("renders a data card with header actions and footer", () => {
+    const markup = renderToStaticMarkup(createElement(DataCard, { kicker: "List", title: "Capabilities", actions: createElement("button", { type: "button" }, "Reset"), footer: createElement("span", null, "pagination"), children: createElement("span", null, "table") }));
+
+    expect(markup).toContain("data-card-heading");
+    expect(markup).toContain("data-card-body");
+    expect(markup).toContain("data-card-footer");
+    expect(markup).toContain("Reset");
+  });
+
+  it("forwards data-scroll-hijack to the data table wrapper for declared hijacking", () => {
+    const markup = renderToStaticMarkup(createElement(DataTable<{ name: string }>, { columns: [{ id: "name", header: "Name", cell: (row) => row.name }], rows: [{ name: "a" }], ariaLabel: "Records", wrapperProps: { "data-scroll-hijack": "x" } }));
+    expect(markup).toContain('data-scroll-hijack="x"');
   });
 });

@@ -3,11 +3,73 @@ import { useCallback, useEffect, useState } from "react";
 export type ThemeMode = "system" | "light" | "dark";
 export type ThemePreset = "blue" | "cyan" | "green" | "violet" | "orange";
 export type ContentDensity = "comfortable" | "compact";
+export type ScrollbarStrategy = "stable" | "overlay";
+export type DampingTier = "subtle" | "standard" | "relaxed";
+export type RevealRhythm = "calm" | "balanced" | "playful";
 export type ThemeLayoutPreferences = { showBreadcrumb: boolean; showTabs: boolean; showFooter: boolean; sidebarCollapsed: boolean };
-export type ThemePreferences = { mode: ThemeMode; preset: ThemePreset; density: ContentDensity; layout: ThemeLayoutPreferences; reduceMotion: boolean };
+
+// ThemeExperience 是 067 滚动/动效体验的派生配置组：全部项只影响浏览器呈现层，
+// 由 applyTheme 落到 <html data-experience-*>，样式与运行时统一消费。
+export type ThemeExperience = {
+  smoothScroll: boolean;
+  damping: DampingTier;
+  edgeDamping: boolean;
+  magneticSnap: boolean;
+  scrollHijack: boolean;
+  reveal: boolean;
+  revealRhythm: RevealRhythm;
+  scrollbar: ScrollbarStrategy;
+};
+
+export type ThemePreferences = {
+  mode: ThemeMode;
+  preset: ThemePreset;
+  density: ContentDensity;
+  layout: ThemeLayoutPreferences;
+  reduceMotion: boolean;
+  experience: ThemeExperience;
+};
 
 const storageKey = "community-go-webui-theme";
-export const defaultTheme: ThemePreferences = { mode: "system", preset: "blue", density: "comfortable", layout: { showBreadcrumb: true, showTabs: true, showFooter: true, sidebarCollapsed: false }, reduceMotion: false };
+
+// defaultExperience 按需求默认：页面滚动条稳定插槽（预留右侧）、阻尼平滑滚动开、
+// standard 阻尼、边缘阻尼开、磁吸开、滚动劫持开、弹入开、balanced 节奏。
+export const defaultExperience: ThemeExperience = {
+  smoothScroll: true,
+  damping: "standard",
+  edgeDamping: true,
+  magneticSnap: true,
+  scrollHijack: true,
+  reveal: true,
+  revealRhythm: "balanced",
+  scrollbar: "stable",
+};
+
+export const defaultTheme: ThemePreferences = {
+  mode: "system",
+  preset: "blue",
+  density: "comfortable",
+  layout: { showBreadcrumb: true, showTabs: true, showFooter: true, sidebarCollapsed: false },
+  reduceMotion: false,
+  experience: defaultExperience,
+};
+
+export const dampingTiers: DampingTier[] = ["subtle", "standard", "relaxed"];
+export const revealRhythmOptions: RevealRhythm[] = ["calm", "balanced", "playful"];
+export const scrollbarStrategies: ScrollbarStrategy[] = ["stable", "overlay"];
+
+function isThemeExperience(value: unknown): value is ThemeExperience {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<ThemeExperience>;
+  return typeof candidate.smoothScroll === "boolean"
+    && dampingTiers.includes(candidate.damping as DampingTier)
+    && typeof candidate.edgeDamping === "boolean"
+    && typeof candidate.magneticSnap === "boolean"
+    && typeof candidate.scrollHijack === "boolean"
+    && typeof candidate.reveal === "boolean"
+    && revealRhythmOptions.includes(candidate.revealRhythm as RevealRhythm)
+    && scrollbarStrategies.includes(candidate.scrollbar as ScrollbarStrategy);
+}
 
 function isThemePreferences(value: unknown): value is ThemePreferences {
   if (!value || typeof value !== "object") return false;
@@ -19,7 +81,8 @@ function isThemePreferences(value: unknown): value is ThemePreferences {
     && typeof candidate.layout?.showBreadcrumb === "boolean"
     && typeof candidate.layout?.showTabs === "boolean"
     && typeof candidate.layout?.showFooter === "boolean"
-    && typeof candidate.layout?.sidebarCollapsed === "boolean";
+    && typeof candidate.layout?.sidebarCollapsed === "boolean"
+    && isThemeExperience(candidate.experience);
 }
 
 function isLegacyThemePreferences(value: unknown): value is Pick<ThemePreferences, "mode" | "preset" | "density"> {
@@ -30,7 +93,9 @@ function isLegacyThemePreferences(value: unknown): value is Pick<ThemePreference
     && ["comfortable", "compact"].includes(candidate.density ?? "");
 }
 
-function readTheme(): ThemePreferences {
+// readTheme 读取并校验本地主题：完整结构直接使用；旧结构（无 experience）迁移补齐
+// 默认体验配置；其余情况回退默认主题，保证派生配置始终有确定语义。
+export function readTheme(): ThemePreferences {
   try {
     const value: unknown = JSON.parse(localStorage.getItem(storageKey) ?? "null");
     if (isThemePreferences(value)) return value;
@@ -50,13 +115,22 @@ export function effectiveReduceMotion(reduceMotion: boolean, matchMedia?: (query
   return Boolean(matchMedia?.("(prefers-reduced-motion: reduce)").matches);
 }
 
-function applyTheme(theme: ThemePreferences) {
+export function applyTheme(theme: ThemePreferences) {
   const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
   document.documentElement.dataset.colorScheme = theme.mode === "system" ? (prefersDark ? "dark" : "light") : theme.mode;
   document.documentElement.dataset.themePreset = theme.preset;
   document.documentElement.dataset.density = theme.density;
   document.documentElement.dataset.motion = effectiveReduceMotion(theme.reduceMotion) ? "reduce" : "full";
   document.documentElement.style.colorScheme = document.documentElement.dataset.colorScheme;
+  const dataset = document.documentElement.dataset;
+  dataset.experienceSmoothScroll = String(theme.experience.smoothScroll);
+  dataset.experienceDamping = theme.experience.damping;
+  dataset.experienceEdgeDamping = String(theme.experience.edgeDamping);
+  dataset.experienceMagneticSnap = String(theme.experience.magneticSnap);
+  dataset.experienceScrollHijack = String(theme.experience.scrollHijack);
+  dataset.experienceReveal = String(theme.experience.reveal);
+  dataset.experienceRevealRhythm = theme.experience.revealRhythm;
+  dataset.experienceScrollbar = theme.experience.scrollbar;
 }
 
 export function useThemePreferences() {

@@ -73,6 +73,25 @@
   /* desktop 用一个当前值同时驱动 Sidebar inline-size 与 workspace offset */
   --shell-sidebar-current: var(--shell-sidebar-expanded);
 
+  /* 067 布局骨架 token：区块卡片/统计行/表格卡片的通用间距与列基准 */
+  --section-gap: 20px;
+  --stat-gap: 14px;
+  --stat-columns: 4;
+
+  /* 067 弹入响应 token：节奏由 data-reveal-rhythm 派生，Reveal 组件内联覆盖 */
+  --reveal-duration: 380ms;
+  --reveal-ease: var(--ease-emphasized);
+  --reveal-offset: 22px;
+  --reveal-delay: 0ms;
+  --reveal-stagger: 70ms;
+
+  /* 067 边缘阻尼/橡皮筋 token：边界瞬态位移上限与回弹时长 */
+  --edge-band-max: 16px;
+  --edge-band-duration: 420ms;
+
+  /* 067 页面滚动条插槽：stable 档预留宽度参考（scrollbar-gutter 实际生效） */
+  --scrollbar-slot: 15px;
+
   /* z-index 层级 */
   --z-mobile-backdrop: 19;
   --z-sidebar: 20;
@@ -1036,6 +1055,19 @@ kbd {
 .theme-switch-row:last-child {
   border-bottom: 0;
 }
+.theme-select {
+  min-height: 30px;
+  padding: 0 8px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  outline: 0;
+}
+.theme-select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 14%, transparent);
+}
 .theme-switch-row input {
   position: relative;
   width: 36px;
@@ -1761,6 +1793,259 @@ textarea.field-input {
 }
 
 /* --------------------------------------------------------------------------
+   5.1 067 布局骨架原语：TailAdmin 式区块卡/统计行/表格卡/工具行。
+   通用布局归平台，业务模块不再复制 toolbar/admin-grid 等近似样式。
+   -------------------------------------------------------------------------- */
+/* 页面主内容纵向栈：区块卡/表格卡之间的统一间距 */
+.page-sections {
+  display: grid;
+  gap: var(--section-gap);
+}
+
+/* 工具行：表单过滤/动作的横向布局（替代各模块重复实现的 toolbar）；
+   放在 PageSection/DataCard 卡体内，surface 由卡片提供，本规则只负责行内排布 */
+.toolbar {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.toolbar > * {
+  flex: 1 1 160px;
+}
+.toolbar > .ui-button,
+.toolbar > .toolbar-actions {
+  flex: 0 0 auto;
+}
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+/* 页元信息行：版本/汇总等辅助说明 */
+.page-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+/* 区块卡片：卡头（kicker/title/description/actions）+ 卡体 + 可选卡脚 */
+.page-section {
+  display: grid;
+  gap: 0;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+}
+.page-section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: 16px 18px 0;
+}
+.page-section-heading {
+  min-width: 0;
+}
+.section-kicker {
+  display: block;
+  margin: 0 0 4px;
+  color: var(--primary);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+.section-title {
+  margin: 0;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+.section-description {
+  max-width: 640px;
+  margin: 5px 0 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.page-section-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.page-section-body {
+  display: grid;
+  gap: 14px;
+  padding: 16px 18px 18px;
+}
+.page-section-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: 12px 18px;
+  border-top: 1px solid var(--border);
+}
+
+/* 统计卡行：KPI 卡（图标 + 数值 + 标签 + 趋势） */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--stat-columns), minmax(0, 1fr));
+  gap: var(--stat-gap);
+  margin-bottom: var(--section-gap);
+}
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-height: 84px;
+  padding: 15px 17px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+}
+.stat-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  color: var(--primary-strong);
+  background: var(--primary-soft);
+}
+.stat-icon svg {
+  width: 19px;
+  height: 19px;
+}
+.stat-copy {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+.stat-value {
+  color: var(--text);
+  font-size: 22px;
+  font-weight: 650;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.stat-label {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+.stat-trend {
+  margin-left: auto;
+  padding: 3px 8px;
+  color: #059669;
+  background: #ecfdf5;
+  border-radius: var(--radius-pill);
+  font-size: 10px;
+  white-space: nowrap;
+}
+.stat-card.stat-tone-positive .stat-icon {
+  color: #059669;
+  background: #ecfdf5;
+}
+.stat-card.stat-tone-attention .stat-icon {
+  color: #d97706;
+  background: #fffbeb;
+}
+.stat-card.stat-tone-attention .stat-trend {
+  color: #d97706;
+  background: #fffbeb;
+}
+
+/* 数据表格卡片：卡头 + 卡体（DataTable 等）+ 卡脚（分页） */
+.data-card {
+  display: grid;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+}
+.data-card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: 16px 18px 0;
+}
+.data-card-copy {
+  min-width: 0;
+}
+.data-card-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 0 0 auto;
+}
+.data-card-body {
+  padding: 12px 18px 2px;
+}
+.data-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: 10px 18px 16px;
+}
+
+/* 名录卡网格与条目卡（替代各模块 admin-grid/admin-card） */
+.card-grid {
+  display: grid;
+  gap: 12px;
+}
+.item-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+.item-card h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+}
+.item-card p {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.item-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+/* 表单面板：区块卡内的表单布局 */
+.form-panel {
+  display: grid;
+  gap: 14px;
+}
+
+/* --------------------------------------------------------------------------
    6. loading / motion
    -------------------------------------------------------------------------- */
 /* visually-hidden：仅供辅助技术读取的低敏 label，不影响几何布局 */
@@ -2089,6 +2374,102 @@ textarea.field-input {
   }
   .confirm-dialog-footer .ui-button {
     width: 100%;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   7.1 067 滚动体验与弹入响应运行时
+   由 ThemePreferences.experience 派生配置（data-experience-*）与 data-motion 统一驱动：
+   - 页面滚动条插槽（默认 stable 预留右侧，避免 Windows 实体滚动条挤压布局）；
+   - Lenis 阻尼平滑滚动（.page-viewport 作为 wrapper，.page-flow 作为 content）；
+   - 边缘阻尼/橡皮筋（.page-flow 瞬态位移 + 弹性回弹）；
+   - 磁吸吸附（.snap-x 声明横向滚动区）；
+   - 显式滚动场景劫持（data-scroll-hijack="x" 把纵向滚轮转为横向滚动）；
+   - 弹入响应（data-reveal 状态机 + --reveal-* token）。
+   -------------------------------------------------------------------------- */
+
+/* 页面滚动条插槽：stable = scrollbar-gutter 预留；overlay = 交给滚动条自身 */
+[data-experience-scrollbar="stable"] .page-viewport,
+[data-experience-scrollbar="stable"] html {
+  scrollbar-gutter: stable;
+}
+[data-experience-scrollbar="overlay"] .page-viewport,
+[data-experience-scrollbar="overlay"] html {
+  scrollbar-gutter: auto;
+}
+
+/* Lenis 平滑滚动：wrapper/content 语义 + 关闭 transform 干扰 + 内层 prevent 兜底 */
+.page-viewport.lenis,
+.page-viewport.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.page-viewport.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+/* 页面流容器：Lenis content + 边缘阻尼位移目标 */
+.page-flow {
+  min-height: 100%;
+  transform: translateY(var(--edge-band-offset, 0px));
+  transition: transform var(--edge-band-duration) var(--ease-emphasized);
+}
+.page-flow.edge-band-active {
+  transition: none;
+}
+
+/* 磁吸吸附：声明 data-snap-x 的横向滚动区启用 proximity snap */
+.snap-x {
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: 2px;
+}
+.snap-x > * {
+  scroll-snap-align: start;
+}
+[data-scroll-hijack] {
+  overscroll-behavior-x: contain;
+}
+
+/* 弹入响应：hidden 隐藏态 -> shown 可见态，节奏由 --reveal-* token 驱动 */
+:where([data-reveal]) {
+  opacity: 1;
+  transform: none;
+}
+[data-reveal] {
+  transition-property: opacity, transform;
+  transition-duration: var(--reveal-duration);
+  transition-timing-function: var(--reveal-ease);
+  transition-delay: var(--reveal-delay);
+}
+[data-reveal="hidden"] {
+  opacity: 0;
+  transform: translateY(var(--reveal-offset)) scale(0.98);
+}
+.reveal-list-item {
+  min-width: 0;
+}
+
+/* 响应式：统计行 4 -> 2 -> 1 列；区块卡头移动端纵向 */
+@media (max-width: 1050px) {
+  .stat-grid[data-stat-columns="4"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 720px) {
+  .stat-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .stat-card {
+    min-height: 66px;
+  }
+  .page-section-header,
+  .data-card-heading {
+    display: grid;
+    gap: var(--space-2);
+  }
+  .page-section-actions,
+  .data-card-actions {
+    justify-content: flex-start;
   }
 }
 

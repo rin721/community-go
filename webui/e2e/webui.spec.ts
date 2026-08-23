@@ -279,7 +279,8 @@ test("organization management pages render tree, position and assignment evidenc
   await page.screenshot({ path: testInfo.outputPath("organization-positions.png"), fullPage: true });
   await page.goto("/admin/account-organization");
   await expect(page.getByRole("heading", { name: "Account organization", exact: true })).toBeVisible();
-  await expect(page.getByLabel("Primary department")).toHaveValue("dept-root");
+  // 068：主部门选择为 HeroUI Select（触发按钮 + option 列表），断言触发值。
+  await expect(page.getByRole("button", { name: "Primary department" })).toContainText("Engineering");
   await page.screenshot({ path: testInfo.outputPath("organization-assignment.png"), fullPage: true });
 });
 
@@ -328,10 +329,12 @@ test("067 theme drawer experience panel drives derived configuration", async ({ 
   await dialog.getByRole("tab", { name: "Experience" }).click();
   await dialog.getByLabel("Damped smooth scroll").uncheck();
   await expect(page.locator("html")).toHaveAttribute("data-experience-smooth-scroll", "false");
-  await dialog.getByLabel("Page scrollbar slot").selectOption("overlay");
+  await dialog.getByRole("button", { name: "Page scrollbar slot" }).click();
+  await page.getByRole("option", { name: "Overlay" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-experience-scrollbar", "overlay");
   await dialog.getByLabel("Damped smooth scroll").check();
-  await dialog.getByLabel("Page scrollbar slot").selectOption("stable");
+  await dialog.getByRole("button", { name: "Page scrollbar slot" }).click();
+  await page.getByRole("option", { name: "Stable slot" }).click();
   await page.screenshot({ path: testInfo.outputPath("067-experience-drawer.png"), fullPage: true });
   await page.keyboard.press("Escape");
 });
@@ -350,4 +353,24 @@ test("067 organization pages never render missing translation placeholders", asy
   await page.goto("/admin/positions");
   await expect(page.getByText("Manager", { exact: true })).toBeVisible();
   await expect(page.getByText("Translation resource missing")).toHaveCount(0);
+});
+
+test("068 heroui adoption renders across shell and business pages", async ({ page }, testInfo) => {
+  (page as unknown as { setWebUIState: (state: { authenticated: boolean }) => void }).setWebUIState({ authenticated: true });
+  await page.goto("/admin/accounts");
+  await expect(page.getByRole("heading", { name: "Users" })).toBeVisible();
+  // HeroUI 组件标记：Button（button--primary）与 Card（.card / data-slot="card"）
+  await expect(page.locator(".button--primary").first()).toBeVisible();
+  await expect(page.locator(".card").first()).toBeVisible();
+  // 主题切换联动 HeroUI dark class
+  await page.getByRole("button", { name: "Toggle theme mode" }).click();
+  await expect(page.locator("html")).toHaveClass(/dark/);
+  await page.screenshot({ path: testInfo.outputPath("068-hero-accounts-dark.png"), fullPage: true });
+  await page.goto("/admin/account-organization");
+  await expect(page.getByRole("button", { name: "Account", exact: true }).first()).toBeVisible();
+  // HeroUI Select 触发器与 Card 布局
+  await expect(page.locator(".select__trigger").first()).toBeVisible();
+  await page.getByRole("button", { name: "Toggle theme mode" }).click();
+  await expect(page.locator("html")).not.toHaveClass(/dark/);
+  await page.screenshot({ path: testInfo.outputPath("068-hero-assignment.png"), fullPage: true });
 });

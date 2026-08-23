@@ -117,12 +117,16 @@ export function effectiveReduceMotion(reduceMotion: boolean, matchMedia?: (query
 
 export function applyTheme(theme: ThemePreferences) {
   const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  document.documentElement.dataset.colorScheme = theme.mode === "system" ? (prefersDark ? "dark" : "light") : theme.mode;
-  document.documentElement.dataset.themePreset = theme.preset;
-  document.documentElement.dataset.density = theme.density;
-  document.documentElement.dataset.motion = effectiveReduceMotion(theme.reduceMotion) ? "reduce" : "full";
-  document.documentElement.style.colorScheme = document.documentElement.dataset.colorScheme;
-  const dataset = document.documentElement.dataset;
+  const root = document.documentElement;
+  const colorScheme = theme.mode === "system" ? (prefersDark ? "dark" : "light") : theme.mode;
+  root.dataset.colorScheme = colorScheme;
+  // 068：HeroUI 主题层以 .dark class 切换暗色；与 data-color-scheme 保持同一来源。
+  root.classList.toggle("dark", colorScheme === "dark");
+  root.dataset.themePreset = theme.preset;
+  root.dataset.density = theme.density;
+  root.dataset.motion = effectiveReduceMotion(theme.reduceMotion) ? "reduce" : "full";
+  root.style.colorScheme = colorScheme;
+  const dataset = root.dataset;
   dataset.experienceSmoothScroll = String(theme.experience.smoothScroll);
   dataset.experienceDamping = theme.experience.damping;
   dataset.experienceEdgeDamping = String(theme.experience.edgeDamping);

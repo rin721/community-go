@@ -1,6 +1,7 @@
 import { RefreshCw, X } from "lucide-react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import type { ManifestRoute } from "@webui/sdk/runtime";
+import { IconButton } from "@webui/sdk/ui";
 import { translateMessage } from "../../i18n";
 import { ZoneItems } from "../../zone/ZoneItems";
 
@@ -37,5 +38,5 @@ export function WorkspaceTabs({ routes, currentRouteID, panelLabel, onNavigate, 
     const active = route.id === currentRouteID;
     const closable = isWorkspaceTabClosable(route);
     return <div className={active ? "workspace-tab active" : "workspace-tab"} key={route.id}><button id={workspaceTabID(route.id)} type="button" role="tab" tabIndex={active ? 0 : -1} aria-selected={active} aria-controls="webui-workspace-panel" className="workspace-tab-trigger" onClick={() => onNavigate(route.path)} onKeyDown={(event) => onKeyDown(event, index)}><span className="tab-dot" />{translateMessage(route.titleMessageId)}</button>{closable && <button type="button" className="tab-close" onClick={() => onCloseTab(route)} aria-label={translateMessage("webui.host.tabs.close")}><X size={13} /></button>}</div>;
-  })}</div><div className="workspace-tab-actions"><button type="button" className="icon-button" onClick={onRefresh} aria-label={translateMessage("webui.host.tabs.refresh")} title={translateMessage("webui.host.tabs.refresh")}><RefreshCw size={16} /></button><ZoneItems zone="workspace-tabs" /></div></div>;
+  })}</div><div className="workspace-tab-actions"><IconButton label={translateMessage("webui.host.tabs.refresh")} title={translateMessage("webui.host.tabs.refresh")} onClick={onRefresh}><RefreshCw size={16} /></IconButton><ZoneItems zone="workspace-tabs" /></div></div>;
 }

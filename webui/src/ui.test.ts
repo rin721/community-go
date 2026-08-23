@@ -68,13 +68,11 @@ describe("公共管理 UI 模式", () => {
     expect(markup).toContain('inert=""');
   });
 
-  it("keeps toast feedback controlled by module-provided i18n labels", () => {
+  it("keeps toast feedback through the HeroUI toast queue", () => {
+    // 068：Toast 迁移为 @heroui/toast 队列式；组件本身不渲染 DOM，区域由 App 根 Toast.Provider 呈现。
     const markup = renderToStaticMarkup(createElement(Toast, { open: true, tone: "success", title: "Saved", detail: "The record is ready.", closeLabel: "Dismiss", onClose: () => undefined }));
 
-    expect(markup).toContain('role="status"');
-    expect(markup).toContain('aria-live="polite"');
-    expect(markup).toContain('aria-label="Dismiss"');
-    expect(markup).toContain("The record is ready.");
+    expect(markup).toBe("");
     expect(renderToStaticMarkup(createElement(Toast, { open: false, title: "Hidden", closeLabel: "Dismiss", onClose: () => undefined }))).toBe("");
   });
 
@@ -101,10 +99,10 @@ describe("公共管理 UI 模式", () => {
     const markup = renderToStaticMarkup(createElement(PageSection, { kicker: "Directory", title: "Departments", description: "Bounded hierarchy", actions: createElement("button", { type: "button" }, "Create"), children: createElement("p", null, "body") }));
 
     expect(markup).toContain('class="page-section');
-    expect(markup).toContain("page-section-header");
-    expect(markup).toContain("page-section-body");
+    expect(markup).toContain('data-slot="card"');
     expect(markup).toContain("section-kicker");
     expect(markup).toContain("section-title");
+    expect(markup).toContain("card__content");
     expect(markup).toContain('data-reveal-rhythm');
   });
 
@@ -120,10 +118,12 @@ describe("公共管理 UI 模式", () => {
   it("renders a data card with header actions and footer", () => {
     const markup = renderToStaticMarkup(createElement(DataCard, { kicker: "List", title: "Capabilities", actions: createElement("button", { type: "button" }, "Reset"), footer: createElement("span", null, "pagination"), children: createElement("span", null, "table") }));
 
-    expect(markup).toContain("data-card-heading");
-    expect(markup).toContain("data-card-body");
-    expect(markup).toContain("data-card-footer");
+    expect(markup).toContain('class="data-card');
+    expect(markup).toContain('data-slot="card"');
+    expect(markup).toContain('data-slot="card-footer"');
+    expect(markup).toContain("Capabilities");
     expect(markup).toContain("Reset");
+    expect(markup).toContain("pagination");
   });
 
   it("forwards data-scroll-hijack to the data table wrapper for declared hijacking", () => {

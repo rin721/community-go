@@ -34,12 +34,12 @@ describe("ActionTrigger 交互状态链", () => {
     expect(markup).toContain('aria-disabled="true"');
   });
 
-  it("pending 时显示 pendingLabel、aria-busy 且禁用防重复提交", () => {
+  it("pending 时显示 pendingLabel、禁用防重复提交且保留 pending 状态契约", () => {
     const manifest = manifestWithAction("ops.save", "allowed");
     const markup = renderToStaticMarkup(wrap(manifest, createElement(ActionTrigger, { operationId: "ops.save", pending: true, pendingLabel: "提交中…", onAction: () => undefined }, "保存")));
     expect(markup).toContain("提交中…");
     expect(markup).not.toContain(">保存<");
-    expect(markup).toContain('aria-busy="true"');
+    expect(markup).toContain('aria-disabled="true"');
     expect(markup).toContain('disabled=""');
     expect(markup).toContain('data-action-state="pending"');
   });

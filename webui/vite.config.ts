@@ -2,6 +2,7 @@ import { defineConfig, loadEnv } from "vite";
 import { join } from "node:path";
 import react from "@vitejs/plugin-react";
 import basicSsl from "@vitejs/plugin-basic-ssl";
+import tailwindcss from "@tailwindcss/vite";
 import { loadProjectLayout, loadWebUIDevConfig, resolveLayoutPaths } from "./scripts/project-layout.mjs";
 
 const project = loadProjectLayout();
@@ -12,6 +13,7 @@ const sdk = (path: string) => join(webuiRoot, path);
 export default defineConfig({
   plugins: [
     react(),
+    tailwindcss(),
     basicSsl({ name: "community-go-webui", domains: ["127.0.0.1", "localhost"] }),
   ],
   resolve: {

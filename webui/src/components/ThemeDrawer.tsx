@@ -1,6 +1,6 @@
 import { Moon, RotateCcw, Sun, X } from "lucide-react";
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
-import { Button } from "@webui/sdk/ui";
+import { Button, IconButton, SelectField } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { dampingTiers, revealRhythmOptions, scrollbarStrategies, type ContentDensity, type ThemeMode, type ThemePreferences, type ThemePreset } from "../theme";
 
@@ -68,7 +68,7 @@ export function ThemeDrawer({ open, theme, onChange, onReset, onClose }: { open:
   return <>
     <button type="button" aria-hidden={!open} aria-label={t("webui.host.theme.close")} className={`drawer-backdrop ${open ? "visible" : ""}`} disabled={!open} tabIndex={open ? 0 : -1} onClick={onClose} />
     <aside ref={drawerRef} className={`theme-drawer ${open ? "open" : ""}`} aria-hidden={!open} inert={!open} role="dialog" aria-modal="true" aria-labelledby="webui-theme-drawer-title" onKeyDown={handleDrawerKeyDown}>
-      <div className="drawer-header"><div><span className="drawer-kicker">{t("webui.host.theme.appearance")}</span><h2 id="webui-theme-drawer-title">{t("webui.host.theme")}</h2></div><button type="button" data-drawer-initial-focus className="icon-button" onClick={onClose} aria-label={t("webui.host.theme.close")}><X size={18} /></button></div>
+      <div className="drawer-header"><div><span className="drawer-kicker">{t("webui.host.theme.appearance")}</span><h2 id="webui-theme-drawer-title">{t("webui.host.theme")}</h2></div><IconButton label={t("webui.host.theme.close")} onClick={onClose} data={{ "data-drawer-initial-focus": "true" }}><X size={18} /></IconButton></div>
       <nav className="theme-tabs" role="tablist" aria-label={t("webui.host.theme.tabs")}>
         {panels.map((value) => <button id={themePanelTabID(value)} type="button" role="tab" tabIndex={panel === value ? 0 : -1} aria-selected={panel === value} aria-controls={`theme-panel-${value}`} className={panel === value ? "active" : ""} key={value} onClick={() => setPanel(value)} onKeyDown={(event) => handlePanelKeyDown(event, value)}>{panelLabel(value)}</button>)}
       </nav>
@@ -102,9 +102,11 @@ function ThemeSection({ title, children }: { title: string; children: ReactNode 
 }
 
 function ThemeSwitch({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {
+  // 开关暂用平台自绘控件：HeroUI v3 无现成可交互 Switch 复合，RAC 底座装配留待后续文档核定。
   return <label className="theme-switch-row"><span>{label}</span><input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} /></label>;
 }
 
 function ThemeSelect<T extends string>({ label, value, options, labelOf, onChange }: { label: string; value: T; options: ReadonlyArray<T>; labelOf: (value: T) => string; onChange: (value: T) => void }) {
-  return <label className="theme-switch-row"><span>{label}</span><select className="theme-select" value={value} onChange={(event) => onChange(event.target.value as T)}>{options.map((option) => <option value={option} key={option}>{labelOf(option)}</option>)}</select></label>;
+  // 068：分段选择使用 SelectField（HeroUI Select 复合）。
+  return <div className="theme-switch-row"><SelectField label={label} value={value} onValueChange={(next) => onChange(next as T)} options={options.map((option) => ({ value: option, label: labelOf(option) }))} className="w-44" /></div>;
 }

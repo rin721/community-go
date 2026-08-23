@@ -2,6 +2,7 @@ import { Search, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { type ManifestRoute } from "@webui/sdk/runtime";
+import { IconButton } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { translateMessage } from "../i18n";
 import { motionDuration } from "../motion";
@@ -98,7 +99,7 @@ export function RouteSearch({ open, routes, onClose }: { open: boolean; routes: 
       <div className="search-input-row">
         <Search size={19} aria-hidden="true" />
         <input ref={inputRef} autoFocus role="combobox" aria-expanded="true" aria-autocomplete="list" aria-controls="webui-route-search-results" aria-activedescendant={results[selectedIndex] ? `webui-route-search-${results[selectedIndex].id}` : undefined} placeholder={t("webui.host.search.placeholder")} value={query} onChange={(event) => { setQuery(event.target.value); setSelectedIndex(0); }} onKeyDown={handleInputKeyDown} />
-        <button type="button" className="icon-button" onClick={onClose} aria-label={t("webui.host.search.close")}><X size={17} /></button>
+        <IconButton label={t("webui.host.search.close")} onClick={onClose}><X size={17} /></IconButton>
       </div>
       <div className="search-results" id="webui-route-search-results" role="listbox" aria-label={t("webui.host.search")}>
         {results.map((route, index) => <button type="button" id={`webui-route-search-${route.id}`} role="option" tabIndex={index === selectedIndex ? 0 : -1} aria-selected={index === selectedIndex} key={route.id} onMouseEnter={() => setSelectedIndex(index)} onClick={() => selectRoute(route)}><span><strong>{translateMessage(route.titleMessageId)}</strong><small>{route.path}</small></span><kbd aria-hidden="true">↵</kbd></button>)}

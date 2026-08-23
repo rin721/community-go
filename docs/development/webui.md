@@ -159,6 +159,41 @@ zone 贡献的公共字段：`ID`（全局唯一）、`EntryID`（复用 `Bindin
 
 `theme.ts` 新增 `experience` 组：`smoothScroll`、`damping`（subtle/standard/relaxed）、`edgeDamping`、`magneticSnap`、`scrollHijack`、`reveal`、`revealRhythm`（calm/balanced/playful）、`scrollbar`（stable/overlay）；默认值为稳定插槽 + 平滑开 + standard + 边缘阻尼开 + 弹入开 + balanced。`applyTheme` 落到 `<html data-experience-*>`，旧 localStorage 主题自动迁移。ThemeDrawer 新增「体验」面板（host locale en-US/zh-CN）。`data-motion=reduce` 统一降级：销毁 Lenis、停用橡皮筋/劫持、Reveal 立即可见。
 
+## 全量采用 HeroUI 组件库（068）
+
+068 按用户指令把 WebUI 呈现层单轨替换为 HeroUI v3（+ Tailwind v4）：`@webui/sdk/ui` 导出契约与调用语义保持不变，内部改用 HeroUI 组件渲染；平台契约层（ActionTrigger 权限呈现、zone 注入、Reveal、滚动运行时、`experience` 派生配置、reduced-motion）不回归。059「不引入 Tailwind/组件库/动画库」由 068 取代（`docs/architecture/technology-selection.md` 已更新）。
+
+### 依赖与主题
+
+- 依赖：`@heroui/react@^3.2`、`@heroui/theme@^2.4`、`@heroui/toast@^2.0`、`@heroui/styles@^3.2`、`tailwindcss@^4`（`@tailwindcss/vite`）。
+- 装配：`vite.config.ts` 挂 `tailwindcss()`；`webui/tailwind.config.js`（content 覆盖宿主 + 模块页面，`darkMode: "class"`，`heroui()` 插件）；`styles.css` 顶部 `@config` + `@import "tailwindcss"`；`main.tsx` 引入 `@heroui/styles/css`（HeroUI v3 的组件静态样式，`@heroui/react/styles.css` 只是占位转发）。
+- 主题：`theme.ts` 的 `applyTheme` 在写 `data-color-scheme` 时同步切换 `<html>` 的 `dark` class（HeroUI 主题层）；preset 仍以既有 CSS 变量驱动，HeroUI 语义色映射列后续优化。
+
+### 组件映射（`@webui/sdk/ui` 内部）
+
+| SDK 导出 | HeroUI 底座 |
+| --- | --- |
+| Button / IconButton | Button（variant 映射、isIconOnly） |
+| Field | TextField + Label + Input + Description + FieldError |
+| SelectField | Select 复合（Label + Trigger/Value + ListBox） |
+| StatusPill | Chip（success/warning/danger/default） |
+| CapabilityBanner / InlineAlert | Alert 复合 |
+| Skeleton / EmptyState | Skeleton / EmptyState |
+| Toast | `@heroui/toast` 队列（App 根挂 `Toast.Provider`） |
+| PageSection / StatCard / StatGrid / DataCard | Card 复合 + Tailwind（保留 `page-section/stat-card/data-card` 类钩子与 `data-reveal`） |
+| DataTable | Table（RAC 底座；选择列、loading、empty、`wrapperProps` 滚动劫持语义保留） |
+| Pagination | Pagination 复合（Root/Content/Item/Link/Previous/Next/Ellipsis） |
+| ActionTrigger / BulkActionBar / FormSubmitActions | Button 底座 + 平台权限/防重复/禁用原因逻辑 |
+
+### 保留自绘边界（如实记录）
+
+- 遮罩容器（ConfirmDialog/Drawer/ThemeDrawer/RouteSearch 的 dialog 壳层）：HeroUI v3 Modal/Drawer 在 SSR 输出为空（运行时 portal 渲染），且既有 UI 层已满足 role=dialog/aria-modal/焦点/inert 语义，迁移将推翻大量 SSR 断言与 e2e；容器保持平台实现，内部控件已 HeroUI 化。
+- Switch/Checkbox：HeroUI v3 复合组件不含交互 input（SSR 探针证实），RAC 底座的隐藏 input 与 Playwright label/role 解析冲突；回退自绘控件，待官方装配用法核定后迁移。
+
+### 验证
+
+质量门禁（typecheck/lint/vitest/build/generate:check/e2e/go build）与 067 一致；e2e 新增 `068 heroui adoption`（`.button--primary/.card/.select__trigger` 标记、dark class 联动、截图证据）；bundle 基线已记录（index ~1.06 MB raw / ~310 KB gzip）。
+
 ## 强制 i18n 契约
 
 WebUI i18n 是所有接入模块必须遵守的规范契约。模块只要贡献页面、菜单或状态，就必须在自身 WebUI Binding 中声明 locale namespace 和资源文件；没有 locale Binding 的模块不得进入生产 registry。locale namespace 的 owner 始终是业务模块，宿主只负责聚合、加载、语言选择、fallback 和缺失资源状态。

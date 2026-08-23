@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActionTrigger, Button, Field, PageHeader, PageSection, RevealList, StatusPill } from "@webui/sdk/ui";
+import { ActionTrigger, Button, Field, PageHeader, PageSection, RevealList, SelectField, StatusPill } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { archiveRole, createRole, listPermissions, listRoles, replaceRolePermissions, rolePermissionsView, updateRoleInfo, type PermissionDefinition, type Role } from "./api";
 import styles from "./iam.module.css";
@@ -113,7 +113,7 @@ export default function RolesPage() {
         <div className="toolbar"><Field label={t("webui.iam.roles.code")} value={code} onChange={(event) => setCode(event.target.value)} /><Field label={t("webui.iam.roles.name")} value={name} onChange={(event) => setName(event.target.value)} /><ActionTrigger operationId="iam.roles.create" onAction={() => void createRole(code, name, "").then(() => { setCode(""); setName(""); return refresh(); }).catch(() => setMessage(t("webui.iam.error")))}>{t("webui.iam.create")}</ActionTrigger></div>
       </PageSection>
       <PageSection kicker={t("webui.iam.roles.manage.kicker")} title={t("webui.iam.roles.manage.title")}>
-        <label className="form-field">{t("webui.iam.roles.selected")}<select className="field-input" value={selectedID} onChange={(event) => setSelectedID(event.target.value)}>{items.map((item) => <option key={item.id} value={item.id}>{item.name} ({item.code}){item.archived ? ` · ${t("webui.iam.roles.archived")}` : ""}</option>)}</select></label>
+        <SelectField label={t("webui.iam.roles.selected")} value={selectedID} onValueChange={setSelectedID} options={items.map((item) => ({ value: item.id, label: `${item.name} (${item.code})${item.archived ? ` · ${t("webui.iam.roles.archived")}` : ""}` }))} />
         {selected?.system
           ? <p className="admin-note">{t("webui.iam.roles.systemReadonly")}</p>
           : <div className="permission-matrix">{groups.map((group) => <fieldset key={group.ownerModuleId}><legend>{group.ownerModuleId}</legend>{group.definitions.map((definition) => <label key={definition.key} className="permission-row"><input type="checkbox" checked={selectedKeys.includes(definition.key)} disabled={!selected || selected.archived} onChange={() => toggle(definition.key)} />{definition.key}<span className="permission-description">{t(definition.descriptionMessageId)}</span></label>)}</fieldset>)}</div>}

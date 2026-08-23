@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActionTrigger, InlineAlert, PageHeader, PageSection } from "@webui/sdk/ui";
+import { ActionTrigger, InlineAlert, PageHeader, PageSection, SelectField } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { getAssignment, replaceAssignment, listAccounts, listDepartments, listPositions, type Account, type Department, type Position } from "./api";
 import styles from "./organization.module.css";
@@ -49,8 +49,8 @@ export default function AssignmentsPage() {
     <div className="page-sections">
       <PageSection kicker={t("webui.organization.assignments.panel.kicker")} title={t("webui.organization.assignments.panel.title")}>
         <form className="form-panel" onSubmit={(event) => { event.preventDefault(); save(); }}>
-          <label className="form-field"><span>{t("webui.organization.account")}</span><select className="field-input" value={accountId} onChange={(event) => setAccountId(event.target.value)}>{accounts.map((item) => <option key={item.id} value={item.id}>{item.displayName} (@{item.username})</option>)}</select></label>
-          <label className="form-field"><span>{t("webui.organization.department")}</span><select className="field-input" value={departmentId} onChange={(event) => setDepartmentId(event.target.value)}><option value="">—</option>{departments.filter((item) => item.active && !item.archived).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+          <SelectField label={t("webui.organization.account")} value={accountId} onValueChange={setAccountId} options={accounts.map((item) => ({ value: item.id, label: `${item.displayName} (@${item.username})` }))} />
+          <SelectField label={t("webui.organization.department")} value={departmentId} onValueChange={setDepartmentId} options={[{ value: "", label: "—" }, ...departments.filter((item) => item.active && !item.archived).map((item) => ({ value: item.id, label: item.name }))]} />
           <fieldset><legend>{t("webui.organization.positions.label")}</legend>{positions.filter((item) => item.active && !item.archived).map((item) => <label key={item.id} className="permission-row"><input type="checkbox" checked={positionIds.includes(item.id)} onChange={() => toggle(item.id)} />{item.name}</label>)}</fieldset>
           {error && <InlineAlert tone="danger" title={error} />}
           {message && <p className="page-meta">{message}</p>}

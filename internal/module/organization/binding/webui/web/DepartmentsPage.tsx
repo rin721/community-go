@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActionTrigger, Field, InlineAlert, PageHeader, PageSection, RevealList, StatusPill } from "@webui/sdk/ui";
+import { ActionTrigger, Field, InlineAlert, PageHeader, PageSection, RevealList, SelectField, StatusPill } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { createDepartment, departmentTree, updateDepartment, type DepartmentNode } from "./api";
 import styles from "./organization.module.css";
@@ -27,7 +27,7 @@ export default function DepartmentsPage() {
         <div className="toolbar">
           <Field label={t("webui.organization.code")} value={code} onChange={(event) => setCode(event.target.value)} />
           <Field label={t("webui.organization.name")} value={name} onChange={(event) => setName(event.target.value)} />
-          <label className="form-field"><span>{t("webui.organization.parent")}</span><select className="field-input" value={parentId} onChange={(event) => setParentId(event.target.value)}><option value="">—</option>{flat.map(({ item }) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+          <SelectField label={t("webui.organization.parent")} value={parentId} onValueChange={setParentId} options={[{ value: "", label: "—" }, ...flat.map(({ item }) => ({ value: item.id, label: item.name }))]} />
           <ActionTrigger operationId="organization.departments.create" onAction={() => createDepartment(code, name, parentId || undefined).then(() => { setCode(""); setName(""); setParentId(""); setError(""); return refresh(); }).catch(() => setError(t("webui.organization.error")))}>{t("webui.organization.create")}</ActionTrigger>
         </div>
       </PageSection>

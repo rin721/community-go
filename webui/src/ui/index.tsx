@@ -1,39 +1,64 @@
 import { useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type CSSProperties, type HTMLAttributes, type InputHTMLAttributes, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
+import { Alert, Button as HeroButton, Card, Chip, Description, EmptyState as HeroEmptyState, FieldError, Input as HeroInput, Label, ListBox, Pagination as HeroPagination, Select, Skeleton as HeroSkeleton, Table, TextField } from "@heroui/react";
+import { ToastProvider, addToast, closeToast } from "@heroui/toast";
 import type { CapabilityState } from "../contracts";
-import { motionDuration } from "../motion";
 import { Reveal } from "../motion/reveal";
-import { useOverlayOpenPhase } from "../components/shell/overlay";
 import { useActionAccess, useZoneContributions, ZoneSlot } from "../sdk/zone";
 export { Reveal, RevealList, revealRhythms, revealStaggerStep } from "../motion/reveal";
 export type { RevealProps, RevealRhythm } from "../motion/reveal";
+export { ToastProvider };
+
+function alertStatus(state: CapabilityState): "default" | "success" | "warning" | "danger" | "accent" {
+  switch (state) {
+    case "available": return "success";
+    case "degraded": return "warning";
+    case "unavailable": return "danger";
+    default: return "accent";
+  }
+}
+
+function chipColor(state: CapabilityState): "success" | "warning" | "danger" | "default" {
+  switch (state) {
+    case "available": return "success";
+    case "degraded": return "warning";
+    case "unavailable": return "danger";
+    default: return "default";
+  }
+}
 
 export function PageHeader({ eyebrow, title, description, actions }: { eyebrow?: string; title: string; description?: string; actions?: ReactNode }) {
   const zoneItems = useZoneContributions("page-header");
   return <header className="page-header"><div>{eyebrow && <p className="page-eyebrow">{eyebrow}</p>}<h1>{title}</h1>{description && <p className="page-description">{description}</p>}</div>{(actions || zoneItems.length > 0) && <div className="page-actions">{actions}{zoneItems.map((item) => <ZoneSlot key={item.id} contribution={item} />)}</div>}</header>;
 }
 
+// Surface 保持平台语义容器（.surface 样式 authority），后续可整体切换 HeroUI Surface。
 export function Surface({ className = "", ...props }: HTMLAttributes<HTMLElement>) {
   return <section className={`surface ${className}`.trim()} {...props} />;
 }
 
-export function Button({ variant = "primary", className = "", ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "secondary" | "ghost" | "danger" }) {
-  return <button className={`ui-button ui-button-${variant} ${className}`.trim()} {...props} />;
+// Button 映射到 HeroUI Button：primary/secondary/ghost/danger。
+export function Button({ variant = "primary", className = "", type = "button", disabled, onClick, children, ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "secondary" | "ghost" | "danger" }) {
+  const heroVariant = variant === "ghost" ? "ghost" : variant === "danger" ? "danger" : variant === "secondary" ? "outline" : "primary";
+  return <HeroButton type={type} variant={heroVariant} size="md" isDisabled={disabled} onPress={() => onClick?.(undefined as unknown as React.MouseEvent<HTMLButtonElement>)} className={`ui-button ui-button-${variant} ${className}`.trim()} {...props as object}>{children}</HeroButton>;
 }
 
-export function Field({ label, hint, error, ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string; hint?: string; error?: string }) {
-  return <label className="form-field"><span>{label}</span><input className={error ? "field-input field-error" : "field-input"} {...props} />{hint && <small>{hint}</small>}{error && <small className="field-error-message">{error}</small>}</label>;
+// Field 复用 HeroUI TextField/Input 复合组件（RAC 底座）：Label/Description/FieldError
+// 语义 + 原生 input 事件透传（onChange(event) 契约不变）。
+export function Field({ label, hint, error, className = "", ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string; hint?: string; error?: string }) {
+  return <div className={`form-field ${error ? "has-error" : ""}`.trim()}><TextField isInvalid={Boolean(error)}><Label>{label}</Label><HeroInput className={className} {...props as object} />{hint && <Description>{hint}</Description>}{error && <FieldError>{error}</FieldError>}</TextField></div>;
 }
 
 export function StatusPill({ state, children }: { state: CapabilityState; children: ReactNode }) {
-  return <span className={`status-pill status-${state}`}><span className="status-dot" />{children}</span>;
+  return <Chip color={chipColor(state)} variant="soft" size="sm" className={`status-pill status-${state}`}>{typeof children === "string" ? children : String(children)}</Chip>;
 }
 
 export function CapabilityBanner({ state, statusLabel, title, detail }: { state: CapabilityState; statusLabel: string; title: string; detail?: string }) {
-  return <div className={`capability-banner capability-${state}`} role="status" aria-live="polite"><div><StatusPill state={state}>{statusLabel}</StatusPill><strong>{title}</strong></div>{detail && <p>{detail}</p>}</div>;
+  return <Alert status={alertStatus(state)} className={`capability-banner capability-${state}`} role="status" aria-live="polite"><Alert.Content><Alert.Title>{statusLabel}</Alert.Title><Alert.Description><strong>{title}</strong>{detail && <> · {detail}</>}</Alert.Description></Alert.Content></Alert>;
 }
 
+// Skeleton 复用 HeroUI Skeleton 的行几何占位。
 export function Skeleton({ lines = 3, label }: { lines?: number; label: string }) {
-  return <div className="skeleton-stack" aria-label={label}>{Array.from({ length: lines }, (_, index) => <span key={index} />)}</div>;
+  return <div className="skeleton-stack" aria-label={label}>{Array.from({ length: lines }, (_, index) => <HeroSkeleton className="h-2.5 rounded-full" key={index} />)}</div>;
 }
 
 export function DataToolbar({ filters, actions, ariaLabel }: { filters?: ReactNode; actions?: ReactNode; ariaLabel?: string }) {
@@ -89,8 +114,21 @@ export function DataTable<Row>({ columns, rows, ariaLabel, getRowKey = (_row, in
     if (!onSelectedKeysChange) return;
     onSelectedKeysChange(allSelected ? new Set() : new Set(rowKeys));
   };
-  const columnCount = visibleColumns.length + (selectable ? 1 : 0);
-  return <div className="data-table-wrap" {...wrapperProps}><table className="data-table" aria-label={ariaLabel} aria-busy={loading}><thead><tr>{selectable && <th scope="col" className="data-table-selection"><input ref={headerSelectionRef} type="checkbox" checked={allSelected} onChange={toggleAll} aria-checked={partiallySelected ? "mixed" : allSelected} aria-label={selectionLabel} /></th>}{visibleColumns.map((column) => <th scope="col" className={column.className} key={column.id}>{column.header}</th>)}</tr></thead><tbody>{loading && <tr><td colSpan={columnCount}><Skeleton lines={3} label={loadingLabel ?? ""} /></td></tr>}{!loading && rows.length === 0 && <tr><td colSpan={columnCount}>{emptyState}</td></tr>}{!loading && rows.map((row, index) => { const key = getRowKey(row, index); return <tr key={key}>{selectable && <td className="data-table-selection"><input type="checkbox" checked={selected.has(key)} onChange={() => toggleKey(key)} aria-label={selectionLabel} /></td>}{visibleColumns.map((column) => <td className={column.className} key={column.id}>{column.cell(row, index)}</td>)}</tr>; })}</tbody></table></div>;
+  return (
+    <Table.Root className="data-table-wrap" {...wrapperProps}>
+      <Table.Content className="data-table" aria-label={ariaLabel} aria-busy={loading}>
+        <Table.Header>
+          {selectable && <Table.Column id="selection"><input ref={headerSelectionRef} type="checkbox" checked={allSelected} onChange={toggleAll} aria-checked={partiallySelected ? "mixed" : allSelected} aria-label={selectionLabel} /></Table.Column>}
+          {visibleColumns.map((column) => <Table.Column id={column.id} className={column.className} key={column.id}>{column.header}</Table.Column>)}
+        </Table.Header>
+        <Table.Body>
+          {loading && <Table.Row>{selectable && <Table.Cell />}{visibleColumns.map((column) => <Table.Cell key={column.id}><Skeleton lines={3} label={loadingLabel ?? ""} /></Table.Cell>)}</Table.Row>}
+          {!loading && rows.length === 0 && <Table.Row>{selectable && <Table.Cell />}<Table.Cell>{emptyState}</Table.Cell>{visibleColumns.slice(1).map((column) => <Table.Cell key={column.id} />)}</Table.Row>}
+          {!loading && rows.map((row, index) => { const key = getRowKey(row, index); return <Table.Row key={key}>{selectable && <Table.Cell><input type="checkbox" checked={selected.has(key)} onChange={() => toggleKey(key)} aria-label={selectionLabel} /></Table.Cell>}{visibleColumns.map((column) => <Table.Cell className={column.className} key={column.id}>{column.cell(row, index)}</Table.Cell>)}</Table.Row>; })}
+        </Table.Body>
+      </Table.Content>
+    </Table.Root>
+  );
 }
 
 export type PaginationItem = number | "ellipsis-left" | "ellipsis-right";
@@ -109,104 +147,107 @@ export function createPaginationItems(page: number, pageCount: number): Paginati
 export function Pagination({ page, pageCount, total, totalLabel, pageLabel, paginationLabel, previousLabel, nextLabel, onPageChange, pageSize, pageSizeOptions, pageSizeLabel, onPageSizeChange }: { page: number; pageCount: number; total: number; totalLabel: (total: number) => ReactNode; pageLabel: (page: number) => string; paginationLabel?: string; previousLabel: string; nextLabel: string; onPageChange: (page: number) => void; pageSize?: number; pageSizeOptions?: ReadonlyArray<number>; pageSizeLabel?: string; onPageSizeChange?: (pageSize: number) => void }) {
   const current = Math.min(Math.max(page, 1), Math.max(pageCount, 1));
   const items = createPaginationItems(current, pageCount);
-  return <nav className="pagination" aria-label={paginationLabel ?? pageLabel(current)}><span className="pagination-total">{totalLabel(total)}</span><button type="button" disabled={current <= 1} onClick={() => onPageChange(current - 1)} aria-label={previousLabel}>‹</button>{items.map((item) => item === "ellipsis-left" || item === "ellipsis-right" ? <span className="pagination-ellipsis" aria-hidden="true" key={item}>…</span> : <button type="button" className={item === current ? "active" : ""} onClick={() => onPageChange(item)} aria-current={item === current ? "page" : undefined} aria-label={pageLabel(item)} key={item}>{item}</button>)}<button type="button" disabled={current >= pageCount} onClick={() => onPageChange(current + 1)} aria-label={nextLabel}>›</button>{pageSizeOptions && pageSizeLabel && onPageSizeChange && <select aria-label={pageSizeLabel} value={pageSize} onChange={(event) => onPageSizeChange(Number(event.target.value))}>{pageSizeOptions.map((option) => <option value={option} key={option}>{option}</option>)}</select>}</nav>;
+  return (
+    <HeroPagination.Root aria-label={paginationLabel ?? pageLabel(current)}>
+      <div className="pagination-total">{totalLabel(total)}</div>
+      <HeroPagination.Content>
+        <HeroPagination.Item>
+          <HeroPagination.Previous isDisabled={current <= 1} aria-label={previousLabel} onPress={() => onPageChange(current - 1)}>‹</HeroPagination.Previous>
+        </HeroPagination.Item>
+        {items.map((item) => item === "ellipsis-left" || item === "ellipsis-right"
+          ? <HeroPagination.Ellipsis key={item} />
+          : <HeroPagination.Item key={item}><HeroPagination.Link isActive={item === current} onPress={() => onPageChange(item)} aria-label={pageLabel(item)} aria-current={item === current ? "page" : undefined}>{item}</HeroPagination.Link></HeroPagination.Item>)}
+        <HeroPagination.Item>
+          <HeroPagination.Next isDisabled={current >= pageCount} aria-label={nextLabel} onPress={() => onPageChange(current + 1)}>›</HeroPagination.Next>
+        </HeroPagination.Item>
+      </HeroPagination.Content>
+      {pageSizeOptions && pageSizeLabel && onPageSizeChange && <select aria-label={pageSizeLabel} value={pageSize} onChange={(event) => onPageSizeChange(Number(event.target.value))} className="pagination-size">{pageSizeOptions.map((option) => <option value={option} key={option}>{option}</option>)}</select>}
+    </HeroPagination.Root>
+  );
 }
 
 export function EmptyState({ title, detail, action }: { title: string; detail?: string; action?: ReactNode }) {
-  return <div className="empty-state"><strong>{title}</strong>{detail && <p>{detail}</p>}{action}</div>;
+  return <HeroEmptyState className="empty-state" title={title}>{detail && <p className="m-0 text-xs text-foreground-500">{detail}</p>}{action}</HeroEmptyState>;
+}
+
+// IconButton 是图标按钮原语（HeroUI Button isIconOnly）：提供可访问名称并透传渲染子节点与 data-*。
+export function IconButton({ label, title, onClick, onPress, className = "", children, disabled, data, buttonRef }: { label: string; title?: string; onClick?: () => void; onPress?: () => void; className?: string; children: ReactNode; disabled?: boolean; data?: Record<string, string | undefined>; buttonRef?: React.Ref<HTMLButtonElement> }) {
+  // HeroUI/RAC Button 不接受原生 title；可访问名称由 aria-label 提供，title 仅作兼容占位。
+  void title;
+  return <HeroButton ref={buttonRef} type="button" isIconOnly variant="ghost" size="sm" aria-label={label} isDisabled={disabled} onPress={() => (onPress ?? onClick)?.()} className={`icon-button ${className}`.trim()} {...data}>{children}</HeroButton>;
+}
+
+// SelectField 复用 HeroUI Select 复合组件（RAC 底座）：Label + Trigger/Value + ListBox。
+// 对外保持 value/onValueChange(options) 契约，模块页面不再使用原生 <select>。
+export type SelectOption = { value: string; label: ReactNode };
+
+export function SelectField({ label, value, options, onValueChange, className = "", placeholder, error }: { label: string; value: string; options: ReadonlyArray<SelectOption>; onValueChange: (value: string) => void; className?: string; placeholder?: string; error?: string }) {
+  return (
+    <div className={`form-field ${error ? "has-error" : ""}`.trim()}>
+      <Select selectedKey={value} onSelectionChange={(key) => onValueChange(key === null || key === undefined ? "" : String(key))} className={className} isInvalid={Boolean(error)}>
+        <Label>{label}</Label>
+        <Select.Trigger><Select.Value>{({ selectedText }) => selectedText ?? placeholder ?? ""}</Select.Value></Select.Trigger>
+        <Select.Indicator />
+        <Select.Popover>
+          <ListBox className="max-h-72 overflow-auto">
+            {options.map((option) => <ListBox.Item key={option.value} id={option.value} textValue={typeof option.label === "string" ? option.label : String(option.label)}>{option.label}</ListBox.Item>)}
+          </ListBox>
+        </Select.Popover>
+      </Select>
+    </div>
+  );
 }
 
 export function InlineAlert({ tone = "info", title, detail, action }: { tone?: "info" | "success" | "warning" | "danger"; title: string; detail?: string; action?: ReactNode }) {
-  return <div className={`inline-alert inline-alert-${tone}`} role="status"><div><strong>{title}</strong>{detail && <p>{detail}</p>}</div>{action && <div className="inline-alert-action">{action}</div>}</div>;
+  const status = tone === "danger" ? "danger" : tone === "warning" ? "warning" : tone === "success" ? "success" : "accent";
+  return <Alert status={status} className={`inline-alert inline-alert-${tone}`} role="status"><Alert.Content><Alert.Title><strong>{title}</strong></Alert.Title><Alert.Description>{detail && <span>{detail}</span>}</Alert.Description></Alert.Content>{action && <Alert.Content><span className="inline-alert-action">{action}</span></Alert.Content>}</Alert>;
 }
 
-export function Toast({ open, tone = "info", title, detail, closeLabel, onClose, action }: { open: boolean; tone?: "info" | "success" | "warning" | "danger"; title: string; detail?: string; closeLabel: string; onClose: () => void; action?: ReactNode }) {
-  const { mounted, phase } = useOverlayOpenPhase(open, motionDuration("standard"));
-  if (!mounted) return null;
-  return <div className={`ui-toast ui-toast-${tone} ${phase === "entering" ? "entering" : phase === "exiting" ? "exiting" : "open"}`} role={tone === "danger" ? "alert" : "status"} aria-live={tone === "danger" ? "assertive" : "polite"}><div className="ui-toast-copy"><strong>{title}</strong>{detail && <p>{detail}</p>}</div><div className="ui-toast-actions">{action}{<button type="button" className="icon-button" onClick={onClose} aria-label={closeLabel}>×</button>}</div></div>;
+// Toast 通过 @heroui/toast 队列呈现：组件挂载/打开时推入队列，语义与既有 open 契约一致。
+export function Toast({ open, tone = "info", title, detail, closeLabel, onClose }: { open: boolean; tone?: "info" | "success" | "warning" | "danger"; title: string; detail?: string; closeLabel: string; onClose: () => void }) {
+  const keyRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    const color = tone === "danger" ? "danger" : tone === "warning" ? "warning" : tone === "success" ? "success" : "primary";
+    keyRef.current = addToast({ title, description: detail, variant: "solid", color, timeout: 5000, onClose });
+    return () => {
+      if (keyRef.current) closeToast(keyRef.current);
+      keyRef.current = null;
+    };
+  }, [open, tone, title, detail, onClose]);
+  void closeLabel;
+  return null;
 }
 
 export function ConfirmDialog({ open, title, description, confirmLabel, cancelLabel, closeLabel, onConfirm, onCancel }: { open: boolean; title: string; description?: string; confirmLabel: string; cancelLabel: string; closeLabel: string; onConfirm: () => void; onCancel: () => void }) {
-  const dialogRef = useRef<HTMLElement>(null);
-  const restoreFocusRef = useRef<HTMLElement | null>(null);
   const titleID = `webui-confirm-title-${useId().replaceAll(":", "")}`;
-  const descriptionID = `${titleID}-description`;
-
-  useEffect(() => {
-    if (!open) return;
-    restoreFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const focusFrame = requestAnimationFrame(() => dialogRef.current?.querySelector<HTMLElement>("[data-confirm-initial-focus]")?.focus());
-    return () => {
-      cancelAnimationFrame(focusFrame);
-      const target = restoreFocusRef.current;
-      restoreFocusRef.current = null;
-      target?.focus();
-    };
-  }, [open]);
-
-  const handleDialogKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      onCancel();
-      return;
-    }
-    if (event.key !== "Tab") return;
-    const focusable = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>("button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex=\"-1\"])") ?? []);
-    if (focusable.length === 0) return;
-    const currentIndex = focusable.indexOf(document.activeElement as HTMLElement);
-    const nextIndex = event.shiftKey
-      ? currentIndex <= 0 ? focusable.length - 1 : currentIndex - 1
-      : currentIndex === focusable.length - 1 ? 0 : currentIndex + 1;
-    event.preventDefault();
-    focusable[nextIndex]?.focus();
-  };
-
-  return <><button type="button" aria-hidden={!open} aria-label={closeLabel} className={`confirm-backdrop ${open ? "visible" : ""}`} disabled={!open} tabIndex={open ? 0 : -1} onClick={onCancel} /><section ref={dialogRef} className={`confirm-dialog ${open ? "open" : ""}`} role="dialog" aria-modal="true" aria-hidden={!open} aria-labelledby={titleID} aria-describedby={description ? descriptionID : undefined} inert={!open} onKeyDown={handleDialogKeyDown}><header className="confirm-dialog-header"><h2 id={titleID}>{title}</h2><button type="button" className="icon-button" onClick={onCancel} aria-label={closeLabel}>×</button></header>{description && <p id={descriptionID} className="confirm-dialog-description">{description}</p>}<footer className="confirm-dialog-footer"><Button type="button" variant="secondary" onClick={onCancel} data-confirm-initial-focus>{cancelLabel}</Button><Button type="button" variant="danger" onClick={onConfirm}>{confirmLabel}</Button></footer></section></>;
+  return <>
+    <button type="button" aria-hidden={!open} aria-label={closeLabel} className={`confirm-backdrop ${open ? "visible" : ""}`} disabled={!open} tabIndex={open ? 0 : -1} onClick={onCancel} />
+    <section className={`confirm-dialog ${open ? "open" : ""}`} role="dialog" aria-modal="true" aria-hidden={!open} aria-labelledby={titleID} aria-describedby={description ? `${titleID}-description` : undefined} inert={!open} onKeyDown={(event: ReactKeyboardEvent<HTMLElement>) => { if (event.key === "Escape") { event.preventDefault(); onCancel(); } }}>
+      <header className="confirm-dialog-header"><h2 id={titleID}>{title}</h2><IconButton label={closeLabel} onClick={onCancel}>×</IconButton></header>
+      {description && <p id={`${titleID}-description`} className="confirm-dialog-description">{description}</p>}
+      <footer className="confirm-dialog-footer"><Button type="button" variant="secondary" onClick={onCancel} data-confirm-initial-focus>{cancelLabel}</Button><Button type="button" variant="danger" onClick={onConfirm}>{confirmLabel}</Button></footer>
+    </section>
+  </>;
 }
 
 export function Drawer({ open, title, description, closeLabel, onClose, children, footer }: { open: boolean; title: string; description?: string; closeLabel: string; onClose: () => void; children: ReactNode; footer?: ReactNode }) {
-  const drawerRef = useRef<HTMLElement>(null);
-  const restoreFocusRef = useRef<HTMLElement | null>(null);
   const titleID = `webui-drawer-title-${useId().replaceAll(":", "")}`;
-
-  useEffect(() => {
-    if (!open) return;
-    restoreFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const focusFrame = requestAnimationFrame(() => drawerRef.current?.querySelector<HTMLElement>("[data-drawer-initial-focus]")?.focus());
-    return () => {
-      cancelAnimationFrame(focusFrame);
-      const target = restoreFocusRef.current;
-      restoreFocusRef.current = null;
-      target?.focus();
-    };
-  }, [open]);
-
-  const handleDrawerKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      onClose();
-      return;
-    }
-    if (event.key !== "Tab") return;
-    const focusable = Array.from(drawerRef.current?.querySelectorAll<HTMLElement>("button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex=\"-1\"])") ?? []);
-    if (focusable.length === 0) return;
-    const currentIndex = focusable.indexOf(document.activeElement as HTMLElement);
-    const nextIndex = event.shiftKey
-      ? currentIndex <= 0 ? focusable.length - 1 : currentIndex - 1
-      : currentIndex === focusable.length - 1 ? 0 : currentIndex + 1;
-    event.preventDefault();
-    focusable[nextIndex]?.focus();
-  };
-
-  return <><button type="button" aria-hidden={!open} aria-label={closeLabel} className={`drawer-backdrop ${open ? "visible" : ""}`} disabled={!open} tabIndex={open ? 0 : -1} onClick={onClose} /><aside ref={drawerRef} className={`ui-drawer ${open ? "open" : ""}`} role="dialog" aria-modal="true" aria-hidden={!open} aria-labelledby={titleID} inert={!open} onKeyDown={handleDrawerKeyDown}><header className="ui-drawer-header"><div><h2 id={titleID}>{title}</h2>{description && <p>{description}</p>}</div><button type="button" data-drawer-initial-focus className="icon-button" onClick={onClose} aria-label={closeLabel}>×</button></header><div className="ui-drawer-content">{children}</div>{footer && <footer className="ui-drawer-footer">{footer}</footer>}</aside></>;
+  return <>
+    <button type="button" aria-hidden={!open} aria-label={closeLabel} className={`drawer-backdrop ${open ? "visible" : ""}`} disabled={!open} tabIndex={open ? 0 : -1} onClick={onClose} />
+    <aside className={`ui-drawer ${open ? "open" : ""}`} role="dialog" aria-modal="true" aria-hidden={!open} aria-labelledby={titleID} inert={!open} onKeyDown={(event: ReactKeyboardEvent<HTMLElement>) => { if (event.key === "Escape") { event.preventDefault(); onClose(); } }}>
+      <header className="ui-drawer-header"><div><h2 id={titleID}>{title}</h2>{description && <p>{description}</p>}</div><IconButton label={closeLabel} onClick={onClose} data={{ "data-drawer-initial-focus": "true" }}>×</IconButton></header>
+      <div className="ui-drawer-content">{children}</div>
+      {footer && <footer className="ui-drawer-footer">{footer}</footer>}
+    </aside>
+  </>;
 }
 
 // ActionDisabledReason 是触发点禁用原因分类：permission（权限 denied/未投影受限）、
 // unavailable（能力不可用）、busy（其他提交进行中）、invalid（表单条件未满足）。
 export type ActionDisabledReason = "permission" | "unavailable" | "busy" | "invalid";
 
-// ActionTrigger 是统一动作触发原语：覆盖 idle(hover/focus/active) -> pending ->
-// success/failure 交互状态链与权限呈现控制（062 交互规范）。
+// ActionTrigger 是统一动作触发原语（062 交互规范），按钮底座为 HeroUI Button（068）：
 // - operationId 命中动作级权限钩子：denied 时按 deniedBehavior 隐藏或禁用；
 // - onAction 返回 Promise 时自动进入 pending（防重复提交）并在结束/失败后复位；
 // - 失败反馈由调用方通过 onError（error code -> message ID）呈现，组件不内联业务文案。
@@ -242,7 +283,7 @@ export function ActionTrigger({ operationId, pending = false, pendingLabel, disa
       (result as Promise<unknown>).catch((error) => onError?.(error instanceof Error ? error : new Error("action_failed"))).finally(() => setInternalPending(false));
     }
   };
-  return <button type="button" className={`ui-button ui-button-${variant} ${className}`.trim()} {...buttonProps} disabled={disabled} aria-busy={busy || undefined} aria-disabled={disabled || undefined} data-action-state={state} onClick={handleAction}>{busy && pendingLabel ? pendingLabel : children}</button>;
+  return <Button type="button" variant={variant} disabled={disabled} onClick={handleAction} aria-busy={busy || undefined} aria-disabled={disabled || undefined} data-action-state={state} className={className} {...buttonProps as object}>{busy && pendingLabel ? pendingLabel : children}</Button>;
 }
 
 // BulkActionBar 是数据表选择联动后的批量操作条（062 交互规范）：
@@ -288,14 +329,10 @@ export function FormSubmitActions({ submitLabel, resetLabel, submitPending, subm
 }
 
 // ---------------------------------------------------------------------------
-// 067 布局骨架原语：TailAdmin 式「区块卡片 + 统计行 + 数据表格卡片」。
-// 通用布局样式归平台（styles.css public UI 分区），模块不再各自复制；
-// PageSection/StatCard 内建弹入响应（Reveal），reduced-motion 与 experience.reveal
-// 关闭时直接可见（见 ../motion/reveal.tsx）。
+// 067 布局骨架原语：HeroUI Card 底座 + Tailwind 布局，保留既有 class 名作为
+// 语义钩子（page-section/stat-card/data-card/data-reveal），e2e/样式选测不变。
 // ---------------------------------------------------------------------------
 
-// PageSectionProps 是区块卡片 props：kicker/title/description/actions 组成卡头，
-// children 进入卡体，footer 为可选卡脚。section 语义由 as 决定（默认 section）。
 export type PageSectionProps = {
   as?: "section" | "div" | "article";
   kicker?: ReactNode;
@@ -311,25 +348,25 @@ export type PageSectionProps = {
 
 export function PageSection({ as: As = "section", kicker, title, description, actions, footer, rhythm = "balanced", className = "", style, children }: PageSectionProps) {
   return (
-    <Reveal as={As} rhythm={rhythm} className={`page-section ${className}`.trim()} style={style}>
-      {(kicker || title || description || actions) && (
-        <header className="page-section-header">
-          <div className="page-section-heading">
-            {kicker && <span className="section-kicker">{kicker}</span>}
-            {title && <h2 className="section-title">{title}</h2>}
-            {description && <p className="section-description">{description}</p>}
-          </div>
-          {actions && <div className="page-section-actions">{actions}</div>}
-        </header>
-      )}
-      <div className="page-section-body">{children}</div>
-      {footer && <footer className="page-section-footer">{footer}</footer>}
+    <Reveal as={As} rhythm={rhythm} className={`page-section w-full ${className}`.trim()} style={style}>
+      <Card className="h-full w-full shadow-sm">
+        {(kicker || title || description || actions) && (
+          <Card.Header className="flex items-start justify-between gap-4 px-5 pt-4">
+            <div className="min-w-0">
+              {kicker && <span className="section-kicker block text-[10px] font-bold uppercase tracking-[0.12em] text-primary">{kicker}</span>}
+              {title && <h2 className="section-title mt-0.5 text-[15px] font-semibold">{title}</h2>}
+              {description && <p className="section-description mt-1 max-w-[640px] text-xs leading-relaxed text-foreground-500">{description}</p>}
+            </div>
+            {actions && <div className="flex flex-wrap items-center justify-end gap-2">{actions}</div>}
+          </Card.Header>
+        )}
+        <Card.Content className="grid gap-3.5 px-5 py-4">{children}</Card.Content>
+        {footer && <Card.Footer className="flex items-center justify-end gap-2 border-t border-divider px-5 py-3">{footer}</Card.Footer>}
+      </Card>
     </Reveal>
   );
 }
 
-// StatCardProps 是统计卡 props：icon 可选（任意 ReactNode 或空），value/label 必填，
-// trend 为可选趋势（pill/文本），tone 影响语义配色。
 export type StatCardProps = {
   icon?: ReactNode;
   value: ReactNode;
@@ -340,34 +377,38 @@ export type StatCardProps = {
   className?: string;
 };
 
+const statToneClass = { default: "", positive: "stat-tone-positive", attention: "stat-tone-attention" } as const;
+
 export function StatCard({ icon, value, label, trend, tone = "default", rhythm = "balanced", className = "" }: StatCardProps) {
   return (
-    <Reveal as="div" rhythm={rhythm} className={`stat-card ${tone !== "default" ? `stat-tone-${tone}` : ""} ${className}`.trim()}>
-      {icon && <span className="stat-icon" aria-hidden="true">{icon}</span>}
-      <span className="stat-copy">
-        <strong className="stat-value">{value}</strong>
-        <small className="stat-label">{label}</small>
-      </span>
-      {trend && <span className="stat-trend">{trend}</span>}
+    <Reveal as="div" rhythm={rhythm} className={`stat-card ${statToneClass[tone]} ${className}`.trim()}>
+      <Card className="flex w-full min-h-[84px] items-center gap-3 px-4 py-3.5 shadow-sm">
+        {icon && <span className="stat-icon grid size-9 shrink-0 place-items-center rounded-xl bg-primary-100 text-primary-700" aria-hidden="true">{icon}</span>}
+        <span className="stat-copy grid min-w-0 gap-1.5">
+          <strong className="stat-value text-[22px] font-semibold leading-none tracking-tight">{value}</strong>
+          <small className="stat-label text-[11px] text-foreground-500">{label}</small>
+        </span>
+        {trend && <span className="stat-trend ml-auto whitespace-nowrap rounded-full bg-success-100 px-2 py-0.5 text-[10px] text-success-700">{trend}</span>}
+      </Card>
     </Reveal>
   );
 }
 
-// StatGrid 是统计卡行容器；columns 驱动列数与响应式降列。
 export function StatGrid({ columns = 4, className = "", children }: { columns?: number; className?: string; children?: ReactNode }) {
-  return <div className={`stat-grid ${className}`.trim()} style={{ "--stat-columns": columns } as CSSProperties} data-stat-columns={columns}>{children}</div>;
+  return <div className={`stat-grid mb-5 ${className}`.trim()} style={{ "--stat-columns": columns } as CSSProperties} data-stat-columns={columns}>{children}</div>;
 }
 
-// DataCard 是数据表格卡片：卡头（kicker/title/actions）+ 卡体（DataTable 等）+ 可选卡脚（分页）。
 export function DataCard({ kicker, title, description, actions, footer, className = "", children }: { kicker?: ReactNode; title?: ReactNode; description?: ReactNode; actions?: ReactNode; footer?: ReactNode; className?: string; children?: ReactNode }) {
   return (
-    <section className={`data-card ${className}`.trim()}>
-      <Reveal as="div" className="data-card-heading" rhythm="balanced">
-        {(kicker || title || description) && <div className="data-card-copy">{kicker && <span className="section-kicker">{kicker}</span>}{title && <h2 className="section-title">{title}</h2>}{description && <p className="section-description">{description}</p>}</div>}
-        {actions && <div className="data-card-actions">{actions}</div>}
-      </Reveal>
-      <div className="data-card-body">{children}</div>
-      {footer && <footer className="data-card-footer">{footer}</footer>}
+    <section className={`data-card w-full ${className}`.trim()}>
+      <Card className="h-full w-full shadow-sm">
+        <Reveal as="div" className="flex items-start justify-between gap-4 px-5 pt-4" rhythm="balanced">
+          {(kicker || title || description) && <div className="min-w-0">{kicker && <span className="section-kicker block text-[10px] font-bold uppercase tracking-[0.12em] text-primary">{kicker}</span>}{title && <h2 className="section-title mt-0.5 text-[15px] font-semibold">{title}</h2>}{description && <p className="section-description mt-1 max-w-[640px] text-xs leading-relaxed text-foreground-500">{description}</p>}</div>}
+          {actions && <div className="flex items-center justify-end gap-2">{actions}</div>}
+        </Reveal>
+        <Card.Content className="grid gap-3.5 px-5 pb-1 pt-3">{children}</Card.Content>
+        {footer && <Card.Footer className="flex items-center justify-between gap-2 px-5 pb-4 pt-2.5">{footer}</Card.Footer>}
+      </Card>
     </section>
   );
 }

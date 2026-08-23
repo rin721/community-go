@@ -67,6 +67,12 @@ Linux 使用 `bash scripts/verify-webui.sh`。质量链覆盖生成检查、冻�
 - IAM 用户/角色页、Organization 部门/岗位/分配页与 Navigation 菜单页的写操作按钮（创建/启停/重置/改名/归档/保存策略）均经模块 Binding `ActionPermissions` + SDK `ActionTrigger` 接入动作级权限投影：denied 时按钮隐藏或禁用，未声明/未投影的 operation 前端不做呈现限制（服务端授权继续 fail closed）。
 - 账号/角色列表支持关键字过滤与分页；角色权限与账号角色保存遇到 409 时展示 added/removed 差异并重新加载最新版本（不静默丢弃未保存选择）；Organization 分配使用 `expectedVersion` 乐观锁并在冲突时重载。
 
+## 全量采用 HeroUI 组件库（068）
+
+- 呈现层单轨替换为 HeroUI v3 + Tailwind v4：`@webui/sdk/ui` 导出契约不变，Button/Field/SelectField/StatusPill/CapabilityBanner/InlineAlert/Skeleton/EmptyState/Toast（`@heroui/toast` 队列）/PageSection/StatCard/StatGrid/DataCard/DataTable（RAC Table）/Pagination（复合）/ActionTrigger/IconButton 内部改用 HeroUI；平台契约层（ActionTrigger 权限呈现、zone、Reveal、滚动运行时、`experience` 配置、reduced-motion）不回归。
+- 依赖与装配：`@heroui/react/@heroui/theme/@heroui/toast/@heroui/styles` + `tailwindcss@^4`（`@tailwindcss/vite`）；`tailwind.config.js`（darkMode=class、heroui() 插件）；`main.tsx` 引入 `@heroui/styles/css` 组件静态样式；`applyTheme` 联动 `<html>`.dark。
+- 保留边界（如实记录）：遮罩容器（ConfirmDialog/Drawer/ThemeDrawer/RouteSearch）与 Switch/Checkbox 自绘；组件样式、e2e 语义与截图证据见 [068 变更记录](../docs/changes/068-heroui-ui-adoption/README.md)。
+
 ## 页面布局骨架与滚动/动效体验（067）
 
 - 平台布局骨架原语（`@webui/sdk/ui`）：`PageSection` 区块卡片、`StatGrid`/`StatCard` KPI 统计行、`DataCard` 数据表格卡片、`Reveal`/`RevealList` 弹入响应；通用布局样式（`toolbar`/`card-grid`/`item-card`/`page-meta`/`form-panel`）收编进 `styles.css` public UI 分区，全部业务模块页面已迁移（IAM/Organization/Auth/Navigation/Ops），模块 CSS 只保留专属 selector。

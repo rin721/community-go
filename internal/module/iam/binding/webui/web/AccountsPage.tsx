@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActionTrigger, Button, Field, PageHeader, PageSection, RevealList, StatusPill } from "@webui/sdk/ui";
+import { ActionTrigger, Button, Field, PageHeader, PageSection, RevealList, SelectField, StatusPill } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { accountRolesView, archiveAccount, createAccount, listAccounts, listRoles, replaceAccountRoles, resetAccountPassword, setAccountStatus, updateAccountInfo, type Account, type Role } from "./api";
 import styles from "./iam.module.css";
@@ -85,7 +85,7 @@ export default function AccountsPage() {
         <div className="toolbar"><Field label={t("webui.iam.username")} value={username} onChange={(event) => setUsername(event.target.value)} /><Field label={t("webui.iam.displayName")} value={name} onChange={(event) => setName(event.target.value)} /><Field label={t("webui.iam.password")} type="password" value={password} onChange={(event) => setPassword(event.target.value)} /><ActionTrigger operationId="iam.accounts.create" onAction={() => void createAccount(username, name, password).then(() => { setUsername(""); setName(""); setPassword(""); return refresh(); }).catch(() => setMessage(t("webui.iam.error")))}>{t("webui.iam.create")}</ActionTrigger></div>
       </PageSection>
       <PageSection kicker={t("webui.iam.accounts.manage.kicker")} title={t("webui.iam.accounts.manage.title")}>
-        <label className="form-field">{t("webui.iam.accounts.selected")}<select className="field-input" value={selectedID} onChange={(event) => setSelectedID(event.target.value)}>{items.map((item) => <option key={item.id} value={item.id}>{item.displayName} (@{item.username}){item.archived ? ` · ${t("webui.iam.accounts.archived")}` : ""}</option>)}</select></label>
+        <SelectField label={t("webui.iam.accounts.selected")} value={selectedID} onValueChange={setSelectedID} options={items.map((item) => ({ value: item.id, label: `${item.displayName} (@${item.username})${item.archived ? ` · ${t("webui.iam.accounts.archived")}` : ""}` }))} />
         <div className="role-checklist">{candidates.map((role) => <label key={role.id} className="permission-row"><input type="checkbox" checked={roleIDs.includes(role.id)} disabled={!selected || selected.archived} onChange={() => toggle(role.id)} />{role.name} ({role.code})</label>)}</div>
         {message && <p className="page-meta">{message}</p>}
         <div className="page-meta">{t("webui.iam.accounts.revision")} rev {expectedVersion}</div>

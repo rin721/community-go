@@ -1,6 +1,7 @@
 import { Component, lazy, Suspense, useCallback, useEffect, useState, type ComponentType, type ReactNode } from "react";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { HostRuntimeProvider, type HostRuntime, type Manifest, type ManifestRoute, type PrincipalView } from "@webui/sdk/runtime";
+import { ToastProvider } from "@webui/sdk/ui";
 import { ensureRouteLocale, translateMessage } from "./i18n";
 import { AppShell, BlankLayout } from "./components/AppShell";
 import { PageSkeleton } from "./components/shell/ShellSkeleton";
@@ -49,7 +50,7 @@ export function App() {
   if (!manifest) return <StartupState title={translateMessage("webui.host.loading.title")} detail={translateMessage("webui.host.loading.detail")} />;
   if (manifest.catalogRevision !== webuiRevision) return <StartupState title={translateMessage("webui.host.revision.title")} detail={translateMessage("webui.host.revision.detail")} />;
   const runtime: HostRuntime = { manifest, principal, completeAuthentication, refreshManifest: async () => { await refreshManifest(); }, navigateToDefault: () => navigateToDefault() };
-  return <HostRuntimeProvider value={runtime}><ZoneRendererProvider><Routes><Route element={<BlankLayout />}>{manifest.routes.filter((route) => route.layout === "blank").map((route) => <Route key={route.id} path={route.path} element={<ManifestPage route={route} manifest={manifest} />} />)}</Route><Route element={<AppShell manifest={manifest} principal={principal} onLogout={handleLogout} />}>{manifest.routes.filter((route) => route.layout === "app").map((route) => <Route key={route.id} path={route.path} element={<ManifestPage route={route} manifest={manifest} />} />)}<Route path="/403" element={<SystemStatePage kind="forbidden" />} /><Route path="/404" element={<SystemStatePage kind="notFound" />} /></Route><Route path="/" element={<RootRedirect manifest={manifest} />} /><Route path="*" element={<StandaloneNotFound />} /></Routes></ZoneRendererProvider></HostRuntimeProvider>;
+  return <HostRuntimeProvider value={runtime}><ToastProvider placement="top-right" maxVisibleToasts={3} /><ZoneRendererProvider><Routes><Route element={<BlankLayout />}>{manifest.routes.filter((route) => route.layout === "blank").map((route) => <Route key={route.id} path={route.path} element={<ManifestPage route={route} manifest={manifest} />} />)}</Route><Route element={<AppShell manifest={manifest} principal={principal} onLogout={handleLogout} />}>{manifest.routes.filter((route) => route.layout === "app").map((route) => <Route key={route.id} path={route.path} element={<ManifestPage route={route} manifest={manifest} />} />)}<Route path="/403" element={<SystemStatePage kind="forbidden" />} /><Route path="/404" element={<SystemStatePage kind="notFound" />} /></Route><Route path="/" element={<RootRedirect manifest={manifest} />} /><Route path="*" element={<StandaloneNotFound />} /></Routes></ZoneRendererProvider></HostRuntimeProvider>;
 }
 
 function toPrincipal(session: WebUISession): PrincipalView {

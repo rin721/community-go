@@ -7,6 +7,8 @@ import iampermission "github.com/rin721/go-scaffold-template/internal/module/iam
 const (
 	SelfRead          = iampermission.SelfRead
 	SelfPasswordWrite = iampermission.SelfPasswordWrite
+	SelfProfileWrite  = iampermission.SelfProfileWrite
+	SelfArchive       = iampermission.SelfArchive
 	AccountRead       = iampermission.AccountRead
 	AccountWrite      = iampermission.AccountWrite
 	RoleRead          = iampermission.RoleRead
@@ -20,6 +22,8 @@ func Definitions() []permissioncatalog.Definition {
 	return []permissioncatalog.Definition{
 		{Key: SelfRead, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.self.read"},
 		{Key: SelfPasswordWrite, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.self-password.write"},
+		{Key: SelfProfileWrite, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.self-profile.write"},
+		{Key: SelfArchive, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.self-archive"},
 		{Key: AccountRead, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.account.read"},
 		{Key: AccountWrite, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.account.write"},
 		{Key: RoleRead, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.role.read"},

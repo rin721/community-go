@@ -31,7 +31,10 @@ const (
 	OperationIamRolesPermissionsRead        OperationID = "iam.roles.permissions.read"
 	OperationIamRolesPermissionsReplace     OperationID = "iam.roles.permissions.replace"
 	OperationIamRolesUpdate                 OperationID = "iam.roles.update"
+	OperationIamSelfArchive                 OperationID = "iam.self.archive"
+	OperationIamSelfArchiveConfirm          OperationID = "iam.self.archive.confirm"
 	OperationIamSelfPasswordChange          OperationID = "iam.self.password.change"
+	OperationIamSelfProfileUpdate           OperationID = "iam.self.profile.update"
 	OperationIamSessionRead                 OperationID = "iam.session.read"
 	OperationIamSessionsList                OperationID = "iam.sessions.list"
 	OperationIamSessionsRevoke              OperationID = "iam.sessions.revoke"
@@ -72,7 +75,10 @@ var operationInventory = [...]Operation{
 	{ID: OperationIamRolesPermissionsRead, Method: "GET", Path: "/api/v1/iam/roles/{id}/permissions", Policy: "protected", Scope: "iam:role:read", Action: "iam.roles.permissions.read"},
 	{ID: OperationIamRolesPermissionsReplace, Method: "PUT", Path: "/api/v1/iam/roles/{id}/permissions", Policy: "protected", Scope: "iam:role:write", Action: "iam.roles.permissions.replace"},
 	{ID: OperationIamRolesUpdate, Method: "PATCH", Path: "/api/v1/iam/roles/{id}", Policy: "protected", Scope: "iam:role:write", Action: "iam.roles.update"},
+	{ID: OperationIamSelfArchive, Method: "POST", Path: "/api/v1/iam/self/archive", Policy: "protected", Scope: "iam:account:self:archive", Action: "iam.self.archive"},
+	{ID: OperationIamSelfArchiveConfirm, Method: "POST", Path: "/api/v1/iam/self/archive/confirm", Policy: "protected", Scope: "iam:account:self:archive", Action: "iam.self.archive.confirm"},
 	{ID: OperationIamSelfPasswordChange, Method: "POST", Path: "/api/v1/iam/self/password", Policy: "protected", Scope: "iam:account:self:password:write", Action: "iam.self.password.change"},
+	{ID: OperationIamSelfProfileUpdate, Method: "PATCH", Path: "/api/v1/iam/self/profile", Policy: "protected", Scope: "iam:account:self:profile:write", Action: "iam.self.profile.update"},
 	{ID: OperationIamSessionRead, Method: "GET", Path: "/api/v1/iam/session", Policy: "protected", Scope: "iam:account:self:read", Action: "iam.session.read"},
 	{ID: OperationIamSessionsList, Method: "GET", Path: "/api/v1/iam/sessions", Policy: "protected", Scope: "iam:account:self:read", Action: "iam.sessions.list"},
 	{ID: OperationIamSessionsRevoke, Method: "POST", Path: "/api/v1/iam/sessions/revoke", Policy: "protected", Scope: "iam:account:write", Action: "iam.sessions.revoke"},

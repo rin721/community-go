@@ -19,14 +19,16 @@ const (
 )
 
 var (
-	ErrInvalidID       = errors.New("iam id is invalid")
-	ErrInvalidUsername = errors.New("iam username is invalid")
-	ErrInvalidName     = errors.New("iam name is invalid")
-	ErrInvalidPassword = errors.New("iam password is invalid")
-	ErrInvalidTime     = errors.New("iam time is invalid")
-	ErrOwnerInvariant  = errors.New("iam owner invariant would be violated")
-	usernamePattern    = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$`)
-	roleCodePattern    = regexp.MustCompile(`^[a-z][a-z0-9._-]{1,63}$`)
+	ErrInvalidID           = errors.New("iam id is invalid")
+	ErrInvalidUsername     = errors.New("iam username is invalid")
+	ErrInvalidName         = errors.New("iam name is invalid")
+	ErrInvalidPassword     = errors.New("iam password is invalid")
+	ErrInvalidTime         = errors.New("iam time is invalid")
+	ErrInvalidProfile      = errors.New("iam profile field is invalid")
+	ErrInvalidConfirmation = errors.New("iam confirmation is invalid or expired")
+	ErrOwnerInvariant      = errors.New("iam owner invariant would be violated")
+	usernamePattern        = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$`)
+	roleCodePattern        = regexp.MustCompile(`^[a-z][a-z0-9._-]{1,63}$`)
 )
 
 type AccountStatus string
@@ -38,6 +40,8 @@ const (
 
 type Account struct {
 	ID, Username, DisplayName string
+	// Nickname/Bio/BirthDate 是用户主页资料（072 设置中心 profile 分区；可空）。
+	Nickname, Bio, BirthDate  string
 	Status                    AccountStatus
 	Archived                  bool
 	MustChangePassword        bool

@@ -116,6 +116,26 @@ type changePasswordInput struct {
 		NewPassword     string `json:"newPassword" minLength:"15" maxLength:"128"`
 	}
 }
+type updateSelfProfileInput struct {
+	Origin    string `header:"Origin" required:"true"`
+	CSRFToken string `header:"X-CSRF-Token" required:"true"`
+	Body      struct {
+		ExpectedVersion uint64 `json:"expectedVersion"`
+		Nickname        string `json:"nickname" maxLength:"64"`
+		Bio             string `json:"bio" maxLength:"2048"`
+		BirthDate       string `json:"birthDate" maxLength:"16"`
+	}
+}
+type selfArchiveInput struct {
+	Origin    string `header:"Origin" required:"true"`
+	CSRFToken string `header:"X-CSRF-Token" required:"true"`
+	Body      struct {
+		ConfirmationID string `json:"confirmationId"`
+	}
+}
+type selfArchiveBeginOutput struct {
+	ConfirmationID string `json:"confirmationId"`
+}
 type createRoleInput struct {
 	Origin    string `header:"Origin" required:"true"`
 	CSRFToken string `header:"X-CSRF-Token" required:"true"`
@@ -213,6 +233,40 @@ func RegisterHuma(api huma.API, handler *Handler) {
 	huma.Register(api, change, func(ctx context.Context, in *changePasswordInput) (*emptyOutput, error) {
 		_, current, _ := service.SessionFromContext(ctx)
 		if err := handler.service.ChangePassword(ctx, current.Identity.AccountID, in.Body.CurrentPassword, in.Body.NewPassword); err != nil {
+			return nil, problem(ctx, err)
+		}
+		return &emptyOutput{}, nil
+	})
+
+	// 072：自服务主页资料更新：昵称/介绍/出生日期（乐观锁），不撤销会话。
+	selfProfile := protected(opSelfProfileUpdate, http.MethodPatch, "/api/v1/iam/self/profile", string(iampermission.SelfProfileWrite), "update")
+	selfProfile.Middlewares = huma.Middlewares{handler.requireMutation}
+	huma.Register(api, selfProfile, func(ctx context.Context, in *updateSelfProfileInput) (*jsonOutput[profileResponse], error) {
+		_, current, _ := service.SessionFromContext(ctx)
+		updated, err := handler.service.UpdateSelfProfile(ctx, current.Identity.AccountID, in.Body.ExpectedVersion, in.Body.Nickname, in.Body.Bio, in.Body.BirthDate)
+		if err != nil {
+			return nil, problem(ctx, err)
+		}
+		return jsonEnvelope(profileResponse{Username: updated.Username, Nickname: updated.Nickname, Bio: updated.Bio, BirthDate: updated.BirthDate, Version: updated.Version}), nil
+	})
+
+	// 072：自服务软注销（两步确认）：首调生成 confirmationId，二次确认归档并吊销会话。
+	selfArchiveBegin := protected(opSelfArchive, http.MethodPost, "/api/v1/iam/self/archive", string(iampermission.SelfArchive), "archive")
+	selfArchiveBegin.Middlewares = huma.Middlewares{handler.requireMutation}
+	huma.Register(api, selfArchiveBegin, func(ctx context.Context, _ *selfArchiveInput) (*selfArchiveBeginOutput, error) {
+		_, current, _ := service.SessionFromContext(ctx)
+		confirmationID, err := handler.service.BeginSelfArchive(ctx, current.Identity.AccountID)
+		if err != nil {
+			return nil, problem(ctx, err)
+		}
+		return &selfArchiveBeginOutput{ConfirmationID: confirmationID}, nil
+	})
+	selfArchiveConfirm := protected(opSelfArchiveConfirm, http.MethodPost, "/api/v1/iam/self/archive/confirm", string(iampermission.SelfArchive), "archive")
+	selfArchiveConfirm.DefaultStatus = http.StatusNoContent
+	selfArchiveConfirm.Middlewares = huma.Middlewares{handler.requireMutation}
+	huma.Register(api, selfArchiveConfirm, func(ctx context.Context, in *selfArchiveInput) (*emptyOutput, error) {
+		_, current, _ := service.SessionFromContext(ctx)
+		if err := handler.service.ConfirmSelfArchive(ctx, current.Identity.AccountID, in.Body.ConfirmationID); err != nil {
 			return nil, problem(ctx, err)
 		}
 		return &emptyOutput{}, nil

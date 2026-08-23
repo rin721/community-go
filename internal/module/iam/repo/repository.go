@@ -26,13 +26,15 @@ type Access interface {
 
 type AccountRecord struct {
 	ID, Username, DisplayName, Status string
-	Archived                          bool
-	MustChangePassword                bool
-	SecurityRevision                  uint64
-	FailedAttempts                    int
-	LockedUntil                       *time.Time
-	Version                           uint64
-	CreatedAt, UpdatedAt              time.Time
+	// Nickname/Bio/BirthDate 是用户主页资料（072；可空）。
+	Nickname, Bio, BirthDate string
+	Archived                 bool
+	MustChangePassword       bool
+	SecurityRevision         uint64
+	FailedAttempts           int
+	LockedUntil              *time.Time
+	Version                  uint64
+	CreatedAt, UpdatedAt     time.Time
 }
 type CredentialRecord struct {
 	AccountID, PasswordHash string

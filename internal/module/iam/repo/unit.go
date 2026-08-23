@@ -19,6 +19,9 @@ func IsConflict(err error) bool  { return errors.Is(err, database.ErrOptimisticC
 type AccountChanges struct {
 	Status             *string
 	DisplayName        *string
+	Nickname           *string
+	Bio                *string
+	BirthDate          *string
 	Archived           *bool
 	MustChangePassword *bool
 	SecurityRevision   *uint64
@@ -88,6 +91,15 @@ func (unit *Unit) UpdateAccount(ctx context.Context, id string, version uint64, 
 	}
 	if changes.DisplayName != nil {
 		values["display_name"] = *changes.DisplayName
+	}
+	if changes.Nickname != nil {
+		values["nickname"] = *changes.Nickname
+	}
+	if changes.Bio != nil {
+		values["bio"] = *changes.Bio
+	}
+	if changes.BirthDate != nil {
+		values["birth_date"] = *changes.BirthDate
 	}
 	if changes.Archived != nil {
 		values["archived"] = *changes.Archived

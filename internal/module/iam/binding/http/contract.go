@@ -20,6 +20,9 @@ const (
 	opSession             = "iam.session.read"
 	opLogout              = "iam.logout"
 	opChangePassword      = "iam.self.password.change"
+	opSelfProfileUpdate   = "iam.self.profile.update"
+	opSelfArchive         = "iam.self.archive"
+	opSelfArchiveConfirm  = "iam.self.archive.confirm"
 	opAccounts            = "iam.accounts.list"
 	opCreateAccount       = "iam.accounts.create"
 	opAccountStatus       = "iam.accounts.status"
@@ -86,11 +89,21 @@ type accountResponse struct {
 	ID                 string              `json:"id"`
 	Username           string              `json:"username"`
 	DisplayName        string              `json:"displayName"`
+	Nickname           string              `json:"nickname"`
+	Bio                string              `json:"bio"`
+	BirthDate          string              `json:"birthDate"`
 	Status             model.AccountStatus `json:"status" enum:"active,disabled"`
 	Archived           bool                `json:"archived"`
 	MustChangePassword bool                `json:"mustChangePassword"`
 	SecurityRevision   uint64              `json:"securityRevision"`
 	Version            uint64              `json:"version"`
+}
+type profileResponse struct {
+	Username  string `json:"username"`
+	Nickname  string `json:"nickname"`
+	Bio       string `json:"bio"`
+	BirthDate string `json:"birthDate"`
+	Version   uint64 `json:"version"`
 }
 type roleResponse struct {
 	ID          string `json:"id"`
@@ -159,7 +172,7 @@ type sessionRevokeInput struct {
 }
 
 func accountOutput(v model.Account) accountResponse {
-	return accountResponse{v.ID, v.Username, v.DisplayName, v.Status, v.Archived, v.MustChangePassword, v.SecurityRevision, v.Version}
+	return accountResponse{v.ID, v.Username, v.DisplayName, v.Nickname, v.Bio, v.BirthDate, v.Status, v.Archived, v.MustChangePassword, v.SecurityRevision, v.Version}
 }
 func roleOutput(v model.Role) roleResponse {
 	return roleResponse{v.ID, v.Code, v.Name, v.Description, v.Active, v.Archived, v.System, v.Version}
@@ -176,7 +189,7 @@ func assignmentOutput(id string, v service.AssignmentResult) assignmentResponse 
 
 func serviceError(err error) error {
 	switch {
-	case errors.Is(err, model.ErrInvalidUsername), errors.Is(err, model.ErrInvalidName), errors.Is(err, model.ErrInvalidPassword):
+	case errors.Is(err, model.ErrInvalidUsername), errors.Is(err, model.ErrInvalidName), errors.Is(err, model.ErrInvalidPassword), errors.Is(err, model.ErrInvalidProfile), errors.Is(err, model.ErrInvalidConfirmation):
 		return statusError(http.StatusBadRequest, "invalid_request", err)
 	case errors.Is(err, service.ErrInvalidCredentials):
 		return statusError(http.StatusUnauthorized, "invalid_credentials", err)

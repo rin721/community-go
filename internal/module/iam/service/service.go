@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/rin721/go-scaffold-template/internal/module/iam/model"
@@ -101,6 +102,8 @@ type Config struct {
 	IdleTimeout, AbsoluteTimeout time.Duration
 	MaxFailedAttempts            int
 	LockDuration                 time.Duration
+	// ArchiveConfirmationTTL 是软注销两步确认的有效期（072）；零值使用默认值。
+	ArchiveConfirmationTTL time.Duration
 }
 type Session struct {
 	ID, CSRFToken                                           string
@@ -157,15 +160,25 @@ func SessionFromContext(ctx context.Context) (string, Session, bool) {
 }
 
 type Service struct {
-	store         *repo.Store
-	clock         clock.Clock
-	ids           idgen.Generator
-	passwords     PasswordHasher
-	config        Config
-	catalog       permissioncatalog.Catalog
-	authorization AuthorizationPublisher
+	store          *repo.Store
+	clock          clock.Clock
+	ids            idgen.Generator
+	passwords      PasswordHasher
+	config         Config
+	catalog        permissioncatalog.Catalog
+	authorization  AuthorizationPublisher
 	operationAudit OperationAuditWriter
-	dummyHash     string
+	dummyHash      string
+	// selfArchiveConfirmations 是软注销两步确认的进程内存储（072）：
+	// confirmationId → {AccountID, ExpiresAt}；TTL 由 config.ArchiveConfirmationTTL 控制。
+	selfArchiveConfirmations map[string]pendingArchive
+	archiveConfirmationsMu   sync.Mutex
+}
+
+// pendingArchive 是软注销两步确认的临时凭据。
+type pendingArchive struct {
+	AccountID string
+	ExpiresAt time.Time
 }
 
 // WithOperationAudit 注入业务写操作审计 writer（由 composition 提供 Auth
@@ -202,7 +215,7 @@ func New(store *repo.Store, currentClock clock.Clock, ids idgen.Generator, passw
 	if err != nil {
 		return nil, fmt.Errorf("create iam fixed-cost verifier: %w", err)
 	}
-	return &Service{store: store, clock: currentClock, ids: ids, passwords: passwords, config: config, catalog: catalog, authorization: authorization, dummyHash: dummy}, nil
+	return &Service{store: store, clock: currentClock, ids: ids, passwords: passwords, config: config, catalog: catalog, authorization: authorization, dummyHash: dummy, selfArchiveConfirmations: map[string]pendingArchive{}}, nil
 }
 
 func (s *Service) Setup(ctx context.Context, setupToken, username, displayName, password string) (Session, error) {
@@ -795,6 +808,110 @@ func (s *Service) ArchiveAccount(ctx context.Context, accountID string) error {
 	return err
 }
 
+// defaultArchiveConfirmationTTL 是软注销两步确认的默认有效期。
+const defaultArchiveConfirmationTTL = 2 * time.Minute
+
+func (s *Service) archiveConfirmationTTL() time.Duration {
+	if s.config.ArchiveConfirmationTTL > 0 {
+		return s.config.ArchiveConfirmationTTL
+	}
+	return defaultArchiveConfirmationTTL
+}
+
+// UpdateSelfProfile 更新当前账号主页资料（昵称/介绍/出生日期，072）。
+// 资料变更不 bump 安全修订号（不撤销会话）；乐观锁版本过期返回 ErrVersionConflict。
+func (s *Service) UpdateSelfProfile(ctx context.Context, accountID string, expectedVersion uint64, nickname, bio, birthDate string) (model.Account, error) {
+	nickname = strings.TrimSpace(nickname)
+	bio = strings.TrimSpace(bio)
+	birthDate = strings.TrimSpace(birthDate)
+	if len([]rune(nickname)) > 64 || len([]rune(bio)) > 2048 || len([]rune(birthDate)) > 16 {
+		return model.Account{}, model.ErrInvalidProfile
+	}
+	if birthDate != "" {
+		if _, err := time.Parse("2006-01-02", birthDate); err != nil {
+			return model.Account{}, model.ErrInvalidProfile
+		}
+	}
+	var updated model.Account
+	err := s.store.WithinTx(ctx, func(txCtx context.Context, r *repo.Unit) error {
+		record, err := accountByID(txCtx, r, accountID)
+		if err != nil {
+			return err
+		}
+		if record.Archived {
+			return model.ErrOwnerInvariant
+		}
+		if record.Version != expectedVersion {
+			return ErrVersionConflict
+		}
+		now := s.clock.Now().UTC()
+		if err := r.UpdateAccount(txCtx, record.ID, record.Version, repo.AccountChanges{Nickname: &nickname, Bio: &bio, BirthDate: &birthDate, UpdatedAt: now}); err != nil {
+			return err
+		}
+		record.Nickname, record.Bio, record.BirthDate, record.Version, record.UpdatedAt = nickname, bio, birthDate, record.Version+1, now
+		updated = modelAccount(record)
+		return nil
+	})
+	s.auditOperation(ctx, "iam.self.profile", "update", "account", accountID, err)
+	return updated, err
+}
+
+// BeginSelfArchive 为软注销生成两步确认凭据（072）。此调用只创建进程内
+// confirmationId（TTL 后失效），不产生任何业务副作用。
+func (s *Service) BeginSelfArchive(ctx context.Context, accountID string) (string, error) {
+	var archived bool
+	if err := s.store.Use(ctx, func(r *repo.Unit) error {
+		record, err := accountByID(ctx, r, accountID)
+		if err != nil {
+			return err
+		}
+		archived = record.Archived
+		return nil
+	}); err != nil {
+		return "", err
+	}
+	if archived {
+		return "", model.ErrOwnerInvariant
+	}
+	s.archiveConfirmationsMu.Lock()
+	defer s.archiveConfirmationsMu.Unlock()
+	now := s.clock.Now().UTC()
+	for id, pending := range s.selfArchiveConfirmations {
+		if pending.ExpiresAt.Before(now) {
+			delete(s.selfArchiveConfirmations, id)
+		}
+	}
+	for {
+		confirmationID, err := randomToken()
+		if err != nil {
+			return "", err
+		}
+		if _, exists := s.selfArchiveConfirmations[confirmationID]; exists {
+			continue
+		}
+		s.selfArchiveConfirmations[confirmationID] = pendingArchive{AccountID: accountID, ExpiresAt: now.Add(s.archiveConfirmationTTL())}
+		return confirmationID, nil
+	}
+}
+
+// ConfirmSelfArchive 校验两步凭据并把当前账号软注销：复用归档语义
+// （登录阻塞、不可分配、全部会话吊销）；确认凭据单次使用并受 TTL 约束。
+func (s *Service) ConfirmSelfArchive(ctx context.Context, accountID string, confirmationID string) error {
+	if strings.TrimSpace(confirmationID) == "" {
+		return model.ErrInvalidConfirmation
+	}
+	s.archiveConfirmationsMu.Lock()
+	pending, exists := s.selfArchiveConfirmations[confirmationID]
+	if exists {
+		delete(s.selfArchiveConfirmations, confirmationID)
+	}
+	s.archiveConfirmationsMu.Unlock()
+	if !exists || pending.AccountID != accountID || pending.ExpiresAt.Before(s.clock.Now().UTC()) {
+		return model.ErrInvalidConfirmation
+	}
+	return s.ArchiveAccount(ctx, accountID)
+}
+
 func (s *Service) CreateRole(ctx context.Context, code, name, description string) (model.Role, error) {
 	id, err := s.ids.New()
 	if err != nil {
@@ -1208,10 +1325,10 @@ func (s *Service) authorizeMutation(ctx context.Context, mutate func(context.Con
 // SessionInfo 是会话集中管理的元数据视图：只暴露 IDHash 摘要（hex）、
 // 账号与过期信息，绝不泄露明文 SessionID 或 CSRF。
 type SessionInfo struct {
-	IDHash                                        string
-	AccountID                                     string
+	IDHash                                                  string
+	AccountID                                               string
 	CreatedAt, LastSeenAt, IdleExpiresAt, AbsoluteExpiresAt time.Time
-	RevokedAt                                     *time.Time
+	RevokedAt                                               *time.Time
 }
 
 // ListSessions 返回账号的全部受信 Session 元数据视图（含已吊销标记）。
@@ -1418,10 +1535,10 @@ func sessionOutput(id string, record repo.SessionRecord, account model.Account, 
 	return Session{ID: id, Identity: model.SessionIdentity{AccountID: account.ID, Username: account.Username, DisplayName: account.DisplayName, Permissions: append([]permissioncatalog.Key(nil), permissions...), MustChangePassword: account.MustChangePassword, SecurityRevision: account.SecurityRevision, AuthenticatedAt: record.CreatedAt}, CreatedAt: record.CreatedAt, LastSeenAt: record.LastSeenAt, IdleExpiresAt: record.IdleExpiresAt, AbsoluteExpiresAt: record.AbsoluteExpiresAt}
 }
 func accountRecord(v model.Account) repo.AccountRecord {
-	return repo.AccountRecord{ID: v.ID, Username: v.Username, DisplayName: v.DisplayName, Status: string(v.Status), Archived: v.Archived, MustChangePassword: v.MustChangePassword, SecurityRevision: v.SecurityRevision, FailedAttempts: v.FailedAttempts, LockedUntil: v.LockedUntil, Version: v.Version, CreatedAt: v.CreatedAt, UpdatedAt: v.UpdatedAt}
+	return repo.AccountRecord{ID: v.ID, Username: v.Username, DisplayName: v.DisplayName, Nickname: v.Nickname, Bio: v.Bio, BirthDate: v.BirthDate, Status: string(v.Status), Archived: v.Archived, MustChangePassword: v.MustChangePassword, SecurityRevision: v.SecurityRevision, FailedAttempts: v.FailedAttempts, LockedUntil: v.LockedUntil, Version: v.Version, CreatedAt: v.CreatedAt, UpdatedAt: v.UpdatedAt}
 }
 func modelAccount(v repo.AccountRecord) model.Account {
-	return model.Account{ID: v.ID, Username: v.Username, DisplayName: v.DisplayName, Status: model.AccountStatus(v.Status), Archived: v.Archived, MustChangePassword: v.MustChangePassword, SecurityRevision: v.SecurityRevision, FailedAttempts: v.FailedAttempts, LockedUntil: v.LockedUntil, Version: v.Version, CreatedAt: v.CreatedAt, UpdatedAt: v.UpdatedAt}
+	return model.Account{ID: v.ID, Username: v.Username, DisplayName: v.DisplayName, Nickname: v.Nickname, Bio: v.Bio, BirthDate: v.BirthDate, Status: model.AccountStatus(v.Status), Archived: v.Archived, MustChangePassword: v.MustChangePassword, SecurityRevision: v.SecurityRevision, FailedAttempts: v.FailedAttempts, LockedUntil: v.LockedUntil, Version: v.Version, CreatedAt: v.CreatedAt, UpdatedAt: v.UpdatedAt}
 }
 func roleRecord(v model.Role) repo.RoleRecord {
 	return repo.RoleRecord{ID: v.ID, Code: v.Code, Name: v.Name, Description: v.Description, Active: v.Active, Archived: v.Archived, System: v.System, Version: v.Version, CreatedAt: v.CreatedAt, UpdatedAt: v.UpdatedAt}

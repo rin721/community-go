@@ -836,3 +836,80 @@ func TestArchiveRoleRevokesPermissionAndSessions(t *testing.T) {
 	}
 	_ = ownerSession
 }
+
+// TestUpdateSelfProfilePersistsProfileWithOptimisticLock 验证自服务资料更新：
+// 昵称/介绍/出生日期写入并可读回；过期版本返回 ErrVersionConflict；非法出生日期拒绝。
+func TestUpdateSelfProfilePersistsProfileWithOptimisticLock(t *testing.T) {
+	iam, resource := newService(t)
+	defer resource.Close()
+	session, err := iam.Setup(t.Context(), "setup-secret", "owner", "Owner", "123456789012345")
+	if err != nil {
+		t.Fatal(err)
+	}
+	accounts, err := iam.ListAccounts(t.Context(), 0, 10, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	firstVersion := accounts.Items[0].Version
+	updated, err := iam.UpdateSelfProfile(t.Context(), session.Identity.AccountID, firstVersion, "Nick", "Hello", "1990-01-02")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.Nickname != "Nick" || updated.Bio != "Hello" || updated.BirthDate != "1990-01-02" || updated.Version != firstVersion+1 {
+		t.Fatalf("updated account = %#v", updated)
+	}
+	if _, err := iam.UpdateSelfProfile(t.Context(), session.Identity.AccountID, firstVersion, "Nick2", "", ""); !errors.Is(err, service.ErrVersionConflict) {
+		t.Fatalf("stale version error = %v", err)
+	}
+	if _, err := iam.UpdateSelfProfile(t.Context(), session.Identity.AccountID, updated.Version, "Nick2", "", "not-a-date"); !errors.Is(err, model.ErrInvalidProfile) {
+		t.Fatalf("invalid birth date error = %v", err)
+	}
+}
+
+// TestSelfArchiveRequiresTwoStepConfirmation 验证软注销两步确认：
+// 未确认时账号保持可用；错误确认被拒；确认后归档生效（登录拒绝、会话吊销）。
+func TestSelfArchiveRequiresTwoStepConfirmation(t *testing.T) {
+	iam, resource := newService(t)
+	defer resource.Close()
+	session, err := iam.Setup(t.Context(), "setup-secret", "owner", "Owner", "123456789012345")
+	if err != nil {
+		t.Fatal(err)
+	}
+	member, err := iam.CreateAccount(t.Context(), "member", "成员", "abcdefghijklmno")
+	if err != nil {
+		t.Fatal(err)
+	}
+	memberSession, err := iam.Login(t.Context(), "member", "abcdefghijklmno")
+	if err != nil {
+		t.Fatal(err)
+	}
+	confirmation, err := iam.BeginSelfArchive(t.Context(), member.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 错误确认被拒绝，账号仍可用。
+	if err := iam.ConfirmSelfArchive(t.Context(), member.ID, "wrong-confirmation"); !errors.Is(err, model.ErrInvalidConfirmation) {
+		t.Fatalf("wrong confirmation error = %v", err)
+	}
+	if _, err := iam.Resolve(t.Context(), memberSession.ID); err != nil {
+		t.Fatalf("session before confirm error = %v", err)
+	}
+	// 正确确认后归档生效：登录拒绝、会话吊销、重复确认过期。
+	if err := iam.ConfirmSelfArchive(t.Context(), member.ID, confirmation); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := iam.Login(t.Context(), "member", "abcdefghijklmno"); !errors.Is(err, service.ErrAccountDisabled) {
+		t.Fatalf("login after self archive error = %v", err)
+	}
+	if _, err := iam.Resolve(t.Context(), memberSession.ID); !errors.Is(err, service.ErrSessionInvalid) {
+		t.Fatalf("session after self archive error = %v", err)
+	}
+	// 最后一个 owner 账号不允许两步软注销确认。
+	ownerConfirmation, err := iam.BeginSelfArchive(t.Context(), session.Identity.AccountID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := iam.ConfirmSelfArchive(t.Context(), session.Identity.AccountID, ownerConfirmation); !errors.Is(err, model.ErrOwnerInvariant) {
+		t.Fatalf("archive last owner confirm error = %v", err)
+	}
+}

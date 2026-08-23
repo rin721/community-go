@@ -6,6 +6,8 @@ import permissioncatalog "github.com/rin721/go-scaffold-template/internal/permis
 const (
 	SelfRead          permissioncatalog.Key = "iam:account:self:read"
 	SelfPasswordWrite permissioncatalog.Key = "iam:account:self:password:write"
+	SelfProfileWrite  permissioncatalog.Key = "iam:account:self:profile:write"
+	SelfArchive       permissioncatalog.Key = "iam:account:self:archive"
 	AccountRead       permissioncatalog.Key = "iam:account:read"
 	AccountWrite      permissioncatalog.Key = "iam:account:write"
 	RoleRead          permissioncatalog.Key = "iam:role:read"

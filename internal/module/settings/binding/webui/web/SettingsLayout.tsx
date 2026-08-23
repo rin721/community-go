@@ -2,6 +2,7 @@ import { SectionNav, type SectionNavItem } from "@webui/sdk/ui";
 import { useOptionalHostRuntime } from "@webui/sdk/runtime";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import type { ReactNode } from "react";
+import styles from "./settings.module.css";
 
 // SettingsLayout is the settings group layout entry (073): the in-page section
 // navigation is mounted once by the host group route and stays fixed while the
@@ -36,7 +37,9 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
   const navigate = runtime?.navigate;
   const active = currentSettingsSection(window.location.pathname);
   const items = settingsNavItems(t);
-  return <div className="settings-inner" data-settings-active={active}>
+  // The settingsModule scope class must sit on the layout container so the
+  // module css flex-row layout for .settings-inner applies (nav on the left).
+  return <div className={`${styles.settingsModule} settings-inner`} data-settings-active={active}>
     <SectionNav ariaLabel={t("webui.settings.brand")} items={items} activeId={sectionItemID(active)} onSelect={navigate ? (id) => { const section = sectionRoutes.find((candidate) => sectionItemID(candidate) === id); if (section) navigate(`/settings/${section}`); } : undefined} />
     <div className="settings-content">{children}</div>
   </div>;

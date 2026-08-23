@@ -480,6 +480,10 @@ test("072 settings section switches stay SPA with profile save, closure, languag
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("/settings/profile");
   await expect(page.getByRole("heading", { name: "Profile", exact: true })).toBeVisible();
+  // 073 固定页内导航 + 行布局回归：导航在内容左侧（flex row），不在顶部堆叠。
+  await expect(page.locator("nav.section-nav")).toBeVisible();
+  const navDirection = await page.locator(".settings-inner").evaluate((element) => getComputedStyle(element).flexDirection);
+  expect(navDirection).toBe("row");
   // 073 固定页内导航：给导航节点打标记，切换分区后标记保留（卸载重挂则丢失）。
   await page.locator("nav.section-nav").evaluate((element) => { element.setAttribute("data-fixed-nav", "persistent"); });
   let fullLoads = 0;

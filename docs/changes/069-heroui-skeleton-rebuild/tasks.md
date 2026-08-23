@@ -23,4 +23,5 @@
 - SKL-069-C（完成）：Shell 控件 HeroUI/RAC 拼装——搜索触发器与页签触发器改用 HeroUI Button（页签触发器保留 role=tab/aria-selected/roving 语义）、账号菜单迁 RAC `MenuTrigger+Popover+Menu`（`.rac-menu-popover/.rac-menu/.rac-menu-item` 视觉）；侧栏/顶栏布局容器按 R069-002 记录为「HeroUI 控件 + Tailwind 布局」拼装。
 - SKL-069-D（完成核心）：页面模板规范写入 `docs/development/webui.md`（069 章节：PageHeader→StatGrid→PageSection→DataCard→Toolbar→FormCard→EmptyState/InlineAlert）；PageHeader 标题改用 HeroUI `Typography.Heading`；模块页面经 067/068 已符合模板结构。
 - SKL-069-E/F：e2e 069 截图证据、authority 文档其余同步与提交——进行中/待收尾。
-- 待推进：SKL-069-E/F 最终验收与提交；preset → `--heroui-*` 覆写的截图复核。
+- 收尾补充：侧栏品牌区用 HeroUI `Avatar`（Fallback 字母）、折叠侧栏叶子菜单用 RAC `Tooltip`（collapsed prop 由 AppShell 传入）；e2e 新增 `069 theme preset drives heroui semantic colors and persists`（切换 cyan → `data-theme-preset=cyan` + `--heroui-primary` 含 188 断言 + 截图 069-preset-cyan）。验证：typecheck/eslint/i18n/arch/modules/Vitest 109/build/generate/go/e2e 17 全绿。
+- 待推进：无（069 收尾完成；截图人工复核由用户执行）。

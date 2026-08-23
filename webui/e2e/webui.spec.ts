@@ -390,3 +390,19 @@ test("069 shell is assembled from heroui/rac controls with dark and mobile evide
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: testInfo.outputPath("069-shell-mobile.png"), fullPage: true });
 });
+
+test("069 theme preset drives heroui semantic colors and persists", async ({ page }, testInfo) => {
+  (page as unknown as { setWebUIState: (state: { authenticated: boolean }) => void }).setWebUIState({ authenticated: true });
+  await page.goto("/admin/accounts");
+  await expect(page.getByRole("heading", { name: "Users" })).toBeVisible();
+  await page.getByRole("button", { name: "Theme settings" }).click();
+  const dialog = page.getByRole("dialog", { name: "Theme settings" });
+  await dialog.getByRole("tab", { name: "Presets" }).click();
+  await dialog.getByRole("button", { name: "Cyan" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme-preset", "cyan");
+  // HeroUI 语义色已由 preset 覆写（--heroui-primary 与 --primary 同步）
+  const primary = await page.locator("html").evaluate((element) => getComputedStyle(element).getPropertyValue("--heroui-primary"));
+  expect(primary.trim()).toContain("188");
+  await page.screenshot({ path: testInfo.outputPath("069-preset-cyan.png"), fullPage: true });
+  await page.keyboard.press("Escape");
+});

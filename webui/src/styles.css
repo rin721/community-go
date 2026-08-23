@@ -268,6 +268,11 @@ select:focus-visible {
   letter-spacing: -0.04em;
   box-shadow: 0 5px 12px color-mix(in srgb, var(--primary) 25%, transparent);
 }
+/* 069：品牌区使用 HeroUI Avatar；保留品牌阴影语境 */
+.brand-avatar {
+  flex: 0 0 auto;
+  box-shadow: 0 5px 12px color-mix(in srgb, var(--primary) 25%, transparent);
+}
 .brand-copy {
   display: grid;
   min-width: 0;
@@ -342,6 +347,16 @@ select:focus-visible {
 }
 .sidebar-meta code {
   font-size: 10px;
+}
+
+/* 069：RAC Tooltip（折叠侧栏菜单标题）视觉 */
+.rac-tooltip {
+  padding: 5px 9px;
+  background: var(--text);
+  color: var(--surface);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  z-index: var(--z-overlay);
 }
 
 /* 递归菜单分组：active 祖先与展开语义由宿主状态驱动 */

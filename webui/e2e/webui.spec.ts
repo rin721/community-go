@@ -185,12 +185,12 @@ test("059 shell interactions keep sidebar, search, theme and reduced-motion cons
   await page.getByRole("button", { name: "Theme settings" }).click();
   const themeDialog = page.getByRole("dialog", { name: "Theme settings" });
   await themeDialog.getByRole("tab", { name: "General" }).click();
-  await themeDialog.getByLabel("Reduce page motion").check();
+  await themeDialog.getByRole("switch", { name: "Reduce page motion" }).press("Space");
   await expect(page.locator("html")).toHaveAttribute("data-motion", "reduce");
   await page.screenshot({ path: testInfo.outputPath("shell-reduced-motion.png"), fullPage: true });
   await page.keyboard.press("Escape");
-  await expect(page.locator(".drawer-backdrop")).not.toHaveClass(/visible/);
-  await expect(page.locator(".theme-drawer")).not.toHaveClass(/open/);
+  // 069：主题抽屉为 RAC 受控 Modal，关闭后不再挂载（portal）。
+  await expect(page.getByRole("dialog", { name: "Theme settings" })).toHaveCount(0);
 
   // mobile：打开抽屉后背景锁定（inert），关闭恢复触发按钮。
   await page.setViewportSize({ width: 390, height: 844 });
@@ -291,7 +291,7 @@ test("navigation policy refreshes the manifest while keeping the registered rout
   const card = page.locator(".policy-card").filter({ hasText: "navigation.menus" });
   await expect(card.getByText("navigation.menus", { exact: true })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("navigation-menus.png"), fullPage: true });
-  await card.getByRole("checkbox").uncheck();
+  await card.getByRole("checkbox").press("Space");
   await card.getByRole("button", { name: "Save" }).click();
   await expect(page.getByRole("heading", { name: "Menus", exact: true, level: 1 })).toBeVisible();
   await expect(page.locator(".app-sidebar").getByText("Menus", { exact: true })).toHaveCount(0);
@@ -327,12 +327,12 @@ test("067 theme drawer experience panel drives derived configuration", async ({ 
   await page.getByRole("button", { name: "Theme settings" }).click();
   const dialog = page.getByRole("dialog", { name: "Theme settings" });
   await dialog.getByRole("tab", { name: "Experience" }).click();
-  await dialog.getByLabel("Damped smooth scroll").uncheck();
+  await dialog.getByRole("switch", { name: "Damped smooth scroll" }).press("Space");
   await expect(page.locator("html")).toHaveAttribute("data-experience-smooth-scroll", "false");
   await dialog.getByRole("button", { name: "Page scrollbar slot" }).click();
   await page.getByRole("option", { name: "Overlay" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-experience-scrollbar", "overlay");
-  await dialog.getByLabel("Damped smooth scroll").check();
+  await dialog.getByRole("switch", { name: "Damped smooth scroll" }).press("Space");
   await dialog.getByRole("button", { name: "Page scrollbar slot" }).click();
   await page.getByRole("option", { name: "Stable slot" }).click();
   await page.screenshot({ path: testInfo.outputPath("067-experience-drawer.png"), fullPage: true });
@@ -367,10 +367,26 @@ test("068 heroui adoption renders across shell and business pages", async ({ pag
   await expect(page.locator("html")).toHaveClass(/dark/);
   await page.screenshot({ path: testInfo.outputPath("068-hero-accounts-dark.png"), fullPage: true });
   await page.goto("/admin/account-organization");
-  await expect(page.getByRole("button", { name: "Account", exact: true }).first()).toBeVisible();
+  await expect(page.getByText("Account", { exact: true }).first()).toBeVisible();
   // HeroUI Select 触发器与 Card 布局
   await expect(page.locator(".select__trigger").first()).toBeVisible();
   await page.getByRole("button", { name: "Toggle theme mode" }).click();
   await expect(page.locator("html")).not.toHaveClass(/dark/);
   await page.screenshot({ path: testInfo.outputPath("068-hero-assignment.png"), fullPage: true });
+});
+
+test("069 shell is assembled from heroui/rac controls with dark and mobile evidence", async ({ page }, testInfo) => {
+  (page as unknown as { setWebUIState: (state: { authenticated: boolean }) => void }).setWebUIState({ authenticated: true });
+  await page.goto("/dashboard");
+  await expect(page.getByRole("heading", { name: "Runtime status" })).toBeVisible();
+  // 069 骨架拼装标记：RAC 账号菜单 menuitem、页签/搜索触发器为 HeroUI Button
+  await page.getByRole("button", { name: "operator" }).click();
+  await expect(page.getByRole("menuitem", { name: "Log out" })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("069-rac-account-menu.png"), fullPage: true });
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Toggle theme mode" }).click();
+  await expect(page.locator("html")).toHaveClass(/dark/);
+  await page.screenshot({ path: testInfo.outputPath("069-shell-dark.png"), fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({ path: testInfo.outputPath("069-shell-mobile.png"), fullPage: true });
 });

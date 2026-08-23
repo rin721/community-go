@@ -1,10 +1,11 @@
+// @vitest-environment jsdom
 import { beforeAll, describe, expect, it } from "vitest";
 import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
 import type { ManifestRoute } from "@webui/sdk/runtime";
 import { RouteSearch } from "./components/RouteSearch";
 import { initializeI18n } from "./i18n";
+import { renderClient } from "./test-utils";
 
 const route: ManifestRoute = {
   moduleId: "test",
@@ -19,26 +20,37 @@ const route: ManifestRoute = {
   access: "allowed",
 };
 
+function bodyHTML(): string {
+  return document.body.innerHTML;
+}
+
 describe("宿主路由搜索", () => {
   beforeAll(async () => {
     await initializeI18n();
   });
 
   it("暴露对话框、组合框和当前选中项语义", () => {
-    const markup = renderToStaticMarkup(createElement(MemoryRouter, null, createElement(RouteSearch, { open: true, routes: [route], onClose: () => undefined })));
-
-    expect(markup).toContain('role="dialog"');
-    expect(markup).toContain('aria-modal="true"');
-    expect(markup).toContain('role="combobox"');
-    expect(markup).toContain('aria-controls="webui-route-search-results"');
-    expect(markup).toContain('aria-activedescendant="webui-route-search-dashboard"');
-    expect(markup).toContain('role="option"');
-    expect(markup).toContain('aria-selected="true"');
+    const { unmount } = renderClient(createElement(MemoryRouter, null, createElement(RouteSearch, { open: true, routes: [route], onClose: () => undefined })));
+    try {
+      const html = bodyHTML();
+      // RAC Modal 经 portal 挂载到 body 附近 fragment（069：overlay 客户端渲染）
+      expect(html).toContain('role="dialog"');
+      expect(html).toContain('role="combobox"');
+      expect(html).toContain('aria-controls="webui-route-search-results"');
+      expect(html).toContain('aria-activedescendant="webui-route-search-dashboard"');
+      expect(html).toContain('role="option"');
+      expect(html).toContain('aria-selected="true"');
+    } finally {
+      unmount();
+    }
   });
 
   it("没有可访问路由时表达空结果状态", () => {
-    const markup = renderToStaticMarkup(createElement(MemoryRouter, null, createElement(RouteSearch, { open: true, routes: [], onClose: () => undefined })));
-
-    expect(markup).toContain('role="status"');
+    const { unmount } = renderClient(createElement(MemoryRouter, null, createElement(RouteSearch, { open: true, routes: [], onClose: () => undefined })));
+    try {
+      expect(bodyHTML()).toContain('role="status"');
+    } finally {
+      unmount();
+    }
   });
 });

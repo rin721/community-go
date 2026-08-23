@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActionTrigger, Button, Field, PageHeader, PageSection, RevealList, SelectField, StatusPill } from "@webui/sdk/ui";
+import { ActionTrigger, Button, Check, Field, PageHeader, PageSection, RevealList, SelectField, StatusPill } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { accountRolesView, archiveAccount, createAccount, listAccounts, listRoles, replaceAccountRoles, resetAccountPassword, setAccountStatus, updateAccountInfo, type Account, type Role } from "./api";
 import styles from "./iam.module.css";
@@ -86,7 +86,7 @@ export default function AccountsPage() {
       </PageSection>
       <PageSection kicker={t("webui.iam.accounts.manage.kicker")} title={t("webui.iam.accounts.manage.title")}>
         <SelectField label={t("webui.iam.accounts.selected")} value={selectedID} onValueChange={setSelectedID} options={items.map((item) => ({ value: item.id, label: `${item.displayName} (@${item.username})${item.archived ? ` · ${t("webui.iam.accounts.archived")}` : ""}` }))} />
-        <div className="role-checklist">{candidates.map((role) => <label key={role.id} className="permission-row"><input type="checkbox" checked={roleIDs.includes(role.id)} disabled={!selected || selected.archived} onChange={() => toggle(role.id)} />{role.name} ({role.code})</label>)}</div>
+        <div className="role-checklist">{candidates.map((role) => <Check key={role.id} checked={roleIDs.includes(role.id)} disabled={!selected || selected.archived} onChange={() => toggle(role.id)} className="permission-row">{role.name} ({role.code})</Check>)}</div>
         {message && <p className="page-meta">{message}</p>}
         <div className="page-meta">{t("webui.iam.accounts.revision")} rev {expectedVersion}</div>
         <div className="toolbar-actions">

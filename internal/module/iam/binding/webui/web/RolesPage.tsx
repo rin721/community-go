@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActionTrigger, Button, Field, PageHeader, PageSection, RevealList, SelectField, StatusPill } from "@webui/sdk/ui";
+import { ActionTrigger, Button, Check, Field, PageHeader, PageSection, RevealList, SelectField, StatusPill } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { archiveRole, createRole, listPermissions, listRoles, replaceRolePermissions, rolePermissionsView, updateRoleInfo, type PermissionDefinition, type Role } from "./api";
 import styles from "./iam.module.css";
@@ -116,7 +116,7 @@ export default function RolesPage() {
         <SelectField label={t("webui.iam.roles.selected")} value={selectedID} onValueChange={setSelectedID} options={items.map((item) => ({ value: item.id, label: `${item.name} (${item.code})${item.archived ? ` · ${t("webui.iam.roles.archived")}` : ""}` }))} />
         {selected?.system
           ? <p className="admin-note">{t("webui.iam.roles.systemReadonly")}</p>
-          : <div className="permission-matrix">{groups.map((group) => <fieldset key={group.ownerModuleId}><legend>{group.ownerModuleId}</legend>{group.definitions.map((definition) => <label key={definition.key} className="permission-row"><input type="checkbox" checked={selectedKeys.includes(definition.key)} disabled={!selected || selected.archived} onChange={() => toggle(definition.key)} />{definition.key}<span className="permission-description">{t(definition.descriptionMessageId)}</span></label>)}</fieldset>)}</div>}
+          : <div className="permission-matrix">{groups.map((group) => <fieldset key={group.ownerModuleId}><legend>{group.ownerModuleId}</legend>{group.definitions.map((definition) => <Check key={definition.key} checked={selectedKeys.includes(definition.key)} disabled={!selected || selected.archived} onChange={() => toggle(definition.key)} className="permission-row">{definition.key}<span className="permission-description">{t(definition.descriptionMessageId)}</span></Check>)}</fieldset>)}</div>}
         {message && <p className="page-meta">{message}</p>}
         <div className="page-meta">{t("webui.iam.roles.pending")}: +{diff.added} −{diff.removed} · rev {expectedVersion}</div>
         <div className="toolbar-actions">

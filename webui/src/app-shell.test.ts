@@ -27,9 +27,10 @@ describe("宿主 AppShell", () => {
   it("keeps logout confirmation and failure feedback in the host i18n shell", () => {
     const markup = renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: ["/ops"] }, createElement(AppShell, { manifest, principal: { id: "user-1", username: "operator", scopes: [] }, onLogout: async () => undefined })));
 
-    expect(markup).toContain("确认退出登录？");
-    expect(markup).toContain("退出登录");
-    expect(markup).toContain('role="dialog"');
+    // 069：确认弹窗为 RAC 受控 Modal，关闭态不渲染 DOM；宿主 i18n 契约在翻译层验证。
+    expect(markup).not.toContain('role="dialog"');
+    expect(translateMessage("webui.host.logout.confirm.title")).toBe("确认退出登录？");
+    expect(translateMessage("webui.host.logout.confirm.confirm")).toBe("退出登录");
     expect(translateMessage("webui.host.logout.failed.title")).toBe("退出登录失败");
   });
 

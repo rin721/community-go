@@ -78,9 +78,8 @@ describe("BulkActionBar 批量操作条", () => {
     expect(markup).toContain("批量删除");
     expect(markup).toContain("清除");
     expect(markup).toContain('role="toolbar"');
-    // 确认弹窗存在但处于关闭态（aria-hidden + inert，不进入可访问树）。
-    expect(markup).toContain('role="dialog"');
-    expect(markup).toContain('aria-hidden="true"');
+    // 069：确认弹窗为 RAC 受控 Modal，关闭态不渲染 DOM（打开时才挂载到 portal）。
+    expect(markup).not.toContain('role="dialog"');
   });
 });
 

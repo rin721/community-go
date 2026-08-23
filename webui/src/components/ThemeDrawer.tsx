@@ -1,6 +1,7 @@
 import { Moon, RotateCcw, Sun, X } from "lucide-react";
-import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
-import { Button, IconButton, SelectField } from "@webui/sdk/ui";
+import { useEffect, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
+import { Dialog as RACDialog, Modal as RACModal } from "react-aria-components";
+import { Button, IconButton, SelectField, Switch } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { dampingTiers, revealRhythmOptions, scrollbarStrategies, type ContentDensity, type ThemeMode, type ThemePreferences, type ThemePreset } from "../theme";
 
@@ -18,43 +19,12 @@ const densities: ContentDensity[] = ["comfortable", "compact"];
 export function ThemeDrawer({ open, theme, onChange, onReset, onClose }: { open: boolean; theme: ThemePreferences; onChange: (value: ThemePreferences) => void; onReset: () => void; onClose: () => void }) {
   const { t } = useWebUITranslation("webui.host");
   const [panel, setPanel] = useState<ThemePanel>("appearance");
-  const drawerRef = useRef<HTMLElement>(null);
-  const restoreFocusRef = useRef<HTMLElement | null>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    restoreFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const focusFrame = requestAnimationFrame(() => drawerRef.current?.querySelector<HTMLElement>("[data-drawer-initial-focus]")?.focus());
-    return () => {
-      cancelAnimationFrame(focusFrame);
-      const target = restoreFocusRef.current;
-      restoreFocusRef.current = null;
-      target?.focus();
-    };
-  }, [open]);
 
   useEffect(() => {
     if (open) setPanel("appearance");
   }, [open]);
 
   const panelLabel = (value: ThemePanel) => t(`webui.host.theme.tab.${value}`);
-  const handleDrawerKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      onClose();
-      return;
-    }
-    if (event.key !== "Tab") return;
-    const focusable = Array.from(drawerRef.current?.querySelectorAll<HTMLElement>("button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex=\"-1\"])") ?? []);
-    if (focusable.length === 0) return;
-    const currentIndex = focusable.indexOf(document.activeElement as HTMLElement);
-    const nextIndex = event.shiftKey
-      ? currentIndex <= 0 ? focusable.length - 1 : currentIndex - 1
-      : currentIndex === focusable.length - 1 ? 0 : currentIndex + 1;
-    event.preventDefault();
-    focusable[nextIndex]?.focus();
-  };
-
   const handlePanelKeyDown = (event: ReactKeyboardEvent<HTMLButtonElement>, current: ThemePanel) => {
     const currentIndex = panels.indexOf(current);
     const targetIndex = getThemePanelTargetIndex(event.key, currentIndex, panels.length);
@@ -65,9 +35,9 @@ export function ThemeDrawer({ open, theme, onChange, onReset, onClose }: { open:
     requestAnimationFrame(() => document.getElementById(themePanelTabID(target))?.focus());
   };
 
-  return <>
-    <button type="button" aria-hidden={!open} aria-label={t("webui.host.theme.close")} className={`drawer-backdrop ${open ? "visible" : ""}`} disabled={!open} tabIndex={open ? 0 : -1} onClick={onClose} />
-    <aside ref={drawerRef} className={`theme-drawer ${open ? "open" : ""}`} aria-hidden={!open} inert={!open} role="dialog" aria-modal="true" aria-labelledby="webui-theme-drawer-title" onKeyDown={handleDrawerKeyDown}>
+  return (
+    <RACModal isOpen={open} onOpenChange={(next) => { if (!next) onClose(); }} isDismissable className="rac-modal-backdrop rac-modal-backdrop-drawer">
+      <RACDialog aria-label={t("webui.host.theme")} className="rac-drawer-panel">
       <div className="drawer-header"><div><span className="drawer-kicker">{t("webui.host.theme.appearance")}</span><h2 id="webui-theme-drawer-title">{t("webui.host.theme")}</h2></div><IconButton label={t("webui.host.theme.close")} onClick={onClose} data={{ "data-drawer-initial-focus": "true" }}><X size={18} /></IconButton></div>
       <nav className="theme-tabs" role="tablist" aria-label={t("webui.host.theme.tabs")}>
         {panels.map((value) => <button id={themePanelTabID(value)} type="button" role="tab" tabIndex={panel === value ? 0 : -1} aria-selected={panel === value} aria-controls={`theme-panel-${value}`} className={panel === value ? "active" : ""} key={value} onClick={() => setPanel(value)} onKeyDown={(event) => handlePanelKeyDown(event, value)}>{panelLabel(value)}</button>)}
@@ -80,8 +50,9 @@ export function ThemeDrawer({ open, theme, onChange, onReset, onClose }: { open:
         {panel === "preset" && <div id="theme-panel-preset" role="tabpanel" aria-labelledby={themePanelTabID("preset")}><ThemeSection title={t("webui.host.theme.primary")}><p className="theme-section-description">{t("webui.host.theme.preset.detail")}</p><div className="color-preset-grid">{presets.map((preset) => <button type="button" key={preset} className={theme.preset === preset ? `color-preset ${preset} selected` : `color-preset ${preset}`} aria-label={t(`webui.host.theme.preset.${preset}`)} aria-pressed={theme.preset === preset} onClick={() => onChange({ ...theme, preset })}><span /></button>)}</div></ThemeSection></div>}
       </div>
       <div className="drawer-footer"><Button type="button" variant="secondary" onClick={onReset}><RotateCcw size={16} />{t("webui.host.theme.reset")}</Button></div>
-    </aside>
-  </>;
+    </RACDialog>
+    </RACModal>
+  );
 }
 
 export function themePanelTabID(panel: ThemePanel): string {
@@ -102,8 +73,8 @@ function ThemeSection({ title, children }: { title: string; children: ReactNode 
 }
 
 function ThemeSwitch({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {
-  // 开关暂用平台自绘控件：HeroUI v3 无现成可交互 Switch 复合，RAC 底座装配留待后续文档核定。
-  return <label className="theme-switch-row"><span>{label}</span><input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} /></label>;
+  // 069：开关控件由 SDK Switch（react-aria-components 底座）承担，视觉对齐 HeroUI pill。
+  return <div className="theme-switch-row"><span>{label}</span><Switch ariaLabel={label} checked={checked} onChange={onChange} /></div>;
 }
 
 function ThemeSelect<T extends string>({ label, value, options, labelOf, onChange }: { label: string; value: T; options: ReadonlyArray<T>; labelOf: (value: T) => string; onChange: (value: T) => void }) {

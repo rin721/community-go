@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActionTrigger, InlineAlert, PageHeader, PageSection, SelectField } from "@webui/sdk/ui";
+import { ActionTrigger, Check, InlineAlert, PageHeader, PageSection, SelectField } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { getAssignment, replaceAssignment, listAccounts, listDepartments, listPositions, type Account, type Department, type Position } from "./api";
 import styles from "./organization.module.css";
@@ -51,7 +51,7 @@ export default function AssignmentsPage() {
         <form className="form-panel" onSubmit={(event) => { event.preventDefault(); save(); }}>
           <SelectField label={t("webui.organization.account")} value={accountId} onValueChange={setAccountId} options={accounts.map((item) => ({ value: item.id, label: `${item.displayName} (@${item.username})` }))} />
           <SelectField label={t("webui.organization.department")} value={departmentId} onValueChange={setDepartmentId} options={[{ value: "", label: "—" }, ...departments.filter((item) => item.active && !item.archived).map((item) => ({ value: item.id, label: item.name }))]} />
-          <fieldset><legend>{t("webui.organization.positions.label")}</legend>{positions.filter((item) => item.active && !item.archived).map((item) => <label key={item.id} className="permission-row"><input type="checkbox" checked={positionIds.includes(item.id)} onChange={() => toggle(item.id)} />{item.name}</label>)}</fieldset>
+          <fieldset><legend>{t("webui.organization.positions.label")}</legend>{positions.filter((item) => item.active && !item.archived).map((item) => <Check key={item.id} checked={positionIds.includes(item.id)} onChange={() => toggle(item.id)} className="permission-row">{item.name}</Check>)}</fieldset>
           {error && <InlineAlert tone="danger" title={error} />}
           {message && <p className="page-meta">{message}</p>}
           <div className="page-meta">{t("webui.organization.assignments.revision")}: {expectedVersion}</div>

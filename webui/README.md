@@ -67,6 +67,11 @@ Linux 使用 `bash scripts/verify-webui.sh`。质量链覆盖生成检查、冻�
 - IAM 用户/角色页、Organization 部门/岗位/分配页与 Navigation 菜单页的写操作按钮（创建/启停/重置/改名/归档/保存策略）均经模块 Binding `ActionPermissions` + SDK `ActionTrigger` 接入动作级权限投影：denied 时按钮隐藏或禁用，未声明/未投影的 operation 前端不做呈现限制（服务端授权继续 fail closed）。
 - 账号/角色列表支持关键字过滤与分页；角色权限与账号角色保存遇到 409 时展示 added/removed 差异并重新加载最新版本（不静默丢弃未保存选择）；Organization 分配使用 `expectedVersion` 乐观锁并在冲突时重载。
 
+## 骨架 HeroUI/RAC 拼装与布局重构（069）
+
+- Shell 与遮罩/表单控件由 HeroUI/RAC 拼装：布局 token（`--radius-*/--shadow-*`）引用 `--heroui-*` 变量，preset 语义色同步驱动 `--heroui-primary*`；搜索/页签触发器用 HeroUI Button，账号菜单用 RAC `MenuTrigger+Popover+Menu`，确认弹窗/抽屉/主题抽屉/路由搜索用 RAC 受控 `Modal+Dialog`（portal 客户端挂载、关闭态不渲染），开关/复选框用 RAC `Switch/Checkbox`（视觉对齐 HeroUI pill/box）。
+- 页面模板规范（PageHeader→StatGrid→PageSection→DataCard→Toolbar→FormCard→EmptyState/InlineAlert）与 RAC overlay 测试客户端化（`renderClient`）见 [069 变更记录](../docs/changes/069-heroui-skeleton-rebuild/README.md) 与 [WebUI 开发指南](../docs/development/webui.md)。
+
 ## 全量采用 HeroUI 组件库（068）
 
 - 呈现层单轨替换为 HeroUI v3 + Tailwind v4：`@webui/sdk/ui` 导出契约不变，Button/Field/SelectField/StatusPill/CapabilityBanner/InlineAlert/Skeleton/EmptyState/Toast（`@heroui/toast` 队列）/PageSection/StatCard/StatGrid/DataCard/DataTable（RAC Table）/Pagination（复合）/ActionTrigger/IconButton 内部改用 HeroUI；平台契约层（ActionTrigger 权限呈现、zone、Reveal、滚动运行时、`experience` 配置、reduced-motion）不回归。

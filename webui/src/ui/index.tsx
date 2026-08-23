@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type CSSProperties, type HTMLAttributes, type InputHTMLAttributes, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
-import { Alert, Button as HeroButton, Card, Chip, Description, EmptyState as HeroEmptyState, FieldError, Input as HeroInput, Label, ListBox, Pagination as HeroPagination, Select, Skeleton as HeroSkeleton, Table, TextField } from "@heroui/react";
+import { Checkbox as RACCheckbox, Dialog as RACDialog, Modal as RACModal, Switch as RACSwitch } from "react-aria-components";
+import { Alert, Button as HeroButton, Card, Chip, Description, EmptyState as HeroEmptyState, FieldError, Input as HeroInput, Label, ListBox, Pagination as HeroPagination, Select, Skeleton as HeroSkeleton, Table, TextField, Typography } from "@heroui/react";
 import { ToastProvider, addToast, closeToast } from "@heroui/toast";
 import type { CapabilityState } from "../contracts";
 import { Reveal } from "../motion/reveal";
@@ -28,7 +29,7 @@ function chipColor(state: CapabilityState): "success" | "warning" | "danger" | "
 
 export function PageHeader({ eyebrow, title, description, actions }: { eyebrow?: string; title: string; description?: string; actions?: ReactNode }) {
   const zoneItems = useZoneContributions("page-header");
-  return <header className="page-header"><div>{eyebrow && <p className="page-eyebrow">{eyebrow}</p>}<h1>{title}</h1>{description && <p className="page-description">{description}</p>}</div>{(actions || zoneItems.length > 0) && <div className="page-actions">{actions}{zoneItems.map((item) => <ZoneSlot key={item.id} contribution={item} />)}</div>}</header>;
+  return <header className="page-header"><div>{eyebrow && <p className="page-eyebrow">{eyebrow}</p>}<Typography.Heading level={1} className="page-header-title">{title}</Typography.Heading>{description && <p className="page-description">{description}</p>}</div>{(actions || zoneItems.length > 0) && <div className="page-actions">{actions}{zoneItems.map((item) => <ZoneSlot key={item.id} contribution={item} />)}</div>}</header>;
 }
 
 // Surface 保持平台语义容器（.surface 样式 authority），后续可整体切换 HeroUI Surface。
@@ -177,6 +178,18 @@ export function IconButton({ label, title, onClick, onPress, className = "", chi
   return <HeroButton ref={buttonRef} type="button" isIconOnly variant="ghost" size="sm" aria-label={label} isDisabled={disabled} onPress={() => (onPress ?? onClick)?.()} className={`icon-button ${className}`.trim()} {...data}>{children}</HeroButton>;
 }
 
+// Check 是复选框原语（react-aria-components 底座，HeroUI v3 交互引擎）：
+// children 作为可访问名子节点；checked/onChange(boolean)/indeterminate 契约。
+export function Check({ children, checked, onChange, disabled, className = "", indeterminate = false }: { children: ReactNode; checked: boolean; onChange?: (checked: boolean) => void; disabled?: boolean; className?: string; indeterminate?: boolean }) {
+  return <RACCheckbox isSelected={checked} isIndeterminate={indeterminate} isDisabled={disabled} onChange={(next) => onChange?.(next)} className={`rac-checkbox ${className}`.trim()}>{children}</RACCheckbox>;
+}
+
+// Switch 是开关原语（react-aria-components 底座）：label 子节点提供可访问名，
+// ariaLabel 提供替代可访问名（配合外部视觉标签行）；视觉走 .rac-switch 平台类。
+export function Switch({ label, ariaLabel, checked, onChange, disabled, className = "" }: { label?: ReactNode; ariaLabel?: string; checked: boolean; onChange?: (checked: boolean) => void; disabled?: boolean; className?: string }) {
+  return <RACSwitch isSelected={checked} isDisabled={disabled} aria-label={ariaLabel} onChange={(next) => onChange?.(next)} className={`rac-switch ${className}`.trim()}>{label}</RACSwitch>;
+}
+
 // SelectField 复用 HeroUI Select 复合组件（RAC 底座）：Label + Trigger/Value + ListBox。
 // 对外保持 value/onValueChange(options) 契约，模块页面不再使用原生 <select>。
 export type SelectOption = { value: string; label: ReactNode };
@@ -221,26 +234,30 @@ export function Toast({ open, tone = "info", title, detail, closeLabel, onClose 
 
 export function ConfirmDialog({ open, title, description, confirmLabel, cancelLabel, closeLabel, onConfirm, onCancel }: { open: boolean; title: string; description?: string; confirmLabel: string; cancelLabel: string; closeLabel: string; onConfirm: () => void; onCancel: () => void }) {
   const titleID = `webui-confirm-title-${useId().replaceAll(":", "")}`;
-  return <>
-    <button type="button" aria-hidden={!open} aria-label={closeLabel} className={`confirm-backdrop ${open ? "visible" : ""}`} disabled={!open} tabIndex={open ? 0 : -1} onClick={onCancel} />
-    <section className={`confirm-dialog ${open ? "open" : ""}`} role="dialog" aria-modal="true" aria-hidden={!open} aria-labelledby={titleID} aria-describedby={description ? `${titleID}-description` : undefined} inert={!open} onKeyDown={(event: ReactKeyboardEvent<HTMLElement>) => { if (event.key === "Escape") { event.preventDefault(); onCancel(); } }}>
-      <header className="confirm-dialog-header"><h2 id={titleID}>{title}</h2><IconButton label={closeLabel} onClick={onCancel}>×</IconButton></header>
-      {description && <p id={`${titleID}-description`} className="confirm-dialog-description">{description}</p>}
-      <footer className="confirm-dialog-footer"><Button type="button" variant="secondary" onClick={onCancel} data-confirm-initial-focus>{cancelLabel}</Button><Button type="button" variant="danger" onClick={onConfirm}>{confirmLabel}</Button></footer>
-    </section>
-  </>;
+  // 069：确认弹窗迁到 RAC 受控 Modal+Dialog（焦点/Escape/backdrop 由 react-aria 承担）。
+  return (
+    <RACModal isOpen={open} onOpenChange={(next) => { if (!next) onCancel(); }} isDismissable className="rac-modal-backdrop">
+      <RACDialog aria-label={title} id={titleID} className="rac-modal-panel">
+        <header className="confirm-dialog-header"><h2 id={titleID}>{title}</h2><IconButton label={closeLabel} onClick={onCancel}>×</IconButton></header>
+        {description && <p id={`${titleID}-description`} className="confirm-dialog-description">{description}</p>}
+        <footer className="confirm-dialog-footer"><Button type="button" variant="secondary" data-confirm-initial-focus onClick={onCancel}>{cancelLabel}</Button><Button type="button" variant="danger" onClick={onConfirm}>{confirmLabel}</Button></footer>
+      </RACDialog>
+    </RACModal>
+  );
 }
 
 export function Drawer({ open, title, description, closeLabel, onClose, children, footer }: { open: boolean; title: string; description?: string; closeLabel: string; onClose: () => void; children: ReactNode; footer?: ReactNode }) {
   const titleID = `webui-drawer-title-${useId().replaceAll(":", "")}`;
-  return <>
-    <button type="button" aria-hidden={!open} aria-label={closeLabel} className={`drawer-backdrop ${open ? "visible" : ""}`} disabled={!open} tabIndex={open ? 0 : -1} onClick={onClose} />
-    <aside className={`ui-drawer ${open ? "open" : ""}`} role="dialog" aria-modal="true" aria-hidden={!open} aria-labelledby={titleID} inert={!open} onKeyDown={(event: ReactKeyboardEvent<HTMLElement>) => { if (event.key === "Escape") { event.preventDefault(); onClose(); } }}>
-      <header className="ui-drawer-header"><div><h2 id={titleID}>{title}</h2>{description && <p>{description}</p>}</div><IconButton label={closeLabel} onClick={onClose} data={{ "data-drawer-initial-focus": "true" }}>×</IconButton></header>
-      <div className="ui-drawer-content">{children}</div>
-      {footer && <footer className="ui-drawer-footer">{footer}</footer>}
-    </aside>
-  </>;
+  // 069：侧滑抽屉迁到 RAC 受控 Modal+Dialog（右置面板，焦点/Escape/backdrop 由 react-aria 承担）。
+  return (
+    <RACModal isOpen={open} onOpenChange={(next) => { if (!next) onClose(); }} isDismissable className="rac-modal-backdrop rac-modal-backdrop-drawer">
+      <RACDialog aria-label={title} id={titleID} className="rac-drawer-panel">
+        <header className="ui-drawer-header"><div><h2 id={titleID}>{title}</h2>{description && <p>{description}</p>}</div><IconButton label={closeLabel} onClick={onClose}>×</IconButton></header>
+        <div className="ui-drawer-content">{children}</div>
+        {footer && <footer className="ui-drawer-footer">{footer}</footer>}
+      </RACDialog>
+    </RACModal>
+  );
 }
 
 // ActionDisabledReason 是触发点禁用原因分类：permission（权限 denied/未投影受限）、

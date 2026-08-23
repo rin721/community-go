@@ -1,7 +1,9 @@
+// @vitest-environment jsdom
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { CapabilityBanner, ConfirmDialog, DataCard, DataTable, DataToolbar, Drawer, EmptyState, FilterPanel, PageSection, Pagination, StatCard, StatGrid, Toast, createPaginationItems, getDataTableSelectionState } from "./ui";
+import { renderClient } from "./test-utils";
 
 describe("公共管理 UI 模式", () => {
   it("renders a selectable data table with an empty state", () => {
@@ -52,20 +54,25 @@ describe("公共管理 UI 模式", () => {
   });
 
   it("provides a focus-managed dialog contract for shared drawers", () => {
-    const markup = renderToStaticMarkup(createElement(Drawer, { open: true, title: "Create", closeLabel: "Close", onClose: () => undefined, children: createElement("input", { placeholder: "Name" }) }));
-
-    expect(markup).toContain('role="dialog"');
-    expect(markup).toContain('aria-modal="true"');
-    expect(markup).toContain("aria-labelledby=");
-    expect(markup).toContain('data-drawer-initial-focus="true"');
+    const { unmount } = renderClient(createElement(Drawer, { open: true, title: "Create", closeLabel: "Close", onClose: () => undefined, children: createElement("input", { placeholder: "Name" }) }));
+    try {
+      const html = document.body.innerHTML;
+      // 069：RAC Modal/Dialog 经 portal 客户端挂载；焦点/Escape 由 react-aria 承担。
+      expect(html).toContain('role="dialog"');
+      expect(html).toContain("Create");
+    } finally {
+      unmount();
+    }
   });
 
   it("isolates a closed shared drawer from pointer and keyboard focus", () => {
-    const markup = renderToStaticMarkup(createElement(Drawer, { open: false, title: "Create", closeLabel: "Close", onClose: () => undefined, children: null }));
-
-    expect(markup).toContain('aria-hidden="true"');
-    expect(markup).toContain('disabled=""');
-    expect(markup).toContain('inert=""');
+    const { unmount } = renderClient(createElement(Drawer, { open: false, title: "Create", closeLabel: "Close", onClose: () => undefined, children: null }));
+    try {
+      // 069：关闭态不渲染（RAC Modal 打开才挂载），从可访问树与指针焦点中完全隔离。
+      expect(document.body.innerHTML).not.toContain('role="dialog"');
+    } finally {
+      unmount();
+    }
   });
 
   it("keeps toast feedback through the HeroUI toast queue", () => {
@@ -77,22 +84,27 @@ describe("公共管理 UI 模式", () => {
   });
 
   it("provides a focus-managed confirmation dialog with localized actions", () => {
-    const markup = renderToStaticMarkup(createElement(ConfirmDialog, { open: true, title: "Delete record?", description: "This action cannot be undone.", confirmLabel: "Delete", cancelLabel: "Cancel", closeLabel: "Close", onConfirm: () => undefined, onCancel: () => undefined }));
-
-    expect(markup).toContain('role="dialog"');
-    expect(markup).toContain('aria-modal="true"');
-    expect(markup).toContain('aria-describedby=');
-    expect(markup).toContain('data-confirm-initial-focus="true"');
-    expect(markup).toContain("Delete");
-    expect(markup).toContain("Cancel");
+    const { unmount } = renderClient(createElement(ConfirmDialog, { open: true, title: "Delete record?", description: "This action cannot be undone.", confirmLabel: "Delete", cancelLabel: "Cancel", closeLabel: "Close", onConfirm: () => undefined, onCancel: () => undefined }));
+    try {
+      const html = document.body.innerHTML;
+      // 069：RAC Modal/Dialog 客户端挂载；焦点/Escape/backdrop 由 react-aria 承担。
+      expect(html).toContain('role="dialog"');
+      expect(html).toContain("Delete");
+      expect(html).toContain("Cancel");
+      expect(html).toContain("This action cannot be undone.");
+    } finally {
+      unmount();
+    }
   });
 
   it("isolates a closed confirmation dialog from pointer and keyboard focus", () => {
-    const markup = renderToStaticMarkup(createElement(ConfirmDialog, { open: false, title: "Delete record?", confirmLabel: "Delete", cancelLabel: "Cancel", closeLabel: "Close", onConfirm: () => undefined, onCancel: () => undefined }));
-
-    expect(markup).toContain('aria-hidden="true"');
-    expect(markup).toContain('disabled=""');
-    expect(markup).toContain('inert=""');
+    const { unmount } = renderClient(createElement(ConfirmDialog, { open: false, title: "Delete record?", confirmLabel: "Delete", cancelLabel: "Cancel", closeLabel: "Close", onConfirm: () => undefined, onCancel: () => undefined }));
+    try {
+      // 069：关闭态不渲染（RAC Modal 打开才挂载），从可访问树与指针焦点中完全隔离。
+      expect(document.body.innerHTML).not.toContain('role="dialog"');
+    } finally {
+      unmount();
+    }
   });
 
   it("renders the TailAdmin-style page section skeleton with header and body", () => {

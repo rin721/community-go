@@ -43,18 +43,18 @@
   --warning: #d97706;
   --danger: #dc2626;
 
-  /* shadow */
-  --shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
-  --shadow-md: 0 16px 38px rgba(15, 23, 42, 0.16);
-  --shadow-lg: 0 24px 60px rgba(15, 23, 42, 0.2);
+  /* shadow：069 对齐 HeroUI 层级阴影（--heroui-box-shadow-small/medium/large） */
+  --shadow: var(--heroui-box-shadow-small);
+  --shadow-md: var(--heroui-box-shadow-medium);
+  --shadow-lg: var(--heroui-box-shadow-large);
   --shadow-drawer: -12px 0 40px rgba(15, 23, 42, 0.16);
 
-  /* radius */
-  --radius-xs: 4px;
-  --radius-sm: 6px;
-  --radius-md: 7px;
-  --radius-lg: 8px;
-  --radius-xl: 10px;
+  /* radius：069 对齐 HeroUI 视觉语言（--heroui-radius-small/medium/large） */
+  --radius-xs: 6px;
+  --radius-sm: var(--heroui-radius-small);
+  --radius-md: var(--heroui-radius-medium);
+  --radius-lg: var(--heroui-radius-large);
+  --radius-xl: 16px;
   --radius-pill: 999px;
   --radius-round: 50%;
 
@@ -136,21 +136,46 @@
   --primary: #06b6d4;
   --primary-soft: #ecfeff;
   --primary-strong: #0891b2;
+  /* 069：preset 同步驱动 HeroUI 语义色（HSLA 三元组，`hsl(var(--heroui-primary))` 消费） */
+  --heroui-primary: 188 94.5% 42.7%;
+  --heroui-primary-500: 188 94.5% 42.7%;
+  --heroui-primary-600: 187 92.4% 37%;
+  --heroui-primary-700: 186 91% 29.4%;
+  --heroui-primary-100: 187 95% 90%;
+  --heroui-primary-200: 187 95% 82%;
 }
 [data-theme-preset="green"] {
   --primary: #10b981;
   --primary-soft: #ecfdf5;
   --primary-strong: #059669;
+  --heroui-primary: 158.6 84.3% 39.4%;
+  --heroui-primary-500: 158.6 84.3% 39.4%;
+  --heroui-primary-600: 158.8 87.3% 33%;
+  --heroui-primary-700: 159 87% 26%;
+  --heroui-primary-100: 158 90% 92%;
+  --heroui-primary-200: 158 86% 84%;
 }
 [data-theme-preset="violet"] {
   --primary: #8b5cf6;
   --primary-soft: #f5f3ff;
   --primary-strong: #7c3aed;
+  --heroui-primary: 258.3 89.5% 66.3%;
+  --heroui-primary-500: 258.3 89.5% 66.3%;
+  --heroui-primary-600: 257.3 88% 58%;
+  --heroui-primary-700: 256 87% 50%;
+  --heroui-primary-100: 258 95% 94%;
+  --heroui-primary-200: 258 90% 88%;
 }
 [data-theme-preset="orange"] {
   --primary: #f97316;
   --primary-soft: #fff7ed;
   --primary-strong: #ea580c;
+  --heroui-primary: 24.6 95% 53.1%;
+  --heroui-primary-500: 24.6 95% 53.1%;
+  --heroui-primary-600: 24 91% 47%;
+  --heroui-primary-700: 22 92% 39%;
+  --heroui-primary-100: 25 95% 92%;
+  --heroui-primary-200: 25 95% 86%;
 }
 
 /* --------------------------------------------------------------------------
@@ -555,6 +580,36 @@ kbd {
   background: var(--primary-soft);
 }
 
+/* 069：RAC MenuTrigger+Popover+Menu 账号菜单视觉 */
+.rac-menu-popover {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.rac-menu {
+  min-width: 160px;
+  padding: 5px;
+}
+.rac-menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: 9px;
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+}
+.rac-menu-item:hover,
+.rac-menu-item[data-focused="true"] {
+  color: var(--primary);
+  background: var(--primary-soft);
+}
+
 .workspace-tabs {
   display: flex;
   height: var(--shell-tabs-height);
@@ -652,7 +707,8 @@ kbd {
   gap: var(--space-5);
   margin-bottom: 22px;
 }
-.page-header h1 {
+.page-header h1,
+.page-header-title {
   margin: 3px 0 7px;
   color: var(--text);
   font-size: 24px;
@@ -1062,6 +1118,96 @@ kbd {
 .theme-switch-row:last-child {
   border-bottom: 0;
 }
+/* 069：react-aria-components Switch/Checkbox（HeroUI v3 交互底座）的控件视觉 */
+.rac-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+}
+.rac-switch input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+.rac-switch::before {
+  content: "";
+  position: relative;
+  width: 36px;
+  height: 20px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--surface-muted);
+  transition: background var(--motion-quick) var(--ease-standard), border-color var(--motion-quick) var(--ease-standard);
+}
+.rac-switch::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-round);
+  background: var(--text-muted);
+  transition: transform var(--motion-quick) var(--ease-standard), background var(--motion-quick) var(--ease-standard);
+}
+.rac-switch[data-selected="true"]::before {
+  border-color: var(--primary);
+  background: var(--primary);
+}
+.rac-switch[data-selected="true"]::after {
+  background: #fff;
+  transform: translateX(16px);
+}
+.rac-switch input {
+  position: absolute;
+  opacity: 0;
+}
+.rac-switch:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.rac-checkbox {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+}
+.rac-checkbox input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+.rac-checkbox::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--surface);
+  transition: background var(--motion-quick) var(--ease-standard), border-color var(--motion-quick) var(--ease-standard);
+}
+.rac-checkbox[data-selected="true"]::before,
+.rac-checkbox[data-indeterminate="true"]::before {
+  border-color: var(--primary);
+  background: var(--primary);
+  box-shadow: inset 0 0 0 3px var(--surface);
+}
+.rac-checkbox:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
 .theme-switch-row input {
   position: relative;
   width: 36px;
@@ -1214,6 +1360,55 @@ kbd {
 }
 .confirm-dialog-footer .ui-button {
   min-width: 84px;
+}
+
+/* 069：RAC 受控 Modal/Dialog 遮罩与面板（ConfirmDialog/Drawer/ThemeDrawer/RouteSearch 共用） */
+.rac-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-confirm-backdrop);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.45);
+}
+.rac-modal-panel {
+  width: min(440px, 100%);
+  max-height: calc(100vh - 60px);
+  overflow: auto;
+  padding: var(--space-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  outline: none;
+}
+.rac-modal-backdrop-drawer {
+  align-items: stretch;
+  justify-content: flex-end;
+  padding: 0;
+  background: rgba(15, 23, 42, 0.35);
+}
+.rac-drawer-panel {
+  display: flex;
+  flex-direction: column;
+  width: min(520px, 100vw);
+  height: 100vh;
+  max-height: none;
+  padding: 0;
+  border-left: 1px solid var(--border);
+  border-radius: 0;
+  background: var(--surface);
+  box-shadow: var(--shadow-drawer);
+  outline: none;
+}
+.rac-modal-backdrop-search {
+  align-items: flex-start;
+  padding-top: 13vh;
+}
+.rac-search-panel {
+  width: min(560px, 100%);
 }
 
 /* 系统状态页与启动/空白布局 */

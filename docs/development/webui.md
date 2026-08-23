@@ -194,6 +194,23 @@ zone 贡献的公共字段：`ID`（全局唯一）、`EntryID`（复用 `Bindin
 
 质量门禁（typecheck/lint/vitest/build/generate:check/e2e/go build）与 067 一致；e2e 新增 `068 heroui adoption`（`.button--primary/.card/.select__trigger` 标记、dark class 联动、截图证据）；bundle 基线已记录（index ~1.06 MB raw / ~310 KB gzip）。
 
+## 页面模板与布局规范（069）
+
+所有业务页面的骨架按统一模板组装（HeroUI 控件 + Tailwind 布局；`page-section/stat-card/data-card` 等 class 仅作语义钩子）：
+
+```
+PageHeader（eyebrow/title/description/actions；标题用 HeroUI Typography.Heading）
+→ StatGrid （KPI 行，tone 语义色：positive/attention）
+→ PageSection（Card：kicker/title/description/actions + body + footer）
+→ DataCard  （Card：卡头 + DataTable + Pagination footer）
+→ Toolbar   （筛选/动作行）→ FormCard（PageSection + form-panel）
+→ EmptyState / InlineAlert
+```
+
+- Shell 由 HeroUI/RAC 拼装：顶栏 `Header/Toolbar/Separator` 语义、搜索触发器与页签触发器用 HeroUI Button、账号菜单用 RAC `MenuTrigger+Popover+Menu`、遮罩（确认弹窗/抽屉/主题抽屉/路由搜索）用 RAC 受控 `Modal+Dialog`（portal 客户端挂载、关闭态不渲染）、开关/复选框用 RAC `Switch/Checkbox`（visual 对齐 HeroUI pill/box）。
+- 布局 token（`--radius-*/--shadow-*`）引用 `--heroui-*` 变量；preset 语义色同步驱动 `--heroui-primary*` 与 `--primary`；暗色走 `<html>.dark`。
+- 遮罩/菜单等 RAC overlay 组件 SSR 输出为空：单测统一走 `webui/src/test-utils.tsx` 的 `renderClient`（jsdom + createRoot + act），e2e 以 role/aria 断言为最终门禁。
+
 ## 强制 i18n 契约
 
 WebUI i18n 是所有接入模块必须遵守的规范契约。模块只要贡献页面、菜单或状态，就必须在自身 WebUI Binding 中声明 locale namespace 和资源文件；没有 locale Binding 的模块不得进入生产 registry。locale namespace 的 owner 始终是业务模块，宿主只负责聚合、加载、语言选择、fallback 和缺失资源状态。

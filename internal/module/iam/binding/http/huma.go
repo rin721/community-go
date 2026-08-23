@@ -468,5 +468,5 @@ func jsonEnvelope[T any](body T) *jsonOutput[T] {
 	return &jsonOutput[T]{CacheControl: "no-store", Body: body}
 }
 func sessionOutput(v service.Session) sessionResponse {
-	return sessionResponse{Identity: identityResponse{v.Identity.AccountID, v.Identity.Username, v.Identity.DisplayName, v.Identity.Permissions, v.Identity.MustChangePassword, v.Identity.SecurityRevision}, CSRFToken: v.CSRFToken, CreatedAt: v.CreatedAt, IdleExpiresAt: v.IdleExpiresAt, AbsoluteExpiresAt: v.AbsoluteExpiresAt}
+	return sessionResponse{Identity: identityResponse{v.Identity.AccountID, v.Identity.Username, v.Identity.DisplayName, v.Identity.Nickname, v.Identity.Bio, v.Identity.BirthDate, v.Identity.Permissions, v.Identity.MustChangePassword, v.Identity.SecurityRevision}, CSRFToken: v.CSRFToken, CreatedAt: v.CreatedAt, IdleExpiresAt: v.IdleExpiresAt, AbsoluteExpiresAt: v.AbsoluteExpiresAt}
 }

@@ -71,6 +71,9 @@ export type HostRuntime = {
   completeAuthentication: (principal: PrincipalView) => Promise<void>;
   refreshManifest: () => Promise<void>;
   navigateToDefault: () => void;
+  // navigate 是宿主提供的 SPA 内路由跳转（072）：模块页面用它做页内分区/页面切换，
+  // 避免整页刷新；宿主未注入时可选（向后兼容）。
+  navigate?: (path: string) => void;
 };
 
 const HostRuntimeContext = createContext<HostRuntime | undefined>(undefined);

@@ -74,6 +74,9 @@ type identityResponse struct {
 	AccountID          string                  `json:"accountId"`
 	Username           string                  `json:"username"`
 	DisplayName        string                  `json:"displayName"`
+	Nickname           string                  `json:"nickname"`
+	Bio                string                  `json:"bio"`
+	BirthDate          string                  `json:"birthDate"`
 	Permissions        []permissioncatalog.Key `json:"permissions"`
 	MustChangePassword bool                    `json:"mustChangePassword"`
 	SecurityRevision   uint64                  `json:"securityRevision"`

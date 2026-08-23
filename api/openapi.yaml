@@ -383,10 +383,16 @@ components:
       properties:
         accountId:
           type: string
+        bio:
+          type: string
+        birthDate:
+          type: string
         displayName:
           type: string
         mustChangePassword:
           type: boolean
+        nickname:
+          type: string
         permissions:
           items:
             type: string
@@ -402,6 +408,9 @@ components:
         - accountId
         - username
         - displayName
+        - nickname
+        - bio
+        - birthDate
         - permissions
         - mustChangePassword
         - securityRevision

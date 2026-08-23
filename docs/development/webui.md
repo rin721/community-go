@@ -226,6 +226,13 @@ PageHeader（eyebrow/title/description/actions；标题用 HeroUI Typography.Hea
 - 两形态可组合：`settings` 模块既保留全局菜单树（host.center→settings.center→四子页），又在每个分区页面内提供 `SectionNav`（`SettingsNavLayout`），展示两类层级的并存示范。
 - 新增多分区业务页面时优先考虑页内形态复用 `SectionNav`（账号中心/运营中心等）。
 
+## 设置中心 8 分区与 SPA 导航（072）
+
+- 设置模块细化为 8 分区：profile（主页资料：昵称/介绍/出生日期）、account（用户名与软注销）、security（密码/认证）、appearance、notifications、language、about、acknowledgement；页内 SectionNav 全列，全局菜单 `settings.center` 子项五主分区。
+- SPA 导航：模块页面经 `@webui/sdk/runtime` 的 `HostRuntime.navigate(path)`（宿主注入 react-router）做页内分区切换，**不再整页刷新**；`SettingsNavLayout` 以 SectionNav onSelect 驱动（071 的 href 默认导航路径已单轨移除）。
+- IAM 自服务资料/软注销：`PATCH /api/v1/iam/self/profile`（乐观锁，不撤销会话）、`POST /api/v1/iam/self/archive` 与 `/confirm`（两步确认，TTL 进程内存储；复用归档语义：登录阻塞、会话吊销、不物理删除）；account 页注销流程两步确认。
+- 语言偏好：`language` 分区写宿主语言键（`community-go-webui-language`）并重载；about/acknowledgement 为 i18n 静态双语页。
+
 ## 强制 i18n 契约
 
 WebUI i18n 是所有接入模块必须遵守的规范契约。模块只要贡献页面、菜单或状态，就必须在自身 WebUI Binding 中声明 locale namespace 和资源文件；没有 locale Binding 的模块不得进入生产 registry。locale namespace 的 owner 始终是业务模块，宿主只负责聚合、加载、语言选择、fallback 和缺失资源状态。

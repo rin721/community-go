@@ -60,10 +60,12 @@ type Role struct {
 
 type SessionIdentity struct {
 	AccountID, Username, DisplayName string
-	Permissions                      []permissioncatalog.Key
-	MustChangePassword               bool
-	SecurityRevision                 uint64
-	AuthenticatedAt                  time.Time
+	// Nickname/Bio/BirthDate 是用户主页资料（072），随会话投影。
+	Nickname, Bio, BirthDate string
+	Permissions              []permissioncatalog.Key
+	MustChangePassword       bool
+	SecurityRevision         uint64
+	AuthenticatedAt          time.Time
 }
 
 func NormalizeUsername(value string) (string, error) {

@@ -67,6 +67,12 @@ Linux 使用 `bash scripts/verify-webui.sh`。质量链覆盖生成检查、冻�
 - IAM 用户/角色页、Organization 部门/岗位/分配页与 Navigation 菜单页的写操作按钮（创建/启停/重置/改名/归档/保存策略）均经模块 Binding `ActionPermissions` + SDK `ActionTrigger` 接入动作级权限投影：denied 时按钮隐藏或禁用，未声明/未投影的 operation 前端不做呈现限制（服务端授权继续 fail closed）。
 - 账号/角色列表支持关键字过滤与分页；角色权限与账号角色保存遇到 409 时展示 added/removed 差异并重新加载最新版本（不静默丢弃未保存选择）；Organization 分配使用 `expectedVersion` 乐观锁并在冲突时重载。
 
+## 设置中心 8 分区与 SPA 导航（072）
+
+- 设置套件细化为 8 分区：Profile（主页资料表单，IAM 自服务 updateProfile 乐观锁）、Account（用户名 + 两步软注销，`self/archive` 复用归档语义）、Security（改密）、Appearance、Notifications、Language（写宿主语言键并重载）、About、Acknowledgement；页内 SectionNav 全列、全局菜单五项。
+- 模块 SPA 导航：`HostRuntime.navigate`（宿主注入 react-router）驱动页内分区切换——不再整页刷新（071 取舍已修复，单轨）。
+- 验证见 `webui/test-results/072-settings-*.png` 与 [072 变更记录](../docs/changes/072-settings-suite-refine/README.md)。
+
 ## 页内侧边栏形态与菜单多层级（071）
 
 - 平台新增 `SectionNav`（`@webui/sdk/ui`）页内分区导航原语：navlist 语义、`aria-current="page"` 高亮、键盘上下/Home/End、href 深链；≤720px 自动横向折叠。

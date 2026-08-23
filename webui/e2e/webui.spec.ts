@@ -36,6 +36,10 @@ function manifest(authenticated: boolean, availability: "available" | "degraded"
       { moduleId: "settings", id: "settings.account", path: "/settings/account", entryId: "settings.account", titleMessageId: "webui.settings.account.title", layout: "app", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
       { moduleId: "settings", id: "settings.appearance", path: "/settings/appearance", entryId: "settings.appearance", titleMessageId: "webui.settings.appearance.title", layout: "app", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
       { moduleId: "settings", id: "settings.notifications", path: "/settings/notifications", entryId: "settings.notifications", titleMessageId: "webui.settings.notifications.title", layout: "app", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
+      { moduleId: "settings", id: "settings.security", path: "/settings/security", entryId: "settings.security", titleMessageId: "webui.settings.security.title", layout: "app", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
+      { moduleId: "settings", id: "settings.language", path: "/settings/language", entryId: "settings.language", titleMessageId: "webui.settings.language.title", layout: "app", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
+      { moduleId: "settings", id: "settings.about", path: "/settings/about", entryId: "settings.about", titleMessageId: "webui.settings.about.title", layout: "app", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
+      { moduleId: "settings", id: "settings.acknowledgement", path: "/settings/acknowledgement", entryId: "settings.acknowledgement", titleMessageId: "webui.settings.acknowledgement.title", layout: "app", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
     ],
     menu: authenticated && access !== "denied" ? [
       { moduleId: "ops", id: "ops.dashboard", routeId: "ops.dashboard", titleMessageId: "webui.ops.dashboard.title", iconId: "activity", order: 10 },
@@ -84,6 +88,17 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/api/v1/iam/logout", async (route) => {
     authenticated = false;
     await route.fulfill({ status: 204, body: "" });
+  });
+  await page.route("**/api/v1/iam/self/profile", async (route) => {
+    const body = route.request().postDataJSON() as { nickname?: string; bio?: string; birthDate?: string; expectedVersion?: number };
+    await route.fulfill({ json: { username: "operator", nickname: body.nickname ?? "", bio: body.bio ?? "", birthDate: body.birthDate ?? "", version: (body.expectedVersion ?? 0) + 1 } });
+  });
+  await page.route("**/api/v1/iam/self/archive", async (route) => {
+    if (route.request().url().endsWith("/confirm")) {
+      await route.fulfill({ status: 204, body: "" });
+      return;
+    }
+    await route.fulfill({ json: { confirmationId: "e2e-confirmation" } });
   });
   await page.route("**/api/v1/iam/accounts?*", async (route) => {
     await route.fulfill({ json: { items: [{ id: "user-1", username: "operator", displayName: "Operator", status: "active", mustChangePassword: false, securityRevision: 1, version: 1 }], offset: 0, limit: 100, total: 1 } });
@@ -459,4 +474,51 @@ test("071 settings in-page section navigation switches sections with active high
   // 移动视口：页内导航折叠为横向分区条
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: testInfo.outputPath("071-settings-mobile.png"), fullPage: true });
+});
+
+test("072 settings section switches stay SPA with profile save, closure, language and about pages", async ({ page }, testInfo) => {
+  (page as unknown as { setWebUIState: (state: { authenticated: boolean }) => void }).setWebUIState({ authenticated: true });
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/settings/profile");
+  await expect(page.getByRole("heading", { name: "Profile", exact: true })).toBeVisible();
+  let fullLoads = 0;
+  const onLoad = () => { fullLoads += 1; };
+  page.on("load", onLoad);
+  try {
+    // SPA 分区切换：URL 与内容变化，且不发生整页 reload（load 计数不变）。
+    await page.locator("nav.section-nav").getByText("Security", { exact: true }).click();
+    await expect(page).toHaveURL(/\/settings\/security/);
+    await expect(page.getByRole("heading", { name: "Security", exact: true })).toBeVisible();
+    await expect(page.locator("nav.section-nav [aria-current=page]")).toHaveText("Security");
+    expect(fullLoads).toBe(0);
+    // 资料保存（PATCH self/profile mock）
+    await page.locator("nav.section-nav").getByText("Profile", { exact: true }).click();
+    await expect(page).toHaveURL(/\/settings\/profile/);
+    const nickname = page.getByLabel("Nickname");
+    await nickname.fill("Community");
+    await page.getByRole("button", { name: "Save profile" }).click();
+    await expect(page.getByText("Profile saved.", { exact: false })).toBeVisible();
+    // 注销两步入口（对话框出现，取消保持会话）
+    await page.locator("nav.section-nav").getByText("Account", { exact: true }).click();
+    await expect(page).toHaveURL(/\/settings\/account/);
+    await page.getByRole("button", { name: "Close account", exact: true }).first().click();
+    await expect(page.getByRole("dialog", { name: "Close this account?" })).toBeVisible();
+    await page.getByRole("button", { name: "Keep account", exact: true }).click();
+    await expect(page.getByRole("dialog", { name: "Close this account?" })).toHaveCount(0);
+    // 语言页与关于/鸣谢页渲染
+    await page.locator("nav.section-nav").getByText("Language", { exact: true }).click();
+    await expect(page).toHaveURL(/\/settings\/language/);
+    await expect(page.getByRole("heading", { name: "Language", exact: true })).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath("072-settings-language.png"), fullPage: true });
+    await page.locator("nav.section-nav").getByText("About", { exact: true }).click();
+    await expect(page.getByRole("heading", { name: "About", exact: true })).toBeVisible();
+    await expect(page.getByText("Technology stack", { exact: false })).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath("072-settings-about.png"), fullPage: true });
+    await page.locator("nav.section-nav").getByText("Acknowledgements", { exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Acknowledgements", exact: true })).toBeVisible();
+    expect(fullLoads).toBe(0);
+    await page.screenshot({ path: testInfo.outputPath("072-settings-acknowledgement.png"), fullPage: true });
+  } finally {
+    page.off("load", onLoad);
+  }
 });

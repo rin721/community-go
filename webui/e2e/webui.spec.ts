@@ -480,6 +480,7 @@ test("072 settings section switches stay SPA with profile save, closure, languag
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("/settings/profile");
   await expect(page.getByRole("heading", { name: "Profile", exact: true })).toBeVisible();
+  // 071 页内侧边栏：分区导航存在、当前分区高亮（aria-current）
   // 073 固定页内导航 + 行布局回归：导航在内容左侧（flex row），不在顶部堆叠。
   await expect(page.locator("nav.section-nav")).toBeVisible();
   const navDirection = await page.locator(".settings-inner").evaluate((element) => getComputedStyle(element).flexDirection);

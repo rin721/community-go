@@ -37,10 +37,13 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
   const navigate = runtime?.navigate;
   const active = currentSettingsSection(window.location.pathname);
   const items = settingsNavItems(t);
-  // The settingsModule scope class must sit on the layout container so the
-  // module css flex-row layout for .settings-inner applies (nav on the left).
-  return <div className={`${styles.settingsModule} settings-inner`} data-settings-active={active}>
-    <SectionNav ariaLabel={t("webui.settings.brand")} items={items} activeId={sectionItemID(active)} onSelect={navigate ? (id) => { const section = sectionRoutes.find((candidate) => sectionItemID(candidate) === id); if (section) navigate(`/settings/${section}`); } : undefined} />
-    <div className="settings-content">{children}</div>
+  // The module scope class must sit on an ancestor element while .settings-inner
+  // stays a descendant: the css-module rule is "<hash> .settings-inner", so the
+  // two classes cannot live on the same node (self is not its own descendant).
+  return <div className={`${styles.settingsModule} module-page`}>
+    <div className="settings-inner" data-settings-active={active}>
+      <SectionNav ariaLabel={t("webui.settings.brand")} items={items} activeId={sectionItemID(active)} onSelect={navigate ? (id) => { const section = sectionRoutes.find((candidate) => sectionItemID(candidate) === id); if (section) navigate(`/settings/${section}`); } : undefined} />
+      <div className="settings-content">{children}</div>
+    </div>
   </div>;
 }

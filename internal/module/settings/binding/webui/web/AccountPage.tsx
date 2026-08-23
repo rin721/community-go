@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Button, ConfirmDialog, PageHeader, PageSection } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { beginSelfArchive, confirmSelfArchive, loadSession } from "./api";
-import { SettingsNavLayout, currentSettingsSection } from "./SettingsNavLayout";
 import styles from "./settings.module.css";
 
 // AccountPage shows the username (read-only) and provides the two-step soft
@@ -26,7 +25,7 @@ export default function AccountPage() {
     void confirmSelfArchive(confirmationId).then(() => { setBusy(false); window.location.href = "/login"; }).catch(() => { setBusy(false); setMessage(t("webui.settings.error")); });
   };
   return <div className={`${styles.settingsModule} module-page`}>
-    <SettingsNavLayout active={currentSettingsSection(window.location.pathname)}>
+    
       <PageHeader eyebrow={t("webui.settings.brand")} title={t("webui.settings.account.title")} description={t("webui.settings.account.description")} />
       <div className="page-sections">
         <PageSection kicker={t("webui.settings.account.identity.kicker")} title={t("webui.settings.account.identity.title")}>
@@ -39,7 +38,7 @@ export default function AccountPage() {
           <div className="toolbar-actions"><Button type="button" variant="danger" onClick={requestClosure}>{t("webui.settings.account.closure.begin")}</Button></div>
         </PageSection>
       </div>
-    </SettingsNavLayout>
+    
     <ConfirmDialog open={confirmOpen} title={t("webui.settings.account.closure.confirmTitle")} description={t("webui.settings.account.closure.confirmDetail")} confirmLabel={t("webui.settings.account.closure.confirm")} cancelLabel={t("webui.settings.account.closure.cancel")} closeLabel={t("webui.settings.account.closure.close")} onConfirm={performClosure} onCancel={() => setConfirmOpen(false)} />
   </div>;
 }

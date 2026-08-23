@@ -1,6 +1,5 @@
 import { PageHeader, PageSection } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
-import { SettingsNavLayout, currentSettingsSection } from "./SettingsNavLayout";
 import styles from "./settings.module.css";
 
 // AcknowledgementPage presents credits and acknowledgements (static bilingual
@@ -8,7 +7,7 @@ import styles from "./settings.module.css";
 export default function AcknowledgementPage() {
   const { t } = useWebUITranslation("webui.settings");
   return <div className={`${styles.settingsModule} module-page`}>
-    <SettingsNavLayout active={currentSettingsSection(window.location.pathname)}>
+    
       <PageHeader eyebrow={t("webui.settings.brand")} title={t("webui.settings.acknowledgement.title")} description={t("webui.settings.acknowledgement.description")} />
       <div className="page-sections">
         <PageSection kicker={t("webui.settings.acknowledgement.framework.kicker")} title={t("webui.settings.acknowledgement.framework.title")}>
@@ -21,6 +20,6 @@ export default function AcknowledgementPage() {
           <p className="page-description">{t("webui.settings.acknowledgement.contributors.body")}</p>
         </PageSection>
       </div>
-    </SettingsNavLayout>
+    
   </div>;
 }

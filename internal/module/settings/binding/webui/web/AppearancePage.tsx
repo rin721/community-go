@@ -1,6 +1,5 @@
 import { PageHeader, PageSection, SelectField, Switch } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
-import { SettingsNavLayout, currentSettingsSection } from "./SettingsNavLayout";
 import styles from "./settings.module.css";
 
 // AppearancePage exposes theme and experience preferences. The host theme
@@ -81,7 +80,7 @@ export default function AppearancePage() {
   const write = (next: ThemeValue) => applyValue(next);
   const withExperience = (patch: Partial<Experience>) => write({ ...value, experience: { ...experience, ...patch } });
   return <div className={`${styles.settingsModule} module-page`}>
-    <SettingsNavLayout active={currentSettingsSection(window.location.pathname)}>
+    
       <PageHeader eyebrow={t("webui.settings.brand")} title={t("webui.settings.appearance.title")} description={t("webui.settings.appearance.description")} />
       <div className="page-sections">
       <PageSection kicker={t("webui.settings.appearance.theme.kicker")} title={t("webui.settings.appearance.theme.title")}>
@@ -103,6 +102,6 @@ export default function AppearancePage() {
         </div>
       </PageSection>
     </div>
-    </SettingsNavLayout>
+    
   </div>;
 }

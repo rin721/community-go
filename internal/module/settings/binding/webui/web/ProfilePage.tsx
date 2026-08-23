@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Button, Field, PageHeader, PageSection, StatusPill } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { loadSession, updateSelfProfile } from "./api";
-import { SettingsNavLayout, currentSettingsSection } from "./SettingsNavLayout";
 import styles from "./settings.module.css";
 
 // ProfilePage edits the user-home profile (nickname/bio/birth date, 072) through
@@ -26,7 +25,7 @@ export default function ProfilePage() {
     });
   };
   return <div className={`${styles.settingsModule} module-page`}>
-    <SettingsNavLayout active={currentSettingsSection(window.location.pathname)}>
+    
       <PageHeader eyebrow={t("webui.settings.brand")} title={t("webui.settings.profile.title")} description={t("webui.settings.profile.description")} actions={identity?.mustChangePassword ? <StatusPill state="degraded">{t("webui.settings.profile.changeRequired")}</StatusPill> : undefined} />
       <div className="page-sections">
         <PageSection kicker={t("webui.settings.profile.form.kicker")} title={t("webui.settings.profile.form.title")}>
@@ -40,6 +39,6 @@ export default function ProfilePage() {
           </form>
         </PageSection>
       </div>
-    </SettingsNavLayout>
+    
   </div>;
 }

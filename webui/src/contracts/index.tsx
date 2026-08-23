@@ -44,6 +44,8 @@ export type ManifestRoute = {
   titleMessageId: string;
   viewOperationId?: string;
   layout: RouteLayout;
+  // groupLayoutId 是共享分组布局入口（073）：同组路由由模块布局承载（固定导航 + 内容区）。
+  groupLayoutId?: string;
   deliveryState: DeliveryState;
   default: boolean;
   unauthenticatedDefault: boolean;

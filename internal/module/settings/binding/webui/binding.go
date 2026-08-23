@@ -8,6 +8,7 @@ import (
 
 func Binding() webuicontract.Binding {
 	return webuicontract.Binding{ModuleID: string(module.ID("settings")), Entries: []webuicontract.Entry{
+		{ID: "settings.layout", SourcePath: "SettingsLayout.tsx"},
 		{ID: "settings.profile", SourcePath: "ProfilePage.tsx"},
 		{ID: "settings.account", SourcePath: "AccountPage.tsx"},
 		{ID: "settings.security", SourcePath: "SecurityPage.tsx"},
@@ -17,18 +18,19 @@ func Binding() webuicontract.Binding {
 		{ID: "settings.about", SourcePath: "AboutPage.tsx"},
 		{ID: "settings.acknowledgement", SourcePath: "AcknowledgementPage.tsx"},
 	}, Routes: []webuicontract.Route{
-		{ID: "settings.profile", Path: "/settings/profile", EntryID: "settings.profile", TitleMessageID: "webui.settings.profile.title", Layout: webuicontract.RouteLayoutApp, DeliveryState: webuicontract.DeliveryImplemented},
-		{ID: "settings.account", Path: "/settings/account", EntryID: "settings.account", TitleMessageID: "webui.settings.account.title", Layout: webuicontract.RouteLayoutApp, DeliveryState: webuicontract.DeliveryImplemented},
-		{ID: "settings.security", Path: "/settings/security", EntryID: "settings.security", TitleMessageID: "webui.settings.security.title", Layout: webuicontract.RouteLayoutApp, DeliveryState: webuicontract.DeliveryImplemented},
-		{ID: "settings.appearance", Path: "/settings/appearance", EntryID: "settings.appearance", TitleMessageID: "webui.settings.appearance.title", Layout: webuicontract.RouteLayoutApp, DeliveryState: webuicontract.DeliveryImplemented},
-		{ID: "settings.notifications", Path: "/settings/notifications", EntryID: "settings.notifications", TitleMessageID: "webui.settings.notifications.title", Layout: webuicontract.RouteLayoutApp, DeliveryState: webuicontract.DeliveryImplemented},
-		{ID: "settings.language", Path: "/settings/language", EntryID: "settings.language", TitleMessageID: "webui.settings.language.title", Layout: webuicontract.RouteLayoutApp, DeliveryState: webuicontract.DeliveryImplemented},
-		{ID: "settings.about", Path: "/settings/about", EntryID: "settings.about", TitleMessageID: "webui.settings.about.title", Layout: webuicontract.RouteLayoutApp, DeliveryState: webuicontract.DeliveryImplemented},
-		{ID: "settings.acknowledgement", Path: "/settings/acknowledgement", EntryID: "settings.acknowledgement", TitleMessageID: "webui.settings.acknowledgement.title", Layout: webuicontract.RouteLayoutApp, DeliveryState: webuicontract.DeliveryImplemented},
+		// 073：八个分区共享设置分组布局（GroupLayoutID → settings.layout），
+		// 固定页内导航 + 宿主注入的内容区。
+		{ID: "settings.profile", Path: "/settings/profile", EntryID: "settings.profile", GroupLayoutID: "settings.layout", TitleMessageID: "webui.settings.profile.title", Layout: webuicontract.RouteLayoutApp, DeliveryState: webuicontract.DeliveryImplemented},
+		{ID: "settings.account", Path: "/settings/account", EntryID: "settings.account", GroupLayoutID: "settings.layout", TitleMessageID: "webui.settings.account.title", Layout: webuicontract.RouteLayoutApp, DeliveryState: webuicontract.DeliveryImplemented},
+		{ID: "settings.security", Path: "/settings/security", EntryID: "settings.security", GroupLayoutID: "settings.layout", TitleMessageID: "webui.settings.security.title", Layout: webuicontract.RouteLayoutApp, DeliveryState: webuicontract.DeliveryImplemented},
+		{ID: "settings.appearance", Path: "/settings/appearance", EntryID: "settings.appearance", GroupLayoutID: "settings.layout", TitleMessageID: "webui.settings.appearance.title", Layout: webuicontract.RouteLayoutApp, DeliveryState: webuicontract.DeliveryImplemented},
+		{ID: "settings.notifications", Path: "/settings/notifications", EntryID: "settings.notifications", GroupLayoutID: "settings.layout", TitleMessageID: "webui.settings.notifications.title", Layout: webuicontract.RouteLayoutApp, DeliveryState: webuicontract.DeliveryImplemented},
+		{ID: "settings.language", Path: "/settings/language", EntryID: "settings.language", GroupLayoutID: "settings.layout", TitleMessageID: "webui.settings.language.title", Layout: webuicontract.RouteLayoutApp, DeliveryState: webuicontract.DeliveryImplemented},
+		{ID: "settings.about", Path: "/settings/about", EntryID: "settings.about", GroupLayoutID: "settings.layout", TitleMessageID: "webui.settings.about.title", Layout: webuicontract.RouteLayoutApp, DeliveryState: webuicontract.DeliveryImplemented},
+		{ID: "settings.acknowledgement", Path: "/settings/acknowledgement", EntryID: "settings.acknowledgement", GroupLayoutID: "settings.layout", TitleMessageID: "webui.settings.acknowledgement.title", Layout: webuicontract.RouteLayoutApp, DeliveryState: webuicontract.DeliveryImplemented},
 	}, Navigation: []webuicontract.Navigation{
-		// 070/072：settings.center 挂在宿主导航声明 host.center 分组之下；全局菜单
-		// 子项保持五主分区，language/about/acknowledgement 仅在页内 SectionNav 全列。
-		{ID: "settings.center", ParentID: "host.center", RouteID: "settings.profile", TitleMessageID: "webui.settings.center.title", IconID: "settings", Order: 25},
+		// 073：全局菜单两级——settings.center 为顶级组「设置」（落地 /settings/profile）。
+		{ID: "settings.center", RouteID: "settings.profile", TitleMessageID: "webui.settings.center.title", IconID: "settings", Order: 20},
 		{ID: "settings.profile", ParentID: "settings.center", RouteID: "settings.profile", TitleMessageID: "webui.settings.profile.title", IconID: "user", Order: 26},
 		{ID: "settings.account", ParentID: "settings.center", RouteID: "settings.account", TitleMessageID: "webui.settings.account.title", IconID: "shield", Order: 27},
 		{ID: "settings.security", ParentID: "settings.center", RouteID: "settings.security", TitleMessageID: "webui.settings.security.title", IconID: "key", Order: 28},

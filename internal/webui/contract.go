@@ -153,6 +153,10 @@ type Route struct {
 	TitleMessageID         string
 	ViewOperationID        string
 	Layout                 RouteLayout
+	// GroupLayoutID 是本模块布局入口 entry（073）：同一 GroupLayoutID 的一族路由
+	// 由共享的模块布局组件承载（如设置中心固定页内导航 + 内容区），切换路由时
+	// 布局不卸载重挂；空值表示该路由独立渲染。
+	GroupLayoutID          string
 	DeliveryState          DeliveryState
 	DegradedCapabilities   []string
 	Default                bool
@@ -306,6 +310,7 @@ type ManifestRoute struct {
 	TitleMessageID         string            `json:"titleMessageId"`
 	ViewOperationID        string            `json:"viewOperationId,omitempty"`
 	Layout                 RouteLayout       `json:"layout"`
+	GroupLayoutID          string            `json:"groupLayoutId,omitempty"`
 	DeliveryState          DeliveryState     `json:"deliveryState"`
 	Default                bool              `json:"default"`
 	UnauthenticatedDefault bool              `json:"unauthenticatedDefault"`
@@ -441,7 +446,7 @@ func (c Catalog) ManifestForWithNavigation(policy NavigationPolicySnapshot, acce
 			manifest.Routes = append(manifest.Routes, ManifestRoute{
 				ModuleID: binding.ModuleID, ID: route.ID, Path: route.Path, EntryID: route.EntryID,
 				TitleMessageID: route.TitleMessageID, ViewOperationID: route.ViewOperationID,
-				Layout: route.Layout, DeliveryState: route.DeliveryState, Default: route.Default,
+				Layout: route.Layout, GroupLayoutID: route.GroupLayoutID, DeliveryState: route.DeliveryState, Default: route.Default,
 				UnauthenticatedDefault: route.UnauthenticatedDefault, Access: access,
 				Availability: availability.State, AvailableCapabilities: availability.Capabilities,
 			})
@@ -768,6 +773,12 @@ func projectImplementedRoutes(binding Binding) (Binding, error) {
 	for _, contribution := range bindingZoneContributions(binding) {
 		implementedEntries[contribution.EntryID] = struct{}{}
 	}
+	// 073：分组布局 entry（Route.GroupLayoutID）同 zone entry：批次保留。
+	for _, route := range projected.Routes {
+		if route.GroupLayoutID != "" {
+			implementedEntries[route.GroupLayoutID] = struct{}{}
+		}
+	}
 	projected.Entries = nil
 	for _, entry := range binding.Entries {
 		if _, ok := implementedEntries[entry.ID]; ok {
@@ -974,6 +985,11 @@ func validateBindings(bindings []Binding, hosts []HostNavigation, deferParentChe
 			}
 			if owner, exists := entries[route.EntryID]; !exists || owner != binding.ModuleID {
 				return fmt.Errorf("webui route %q references unknown entry %q", route.ID, route.EntryID)
+			}
+			if route.GroupLayoutID != "" {
+				if owner, exists := entries[route.GroupLayoutID]; !exists || owner != binding.ModuleID {
+					return fmt.Errorf("webui route %q references unknown group layout entry %q", route.ID, route.GroupLayoutID)
+				}
 			}
 			if route.Layout != RouteLayoutApp && route.Layout != RouteLayoutBlank {
 				return fmt.Errorf("webui route %q has unsupported layout %q", route.ID, route.Layout)

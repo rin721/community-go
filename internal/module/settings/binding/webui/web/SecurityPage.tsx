@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Button, Field, PageHeader, PageSection, StatusPill } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { changePassword, loadSession } from "./api";
-import { SettingsNavLayout, currentSettingsSection } from "./SettingsNavLayout";
 import styles from "./settings.module.css";
 
 // SecurityPage provides password/authentication settings: the password change
@@ -20,7 +19,7 @@ export default function SecurityPage() {
     changePassword(current, next).then(() => { setMessage(t("webui.settings.security.changed")); setCurrent(""); setNext(""); }).catch(() => setMessage(t("webui.settings.error")));
   };
   return <div className={`${styles.settingsModule} module-page`}>
-    <SettingsNavLayout active={currentSettingsSection(window.location.pathname)}>
+    
       <PageHeader eyebrow={t("webui.settings.brand")} title={t("webui.settings.security.title")} description={t("webui.settings.security.description")} actions={mustChange && <StatusPill state="degraded">{t("webui.settings.security.changeRequired")}</StatusPill>} />
       <div className="page-sections">
         <PageSection kicker={t("webui.settings.security.kicker")} title={t("webui.settings.security.passwordTitle")}>
@@ -32,6 +31,6 @@ export default function SecurityPage() {
           </form>
         </PageSection>
       </div>
-    </SettingsNavLayout>
+    
   </div>;
 }

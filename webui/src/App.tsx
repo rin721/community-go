@@ -1,5 +1,5 @@
 import { Component, lazy, Suspense, useCallback, useEffect, useState, type ComponentType, type ReactNode } from "react";
-import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { Navigate, Outlet, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { HostRuntimeProvider, type HostRuntime, type Manifest, type ManifestRoute, type PrincipalView } from "@webui/sdk/runtime";
 import { ToastProvider } from "@webui/sdk/ui";
 import { ensureRouteLocale, translateMessage } from "./i18n";
@@ -50,7 +50,40 @@ export function App() {
   if (!manifest) return <StartupState title={translateMessage("webui.host.loading.title")} detail={translateMessage("webui.host.loading.detail")} />;
   if (manifest.catalogRevision !== webuiRevision) return <StartupState title={translateMessage("webui.host.revision.title")} detail={translateMessage("webui.host.revision.detail")} />;
   const runtime: HostRuntime = { manifest, principal, completeAuthentication, refreshManifest: async () => { await refreshManifest(); }, navigateToDefault: () => navigateToDefault(), navigate: (path: string) => navigate(path) };
-  return <HostRuntimeProvider value={runtime}><ToastProvider placement="top-right" maxVisibleToasts={3} /><ZoneRendererProvider><Routes><Route element={<BlankLayout />}>{manifest.routes.filter((route) => route.layout === "blank").map((route) => <Route key={route.id} path={route.path} element={<ManifestPage route={route} manifest={manifest} />} />)}</Route><Route element={<AppShell manifest={manifest} principal={principal} onLogout={handleLogout} />}>{manifest.routes.filter((route) => route.layout === "app").map((route) => <Route key={route.id} path={route.path} element={<ManifestPage route={route} manifest={manifest} />} />)}<Route path="/403" element={<SystemStatePage kind="forbidden" />} /><Route path="/404" element={<SystemStatePage kind="notFound" />} /></Route><Route path="/" element={<RootRedirect manifest={manifest} />} /><Route path="*" element={<StandaloneNotFound />} /></Routes></ZoneRendererProvider></HostRuntimeProvider>;
+  return <HostRuntimeProvider value={runtime}><ToastProvider placement="top-right" maxVisibleToasts={3} /><ZoneRendererProvider><Routes><Route element={<BlankLayout />}>{manifest.routes.filter((route) => route.layout === "blank").map((route) => <Route key={route.id} path={route.path} element={<ManifestPage route={route} manifest={manifest} />} />)}</Route><Route element={<AppShell manifest={manifest} principal={principal} onLogout={handleLogout} />}>{renderAppRoutes(manifest)}<Route path="/403" element={<SystemStatePage kind="forbidden" />} /><Route path="/404" element={<SystemStatePage kind="notFound" />} /></Route><Route path="/" element={<RootRedirect manifest={manifest} />} /><Route path="*" element={<StandaloneNotFound />} /></Routes></ZoneRendererProvider></HostRuntimeProvider>;
+}
+
+// renderAppRoutes 渲染 app 布局路由；带 groupLayoutId 的一族路由由共享模块布局
+// （ModuleGroupLayout：固定布局 + 内容 Outlet）承载，切换分区时布局不卸载重挂（073）。
+function renderAppRoutes(manifest: Manifest) {
+  const grouped = new Map<string, ManifestRoute[]>();
+  const standalone: ManifestRoute[] = [];
+  for (const route of manifest.routes.filter((candidate) => candidate.layout === "app")) {
+    if (route.groupLayoutId) {
+      const entries = grouped.get(route.groupLayoutId) ?? [];
+      entries.push(route);
+      grouped.set(route.groupLayoutId, entries);
+    } else {
+      standalone.push(route);
+    }
+  }
+  return <>
+    {standalone.map((route) => <Route key={route.id} path={route.path} element={<ManifestPage route={route} manifest={manifest} />} />)}
+    {[...grouped.entries()].map(([layoutId, routes]) => {
+      const first = routes[0];
+      return <Route key={layoutId} element={<ModuleGroupLayout route={first} manifest={manifest} />}>
+        {routes.map((route) => <Route key={route.id} path={route.path} element={<ManifestPage route={route} manifest={manifest} />} />)}
+      </Route>;
+    })}
+  </>;
+}
+
+// ModuleGroupLayout 懒加载模块布局入口并把内容区（<Outlet />）作为 children 注入；
+// 布局组件只接收 children，不依赖 react-router（模块边界保持）。
+function ModuleGroupLayout({ route, manifest }: { route: ManifestRoute; manifest: Manifest }) {
+  const Layout = route.groupLayoutId ? (entryComponents[route.groupLayoutId] as unknown as ComponentType<{ children?: ReactNode }>) : undefined;
+  if (!Layout) return <SystemStatePage kind="missingEntry" />;
+  return <RouteResourceBoundary route={route}><Suspense fallback={<PageSkeleton />}><Layout><Outlet /></Layout></Suspense></RouteResourceBoundary>;
 }
 
 function toPrincipal(session: WebUISession): PrincipalView {

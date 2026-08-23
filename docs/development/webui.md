@@ -233,6 +233,12 @@ PageHeader（eyebrow/title/description/actions；标题用 HeroUI Typography.Hea
 - IAM 自服务资料/软注销：`PATCH /api/v1/iam/self/profile`（乐观锁，不撤销会话）、`POST /api/v1/iam/self/archive` 与 `/confirm`（两步确认，TTL 进程内存储；复用归档语义：登录阻塞、会话吊销、不物理删除）；account 页注销流程两步确认。
 - 语言偏好：`language` 分区写宿主语言键（`community-go-webui-language`）并重载；about/acknowledgement 为 i18n 静态双语页。
 
+## 全局菜单两级与分组布局（073）
+
+- **全局菜单两级**：当前应用顶级为「设置」（settings.center，落地 /settings/profile）→ 五主分区子项；不再存在「管理中心」宿主分组层（HostNavigation 契约能力保留在 `internal/webui`，composition 不再装配，供未来宿主分组使用）。
+- **分组布局（固定页内导航）**：`Binding.Route.GroupLayoutID` 引用本模块布局 entry（validate 校验归属）；宿主 App 对同组路由用 `ModuleGroupLayout` 承载（懒加载布局、`<Outlet/>` 作为 children 注入，布局组件无 react-router 依赖）；设置中心八个 /settings/* 路由共享 `SettingsLayout`（固定 SectionNav + 内容区），切换分区时页内导航不卸载重挂（e2e 以 dataset 标记断言）。
+- 承接 071 的页内导航语义由布局单实例承担（原各页面内嵌 SettingsNavLayout 已退役）。
+
 ## 强制 i18n 契约
 
 WebUI i18n 是所有接入模块必须遵守的规范契约。模块只要贡献页面、菜单或状态，就必须在自身 WebUI Binding 中声明 locale namespace 和资源文件；没有 locale Binding 的模块不得进入生产 registry。locale namespace 的 owner 始终是业务模块，宿主只负责聚合、加载、语言选择、fallback 和缺失资源状态。

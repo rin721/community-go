@@ -1,6 +1,5 @@
 import { PageHeader, PageSection } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
-import { SettingsNavLayout, currentSettingsSection } from "./SettingsNavLayout";
 import styles from "./settings.module.css";
 
 // LanguagePage lets the user choose the interface language. It writes the host
@@ -18,7 +17,7 @@ export default function LanguagePage() {
     window.location.reload();
   };
   return <div className={`${styles.settingsModule} module-page`}>
-    <SettingsNavLayout active={currentSettingsSection(window.location.pathname)}>
+    
       <PageHeader eyebrow={t("webui.settings.brand")} title={t("webui.settings.language.title")} description={t("webui.settings.language.description")} />
       <div className="page-sections">
         <PageSection kicker={t("webui.settings.language.kicker")} title={t("webui.settings.language.interfaceTitle")}>
@@ -28,6 +27,6 @@ export default function LanguagePage() {
           <p className="page-meta">{t("webui.settings.language.reloadNote")}</p>
         </PageSection>
       </div>
-    </SettingsNavLayout>
+    
   </div>;
 }

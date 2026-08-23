@@ -278,9 +278,8 @@ func TestApplicationWebUICatalogMenuHierarchy(t *testing.T) {
 		{parent: "organization.directory", child: "organization.positions"},
 		{parent: "organization.directory", child: "organization.assignments"},
 		{parent: "", child: "navigation.menus"},
-		// 070：宿主分组 host.center 收纳设置中心组；设置组收纳四子页与 iam.security。
-		{parent: "", child: "host.center"},
-		{parent: "host.center", child: "settings.center"},
+		// 073：全局菜单两级——顶级「设置」组收纳五主分区与 iam.security。
+		{parent: "", child: "settings.center"},
 		{parent: "settings.center", child: "settings.profile"},
 		{parent: "settings.center", child: "settings.account"},
 		{parent: "settings.center", child: "settings.appearance"},
@@ -299,7 +298,6 @@ func TestApplicationWebUICatalogMenuHierarchy(t *testing.T) {
 	for _, group := range []struct{ parent, firstChild string }{
 		{parent: "iam.access", firstChild: "iam.accounts"},
 		{parent: "organization.directory", firstChild: "organization.departments"},
-		{parent: "host.center", firstChild: "settings.center"},
 		{parent: "settings.center", firstChild: "settings.profile"},
 	} {
 		if byID[group.parent].Order >= byID[group.firstChild].Order {

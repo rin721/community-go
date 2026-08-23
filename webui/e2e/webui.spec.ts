@@ -436,3 +436,27 @@ test("070 settings center renders with bidirectional menu hierarchy", async ({ p
   await expect(page.getByText("These preferences are stored locally.", { exact: false })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("070-settings-notifications.png"), fullPage: true });
 });
+
+test("071 settings in-page section navigation switches sections with active highlight", async ({ page }, testInfo) => {
+  (page as unknown as { setWebUIState: (state: { authenticated: boolean }) => void }).setWebUIState({ authenticated: true });
+  await page.goto("/settings/profile");
+  await expect(page.getByRole("heading", { name: "Profile", exact: true })).toBeVisible();
+  // 071 页内侧边栏：分区导航存在、当前分区高亮（aria-current）
+  await expect(page.locator("nav.section-nav")).toBeVisible();
+  await expect(page.locator("nav.section-nav [aria-current=page]")).toHaveText("Profile");
+  await page.screenshot({ path: testInfo.outputPath("071-settings-profile.png"), fullPage: true });
+  await page.locator("nav.section-nav").getByText("Account", { exact: true }).click();
+  await expect(page).toHaveURL(/\/settings\/account/);
+  await expect(page.getByRole("heading", { name: "Account", exact: true })).toBeVisible();
+  await expect(page.locator("nav.section-nav [aria-current=page]")).toHaveText("Account");
+  await page.goto("/settings/appearance");
+  await expect(page.getByRole("heading", { name: "Appearance", exact: true })).toBeVisible();
+  await expect(page.locator("nav.section-nav [aria-current=page]")).toHaveText("Appearance");
+  await page.screenshot({ path: testInfo.outputPath("071-settings-appearance.png"), fullPage: true });
+  await page.goto("/settings/notifications");
+  await expect(page.getByRole("heading", { name: "Notifications", exact: true })).toBeVisible();
+  await expect(page.getByText("These preferences are stored locally.", { exact: false })).toBeVisible();
+  // 移动视口：页内导航折叠为横向分区条
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({ path: testInfo.outputPath("071-settings-mobile.png"), fullPage: true });
+});

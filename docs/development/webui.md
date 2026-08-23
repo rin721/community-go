@@ -218,6 +218,14 @@ PageHeader（eyebrow/title/description/actions；标题用 HeroUI Typography.Hea
 - 路由与页面归属不变（落地页 RouteID 必须属于声明者）；菜单树仍由 manifest 投影 + 宿主递归渲染（零改动）。
 - 设置中心（模块 settings）：Profile/Account/Appearance/Notifications 四页 + `settings.center` 菜单；Appearance/Notifications 为前端偏好（localStorage），Account/Profile 复用 IAM 能力（跨模块 HTTP 先例）；通知偏好明确无后端服务。
 
+## 菜单层级多形态：全局菜单树与页内侧边栏（071）
+
+- 菜单分类层级支持两类形态并存：
+  - **全局菜单树**：主导航层级由 manifest `menu`（模块 Navigation + 宿主导航 HostNavigation）驱动，侧栏递归渲染；适合分区各自需要全局可达/移动端折叠的场景（如 070 设置中心四子页入树）。
+  - **页内侧边栏**：由 SDK `SectionNav` 原语提供（`@webui/sdk/ui`）：多分区页面在内容区左侧（≤720px 转横向分区条）提供垂直分区导航，`aria-current="page"` 高亮、键盘上下/Home/End、href 深链；适合「分区属于同一入口、用户在同一工作流内切换」的场景（如设置中心四分区）。
+- 两形态可组合：`settings` 模块既保留全局菜单树（host.center→settings.center→四子页），又在每个分区页面内提供 `SectionNav`（`SettingsNavLayout`），展示两类层级的并存示范。
+- 新增多分区业务页面时优先考虑页内形态复用 `SectionNav`（账号中心/运营中心等）。
+
 ## 强制 i18n 契约
 
 WebUI i18n 是所有接入模块必须遵守的规范契约。模块只要贡献页面、菜单或状态，就必须在自身 WebUI Binding 中声明 locale namespace 和资源文件；没有 locale Binding 的模块不得进入生产 registry。locale namespace 的 owner 始终是业务模块，宿主只负责聚合、加载、语言选择、fallback 和缺失资源状态。

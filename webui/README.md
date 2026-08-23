@@ -67,6 +67,12 @@ Linux 使用 `bash scripts/verify-webui.sh`。质量链覆盖生成检查、冻�
 - IAM 用户/角色页、Organization 部门/岗位/分配页与 Navigation 菜单页的写操作按钮（创建/启停/重置/改名/归档/保存策略）均经模块 Binding `ActionPermissions` + SDK `ActionTrigger` 接入动作级权限投影：denied 时按钮隐藏或禁用，未声明/未投影的 operation 前端不做呈现限制（服务端授权继续 fail closed）。
 - 账号/角色列表支持关键字过滤与分页；角色权限与账号角色保存遇到 409 时展示 added/removed 差异并重新加载最新版本（不静默丢弃未保存选择）；Organization 分配使用 `expectedVersion` 乐观锁并在冲突时重载。
 
+## 页内侧边栏形态与菜单多层级（071）
+
+- 平台新增 `SectionNav`（`@webui/sdk/ui`）页内分区导航原语：navlist 语义、`aria-current="page"` 高亮、键盘上下/Home/End、href 深链；≤720px 自动横向折叠。
+- 设置中心四分区接入 `SettingsNavLayout`（页内侧边栏 + 内容区），与全局菜单树并存——菜单分类层级支持「全局菜单树 / 页内侧边栏」两形态（规范见 [WebUI 开发指南](../docs/development/webui.md)）。
+- e2e 与截图见 `webui/test-results/071-settings-*.png` 与 [071 变更记录](../docs/changes/071-settings-in-page-navigation/README.md)。
+
 ## 设置中心与菜单双向归属（070）
 
 - 新业务模块 `settings`：Profile/Account/Appearance/Notifications 四页 + `settings.center` 两级菜单（i18n/mock/受控图标/生成链）。

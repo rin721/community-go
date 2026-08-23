@@ -190,6 +190,43 @@ export function Switch({ label, ariaLabel, checked, onChange, disabled, classNam
   return <RACSwitch isSelected={checked} isDisabled={disabled} aria-label={ariaLabel} onChange={(next) => onChange?.(next)} className={`rac-switch ${className}`.trim()}>{label}</RACSwitch>;
 }
 
+// SectionNavItem 是页内分区导航项：id 用于 activeId/onSelect，href 存在时按链接渲染。
+export type SectionNavItem = { id: string; label: ReactNode; icon?: ReactNode; href?: string };
+
+// SectionNav 是「页内侧边栏」形态的页内分区导航原语（071）：多分区页面在内容区
+// 提供垂直分区导航（navlist 语义 + aria-current 高亮 + 键盘上下/Home/End），
+// ≤720px 自动转横向滚动条。与全局菜单树并存，共同构成多形态菜单层级。
+export function SectionNav({ items, activeId, onSelect, className = "", ariaLabel }: { items: ReadonlyArray<SectionNavItem>; activeId?: string; onSelect?: (id: string) => void; className?: string; ariaLabel?: string }) {
+  const listID = `webui-section-nav-${useId().replaceAll(":", "")}`;
+  return (
+    <nav className={`section-nav ${className}`.trim()} aria-label={ariaLabel} onKeyDown={(event) => {
+      if (event.key !== "ArrowDown" && event.key !== "ArrowUp" && event.key !== "Home" && event.key !== "End") return;
+      event.preventDefault();
+      const focused = document.activeElement instanceof HTMLElement ? document.activeElement.getAttribute("data-section-nav-id") : null;
+      let index = items.findIndex((item) => item.id === focused);
+      if (index < 0) index = Math.max(0, items.findIndex((item) => item.id === activeId));
+      const count = items.length;
+      let next: number;
+      if (event.key === "Home") next = 0;
+      else if (event.key === "End") next = count - 1;
+      else if (event.key === "ArrowDown") next = (index + 1) % count;
+      else next = (index - 1 + count) % count;
+      const nextItem = document.querySelector<HTMLElement>(`[data-section-nav-list="${listID}"] [data-section-nav-id="${items[next].id}"]`);
+      nextItem?.focus();
+    }}>
+      <ul role="list" data-section-nav-list={listID} className="section-nav-list">
+        {items.map((item) => {
+          const active = item.id === activeId;
+          const common = { "data-section-nav-id": item.id, "aria-current": active ? ("page" as const) : undefined, className: active ? "section-nav-item active" : "section-nav-item" };
+          return <li key={item.id}>{item.href
+            ? <a href={item.href} onClick={onSelect ? (event) => { event.preventDefault(); onSelect?.(item.id); } : undefined} {...common}>{item.icon && <span className="section-nav-icon" aria-hidden="true">{item.icon}</span>}<span>{item.label}</span></a>
+            : <button type="button" onClick={() => onSelect?.(item.id)} {...common}>{item.icon && <span className="section-nav-icon" aria-hidden="true">{item.icon}</span>}<span>{item.label}</span></button>}</li>;
+        })}
+      </ul>
+    </nav>
+  );
+}
+
 // SelectField 复用 HeroUI Select 复合组件（RAC 底座）：Label + Trigger/Value + ListBox。
 // 对外保持 value/onValueChange(options) 契约，模块页面不再使用原生 <select>。
 export type SelectOption = { value: string; label: ReactNode };

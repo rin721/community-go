@@ -624,6 +624,72 @@ kbd {
   color: var(--primary);
   background: var(--primary-soft);
 }
+/* 071：页内分区导航（SectionNav，页内侧边栏形态） */
+.section-nav {
+  flex: 0 0 208px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.section-nav-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.section-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  color: var(--text-secondary);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  outline: none;
+  background: transparent;
+  border: 0;
+}
+.section-nav-item:hover {
+  color: var(--text);
+  background: var(--surface-muted);
+}
+.section-nav-item.active,
+.section-nav-item[aria-current="page"] {
+  color: var(--primary);
+  background: var(--primary-soft);
+  font-weight: 600;
+}
+.section-nav-item:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+.section-nav-icon {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+@media (max-width: 720px) {
+  .section-nav {
+    flex: 0 0 auto;
+    width: 100%;
+    flex-direction: row;
+    overflow-x: auto;
+  }
+  .section-nav-list {
+    flex-direction: row;
+    gap: 6px;
+  }
+  .section-nav-item {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+}
 
 .workspace-tabs {
   display: flex;

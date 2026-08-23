@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { PageHeader, PageSection, Switch } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
+import { SettingsNavLayout, currentSettingsSection } from "./SettingsNavLayout";
 import styles from "./settings.module.css";
 
 // NotificationsPage exposes notification preferences. There is no backend
@@ -32,8 +33,9 @@ export default function NotificationsPage() {
     });
   };
   return <div className={`${styles.settingsModule} module-page`}>
-    <PageHeader eyebrow={t("webui.settings.brand")} title={t("webui.settings.notifications.title")} description={t("webui.settings.notifications.description")} />
-    <div className="page-sections">
+    <SettingsNavLayout active={currentSettingsSection(window.location.pathname)}>
+      <PageHeader eyebrow={t("webui.settings.brand")} title={t("webui.settings.notifications.title")} description={t("webui.settings.notifications.description")} />
+      <div className="page-sections">
       <PageSection kicker={t("webui.settings.notifications.prefs.kicker")} title={t("webui.settings.notifications.prefs.title")}>
         <div className="settings-stack">
           <Switch label={t("webui.settings.notifications.emailDigest")} checked={prefs.emailDigest} onChange={(emailDigest) => update({ emailDigest })} />
@@ -44,5 +46,6 @@ export default function NotificationsPage() {
         <p className="page-meta">{t("webui.settings.notifications.localOnly")}</p>
       </PageSection>
     </div>
+    </SettingsNavLayout>
   </div>;
 }

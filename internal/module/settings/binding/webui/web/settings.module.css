@@ -25,3 +25,20 @@
   gap: 12px;
   max-width: 520px;
 }
+/* 071：页内侧边栏布局（SectionNav + 内容区） */
+.settingsModule :global(.settings-inner) {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--section-gap);
+}
+.settingsModule :global(.settings-content) {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  gap: var(--section-gap);
+}
+@media (max-width: 900px) {
+  .settingsModule :global(.settings-inner) {
+    flex-direction: column;
+  }
+}

@@ -2,7 +2,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { CapabilityBanner, ConfirmDialog, DataCard, DataTable, DataToolbar, Drawer, EmptyState, FilterPanel, PageSection, Pagination, StatCard, StatGrid, Toast, createPaginationItems, getDataTableSelectionState } from "./ui";
+import { CapabilityBanner, ConfirmDialog, DataCard, DataTable, DataToolbar, Drawer, EmptyState, FilterPanel, PageSection, Pagination, SectionNav, StatCard, StatGrid, Toast, createPaginationItems, getDataTableSelectionState } from "./ui";
 import { renderClient } from "./test-utils";
 
 describe("公共管理 UI 模式", () => {
@@ -141,5 +141,19 @@ describe("公共管理 UI 模式", () => {
   it("forwards data-scroll-hijack to the data table wrapper for declared hijacking", () => {
     const markup = renderToStaticMarkup(createElement(DataTable<{ name: string }>, { columns: [{ id: "name", header: "Name", cell: (row) => row.name }], rows: [{ name: "a" }], ariaLabel: "Records", wrapperProps: { "data-scroll-hijack": "x" } }));
     expect(markup).toContain('data-scroll-hijack="x"');
+  });
+
+  it("renders the in-page section navigation with active highlight and link items", () => {
+    const markup = renderToStaticMarkup(createElement(SectionNav, { ariaLabel: "Settings sections", activeId: "profile", items: [
+      { id: "profile", label: "Profile", href: "/settings/profile" },
+      { id: "account", label: "Account", href: "/settings/account" },
+      { id: "appearance", label: "Appearance" },
+    ] }));
+
+    expect(markup).toContain('<nav class="section-nav"');
+    expect(markup).toContain('aria-label="Settings sections"');
+    expect(markup).toContain('aria-current="page"');
+    expect(markup).toContain('href="/settings/profile"');
+    expect(markup).toContain("Account");
   });
 });

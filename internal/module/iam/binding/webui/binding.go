@@ -17,8 +17,8 @@ func Binding() webui.Binding {
 		{ID: "iam.sessions", Path: "/admin/sessions", EntryID: "iam.sessions", TitleMessageID: "webui.iam.sessions.title", ViewOperationID: "iam.sessions.list", Layout: webui.RouteLayoutApp, DeliveryState: webui.DeliveryImplemented},
 	}, Navigation: []webui.Navigation{
 		{ID: "iam.access", RouteID: "iam.accounts", TitleMessageID: "webui.iam.access.title", IconID: "users", Order: 30},
-		// 070 双向归属：账号安全页挂入 settings 设置中心分组（业务模块页面 → 设置组下级）。
-		{ID: "iam.security", ParentID: "settings.center", RouteID: "iam.security", TitleMessageID: "webui.iam.security.title", IconID: "user", Order: 40},
+		// 074：iam 页面职责归位——账号安全页回到身份权限组；设置中心自行实现安全页并调用 iam 接口。
+		{ID: "iam.security", ParentID: "iam.access", RouteID: "iam.security", TitleMessageID: "webui.iam.security.title", IconID: "user", Order: 40},
 		{ID: "iam.accounts", ParentID: "iam.access", RouteID: "iam.accounts", TitleMessageID: "webui.iam.accounts.title", IconID: "users", Order: 50},
 		{ID: "iam.roles", ParentID: "iam.access", RouteID: "iam.roles", TitleMessageID: "webui.iam.roles.title", IconID: "shield", Order: 60},
 		{ID: "iam.permissions", ParentID: "iam.access", RouteID: "iam.permissions", TitleMessageID: "webui.iam.permissions.title", IconID: "key", Order: 70},

@@ -36,5 +36,8 @@ func Binding() webuicontract.Binding {
 		{ID: "settings.security", ParentID: "settings.center", RouteID: "settings.security", TitleMessageID: "webui.settings.security.title", IconID: "key", Order: 28},
 		{ID: "settings.appearance", ParentID: "settings.center", RouteID: "settings.appearance", TitleMessageID: "webui.settings.appearance.title", IconID: "palette", Order: 29},
 		{ID: "settings.notifications", ParentID: "settings.center", RouteID: "settings.notifications", TitleMessageID: "webui.settings.notifications.title", IconID: "bell", Order: 30},
+		{ID: "settings.language", ParentID: "settings.center", RouteID: "settings.language", TitleMessageID: "webui.settings.language.title", IconID: "languages", Order: 31},
+		{ID: "settings.about", ParentID: "settings.center", RouteID: "settings.about", TitleMessageID: "webui.settings.about.title", IconID: "info", Order: 32},
+		{ID: "settings.acknowledgement", ParentID: "settings.center", RouteID: "settings.acknowledgement", TitleMessageID: "webui.settings.acknowledgement.title", IconID: "star", Order: 33},
 	}, Locales: []webuicontract.Locale{{Language: "en-US", Namespace: "webui.settings", SourcePath: "locale/en-US.json"}, {Language: "zh-CN", Namespace: "webui.settings", SourcePath: "locale/zh-CN.json"}}, MockSource: "mock.ts", Requires: []webuicontract.SDKRequirement{{ID: "runtime", MajorVersion: 1}, {ID: "http", MajorVersion: 1}, {ID: "i18n", MajorVersion: 1}, {ID: "ui", MajorVersion: 1}, {ID: "mock", MajorVersion: 1}}}
 }

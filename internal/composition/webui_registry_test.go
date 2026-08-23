@@ -268,22 +268,25 @@ func TestApplicationWebUICatalogMenuHierarchy(t *testing.T) {
 		{parent: "", child: "ops.dashboard"},
 		{parent: "ops.dashboard", child: "ops.capabilities"},
 		{parent: "", child: "iam.access"},
+		{parent: "iam.access", child: "iam.security"},
 		{parent: "iam.access", child: "iam.accounts"},
 		{parent: "iam.access", child: "iam.roles"},
 		{parent: "iam.access", child: "iam.permissions"},
-		// 070 双向归属：账号安全页挂入 settings 设置中心分组（业务页面 → 设置组下级）。
-		{parent: "settings.center", child: "iam.security"},
 		{parent: "", child: "organization.directory"},
 		{parent: "organization.directory", child: "organization.departments"},
 		{parent: "organization.directory", child: "organization.positions"},
 		{parent: "organization.directory", child: "organization.assignments"},
 		{parent: "", child: "navigation.menus"},
-		// 073：全局菜单两级——顶级「设置」组收纳五主分区与 iam.security。
+		// 074：设置组子项与页内 SectionNav 完全一致（8 分区；iam.security 归位 iam.access）。
 		{parent: "", child: "settings.center"},
 		{parent: "settings.center", child: "settings.profile"},
 		{parent: "settings.center", child: "settings.account"},
+		{parent: "settings.center", child: "settings.security"},
 		{parent: "settings.center", child: "settings.appearance"},
 		{parent: "settings.center", child: "settings.notifications"},
+		{parent: "settings.center", child: "settings.language"},
+		{parent: "settings.center", child: "settings.about"},
+		{parent: "settings.center", child: "settings.acknowledgement"},
 	}
 	for _, edge := range edges {
 		item, ok := byID[edge.child]

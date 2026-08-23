@@ -44,7 +44,7 @@ function manifest(authenticated: boolean, availability: "available" | "degraded"
     menu: authenticated && access !== "denied" ? [
       { moduleId: "ops", id: "ops.dashboard", routeId: "ops.dashboard", titleMessageId: "webui.ops.dashboard.title", iconId: "activity", order: 10 },
       { moduleId: "ops", id: "ops.capabilities", parentId: "ops.dashboard", routeId: "ops.capabilities", titleMessageId: "webui.ops.capabilities.title", iconId: "activity", order: 20 },
-      { moduleId: "iam", id: "iam.security", parentId: "settings.center", routeId: "iam.security", titleMessageId: "webui.iam.security.title", iconId: "user", order: 30 },
+      { moduleId: "iam", id: "iam.security", parentId: "iam.access", routeId: "iam.security", titleMessageId: "webui.iam.security.title", iconId: "user", order: 30 },
       { moduleId: "iam", id: "iam.accounts", routeId: "iam.accounts", titleMessageId: "webui.iam.accounts.title", iconId: "users", order: 40 },
       { moduleId: "iam", id: "iam.roles", routeId: "iam.roles", titleMessageId: "webui.iam.roles.title", iconId: "shield", order: 50 },
       { moduleId: "iam", id: "iam.permissions", routeId: "iam.permissions", titleMessageId: "webui.iam.permissions.title", iconId: "key", order: 60 },
@@ -56,6 +56,9 @@ function manifest(authenticated: boolean, availability: "available" | "degraded"
       { moduleId: "settings", id: "settings.account", parentId: "settings.center", routeId: "settings.account", titleMessageId: "webui.settings.account.title", iconId: "shield", order: 27 },
       { moduleId: "settings", id: "settings.appearance", parentId: "settings.center", routeId: "settings.appearance", titleMessageId: "webui.settings.appearance.title", iconId: "palette", order: 99 },
       { moduleId: "settings", id: "settings.notifications", parentId: "settings.center", routeId: "settings.notifications", titleMessageId: "webui.settings.notifications.title", iconId: "bell", order: 100 },
+      { moduleId: "settings", id: "settings.language", parentId: "settings.center", routeId: "settings.language", titleMessageId: "webui.settings.language.title", iconId: "languages", order: 101 },
+      { moduleId: "settings", id: "settings.about", parentId: "settings.center", routeId: "settings.about", titleMessageId: "webui.settings.about.title", iconId: "info", order: 102 },
+      { moduleId: "settings", id: "settings.acknowledgement", parentId: "settings.center", routeId: "settings.acknowledgement", titleMessageId: "webui.settings.acknowledgement.title", iconId: "star", order: 103 },
       ...(navigationEnabled ? [{ moduleId: "navigation", id: "navigation.menus", routeId: "navigation.menus", titleMessageId: "webui.navigation.menus.title", iconId: "menu", order: 110 }] : []),
     ] : [],
   };
@@ -435,11 +438,15 @@ test("070 settings center renders with bidirectional menu hierarchy", async ({ p
   (page as unknown as { setWebUIState: (state: { authenticated: boolean }) => void }).setWebUIState({ authenticated: true });
   await page.goto("/settings/profile");
   await expect(page.getByRole("heading", { name: "Profile", exact: true })).toBeVisible();
-  // 073 两级菜单链：顶级「Settings」组（落地 /settings/profile）→ 设置子项 + iam.security（业务页面挂入设置组）
+  // 074 菜单一致性：全局设置组子项与页内 SectionNav 完全一致（8 分区）；
+  // iam.security 归位 iam.access（页内不含该 iam 页面）。
   await expect(page.locator(".app-sidebar").getByText("Settings", { exact: true })).toBeVisible();
-  await expect(page.locator(".app-sidebar").getByText("Account security")).toBeVisible();
   await expect(page.locator(".app-sidebar").getByText("Management center")).toHaveCount(0);
-  await page.screenshot({ path: testInfo.outputPath("070-settings-profile.png"), fullPage: true });
+  const navLabels = await page.locator("nav.section-nav .section-nav-item").allTextContents();
+  expect(navLabels).toEqual(["Profile", "Account", "Security", "Appearance", "Notifications", "Language", "About", "Acknowledgements"]);
+  await expect(page.locator(".app-sidebar").getByText("Account security")).toHaveCount(1);
+  await expect(page.locator("nav.section-nav").getByText("Account security")).toHaveCount(0);
+  await page.screenshot({ path: testInfo.outputPath("074-settings-menu-parity.png"), fullPage: true });
   await page.goto("/settings/account");
   await expect(page.getByRole("heading", { name: "Account", exact: true })).toBeVisible();
   await page.goto("/settings/appearance");

@@ -247,10 +247,11 @@ PageHeader（eyebrow/title/description/actions；标题用 HeroUI Typography.Hea
 
 ## OpenAPI 契约可视化页面（075）
 
-- **模块形态**：`openapi` 是 WebUI-only 模块（settings 同形态，无 module.go 业务层）：`/openapi` 单路由 + `openapi.docs` 顶级菜单项（无 ViewOperationID，契约是公开仓库产物），`@webui/sdk/ui` 同等组件做页面壳层（PageHeader/PageSection/InlineAlert），交互文档区用官方 `swagger-ui-react`（固定版本，R075-001）在模块内窄封装渲染。
+- **模块形态**：`openapi` 是 WebUI-only 模块（settings 同形态，无 module.go 业务层）：`/openapi` 单路由 + `openapi.docs` 顶级菜单项（无 ViewOperationID，契约是公开仓库产物）。
+- **页内呈现全部使用平台组件（R075-003）**：页面壳层与页内控件均来自 `@webui/sdk/ui`（PageHeader/PageSection/Surface/DataTable/InlineAlert/EmptyState/Button）；契约解析放模块内 `openapi-data.ts` 纯函数层（分组/参数行/响应行/schema 属性行，可单测）；HTTP 方法徽标等平台无语义组件由模块内小型组件 + css module 承担；不引入第三方文档控件（swagger-ui-react 及其依赖/别名已从 075 中移除，单轨）。
 - **契约数据源（单权威）**：`go run ./cmd/app webui generate` 在 registry 之外还从 `api/openapi.yaml` 渲染 `webui/src/generated/openapi-spec.ts`（JSON 对象 + 源文件 sha256 常量），路径由 `.scaffold/layout.json` 的 `webui.specOutput` 声明；`--check` 整文件严格比对。页面直接 import 快照，`server-hosted`/`separated`/`mock` 三态零请求一致渲染，模块 `mock.ts` 为空路由表（settings 先例）。
-- **第三方边界（R075-001）**：Swagger UI 是 pure-local 呈现细节，只在模块内使用；不新增平台 SDK capability、不进 `@webui/sdk`、不建全项目级 Wrapper；CSS 随懒加载 chunk 进入。hash deep-linking 关闭（react-router SPA 语义互斥）。
-- **安全边界如实呈现**：`bearerAuth` 操作可经 Authorize 注入 token；`webuiSession`/CSRF 绑定写操作无法从参考页执行（服务端 fail-closed 不变）；mock 演示构建无后端，请求类交互不可用。
+- **DataTable 平台修复**：`@webui/sdk/ui` 的 `DataTable` 将首个可视列标为 RAC Table 的 `isRowHeader`（客户端渲染必需），并新增客户端渲染回归测试；这是首个在客户端真实渲染 DataTable 的业务页（075）暴露的既有缺陷。
+- **安全边界如实呈现**：页面只读（无请求执行器）；`bearerAuth` 操作可自行携带 token；`webuiSession`/CSRF 绑定写操作无法从参考页执行；mock 演示构建无后端，请求类交互不可用。
 
 ## 强制 i18n 契约
 

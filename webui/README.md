@@ -52,10 +52,11 @@ Linux 使用 `bash scripts/verify-webui.sh`。质量链覆盖生成检查、冻�
 
 ## OpenAPI 契约可视化页面（075）
 
-- 新业务模块 `openapi` 提供「API 文档」页（`/openapi`，顶级菜单项）：页面壳层与其余页面使用同一套 `@webui/sdk/ui` 组件（PageHeader/PageSection/InlineAlert），交互文档区由第三方 `swagger-ui-react`（官方 Swagger UI React 封装，固定版本 5.32.14，R075-001）在模块内窄封装渲染。
+- 新业务模块 `openapi` 提供「API 文档」页（`/openapi`，顶级菜单项）：页面**壳层与页内组件全部使用 `@webui/sdk/ui` 组件体系**（PageHeader/PageSection/Surface/DataTable/InlineAlert/EmptyState 等，R075-003），按 tag 分组展示 operation（方法徽标 + 路径 + operationId，展开显示参数表/请求体摘要/响应表）与 schema 模型属性表；HTTP 方法徽标等无语义平台的细节由模块内小型组件 + css module 承担。
 - 契约数据源：`webui generate` 同时生成 `webui/src/generated/openapi-spec.ts`（`api/openapi.yaml` 的 JSON 变换，含源文件 sha256），页面直接 import——`server-hosted`/`separated`/`mock` 三态零请求一致渲染；`--check` 严格比对防漂移；模块 `mock.ts` 为空路由表（页面零请求）。
 - 布局清单新增 `webui.specOutput`（默认 `webui/src/generated/openapi-spec.ts`），生成链与 `webui-registry.ts` 同命令同门禁；受控图标目录新增 `book`。
-- 与本页相关的安全边界如实呈现：`bearerAuth` 操作可用 Authorize 注入 token；`webuiSession`/CSRF 绑定写操作无法从参考页执行；mock 演示构建无后端、请求类交互不可用。
+- 平台修复（本任务发现）：`@webui/sdk/ui` 的 `DataTable` 补齐 RAC Table 要求的首列 `isRowHeader`，客户端渲染不再抛错（含回归测试）。
+- 页面为只读参考：`bearerAuth` 操作可自行携带 token；`webuiSession`/CSRF 绑定写操作无法从参考页执行；mock 演示构建无后端、请求类交互不可用。
 
 ## 侧边栏菜单层级分类（063）
 

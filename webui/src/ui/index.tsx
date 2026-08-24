@@ -120,7 +120,7 @@ export function DataTable<Row>({ columns, rows, ariaLabel, getRowKey = (_row, in
       <Table.Content className="data-table" aria-label={ariaLabel} aria-busy={loading}>
         <Table.Header>
           {selectable && <Table.Column id="selection"><input ref={headerSelectionRef} type="checkbox" checked={allSelected} onChange={toggleAll} aria-checked={partiallySelected ? "mixed" : allSelected} aria-label={selectionLabel} /></Table.Column>}
-          {visibleColumns.map((column) => <Table.Column id={column.id} className={column.className} key={column.id}>{column.header}</Table.Column>)}
+          {visibleColumns.map((column, index) => <Table.Column id={column.id} className={column.className} isRowHeader={index === 0} key={column.id}>{column.header}</Table.Column>)}
         </Table.Header>
         <Table.Body>
           {loading && <Table.Row>{selectable && <Table.Cell />}{visibleColumns.map((column) => <Table.Cell key={column.id}><Skeleton lines={3} label={loadingLabel ?? ""} /></Table.Cell>)}</Table.Row>}

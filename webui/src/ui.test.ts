@@ -15,6 +15,16 @@ describe("公共管理 UI 模式", () => {
     expect(markup).toContain("Select row");
   });
 
+  // 075：DataTable 客户端渲染必须满足 RAC Table 的 isRowHeader 约束（首列自动为行头），
+  // 否则客户端页面（如 openapi 参考页的表）在真实浏览器/jsdom 渲染即抛错。
+  it("renders a data table with rows in client mode", () => {
+    const { host, unmount } = renderClient(createElement(DataTable<{ name: string }>, { columns: [{ id: "name", header: "Name", cell: (row) => row.name }], rows: [{ name: "alpha" }, { name: "beta" }], ariaLabel: "Records" }));
+    expect(host.textContent).toContain("alpha");
+    expect(host.textContent).toContain("beta");
+    expect(host.textContent).toContain("Name");
+    unmount();
+  });
+
   it("exposes a mixed selection state for partially selected table rows", () => {
     expect(getDataTableSelectionState(["a", "b"], new Set(["a"]))).toEqual({ allSelected: false, partiallySelected: true });
     expect(getDataTableSelectionState(["a", "b"], new Set(["a", "b"]))).toEqual({ allSelected: true, partiallySelected: false });

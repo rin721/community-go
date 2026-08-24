@@ -11,8 +11,8 @@ applicable_scenarios:
 non_applicable_scenarios:
   - "需要独立标签页/独立 URL 的完整文档站点（应评估 swagger-ui-dist 独立部署）"
   - "已确认要深度自定义渲染引擎的用例（scalar/redoc 的组件模型更开放）"
-status: active
-summary: "采用官方 swagger-ui-react（5.32.14，Apache-2.0，peer react <20），固定版本并在模块内做窄封装；Vite buffer 兼容问题（#10553）已在后续版本内建 buffer 依赖，deep-linking 回归（#10883）与本页无关（SPA 内禁用 hash deep-linking），StrictMode 双挂载列为实施期验证项。"
+status: superseded
+summary: "（已被 R075-003 取代）原结论为采用官方 swagger-ui-react（5.32.14）在页内渲染契约；用户后续要求『页内组件也使用当前 WebUI 组件』，swagger-ui-react 原生控件无法平台化，页内呈现层改为基于 @webui/sdk/ui 组件的模块内自绘只读参考页，swagger-ui-react 及其依赖/别名删除。本记录保留 swagger-ui-react 的版本/兼容/风险证据作为历史与独立站点场景参考。"
 evidence:
   types: ["registry-metadata", "upstream-issues"]
   primary_sources:
@@ -41,6 +41,8 @@ relations:
   extends: []
   related:
     - R075-002
+    - R075-003
   supersedes: []
-  superseded_by: []
+  superseded_by:
+    - R075-003
 report: report.md

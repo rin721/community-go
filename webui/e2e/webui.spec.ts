@@ -313,16 +313,21 @@ test("organization management pages render tree, position and assignment evidenc
   await page.screenshot({ path: testInfo.outputPath("organization-assignment.png"), fullPage: true });
 });
 
-test("075 openapi docs render the generated contract with swagger ui", async ({ page }, testInfo) => {
+test("075 openapi docs render the generated contract with platform components", async ({ page }, testInfo) => {
   (page as unknown as { setWebUIState: (state: { authenticated: boolean }) => void }).setWebUIState({ authenticated: true });
   await page.goto("/openapi");
   await expect(page.getByRole("heading", { name: "API Docs", exact: true })).toBeVisible();
-  // Swagger UI 真实渲染：契约标题来自生成快照（Swagger UI 在 h1 中合并渲染
-  // info.title + version + OAS 徽标，故用包含断言）。
-  await expect(page.locator(".swagger-ui")).toBeVisible();
-  await expect(page.locator(".swagger-ui .info .title")).toContainText("go-scaffold-template HTTP API");
-  await expect(page.locator(".swagger-ui .opblock-tag").first()).toBeVisible();
-  // 菜单已进入全局侧边栏（顶级平铺，图标语义 book）。
+  // 平台组件自绘（R075-003）：操作按 tag 分组为操作卡，方法徽标 + 已知 operationId。
+  const firstOperation = page.locator('[data-testid="openapi-operation"]').first();
+  await expect(firstOperation).toBeVisible();
+  await expect(firstOperation).toContainText("auth.audit.list");
+  await expect(page.locator("[data-method=get]").first()).toBeVisible();
+  // 展开首操作：参数/响应表使用平台 DataTable。
+  await firstOperation.getByRole("button", { name: "View details" }).click();
+  await expect(firstOperation.locator("table").first()).toBeVisible();
+  // Schema 模型卡片。
+  await expect(page.locator('[data-testid="openapi-schema"]').first()).toBeVisible();
+  // 菜单已进入全局侧边栏（顶级平铺）。
   await expect(page.locator(".app-sidebar").getByText("API Docs", { exact: true })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("075-openapi-docs.png"), fullPage: true });
 });

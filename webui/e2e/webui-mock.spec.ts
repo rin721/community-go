@@ -1,11 +1,12 @@
 import { expect, test } from "@playwright/test";
 
-// 075 API 文档页：契约快照来自构建期生成物，mock 下零请求渲染 Swagger UI。
+// 075 API 文档页：契约快照来自构建期生成物，mock 下零请求以平台组件渲染。
 test("075 openapi docs render the contract snapshot in mock mode", async ({ page }) => {
   await page.goto("/openapi");
   await expect(page.getByRole("heading", { name: "API Docs", exact: true })).toBeVisible();
-  // Swagger UI 在 h1 中合并渲染 title + version + OAS 徽标，用包含断言。
-  await expect(page.locator(".swagger-ui .info .title")).toContainText("go-scaffold-template HTTP API");
+  const firstOperation = page.locator('[data-testid="openapi-operation"]').first();
+  await expect(firstOperation).toBeVisible();
+  await expect(firstOperation).toContainText("auth.audit.list");
   await page.screenshot({ path: "test-results/075-openapi-docs-mock.png", fullPage: true });
 });
 

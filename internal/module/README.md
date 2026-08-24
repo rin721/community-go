@@ -6,7 +6,7 @@
 
 新增模块必须先按 [应用模块开发指南](../../docs/development/application-module-development.md) 完成真实用例、现有能力、新 Capability、资源 owner、生命周期和当前契约适配性评估，再进入目录与接口设计。
 
-当前已有 [IAM](iam/README.md)、[Organization](organization/README.md)、[Navigation](navigation/README.md)、[Auth](auth/README.md)、[Ops](ops/README.md)、[Migration](migration/README.md)、[Settings](settings/binding/webui/README.md)、[OpenAPI](openapi/README.md) 与 [Todo](todo/README.md) 模块。IAM 拥有本地身份、凭据、Session 与 Core RBAC，Organization 拥有部门、岗位与账号组织关系，Navigation 拥有已注册菜单的运行策略，Auth 拥有通用认证/授权/审计执行，Ops 拥有 management、探针和诊断用例，Migration 编排显式多 set status/up，Settings 与 OpenAPI 是 WebUI-only 模块（OpenAPI 页面以 Swagger UI 渲染公开契约快照，不做请求，075），Todo 拥有业务实体、对象授权 port 与 SQL migration set；composition 只连接完成品：
+当前已有 [IAM](iam/README.md)、[Organization](organization/README.md)、[Navigation](navigation/README.md)、[Auth](auth/README.md)、[Ops](ops/README.md)、[Migration](migration/README.md)、[Settings](settings/binding/webui/README.md)、[OpenAPI](openapi/README.md) 与 [Todo](todo/README.md) 模块。IAM 拥有本地身份、凭据、Session 与 Core RBAC，Organization 拥有部门、岗位与账号组织关系，Navigation 拥有已注册菜单的运行策略，Auth 拥有通用认证/授权/审计执行，Ops 拥有 management、探针和诊断用例，Migration 编排显式多 set status/up，Settings 与 OpenAPI 是 WebUI-only 模块（OpenAPI 页面以 WebUI 平台组件自绘只读契约参考页，不做请求，075），Todo 拥有业务实体、对象授权 port 与 SQL migration set；composition 只连接完成品：
 
 ```text
 model <- service <- repo/binding <- module.go <- internal/composition

@@ -1,18 +1,132 @@
-/* OpenAPI 模块专属样式：页面壳层使用平台布局类（module-page/page-sections），
-   本文件只收拢 Swagger UI 呈现容器与页面说明文字的专属 selector。 */
-
-/* .specView 承载 swagger-ui-react：第三方 CSS 由模块页面 import（随懒加载 chunk
-   进入）；容器透明背景，跟随宿主 surface token。 */
-.specView {
-  min-height: 480px;
-  width: 100%;
+/* OpenAPI 模块专属样式（R075-003）：页面壳层使用平台组件与布局类
+   （module-page/page-sections），本文件只收拢契约参考页的专属 selector：
+   方法徽标、操作行/组的呈现与等宽字体单元。 */
+.openapiModule {
+  /* no platform override */
 }
 
-.specView :global(.swagger-ui) {
-  background: transparent;
+.operationGroups {
+  display: grid;
+  gap: 18px;
 }
 
-.openapiSource {
+.operationGroup {
+  display: grid;
+  gap: 10px;
+}
+
+.operationGroupTitle {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+}
+
+.operationList {
+  display: grid;
+  gap: 10px;
+}
+
+.operationCard {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+}
+
+.operationHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.operationPath {
+  font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--text-secondary);
+}
+
+.operationId {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.operationSpacer {
+  flex: 1;
+}
+
+.operationToggle {
+  min-height: 26px;
+}
+
+.operationSummary {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.operationDetails {
+  display: grid;
+  gap: 14px;
+  margin-top: 10px;
+}
+
+.requestBodyLine {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.methodBadge {
+  display: inline-block;
+  min-width: 52px;
+  padding: 1px 8px;
+  border-radius: 6px;
+  text-align: center;
+  font: 600 11px/1.8 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.04em;
+  color: #fff;
+}
+
+.methodBadge[data-method="get"] {
+  background: #15803d;
+}
+
+.methodBadge[data-method="post"] {
+  background: #1d4ed8;
+}
+
+.methodBadge[data-method="put"] {
+  background: #b45309;
+}
+
+.methodBadge[data-method="patch"] {
+  background: #6d28d9;
+}
+
+.methodBadge[data-method="delete"] {
+  background: #b91c1c;
+}
+
+.monoCell {
+  font: 11px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.schemaList {
+  display: grid;
+  gap: 14px;
+}
+
+.schemaCard {
+  display: grid;
+}
+
+.schemaCardInner {
+  padding: 14px 16px;
+}
+
+.openapiMeta {
   margin: 0.25rem 0 0;
   font-size: 0.8125rem;
   opacity: 0.75;

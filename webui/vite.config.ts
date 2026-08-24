@@ -32,7 +32,6 @@ export default defineConfig({
       "react-dom": sdk("node_modules/react-dom"),
       "react-i18next": sdk("node_modules/react-i18next"),
       i18next: sdk("node_modules/i18next"),
-      "swagger-ui-react": sdk("node_modules/swagger-ui-react"),
       "@tanstack/react-query": sdk("node_modules/@tanstack/react-query"),
     },
   },

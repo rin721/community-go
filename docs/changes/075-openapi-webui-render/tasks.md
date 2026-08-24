@@ -20,5 +20,5 @@
 
 - 2026-08-25：研究门禁通过（R075-001 swagger-ui-react 选型；R075-002 数据源与模块机制）；计划建立，用户补充要求「保持与 webui 同等 UI 组件」——已并入（页面壳层同组件）。
 - 2026-08-25：用户确认，实施完成并提交 `55ee70f`（swagger-ui-react 页内渲染版本；Go/WebUI/e2e 全绿）。
-- 2026-08-25（当前轮）：用户确认 R075-003 更新计划，实施中——OAP-075-E 完成（swagger-ui-react/@types 与别名移除，锁文件更新）；OAP-075-F 完成（OpenAPIPage 平台组件自绘 + openapi-data 纯函数层 + vitest 真实渲染；发现并修复平台 DataTable 客户端渲染缺陷——RAC isRowHeader，含回归测试）；OAP-075-G 完成（e2e 双 project 断言迁移）；OAP-075-H 完成（权威文档与 impact 更新）；OAP-075-I 全量验证与提交进行中。
+- 2026-08-25（当前轮）：用户确认 R075-003 更新计划，实施完成并提交 `9ea2f13`——OAP-075-E（swagger-ui-react/@types 与别名移除）、OAP-075-F（OpenAPIPage 平台组件自绘 + openapi-data 纯函数层 + vitest 真实渲染；发现并修复平台 DataTable 客户端渲染缺陷——RAC isRowHeader，含回归测试）、OAP-075-G（e2e 双 project 断言迁移与截图）、OAP-075-H（权威文档与 impact 更新）、OAP-075-I（全量门禁：Go test/vet、WebUI generate:check/typecheck/lint/lint:modules/vitest 122/build、Playwright 22/22，残留检查无 swagger 引用）。bundle 基线：OpenAPIPage chunk 由 1,367.98 kB（gzip 387.11 kB）降至 45.87 kB（gzip 6.03 kB）。
 - 范围外既有事实（记录）：`internal/module/settings/README.md` 缺失导致 docs-guard 报错（070–074 遗留，非本任务引入；已在 `webui/scripts/project-layout.test.mjs` 断言中一并补齐 settings 模块发现）。

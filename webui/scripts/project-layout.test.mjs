@@ -7,8 +7,9 @@ test("layout resolves declared roots and module facet", async () => {
   const paths = resolveLayoutPaths(project);
   assert.equal(project.layout.webui.moduleFacet, "binding/webui/web");
   assert.ok(paths.webuiRoot.endsWith("community-go\\webui") || paths.webuiRoot.endsWith("community-go/webui"));
+  assert.ok(paths.specOutput.endsWith("openapi-spec.ts"));
   const roots = await discoverWebUIModuleRoots(project.repositoryRoot);
-  assert.deepEqual(roots.map(({ moduleID }) => moduleID), ["auth", "iam", "navigation", "ops", "organization"]);
+  assert.deepEqual(roots.map(({ moduleID }) => moduleID), ["auth", "iam", "navigation", "openapi", "ops", "organization", "settings"]);
 });
 
 test("development config accepts overrides and rejects unsafe endpoints", () => {

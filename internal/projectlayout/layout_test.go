@@ -22,7 +22,7 @@ func TestLoadRejectsUnknownFieldsAndUnsafePaths(t *testing.T) {
 	valid := Layout{
 		SchemaVersion:      1,
 		Roots:              Roots{WebUI: "webui", Modules: "internal/module", Tools: ".tools/bin", Release: "dist"},
-		WebUI:              WebUILayout{ModuleFacet: "binding/webui/web", Source: "webui/src", PlatformStyles: "webui/src/styles.css", RegistryOutput: "webui/src/generated/webui-registry.ts"},
+		WebUI:              WebUILayout{ModuleFacet: "binding/webui/web", Source: "webui/src", PlatformStyles: "webui/src/styles.css", RegistryOutput: "webui/src/generated/webui-registry.ts", SpecOutput: "webui/src/generated/openapi-spec.ts"},
 		GeneratedArtifacts: GeneratedArtifacts{OpenAPI: "api/openapi.yaml", OperationInventory: "internal/transport/http/api/operation_inventory.gen.go"},
 	}
 	encoded, err := json.Marshal(valid)

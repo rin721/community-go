@@ -40,6 +40,7 @@ function manifest(authenticated: boolean, availability: "available" | "degraded"
       { moduleId: "settings", id: "settings.language", path: "/settings/language", entryId: "settings.language", titleMessageId: "webui.settings.language.title", layout: "app", groupLayoutId: "settings.layout", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
       { moduleId: "settings", id: "settings.about", path: "/settings/about", entryId: "settings.about", titleMessageId: "webui.settings.about.title", layout: "app", groupLayoutId: "settings.layout", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
       { moduleId: "settings", id: "settings.acknowledgement", path: "/settings/acknowledgement", entryId: "settings.acknowledgement", titleMessageId: "webui.settings.acknowledgement.title", layout: "app", groupLayoutId: "settings.layout", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
+      { moduleId: "openapi", id: "openapi.docs", path: "/openapi", entryId: "openapi.docs", titleMessageId: "webui.openapi.docs.title", layout: "app", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
     ],
     menu: authenticated && access !== "denied" ? [
       { moduleId: "ops", id: "ops.dashboard", routeId: "ops.dashboard", titleMessageId: "webui.ops.dashboard.title", iconId: "activity", order: 10 },
@@ -59,6 +60,7 @@ function manifest(authenticated: boolean, availability: "available" | "degraded"
       { moduleId: "settings", id: "settings.language", parentId: "settings.center", routeId: "settings.language", titleMessageId: "webui.settings.language.title", iconId: "languages", order: 101 },
       { moduleId: "settings", id: "settings.about", parentId: "settings.center", routeId: "settings.about", titleMessageId: "webui.settings.about.title", iconId: "info", order: 102 },
       { moduleId: "settings", id: "settings.acknowledgement", parentId: "settings.center", routeId: "settings.acknowledgement", titleMessageId: "webui.settings.acknowledgement.title", iconId: "star", order: 103 },
+      { moduleId: "openapi", id: "openapi.docs", routeId: "openapi.docs", titleMessageId: "webui.openapi.docs.title", iconId: "book", order: 130 },
       ...(navigationEnabled ? [{ moduleId: "navigation", id: "navigation.menus", routeId: "navigation.menus", titleMessageId: "webui.navigation.menus.title", iconId: "menu", order: 110 }] : []),
     ] : [],
   };
@@ -309,6 +311,20 @@ test("organization management pages render tree, position and assignment evidenc
   // 068：主部门选择为 HeroUI Select（触发按钮 + option 列表），断言触发值。
   await expect(page.getByRole("button", { name: "Primary department" })).toContainText("Engineering");
   await page.screenshot({ path: testInfo.outputPath("organization-assignment.png"), fullPage: true });
+});
+
+test("075 openapi docs render the generated contract with swagger ui", async ({ page }, testInfo) => {
+  (page as unknown as { setWebUIState: (state: { authenticated: boolean }) => void }).setWebUIState({ authenticated: true });
+  await page.goto("/openapi");
+  await expect(page.getByRole("heading", { name: "API Docs", exact: true })).toBeVisible();
+  // Swagger UI 真实渲染：契约标题来自生成快照（Swagger UI 在 h1 中合并渲染
+  // info.title + version + OAS 徽标，故用包含断言）。
+  await expect(page.locator(".swagger-ui")).toBeVisible();
+  await expect(page.locator(".swagger-ui .info .title")).toContainText("go-scaffold-template HTTP API");
+  await expect(page.locator(".swagger-ui .opblock-tag").first()).toBeVisible();
+  // 菜单已进入全局侧边栏（顶级平铺，图标语义 book）。
+  await expect(page.locator(".app-sidebar").getByText("API Docs", { exact: true })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("075-openapi-docs.png"), fullPage: true });
 });
 
 test("navigation policy refreshes the manifest while keeping the registered route", async ({ page }, testInfo) => {

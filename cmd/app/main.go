@@ -47,8 +47,12 @@ func generateWebUIRegistry(stdout, stderr io.Writer, check bool) int {
 		_, _ = fmt.Fprintf(stderr, "webui registry: %v\n", err)
 		return applicationcomposition.ExitError
 	}
+	if err := applicationcomposition.WriteWebUIOpenAPISpecFromCurrentDirectory(check); err != nil {
+		_, _ = fmt.Fprintf(stderr, "webui contract snapshot: %v\n", err)
+		return applicationcomposition.ExitError
+	}
 	if check {
-		_, _ = fmt.Fprintln(stdout, "webui registry is current")
+		_, _ = fmt.Fprintln(stdout, "webui registry and contract snapshot are current")
 	}
 	return applicationcomposition.ExitSuccess
 }

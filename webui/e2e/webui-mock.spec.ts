@@ -1,5 +1,14 @@
 import { expect, test } from "@playwright/test";
 
+// 075 API 文档页：契约快照来自构建期生成物，mock 下零请求渲染 Swagger UI。
+test("075 openapi docs render the contract snapshot in mock mode", async ({ page }) => {
+  await page.goto("/openapi");
+  await expect(page.getByRole("heading", { name: "API Docs", exact: true })).toBeVisible();
+  // Swagger UI 在 h1 中合并渲染 title + version + OAS 徽标，用包含断言。
+  await expect(page.locator(".swagger-ui .info .title")).toContainText("go-scaffold-template HTTP API");
+  await page.screenshot({ path: "test-results/075-openapi-docs-mock.png", fullPage: true });
+});
+
 // mock project 专用：不拦截任何路由——整个 WebUI（宿主骨架 + 全部模块数据）
 // 由显式声明 VITE_WEBUI_DATA_SOURCE=mock 触发的宿主 mock 传输层提供，零后端可运行。
 test("mock mode boots the whole WebUI without a backend and marks every page", async ({ page }) => {

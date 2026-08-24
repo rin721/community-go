@@ -50,6 +50,13 @@ Linux 使用 `bash scripts/verify-webui.sh`。质量链覆盖生成检查、冻�
 - 交互状态链原语：`ActionTrigger`（pending/防重复/禁用原因/权限呈现）、`BulkActionBar`、`FormSubmitActions`；图标目录 authority 在 `webui/src/icon-catalog.ts`（Go `internal/webui/icons.go` 校验，测试守护一致）。
 - 完整契约与接入步骤见 [WebUI 开发指南](../docs/development/webui.md)。
 
+## OpenAPI 契约可视化页面（075）
+
+- 新业务模块 `openapi` 提供「API 文档」页（`/openapi`，顶级菜单项）：页面壳层与其余页面使用同一套 `@webui/sdk/ui` 组件（PageHeader/PageSection/InlineAlert），交互文档区由第三方 `swagger-ui-react`（官方 Swagger UI React 封装，固定版本 5.32.14，R075-001）在模块内窄封装渲染。
+- 契约数据源：`webui generate` 同时生成 `webui/src/generated/openapi-spec.ts`（`api/openapi.yaml` 的 JSON 变换，含源文件 sha256），页面直接 import——`server-hosted`/`separated`/`mock` 三态零请求一致渲染；`--check` 严格比对防漂移；模块 `mock.ts` 为空路由表（页面零请求）。
+- 布局清单新增 `webui.specOutput`（默认 `webui/src/generated/openapi-spec.ts`），生成链与 `webui-registry.ts` 同命令同门禁；受控图标目录新增 `book`。
+- 与本页相关的安全边界如实呈现：`bearerAuth` 操作可用 Authorize 注入 token；`webuiSession`/CSRF 绑定写操作无法从参考页执行；mock 演示构建无后端、请求类交互不可用。
+
 ## 侧边栏菜单层级分类（063）
 
 - 宿主 `SidebarMenu` 按 `manifest.menu.parentId` 递归渲染多级菜单；菜单树形状完全由 Go 侧各模块 `binding/webui/binding.go` 的 `Navigation` 声明（`ParentID`/`Order`/落地页 `RouteID`）决定，宿主无菜单树硬编码。

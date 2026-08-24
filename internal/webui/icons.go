@@ -9,6 +9,7 @@ package webui
 var IconCatalog = map[string]struct{}{
 	"activity":      {},
 	"bell":          {},
+	"book":          {},
 	"briefcase":     {},
 	"building":      {},
 	"check":         {},

@@ -1,0 +1,19 @@
+/* OpenAPI 模块专属样式：页面壳层使用平台布局类（module-page/page-sections），
+   本文件只收拢 Swagger UI 呈现容器与页面说明文字的专属 selector。 */
+
+/* .specView 承载 swagger-ui-react：第三方 CSS 由模块页面 import（随懒加载 chunk
+   进入）；容器透明背景，跟随宿主 surface token。 */
+.specView {
+  min-height: 480px;
+  width: 100%;
+}
+
+.specView :global(.swagger-ui) {
+  background: transparent;
+}
+
+.openapiSource {
+  margin: 0.25rem 0 0;
+  font-size: 0.8125rem;
+  opacity: 0.75;
+}

@@ -1,4 +1,4 @@
-import { Activity, Bell, Briefcase, Building2, Check, ChevronRight, CircleUserRound, Info, KeyRound, Languages, LayoutDashboard, ListOrdered, Menu, Palette, Pencil, Plus, RefreshCw, RotateCcw, Search, Settings, ShieldCheck, SlidersHorizontal, Star, Trash2, Users, X } from "lucide-react";
+import { Activity, Bell, BookOpen, Briefcase, Building2, Check, ChevronRight, CircleUserRound, Info, KeyRound, Languages, LayoutDashboard, ListOrdered, Menu, Palette, Pencil, Plus, RefreshCw, RotateCcw, Search, Settings, ShieldCheck, SlidersHorizontal, Star, Trash2, Users, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 // iconCatalog 是 WebUI 受控 Lucide 图标目录的前端 authority：模块 Navigation/分区
@@ -7,6 +7,7 @@ import type { LucideIcon } from "lucide-react";
 export const iconCatalog = {
   activity: Activity,
   bell: Bell,
+  book: BookOpen,
   briefcase: Briefcase,
   building: Building2,
   check: Check,

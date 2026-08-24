@@ -12,6 +12,7 @@ import (
 	navigationpermission "github.com/rin721/go-scaffold-template/internal/module/navigation/binding/permission"
 	navigationwebui "github.com/rin721/go-scaffold-template/internal/module/navigation/binding/webui"
 	opswebui "github.com/rin721/go-scaffold-template/internal/module/ops/binding/webui"
+	openapiwebui "github.com/rin721/go-scaffold-template/internal/module/openapi/binding/webui"
 	organizationhttp "github.com/rin721/go-scaffold-template/internal/module/organization/binding/http"
 	organizationpermission "github.com/rin721/go-scaffold-template/internal/module/organization/binding/permission"
 	organizationwebui "github.com/rin721/go-scaffold-template/internal/module/organization/binding/webui"
@@ -63,6 +64,7 @@ func applicationWebUIModules() []webuicontract.ModuleRegistration {
 		{Binding: opswebui.Binding(), Activation: webuicontract.ActivationEnabled},
 		{Binding: authwebui.Binding(), Activation: webuicontract.ActivationEnabled},
 		{Binding: settingswebui.Binding(), Activation: webuicontract.ActivationEnabled},
+		{Binding: openapiwebui.Binding(), Activation: webuicontract.ActivationEnabled},
 	}
 }
 

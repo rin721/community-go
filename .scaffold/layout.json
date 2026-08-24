@@ -10,7 +10,8 @@
     "moduleFacet": "binding/webui/web",
     "source": "webui/src",
     "platformStyles": "webui/src/styles.css",
-    "registryOutput": "webui/src/generated/webui-registry.ts"
+    "registryOutput": "webui/src/generated/webui-registry.ts",
+    "specOutput": "webui/src/generated/openapi-spec.ts"
   },
   "generatedArtifacts": {
     "openapi": "api/openapi.yaml",

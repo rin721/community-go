@@ -4,7 +4,7 @@ export interface ProjectLayout {
   layout: {
     schemaVersion: number;
     roots: { webui: string; modules: string; tools: string; release: string };
-    webui: { moduleFacet: string; source: string; platformStyles: string; registryOutput: string };
+    webui: { moduleFacet: string; source: string; platformStyles: string; registryOutput: string; specOutput: string };
     generatedArtifacts: { openapi: string; operationInventory: string };
   };
 }
@@ -19,6 +19,7 @@ export interface LayoutPaths {
   webuiSourceRoot: string;
   platformStyles: string;
   registryOutput: string;
+  specOutput: string;
   openapiOutput: string;
   operationInventoryOutput: string;
 }

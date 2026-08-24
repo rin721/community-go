@@ -245,6 +245,13 @@ PageHeader（eyebrow/title/description/actions；标题用 HeroUI Typography.Hea
 - **页面职责边界**：WebUI 功能模块**自己实现页面**；需要他模块（如 iam）能力时**调用其接口**实现（settings 调 `self/profile`、`self/archive`、`self/password`），不把他人页面挂进自己的菜单/页内导航。
 - 全局「设置」两项级是否展开由菜单声明决定；跨 owner `ParentID` 与 `HostNavigation` 仍是平台能力（供未来宿主分组），当前应用不再把 iam 页面挂入设置组。
 
+## OpenAPI 契约可视化页面（075）
+
+- **模块形态**：`openapi` 是 WebUI-only 模块（settings 同形态，无 module.go 业务层）：`/openapi` 单路由 + `openapi.docs` 顶级菜单项（无 ViewOperationID，契约是公开仓库产物），`@webui/sdk/ui` 同等组件做页面壳层（PageHeader/PageSection/InlineAlert），交互文档区用官方 `swagger-ui-react`（固定版本，R075-001）在模块内窄封装渲染。
+- **契约数据源（单权威）**：`go run ./cmd/app webui generate` 在 registry 之外还从 `api/openapi.yaml` 渲染 `webui/src/generated/openapi-spec.ts`（JSON 对象 + 源文件 sha256 常量），路径由 `.scaffold/layout.json` 的 `webui.specOutput` 声明；`--check` 整文件严格比对。页面直接 import 快照，`server-hosted`/`separated`/`mock` 三态零请求一致渲染，模块 `mock.ts` 为空路由表（settings 先例）。
+- **第三方边界（R075-001）**：Swagger UI 是 pure-local 呈现细节，只在模块内使用；不新增平台 SDK capability、不进 `@webui/sdk`、不建全项目级 Wrapper；CSS 随懒加载 chunk 进入。hash deep-linking 关闭（react-router SPA 语义互斥）。
+- **安全边界如实呈现**：`bearerAuth` 操作可经 Authorize 注入 token；`webuiSession`/CSRF 绑定写操作无法从参考页执行（服务端 fail-closed 不变）；mock 演示构建无后端，请求类交互不可用。
+
 ## 强制 i18n 契约
 
 WebUI i18n 是所有接入模块必须遵守的规范契约。模块只要贡献页面、菜单或状态，就必须在自身 WebUI Binding 中声明 locale namespace 和资源文件；没有 locale Binding 的模块不得进入生产 registry。locale namespace 的 owner 始终是业务模块，宿主只负责聚合、加载、语言选择、fallback 和缺失资源状态。

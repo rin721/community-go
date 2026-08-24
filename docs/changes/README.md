@@ -80,5 +80,6 @@
 - [072 设置套件细化：8 分区重组、IAM 自服务资料/软注销、SPA 页内导航修复](072-settings-suite-refine/README.md)：已确认并实施完成（A..E 全绿并提交 9c224ef/7f888a4）；IAM migration 004 资料字段 + 自服务 `PATCH /api/v1/iam/self/profile`（乐观锁）与 `POST /api/v1/iam/self/archive{,/confirm}`（两步软注销，复用归档语义）；`HostRuntime.navigate` SPA 导航修复；settings 8 分区重组；会话身份携带资料；Playwright 20 全绿。
 - [073 全局菜单两级化 + 分组布局（固定页内导航）](073-two-level-settings-menu/README.md)：已确认并实施完成（bde2dbb + 布局修复 2de6737）；全局菜单收敛为两级（顶级「设置」→ 五主分区子项，移除 host.center 装配与 locale 键）；契约新增 `Route.GroupLayoutID` 分组布局——宿主 `ModuleGroupLayout`（懒加载布局 + Outlet children 注入）承载 settings 八路由共享 `SettingsLayout`（固定 SectionNav + 内容区，切换不重挂，e2e dataset 标记断言）；HostNavigation 契约能力保留；修复 CSS Modules 后代选择器导致的布局堆叠（作用域 class 放祖先）。
 - [074 设置菜单一致性：页内导航与全局菜单 8 分区对齐](074-settings-menu-parity/README.md)：已确认并实施（验证与提交收尾中）；全局「设置」子项补全 8 分区与页内 SectionNav 完全一致（同名同序）；`iam.security` 归位 `iam.access`（页面职责边界：模块 UI 需求调用他模块接口自实现页面，不挂接他人页面）；「多分区页面通用范式」写入 webui 开发指南；跨 owner ParentID/HostNavigation 能力保留。
+- [075 新增 openapi 模块：WebUI 可视化渲染 API 契约](075-openapi-webui-render/README.md)：研究门禁已通过（R075-001/R075-002），计划已建立，待确认；拟用 `swagger-ui-react` 在 Admin WebUI 渲染 `api/openapi.yaml`；扩展 `webui generate` 生成契约 JSON 快照（三态数据源零请求一致）；页面壳层与 WebUI 同等 UI 组件。
 
-下一个任务序号为 `075`。已完成记录只保存历史证据；当前行为必须回到根 [README](../../README.md) 和对应主题文档确认。
+下一个任务序号为 `076`。已完成记录只保存历史证据；当前行为必须回到根 [README](../../README.md) 和对应主题文档确认。

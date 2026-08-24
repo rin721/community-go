@@ -39,6 +39,8 @@ type WebUILayout struct {
 	Source         string `json:"source"`
 	PlatformStyles string `json:"platformStyles"`
 	RegistryOutput string `json:"registryOutput"`
+	// SpecOutput 是 contract 浏览器快照（openapi-spec.ts）的生成路径（075）。
+	SpecOutput string `json:"specOutput"`
 }
 
 // GeneratedArtifacts 描述代码生成器的默认输出。
@@ -134,6 +136,7 @@ func (l Layout) Validate(repositoryRoot string) error {
 		"roots.tools": l.Roots.Tools, "roots.release": l.Roots.Release,
 		"webui.moduleFacet": l.WebUI.ModuleFacet, "webui.source": l.WebUI.Source,
 		"webui.platformStyles": l.WebUI.PlatformStyles, "webui.registryOutput": l.WebUI.RegistryOutput,
+		"webui.specOutput":                       l.WebUI.SpecOutput,
 		"generatedArtifacts.openapi":            l.GeneratedArtifacts.OpenAPI,
 		"generatedArtifacts.operationInventory": l.GeneratedArtifacts.OperationInventory,
 	} {
@@ -153,6 +156,9 @@ func (l Layout) Validate(repositoryRoot string) error {
 	}
 	if !isWithin(l.WebUI.RegistryOutput, l.Roots.WebUI) {
 		return fmt.Errorf("webui.registryOutput %q is outside roots.webui %q", l.WebUI.RegistryOutput, l.Roots.WebUI)
+	}
+	if !isWithin(l.WebUI.SpecOutput, l.Roots.WebUI) {
+		return fmt.Errorf("webui.specOutput %q is outside roots.webui %q", l.WebUI.SpecOutput, l.Roots.WebUI)
 	}
 	for name, relative := range map[string]string{"roots.webui": l.Roots.WebUI, "roots.modules": l.Roots.Modules} {
 		absolute, err := l.RepositoryPath(root, relative)

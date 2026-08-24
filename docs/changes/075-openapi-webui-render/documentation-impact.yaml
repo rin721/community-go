@@ -1,0 +1,27 @@
+schema_version: 1
+change: 075-openapi-webui-render
+areas:
+  - id: repository
+    decision: reviewed-no-change
+    reason: .scaffold/layout.json 仅新增 webui.specOutput 字段（既有路径集中声明机制不变，语义仍是「webui 生成物路径统一声明」）；repository 权威文档（README/docs/repository-scope.md）内容不变。
+  - id: api
+    decision: updated
+    documents:
+      - api/README.md
+    reason: api/README.md 补充「浏览器契约快照」说明：webui generate 从 api/openapi.yaml 渲染 webui/src/generated/openapi-spec.ts（同一产物的 JSON 变换，非第二份权威）；契约本体（openapi.yaml/operation inventory）与 CI oasdiff 基线不变。
+  - id: webui
+    decision: updated
+    documents:
+      - webui/README.md
+    reason: 新增 openapi 模块页面（OpenAPIPage.tsx）与 swagger-ui-react 依赖（固定 5.32.14）；webui generate 扩展生成契约快照（layout 新增 webui.specOutput）；@webui/generated/openapi-spec alias（tsconfig/vite）；vitest 模块测试覆盖 .test.tsx；图标目录新增 book；页面壳层继续使用 @webui/sdk/ui 同等组件。docs/development/webui.md 的 075 小节是权威 webui 开发文档同步更新。
+  - id: module
+    decision: updated
+    documents:
+      - internal/module/README.md
+    reason: 新增 WebUI-only 模块 openapi（纯 WebUI、无后端 service/repo/migration/operation）；模块清单权威 internal/module/README.md 已同步；openapi 模块自带 README 说明（模块四步接入 + 第三方窄封装边界）。
+  - id: startup
+    decision: reviewed-no-change
+    reason: 宿主 boot 装配链（manifest -> registry -> Shell -> route）、revision 门禁、托管构建链（webui generate 扩展为同一命令多产物）与 mock 传输层语义不变；openapi 页面零请求，三态数据源环境一致渲染。
+  - id: operations
+    decision: reviewed-no-change
+    reason: 无新运行期资源、配置、端口或部署语义；Swagger UI 体积进入独立懒加载 chunk（bundle 基线记录于 075 变更记录），不影响首屏与 release 装配。

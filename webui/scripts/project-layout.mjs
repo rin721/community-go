@@ -33,7 +33,7 @@ function rejectUnknownFields(value, allowed, scope) {
 function validateLayout(repositoryRoot, layout) {
   rejectUnknownFields(layout, ["schemaVersion", "roots", "webui", "generatedArtifacts"], "layout");
   rejectUnknownFields(layout.roots, ["webui", "modules", "tools", "release"], "layout.roots");
-  rejectUnknownFields(layout.webui, ["moduleFacet", "source", "platformStyles", "registryOutput"], "layout.webui");
+  rejectUnknownFields(layout.webui, ["moduleFacet", "source", "platformStyles", "registryOutput", "specOutput"], "layout.webui");
   rejectUnknownFields(layout.generatedArtifacts, ["openapi", "operationInventory"], "layout.generatedArtifacts");
   if (!layout || layout.schemaVersion !== 1) fail("schemaVersion 1 is required");
   const fields = {
@@ -45,6 +45,7 @@ function validateLayout(repositoryRoot, layout) {
     "webui.source": layout.webui?.source,
     "webui.platformStyles": layout.webui?.platformStyles,
     "webui.registryOutput": layout.webui?.registryOutput,
+    "webui.specOutput": layout.webui?.specOutput,
     "generatedArtifacts.openapi": layout.generatedArtifacts?.openapi,
     "generatedArtifacts.operationInventory": layout.generatedArtifacts?.operationInventory,
   };
@@ -57,7 +58,8 @@ function validateLayout(repositoryRoot, layout) {
   }
   if (!isWithin(cleaned["webui.source"], cleaned["roots.webui"]) ||
       !isWithin(cleaned["webui.platformStyles"], cleaned["roots.webui"]) ||
-      !isWithin(cleaned["webui.registryOutput"], cleaned["roots.webui"])) {
+      !isWithin(cleaned["webui.registryOutput"], cleaned["roots.webui"]) ||
+      !isWithin(cleaned["webui.specOutput"], cleaned["roots.webui"])) {
     fail("WebUI paths must stay under roots.webui");
   }
   for (const [field, value] of [["roots.webui", cleaned["roots.webui"]], ["roots.modules", cleaned["roots.modules"]]]) {
@@ -109,6 +111,7 @@ export function resolveLayoutPaths(project = loadProjectLayout()) {
     webuiSourceRoot: fromRoot(layout.webui.source),
     platformStyles: fromRoot(layout.webui.platformStyles),
     registryOutput: fromRoot(layout.webui.registryOutput),
+    specOutput: fromRoot(layout.webui.specOutput),
     openapiOutput: fromRoot(layout.generatedArtifacts.openapi),
     operationInventoryOutput: fromRoot(layout.generatedArtifacts.operationInventory),
   };

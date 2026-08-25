@@ -70,7 +70,7 @@ func newModule(dependencies Dependencies) (Module, *service.Service, error) {
 		return Module{}, nil, fmt.Errorf("compose iam authorization runtime: %w", err)
 	}
 	local := dependencies.Config.Local
-	iamService, err := service.New(store, dependencies.Clock, dependencies.IDGenerator, passwordadapter.Hasher{}, service.Config{SetupToken: local.SetupToken, IdleTimeout: local.IdleTimeout, AbsoluteTimeout: local.AbsoluteTimeout, MaxFailedAttempts: local.MaxFailedAttempts, LockDuration: local.LockDuration, PasswordPolicy: model.PasswordPolicy{MinLength: local.PasswordPolicy.MinLength, MaxLength: local.PasswordPolicy.MaxLength, RequireComplexity: local.PasswordPolicy.RequireComplexity, HistorySize: local.PasswordPolicy.HistorySize, MaxPasswordAge: local.PasswordPolicy.MaxPasswordAge}, MaxSessionsPerAccount: local.MaxSessionsPerAccount}, dependencies.Permissions, runtime)
+	iamService, err := service.New(store, dependencies.Clock, dependencies.IDGenerator, passwordadapter.Hasher{}, service.Config{SetupToken: local.SetupToken, IdleTimeout: local.IdleTimeout, AbsoluteTimeout: local.AbsoluteTimeout, MaxFailedAttempts: local.MaxFailedAttempts, LockDuration: local.LockDuration, PasswordPolicy: model.PasswordPolicy{MinLength: local.PasswordPolicy.MinLength, MaxLength: local.PasswordPolicy.MaxLength, RequireComplexity: local.PasswordPolicy.RequireComplexity, HistorySize: local.PasswordPolicy.HistorySize, MaxPasswordAge: local.PasswordPolicy.MaxPasswordAge}, MaxSessionsPerAccount: local.MaxSessionsPerAccount, ApiTokenMaxPerAccount: local.ApiTokenMaxPerAccount, ApiTokenDefaultTTL: local.ApiTokenDefaultTTL}, dependencies.Permissions, runtime)
 	if err != nil {
 		return Module{}, nil, fmt.Errorf("compose iam service: %w", err)
 	}

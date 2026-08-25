@@ -42,6 +42,10 @@ var (
 	ErrUnknownPermission  = errors.New("iam permission is not in catalog")
 	ErrImmutableOwner     = errors.New("iam owner role is immutable")
 	ErrIncompatibleState  = errors.New("iam persistent state is incompatible with permission catalog")
+	// ErrApiTokenScopeNotOwned 表示令牌请求的 scope 超出创建者当前有效权限（080）。
+	ErrApiTokenScopeNotOwned = errors.New("iam api token scope is not owned by the creator")
+	// ErrApiTokenLimit 表示账号未吊销令牌数已达到上限（080）。
+	ErrApiTokenLimit = errors.New("iam api token limit reached")
 	// ErrPasswordReused 表示新口令与最近 historySize 条历史口令相同（077）。
 	ErrPasswordReused = errors.New("iam password was reused")
 	// ErrMFARequired 是登录第一步密码通过、需要第二步 TOTP 的内部信号。
@@ -123,6 +127,10 @@ type Config struct {
 	// MaxSessionsPerAccount 是单账号最大并发 active 会话数；0=不限。启用后
 	// 新登录在达到上限时主动吊销最旧 active 会话（077）。
 	MaxSessionsPerAccount int
+	// ApiTokenMaxPerAccount 是单账号最大未吊销 API 令牌数；0=不限（080）。
+	ApiTokenMaxPerAccount int
+	// ApiTokenDefaultTTL 是创建令牌未指定过期时间时的默认有效期；0=永不过期（080）。
+	ApiTokenDefaultTTL time.Duration
 }
 type Session struct {
 	ID, CSRFToken                                           string
@@ -289,11 +297,11 @@ func (s *Service) auditOperation(ctx context.Context, operation, action, resourc
 	}
 }
 
-// sensitiveAlertOperation 是触发权限变更告警的敏感写操作集合（079）。
+// sensitiveAlertOperation 是触发权限变更告警的敏感写操作集合（079/080）。
 func sensitiveAlertOperation(operation string) bool {
 	switch operation {
 	case "iam.accounts.archive", "iam.roles.archive", "iam.accounts.roles.replace", "iam.roles.permissions.replace",
-		"iam.api-tokens.create", "iam.api-tokens.rotate", "iam.api-tokens.revoke":
+		"iam.api-tokens.create", "iam.api-tokens.rotate", "iam.api-tokens.revoke", "iam.api-tokens.disable", "iam.api-tokens.enable":
 		return true
 	default:
 		return false
@@ -315,6 +323,9 @@ func New(store *repo.Store, currentClock clock.Clock, ids idgen.Generator, passw
 	}
 	if config.MaxSessionsPerAccount < 0 {
 		return nil, fmt.Errorf("iam service max sessions per account is invalid")
+	}
+	if config.ApiTokenMaxPerAccount < 0 || config.ApiTokenDefaultTTL < 0 {
+		return nil, fmt.Errorf("iam service api token limit or ttl is invalid")
 	}
 	dummy, err := passwords.Hash("fixed-cost-dummy-password")
 	if err != nil {
@@ -1899,15 +1910,30 @@ func mapSetupConflict(err error) error {
 // ---- API-Token（078，R078-001） ----
 
 // ApiTokenView 是 API 令牌的管理视图（永不包含明文 secret）。
+// Status 为派生状态（active|disabled|expired|revoked，080）。
 type ApiTokenView struct {
-	ID        string
-	Name      string
-	Scopes    []permissioncatalog.Key
-	ExpiresAt *time.Time
-	RevokedAt *time.Time
-	CreatedAt time.Time
-	LastUsed  *time.Time
+	ID          string
+	Name        string
+	Description string
+	Scopes      []permissioncatalog.Key
+	ExpiresAt   *time.Time
+	DisabledAt  *time.Time
+	RevokedAt   *time.Time
+	CreatedAt   time.Time
+	LastUsed    *time.Time
+	Status      string
 }
+
+// ApiTokenStatus 是令牌列表状态过滤类目（080）。
+type ApiTokenStatus string
+
+const (
+	ApiTokenStatusActive   ApiTokenStatus = "active"
+	ApiTokenStatusDisabled ApiTokenStatus = "disabled"
+	ApiTokenStatusExpired  ApiTokenStatus = "expired"
+	ApiTokenStatusRevoked  ApiTokenStatus = "revoked"
+	ApiTokenStatusAll      ApiTokenStatus = "all"
+)
 
 // ApiTokenIssued 是创建/轮换响应：Secret 明文只在本次返回一次。
 type ApiTokenIssued struct {
@@ -1940,9 +1966,15 @@ type MFARequiredError struct {
 
 func (e *MFARequiredError) Error() string { return "iam mfa verification is required" }
 
-// CreateApiToken 为当前账号发放机器访问令牌；所有 scope 必须是 Catalog 已知
-// 精确键；明文 secret 只在本响应返回，之后只读哈希摘要。
-func (s *Service) CreateApiToken(ctx context.Context, accountID, name string, scopes []permissioncatalog.Key, expiresAt *time.Time) (ApiTokenIssued, error) {
+// CreateApiToken 为当前账号发放机器访问令牌（080）：
+//   - scope 必须为 Catalog 已知精确键（未知 404）；
+//   - scope 必须 ⊆ 创建者当前有效权限（越权 403，防提权）；
+//   - 受限（MustChangePassword）账号禁止创建（403）；
+//   - 未吊销令牌数达到上限时拒绝（409）；
+//   - 未指定过期时间时按 ApiTokenDefaultTTL（0=永不过期）。
+//
+// 明文 secret 只在本响应返回，之后只读哈希摘要。
+func (s *Service) CreateApiToken(ctx context.Context, accountID, name, description string, scopes []permissioncatalog.Key, expiresAt *time.Time) (ApiTokenIssued, error) {
 	normalized, err := s.validateApiTokenScopes(scopes)
 	if err != nil {
 		return ApiTokenIssued{}, err
@@ -1950,11 +1982,47 @@ func (s *Service) CreateApiToken(ctx context.Context, accountID, name string, sc
 	if strings.TrimSpace(name) == "" || len([]rune(name)) > 128 {
 		return ApiTokenIssued{}, model.ErrInvalidName
 	}
-	if expiresAt != nil && !expiresAt.After(s.clock.Now().UTC()) {
+	if len([]rune(description)) > 1024 {
+		return ApiTokenIssued{}, model.ErrInvalidName
+	}
+	account, err := s.accountByID(ctx, accountID)
+	if err != nil {
+		return ApiTokenIssued{}, err
+	}
+	if account.MustChangePassword || account.Status != string(model.AccountActive) || account.Archived {
+		return ApiTokenIssued{}, ErrAccountDisabled
+	}
+	owned, err := s.creatorOwnedPermissions(ctx, accountID)
+	if err != nil {
+		return ApiTokenIssued{}, err
+	}
+	for _, scope := range normalized {
+		if _, ok := owned[scope]; !ok {
+			return ApiTokenIssued{}, fmt.Errorf("%w: %s", ErrApiTokenScopeNotOwned, scope)
+		}
+	}
+	now := s.clock.Now().UTC()
+	effectiveExpiry := expiresAt
+	if effectiveExpiry == nil && s.config.ApiTokenDefaultTTL > 0 {
+		value := now.Add(s.config.ApiTokenDefaultTTL)
+		effectiveExpiry = &value
+	}
+	if effectiveExpiry != nil && !effectiveExpiry.After(now) {
 		return ApiTokenIssued{}, model.ErrInvalidTime
 	}
-	if err := s.requireAccount(ctx, accountID); err != nil {
-		return ApiTokenIssued{}, err
+	if s.config.ApiTokenMaxPerAccount > 0 {
+		var count int64
+		countErr := s.store.Use(ctx, func(r *repo.Unit) error {
+			var err error
+			count, err = r.CountApiTokens(ctx, accountID)
+			return err
+		})
+		if countErr != nil {
+			return ApiTokenIssued{}, countErr
+		}
+		if count >= int64(s.config.ApiTokenMaxPerAccount) {
+			return ApiTokenIssued{}, ErrApiTokenLimit
+		}
 	}
 	secret, err := newApiTokenSecret()
 	if err != nil {
@@ -1964,35 +2032,40 @@ func (s *Service) CreateApiToken(ctx context.Context, accountID, name string, sc
 	if err != nil {
 		return ApiTokenIssued{}, err
 	}
-	now := s.clock.Now().UTC()
 	encoded, err := encodeApiTokenScopes(normalized)
 	if err != nil {
 		return ApiTokenIssued{}, err
 	}
-	record := repo.ApiTokenRecord{ID: id, AccountID: accountID, Name: strings.TrimSpace(name), TokenHash: apiTokenHash(secret), Scopes: encoded, ExpiresAt: expiresAt, CreatedAt: now}
+	record := repo.ApiTokenRecord{ID: id, AccountID: accountID, Name: strings.TrimSpace(name), Description: strings.TrimSpace(description), TokenHash: apiTokenHash(secret), Scopes: encoded, ExpiresAt: effectiveExpiry, CreatedAt: now}
 	err = s.store.Use(ctx, func(r *repo.Unit) error { return r.CreateApiToken(ctx, &record) })
 	s.auditOperation(ctx, "iam.api-tokens.create", "create", "api-token", record.ID, err)
 	if err != nil {
 		return ApiTokenIssued{}, err
 	}
-	return ApiTokenIssued{ApiTokenView: apiTokenView(record), Secret: secret}, nil
+	return ApiTokenIssued{ApiTokenView: apiTokenView(record, now), Secret: secret}, nil
 }
 
-// ListApiTokens 分页返回账号令牌管理视图（无明文）。
-func (s *Service) ListApiTokens(ctx context.Context, accountID string, offset, limit int) (ApiTokenList, error) {
+// ListApiTokens 分页返回账号令牌管理视图（无明文）；status 过滤（080）。
+func (s *Service) ListApiTokens(ctx context.Context, accountID string, offset, limit int, status ApiTokenStatus) (ApiTokenList, error) {
 	offset, limit, err := normalizePage(offset, limit)
 	if err != nil {
 		return ApiTokenList{}, err
 	}
+	statusValue, err := normalizeApiTokenStatus(status)
+	if err != nil {
+		return ApiTokenList{}, err
+	}
+	now := s.clock.Now().UTC()
+	filter := repo.ApiTokenFilter{Status: statusValue, Now: now}
 	var records []repo.ApiTokenRecord
 	var total int64
 	err = s.store.Use(ctx, func(r *repo.Unit) error {
 		var listErr error
-		total, listErr = r.CountApiTokens(ctx, accountID)
+		total, listErr = r.CountApiTokensFiltered(ctx, accountID, filter)
 		if listErr != nil {
 			return listErr
 		}
-		records, listErr = r.ListApiTokens(ctx, accountID, offset, limit)
+		records, listErr = r.ListApiTokensFiltered(ctx, accountID, offset, limit, filter)
 		return listErr
 	})
 	if err != nil {
@@ -2000,9 +2073,53 @@ func (s *Service) ListApiTokens(ctx context.Context, accountID string, offset, l
 	}
 	items := make([]ApiTokenView, len(records))
 	for index, record := range records {
-		items[index] = apiTokenView(record)
+		items[index] = apiTokenView(record, now)
 	}
 	return ApiTokenList{Items: items, Offset: offset, Limit: limit, Total: total}, nil
+}
+
+// UpdateApiToken 更新令牌元数据（名称/描述/过期时间，080）。
+// expiresAt 非 nil 时设置新过期时间；neverExpires 为 true 时清空（永不过期）；
+// 两者均为空表示保持不变。
+func (s *Service) UpdateApiToken(ctx context.Context, accountID, id, name, description string, expiresAt *time.Time, neverExpires bool) error {
+	if strings.TrimSpace(name) == "" || len([]rune(name)) > 128 {
+		return model.ErrInvalidName
+	}
+	if len([]rune(description)) > 1024 {
+		return model.ErrInvalidName
+	}
+	now := s.clock.Now().UTC()
+	changes := map[string]any{"name": strings.TrimSpace(name), "description": strings.TrimSpace(description)}
+	switch {
+	case neverExpires:
+		changes["expires_at"] = nil
+	case expiresAt != nil:
+		if !expiresAt.After(now) {
+			return model.ErrInvalidTime
+		}
+		changes["expires_at"] = expiresAt
+	}
+	err := s.store.Use(ctx, func(r *repo.Unit) error {
+		return r.UpdateApiTokenFields(ctx, accountID, id, changes)
+	})
+	s.auditOperation(ctx, "iam.api-tokens.update", "update", "api-token", id, err)
+	return err
+}
+
+// DisableApiToken 把令牌置为禁用（可逆）；禁用后认证立即失败。
+func (s *Service) DisableApiToken(ctx context.Context, accountID, id string) error {
+	now := s.clock.Now().UTC()
+	disabled := now
+	err := s.store.Use(ctx, func(r *repo.Unit) error { return r.SetApiTokenDisabled(ctx, accountID, id, &disabled) })
+	s.auditOperation(ctx, "iam.api-tokens.disable", "disable", "api-token", id, err)
+	return err
+}
+
+// EnableApiToken 解除禁用（可逆）。
+func (s *Service) EnableApiToken(ctx context.Context, accountID, id string) error {
+	err := s.store.Use(ctx, func(r *repo.Unit) error { return r.SetApiTokenDisabled(ctx, accountID, id, nil) })
+	s.auditOperation(ctx, "iam.api-tokens.enable", "enable", "api-token", id, err)
+	return err
 }
 
 // RotateApiToken 轮换令牌：旧哈希立即失效并返回新明文 secret。
@@ -2028,7 +2145,7 @@ func (s *Service) RotateApiToken(ctx context.Context, accountID, id string) (Api
 		record, err = r.ApiTokenByID(ctx, accountID, id)
 		return err
 	})
-	return ApiTokenIssued{ApiTokenView: apiTokenView(record), Secret: secret}, nil
+	return ApiTokenIssued{ApiTokenView: apiTokenView(record, now), Secret: secret}, nil
 }
 
 // RevokeApiToken 把令牌置为终态吊销；后续认证立即失败。
@@ -2040,8 +2157,8 @@ func (s *Service) RevokeApiToken(ctx context.Context, accountID, id string) erro
 }
 
 // ResolveApiToken 供 Auth api-token verifier 适配：按明文 secret 哈希解析
-// 未吊销未过期的令牌并刷新最后使用时间；任何失败返回 ErrSessionInvalid
-// （认证层映射为 401）。
+// 未吊销、未禁用、未过期的令牌并刷新最后使用时间；任何失败返回
+// ErrSessionInvalid（认证层映射为 401）。
 func (s *Service) ResolveApiToken(ctx context.Context, token string) (ApiTokenResolution, error) {
 	secret := strings.TrimSpace(token)
 	if !strings.HasPrefix(secret, apiTokenPrefix) {
@@ -2054,7 +2171,7 @@ func (s *Service) ResolveApiToken(ctx context.Context, token string) (ApiTokenRe
 		if err != nil {
 			return ErrSessionInvalid
 		}
-		if record.RevokedAt != nil || (record.ExpiresAt != nil && !now.Before(*record.ExpiresAt)) {
+		if record.RevokedAt != nil || record.DisabledAt != nil || (record.ExpiresAt != nil && !now.Before(*record.ExpiresAt)) {
 			return ErrSessionInvalid
 		}
 		scopes, scopeErr := decodeApiTokenScopes(record.Scopes)
@@ -2065,6 +2182,51 @@ func (s *Service) ResolveApiToken(ctx context.Context, token string) (ApiTokenRe
 		return r.TouchApiTokenUsage(ctx, record.ID, now)
 	})
 	return resolution, err
+}
+
+// normalizeApiTokenStatus 校验并归一状态过滤类目（空=all）。
+func normalizeApiTokenStatus(status ApiTokenStatus) (string, error) {
+	switch status {
+	case "", ApiTokenStatusAll:
+		return "all", nil
+	case ApiTokenStatusActive, ApiTokenStatusDisabled, ApiTokenStatusExpired, ApiTokenStatusRevoked:
+		return string(status), nil
+	default:
+		return "", fmt.Errorf("iam api token status %q is unknown", status)
+	}
+}
+
+// accountByID 读取账号完整记录。
+func (s *Service) accountByID(ctx context.Context, accountID string) (repo.AccountRecord, error) {
+	var account repo.AccountRecord
+	err := s.store.Use(ctx, func(r *repo.Unit) error {
+		var findErr error
+		account, findErr = r.AccountByID(ctx, accountID)
+		return findErr
+	})
+	return account, err
+}
+
+// creatorOwnedPermissions 投影创建者当前有效权限集合（080：权限知情创建
+// 的权威依据；受限会话此处由调用方前置拒绝）。
+func (s *Service) creatorOwnedPermissions(ctx context.Context, accountID string) (map[permissioncatalog.Key]struct{}, error) {
+	var revision uint64
+	if err := s.store.Use(ctx, func(r *repo.Unit) error {
+		var err error
+		revision, err = r.CurrentAuthorizationRevision(ctx)
+		return err
+	}); err != nil {
+		return nil, err
+	}
+	values, err := s.authorization.ProjectPermissions(ctx, accountID, revision, false)
+	if err != nil {
+		return nil, err
+	}
+	owned := make(map[permissioncatalog.Key]struct{}, len(values))
+	for _, value := range values {
+		owned[value] = struct{}{}
+	}
+	return owned, nil
 }
 
 func (s *Service) validateApiTokenScopes(scopes []permissioncatalog.Key) ([]permissioncatalog.Key, error) {
@@ -2131,12 +2293,26 @@ func decodeApiTokenScopes(encoded string) ([]permissioncatalog.Key, error) {
 	return scopes, nil
 }
 
-func apiTokenView(record repo.ApiTokenRecord) ApiTokenView {
+func apiTokenView(record repo.ApiTokenRecord, now time.Time) ApiTokenView {
 	scopes, err := decodeApiTokenScopes(record.Scopes)
 	if err != nil {
 		scopes = nil
 	}
-	return ApiTokenView{ID: record.ID, Name: record.Name, Scopes: scopes, ExpiresAt: record.ExpiresAt, RevokedAt: record.RevokedAt, CreatedAt: record.CreatedAt, LastUsed: record.LastUsed}
+	return ApiTokenView{ID: record.ID, Name: record.Name, Description: record.Description, Scopes: scopes, ExpiresAt: record.ExpiresAt, DisabledAt: record.DisabledAt, RevokedAt: record.RevokedAt, CreatedAt: record.CreatedAt, LastUsed: record.LastUsed, Status: derivedApiTokenStatus(record, now)}
+}
+
+// derivedApiTokenStatus 派生令牌状态（优先级 revoked > expired > disabled > active）。
+func derivedApiTokenStatus(record repo.ApiTokenRecord, now time.Time) string {
+	switch {
+	case record.RevokedAt != nil:
+		return string(ApiTokenStatusRevoked)
+	case record.ExpiresAt != nil && !now.Before(*record.ExpiresAt):
+		return string(ApiTokenStatusExpired)
+	case record.DisabledAt != nil:
+		return string(ApiTokenStatusDisabled)
+	default:
+		return string(ApiTokenStatusActive)
+	}
 }
 
 // ---- MFA/TOTP（078，R078-002） ----

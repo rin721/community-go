@@ -40,7 +40,5 @@ export const confirmMFAEnroll = (code: string) => requestJSON<{ recoveryCodes: s
 export const disableMFA = (code: string) => requestJSON<void>("/api/v1/iam/self/mfa/disable", { method: "POST", headers: mutationHeaders(), body: JSON.stringify({ code }) });
 
 
+
 export const listApiTokens = (offset = 0, limit = 50) => requestJSON<{ items: ApiTokenView[]; offset: number; limit: number; total: number }>(`/api/v1/iam/api-tokens?offset=${offset}&limit=${limit}`);
-export const createApiToken = (name: string, scopes: string[]) => requestJSON<ApiTokenIssued>("/api/v1/iam/api-tokens", { method: "POST", headers: mutationHeaders(), body: JSON.stringify({ name, scopes }) });
-export const rotateApiToken = (id: string) => requestJSON<ApiTokenIssued>(`/api/v1/iam/api-tokens/${id}/rotate`, { method: "POST", headers: mutationHeaders(), body: JSON.stringify({}) });
-export const revokeApiToken = (id: string) => requestJSON<void>(`/api/v1/iam/api-tokens/${id}/revoke`, { method: "POST", headers: mutationHeaders(), body: JSON.stringify({}) });

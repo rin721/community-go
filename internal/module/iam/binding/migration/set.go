@@ -7,7 +7,7 @@ import (
 	dbmigrate "github.com/rin721/go-scaffold-template/pkg/database/migrate"
 )
 
-const CurrentVersion uint = 7
+const CurrentVersion uint = 8
 const TableName = "iam_schema_migrations"
 
 //go:embed sqlite/*.sql postgres/*.sql mysql/*.sql
@@ -39,6 +39,9 @@ func Set() dbmigrate.Set {
 			"sqlite/000007_create_iam_mfa.up.sql": "53d1c32b160b754191998878b945992b240abdb7d3893b1c399c1839dd7ce70f", "sqlite/000007_create_iam_mfa.down.sql": "5a800d569b65ae52d144798902d1f1907e976bc4337d4d718359f7694df0db6f",
 			"postgres/000007_create_iam_mfa.up.sql": "77f2926da2a8f1cb401ec8404dc6670b60ab6d90d2d8e936198f9f165a13138b", "postgres/000007_create_iam_mfa.down.sql": "5a800d569b65ae52d144798902d1f1907e976bc4337d4d718359f7694df0db6f",
 			"mysql/000007_create_iam_mfa.up.sql": "970a457af0b92a9d7ada51dc7c80d2bd996fbd930e60b8d0f1f2d4d1bd9cffbd", "mysql/000007_create_iam_mfa.down.sql": "5a800d569b65ae52d144798902d1f1907e976bc4337d4d718359f7694df0db6f",
+			"sqlite/000008_extend_iam_api_tokens.up.sql": "7b6597f756558e2a3414718fe57f02ed8d596934639f59bf681a40e4e4f17123", "sqlite/000008_extend_iam_api_tokens.down.sql": "aacb2c6d44e338eebf2f865ab743626127d7aa5d047d389be3144cb05daabda7",
+			"postgres/000008_extend_iam_api_tokens.up.sql": "35fde3ba1f265ad6dcc146f69b3f0553e06a68a075496527e469cb3f8f7606e0", "postgres/000008_extend_iam_api_tokens.down.sql": "aacb2c6d44e338eebf2f865ab743626127d7aa5d047d389be3144cb05daabda7",
+			"mysql/000008_extend_iam_api_tokens.up.sql": "5206bdfc401486a200693d4d1a3443e602e58a14a0bb7273a8a27d43bbb76249", "mysql/000008_extend_iam_api_tokens.down.sql": "aacb2c6d44e338eebf2f865ab743626127d7aa5d047d389be3144cb05daabda7",
 		},
 	}
 }

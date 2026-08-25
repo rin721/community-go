@@ -207,22 +207,66 @@ func (unit *Unit) ApiTokenByHash(ctx context.Context, hash string) (ApiTokenReco
 	return record, err
 }
 
-// CountApiTokens 统计账号令牌总数。
+// CountApiTokens 统计账号未吊销令牌数（080：数量上限口径，revoked 不占额度）。
 func (unit *Unit) CountApiTokens(ctx context.Context, accountID string) (int64, error) {
 	var count int64
 	err := unit.useDB(ctx, func(db *gorm.DB) error {
-		return db.Table(apiTokenTable).Where("account_id = ?", accountID).Count(&count).Error
+		return db.Table(apiTokenTable).Where("account_id = ? AND revoked_at IS NULL", accountID).Count(&count).Error
 	})
 	return count, err
 }
 
-// ListApiTokens 分页返回账号令牌（创建时间降序）。
-func (unit *Unit) ListApiTokens(ctx context.Context, accountID string, offset, limit int) ([]ApiTokenRecord, error) {
+// ApiTokenFilter 是令牌列表的 typed 过滤条件（080）。
+type ApiTokenFilter struct {
+	// Status：active|disabled|expired|revoked|all（空等价 all）。
+	Status string
+	// Now 是过期判定基准时间。
+	Now time.Time
+}
+
+// apiTokenQuery 构造账号令牌查询的公共过滤条件（Count/List 同条件）。
+func (unit *Unit) apiTokenQuery(ctx context.Context, db *gorm.DB, accountID string, filter ApiTokenFilter) *gorm.DB {
+	query := db.Table(apiTokenTable).Where("account_id = ?", accountID)
+	switch filter.Status {
+	case "active":
+		query = query.Where("revoked_at IS NULL AND disabled_at IS NULL AND (expires_at IS NULL OR expires_at > ?)", filter.Now)
+	case "disabled":
+		query = query.Where("revoked_at IS NULL AND disabled_at IS NOT NULL")
+	case "expired":
+		query = query.Where("revoked_at IS NULL AND expires_at IS NOT NULL AND expires_at <= ?", filter.Now)
+	case "revoked":
+		query = query.Where("revoked_at IS NOT NULL")
+	}
+	return query
+}
+
+// CountApiTokensFiltered 统计满足 status 过滤的令牌总数（与 List 同条件）。
+func (unit *Unit) CountApiTokensFiltered(ctx context.Context, accountID string, filter ApiTokenFilter) (int64, error) {
+	var count int64
+	err := unit.useDB(ctx, func(db *gorm.DB) error {
+		return unit.apiTokenQuery(ctx, db, accountID, filter).Count(&count).Error
+	})
+	return count, err
+}
+
+// ListApiTokensFiltered 分页返回账号令牌（创建时间降序；status 过滤与 Count 同条件）。
+func (unit *Unit) ListApiTokensFiltered(ctx context.Context, accountID string, offset, limit int, filter ApiTokenFilter) ([]ApiTokenRecord, error) {
 	var records []ApiTokenRecord
 	err := unit.useDB(ctx, func(db *gorm.DB) error {
-		return db.Table(apiTokenTable).Where("account_id = ?", accountID).Order("created_at DESC, id ASC").Offset(offset).Limit(limit).Find(&records).Error
+		return unit.apiTokenQuery(ctx, db, accountID, filter).Order("created_at DESC, id ASC").Offset(offset).Limit(limit).Find(&records).Error
 	})
 	return records, err
+}
+
+// UpdateApiTokenFields 更新令牌字段（080）：changes 为受控字段 map
+// （name/description/expires_at；expires_at=nil 表示清空过期为永不过期）。
+func (unit *Unit) UpdateApiTokenFields(ctx context.Context, accountID, id string, changes map[string]any) error {
+	return unit.update(ctx, apiTokenTable, "id = ? AND account_id = ?", []any{id, accountID}, changes)
+}
+
+// SetApiTokenDisabled 设置令牌禁用状态（disabled 可逆；disabledAt 非空=禁用）。
+func (unit *Unit) SetApiTokenDisabled(ctx context.Context, accountID, id string, disabledAt *time.Time) error {
+	return unit.update(ctx, apiTokenTable, "id = ? AND account_id = ?", []any{id, accountID}, map[string]any{"disabled_at": disabledAt})
 }
 
 // RotateApiTokenHash 替换令牌哈希（轮换：旧哈希立即失效）并刷新修改时间。
@@ -231,9 +275,9 @@ func (unit *Unit) RotateApiTokenHash(ctx context.Context, accountID, id, hash st
 	return unit.updateVersioned(ctx, apiTokenTable, "id = ? AND account_id = ?", []any{id, accountID}, values)
 }
 
-// RevokeApiToken 把令牌置为终态吊销。
+// RevokeApiToken 把令牌置为终态吊销（同时清除禁用标记）。
 func (unit *Unit) RevokeApiToken(ctx context.Context, accountID, id string, now time.Time) error {
-	return unit.update(ctx, apiTokenTable, "id = ? AND account_id = ?", []any{id, accountID}, map[string]any{"revoked_at": &now})
+	return unit.update(ctx, apiTokenTable, "id = ? AND account_id = ?", []any{id, accountID}, map[string]any{"revoked_at": &now, "disabled_at": nil})
 }
 
 // TouchApiTokenUsage 记录令牌最近使用时间（认证成功时调用，异步无承诺）。

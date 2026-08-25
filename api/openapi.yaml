@@ -72,6 +72,9 @@ components:
     ApiTokenCreateInputBody:
       additionalProperties: false
       properties:
+        description:
+          maxLength: 1024
+          type: string
         expiresAt:
           format: date-time
           type: string
@@ -86,12 +89,18 @@ components:
           type: array
       required:
         - name
+        - description
         - scopes
       type: object
     ApiTokenIssuedResponse:
       additionalProperties: false
       properties:
         createdAt:
+          format: date-time
+          type: string
+        description:
+          type: string
+        disabledAt:
           format: date-time
           type: string
         expiresAt:
@@ -114,17 +123,25 @@ components:
           type: array
         secret:
           type: string
+        status:
+          type: string
       required:
         - id
         - name
         - scopes
         - createdAt
+        - status
         - secret
       type: object
     ApiTokenResponse:
       additionalProperties: false
       properties:
         createdAt:
+          format: date-time
+          type: string
+        description:
+          type: string
+        disabledAt:
           format: date-time
           type: string
         expiresAt:
@@ -145,11 +162,33 @@ components:
             type: string
           nullable: true
           type: array
+        status:
+          type: string
       required:
         - id
         - name
         - scopes
         - createdAt
+        - status
+      type: object
+    ApiTokenUpdateInputBody:
+      additionalProperties: false
+      properties:
+        description:
+          maxLength: 1024
+          type: string
+        expiresAt:
+          format: date-time
+          type: string
+        name:
+          maxLength: 128
+          minLength: 1
+          type: string
+        neverExpires:
+          type: boolean
+      required:
+        - name
+        - description
       type: object
     Assignment:
       additionalProperties: false
@@ -1687,9 +1726,14 @@ paths:
             type: integer
         - explode: false
           in: query
-          name: query
+          name: status
           schema:
-            maxLength: 128
+            enum:
+              - active
+              - disabled
+              - expired
+              - revoked
+              - all
             type: string
       responses:
         "200":
@@ -1742,6 +1786,108 @@ paths:
             Cache-Control:
               schema:
                 type: string
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      security:
+        - webuiSession: []
+      tags:
+        - IAM
+  /api/v1/iam/api-tokens/{id}:
+    patch:
+      operationId: iam.api-tokens.update
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: Origin
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApiTokenUpdateInputBody"
+        required: true
+      responses:
+        "204":
+          description: No Content
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      security:
+        - webuiSession: []
+      tags:
+        - IAM
+  /api/v1/iam/api-tokens/{id}/disable:
+    post:
+      operationId: iam.api-tokens.disable
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: Origin
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: No Content
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      security:
+        - webuiSession: []
+      tags:
+        - IAM
+  /api/v1/iam/api-tokens/{id}/enable:
+    post:
+      operationId: iam.api-tokens.enable
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: Origin
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: No Content
         default:
           content:
             application/problem+json:

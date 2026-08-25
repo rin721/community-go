@@ -78,9 +78,10 @@ Linux 使用 `bash scripts/verify-webui.sh`。质量链覆盖生成检查、冻�
 
 - 全部业务模块（IAM/Organization/Navigation）的写操作均要求 `webuiSession` 认证：mutation 请求必须携带 `Origin`（同源）与 `X-CSRF-Token`（来自当前 Session），缺失或失效由服务端 403 `csrf_invalid` 拒绝。模块前端统一使用「加载 Session 时 remember csrfToken → mutation headers」模式（先例 `internal/module/iam/binding/webui/web/api.ts`，076 起 Organization 页面对齐）。
 
-## 安全页：MFA 与 API 令牌（078）
+## 安全页：MFA 与 API 令牌（078/080）
 
-- 设置中心「安全」页（`settings/.../SecurityPage.tsx`）新增 **MFA/TOTP 区块**（绑定显示 otpauth URI、确认激活展示一次性恢复码、禁用需验证码/恢复码复核）与 **API 令牌区块**（创建/列表/轮换/吊销，创建与轮换明文仅显示一次）；settings 前端 mutation 统一携带 CSRFToken（076 语义），mock 路由由模块自有 `mock.ts` 提供。
+- 设置中心「安全」页（`settings/.../SecurityPage.tsx`）新增 **MFA/TOTP 区块**（绑定显示 otpauth URI、确认激活展示一次性恢复码、禁用需验证码/恢复码复核）；080 起 API 令牌区块降级为**入口与摘要**（数量/最近使用 + 跳转）。
+- **API 令牌独立管理页（080）**：IAM 模块新增 `/admin/api-tokens`（列表+status 过滤+状态 Pill、创建向导=当前账号可授予权限勾选、明文一次弹窗、禁用/启用/轮换/吊销、过期展示）；遵循「复杂功能可作入口、不作实操页」原则。
 
 ## 设置中心 8 分区与 SPA 导航（072）
 

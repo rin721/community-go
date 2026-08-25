@@ -29,6 +29,10 @@ type Local struct {
 	LockDuration          time.Duration  `mapstructure:"lockDuration"`
 	PasswordPolicy        PasswordPolicy `mapstructure:"passwordPolicy"`
 	MaxSessionsPerAccount int            `mapstructure:"maxSessionsPerAccount"`
+	// ApiTokenMaxPerAccount 是单账号最大未吊销 API 令牌数（080）；0=不限。
+	ApiTokenMaxPerAccount int `mapstructure:"apiTokenMaxPerAccount"`
+	// ApiTokenDefaultTTL 是创建令牌未指定过期时间时的默认有效期（080）；0=永不过期。
+	ApiTokenDefaultTTL time.Duration `mapstructure:"apiTokenDefaultTTL"`
 }
 type Config struct {
 	Local Local `mapstructure:"local"`
@@ -44,7 +48,7 @@ const (
 )
 
 func Default() Config {
-	return Config{Local: Local{IdleTimeout: 30 * time.Minute, AbsoluteTimeout: 12 * time.Hour, MaxFailedAttempts: 5, LockDuration: 15 * time.Minute, PasswordPolicy: PasswordPolicy{MinLength: defaultPasswordMinLength, MaxLength: defaultPasswordMaxLength}}}
+	return Config{Local: Local{IdleTimeout: 30 * time.Minute, AbsoluteTimeout: 12 * time.Hour, MaxFailedAttempts: 5, LockDuration: 15 * time.Minute, PasswordPolicy: PasswordPolicy{MinLength: defaultPasswordMinLength, MaxLength: defaultPasswordMaxLength}, ApiTokenMaxPerAccount: 5}}
 }
 func Binding() config.Binding {
 	return config.Binding{CapabilityID: "module.iam", ConfigPath: configPath, Contract: defaults{}, Validate: func(snapshot config.Snapshot) error { _, err := Decode(snapshot); return err }}
@@ -59,6 +63,9 @@ func Decode(snapshot config.Snapshot) (Config, error) {
 	}
 	if value.Local.MaxSessionsPerAccount < 0 {
 		return Config{}, fmt.Errorf("iam max sessions per account is invalid")
+	}
+	if value.Local.ApiTokenMaxPerAccount < 0 || value.Local.ApiTokenDefaultTTL < 0 {
+		return Config{}, fmt.Errorf("iam api token limit or default ttl is invalid")
 	}
 	policy := value.Local.PasswordPolicy
 	if policy.MinLength < 1 || policy.MaxLength < policy.MinLength || policy.MaxLength > maxPasswordMaxLength {
@@ -84,6 +91,7 @@ func (defaults) Defaults(ctx context.Context) (config.Object, config.Control, er
 		config.FieldOf("setupToken", config.String(v.Local.SetupToken)), config.FieldOf("idleTimeout", config.Duration(v.Local.IdleTimeout)), config.FieldOf("absoluteTimeout", config.Duration(v.Local.AbsoluteTimeout)),
 		config.FieldOf("maxFailedAttempts", mustNumber(v.Local.MaxFailedAttempts)), config.FieldOf("lockDuration", config.Duration(v.Local.LockDuration)),
 		config.FieldOf("maxSessionsPerAccount", mustNumber(v.Local.MaxSessionsPerAccount)),
+		config.FieldOf("apiTokenMaxPerAccount", mustNumber(v.Local.ApiTokenMaxPerAccount)), config.FieldOf("apiTokenDefaultTTL", config.Duration(v.Local.ApiTokenDefaultTTL)),
 		config.FieldOf("passwordPolicy", config.ObjectValue(config.Object{
 			config.FieldOf("minLength", mustNumber(v.Local.PasswordPolicy.MinLength)), config.FieldOf("maxLength", mustNumber(v.Local.PasswordPolicy.MaxLength)),
 			config.FieldOf("requireComplexity", config.Bool(v.Local.PasswordPolicy.RequireComplexity)),

@@ -55,18 +55,21 @@ type PasswordHistoryRecord struct {
 	CreatedAt    time.Time
 }
 
-// ApiTokenRecord 是机器访问令牌（078）：secret 只以 sha256 哈希持久化，
-// Scopes 以 JSON 文本存储（service 负责稳定排序编码/解码）。
+// ApiTokenRecord 是机器访问令牌（078/080）：secret 只以 sha256 哈希持久化，
+// Scopes 以 JSON 文本存储（service 负责稳定排序编码/解码）；Description 为
+// 可选管理说明；DisabledAt 非空表示禁用（可逆状态，080）。
 type ApiTokenRecord struct {
-	ID        string     `gorm:"column:id"`
-	AccountID string     `gorm:"column:account_id"`
-	Name      string     `gorm:"column:name"`
-	TokenHash string     `gorm:"column:token_hash"`
-	Scopes    string     `gorm:"column:scopes"`
-	ExpiresAt *time.Time `gorm:"column:expires_at"`
-	RevokedAt *time.Time `gorm:"column:revoked_at"`
-	CreatedAt time.Time  `gorm:"column:created_at"`
-	LastUsed  *time.Time `gorm:"column:last_used_at"`
+	ID          string     `gorm:"column:id"`
+	AccountID   string     `gorm:"column:account_id"`
+	Name        string     `gorm:"column:name"`
+	Description string     `gorm:"column:description"`
+	TokenHash   string     `gorm:"column:token_hash"`
+	Scopes      string     `gorm:"column:scopes"`
+	ExpiresAt   *time.Time `gorm:"column:expires_at"`
+	DisabledAt  *time.Time `gorm:"column:disabled_at"`
+	RevokedAt   *time.Time `gorm:"column:revoked_at"`
+	CreatedAt   time.Time  `gorm:"column:created_at"`
+	LastUsed    *time.Time `gorm:"column:last_used_at"`
 }
 
 // MFASecretRecord 是 TOTP 种子（078）：已确认前为 pending 绑定，确认后不回读明文。

@@ -38,3 +38,13 @@ export type SessionInfo={idHash:string;accountId:string;createdAt:string;lastSee
 export type SessionListResult={items:SessionInfo[];offset:number;limit:number;total:number};
 export const listSessions=()=>requestJSON<SessionListResult>("/api/v1/iam/sessions?limit=100");
 export const revokeSessions=(idHashes:string[],accountId?:string)=>requestJSON<void>(`/api/v1/iam/sessions/revoke${accountId?`?accountId=${encodeURIComponent(accountId)}`:""}`,{method:"POST",body:JSON.stringify({idHashes}),headers:mutationHeaders()});
+
+export type ApiTokenView={id:string;name:string;description?:string;scopes:string[];expiresAt?:string;revokedAt?:string;disabledAt?:string;createdAt:string;lastUsedAt?:string;status:"active"|"disabled"|"expired"|"revoked"};
+export type ApiTokenIssued=ApiTokenView&{secret:string};
+export const listApiTokens=(status="all",offset=0,limit=50)=>requestJSON<{items:ApiTokenView[];offset:number;limit:number;total:number}>(`/api/v1/iam/api-tokens?offset=${offset}&limit=${limit}&status=${status}`);
+export const createApiToken=(name:string,description:string,scopes:string[],expiresAt?:string)=>requestJSON<ApiTokenIssued>("/api/v1/iam/api-tokens",{method:"POST",headers:mutationHeaders(),body:JSON.stringify({name,description,scopes,expiresAt:expiresAt||undefined})});
+export const updateApiToken=(id:string,name:string,description:string,expiresAt?:string,neverExpires?:boolean)=>requestJSON<void>(`/api/v1/iam/api-tokens/${id}`,{method:"PATCH",headers:mutationHeaders(),body:JSON.stringify({name,description,expiresAt:expiresAt||undefined,neverExpires})});
+export const rotateApiToken=(id:string)=>requestJSON<ApiTokenIssued>(`/api/v1/iam/api-tokens/${id}/rotate`,{method:"POST",headers:mutationHeaders(),body:JSON.stringify({})});
+export const disableApiToken=(id:string)=>requestJSON<void>(`/api/v1/iam/api-tokens/${id}/disable`,{method:"POST",headers:mutationHeaders(),body:JSON.stringify({})});
+export const enableApiToken=(id:string)=>requestJSON<void>(`/api/v1/iam/api-tokens/${id}/enable`,{method:"POST",headers:mutationHeaders(),body:JSON.stringify({})});
+export const revokeApiToken=(id:string)=>requestJSON<void>(`/api/v1/iam/api-tokens/${id}/revoke`,{method:"POST",headers:mutationHeaders(),body:JSON.stringify({})});

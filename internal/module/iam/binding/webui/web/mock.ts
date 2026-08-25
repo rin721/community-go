@@ -78,6 +78,19 @@ export const webuiMockRoutes: ReadonlyArray<WebUIMockRoute> = [
     total: 2,
   }) },
   { method: "POST", pattern: "/api/v1/iam/sessions/revoke", handler: () => undefined },
+
+  { method: "GET", pattern: "/api/v1/iam/api-tokens", handler: () => ({ items: [
+      { id: "tok-1", name: "mock-ci", description: "", scopes: ["management:read"], status: "active" as const, createdAt, lastUsedAt: createdAt },
+    ], offset: 0, limit: 50, total: 1 }) },
+  { method: "POST", pattern: "/api/v1/iam/api-tokens", handler: (request) => {
+    const body = (request.body ?? {}) as { name?: string; scopes?: string[]; description?: string };
+    return { id: "tok-new", name: body.name ?? "new", description: body.description ?? "", scopes: body.scopes ?? [], status: "active" as const, createdAt, secret: "iam_mock-api-token-secret" };
+  } },
+  { method: "PATCH", pattern: "/api/v1/iam/api-tokens/{id}", handler: () => undefined },
+  { method: "POST", pattern: "/api/v1/iam/api-tokens/{id}/rotate", handler: () => ({ id: "tok-1", name: "mock-ci", description: "", scopes: ["management:read"], status: "active" as const, createdAt, secret: "iam_mock-rotated-secret" }) },
+  { method: "POST", pattern: "/api/v1/iam/api-tokens/{id}/disable", handler: () => undefined },
+  { method: "POST", pattern: "/api/v1/iam/api-tokens/{id}/enable", handler: () => undefined },
+  { method: "POST", pattern: "/api/v1/iam/api-tokens/{id}/revoke", handler: () => undefined },
 ];
 
 export default webuiMockRoutes;

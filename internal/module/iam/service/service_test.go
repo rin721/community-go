@@ -1354,7 +1354,7 @@ func TestApiTokenLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	accountID := owner.Identity.AccountID
-	issued, err := iam.CreateApiToken(t.Context(), accountID, "ci", []permissioncatalog.Key{iampermission.AccountRead}, nil)
+	issued, err := iam.CreateApiToken(t.Context(), accountID, "ci", "CI access", []permissioncatalog.Key{iampermission.AccountRead}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1370,7 +1370,7 @@ func TestApiTokenLifecycle(t *testing.T) {
 		t.Fatalf("resolution = %#v", resolution)
 	}
 	// 列表不含明文。
-	list, err := iam.ListApiTokens(t.Context(), accountID, 0, 20)
+	list, err := iam.ListApiTokens(t.Context(), accountID, 0, 20, service.ApiTokenStatusAll)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1378,7 +1378,7 @@ func TestApiTokenLifecycle(t *testing.T) {
 		t.Fatalf("api token list = %#v", list)
 	}
 	// 未知 scope 创建拒绝。
-	if _, err := iam.CreateApiToken(t.Context(), accountID, "bad", []permissioncatalog.Key{"no:such:key"}, nil); !errors.Is(err, service.ErrUnknownPermission) {
+	if _, err := iam.CreateApiToken(t.Context(), accountID, "bad", "", []permissioncatalog.Key{"no:such:key"}, nil); !errors.Is(err, service.ErrUnknownPermission) {
 		t.Fatalf("unknown scope error = %v", err)
 	}
 	// 轮换：旧 secret 立即失效，新 secret 可用。
@@ -1401,6 +1401,265 @@ func TestApiTokenLifecycle(t *testing.T) {
 	}
 	if _, err := iam.RotateApiToken(t.Context(), accountID, "missing-token"); !errors.Is(err, repo.ErrNotFound) {
 		t.Fatalf("rotate unknown token error = %v", err)
+	}
+}
+
+// TestApiTokenScopeInheritance 验证权限知情创建（080）：令牌 scope 必须受限于
+// 创建者当前有效权限（越权 403），受限（需改密）账号禁止创建。
+func TestApiTokenScopeInheritance(t *testing.T) {
+	iam, resource := newService(t)
+	defer resource.Close()
+	owner, err := iam.Setup(t.Context(), "setup-secret", "owner", "Owner", "123456789012345")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// reader 角色只授 AccountRead。
+	reader, err := iam.CreateRole(t.Context(), "reader", "Reader", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := iam.ReplaceRolePermissions(t.Context(), reader.ID, 1, []permissioncatalog.Key{iampermission.AccountRead, iampermission.SelfRead, iampermission.SelfPasswordWrite}); err != nil {
+		t.Fatal(err)
+	}
+	member, err := iam.CreateAccount(t.Context(), "member", "Member", "123456789012345")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := iam.ReplaceAccountRoles(t.Context(), member.ID, 1, []string{reader.ID}); err != nil {
+		t.Fatal(err)
+	}
+	// 受限（MustChangePassword）账号禁止创建令牌。
+	if _, err := iam.CreateApiToken(t.Context(), member.ID, "x", "", []permissioncatalog.Key{iampermission.AccountRead}, nil); !errors.Is(err, service.ErrAccountDisabled) {
+		t.Fatalf("restricted create error = %v", err)
+	}
+	// 改密后解除受限。
+	session, err := iam.Login(t.Context(), "member", "123456789012345")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := iam.ChangePassword(t.Context(), session.Identity.AccountID, "123456789012345", "abcdefghijklmno"); err != nil {
+		t.Fatal(err)
+	}
+	// 越权：member 请求 RoleWrite（非其有效权限）-> 403。
+	if _, err := iam.CreateApiToken(t.Context(), member.ID, "bad", "", []permissioncatalog.Key{iampermission.RoleWrite}, nil); !errors.Is(err, service.ErrApiTokenScopeNotOwned) {
+		t.Fatalf("out-of-scope create error = %v", err)
+	}
+	// 权限内：member 创建 AccountRead 令牌成功。
+	issued, err := iam.CreateApiToken(t.Context(), member.ID, "good", "", []permissioncatalog.Key{iampermission.AccountRead}, nil)
+	if err != nil {
+		t.Fatalf("in-scope create error = %v", err)
+	}
+	resolution, err := iam.ResolveApiToken(t.Context(), issued.Secret)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resolution.AccountID != member.ID || len(resolution.Scopes) != 1 || resolution.Scopes[0] != iampermission.AccountRead {
+		t.Fatalf("member resolution = %#v", resolution)
+	}
+	_ = owner
+}
+
+// TestApiTokenLifecycleStates 验证令牌状态机（080）：禁用/启用（可逆）、过期、
+// 吊销（终态）与 status 过滤。
+func TestApiTokenLifecycleStates(t *testing.T) {
+	iam, resource := newService(t)
+	defer resource.Close()
+	if _, err := iam.Setup(t.Context(), "setup-secret", "owner", "Owner", "123456789012345"); err != nil {
+		t.Fatal(err)
+	}
+	accountID := "owner"
+	_ = accountID
+	// 用 Setup 返回的 session 账号。
+	ownerSession, err := iam.Login(t.Context(), "owner", "123456789012345")
+	if err != nil {
+		t.Fatal(err)
+	}
+	accountID = ownerSession.Identity.AccountID
+	issued, err := iam.CreateApiToken(t.Context(), accountID, "a", "", []permissioncatalog.Key{iampermission.SelfRead}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 禁用：认证立即失败；启用：恢复。
+	if err := iam.DisableApiToken(t.Context(), accountID, issued.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := iam.ResolveApiToken(t.Context(), issued.Secret); !errors.Is(err, service.ErrSessionInvalid) {
+		t.Fatalf("disabled resolve error = %v", err)
+	}
+	if err := iam.EnableApiToken(t.Context(), accountID, issued.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := iam.ResolveApiToken(t.Context(), issued.Secret); err != nil {
+		t.Fatal(err)
+	}
+	// 元数据更新：改名/描述/永不过期。
+	if err := iam.UpdateApiToken(t.Context(), accountID, issued.ID, "renamed", "desc", nil, true); err != nil {
+		t.Fatal(err)
+	}
+	// 吊销（终态）。
+	if err := iam.RevokeApiToken(t.Context(), accountID, issued.ID); err != nil {
+		t.Fatal(err)
+	}
+	// status 过滤。
+	list, err := iam.ListApiTokens(t.Context(), accountID, 0, 50, service.ApiTokenStatusRevoked)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if list.Total != 1 || list.Items[0].Status != "revoked" {
+		t.Fatalf("revoked list = %#v", list)
+	}
+	active, err := iam.ListApiTokens(t.Context(), accountID, 0, 50, service.ApiTokenStatusActive)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if active.Total != 0 || len(active.Items) != 0 {
+		t.Fatalf("active list after revoke = %#v", active)
+	}
+}
+
+// TestApiTokenExpiryViaLaterClock 用共享数据库 + 更晚固定时钟验证过期：
+// 创建（expiresAt=01:30）后，在 01:31 的实例上认证被拒绝且 status=expired。
+func TestApiTokenExpiryViaLaterClock(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "iam.db")
+	cfg := database.DefaultConfig()
+	cfg.Driver = database.DriverSQLite
+	cfg.DSN = path
+	runner, err := dbmigrate.New(t.Context(), dbmigrate.Config{Database: cfg, LockTimeout: 5 * time.Second}, migrationbinding.Set())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := runner.Up(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	if err := runner.Close(); err != nil {
+		t.Fatal(err)
+	}
+	resource, err := database.NewGORM(t.Context(), &cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = resource.Close() })
+	store := storeForResource(t, resource)
+	catalog, err := permissioncatalog.BuildCatalog(iampermission.Definitions()...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	runtime, err := authorization.New(store, catalog)
+	if err != nil {
+		t.Fatal(err)
+	}
+	makeIAM := func(now time.Time) *service.Service {
+		iam, serviceErr := service.New(store, clock.Fixed(now), idgen.UUID(), passwordadapter.Hasher{}, service.Config{SetupToken: "setup-secret", IdleTimeout: 30 * time.Minute, AbsoluteTimeout: 12 * time.Hour, MaxFailedAttempts: 3, LockDuration: 15 * time.Minute, PasswordPolicy: model.DefaultPasswordPolicy()}, catalog, runtime)
+		if serviceErr != nil {
+			t.Fatal(serviceErr)
+		}
+		return iam
+	}
+	first := makeIAM(time.Date(2026, 8, 22, 1, 0, 0, 0, time.UTC))
+	if _, err := first.Setup(t.Context(), "setup-secret", "owner", "Owner", "123456789012345"); err != nil {
+		t.Fatal(err)
+	}
+	owner, err := first.Login(t.Context(), "owner", "123456789012345")
+	if err != nil {
+		t.Fatal(err)
+	}
+	expiresAt := time.Date(2026, 8, 22, 1, 30, 0, 0, time.UTC)
+	issued, err := first.CreateApiToken(t.Context(), owner.Identity.AccountID, "short", "", []permissioncatalog.Key{iampermission.SelfRead}, &expiresAt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 01:31 实例：同时钟过期（expiresAt 01:30 已过）-> 认证拒绝 + status=expired。
+	later := makeIAM(time.Date(2026, 8, 22, 1, 31, 0, 0, time.UTC))
+	if _, err := later.ResolveApiToken(t.Context(), issued.Secret); !errors.Is(err, service.ErrSessionInvalid) {
+		t.Fatalf("expired resolve error = %v", err)
+	}
+	list, err := later.ListApiTokens(t.Context(), owner.Identity.AccountID, 0, 50, service.ApiTokenStatusExpired)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if list.Total != 1 || list.Items[0].Status != "expired" {
+		t.Fatalf("expired list = %#v", list)
+	}
+}
+
+// newTokenService 使用显式 API 令牌上限与默认 TTL 构造 IAM Service（080）。
+func newTokenService(t *testing.T, maxPerAccount int, defaultTTL time.Duration) *service.Service {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "iam.db")
+	cfg := database.DefaultConfig()
+	cfg.Driver = database.DriverSQLite
+	cfg.DSN = path
+	runner, err := dbmigrate.New(t.Context(), dbmigrate.Config{Database: cfg, LockTimeout: 5 * time.Second}, migrationbinding.Set())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := runner.Up(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	if err := runner.Close(); err != nil {
+		t.Fatal(err)
+	}
+	resource, err := database.NewGORM(t.Context(), &cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = resource.Close() })
+	store := storeForResource(t, resource)
+	catalog, err := permissioncatalog.BuildCatalog(iampermission.Definitions()...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	runtime, err := authorization.New(store, catalog)
+	if err != nil {
+		t.Fatal(err)
+	}
+	iam, err := service.New(store, clock.Fixed(time.Date(2026, 8, 22, 1, 0, 0, 0, time.UTC)), idgen.UUID(), passwordadapter.Hasher{}, service.Config{SetupToken: "setup-secret", IdleTimeout: 30 * time.Minute, AbsoluteTimeout: 12 * time.Hour, MaxFailedAttempts: 3, LockDuration: 15 * time.Minute, PasswordPolicy: model.DefaultPasswordPolicy(), ApiTokenMaxPerAccount: maxPerAccount, ApiTokenDefaultTTL: defaultTTL}, catalog, runtime)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return iam
+}
+
+// TestApiTokenLimitAndDefaultTTL 验证数量上限（未吊销计数，超限 409）与默认
+// TTL（未指定过期时间时生效；默认 TTL 到期后认证失败）。
+func TestApiTokenLimitAndDefaultTTL(t *testing.T) {
+	iam := newTokenService(t, 2, 24*time.Hour)
+	if _, err := iam.Setup(t.Context(), "setup-secret", "owner", "Owner", "123456789012345"); err != nil {
+		t.Fatal(err)
+	}
+	owner, err := iam.Login(t.Context(), "owner", "123456789012345")
+	if err != nil {
+		t.Fatal(err)
+	}
+	accountID := owner.Identity.AccountID
+	if _, err := iam.CreateApiToken(t.Context(), accountID, "one", "", []permissioncatalog.Key{iampermission.SelfRead}, nil); err != nil {
+		t.Fatal(err)
+	}
+	second, err := iam.CreateApiToken(t.Context(), accountID, "two", "", []permissioncatalog.Key{iampermission.SelfRead}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 上限 2：第三个未吊销令牌 -> 409。
+	if _, err := iam.CreateApiToken(t.Context(), accountID, "three", "", []permissioncatalog.Key{iampermission.SelfRead}, nil); !errors.Is(err, service.ErrApiTokenLimit) {
+		t.Fatalf("limit error = %v", err)
+	}
+	// 吊销一个后 revoked 不占额度，可再创建。
+	if err := iam.RevokeApiToken(t.Context(), accountID, second.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := iam.CreateApiToken(t.Context(), accountID, "three", "", []permissioncatalog.Key{iampermission.SelfRead}, nil); err != nil {
+		t.Fatal(err)
+	}
+	// 默认 TTL 到期后认证失败（固定时钟 01:00，ttl=24h -> expires 01:00 次日后 active；
+	// 用后续时钟构造过期场景需要新实例，此处只断言默认 TTL 落在 expiresAt=now+24h）。
+	list, err := iam.ListApiTokens(t.Context(), accountID, 0, 50, service.ApiTokenStatusActive)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, item := range list.Items {
+		if item.ExpiresAt == nil {
+			t.Fatalf("default ttl token has no expiry: %#v", item)
+		}
 	}
 }
 

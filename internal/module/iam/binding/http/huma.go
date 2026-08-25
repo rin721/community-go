@@ -508,13 +508,14 @@ func RegisterHuma(api huma.API, handler *Handler) {
 		return jsonEnvelope(listResponse[roleResponse]{Items: items, Offset: result.Offset, Limit: result.Limit, Total: result.Total}), nil
 	})
 
-	// API-Token（078，R078-001）：机器访问凭据；secret 明文只在创建/轮换响应一次。
-	huma.Register(api, protected(opApiTokens, http.MethodGet, "/api/v1/iam/api-tokens", string(iampermission.ApiTokenRead), "list"), func(ctx context.Context, in *pageInput) (*jsonOutput[listResponse[apiTokenResponse]], error) {
+	// API-Token（078/080，R078-001/R080-001）：机器访问凭据；secret 明文只在
+	// 创建/轮换响应一次；列表支持 status 过滤；PATCH 元数据与 disable/enable。
+	huma.Register(api, protected(opApiTokens, http.MethodGet, "/api/v1/iam/api-tokens", string(iampermission.ApiTokenRead), "list"), func(ctx context.Context, in *apiTokenListInput) (*jsonOutput[listResponse[apiTokenResponse]], error) {
 		_, current, ok := service.SessionFromContext(ctx)
 		if !ok {
 			return nil, httpx.NewProtocolProblemError(ctx, statusError(http.StatusUnauthorized, "unauthenticated", nil))
 		}
-		result, err := handler.service.ListApiTokens(ctx, current.Identity.AccountID, in.Offset, in.Limit)
+		result, err := handler.service.ListApiTokens(ctx, current.Identity.AccountID, in.Offset, in.Limit, service.ApiTokenStatus(in.Status))
 		if err != nil {
 			return nil, problem(ctx, err)
 		}
@@ -531,11 +532,23 @@ func RegisterHuma(api huma.API, handler *Handler) {
 		if !ok {
 			return nil, httpx.NewProtocolProblemError(ctx, statusError(http.StatusUnauthorized, "unauthenticated", nil))
 		}
-		issued, err := handler.service.CreateApiToken(ctx, current.Identity.AccountID, in.Body.Name, in.Body.Scopes, in.Body.ExpiresAt)
+		issued, err := handler.service.CreateApiToken(ctx, current.Identity.AccountID, in.Body.Name, in.Body.Description, in.Body.Scopes, in.Body.ExpiresAt)
 		if err != nil {
 			return nil, problem(ctx, err)
 		}
 		return jsonEnvelope(apiTokenIssuedOutput(issued)), nil
+	})
+	updateApiToken := protected(opApiTokenUpdate, http.MethodPatch, "/api/v1/iam/api-tokens/{id}", string(iampermission.ApiTokenWrite), "update")
+	updateApiToken.Middlewares = huma.Middlewares{handler.requireMutation}
+	huma.Register(api, updateApiToken, func(ctx context.Context, in *apiTokenUpdateInput) (*emptyOutput, error) {
+		_, current, ok := service.SessionFromContext(ctx)
+		if !ok {
+			return nil, httpx.NewProtocolProblemError(ctx, statusError(http.StatusUnauthorized, "unauthenticated", nil))
+		}
+		if err := handler.service.UpdateApiToken(ctx, current.Identity.AccountID, in.ID, in.Body.Name, in.Body.Description, in.Body.ExpiresAt, in.Body.NeverExpires); err != nil {
+			return nil, problem(ctx, err)
+		}
+		return &emptyOutput{}, nil
 	})
 	rotateApiToken := protected(opApiTokenRotate, http.MethodPost, "/api/v1/iam/api-tokens/{id}/rotate", string(iampermission.ApiTokenWrite), "rotate")
 	rotateApiToken.Middlewares = huma.Middlewares{handler.requireMutation}
@@ -549,6 +562,30 @@ func RegisterHuma(api huma.API, handler *Handler) {
 			return nil, problem(ctx, err)
 		}
 		return jsonEnvelope(apiTokenIssuedOutput(issued)), nil
+	})
+	disableApiToken := protected(opApiTokenDisable, http.MethodPost, "/api/v1/iam/api-tokens/{id}/disable", string(iampermission.ApiTokenWrite), "disable")
+	disableApiToken.Middlewares = huma.Middlewares{handler.requireMutation}
+	huma.Register(api, disableApiToken, func(ctx context.Context, in *apiTokenPathInput) (*emptyOutput, error) {
+		_, current, ok := service.SessionFromContext(ctx)
+		if !ok {
+			return nil, httpx.NewProtocolProblemError(ctx, statusError(http.StatusUnauthorized, "unauthenticated", nil))
+		}
+		if err := handler.service.DisableApiToken(ctx, current.Identity.AccountID, in.ID); err != nil {
+			return nil, problem(ctx, err)
+		}
+		return &emptyOutput{}, nil
+	})
+	enableApiToken := protected(opApiTokenEnable, http.MethodPost, "/api/v1/iam/api-tokens/{id}/enable", string(iampermission.ApiTokenWrite), "enable")
+	enableApiToken.Middlewares = huma.Middlewares{handler.requireMutation}
+	huma.Register(api, enableApiToken, func(ctx context.Context, in *apiTokenPathInput) (*emptyOutput, error) {
+		_, current, ok := service.SessionFromContext(ctx)
+		if !ok {
+			return nil, httpx.NewProtocolProblemError(ctx, statusError(http.StatusUnauthorized, "unauthenticated", nil))
+		}
+		if err := handler.service.EnableApiToken(ctx, current.Identity.AccountID, in.ID); err != nil {
+			return nil, problem(ctx, err)
+		}
+		return &emptyOutput{}, nil
 	})
 	revokeApiToken := protected(opApiTokenRevoke, http.MethodPost, "/api/v1/iam/api-tokens/{id}/revoke", string(iampermission.ApiTokenWrite), "revoke")
 	revokeApiToken.Middlewares = huma.Middlewares{handler.requireMutation}

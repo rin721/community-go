@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import { Button, DataTable, EmptyState, Field, InlineAlert, PageHeader, PageSection, StatusPill } from "@webui/sdk/ui";
+import { Button, Field, InlineAlert, PageHeader, PageSection, StatusPill } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
-import { beginMFAEnroll, changePassword, confirmMFAEnroll, createApiToken, disableMFA, listApiTokens, loadSession, mfaStatus, revokeApiToken, rotateApiToken, type ApiTokenView } from "./api";
+import { beginMFAEnroll, changePassword, confirmMFAEnroll, disableMFA, listApiTokens, loadSession, mfaStatus } from "./api";
 import styles from "./settings.module.css";
 
 // SecurityPage provides password/authentication settings: the password change
-// form (072) plus MFA/TOTP enrollment and API-Token management (078).
+// form (072), MFA/TOTP enrollment, and an API-Token entry summary (080) whose
+// full management lives on the dedicated /admin/api-tokens page.
 export default function SecurityPage() {
   const { t } = useWebUITranslation("webui.settings");
   const [mustChange, setMustChange] = useState(false);
@@ -22,21 +23,19 @@ export default function SecurityPage() {
   const [mfaPending, setMfaPending] = useState(false);
 
 
-  const [tokens, setTokens] = useState<ApiTokenView[]>([]);
-  const [tokenName, setTokenName] = useState("");
-  const [tokenScopes, setTokenScopes] = useState("");
-  const [tokenSecret, setTokenSecret] = useState("");
-  const [tokenError, setTokenError] = useState("");
 
-  const refreshTokens = useCallback(() => {
-    void listApiTokens().then((value) => setTokens(value.items)).catch(() => undefined);
+  const [tokenCount, setTokenCount] = useState(0);
+  const [tokenLastUsed, setTokenLastUsed] = useState("");
+
+  const refreshTokenSummary = useCallback(() => {
+    void listApiTokens().then((value) => { setTokenCount(value.total); setTokenLastUsed(value.items[0]?.lastUsedAt ?? ""); }).catch(() => undefined);
   }, []);
 
   useEffect(() => {
     void loadSession().then((value) => setMustChange(value.identity.mustChangePassword)).catch(() => undefined);
     void mfaStatus().then((value) => setMfaRegistered(value.registered)).catch(() => setMfaRegistered(false));
-    void refreshTokens();
-  }, [refreshTokens]);
+    void refreshTokenSummary();
+  }, [refreshTokenSummary]);
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -61,9 +60,8 @@ export default function SecurityPage() {
   };
 
   const createToken = () => {
-    setTokenError("");
-    const scopes = tokenScopes.split(",").map((value) => value.trim()).filter(Boolean);
-    createApiToken(tokenName.trim(), scopes).then((issued) => { setTokenSecret(issued.secret); setTokenName(""); setTokenScopes(""); refreshTokens(); }).catch(() => setTokenError(t("webui.settings.error")));
+
+    window.location.href = "/admin/api-tokens";
   };
 
   return <div className={`${styles.settingsModule} module-page`}>
@@ -105,29 +103,9 @@ export default function SecurityPage() {
       </PageSection>
 
       <PageSection kicker={t("webui.settings.security.tokensKicker")} title={t("webui.settings.security.tokensTitle")}>
-        {tokenSecret && <InlineAlert tone="success" title={t("webui.settings.security.tokenSecret")} detail={tokenSecret} />}
-        {tokenError && <p className="page-meta" role="status">{tokenError}</p>}
-        <div className="form-panel">
-          <Field label={t("webui.settings.security.tokenName")} required value={tokenName} onChange={(event) => setTokenName(event.target.value)} />
-          <Field label={t("webui.settings.security.tokenScopes")} value={tokenScopes} onChange={(event) => setTokenScopes(event.target.value)} />
-          <div className="toolbar-actions"><Button onClick={createToken} disabled={!tokenName.trim()}>{t("webui.settings.security.tokensCreate")}</Button></div>
-        </div>
-        <DataTable
-          ariaLabel={t("webui.settings.security.tokensTitle")}
-          emptyState={<EmptyState title={t("webui.settings.security.tokenEmpty")} />}
-          columns={[
-            { id: "name", header: t("webui.settings.security.tokenName"), cell: (row) => row.name },
-            { id: "scopes", header: t("webui.settings.security.tokenScopes"), cell: (row) => row.scopes.join(", ") || "—" },
-            { id: "actions", header: "", cell: (row) => (
-              <div className="toolbar-actions">
-                <Button variant="secondary" onClick={() => { void rotateApiToken(row.id).then((issued) => setTokenSecret(issued.secret)).then(refreshTokens); }}>{t("webui.settings.security.tokenRotate")}</Button>
-                <Button variant="danger" onClick={() => { void revokeApiToken(row.id).then(refreshTokens); }}>{t("webui.settings.security.tokenRevoke")}</Button>
-              </div>
-            ) },
-          ]}
-          rows={tokens}
-          getRowKey={(row) => row.id}
-        />
+        <p className="page-meta">{t("webui.settings.security.tokenSummary")}: {tokenCount}</p>
+        {tokenLastUsed && <p className="page-meta">{t("webui.settings.security.tokenLastUsed")}: {new Date(tokenLastUsed).toLocaleString()}</p>}
+        <div className="toolbar-actions"><Button onClick={createToken}>{t("webui.settings.security.tokensManage")}</Button></div>
       </PageSection>
     </div>
   </div>;

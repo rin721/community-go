@@ -246,6 +246,10 @@ iam:
     # 单账号最大并发 active 会话；0=不限。启用后新登录在达到上限时主动吊销
     # 最旧 active 会话（会话总数保持上限）。
     maxSessionsPerAccount: 0
+    # API 令牌（080）：单账号最大未吊销令牌数（0=不限，默认 5）与未指定过期
+    # 时间时的默认有效期（0=永不过期）。
+    apiTokenMaxPerAccount: 5
+    apiTokenDefaultTTL: 0s
 
 http:
   # HTTP listener 在进程 ready 前同步绑定；端口占用会使启动失败。

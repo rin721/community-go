@@ -6,7 +6,7 @@
 
 新增模块必须先按 [应用模块开发指南](../../docs/development/application-module-development.md) 完成真实用例、现有能力、新 Capability、资源 owner、生命周期和当前契约适配性评估，再进入目录与接口设计。
 
-当前已有 [IAM](iam/README.md)、[Organization](organization/README.md)、[Navigation](navigation/README.md)、[Auth](auth/README.md)、[Ops](ops/README.md)、[Migration](migration/README.md)、[Settings](settings/README.md)、[OpenAPI](openapi/README.md) 与 [Todo](todo/README.md) 模块。IAM 拥有本地身份、凭据、Session、Core RBAC、口令/会话治理（077）、机器访问令牌与 MFA/TOTP（078）及安全告警事件接驳（079），Organization 拥有部门、岗位与账号组织关系，Navigation 拥有已注册菜单的运行策略，Auth 拥有通用认证/授权/审计执行，Ops 拥有 management、探针和诊断用例，Migration 编排显式多 set status/up，Settings 与 OpenAPI 是 WebUI-only 模块（OpenAPI 为「API 文档 + 在线调试」的工作台式模块：单路由 /openapi，左资源树 + 顶部多标签 + 请求/响应上下分割，对齐 Apifox 核心骨架、系统组件呈现，075/009；访问门槛绑定 iam.session.read），Todo 拥有业务实体、对象授权 port 与 SQL migration set；composition 只连接完成品：
+当前已有 [IAM](iam/README.md)、[Organization](organization/README.md)、[Navigation](navigation/README.md)、[Auth](auth/README.md)、[Ops](ops/README.md)、[Migration](migration/README.md)、[Settings](settings/README.md)、[OpenAPI](openapi/README.md) 与 [Todo](todo/README.md) 模块。IAM 拥有本地身份、凭据、Session、Core RBAC、口令/会话治理（077）、机器访问令牌（078/080：权限知情创建 + 状态机 + IAM 独立管理页）与 MFA/TOTP（078）及安全告警事件接驳（079），Organization 拥有部门、岗位与账号组织关系，Navigation 拥有已注册菜单的运行策略，Auth 拥有通用认证/授权/审计执行，Ops 拥有 management、探针和诊断用例，Migration 编排显式多 set status/up，Settings 与 OpenAPI 是 WebUI-only 模块（OpenAPI 为「API 文档 + 在线调试」的工作台式模块：单路由 /openapi，左资源树 + 顶部多标签 + 请求/响应上下分割，对齐 Apifox 核心骨架、系统组件呈现，075/009；访问门槛绑定 iam.session.read），Todo 拥有业务实体、对象授权 port 与 SQL migration set；composition 只连接完成品：
 
 ```text
 model <- service <- repo/binding <- module.go <- internal/composition

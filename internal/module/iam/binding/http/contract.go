@@ -44,7 +44,10 @@ const (
 	opSessionRevoke       = "iam.sessions.revoke"
 	opApiTokens           = "iam.api-tokens.list"
 	opApiTokenCreate      = "iam.api-tokens.create"
+	opApiTokenUpdate      = "iam.api-tokens.update"
 	opApiTokenRotate      = "iam.api-tokens.rotate"
+	opApiTokenDisable     = "iam.api-tokens.disable"
+	opApiTokenEnable      = "iam.api-tokens.enable"
 	opApiTokenRevoke      = "iam.api-tokens.revoke"
 	opMFABegin            = "iam.self.mfa.begin"
 	opMFAStatus           = "iam.self.mfa.status"
@@ -172,33 +175,56 @@ type sessionInfoResponse struct {
 	RevokedAt         *time.Time `json:"revokedAt,omitempty"`
 }
 
-// API-Token（078）：管理视图不携带明文；Issued 响应只在创建/轮换时含 secret。
+// API-Token（078/080）：管理视图不携带明文；Issued 响应只在创建/轮换时含 secret。
 type apiTokenResponse struct {
-	ID        string                  `json:"id"`
-	Name      string                  `json:"name"`
-	Scopes    []permissioncatalog.Key `json:"scopes"`
-	ExpiresAt *time.Time              `json:"expiresAt,omitempty"`
-	RevokedAt *time.Time              `json:"revokedAt,omitempty"`
-	CreatedAt time.Time               `json:"createdAt"`
-	LastUsed  *time.Time              `json:"lastUsedAt,omitempty"`
+	ID          string                  `json:"id"`
+	Name        string                  `json:"name"`
+	Description string                  `json:"description,omitempty"`
+	Scopes      []permissioncatalog.Key `json:"scopes"`
+	ExpiresAt   *time.Time              `json:"expiresAt,omitempty"`
+	RevokedAt   *time.Time              `json:"revokedAt,omitempty"`
+	DisabledAt  *time.Time              `json:"disabledAt,omitempty"`
+	CreatedAt   time.Time               `json:"createdAt"`
+	LastUsed    *time.Time              `json:"lastUsedAt,omitempty"`
+	Status      string                  `json:"status"`
 }
 type apiTokenIssuedResponse struct {
-	ID        string                  `json:"id"`
-	Name      string                  `json:"name"`
-	Scopes    []permissioncatalog.Key `json:"scopes"`
-	ExpiresAt *time.Time              `json:"expiresAt,omitempty"`
-	RevokedAt *time.Time              `json:"revokedAt,omitempty"`
-	CreatedAt time.Time               `json:"createdAt"`
-	LastUsed  *time.Time              `json:"lastUsedAt,omitempty"`
-	Secret    string                  `json:"secret"`
+	ID          string                  `json:"id"`
+	Name        string                  `json:"name"`
+	Description string                  `json:"description,omitempty"`
+	Scopes      []permissioncatalog.Key `json:"scopes"`
+	ExpiresAt   *time.Time              `json:"expiresAt,omitempty"`
+	RevokedAt   *time.Time              `json:"revokedAt,omitempty"`
+	DisabledAt  *time.Time              `json:"disabledAt,omitempty"`
+	CreatedAt   time.Time               `json:"createdAt"`
+	LastUsed    *time.Time              `json:"lastUsedAt,omitempty"`
+	Status      string                  `json:"status"`
+	Secret      string                  `json:"secret"`
+}
+type apiTokenListInput struct {
+	Offset int    `query:"offset" minimum:"0" default:"0"`
+	Limit  int    `query:"limit" minimum:"1" maximum:"100" default:"20"`
+	Status string `query:"status" enum:"active,disabled,expired,revoked,all"`
 }
 type apiTokenCreateInput struct {
 	Origin    string `header:"Origin" required:"true"`
 	CSRFToken string `header:"X-CSRF-Token" required:"true"`
 	Body      struct {
-		Name      string                  `json:"name" minLength:"1" maxLength:"128"`
-		Scopes    []permissioncatalog.Key `json:"scopes"`
-		ExpiresAt *time.Time              `json:"expiresAt,omitempty"`
+		Name        string                  `json:"name" minLength:"1" maxLength:"128"`
+		Description string                  `json:"description" maxLength:"1024"`
+		Scopes      []permissioncatalog.Key `json:"scopes"`
+		ExpiresAt   *time.Time              `json:"expiresAt,omitempty"`
+	}
+}
+type apiTokenUpdateInput struct {
+	ID        string `path:"id"`
+	Origin    string `header:"Origin" required:"true"`
+	CSRFToken string `header:"X-CSRF-Token" required:"true"`
+	Body      struct {
+		Name         string     `json:"name" minLength:"1" maxLength:"128"`
+		Description  string     `json:"description" maxLength:"1024"`
+		ExpiresAt    *time.Time `json:"expiresAt,omitempty"`
+		NeverExpires bool       `json:"neverExpires,omitempty"`
 	}
 }
 type apiTokenPathInput struct {
@@ -266,10 +292,10 @@ func assignmentOutput(id string, v service.AssignmentResult) assignmentResponse 
 	return assignmentResponse{EntityID: id, EntityVersion: v.EntityVersion, AuthorizationRevision: v.AuthorizationRevision, Added: v.Added, Removed: v.Removed}
 }
 func apiTokenViewOutput(v service.ApiTokenView) apiTokenResponse {
-	return apiTokenResponse{ID: v.ID, Name: v.Name, Scopes: v.Scopes, ExpiresAt: v.ExpiresAt, RevokedAt: v.RevokedAt, CreatedAt: v.CreatedAt, LastUsed: v.LastUsed}
+	return apiTokenResponse{ID: v.ID, Name: v.Name, Description: v.Description, Scopes: v.Scopes, ExpiresAt: v.ExpiresAt, RevokedAt: v.RevokedAt, DisabledAt: v.DisabledAt, CreatedAt: v.CreatedAt, LastUsed: v.LastUsed, Status: v.Status}
 }
 func apiTokenIssuedOutput(v service.ApiTokenIssued) apiTokenIssuedResponse {
-	return apiTokenIssuedResponse{ID: v.ID, Name: v.Name, Scopes: v.Scopes, ExpiresAt: v.ExpiresAt, RevokedAt: v.RevokedAt, CreatedAt: v.CreatedAt, LastUsed: v.LastUsed, Secret: v.Secret}
+	return apiTokenIssuedResponse{ID: v.ID, Name: v.Name, Description: v.Description, Scopes: v.Scopes, ExpiresAt: v.ExpiresAt, RevokedAt: v.RevokedAt, DisabledAt: v.DisabledAt, CreatedAt: v.CreatedAt, LastUsed: v.LastUsed, Status: v.Status, Secret: v.Secret}
 }
 
 func serviceError(err error) error {
@@ -285,7 +311,9 @@ func serviceError(err error) error {
 		return statusError(http.StatusTooManyRequests, "account_locked", err)
 	case errors.Is(err, service.ErrAccountDisabled):
 		return statusError(http.StatusForbidden, "account_disabled", err)
-	case errors.Is(err, service.ErrSetupClosed), errors.Is(err, model.ErrOwnerInvariant), errors.Is(err, service.ErrImmutableOwner), errors.Is(err, service.ErrUnknownPermission), errors.Is(err, service.ErrVersionConflict), errors.Is(err, service.ErrPasswordReused), errors.Is(err, service.ErrMFANotBound), repo.IsDuplicate(err), repo.IsConflict(err):
+	case errors.Is(err, service.ErrApiTokenScopeNotOwned):
+		return statusError(http.StatusForbidden, "api_token_scope_not_owned", err)
+	case errors.Is(err, service.ErrSetupClosed), errors.Is(err, model.ErrOwnerInvariant), errors.Is(err, service.ErrImmutableOwner), errors.Is(err, service.ErrUnknownPermission), errors.Is(err, service.ErrVersionConflict), errors.Is(err, service.ErrPasswordReused), errors.Is(err, service.ErrMFANotBound), errors.Is(err, service.ErrApiTokenLimit), repo.IsDuplicate(err), repo.IsConflict(err):
 		return statusError(http.StatusConflict, "conflict", err)
 	case repo.IsNotFound(err):
 		return statusError(http.StatusNotFound, "not_found", err)

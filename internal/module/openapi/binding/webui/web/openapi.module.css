@@ -1,330 +1,117 @@
-/* OpenAPI 模块专属样式（R075-005）：Apifox 设计语言。
-   UI 控件基座为 HeroUI 组件库；本文件只承载 Apifox 观感的布局、密度、
-   方法/状态色与选中态（灰阶面板、细边框、紧凑行高、主色蓝）。 */
+/* OpenAPI 模块专属样式（R075-006）：呈现层全部使用平台组件与平台样式语义
+   （styles.css 的 Shell/表单/表格/卡片 token），本文件只保留模块业务 selector，
+   与 iam/organization 等模块 css 同类，不引入第三方主题或自定义设计系统。 */
 .openapiModule {
-  --afx-bg: #ffffff;
-  --afx-panel: #f6f7f9;
-  --afx-panel-2: #eef0f3;
-  --afx-border: #e3e6eb;
-  --afx-text: #1f2329;
-  --afx-text-2: #5b6472;
-  --afx-text-3: #9aa1ad;
-  --afx-primary: #3370ff;
-  --afx-primary-soft: #eaf1ff;
-  --afx-radius: 6px;
+  /* 业务 selector 收拢处；无平台 token 覆盖 */
 }
 
-/* ---- workspace shell ---- */
-.workspace {
-  display: grid;
-  gap: 10px;
+.pageMeta {
+  margin: 0.25rem 0 0;
+  font-size: 0.8125rem;
+  opacity: 0.75;
 }
 
-.workspaceToolbar {
+/* ---- 列表区 ---- */
+.listSearch {
+  min-width: 240px;
+}
+
+.listFilter {
+  min-width: 160px;
+}
+
+.rowActions {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 6px;
+}
+
+/* ---- 模型区 ---- */
+.modelList {
+  display: flex;
   flex-wrap: wrap;
-  min-height: 38px;
-  padding: 6px 10px;
-  border: 1px solid var(--afx-border);
-  border-radius: var(--afx-radius);
-  background: var(--afx-panel);
-}
-
-.toolbarActions {
-  display: flex;
-  align-items: center;
   gap: 8px;
 }
 
-.breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  font-size: 12px;
-}
-
-.breadcrumbItem {
-  padding: 2px 6px;
-  border: 0;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--afx-primary);
-  font-size: 12px;
+.modelItem {
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
   cursor: pointer;
 }
 
-.breadcrumbItem:hover {
-  background: var(--afx-panel-2);
+.modelItem:hover {
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
-.breadcrumbSep {
-  color: var(--afx-text-3);
+.modelEmpty {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
 }
 
-.breadcrumbText {
-  overflow: hidden;
-  color: var(--afx-text-2);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.workspaceSplit {
-  display: grid;
-  grid-template-columns: 300px minmax(0, 1fr);
-  gap: 10px;
-  align-items: start;
-}
-
-.workspaceSplitPanel {
-  grid-template-columns: 300px minmax(0, 1fr) minmax(380px, 30vw);
-}
-
-@media (max-width: 1100px) {
-  .workspaceSplit,
-  .workspaceSplitPanel {
-    grid-template-columns: 1fr;
-  }
-  .rail {
-    max-height: 320px;
-  }
-}
-
-.rail {
-  min-width: 0;
-  border: 1px solid var(--afx-border);
-  border-radius: var(--afx-radius);
-  background: var(--afx-panel);
-}
-
-.workspaceMain {
-  min-width: 0;
-  border: 1px solid var(--afx-border);
-  border-radius: var(--afx-radius);
-  background: var(--afx-bg);
-  overflow: hidden;
-}
-
-.tabContent {
-  padding: 12px 14px;
-}
-
-/* ---- resource tree ---- */
-.treePanel {
-  display: grid;
+/* ---- Drawer 详情 ---- */
+.drawerTitle {
+  display: flex;
+  align-items: center;
   gap: 8px;
-  padding: 8px 6px;
-}
-
-.treeSearch {
-  min-height: 30px;
-}
-
-.treeSearch input {
-  min-height: 30px;
-}
-
-.treeSections {
-  display: grid;
-  gap: 4px;
-}
-
-.treeGroupHeader,
-.treeTagHeader {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  padding: 4px 8px;
-  border: 0;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--afx-text-2);
-  font-size: 12px;
-  font-weight: 600;
-  text-align: left;
-  cursor: pointer;
-}
-
-.treeTagHeader {
-  font-weight: 500;
-  padding-left: 18px;
-}
-
-.treeGroupHeader:hover,
-.treeTagHeader:hover {
-  background: var(--afx-panel-2);
-}
-
-.treeItem {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  width: calc(100% - 22px);
-  margin-left: 22px;
-  padding: 3px 8px;
-  border: 0;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--afx-text);
-  text-align: left;
-  cursor: pointer;
-}
-
-.treeItem:hover {
-  background: var(--afx-panel-2);
-}
-
-.treeItem[aria-current="true"] {
-  background: var(--afx-primary-soft);
-  color: var(--afx-primary);
-}
-
-.treeItemLabel {
-  overflow: hidden;
-  font-size: 12px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.treeEmpty {
-  margin: 4px 8px;
-  font-size: 12px;
-  color: var(--afx-text-3);
-}
-
-/* ---- workspace tabs ---- */
-.tabBar {
-  display: flex;
-  align-items: flex-end;
-  gap: 2px;
-  overflow-x: auto;
-  border-bottom: 1px solid var(--afx-border);
-  background: var(--afx-panel);
-}
-
-.tab {
-  display: flex;
-  align-items: center;
-  gap: 4px;
   min-width: 0;
-  border-bottom: 2px solid transparent;
 }
 
-.tabActive {
-  border-bottom-color: var(--afx-primary);
-  background: var(--afx-bg);
-}
-
-.tabButton {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  padding: 7px 4px 6px 10px;
-  border: 0;
-  background: transparent;
-  color: var(--afx-text-2);
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.tabActive .tabButton {
-  color: var(--afx-text);
-}
-
-.tabLabel {
+.drawerTitleId {
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 180px;
-}
-
-.tabClose {
-  padding: 2px 8px 8px 0;
-  border: 0;
-  background: transparent;
-  color: var(--afx-text-3);
   font-size: 14px;
-  line-height: 1;
-  cursor: pointer;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.tabClose:hover {
-  color: var(--afx-text);
-}
-
-/* ---- operation pane ---- */
-.opPane {
-  display: grid;
-  gap: 12px;
-}
-
-.requestBar {
+.drawerFooter {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  padding: 8px 10px;
-  border: 1px solid var(--afx-border);
-  border-radius: var(--afx-radius);
-  background: var(--afx-panel);
-}
-
-.requestPath {
-  font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  color: var(--afx-text-2);
-}
-
-.requestSpacer {
-  flex: 1;
-}
-
-.runButton {
-  min-height: 30px;
-}
-
-.mockChip {
-  font-size: 11px;
+  justify-content: flex-end;
+  gap: 8px;
+  width: 100%;
 }
 
 .modeToggle {
   display: inline-flex;
   gap: 2px;
-  align-self: flex-start;
+  margin-bottom: 12px;
 }
 
-.opDocs {
+.docsSection,
+.debugSection {
   display: grid;
-  gap: 14px;
+  gap: 16px;
 }
 
-.opSummary {
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.6;
-  color: var(--afx-text-2);
-}
-
-.opSection {
+.formSection {
   display: grid;
   gap: 8px;
 }
 
-.opSectionHead {
+.formSectionHead {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
 }
 
-.opSectionTitle {
+.formSectionTitle {
   margin: 0;
   font-size: 12px;
   font-weight: 600;
-  color: var(--afx-text-2);
+  color: var(--text-secondary);
+}
+
+.formHint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-secondary);
 }
 
 .bodyTypeSelect {
@@ -336,21 +123,18 @@
   max-height: 320px;
   overflow: auto;
   padding: 10px 12px;
-  border-radius: var(--afx-radius);
-  background: var(--afx-panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-muted);
   font: 11px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   white-space: pre-wrap;
   word-break: break-word;
 }
 
-.opDebug {
-  display: grid;
-  gap: 16px;
-}
-
+/* ---- 调试编辑区 ---- */
 .editorRows {
   display: grid;
-  gap: 6px;
+  gap: 8px;
 }
 
 .editorRow {
@@ -368,17 +152,8 @@
   padding: 4px 2px;
 }
 
-.editorHint {
-  font-size: 11px;
-  color: var(--afx-text-3);
-}
-
 .editorCellInput {
   min-width: 0;
-}
-
-.editorCellInput input {
-  min-height: 30px;
 }
 
 .bodyEditor {
@@ -386,7 +161,7 @@
 }
 
 .fileInput {
-  max-width: 260px;
+  max-width: 280px;
   font-size: 12px;
 }
 
@@ -394,30 +169,22 @@
   max-width: 320px;
 }
 
-.sessionNote {
-  margin: 0;
-  font-size: 12px;
-  color: var(--afx-text-2);
-}
-
-/* ---- response panel ---- */
-.responsePanel {
+/* ---- 响应卡片 ---- */
+.responseCard {
   display: grid;
-  align-content: start;
   gap: 10px;
-  min-height: 200px;
-  border: 1px solid var(--afx-border);
-  border-radius: var(--afx-radius);
-  background: var(--afx-panel);
-  padding: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-muted);
 }
 
 .responseIdle {
   margin: 0;
+  padding: 16px 8px;
   font-size: 12px;
-  color: var(--afx-text-3);
+  color: var(--text-muted);
   text-align: center;
-  padding: 24px 8px;
 }
 
 .responsePending {
@@ -425,12 +192,12 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 24px 8px;
+  padding: 16px 8px;
   font-size: 12px;
-  color: var(--afx-text-2);
+  color: var(--text-secondary);
 }
 
-.responseToolbar {
+.responseMeta {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -439,16 +206,7 @@
 
 .responseStat {
   font-size: 12px;
-  color: var(--afx-text-2);
-}
-
-.responseSpacer {
-  flex: 1;
-}
-
-.responseViewToggle {
-  display: inline-flex;
-  gap: 2px;
+  color: var(--text-secondary);
 }
 
 .statusOk {
@@ -466,19 +224,15 @@
   color: #fff;
 }
 
-.responseBodyWrap {
-  min-width: 0;
-}
-
 .responseBody {
   margin: 0;
-  max-height: 480px;
+  max-height: 360px;
   overflow: auto;
   padding: 10px 12px;
-  border-radius: var(--afx-radius);
-  background: var(--afx-bg);
-  border: 1px solid var(--afx-border);
-  color: var(--afx-text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
   font: 11px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   white-space: pre-wrap;
   word-break: break-word;
@@ -486,32 +240,10 @@
 
 .responseHeaders {
   font-size: 12px;
-  color: var(--afx-text-2);
+  color: var(--text-secondary);
 }
 
-/* ---- model pane ---- */
-.modelPane {
-  display: grid;
-  gap: 10px;
-}
-
-.modelPaneHeader {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.modelPaneName {
-  font: 13px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  color: var(--afx-text);
-}
-
-.modelPaneType {
-  font-size: 11px;
-  color: var(--afx-text-3);
-}
-
-/* ---- command palette ---- */
+/* ---- 全局搜索 ---- */
 .paletteDialog {
   width: min(560px, 90vw);
 }
@@ -540,29 +272,37 @@
   gap: 8px;
   padding: 6px 8px;
   border: 0;
-  border-radius: 4px;
+  border-radius: 6px;
   background: transparent;
   text-align: left;
   cursor: pointer;
 }
 
+.paletteItem:hover,
 .paletteItemActive {
-  background: var(--afx-primary-soft);
+  background: var(--primary-soft);
+}
+
+.paletteItemLabel {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .paletteEmpty {
   margin: 0;
   padding: 8px;
   font-size: 12px;
-  color: var(--afx-text-3);
+  color: var(--text-muted);
 }
 
-/* ---- shared ---- */
+/* ---- 通用 ---- */
 .methodBadge {
   display: inline-block;
-  min-width: 52px;
-  padding: 1px 8px;
-  border-radius: 4px;
+  min-width: 48px;
+  padding: 0 8px;
+  border-radius: 6px;
   text-align: center;
   font: 600 11px/1.8 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   letter-spacing: 0.04em;
@@ -570,39 +310,23 @@
   flex-shrink: 0;
 }
 
-.methodBadgeCompact {
-  display: inline-block;
-  min-width: 42px;
-  padding: 0 6px;
-  border-radius: 4px;
-  text-align: center;
-  font: 600 10px/1.7 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  color: #fff;
-  flex-shrink: 0;
-}
-
-.methodBadge[data-method="get"],
-.methodBadgeCompact[data-method="get"] {
+.methodBadge[data-method="get"] {
   background: #16a34a;
 }
 
-.methodBadge[data-method="post"],
-.methodBadgeCompact[data-method="post"] {
+.methodBadge[data-method="post"] {
   background: #2563eb;
 }
 
-.methodBadge[data-method="put"],
-.methodBadgeCompact[data-method="put"] {
+.methodBadge[data-method="put"] {
   background: #d97706;
 }
 
-.methodBadge[data-method="patch"],
-.methodBadgeCompact[data-method="patch"] {
+.methodBadge[data-method="patch"] {
   background: #7c3aed;
 }
 
-.methodBadge[data-method="delete"],
-.methodBadgeCompact[data-method="delete"] {
+.methodBadge[data-method="delete"] {
   background: #dc2626;
 }
 
@@ -616,10 +340,4 @@
   font: 11px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   white-space: pre-wrap;
   word-break: break-word;
-}
-
-.openapiMeta {
-  margin: 0.25rem 0 0;
-  font-size: 0.8125rem;
-  opacity: 0.75;
 }

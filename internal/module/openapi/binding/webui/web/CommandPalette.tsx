@@ -6,8 +6,8 @@ import { MethodBadge } from "./MethodBadge";
 import type { OperationGroup } from "./openapi-data";
 import styles from "./openapi.module.css";
 
-// CommandPalette is the Cmd/Ctrl+K global search (R075-005): a modal that
-// filters operations and models and jumps to the matching workspace tab.
+// CommandPalette is the Cmd/Ctrl+K quick navigation (R075-006): a platform
+// modal that filters operations and models and opens the matching drawer.
 export function CommandPalette({ open, onClose, groups, models, onSelectOperation, onSelectModel }: {
   open: boolean;
   onClose: () => void;
@@ -21,18 +21,14 @@ export function CommandPalette({ open, onClose, groups, models, onSelectOperatio
   const [cursor, setCursor] = useState(0);
   const needle = query.trim().toLowerCase();
 
-  const hits = useMemo(() => {
-    if (needle === "") return { operations: [], models: [] as string[] };
-    return {
-      operations: groups.flatMap((group) => group.operations).filter((row) => `${row.method} ${row.path} ${row.operationId}`.toLowerCase().includes(needle)),
-      models: models.filter((name) => name.toLowerCase().includes(needle)),
-    };
+  const entries = useMemo(() => {
+    if (needle === "") return [];
+    const operations = groups.flatMap((group) => group.operations).filter((row) => `${row.method} ${row.path} ${row.operationId}`.toLowerCase().includes(needle));
+    return [
+      ...operations.map((row) => ({ kind: "operation" as const, key: row.id, label: row.operationId, row })),
+      ...models.filter((name) => name.toLowerCase().includes(needle)).map((name) => ({ kind: "model" as const, key: name, label: name })),
+    ];
   }, [groups, needle, models]);
-
-  const entries = [
-    ...hits.operations.map((row) => ({ kind: "operation" as const, key: row.id, label: row.operationId, row })),
-    ...hits.models.map((name) => ({ kind: "model" as const, key: name, label: name })),
-  ];
 
   const choose = (index: number) => {
     const entry = entries[index];
@@ -83,7 +79,7 @@ export function CommandPalette({ open, onClose, groups, models, onSelectOperatio
                 onClick={() => choose(index)}
               >
                 {entry.kind === "operation" && entry.row && <MethodBadge method={entry.row.method} />}
-                <span className={styles.treeItemLabel}>{entry.label}</span>
+                <span className={styles.paletteItemLabel}>{entry.label}</span>
               </button>
             ))}
           </div>

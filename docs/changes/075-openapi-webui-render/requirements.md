@@ -1,41 +1,36 @@
-# 075 需求：Apifox 复刻 —— API 管理可视化平台
+# 075 需求：API 文档与在线调试（融入后台设计语言）
 
 ## 产品目标
 
-把 `openapi` 模块打造为**与 Apifox 骨架、交互、设计完全一致**（非最小可用）的 API 管理可视化平台，作为商业级 SaaS 前端的模块化形态接入 Admin WebUI：左侧资源管理树、顶部全局搜索与工具栏、中间多标签页工作台（项目/文档/调试）、右侧响应结果面板；对接后端 OpenAPI 数据实现接口目录自动生成与动态渲染、参数表单自动构建（JSON 输入框、文件上传、Query 参数）、JSON 响应高亮；还原加载动画、交互高亮、面包屑、状态码/响应时间可视化与深链路由（R075-005）。
+把 `openapi` 模块重构为完全融入 Community Go 后台设计语言的标准模块（R075-006）：深色左侧导航（宿主既有）、蓝色主调、圆角卡片、标准中后台表单/表格/弹窗/折叠面板控件（`@webui/sdk/ui` 平台组件，HeroUI 底座）。**停止模仿 Apifox 的外壳，提取其业务能力**：API 文档查看与在线调试（Try it out），以贴合后台操作习惯的流程呈现（列表 → 详情/弹层 → 表单 → 发送 → 响应）。
 
-## 范围（复刻层）
+## 范围（重构层）
 
-1. **骨架（Apifox 视觉语言还原，控件基座为 HeroUI 组件库）**：UI 组件统一使用 `@heroui/react`（用户要求；与平台 068 全量采用一致，含 `@webui/sdk/ui` 透传的 HeroUI 底座组件），模块 css 承载 Apifox 设计 token（灰阶/主色蓝/间距刻度/字号/圆角/边框/方法色/状态色/选中 hover/阴影/加载骨架）与五区布局：
-   - 左侧资源树：tag 分组接口目录（可展开折叠、选中高亮、搜索过滤）、模型分组、环境入口（树形控件 HeroUI 无内置，用 HeroUI Button/Unstyled 底座自绘轻量树，纯模块内结构组件）；
-   - 顶部工具栏：全局搜索（Cmd/Ctrl+K 弹层跳转）、环境下拉（HeroUI Select）、新建/导入入口（呈现态）、面包屑（项目→分组→接口）、账号区（宿主透传）；
-   - 中间多标签页工作台：接口文档/调试标签、模型标签，可打开/关闭/切换（HeroUI Tabs 底座 or 自绘轻量标签，激活高亮、多开）；
-   - 右侧响应面板（调试模式）：状态码彩色徽标（HeroUI Chip/Badge 底座）、响应时间 ms、响应大小、响应体多视图（JSON 高亮/原始）、响应头列表；
-   - 主区接口详情：URL 输入栏（方法下拉 Select + BaseURL + 路径 + 发送 Button（loading））+「文档/调试」双模式切换（HeroUI Tabs）。
-2. **参数表单自动构建**：由 OpenAPI schema 自动生成——Query/Path 参数动态表格（HeroUI Input 行内编辑值、增删行、启用/停用 Switch、必填标记）；Body 面板（HeroUI Textarea JSON 编辑器带样例预填与校验、form-data 文件上传（原生 file input + HeroUI Button 底座，HeroUI 无内置上传件）、x-www-form-urlencoded）；Headers/Cookie/Auth 分组（bearerAuth token 输入、webuiSession 说明）。
-3. **在线调试（Try it out）**：发送 → 请求 loading 动画（HeroUI Spinner）→ 响应面板即时渲染；错误/网络失败如实呈现（Problem JSON 优先）；执行语义复用既有（同源 fetch、credentials include、bearer 内存 token、webuiSession Cookie + CSRF 附加、mock 执行禁用并提示）。
-4. **文档查看**：接口说明（schema 摘要、参数/请求体/响应表）、返回示例（响应体高亮）；模型浏览（components.schemas 列表 + 属性表）。
-5. **体验细节**：加载骨架动画（HeroUI Skeleton）、交互高亮、快捷键（Cmd+K 搜索、Cmd+Enter 发送）、面包屑、状态码/响应时间/响应大小可视化、深链 `?op=<id>&mode=docs|debug`（刷新恢复 + 可分享）。
-6. 契约数据源与生成链不变（`webui generate` → `openapi-spec.ts` + `--check`，R075-002）。
+1. **页面形态（平台语言）**：
+   - 单路由 `/openapi`（静态路由契约不变），页面遵循现有模块模板：PageHeader + 说明 PageSection；
+   - **接口列表区**：搜索（Field）+ 标签筛选（SelectField）+ DataTable 列出全部操作（方法 Chip、路径、操作 ID、标签、行操作「文档 / 调试」），点击行/操作打开详情；
+   - **详情与调试**：平台 Drawer 弹层承载单个接口（文档分区 / 调试分区），或页内展开（标准折叠卡片）；不引入右侧响应栏/自定义树/自定义标签条；
+   - **响应展示**：调试分区内的标准响应卡片（状态 Chip、耗时、大小、JSON 高亮/原始正文、响应头折叠）；空态/加载/错误用平台 EmptyState/InlineAlert/Skeleton。
+2. **业务能力（全部保留）**：
+   - 文档查看：接口说明、参数/请求体/响应 schema 表（DataTable）、返回示例（highlight.js 高亮）；
+   - 在线调试（Try it out）：Query/Path 参数编辑（Field 行 + Switch 启停）、Body（JSON Textarea 样例 + 校验 / form-data 含文件上传 / urlencoded）、Headers 行、Auth（bearer 内存 token / session 说明）、发送（Button + pending）；
+   - 执行语义不变：同源 fetch、credentials include、webuiSession Cookie + CSRF 附加、20s 超时、错误如实呈现（Problem JSON 优先）、mock 演示构建执行禁用并提示；
+   - 深链 `?op=<id>&mode=docs|debug` 保留（弹层/展开定位）；Cmd+K 全局搜索保留为平台 Modal 内列表选择（推荐）。
+3. **清理（去 Apifox 外壳）**：删除 afx 自定义 token/灰阶/主色体系、自定义资源树/标签条/命令面板外观、右侧响应栏布局；模块 css 收敛为与 iam/organization 同类的业务 selector；控件全部来自平台（HeroUI 底座经 SDK 透传，符合 068 基座约定）。
+4. **复用不重做**：`openapi-data`（解析/请求构建/form/bodyType）、`run-store`、`highlight`、`api.ts`、快照生成链、mock 空表、模块/菜单/图标 `book`、`@webui/generated` alias；平台 DataTable 修复延续。
 
-## 复用与保留（不重做）
+## 非目标（明确不做）
 
-- `openapi-data.ts` 解析/请求构建纯函数层（扩展文件上传/表单构建）；执行器语义（api.ts 会话 CSRF）；mock 空路由表；模块/路由/菜单声明、`book` 图标、alias；平台 DataTable 修复。
-
-## 非目标（明确不做，候选方向仅记录）
-
-- Apifox 的团队/权限协作、自动化测试编排、Mock 服务、CI/CLI、MCP/AI、多环境变量脚本、导入导出、代码生成——需要对应后端/云端能力，本项目无，列为未来候选；
-- 不引入 Monaco 级重型编辑器（JSON 高亮用成熟轻量库，候选 highlight.js，实施期核验）；
-- 文件上传控件实现能力，但当前后端契约无 multipart 操作（如实标注不可用场景）；
-- 不复制 Apifox 私有实现/组件库（不开源）。
+- Apifox 工具类布局与自定义主题；第三方组件观感；
+- 团队协作/自动化测试/Mock 服务/导入导出/代码生成（无对应后端能力，候选方向仅记录）；
+- 不引入新依赖（highlight.js 已装并复用；不引入 Monaco）。
 
 ## 验收标准
 
-1. **控件基座**：openapi 页内 UI 组件全部来自 HeroUI 组件库（`@heroui/react` 直接使用或经 `@webui/sdk/ui` 透传；`git grep` 确认无第三方 UI 控件库、无自绘通用控件体系）；模块 css 只承载 Apifox 设计语言与布局；五区骨架 + 左侧树搜索/选中/展开、顶部全局搜索（Cmd+K）、面包屑、多标签开/关/切换全部可交互（截图对照）。
-2. 接口详情：URL 栏（方法/BaseURL/路径/发送）、文档/调试双模式切换；参数动态表格（增删/启停/值编辑）、JSON 请求体（样例预填+校验）、form-data 上传控件渲染。
-3. 在线调试：dev 环境（路由拦截）执行 GET 会话、POST bearer 头注入断言；响应面板呈现状态徽标/耗时/大小/JSON 高亮/响应头；错误如实呈现；mock 环境执行禁用提示。
-4. 深链：`?op=&mode=` 直达对应接口标签与模式；刷新恢复。
-5. 视觉/交互细节：加载骨架、交互高亮、快捷键、状态码/时间可视化在 Playwright 桌面/移动截图与 e2e 断言中可见。
-6. 页内实现：openapi 模块呈现层为「HeroUI 控件基座 + Apifox 设计语言」复刻（正式取代 R075-004 的平台组件工作台约束；宿主与其它模块不受影响）；`git grep -i swagger` 无残留。
-7. 门禁：Go `go test ./...`/`go vet`、WebUI `generate:check/typecheck/lint/lint:modules/test/build`、`pnpm e2e -- --workers=1` 全绿。
-8. 文档与 documentation-impact.yaml 覆盖本轮；无新旧双轨残留（e4865ca 的 UI 层单轨替换，复用层保留）。
+1. 页面对话风格与现有模块一致：PageHeader/PageSection/Surface/DataTable/Field/Drawer/ConfirmDialog（如用）/InlineAlert/EmptyState；无 afx token、无 `.afx-*` 样式残留（`git grep -E "afx-|apifox"` 仅文档/记录命中）。
+2. 接口列表：搜索/标签筛选、表格列、行操作可用；点击打开详情。
+3. 文档查看：说明/参数表/请求体与返回示例（高亮）渲染正确。
+4. 在线调试：参数编辑、Body（JSON 校验；form-data 文件控件；urlencoded）、Auth；dev 环境（路由拦截）发送 GET 会话与 POST bearer 头注入断言；响应卡片呈现状态/耗时/大小/高亮 body/响应头；错误如实呈现；mock 环境发送禁用并提示。
+5. 深链：`?op=&mode=` 直达对应接口与模式；刷新/弹层恢复。
+6. 门禁：Go `go test ./...`/`go vet`、`webui generate --check`、WebUI `generate:check/typecheck/lint/lint:modules/test/build`、`pnpm e2e -- --workers=1` 全绿；`git grep -i swagger` 无残留。
+7. 文档与 documentation-impact.yaml 覆盖本轮；9536334 外观层单轨替换（业务层与能力保留）。

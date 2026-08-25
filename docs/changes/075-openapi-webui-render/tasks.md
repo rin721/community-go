@@ -1,27 +1,21 @@
-# 075 openapi 模块：Apifox 复刻 —— 任务清单
+# 075 openapi 模块：API 文档与在线调试（融入后台设计语言）— 任务清单
 
-> 依赖：研究门禁通过（R075-005 取代 R075-004 的 UI 层结论；复用层结论转移）。状态：**待确认**（用户第四轮要求「与 Apifox 完全一模一样，非最小可用，深度研究学习」后的计划）。
+> 依赖：研究门禁通过（R075-006 取代 R075-005 的 UI 结论，业务能力清单继续有效）。状态：**待确认**（用户第五轮要求「去 Apifox 外壳、融入后台视觉、微改造」后的计划）。
 
-## 里程碑与任务
+## 任务
 
 | ID | 任务 | 完成条件 |
 | --- | --- | --- |
-| OAP-075-A1 | 设计 token 与五区骨架：HeroUI 控件基座 + 模块 css 承载 Apifox 设计语言（灰阶/主色/间距/字号/方法色/状态色/选中 hover/动效）+ 顶部工具栏/左树/多标签/主区/响应面板布局 | 桌面/窄屏布局就绪，截图可见 Apifox 观感；HeroUI 基座确认（git grep 无第三方 UI 库） |
-| OAP-075-A2 | 左侧资源树：tag 分组接口目录（展开/选中/搜索过滤）、数据模型分组、面包屑 | 树交互 e2e 断言 + 截图 |
-| OAP-075-A3 | 顶部工具栏：Cmd+K 全局搜索弹层（接口/模型跳转）、环境下拉（BaseURL）、深链/新建呈现入口 | 快捷键与跳转 e2e 断言 |
-| OAP-075-A4 | 多标签工作台：接口/模型标签开/关/切换、激活高亮、关闭回退、与深链同步 | 标签行为 vitest/e2e |
-| OAP-075-A5 | 接口详情：URL 栏（方法下拉/BaseURL/路径 {param} 高亮/发送 loading）+ 文档/调试双模式 | 模式切换与 URL 栏断言 |
-| OAP-075-A6 | 参数表单自动构建：Query/Path 动态表格（增删/启停/值）；Body（JSON 编辑器高亮+样例+校验、form-data 文件上传、urlencoded）；Headers/Auth 分组 | 表单自动构建单测 + e2e |
-| OAP-075-A7 | 在线调试与响应面板：run-store 状态机（size/类型组装）、状态码徽标/耗时/大小、JSON 高亮/原始视图、响应头、错误如实呈现；mock 禁用 | 执行链路单测 + e2e（拦截 GET/POST/bearer 头）+ mock 断言 |
-| OAP-075-A8 | 模型视图与深链：`?op=&mode=docs\|debug`、`?model=`、popstate 恢复 | 深链 e2e |
-| OAP-075-A9 | 细节与动效：加载骨架、交互高亮、Cmd+Enter 发送、空态、reduced-motion 降级 | 视觉清单 e2e/截图 |
-| OAP-075-A10 | 依赖：highlight.js 固定版本（实施期 `pnpm view` 核验并回填记录）+ lock | 安装/构建无回归 |
-| OAP-075-A11 | 测试与文档：vitest 全绿、Playwright 双 project（076：桌面/移动/亮暗截图 075-apifox-*）、权威文档与 impact 更新 | 门禁全绿 + 文档提交 |
-| OAP-075-A12 | 全量门禁与提交；残留检查（`rg -i swagger` 无命中；e4865ca UI 层单轨替换完成） | 提交完成 |
+| OAP-075-I1 | 页面重构为平台语言：接口列表区（搜索 Field + tag SelectField + DataTable：方法 Chip/路径/操作 ID/标签/行操作）+ 说明 PageSection | 列表渲染/搜索/筛选可用，无 afx 样式残留 |
+| OAP-075-I2 | 平台 Drawer 详情：文档分区（说明/参数表/请求体+返回示例高亮/响应表）与调试分区（参数 Field 行+Switch、Body JSON/form(urlencoded)/文件、Headers、Auth、发送 Button pending、mock 禁用） | Drawer 打开/切换/关闭；平台组件占满 |
+| OAP-075-I3 | 响应卡片（调试分区内）：状态 Chip/耗时/大小、JSON 高亮/原始切换、响应头折叠、错误如实呈现 | 发送→响应断言（拦截 GET/POST） |
+| OAP-075-I4 | 深链与全局搜索：`?op=&mode=` 打开 Drawer；Cmd+K 平台 Modal 列表跳转（推荐保留）；popstate 同步 | 深链/搜索 e2e |
+| OAP-075-I5 | 模型浏览并入列表页（PageSection 或筛选 + DataTable/详情） | 模型渲染断言 |
+| OAP-075-I6 | 清理：删除 ApiTree/WorkspaceTabs/afx token 与右侧响应栏等外观层；模块 css 收敛业务 selector；复用层（openapi-data/run-store/highlight/api）仅小适配 | `git grep -E "afx-|apifox"` 仅文档/记录命中；`rg -i swagger` 无残留 |
+| OAP-075-I7 | 测试与文档：vitest（列表/筛选/Drawer/调试/发送/mock 禁用/深链）、Playwright dev/mock 断言 + 截图（075-integrated-*）、权威文档与 impact 更新 | 门禁全绿 + 文档提交 |
+| OAP-075-I8 | 全量门禁与提交（单轨替换 9536334 外观层，业务层保留） | 提交完成 |
 
 ## 状态记录
 
-- 2026-08-25：三轮演进已完成（55ee70f swagger 渲染 → 9ea2f13 平台组件参考页 → e4865ca 可测试工作台；Go/WebUI/e2e 全绿）。
-- 2026-08-25（当前轮，实施完成待提交）：用户要求「与 Apifox（骨架、交互、设计）完全一模一样，非最小可用，深度研究学习」+"基于当前后端项目（OpenAPI）开发与 Apifox 完全一致的 API 管理可视化平台（文档查看、接口调试等），像素级视觉还原、商业级 SaaS 前端"；**用户补充：UI 组件依旧使用 HeroUI 组件库**。R075-005 深度研究完成（官方物料 + 产品形态/设计/交互拆解；web_search 与体验版可视化对照不可用，已列刷新触发器）。实施完成 A1..A12：HeroUI 控件基座 + Apifox 设计 token/五区骨架（工具栏/资源树/多标签/文档调试双模式/响应面板）；Cmd+K 搜索、面包屑、深链 `?op=&mode=`/`?model=`；参数表单自动构建（Query/Path、JSON、form-data 文件上传、urlencoded、Auth）；在线调试（run-store 状态机 + highlight.js JSON 高亮 + 状态/耗时/大小/响应头）；mock 执行禁用；vitest 141 / e2e 待确认 / 门禁全绿待提交；OpenAPIPage chunk 103.4 kB（gzip 25.8 kB）。
-- 范围外既有事实：`internal/module/settings/README.md` 缺失导致 docs-guard 报错（070–074 遗留）。
+- 2026-08-25：四轮演进（55ee70f → 9ea2f13 → e4865ca → 9536334），第五轮用户要求「停止模仿 Apifox 外壳，提取业务能力，严格遵循后台设计语言（深色导航/蓝色主调/圆角卡片/标准表单表格），微改造而非大换血」。研究 R075-006 完成；requirements/design/tasks 已按「平台组件 + 标准后台流程」重写。**已确认，实施完成待提交**：I1 平台组件列表（搜索/tag 筛选/DataTable/行操作）、I2 OperationDrawer（文档/调试双模式 + 参数/Body/Headers/Auth/发送）、I3 调试区响应卡片（状态/耗时/大小/高亮/响应头）、I4 深链与 Cmd+K（平台 Modal）、I5 模型 Drawer、I6 清理（删 ApiTree/WorkspaceTabs/OperationPane/ResponsePanel 与 afx 外观层，css 收敛业务 selector，`git grep -E "afx-|apifox"` 仅文档命中）、I7 测试与文档、I8 门禁提交；vitest 141 / e2e 22 待最终确认；OpenAPIPage chunk 93.9 kB（gzip 23.1 kB）。
 - 范围外既有事实：`internal/module/settings/README.md` 缺失导致 docs-guard 报错（070–074 遗留）。

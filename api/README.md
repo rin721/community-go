@@ -18,7 +18,7 @@
 
 3. 审阅生成 diff；`go generate` 后必须 clean diff（`git diff --exit-code -- api internal/transport/http/api`）。
 4. 生成器输出必须与既有契约语义兼容：CI 用 `oasdiff breaking` 对照上一个已提交 `api/openapi.yaml` 基线，新增公共破坏必须先采用版本/弃用策略并记录决策，不能简单更新一份副本绕过。
-5. 浏览器契约快照：`go run ./cmd/app webui generate` 从本文件渲染 `webui/src/generated/openapi-spec.ts`（JSON 对象，Admin WebUI 的 openapi 模块以「Apifox 风格 API 管理平台」（文档/调试双模式 + 在线调试）展示与执行该契约，075）。该快照是同一产物的 JSON 变换，不是第二份权威；`webui generate --check` 严格比对，避免与契约漂移。
+5. 浏览器契约快照：`go run ./cmd/app webui generate` 从本文件渲染 `webui/src/generated/openapi-spec.ts`（JSON 对象，Admin WebUI 的 openapi 模块以「API 文档 + 在线调试」后台模块展示与执行该契约，075）。该快照是同一产物的 JSON 变换，不是第二份权威；`webui generate --check` 严格比对，避免与契约漂移。
 
 ## 运行期绑定
 

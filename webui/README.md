@@ -50,13 +50,12 @@ Linux 使用 `bash scripts/verify-webui.sh`。质量链覆盖生成检查、冻�
 - 交互状态链原语：`ActionTrigger`（pending/防重复/禁用原因/权限呈现）、`BulkActionBar`、`FormSubmitActions`；图标目录 authority 在 `webui/src/icon-catalog.ts`（Go `internal/webui/icons.go` 校验，测试守护一致）。
 - 完整契约与接入步骤见 [WebUI 开发指南](../docs/development/webui.md)。
 
-## OpenAPI：Apifox 风格 API 管理平台（075）
+## OpenAPI：API 文档与在线调试（075）
 
-- 新业务模块 `openapi` 提供「API 文档」页（`/openapi`，顶级菜单项）：**Apifox 复刻工作台（R075-005）**——顶部工具栏（面包屑 + 环境标识 + Cmd/K 全局搜索）、左侧资源树（接口按 tag 分组、可搜索/折叠、模型分组）、中间多标签工作台（接口/模型标签可开/关/切换）、主区接口详情（URL 栏 + 「文档/调试」双模式）、右侧响应面板（状态码徽标、耗时、大小、JSON 高亮、响应头）。
-- **UI 控件基座为 HeroUI 组件库**（用户要求；`@heroui/react` 与 `@webui/sdk/ui` 透传底座，模块 css 只承载 Apifox 设计语言）；JSON 高亮用 `highlight.js`（仅注册 json 语言，按需轻量）；参数表单由 OpenAPI schema 自动构建（Query/Path 动态编辑、JSON 请求体校验、form-data 含文件上传、urlencoded、Auth）。
-- **可测试执行语义**：同源 `fetch`（`credentials: include`）——`bearerAuth` 注入页面内存 token（不持久化）；`webuiSession` 自动携带会话 Cookie，CSRF 绑定写操作自动附加 `Origin`+`X-CSRF-Token`（与真实 WebUI 同语义）；响应面板呈现状态/耗时/大小/高亮 body，错误如实展示；`mock` 演示构建执行禁用并提示。
-- 契约数据源：`webui generate` 生成 `webui/src/generated/openapi-spec.ts`（`api/openapi.yaml` 的 JSON 变换，含 sha256），页面直接 import，三态环境浏览一致；`?op=&mode=` / `?model=` 深链直达；布局清单新增 `webui.specOutput`；受控图标目录新增 `book`；平台 DataTable 修复（RAC isRowHeader）延续。
-- 说明：像素级还原以公开物料 + 产品知识实现，Playwright 截图（`075-apifox-*`）供逐轮对照 Apifox 校准（详见 075 记录刷新触发器）。
+- 新业务模块 `openapi` 提供「API 文档」页（`/openapi`，顶级菜单项）：**完全融入后台设计语言的标准模块（R075-006）**——PageHeader + 说明区块 + 接口列表（搜索 + 标签筛选 + DataTable：方法/路径/操作 ID/标签/行操作「文档 / 调试」）+ 数据模型区块；接口详情在平台 **Drawer** 弹层内提供「文档 / 调试」双模式。
+- **业务能力（提取自 Apifox，不用其外壳）**：文档查看（说明、参数表、请求体与返回示例 JSON 高亮、响应表）；在线调试 Try it out（参数 Field 行 + Switch 启停、Body：JSON Textarea 样例+校验 / form-data 含文件上传 / urlencoded、Headers、Auth、发送 Button）→ 调试区内响应卡片（状态 Chip、耗时、大小、JSON 高亮/原始、响应头折叠）。
+- **可测试执行语义**：同源 `fetch`（credentials include）——bearerAuth 注入内存 token（不持久化）；webuiSession 自动携带会话 Cookie，CSRF 绑定写操作自动附加 `Origin`+`X-CSRF-Token`；错误如实呈现（Problem JSON 优先）；mock 演示构建执行禁用并提示。深链 `?op=&mode=` / `?model=`；Cmd/Ctrl+K 快速跳转（平台 Modal）。
+- 契约数据源：`webui generate` 生成 `webui/src/generated/openapi-spec.ts`（`api/openapi.yaml` 的 JSON 变换，含 sha256），页面直接 import，三态环境一致、mock 浏览零请求；控件基座为 HeroUI（经 `@webui/sdk/ui` 透传）；JSON 高亮 `highlight.js`（仅 json 语言）；布局清单新增 `webui.specOutput`；受控图标目录新增 `book`；平台 DataTable 修复延续。
 
 ## 侧边栏菜单层级分类（063）
 

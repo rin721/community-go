@@ -11,8 +11,8 @@ applicable_scenarios:
 non_applicable_scenarios:
   - "复刻 Apifox 团队协作/自动化测试/Mock 服务/CI/CLI 等需要配套后端能力的商业模块（无真实后端能力，列为候选）"
   - "导入 Apifox 私有前端实现或组件库（不开源，且与 Admin 宿主边界冲突）"
-status: active
-summary: "Apifox 定位为 Postman+Swagger+Mock+JMeter 一体化平台（官方原文），其 UI 形态为：左侧资源树 + 顶部工具栏/全局搜索 + 多标签工作台 + 主区「文档/调试」双模式 + 响应面板（状态徽标/耗时/JSON 高亮），紧凑浅色设计（主色蓝、灰阶边框、小字号）。无最少可用说法：模块重做为 Apifox 复刻工作台（模块内自绘 Apifox 设计语言与控件，替代 R075-004 的平台组件工作台）；复用既有快照链/执行器/纯函数层；JSON 高亮用成熟轻量库（候选 highlight.js，实施期核验）。像素级一致以公开物料还原 + e2e 截图逐轮人工校准为验收路径（本会话无 Apifox 体验版可视化对照能力）。"
+status: superseded
+summary: "（UI 结论已被 R075-006 取代）原结论：Apifox 复刻工作台（模块内自绘观感）。用户随后否决其外壳，要求提取业务能力、融入后台设计语言（平台组件 + 标准流程）；本记录的 Apifox 业务能力清单（文档/调试双模式、参数表单、Try it out、响应面板元素、Cmd+K、深链）继续作为功能参考，UI 呈现结论由 R075-006 取代。"
 evidence:
   types: ["official-website", "author-knowledge"]
   primary_sources:
@@ -36,7 +36,9 @@ relations:
   related:
     - R075-002
     - R075-004
+    - R075-006
   supersedes:
     - R075-004
-  superseded_by: []
+  superseded_by:
+    - R075-006
 report: report.md

@@ -83,6 +83,7 @@ export type OperationRow = {
   method: string;
   path: string;
   operationId: string;
+  tag: string;
   summary?: string;
   description?: string;
   parameters: ParameterObject[];
@@ -108,6 +109,7 @@ export function groupedOperations(spec: OpenAPIDocument): OperationGroup[] {
         method: method.toUpperCase(),
         path,
         operationId: operation.operationId ?? "",
+        tag,
         summary: operation.summary,
         description: operation.description,
         parameters: operation.parameters ?? [],

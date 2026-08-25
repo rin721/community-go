@@ -313,44 +313,57 @@ test("organization management pages render tree, position and assignment evidenc
   await page.screenshot({ path: testInfo.outputPath("organization-assignment.png"), fullPage: true });
 });
 
-test("075 apifox workspace tree, tabs, docs/debug and execution", async ({ page }, testInfo) => {
+test("075 openapi list, docs/debug drawer and execution", async ({ page }, testInfo) => {
   (page as unknown as { setWebUIState: (state: { authenticated: boolean }) => void }).setWebUIState({ authenticated: true });
   await page.goto("/openapi");
   await expect(page.getByRole("heading", { name: "API Docs", exact: true })).toBeVisible();
-  // Apifox 资源树 + 多标签工作台（HeroUI 控件基座，R075-005）。
-  await expect(page.locator('[data-testid="openapi-tree-item"]').first()).toBeVisible();
-  await page.locator('[data-testid="openapi-tree-item"]').filter({ hasText: "iam.session.read" }).click();
-  await expect(page.locator('[data-testid="openapi-tab-op:get-/api/v1/iam/session"]')).toBeVisible();
-  // 默认调试模式：发送 → 右侧响应面板（拦截的会话路由）。
-  await expect(page.getByRole("button", { name: "Send", exact: true })).toBeVisible();
+  // 平台列表（搜索 + 表格 + 行操作，R075-006）。
+  await expect(page.getByRole("heading", { name: "API operations", exact: true })).toBeVisible();
+  const sessionRow = page.locator("tr").filter({ hasText: "iam.session.read" });
+  await expect(sessionRow).toBeVisible();
+  // 调试 Drawer：发送（拦截的会话路由）→ 响应卡片。
+  await sessionRow.getByRole("button", { name: "Debug", exact: true }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
   await page.getByRole("button", { name: "Send", exact: true }).click();
   await expect(page.locator('[data-testid="openapi-response"]')).toBeVisible();
   await expect(page.getByText(/200 OK/)).toBeVisible();
   await expect(page.getByText(/csrf-test-token/)).toBeVisible();
-  await expect(page.getByText(/ms/).first()).toBeVisible();
-  // 文档模式切换：参数表可见。
+  // 文档模式切换。
   await page.locator('[data-testid="openapi-mode-docs"]').click();
-  await expect(page.getByRole("heading", { name: "Parameters", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Responses", exact: true })).toBeVisible();
+  await page.getByRole("dialog").getByRole("button", { name: "Close", exact: true }).first().click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   // bearerAuth 注入：拦截 POST /api/v1/todos，断言 Authorization 头。
   let bearerHeader = "";
   await page.route("**/api/v1/todos", async (route) => {
     bearerHeader = route.request().headers()["authorization"] ?? "";
     await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ id: "todo-1", title: "created" }) });
   });
-  await page.locator("input[type=search]").fill("createTodo");
-  await page.locator('[data-testid="openapi-tree-item"]').filter({ hasText: "createTodo" }).click();
+  const todoRow = page.locator("tr").filter({ hasText: "createTodo" });
+  await todoRow.getByRole("button", { name: "Debug", exact: true }).click();
   await page.getByLabel("Bearer token").fill("exec-token-123");
   await page.getByRole("button", { name: "Send", exact: true }).click();
   await expect(page.getByText(/201 Created/)).toBeVisible();
   expect(bearerHeader).toBe("Bearer exec-token-123");
-  // Cmd+K 全局搜索弹层。
-  await page.keyboard.press("Control+k");
-  await expect(page.getByLabel("Quick search")).toBeVisible();
-  await page.keyboard.press("Escape");
-  // 深链：docs 模式直达接口标签。
+  // 搜索过滤列表。
+  await page.getByRole("dialog").getByRole("button", { name: "Close", exact: true }).first().click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  const searchInput = page.getByLabel("Search by method, path or ID");
+  await searchInput.fill("navigation");
+  await expect(searchInput).toHaveValue("navigation");
+  await expect(page.locator("tr").filter({ hasText: "auth.audit.list" })).toHaveCount(0);
+  await page.getByLabel("Search by method, path or ID").fill("");
+  // 模型 Drawer。
+  await page.getByRole("button", { name: "AccountResponse", exact: true }).first().click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await expect(page.getByText("AccountResponse", { exact: true }).first()).toBeVisible();
+  await page.getByRole("dialog").getByRole("button", { name: "Close", exact: true }).first().click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  // 深链：docs 模式直达。
   await page.goto("/openapi?op=get-/api/v1/iam/accounts&mode=docs");
-  await expect(page.locator('[data-testid="openapi-tab-op:get-/api/v1/iam/accounts"]')).toBeVisible();
-  await page.screenshot({ path: testInfo.outputPath("075-apifox-workspace.png"), fullPage: true });
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Responses", exact: true })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("075-integrated-docs.png"), fullPage: true });
 });
 
 test("navigation policy refreshes the manifest while keeping the registered route", async ({ page }, testInfo) => {

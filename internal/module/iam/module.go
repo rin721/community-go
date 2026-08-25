@@ -9,6 +9,7 @@ import (
 	"github.com/rin721/go-scaffold-template/internal/module/iam/authorization"
 	configbinding "github.com/rin721/go-scaffold-template/internal/module/iam/binding/config"
 	httpbinding "github.com/rin721/go-scaffold-template/internal/module/iam/binding/http"
+	"github.com/rin721/go-scaffold-template/internal/module/iam/model"
 	"github.com/rin721/go-scaffold-template/internal/module/iam/repo"
 	"github.com/rin721/go-scaffold-template/internal/module/iam/service"
 	permissioncatalog "github.com/rin721/go-scaffold-template/internal/permission"
@@ -64,7 +65,7 @@ func newModule(dependencies Dependencies) (Module, *service.Service, error) {
 		return Module{}, nil, fmt.Errorf("compose iam authorization runtime: %w", err)
 	}
 	local := dependencies.Config.Local
-	iamService, err := service.New(store, dependencies.Clock, dependencies.IDGenerator, passwordadapter.Hasher{}, service.Config{SetupToken: local.SetupToken, IdleTimeout: local.IdleTimeout, AbsoluteTimeout: local.AbsoluteTimeout, MaxFailedAttempts: local.MaxFailedAttempts, LockDuration: local.LockDuration}, dependencies.Permissions, runtime)
+	iamService, err := service.New(store, dependencies.Clock, dependencies.IDGenerator, passwordadapter.Hasher{}, service.Config{SetupToken: local.SetupToken, IdleTimeout: local.IdleTimeout, AbsoluteTimeout: local.AbsoluteTimeout, MaxFailedAttempts: local.MaxFailedAttempts, LockDuration: local.LockDuration, PasswordPolicy: model.PasswordPolicy{MinLength: local.PasswordPolicy.MinLength, MaxLength: local.PasswordPolicy.MaxLength, RequireComplexity: local.PasswordPolicy.RequireComplexity}}, dependencies.Permissions, runtime)
 	if err != nil {
 		return Module{}, nil, fmt.Errorf("compose iam service: %w", err)
 	}

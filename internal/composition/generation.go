@@ -505,7 +505,7 @@ func (f *applicationGenerationFactory) Prepare(
 		authhttp.HumaRegistration(generation.authModule.AuditHandler),
 		iamhttp.HumaRegistration(generation.iamModule.Handler),
 		todohttp.HumaRegistration(generation.module.Operations),
-		organizationhttp.HumaRegistration(generation.organizationModule.Operations),
+		organizationhttp.HumaRegistration(generation.organizationModule.Operations, mutationGuard),
 		navigationhttp.HumaRegistration(generation.navigationModule.Operations, mutationGuard),
 	)
 	if err != nil {

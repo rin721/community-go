@@ -30,22 +30,42 @@ type AccountChanges struct {
 	UpdatedAt          time.Time
 }
 
-func (unit *Unit) CountAccounts(ctx context.Context) (int64, error) {
-	var count int64
-	err := unit.useDB(ctx, func(db *gorm.DB) error { return db.Table(accountTable).Count(&count).Error })
-	return count, err
+// AccountFilter 是账号列表的 typed 过滤条件；空字段表示不过滤。
+type AccountFilter struct {
+	// Query 按用户名/显示名关键字模糊匹配（与既有列表语义一致）。
+	Query string
+	// Status 按账号状态精确过滤（""/active/disabled）。
+	Status string
+	// Archived 按归档标记过滤（nil=不过滤；false=仅未归档；true=仅已归档）。
+	Archived *bool
+	// RoleID 非空时只统计/返回拥有该活跃角色的账号。
+	RoleID string
 }
 
-// CountAccountsMatching 统计匹配关键字过滤的账号总数（与 ListAccounts 同过滤语义）。
-func (unit *Unit) CountAccountsMatching(ctx context.Context, query string) (int64, error) {
+// accountQuery 构造账号列表/统计的公共过滤条件。
+func (unit *Unit) accountQuery(ctx context.Context, db *gorm.DB, filter AccountFilter) *gorm.DB {
+	query := db.Table(accountTable)
+	if strings.TrimSpace(filter.Query) != "" {
+		like := "%" + strings.TrimSpace(filter.Query) + "%"
+		query = query.Where("(username LIKE ? OR display_name LIKE ?)", like, like)
+	}
+	if filter.Status != "" {
+		query = query.Where("status = ?", filter.Status)
+	}
+	if filter.Archived != nil {
+		query = query.Where("archived = ?", *filter.Archived)
+	}
+	if strings.TrimSpace(filter.RoleID) != "" {
+		query = query.Where("EXISTS (SELECT 1 FROM "+accountRoleTable+" r WHERE r.account_id = "+accountTable+".id AND r.role_id = ? AND r.active = ?)", strings.TrimSpace(filter.RoleID), true)
+	}
+	return query
+}
+
+// CountAccounts 统计满足过滤条件的账号总数（与 ListAccounts 同过滤语义）。
+func (unit *Unit) CountAccounts(ctx context.Context, filter AccountFilter) (int64, error) {
 	var count int64
 	err := unit.useDB(ctx, func(db *gorm.DB) error {
-		q := db.Table(accountTable)
-		if strings.TrimSpace(query) != "" {
-			like := "%" + strings.TrimSpace(query) + "%"
-			q = q.Where("(username LIKE ? OR display_name LIKE ?)", like, like)
-		}
-		return q.Count(&count).Error
+		return unit.accountQuery(ctx, db, filter).Count(&count).Error
 	})
 	return count, err
 }
@@ -71,15 +91,10 @@ func (unit *Unit) AccountByID(ctx context.Context, value string) (AccountRecord,
 	return record, err
 }
 
-func (unit *Unit) ListAccounts(ctx context.Context, offset, limit int, query string) ([]AccountRecord, error) {
+func (unit *Unit) ListAccounts(ctx context.Context, offset, limit int, filter AccountFilter) ([]AccountRecord, error) {
 	var records []AccountRecord
 	err := unit.useDB(ctx, func(db *gorm.DB) error {
-		q := db.Table(accountTable)
-		if strings.TrimSpace(query) != "" {
-			like := "%" + strings.TrimSpace(query) + "%"
-			q = q.Where("(username LIKE ? OR display_name LIKE ?)", like, like)
-		}
-		return q.Order("username ASC").Offset(offset).Limit(limit).Find(&records).Error
+		return unit.accountQuery(ctx, db, filter).Order("username ASC").Offset(offset).Limit(limit).Find(&records).Error
 	})
 	return records, err
 }
@@ -249,6 +264,30 @@ func (unit *Unit) ListAccountRolesByRole(ctx context.Context, id string) ([]Acco
 	return records, err
 }
 
+// CountAccountRolesByRole 统计拥有该角色的活跃分配数（分页 total 用）。
+func (unit *Unit) CountAccountRolesByRole(ctx context.Context, roleID string) (int64, error) {
+	var count int64
+	err := unit.useDB(ctx, func(db *gorm.DB) error {
+		return db.Table(accountRoleTable).Where("role_id = ? AND active = ?", roleID, true).Count(&count).Error
+	})
+	return count, err
+}
+
+// ListAccountsByRole 返回拥有指定活跃角色的账号（分页、按用户名稳定排序）；
+// 供角色影响分析（归档/权限变更前查看持有者）。
+func (unit *Unit) ListAccountsByRole(ctx context.Context, roleID string, offset, limit int) ([]AccountRecord, error) {
+	var records []AccountRecord
+	err := unit.useDB(ctx, func(db *gorm.DB) error {
+		return db.Table(accountTable).
+			Joins("JOIN " + accountRoleTable + " r ON r.account_id = " + accountTable + ".id").
+			Where("r.role_id = ? AND r.active = ?", roleID, true).
+			Order(accountTable + ".username ASC").
+			Offset(offset).Limit(limit).
+			Find(&records).Error
+	})
+	return records, err
+}
+
 func (unit *Unit) HasRole(ctx context.Context, accountID, roleID string) (bool, error) {
 	var count int64
 	err := unit.useDB(ctx, func(db *gorm.DB) error {
@@ -273,6 +312,30 @@ func (unit *Unit) ListRolePermissions(ctx context.Context, roleID string, active
 			query = query.Where("active = ?", true)
 		}
 		return query.Find(&records).Error
+	})
+	return records, err
+}
+
+// CountRolePermissionsByKey 统计拥有该权限键的活跃角色数（分页 total 用）。
+func (unit *Unit) CountRolePermissionsByKey(ctx context.Context, key string) (int64, error) {
+	var count int64
+	err := unit.useDB(ctx, func(db *gorm.DB) error {
+		return db.Table(rolePermissionTable).Where("permission_key = ? AND active = ?", key, true).Count(&count).Error
+	})
+	return count, err
+}
+
+// ListRolesByPermissionKey 返回拥有指定活跃权限键的角色（分页、按 code 稳定排序）；
+// 供权限键影响分析（退役/审计时查看使用方）。
+func (unit *Unit) ListRolesByPermissionKey(ctx context.Context, key string, offset, limit int) ([]RoleRecord, error) {
+	var records []RoleRecord
+	err := unit.useDB(ctx, func(db *gorm.DB) error {
+		return db.Table(roleTable).
+			Joins("JOIN " + rolePermissionTable + " rp ON rp.role_id = " + roleTable + ".id").
+			Where("rp.permission_key = ? AND rp.active = ?", key, true).
+			Order(roleTable + ".code ASC").
+			Offset(offset).Limit(limit).
+			Find(&records).Error
 	})
 	return records, err
 }
@@ -324,14 +387,40 @@ func (unit *Unit) RevokeAccountSessions(ctx context.Context, accountID string, n
 	return unit.update(ctx, sessionTable, "account_id = ? AND revoked_at IS NULL", []any{accountID}, map[string]any{"revoked_at": &now})
 }
 
-// ListSessionsByAccount 返回账号全部受信 Session 的元数据（含已吊销标记），
-// 只暴露摘要（IDHash hex）与过期信息，不泄露明文 SessionID。
-func (unit *Unit) ListSessionsByAccount(ctx context.Context, accountID string) ([]SessionRecord, error) {
+// CountSessionsByAccount 统计账号会话数（分页 total 用）。activeOnly 表示
+// 只统计未吊销且未过期（按 now）的会话；revokedOnly 表示只统计已吊销会话；
+// 两者均为 false 时统计全部会话。
+func (unit *Unit) CountSessionsByAccount(ctx context.Context, accountID string, now time.Time, activeOnly, revokedOnly bool) (int64, error) {
+	var count int64
+	err := unit.useDB(ctx, func(db *gorm.DB) error {
+		query := unit.sessionScope(ctx, db, accountID, now, activeOnly, revokedOnly)
+		return query.Count(&count).Error
+	})
+	return count, err
+}
+
+// ListSessionsByAccount 返回账号会话的分页元数据（含已吊销标记），只暴露
+// 摘要（IDHash hex）与过期信息，不泄露明文 SessionID。过滤语义与
+// CountSessionsByAccount 一致，保证 total 与列表不漂移。
+func (unit *Unit) ListSessionsByAccount(ctx context.Context, accountID string, now time.Time, activeOnly, revokedOnly bool, offset, limit int) ([]SessionRecord, error) {
 	var records []SessionRecord
 	err := unit.useDB(ctx, func(db *gorm.DB) error {
-		return db.Table(sessionTable).Where("account_id = ?", accountID).Order("created_at DESC, id_hash ASC").Find(&records).Error
+		query := unit.sessionScope(ctx, db, accountID, now, activeOnly, revokedOnly)
+		return query.Order("created_at DESC, id_hash ASC").Offset(offset).Limit(limit).Find(&records).Error
 	})
 	return records, err
+}
+
+// sessionScope 构造账号会话查询的公共过滤条件。
+func (unit *Unit) sessionScope(ctx context.Context, db *gorm.DB, accountID string, now time.Time, activeOnly, revokedOnly bool) *gorm.DB {
+	query := db.Table(sessionTable).Where("account_id = ?", accountID)
+	if activeOnly {
+		query = query.Where("revoked_at IS NULL AND idle_expires_at > ? AND absolute_expires_at > ?", now, now)
+	}
+	if revokedOnly {
+		query = query.Where("revoked_at IS NOT NULL")
+	}
+	return query
 }
 
 func (unit *Unit) update(ctx context.Context, table, condition string, arguments []any, values map[string]any) error {

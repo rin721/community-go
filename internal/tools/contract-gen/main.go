@@ -74,7 +74,7 @@ func registeredOperations() []humabinding.Registration {
 	return []humabinding.Registration{
 		authhttp.HumaRegistration(nil),
 		iamhttp.HumaRegistration(nil),
-		organizationhttp.HumaRegistration(nil),
+		organizationhttp.HumaRegistration(nil, nil),
 		navigationhttp.HumaRegistration(nil, nil),
 		todohttp.HumaRegistration(nil),
 	}

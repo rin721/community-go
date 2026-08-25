@@ -6,7 +6,7 @@ Organization 拥有部门、岗位与账号组织关系。它只维护组织目�
 
 - `model/` 与 `service/` 维护部门无环树、岗位平面目录、引用保护和账号分配规则；账号-部门/岗位分配使用 `expectedVersion` 乐观并发（`organization_account_departments.version`，冲突返回稳定 409）。
 - `repo/` 与 `binding/migration/` 独占 `organization_*` 表及 `organization_schema_migrations`。
-- `handler/` 与 `binding/http/` 提供 typed operation 和代码优先契约。
+- `handler/` 与 `binding/http/` 提供 typed operation 和代码优先契约。全部 operation 使用 `webuiSession` 认证 profile；mutation（部门/岗位/分配创建、更新、替换）经模块自有窄 `MutationGuard` 校验 Origin/Session/CSRF（composition 注入 IAM 守卫，与 Navigation 一致），前端 mutation 请求必须携带 `Origin` + `X-CSRF-Token`。
 - `binding/webui/` 提供部门、岗位和账号组织分配页面。
 - `binding/permission/` 贡献 `organization:department:*` 与 `organization:position:*`。
 

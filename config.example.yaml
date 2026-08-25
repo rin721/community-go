@@ -233,6 +233,12 @@ iam:
     absoluteTimeout: 12h0m0s
     maxFailedAttempts: 5
     lockDuration: 15m0s
+    # 密码强度策略（创建/重置/修改密码时生效，不重验存量哈希）；默认 15/128、
+    # 不要求复杂度，与既有行为一致；requireComplexity 开启时要求大写+小写+数字。
+    passwordPolicy:
+      minLength: 15
+      maxLength: 128
+      requireComplexity: false
 
 http:
   # HTTP listener 在进程 ready 前同步绑定；端口占用会使启动失败。

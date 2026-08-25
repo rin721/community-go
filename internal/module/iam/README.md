@@ -16,6 +16,10 @@ IAM（Identity and Access Management）拥有本地 Account、Credential、Sessi
 
 账号资料更新（改名）与账号归档、角色资料更新（名称/描述）与角色归档由 IAM 实现：改名与归档共用 `iam:account:write`/`iam:role:write` 与乐观并发版本协议；账号改名/归档与角色归档均视为安全变更，成功变更在事务内 bump SecurityRevision 并撤销受影响账号 Session（角色归档走完整授权发布链路，归档角色移出可分配与授权规则）；角色名称/描述更新是展示字段变更，不触发 authorization revision、不撤销 Session。归档是终态：归档账号/角色不可登录、不可分配、不产生授权规则；最后一个 active owner 账号与 owner 角色不可归档（`ErrImmutableOwner`/`ErrOwnerInvariant`）。不做物理删除与恢复。
 
+## 影响分析、列表过滤与会话分页（076）
+
+IAM 提供只读影响分析查询：角色→持有账号（`GET /api/v1/iam/roles/{id}/accounts`，`iam:role:read`）与权限键→使用角色（`GET /api/v1/iam/permissions/roles?key=…`，`iam:permission:read`），供角色归档/权限退役前影响分析；不新增权限键、不改变授权状态。账号列表支持 status/archived/roleId typed 过滤（Count/List 同条件）；会话列表支持分页与 status（all/active/revoked，active = 未吊销且未过期）过滤，保持 IDHash 低敏摘要。密码强度策略由 `iam.local.passwordPolicy` 配置（默认 15/128、复杂度开关默认关），在 Service 构造时冻结，只约束新建密码路径，不重验存量哈希。
+
 ## 对外边界
 
 IAM 通过窄 facet 对外输出：`Sessions`（Session 解析）、`Authorization`（evaluator 决策/投影）、`Accounts`（可指派账号校验）、`Administration`（owner reconcile/兼容/密码重置）与 `Mutation`（CSRF 校验）；根 composition 不取得 `*service.Service`，Auth 只消费 project `DecisionPoint`，HTTP/Huma 与业务模块不接触 Casbin 类型。composition 的 identity-access 子装配把 IAM `Authorization` facet 适配为 Auth `DecisionPoint`，把 IAM Session 适配为 `iam-rbac` Principal。

@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"unicode"
 
 	permissioncatalog "github.com/rin721/go-scaffold-template/internal/permission"
 	"github.com/rin721/go-scaffold-template/pkg/idgen"
@@ -92,12 +93,50 @@ func NormalizeName(value string) (string, error) {
 	return value, nil
 }
 
-func ValidatePassword(value string) error {
-	size := len([]rune(value))
-	if size < MinPasswordRunes || size > MaxPasswordRunes {
+// PasswordPolicy 是创建/重置/修改密码时的强度策略；由配置注入并在 Service
+// 构造时冻结。MinLength/MaxLength 按 rune 计数（与既有 ValidatePassword 一致）。
+type PasswordPolicy struct {
+	MinLength int
+	MaxLength int
+	// RequireComplexity 开启时要求密码同时包含大写字母、小写字母与数字。
+	RequireComplexity bool
+}
+
+// DefaultPasswordPolicy 返回与既有硬编码语义一致的默认策略（15/128、不要求复杂度）。
+func DefaultPasswordPolicy() PasswordPolicy {
+	return PasswordPolicy{MinLength: MinPasswordRunes, MaxLength: MaxPasswordRunes}
+}
+
+func ValidatePasswordWith(value string, policy PasswordPolicy) error {
+	if policy.MinLength < 1 || policy.MaxLength < policy.MinLength {
 		return ErrInvalidPassword
 	}
+	size := len([]rune(value))
+	if size < policy.MinLength || size > policy.MaxLength {
+		return ErrInvalidPassword
+	}
+	if policy.RequireComplexity {
+		upper, lower, digit := false, false, false
+		for _, character := range value {
+			switch {
+			case unicode.IsUpper(character):
+				upper = true
+			case unicode.IsLower(character):
+				lower = true
+			case unicode.IsDigit(character):
+				digit = true
+			}
+		}
+		if !upper || !lower || !digit {
+			return ErrInvalidPassword
+		}
+	}
 	return nil
+}
+
+// ValidatePassword 使用默认策略校验密码；默认策略与既有硬编码语义一致。
+func ValidatePassword(value string) error {
+	return ValidatePasswordWith(value, DefaultPasswordPolicy())
 }
 
 func NewAccount(id, username, displayName string, mustChange bool, now time.Time) (Account, error) {

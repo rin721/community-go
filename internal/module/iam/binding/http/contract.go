@@ -37,7 +37,9 @@ const (
 	opRoleArchive         = "iam.roles.archive"
 	opRolePermissionsRead = "iam.roles.permissions.read"
 	opRolePermissions     = "iam.roles.permissions.replace"
+	opRoleAccountsRead    = "iam.roles.accounts.list"
 	opPermissions         = "iam.permissions.list"
+	opPermissionRolesRead = "iam.permissions.roles.list"
 	opSessionList         = "iam.sessions.list"
 	opSessionRevoke       = "iam.sessions.revoke"
 )
@@ -163,6 +165,9 @@ type sessionInfoResponse struct {
 
 type sessionListInput struct {
 	AccountID string `query:"accountId"`
+	Offset    int    `query:"offset" minimum:"0" default:"0"`
+	Limit     int    `query:"limit" minimum:"1" maximum:"100" default:"20"`
+	Status    string `query:"status" enum:"all,active,revoked"`
 }
 
 type sessionRevokeInput struct {

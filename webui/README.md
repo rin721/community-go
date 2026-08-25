@@ -74,6 +74,10 @@ Linux 使用 `bash scripts/verify-webui.sh`。质量链覆盖生成检查、冻�
 - IAM 用户/角色页、Organization 部门/岗位/分配页与 Navigation 菜单页的写操作按钮（创建/启停/重置/改名/归档/保存策略）均经模块 Binding `ActionPermissions` + SDK `ActionTrigger` 接入动作级权限投影：denied 时按钮隐藏或禁用，未声明/未投影的 operation 前端不做呈现限制（服务端授权继续 fail closed）。
 - 账号/角色列表支持关键字过滤与分页；角色权限与账号角色保存遇到 409 时展示 added/removed 差异并重新加载最新版本（不静默丢弃未保存选择）；Organization 分配使用 `expectedVersion` 乐观锁并在冲突时重载。
 
+## 业务 mutation 请求身份（076）
+
+- 全部业务模块（IAM/Organization/Navigation）的写操作均要求 `webuiSession` 认证：mutation 请求必须携带 `Origin`（同源）与 `X-CSRF-Token`（来自当前 Session），缺失或失效由服务端 403 `csrf_invalid` 拒绝。模块前端统一使用「加载 Session 时 remember csrfToken → mutation headers」模式（先例 `internal/module/iam/binding/webui/web/api.ts`，076 起 Organization 页面对齐）。
+
 ## 设置中心 8 分区与 SPA 导航（072）
 
 - 设置套件细化为 8 分区：Profile（主页资料表单，IAM 自服务 updateProfile 乐观锁）、Account（用户名 + 两步软注销，`self/archive` 复用归档语义）、Security（改密）、Appearance、Notifications、Language（写宿主语言键并重载）、About、Acknowledgement；页内 SectionNav 全列、全局菜单五项。

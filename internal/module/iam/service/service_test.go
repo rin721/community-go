@@ -226,7 +226,7 @@ func TestConcurrentOwnerDisableCannotRemoveEveryActiveOwner(t *testing.T) {
 	close(start)
 	<-results
 	<-results
-	accounts, err := iam.ListAccounts(t.Context(), 0, 20, "")
+	accounts, err := iam.ListAccounts(t.Context(), 0, 20, repo.AccountFilter{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -267,6 +267,13 @@ func newService(t *testing.T) (*service.Service, database.Resource) {
 
 func serviceForResource(t *testing.T, resource database.Resource, definitions []permissioncatalog.Definition) *service.Service {
 	t.Helper()
+	return serviceForResourceWithPolicy(t, resource, definitions, model.DefaultPasswordPolicy())
+}
+
+// serviceForResourceWithPolicy 使用显式密码策略构造 IAM Service，便于验证
+// 配置化策略（076）在创建/重置/修改密码路径上的生效语义。
+func serviceForResourceWithPolicy(t *testing.T, resource database.Resource, definitions []permissioncatalog.Definition, policy model.PasswordPolicy) *service.Service {
+	t.Helper()
 	store := storeForResource(t, resource)
 	catalog, err := permissioncatalog.BuildCatalog(definitions...)
 	if err != nil {
@@ -276,7 +283,7 @@ func serviceForResource(t *testing.T, resource database.Resource, definitions []
 	if err != nil {
 		t.Fatal(err)
 	}
-	iam, err := service.New(store, clock.Fixed(time.Date(2026, 8, 22, 1, 0, 0, 0, time.UTC)), idgen.UUID(), passwordadapter.Hasher{}, service.Config{SetupToken: "setup-secret", IdleTimeout: 30 * time.Minute, AbsoluteTimeout: 12 * time.Hour, MaxFailedAttempts: 3, LockDuration: 15 * time.Minute}, catalog, runtime)
+	iam, err := service.New(store, clock.Fixed(time.Date(2026, 8, 22, 1, 0, 0, 0, time.UTC)), idgen.UUID(), passwordadapter.Hasher{}, service.Config{SetupToken: "setup-secret", IdleTimeout: 30 * time.Minute, AbsoluteTimeout: 12 * time.Hour, MaxFailedAttempts: 3, LockDuration: 15 * time.Minute, PasswordPolicy: policy}, catalog, runtime)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -442,13 +449,14 @@ func TestSessionListingAndSelectiveRevocation(t *testing.T) {
 	}
 	accountID := first.Identity.AccountID
 
-	items, err := iam.ListSessions(t.Context(), accountID)
+	result, err := iam.ListSessions(t.Context(), accountID, 0, 100, service.SessionListAll)
 	if err != nil {
 		t.Fatal(err)
 	}
+	items := result.Items
 	// Setup 也创建了一个会话，因此共 3 个。
-	if len(items) != 3 {
-		t.Fatalf("session list = %d, want 3", len(items))
+	if len(items) != 3 || result.Total != 3 {
+		t.Fatalf("session list = %d (total %d), want 3", len(items), result.Total)
 	}
 	// 摘要视图不泄露明文 SessionID。
 	for _, item := range items {
@@ -498,10 +506,11 @@ func TestSessionListingAndSelectiveRevocation(t *testing.T) {
 	}
 
 	// 吊销剩余全部会话后 second 也失效。
-	remaining, err := iam.ListSessions(t.Context(), accountID)
+	remainingResult, err := iam.ListSessions(t.Context(), accountID, 0, 100, service.SessionListAll)
 	if err != nil {
 		t.Fatal(err)
 	}
+	remaining := remainingResult.Items
 	hashes := make([]string, 0, len(remaining))
 	for _, item := range remaining {
 		hashes = append(hashes, item.IDHash)
@@ -613,7 +622,7 @@ func TestWriteOperationAuditRecordsFailureWithoutBlocking(t *testing.T) {
 func TestSessionListRejectsUnknownAccount(t *testing.T) {
 	iam, resource := newService(t)
 	defer resource.Close()
-	if _, err := iam.ListSessions(t.Context(), "missing-account"); !errors.Is(err, repo.ErrNotFound) {
+	if _, err := iam.ListSessions(t.Context(), "missing-account", 0, 20, service.SessionListAll); !errors.Is(err, repo.ErrNotFound) {
 		t.Fatalf("unknown account session list error = %v", err)
 	}
 }
@@ -637,7 +646,7 @@ func TestAccountInfoUpdateRenamesAndRevokesSessions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	accounts, err := iam.ListAccounts(t.Context(), 0, 20, "")
+	accounts, err := iam.ListAccounts(t.Context(), 0, 20, repo.AccountFilter{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -800,7 +809,7 @@ func TestArchiveRoleRevokesPermissionAndSessions(t *testing.T) {
 		t.Fatalf("member session after role archive = %v", err)
 	}
 	// 归档角色不可再分配。
-	accounts, err := iam.ListAccounts(t.Context(), 0, 20, "")
+	accounts, err := iam.ListAccounts(t.Context(), 0, 20, repo.AccountFilter{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -846,7 +855,7 @@ func TestUpdateSelfProfilePersistsProfileWithOptimisticLock(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	accounts, err := iam.ListAccounts(t.Context(), 0, 10, "")
+	accounts, err := iam.ListAccounts(t.Context(), 0, 10, repo.AccountFilter{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -911,5 +920,240 @@ func TestSelfArchiveRequiresTwoStepConfirmation(t *testing.T) {
 	}
 	if err := iam.ConfirmSelfArchive(t.Context(), session.Identity.AccountID, ownerConfirmation); !errors.Is(err, model.ErrOwnerInvariant) {
 		t.Fatalf("archive last owner confirm error = %v", err)
+	}
+}
+
+// TestReverseMembershipQueries 验证角色→账号、权限键→角色反向查询（076 G2）：
+// 分页 total、未知角色 404 语义、未知权限键拒绝。
+func TestReverseMembershipQueries(t *testing.T) {
+	iam, resource := newService(t)
+	defer resource.Close()
+	if _, err := iam.Setup(t.Context(), "setup-secret", "owner", "Owner", "123456789012345"); err != nil {
+		t.Fatal(err)
+	}
+	member, err := iam.CreateAccount(t.Context(), "member", "成员", "123456789012345")
+	if err != nil {
+		t.Fatal(err)
+	}
+	editor, err := iam.CreateRole(t.Context(), "editor", "编辑器", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := iam.ReplaceAccountRoles(t.Context(), member.ID, 1, []string{editor.ID}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := iam.ReplaceRolePermissions(t.Context(), editor.ID, 1, []permissioncatalog.Key{iampermission.SelfRead}); err != nil {
+		t.Fatal(err)
+	}
+	accounts, err := iam.ListAccountsForRole(t.Context(), editor.ID, 0, 20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if accounts.Total != 1 || len(accounts.Items) != 1 || accounts.Items[0].ID != member.ID {
+		t.Fatalf("role accounts = %#v", accounts)
+	}
+	roles, err := iam.ListRolesForPermission(t.Context(), iampermission.SelfRead, 0, 20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Setup 时 owner 角色拥有全部当前目录权限（054 语义），因此 editor 与 owner 都命中。
+	if roles.Total != 2 || len(roles.Items) != 2 || roles.Items[0].ID != editor.ID {
+		t.Fatalf("permission roles = %#v", roles)
+	}
+	if _, err := iam.ListRolesForPermission(t.Context(), "unknown:key", 0, 20); !errors.Is(err, service.ErrUnknownPermission) {
+		t.Fatalf("unknown permission error = %v", err)
+	}
+	if _, err := iam.ListAccountsForRole(t.Context(), "missing-role", 0, 20); !errors.Is(err, repo.ErrNotFound) {
+		t.Fatalf("unknown role error = %v", err)
+	}
+}
+
+// TestListSessionsPaginationAndStatusFilter 验证会话列表分页与 active/revoked 过滤
+// （076 G3）：total 与列表同条件、分页生效、吊销后过滤翻转、未知状态拒绝。
+func TestListSessionsPaginationAndStatusFilter(t *testing.T) {
+	iam, resource := newService(t)
+	defer resource.Close()
+	first, err := iam.Setup(t.Context(), "setup-secret", "owner", "Owner", "123456789012345")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := iam.Login(t.Context(), "owner", "123456789012345"); err != nil {
+		t.Fatal(err)
+	}
+	accountID := first.Identity.AccountID
+	active, err := iam.ListSessions(t.Context(), accountID, 0, 1, service.SessionListActive)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if active.Total != 2 || len(active.Items) != 1 || active.Limit != 1 {
+		t.Fatalf("active page = %#v", active)
+	}
+	revoked, err := iam.ListSessions(t.Context(), accountID, 0, 100, service.SessionListRevoked)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if revoked.Total != 0 || len(revoked.Items) != 0 {
+		t.Fatalf("revoked before any revocation = %#v", revoked)
+	}
+	all, err := iam.ListSessions(t.Context(), accountID, 0, 100, service.SessionListAll)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if all.Total != 2 || len(all.Items) != 2 {
+		t.Fatalf("all sessions = %#v", all)
+	}
+	// 吊销其中一个会话后 active/revoked 过滤各自翻转。
+	if _, err := iam.RevokeSessions(t.Context(), accountID, []string{all.Items[0].IDHash}); err != nil {
+		t.Fatal(err)
+	}
+	activeAfter, err := iam.ListSessions(t.Context(), accountID, 0, 100, service.SessionListActive)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if activeAfter.Total != 1 {
+		t.Fatalf("active after revoke = %d", activeAfter.Total)
+	}
+	revokedAfter, err := iam.ListSessions(t.Context(), accountID, 0, 100, service.SessionListRevoked)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if revokedAfter.Total != 1 {
+		t.Fatalf("revoked after revoke = %d", revokedAfter.Total)
+	}
+	if _, err := iam.ListSessions(t.Context(), accountID, 0, 100, service.SessionListStatus("bogus")); err == nil {
+		t.Fatal("unknown session status must be rejected")
+	}
+}
+
+// TestListAccountsMultiFilter 验证账号列表 status/archived/roleId 多维过滤（076 G4），
+// Count 与 List 同语义、无过滤时保持既有行为。
+func TestListAccountsMultiFilter(t *testing.T) {
+	iam, resource := newService(t)
+	defer resource.Close()
+	if _, err := iam.Setup(t.Context(), "setup-secret", "owner", "Owner", "123456789012345"); err != nil {
+		t.Fatal(err)
+	}
+	member, err := iam.CreateAccount(t.Context(), "member", "成员", "123456789012345")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := iam.CreateAccount(t.Context(), "third", "Third", "123456789012345"); err != nil {
+		t.Fatal(err)
+	}
+	plain, err := iam.ListAccounts(t.Context(), 0, 100, repo.AccountFilter{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if plain.Total != 3 {
+		t.Fatalf("plain list total = %d", plain.Total)
+	}
+	// status=disabled
+	if err := iam.SetAccountStatus(t.Context(), member.ID, model.AccountDisabled); err != nil {
+		t.Fatal(err)
+	}
+	disabled, err := iam.ListAccounts(t.Context(), 0, 100, repo.AccountFilter{Status: string(model.AccountDisabled)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if disabled.Total != 1 || disabled.Items[0].ID != member.ID {
+		t.Fatalf("disabled filter = %#v", disabled)
+	}
+	// archived=true
+	if err := iam.ArchiveAccount(t.Context(), member.ID); err != nil {
+		t.Fatal(err)
+	}
+	archivedTrue := true
+	archived, err := iam.ListAccounts(t.Context(), 0, 100, repo.AccountFilter{Archived: &archivedTrue})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if archived.Total != 1 || archived.Items[0].ID != member.ID {
+		t.Fatalf("archived filter = %#v", archived)
+	}
+	// roleId=owner 角色只匹配 setup 账号。
+	roles, err := iam.ListRoles(t.Context(), 0, 100, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ownerRoleID := ""
+	for _, role := range roles.Items {
+		if role.Code == model.OwnerRoleCode {
+			ownerRoleID = role.ID
+		}
+	}
+	if ownerRoleID == "" {
+		t.Fatal("owner role not found")
+	}
+	byOwner, err := iam.ListAccounts(t.Context(), 0, 100, repo.AccountFilter{RoleID: ownerRoleID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if byOwner.Total != 1 || byOwner.Items[0].Username != "owner" {
+		t.Fatalf("roleId filter = %#v", byOwner)
+	}
+}
+
+// newPolicyService 使用显式密码策略构造 IAM Service（076 G5）。
+func newPolicyService(t *testing.T, policy model.PasswordPolicy) *service.Service {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "iam.db")
+	cfg := database.DefaultConfig()
+	cfg.Driver = database.DriverSQLite
+	cfg.DSN = path
+	runner, err := dbmigrate.New(t.Context(), dbmigrate.Config{Database: cfg, LockTimeout: 5 * time.Second}, migrationbinding.Set())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := runner.Up(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	if err := runner.Close(); err != nil {
+		t.Fatal(err)
+	}
+	resource, err := database.NewGORM(t.Context(), &cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = resource.Close() })
+	return serviceForResourceWithPolicy(t, resource, iampermission.Definitions(), policy)
+}
+
+// TestPasswordPolicyMinMaxApplied 验证自定义最小/最大长度在创建与修改密码路径生效（076 G5）。
+func TestPasswordPolicyMinMaxApplied(t *testing.T) {
+	iam := newPolicyService(t, model.PasswordPolicy{MinLength: 8, MaxLength: 20})
+	if _, err := iam.Setup(t.Context(), "setup-secret", "owner", "Owner", "1234567"); !errors.Is(err, model.ErrInvalidPassword) {
+		t.Fatalf("setup below-min password error = %v", err)
+	}
+	owner, err := iam.Setup(t.Context(), "setup-secret", "owner", "Owner", "12345678")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := iam.CreateAccount(t.Context(), "member", "成员", "123456789012345678901"); !errors.Is(err, model.ErrInvalidPassword) {
+		t.Fatalf("create above-max password error = %v", err)
+	}
+	if _, err := iam.CreateAccount(t.Context(), "member", "成员", "12345678"); err != nil {
+		t.Fatal(err)
+	}
+	session, err := iam.Login(t.Context(), "owner", "12345678")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := iam.ChangePassword(t.Context(), owner.Identity.AccountID, "12345678", "123456789012345678901"); !errors.Is(err, model.ErrInvalidPassword) {
+		t.Fatalf("change to above-max password error = %v", err)
+	}
+	if err := iam.ChangePassword(t.Context(), session.Identity.AccountID, "12345678", "abcdefgh123"); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestPasswordPolicyComplexityOption 验证复杂度开关：开启后必须同时包含大写、
+// 小写与数字（076 G5）；默认关闭时不要求复杂度（既有存量兼容）。
+func TestPasswordPolicyComplexityOption(t *testing.T) {
+	iam := newPolicyService(t, model.PasswordPolicy{MinLength: 8, MaxLength: 128, RequireComplexity: true})
+	if _, err := iam.Setup(t.Context(), "setup-secret", "owner", "Owner", "abcdefgh"); !errors.Is(err, model.ErrInvalidPassword) {
+		t.Fatalf("setup non-complex password error = %v", err)
+	}
+	if _, err := iam.Setup(t.Context(), "setup-secret", "owner", "Owner", "Abcd1234"); err != nil {
+		t.Fatal(err)
 	}
 }

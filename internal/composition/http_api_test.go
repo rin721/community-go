@@ -1,6 +1,11 @@
 package composition
 
-import "testing"
+import (
+	"strings"
+	"testing"
+
+	"github.com/rin721/go-scaffold-template/internal/transport/http/humabinding"
+)
 
 func TestApplicationHTTPRegistrationsAreComplete(t *testing.T) {
 	blueprint, err := newApplicationBlueprint()
@@ -8,16 +13,23 @@ func TestApplicationHTTPRegistrationsAreComplete(t *testing.T) {
 		t.Fatal(err)
 	}
 	definitions := blueprint.httpDefinitions
-	if len(definitions) != 41 {
+	if len(definitions) != 43 {
 		t.Fatalf("operation count = %d", len(definitions))
 	}
 	seen := make(map[string]struct{}, len(definitions))
 	for _, definition := range definitions {
 		seen[definition.ID] = struct{}{}
 	}
-	for _, id := range []string{"iam.setup", "navigation.menus.update", "organization.departments.update", "completeTodo", "auth.audit.list", "iam.sessions.list", "iam.sessions.revoke", "iam.accounts.update", "iam.accounts.archive", "iam.roles.update", "iam.roles.archive", "iam.self.profile.update", "iam.self.archive", "iam.self.archive.confirm"} {
+	for _, id := range []string{"iam.setup", "navigation.menus.update", "organization.departments.update", "completeTodo", "auth.audit.list", "iam.sessions.list", "iam.sessions.revoke", "iam.accounts.update", "iam.accounts.archive", "iam.roles.update", "iam.roles.archive", "iam.self.profile.update", "iam.self.archive", "iam.self.archive.confirm", "iam.roles.accounts.list", "iam.permissions.roles.list"} {
 		if _, ok := seen[id]; !ok {
 			t.Fatalf("missing operation %q", id)
+		}
+	}
+	// 076：Organization 全部 operation 必须使用 webuiSession 认证 profile（与
+	// IAM/Navigation/Auth 一致），保证托管模式下 org 页面经 Session 闭环可达。
+	for _, definition := range definitions {
+		if strings.HasPrefix(definition.ID, "organization.") && definition.Security != humabinding.SecurityWebUISession {
+			t.Fatalf("organization operation %q security = %q, want webuiSession", definition.ID, definition.Security)
 		}
 	}
 }

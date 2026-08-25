@@ -175,7 +175,7 @@ components:
           type: string
         newPassword:
           maxLength: 128
-          minLength: 15
+          minLength: 1
           type: string
       required:
         - currentPassword
@@ -190,7 +190,7 @@ components:
           type: string
         password:
           maxLength: 128
-          minLength: 15
+          minLength: 1
           type: string
         username:
           maxLength: 64
@@ -572,7 +572,7 @@ components:
       properties:
         password:
           maxLength: 128
-          minLength: 15
+          minLength: 1
           type: string
       required:
         - password
@@ -866,7 +866,7 @@ components:
           type: string
         password:
           maxLength: 128
-          minLength: 15
+          minLength: 1
           type: string
         setupToken:
           maxLength: 512
@@ -1185,6 +1185,25 @@ paths:
           name: query
           schema:
             maxLength: 128
+            type: string
+        - explode: false
+          in: query
+          name: status
+          schema:
+            enum:
+              - active
+              - disabled
+            type: string
+        - explode: false
+          in: query
+          name: archived
+          schema:
+            type: boolean
+        - explode: false
+          in: query
+          name: roleId
+          schema:
+            maxLength: 36
             type: string
       responses:
         "200":
@@ -1559,6 +1578,55 @@ paths:
         - webuiSession: []
       tags:
         - IAM
+  /api/v1/iam/permissions/roles:
+    get:
+      operationId: iam.permissions.roles.list
+      parameters:
+        - explode: false
+          in: query
+          name: key
+          schema:
+            maxLength: 128
+            minLength: 1
+            type: string
+        - explode: false
+          in: query
+          name: offset
+          schema:
+            default: 0
+            format: int64
+            minimum: 0
+            type: integer
+        - explode: false
+          in: query
+          name: limit
+          schema:
+            default: 20
+            format: int64
+            maximum: 100
+            minimum: 1
+            type: integer
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListResponseRoleResponse"
+          description: OK
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      security:
+        - webuiSession: []
+      tags:
+        - IAM
   /api/v1/iam/roles:
     get:
       operationId: iam.roles.list
@@ -1678,6 +1746,53 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RoleResponse"
+          description: OK
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      security:
+        - webuiSession: []
+      tags:
+        - IAM
+  /api/v1/iam/roles/{id}/accounts:
+    get:
+      operationId: iam.roles.accounts.list
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - explode: false
+          in: query
+          name: offset
+          schema:
+            default: 0
+            format: int64
+            minimum: 0
+            type: integer
+        - explode: false
+          in: query
+          name: limit
+          schema:
+            default: 20
+            format: int64
+            maximum: 100
+            minimum: 1
+            type: integer
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListResponseAccountResponse"
           description: OK
           headers:
             Cache-Control:
@@ -1980,6 +2095,32 @@ paths:
           name: accountId
           schema:
             type: string
+        - explode: false
+          in: query
+          name: offset
+          schema:
+            default: 0
+            format: int64
+            minimum: 0
+            type: integer
+        - explode: false
+          in: query
+          name: limit
+          schema:
+            default: 20
+            format: int64
+            maximum: 100
+            minimum: 1
+            type: integer
+        - explode: false
+          in: query
+          name: status
+          schema:
+            enum:
+              - all
+              - active
+              - revoked
+            type: string
       responses:
         "200":
           content:
@@ -2165,7 +2306,7 @@ paths:
                 $ref: "#/components/schemas/ErrorModel"
           description: Error
       security:
-        - bearerAuth: []
+        - webuiSession: []
       tags:
         - Organization
     put:
@@ -2177,6 +2318,16 @@ paths:
           schema:
             maxLength: 36
             minLength: 1
+            type: string
+        - in: header
+          name: Origin
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
             type: string
       requestBody:
         content:
@@ -2198,7 +2349,7 @@ paths:
                 $ref: "#/components/schemas/ErrorModel"
           description: Error
       security:
-        - bearerAuth: []
+        - webuiSession: []
       tags:
         - Organization
   /api/v1/organization/departments:
@@ -2245,11 +2396,22 @@ paths:
                 $ref: "#/components/schemas/ErrorModel"
           description: Error
       security:
-        - bearerAuth: []
+        - webuiSession: []
       tags:
         - Organization
     post:
       operationId: organization.departments.create
+      parameters:
+        - in: header
+          name: Origin
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
+            type: string
       requestBody:
         content:
           application/json:
@@ -2270,7 +2432,7 @@ paths:
                 $ref: "#/components/schemas/ErrorModel"
           description: Error
       security:
-        - bearerAuth: []
+        - webuiSession: []
       tags:
         - Organization
   /api/v1/organization/departments/tree:
@@ -2299,7 +2461,7 @@ paths:
                 $ref: "#/components/schemas/ErrorModel"
           description: Error
       security:
-        - bearerAuth: []
+        - webuiSession: []
       tags:
         - Organization
   /api/v1/organization/departments/{id}:
@@ -2312,6 +2474,16 @@ paths:
           schema:
             maxLength: 36
             minLength: 1
+            type: string
+        - in: header
+          name: Origin
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
             type: string
       requestBody:
         content:
@@ -2333,7 +2505,7 @@ paths:
                 $ref: "#/components/schemas/ErrorModel"
           description: Error
       security:
-        - bearerAuth: []
+        - webuiSession: []
       tags:
         - Organization
   /api/v1/organization/positions:
@@ -2380,11 +2552,22 @@ paths:
                 $ref: "#/components/schemas/ErrorModel"
           description: Error
       security:
-        - bearerAuth: []
+        - webuiSession: []
       tags:
         - Organization
     post:
       operationId: organization.positions.create
+      parameters:
+        - in: header
+          name: Origin
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
+            type: string
       requestBody:
         content:
           application/json:
@@ -2405,7 +2588,7 @@ paths:
                 $ref: "#/components/schemas/ErrorModel"
           description: Error
       security:
-        - bearerAuth: []
+        - webuiSession: []
       tags:
         - Organization
   /api/v1/organization/positions/{id}:
@@ -2418,6 +2601,16 @@ paths:
           schema:
             maxLength: 36
             minLength: 1
+            type: string
+        - in: header
+          name: Origin
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
             type: string
       requestBody:
         content:
@@ -2439,7 +2632,7 @@ paths:
                 $ref: "#/components/schemas/ErrorModel"
           description: Error
       security:
-        - bearerAuth: []
+        - webuiSession: []
       tags:
         - Organization
   /api/v1/todos:

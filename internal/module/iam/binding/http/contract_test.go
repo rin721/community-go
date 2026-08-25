@@ -17,6 +17,7 @@ import (
 	"github.com/rin721/go-scaffold-template/internal/module/iam/authorization"
 	migrationbinding "github.com/rin721/go-scaffold-template/internal/module/iam/binding/migration"
 	iampermission "github.com/rin721/go-scaffold-template/internal/module/iam/binding/permission"
+	"github.com/rin721/go-scaffold-template/internal/module/iam/model"
 	"github.com/rin721/go-scaffold-template/internal/module/iam/repo"
 	"github.com/rin721/go-scaffold-template/internal/module/iam/service"
 	permissioncatalog "github.com/rin721/go-scaffold-template/internal/permission"
@@ -205,7 +206,7 @@ func testService(t *testing.T) (*service.Service, database.Resource) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	iam, err := service.New(store, clock.Fixed(time.Date(2026, 8, 22, 1, 0, 0, 0, time.UTC)), idgen.UUID(), passwordadapter.Hasher{}, service.Config{SetupToken: "setup-secret", IdleTimeout: 30 * time.Minute, AbsoluteTimeout: 12 * time.Hour, MaxFailedAttempts: 3, LockDuration: 15 * time.Minute}, catalog, runtime)
+	iam, err := service.New(store, clock.Fixed(time.Date(2026, 8, 22, 1, 0, 0, 0, time.UTC)), idgen.UUID(), passwordadapter.Hasher{}, service.Config{SetupToken: "setup-secret", IdleTimeout: 30 * time.Minute, AbsoluteTimeout: 12 * time.Hour, MaxFailedAttempts: 3, LockDuration: 15 * time.Minute, PasswordPolicy: model.DefaultPasswordPolicy()}, catalog, runtime)
 	if err != nil {
 		t.Fatal(err)
 	}

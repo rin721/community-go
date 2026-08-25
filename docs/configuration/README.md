@@ -56,7 +56,7 @@ go run ./cmd/app config init --output .data/generated-config.yaml
 | `messaging` | Application Messaging Component | 命名 Provider、逻辑 Route、confirm/handoff/恢复与 RabbitMQ topology 要求 |
 | `todo` | Todo 模块 | Todo 业务约束 |
 | `auth` | Auth 模块 | development-anonymous 或 JWT 鉴权配置 |
-| `iam` | IAM 模块 | 本地 setup、登录锁定和 Session timeout 安全预算 |
+| `iam` | IAM 模块 | 本地 setup、登录锁定、Session timeout 安全预算与密码策略（`local.passwordPolicy`：`minLength`/`maxLength` 默认 15/128、`requireComplexity` 默认 false） |
 | `http` | Kernel HTTP composition | 业务 HTTP listener 与请求治理 |
 | `management` | Ops 模块 | management listener、readiness、metrics access |
 | `observability` | Kernel Observability composition | service name、tracing exporter 与采样参数 |

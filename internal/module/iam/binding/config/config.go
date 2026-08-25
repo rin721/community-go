@@ -12,19 +12,36 @@ import (
 
 const configPath = "iam"
 
+// PasswordPolicy 是 IAM 本地密码强度策略配置；字段语义见 model.PasswordPolicy。
+type PasswordPolicy struct {
+	MinLength         int  `mapstructure:"minLength"`
+	MaxLength         int  `mapstructure:"maxLength"`
+	RequireComplexity bool `mapstructure:"requireComplexity"`
+}
+
 type Local struct {
-	SetupToken        string        `mapstructure:"setupToken"`
-	IdleTimeout       time.Duration `mapstructure:"idleTimeout"`
-	AbsoluteTimeout   time.Duration `mapstructure:"absoluteTimeout"`
-	MaxFailedAttempts int           `mapstructure:"maxFailedAttempts"`
-	LockDuration      time.Duration `mapstructure:"lockDuration"`
+	SetupToken        string         `mapstructure:"setupToken"`
+	IdleTimeout       time.Duration  `mapstructure:"idleTimeout"`
+	AbsoluteTimeout   time.Duration  `mapstructure:"absoluteTimeout"`
+	MaxFailedAttempts int            `mapstructure:"maxFailedAttempts"`
+	LockDuration      time.Duration  `mapstructure:"lockDuration"`
+	PasswordPolicy    PasswordPolicy `mapstructure:"passwordPolicy"`
 }
 type Config struct {
 	Local Local `mapstructure:"local"`
 }
 
+// defaultPasswordPolicy 与 model 默认策略（15/128、不要求复杂度）保持一致，
+// 保证既有配置与存量账号兼容；这里显式声明，避免配置包反向依赖业务 model。
+const (
+	defaultPasswordMinLength = 15
+	defaultPasswordMaxLength = 128
+	// maxPasswordMaxLength 是密码最大长度的防御性配置上限。
+	maxPasswordMaxLength = 128
+)
+
 func Default() Config {
-	return Config{Local: Local{IdleTimeout: 30 * time.Minute, AbsoluteTimeout: 12 * time.Hour, MaxFailedAttempts: 5, LockDuration: 15 * time.Minute}}
+	return Config{Local: Local{IdleTimeout: 30 * time.Minute, AbsoluteTimeout: 12 * time.Hour, MaxFailedAttempts: 5, LockDuration: 15 * time.Minute, PasswordPolicy: PasswordPolicy{MinLength: defaultPasswordMinLength, MaxLength: defaultPasswordMaxLength}}}
 }
 func Binding() config.Binding {
 	return config.Binding{CapabilityID: "module.iam", ConfigPath: configPath, Contract: defaults{}, Validate: func(snapshot config.Snapshot) error { _, err := Decode(snapshot); return err }}
@@ -36,6 +53,10 @@ func Decode(snapshot config.Snapshot) (Config, error) {
 	}
 	if value.Local.IdleTimeout <= 0 || value.Local.AbsoluteTimeout <= value.Local.IdleTimeout || value.Local.MaxFailedAttempts <= 0 || value.Local.LockDuration <= 0 {
 		return Config{}, fmt.Errorf("iam local security budgets are invalid")
+	}
+	policy := value.Local.PasswordPolicy
+	if policy.MinLength < 1 || policy.MaxLength < policy.MinLength || policy.MaxLength > maxPasswordMaxLength {
+		return Config{}, fmt.Errorf("iam password policy is invalid")
 	}
 	return value, nil
 }
@@ -53,6 +74,10 @@ func (defaults) Defaults(ctx context.Context) (config.Object, config.Control, er
 	return config.Object{config.FieldOf("local", config.ObjectValue(config.Object{
 		config.FieldOf("setupToken", config.String(v.Local.SetupToken)), config.FieldOf("idleTimeout", config.Duration(v.Local.IdleTimeout)), config.FieldOf("absoluteTimeout", config.Duration(v.Local.AbsoluteTimeout)),
 		config.FieldOf("maxFailedAttempts", mustNumber(v.Local.MaxFailedAttempts)), config.FieldOf("lockDuration", config.Duration(v.Local.LockDuration)),
+		config.FieldOf("passwordPolicy", config.ObjectValue(config.Object{
+			config.FieldOf("minLength", mustNumber(v.Local.PasswordPolicy.MinLength)), config.FieldOf("maxLength", mustNumber(v.Local.PasswordPolicy.MaxLength)),
+			config.FieldOf("requireComplexity", config.Bool(v.Local.PasswordPolicy.RequireComplexity)),
+		})),
 	}))}, config.Continue, nil
 }
 func mustNumber(value int) config.Value {

@@ -25,6 +25,8 @@ const (
 	OperationIamLogin                       OperationID = "iam.login"
 	OperationIamLogout                      OperationID = "iam.logout"
 	OperationIamPermissionsList             OperationID = "iam.permissions.list"
+	OperationIamPermissionsRolesList        OperationID = "iam.permissions.roles.list"
+	OperationIamRolesAccountsList           OperationID = "iam.roles.accounts.list"
 	OperationIamRolesArchive                OperationID = "iam.roles.archive"
 	OperationIamRolesCreate                 OperationID = "iam.roles.create"
 	OperationIamRolesList                   OperationID = "iam.roles.list"
@@ -69,6 +71,8 @@ var operationInventory = [...]Operation{
 	{ID: OperationIamLogin, Method: "POST", Path: "/api/v1/iam/login", Policy: "public", Scope: "", Action: ""},
 	{ID: OperationIamLogout, Method: "POST", Path: "/api/v1/iam/logout", Policy: "protected", Scope: "iam:account:self:read", Action: "iam.logout"},
 	{ID: OperationIamPermissionsList, Method: "GET", Path: "/api/v1/iam/permissions", Policy: "protected", Scope: "iam:permission:read", Action: "iam.permissions.list"},
+	{ID: OperationIamPermissionsRolesList, Method: "GET", Path: "/api/v1/iam/permissions/roles", Policy: "protected", Scope: "iam:permission:read", Action: "iam.permissions.roles.list"},
+	{ID: OperationIamRolesAccountsList, Method: "GET", Path: "/api/v1/iam/roles/{id}/accounts", Policy: "protected", Scope: "iam:role:read", Action: "iam.roles.accounts.list"},
 	{ID: OperationIamRolesArchive, Method: "POST", Path: "/api/v1/iam/roles/{id}/archive", Policy: "protected", Scope: "iam:role:write", Action: "iam.roles.archive"},
 	{ID: OperationIamRolesCreate, Method: "POST", Path: "/api/v1/iam/roles", Policy: "protected", Scope: "iam:role:write", Action: "iam.roles.create"},
 	{ID: OperationIamRolesList, Method: "GET", Path: "/api/v1/iam/roles", Policy: "protected", Scope: "iam:role:read", Action: "iam.roles.list"},

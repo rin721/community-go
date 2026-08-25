@@ -7,6 +7,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	iampermission "github.com/rin721/go-scaffold-template/internal/module/iam/binding/permission"
 	"github.com/rin721/go-scaffold-template/internal/module/iam/model"
+	"github.com/rin721/go-scaffold-template/internal/module/iam/repo"
 	"github.com/rin721/go-scaffold-template/internal/module/iam/service"
 	permissioncatalog "github.com/rin721/go-scaffold-template/internal/permission"
 	"github.com/rin721/go-scaffold-template/internal/transport/http/humabinding"
@@ -29,13 +30,31 @@ type setupInput struct {
 		SetupToken  string `json:"setupToken" minLength:"1" maxLength:"512"`
 		Username    string `json:"username" minLength:"3" maxLength:"64"`
 		DisplayName string `json:"displayName" minLength:"1" maxLength:"128"`
-		Password    string `json:"password" minLength:"15" maxLength:"128"`
+		Password    string `json:"password" minLength:"1" maxLength:"128"`
 	}
 }
 type pageInput struct {
 	Offset int    `query:"offset" minimum:"0" default:"0"`
 	Limit  int    `query:"limit" minimum:"1" maximum:"100" default:"20"`
 	Query  string `query:"query" maxLength:"128"`
+}
+type accountsListInput struct {
+	Offset   int                       `query:"offset" minimum:"0" default:"0"`
+	Limit    int                       `query:"limit" minimum:"1" maximum:"100" default:"20"`
+	Query    string                    `query:"query" maxLength:"128"`
+	Status   humabinding.Optional[string] `query:"status" enum:"active,disabled"`
+	Archived humabinding.Optional[bool]   `query:"archived"`
+	RoleID   string                    `query:"roleId" maxLength:"36"`
+}
+type roleAccountsInput struct {
+	ID     string `path:"id"`
+	Offset int    `query:"offset" minimum:"0" default:"0"`
+	Limit  int    `query:"limit" minimum:"1" maximum:"100" default:"20"`
+}
+type permissionRolesInput struct {
+	Key    string `query:"key" minLength:"1" maxLength:"128"`
+	Offset int    `query:"offset" minimum:"0" default:"0"`
+	Limit  int    `query:"limit" minimum:"1" maximum:"100" default:"20"`
 }
 type idInput struct {
 	ID string `path:"id"`
@@ -54,7 +73,7 @@ type createAccountInput struct {
 	Body      struct {
 		Username    string `json:"username" minLength:"3" maxLength:"64"`
 		DisplayName string `json:"displayName" minLength:"1" maxLength:"128"`
-		Password    string `json:"password" minLength:"15" maxLength:"128"`
+		Password    string `json:"password" minLength:"1" maxLength:"128"`
 	}
 }
 type statusInput struct {
@@ -84,7 +103,7 @@ type passwordInput struct {
 	Origin    string `header:"Origin" required:"true"`
 	CSRFToken string `header:"X-CSRF-Token" required:"true"`
 	Body      struct {
-		Password string `json:"password" minLength:"15" maxLength:"128"`
+		Password string `json:"password" minLength:"1" maxLength:"128"`
 	}
 }
 
@@ -113,7 +132,7 @@ type changePasswordInput struct {
 	CSRFToken string `header:"X-CSRF-Token" required:"true"`
 	Body      struct {
 		CurrentPassword string `json:"currentPassword" minLength:"1" maxLength:"128"`
-		NewPassword     string `json:"newPassword" minLength:"15" maxLength:"128"`
+		NewPassword     string `json:"newPassword" minLength:"1" maxLength:"128"`
 	}
 }
 type updateSelfProfileInput struct {
@@ -154,6 +173,19 @@ type updateRoleInput struct {
 		Name                string `json:"name" minLength:"1" maxLength:"128"`
 		Description         string `json:"description" maxLength:"1024"`
 	}
+}
+
+// accountFilter 把账号列表 HTTP 过滤参数转换为 repo typed 过滤条件；
+// 空参数保持与既有无过滤语义一致。
+func accountFilter(input *accountsListInput) repo.AccountFilter {
+	filter := repo.AccountFilter{Query: input.Query, RoleID: input.RoleID}
+	if status := input.Status.Pointer(); status != nil {
+		filter.Status = *status
+	}
+	if archived := input.Archived.Pointer(); archived != nil {
+		filter.Archived = archived
+	}
+	return filter
 }
 
 type sessionOutputEnvelope struct {
@@ -272,8 +304,8 @@ func RegisterHuma(api huma.API, handler *Handler) {
 		return &emptyOutput{}, nil
 	})
 
-	// 会话集中管理：列表（自助/管理员按账号）与批量吊销。
-	// 列表返回摘要视图（IDHash hex），不泄露明文 SessionID。
+	// 会话集中管理：列表（自助/管理员按账号，支持分页与 active/revoked/all 过滤）
+	// 与批量吊销。列表返回摘要视图（IDHash hex），不泄露明文 SessionID。
 	huma.Register(api, protected(opSessionList, http.MethodGet, "/api/v1/iam/sessions", string(iampermission.SelfRead), "list"), func(ctx context.Context, in *sessionListInput) (*jsonOutput[listResponse[sessionInfoResponse]], error) {
 		accountID := in.AccountID
 		if accountID == "" {
@@ -283,12 +315,12 @@ func RegisterHuma(api huma.API, handler *Handler) {
 			}
 			accountID = current.Identity.AccountID
 		}
-		items, err := handler.service.ListSessions(ctx, accountID)
+		result, err := handler.service.ListSessions(ctx, accountID, in.Offset, in.Limit, service.SessionListStatus(in.Status))
 		if err != nil {
 			return nil, problem(ctx, err)
 		}
-		output := make([]sessionInfoResponse, len(items))
-		for index, item := range items {
+		output := make([]sessionInfoResponse, len(result.Items))
+		for index, item := range result.Items {
 			output[index] = sessionInfoResponse{
 				IDHash: item.IDHash, AccountID: item.AccountID,
 				CreatedAt: item.CreatedAt, LastSeenAt: item.LastSeenAt,
@@ -296,7 +328,7 @@ func RegisterHuma(api huma.API, handler *Handler) {
 				RevokedAt: item.RevokedAt,
 			}
 		}
-		return jsonEnvelope(listResponse[sessionInfoResponse]{Items: output, Offset: 0, Limit: len(output), Total: int64(len(output))}), nil
+		return jsonEnvelope(listResponse[sessionInfoResponse]{Items: output, Offset: result.Offset, Limit: result.Limit, Total: result.Total}), nil
 	})
 	revoke := protected(opSessionRevoke, http.MethodPost, "/api/v1/iam/sessions/revoke", string(iampermission.AccountWrite), "revoke")
 	revoke.DefaultStatus = http.StatusNoContent
@@ -316,8 +348,8 @@ func RegisterHuma(api huma.API, handler *Handler) {
 		return &emptyOutput{}, nil
 	})
 
-	huma.Register(api, protected(opAccounts, http.MethodGet, "/api/v1/iam/accounts", string(iampermission.AccountRead), "list"), func(ctx context.Context, in *pageInput) (*jsonOutput[listResponse[accountResponse]], error) {
-		result, err := handler.service.ListAccounts(ctx, in.Offset, in.Limit, in.Query)
+	huma.Register(api, protected(opAccounts, http.MethodGet, "/api/v1/iam/accounts", string(iampermission.AccountRead), "list"), func(ctx context.Context, in *accountsListInput) (*jsonOutput[listResponse[accountResponse]], error) {
+		result, err := handler.service.ListAccounts(ctx, in.Offset, in.Limit, accountFilter(in))
 		if err != nil {
 			return nil, problem(ctx, err)
 		}
@@ -422,6 +454,30 @@ func RegisterHuma(api huma.API, handler *Handler) {
 			items[i] = permissionResponse{string(item.Key), string(item.OwnerModuleID), item.DescriptionMessageID}
 		}
 		return jsonEnvelope(items), nil
+	})
+	// 反向影响分析（076）：角色→持有账号、权限键→使用角色；只读、分页，
+	// 权限复用既有 role:read / permission:read，不新增权限键。
+	huma.Register(api, protected(opRoleAccountsRead, http.MethodGet, "/api/v1/iam/roles/{id}/accounts", string(iampermission.RoleRead), "read"), func(ctx context.Context, in *roleAccountsInput) (*jsonOutput[listResponse[accountResponse]], error) {
+		result, err := handler.service.ListAccountsForRole(ctx, in.ID, in.Offset, in.Limit)
+		if err != nil {
+			return nil, problem(ctx, err)
+		}
+		items := make([]accountResponse, len(result.Items))
+		for index, item := range result.Items {
+			items[index] = accountOutput(item)
+		}
+		return jsonEnvelope(listResponse[accountResponse]{Items: items, Offset: result.Offset, Limit: result.Limit, Total: result.Total}), nil
+	})
+	huma.Register(api, protected(opPermissionRolesRead, http.MethodGet, "/api/v1/iam/permissions/roles", string(iampermission.PermissionRead), "list"), func(ctx context.Context, in *permissionRolesInput) (*jsonOutput[listResponse[roleResponse]], error) {
+		result, err := handler.service.ListRolesForPermission(ctx, permissioncatalog.Key(in.Key), in.Offset, in.Limit)
+		if err != nil {
+			return nil, problem(ctx, err)
+		}
+		items := make([]roleResponse, len(result.Items))
+		for index, item := range result.Items {
+			items[index] = roleOutput(item)
+		}
+		return jsonEnvelope(listResponse[roleResponse]{Items: items, Offset: result.Offset, Limit: result.Limit, Total: result.Total}), nil
 	})
 }
 

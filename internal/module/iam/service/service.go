@@ -104,6 +104,9 @@ type Config struct {
 	LockDuration                 time.Duration
 	// ArchiveConfirmationTTL 是软注销两步确认的有效期（072）；零值使用默认值。
 	ArchiveConfirmationTTL time.Duration
+	// PasswordPolicy 是创建/重置/修改密码时的强度策略；由配置注入并在
+	// New 构造时校验冻结（076），不与运行期配置联动。
+	PasswordPolicy model.PasswordPolicy
 }
 type Session struct {
 	ID, CSRFToken                                           string
@@ -211,6 +214,9 @@ func New(store *repo.Store, currentClock clock.Clock, ids idgen.Generator, passw
 	if config.IdleTimeout <= 0 || config.AbsoluteTimeout <= config.IdleTimeout || config.MaxFailedAttempts <= 0 || config.LockDuration <= 0 {
 		return nil, fmt.Errorf("iam service security budgets are invalid")
 	}
+	if config.PasswordPolicy.MinLength < 1 || config.PasswordPolicy.MaxLength < config.PasswordPolicy.MinLength {
+		return nil, fmt.Errorf("iam service password policy is invalid")
+	}
 	dummy, err := passwords.Hash("fixed-cost-dummy-password")
 	if err != nil {
 		return nil, fmt.Errorf("create iam fixed-cost verifier: %w", err)
@@ -222,7 +228,7 @@ func (s *Service) Setup(ctx context.Context, setupToken, username, displayName, 
 	if strings.TrimSpace(s.config.SetupToken) == "" || subtle.ConstantTimeCompare([]byte(setupToken), []byte(s.config.SetupToken)) != 1 {
 		return Session{}, ErrInvalidCredentials
 	}
-	if err := model.ValidatePassword(password); err != nil {
+	if err := model.ValidatePasswordWith(password, s.config.PasswordPolicy); err != nil {
 		return Session{}, err
 	}
 	hash, err := s.passwords.Hash(password)
@@ -248,7 +254,7 @@ func (s *Service) Setup(ctx context.Context, setupToken, username, displayName, 
 	}
 	var result Session
 	err = s.authorizeMutation(ctx, func(txCtx context.Context, r *repo.Unit) (bool, error) {
-		count, err := r.CountAccounts(txCtx)
+		count, err := r.CountAccounts(txCtx, repo.AccountFilter{})
 		if err != nil {
 			return false, err
 		}
@@ -383,7 +389,7 @@ func (s *Service) Login(ctx context.Context, username, password string) (Session
 // Compatible 在监听器启动前校验已有 IAM 状态与当前精确权限目录相容；空库保留 setup 入口。
 func (s *Service) Compatible(ctx context.Context) error {
 	return s.store.Use(ctx, func(r *repo.Unit) error {
-		count, err := r.CountAccounts(ctx)
+		count, err := r.CountAccounts(ctx, repo.AccountFilter{})
 		if err != nil {
 			return err
 		}
@@ -425,7 +431,7 @@ func (s *Service) Compatible(ctx context.Context) error {
 // 现有 owner Session 失效；无新增权限时为 no-op，不 bump revision。
 func (s *Service) ReconcileOwnerCatalog(ctx context.Context) error {
 	return s.authorizeMutation(ctx, func(txCtx context.Context, r *repo.Unit) (bool, error) {
-		count, err := r.CountAccounts(txCtx)
+		count, err := r.CountAccounts(txCtx, repo.AccountFilter{})
 		if err != nil || count == 0 {
 			return false, err
 		}
@@ -566,7 +572,7 @@ func (s *Service) ValidateCSRF(ctx context.Context, sessionID, token string) err
 }
 
 func (s *Service) ChangePassword(ctx context.Context, accountID, currentPassword, newPassword string) error {
-	if err := model.ValidatePassword(newPassword); err != nil {
+	if err := model.ValidatePasswordWith(newPassword, s.config.PasswordPolicy); err != nil {
 		return err
 	}
 	hash, err := s.passwords.Hash(newPassword)
@@ -601,7 +607,7 @@ func credentialVerificationError(err error) error {
 	return errors.Join(ErrInvalidCredentials, fmt.Errorf("verify stored password credential: %w", err))
 }
 func (s *Service) ResetPassword(ctx context.Context, accountID, newPassword string) error {
-	if err := model.ValidatePassword(newPassword); err != nil {
+	if err := model.ValidatePasswordWith(newPassword, s.config.PasswordPolicy); err != nil {
 		return err
 	}
 	hash, err := s.passwords.Hash(newPassword)
@@ -628,7 +634,7 @@ func (s *Service) ResetPassword(ctx context.Context, accountID, newPassword stri
 }
 
 func (s *Service) CreateAccount(ctx context.Context, username, displayName, password string) (model.Account, error) {
-	if err := model.ValidatePassword(password); err != nil {
+	if err := model.ValidatePasswordWith(password, s.config.PasswordPolicy); err != nil {
 		return model.Account{}, err
 	}
 	hash, err := s.passwords.Hash(password)
@@ -654,7 +660,7 @@ func (s *Service) CreateAccount(ctx context.Context, username, displayName, pass
 	s.auditOperation(ctx, "iam.accounts.create", "create", "account", account.ID, err)
 	return account, err
 }
-func (s *Service) ListAccounts(ctx context.Context, offset, limit int, query string) (AccountList, error) {
+func (s *Service) ListAccounts(ctx context.Context, offset, limit int, filter repo.AccountFilter) (AccountList, error) {
 	offset, limit, err := normalizePage(offset, limit)
 	if err != nil {
 		return AccountList{}, err
@@ -663,15 +669,11 @@ func (s *Service) ListAccounts(ctx context.Context, offset, limit int, query str
 	var total int64
 	err = s.store.Use(ctx, func(r *repo.Unit) error {
 		var listErr error
-		if strings.TrimSpace(query) == "" {
-			total, listErr = r.CountAccounts(ctx)
-		} else {
-			total, listErr = r.CountAccountsMatching(ctx, query)
-		}
+		total, listErr = r.CountAccounts(ctx, filter)
 		if listErr != nil {
 			return listErr
 		}
-		records, listErr = r.ListAccounts(ctx, offset, limit, query)
+		records, listErr = r.ListAccounts(ctx, offset, limit, filter)
 		return listErr
 	})
 	items := make([]model.Account, len(records))
@@ -679,6 +681,62 @@ func (s *Service) ListAccounts(ctx context.Context, offset, limit int, query str
 		items[i] = modelAccount(v)
 	}
 	return AccountList{Items: items, Offset: offset, Limit: limit, Total: total}, err
+}
+
+// ListAccountsForRole 返回拥有指定活跃角色的账号（分页）；用于角色归档/权限
+// 变更前的影响分析。角色不存在时向上返回 not found；只读查询不改变授权状态。
+func (s *Service) ListAccountsForRole(ctx context.Context, roleID string, offset, limit int) (AccountList, error) {
+	offset, limit, err := normalizePage(offset, limit)
+	if err != nil {
+		return AccountList{}, err
+	}
+	var records []repo.AccountRecord
+	var total int64
+	err = s.store.Use(ctx, func(r *repo.Unit) error {
+		if _, roleErr := r.RoleByID(ctx, roleID); roleErr != nil {
+			return roleErr
+		}
+		var countErr error
+		total, countErr = r.CountAccountRolesByRole(ctx, roleID)
+		if countErr != nil {
+			return countErr
+		}
+		records, countErr = r.ListAccountsByRole(ctx, roleID, offset, limit)
+		return countErr
+	})
+	items := make([]model.Account, len(records))
+	for index, record := range records {
+		items[index] = modelAccount(record)
+	}
+	return AccountList{Items: items, Offset: offset, Limit: limit, Total: total}, err
+}
+
+// ListRolesForPermission 返回拥有指定活跃权限键的角色（分页）；用于权限键退役
+// /审计前的影响分析。未知权限键返回 ErrUnknownPermission；只读查询不改变授权状态。
+func (s *Service) ListRolesForPermission(ctx context.Context, key permissioncatalog.Key, offset, limit int) (RoleList, error) {
+	if _, ok := s.catalog.Lookup(key); !ok {
+		return RoleList{}, fmt.Errorf("%w: %s", ErrUnknownPermission, key)
+	}
+	offset, limit, err := normalizePage(offset, limit)
+	if err != nil {
+		return RoleList{}, err
+	}
+	var records []repo.RoleRecord
+	var total int64
+	err = s.store.Use(ctx, func(r *repo.Unit) error {
+		var countErr error
+		total, countErr = r.CountRolePermissionsByKey(ctx, string(key))
+		if countErr != nil {
+			return countErr
+		}
+		records, countErr = r.ListRolesByPermissionKey(ctx, string(key), offset, limit)
+		return countErr
+	})
+	items := make([]model.Role, len(records))
+	for index, record := range records {
+		items[index] = modelRole(record)
+	}
+	return RoleList{Items: items, Offset: offset, Limit: limit, Total: total}, err
 }
 
 func (s *Service) ResetPasswordByUsername(ctx context.Context, username, newPassword string) error {
@@ -1331,23 +1389,55 @@ type SessionInfo struct {
 	RevokedAt                                               *time.Time
 }
 
-// ListSessions 返回账号的全部受信 Session 元数据视图（含已吊销标记）。
-func (s *Service) ListSessions(ctx context.Context, accountID string) ([]SessionInfo, error) {
+// SessionList 是会话集中管理列表的分页结果。
+type SessionList struct {
+	Items         []SessionInfo
+	Offset, Limit int
+	Total         int64
+}
+
+// SessionListStatus 是会话列表的状态过滤类目。
+type SessionListStatus string
+
+const (
+	// SessionListAll 返回该账号全部会话（默认，含已吊销）。
+	SessionListAll SessionListStatus = "all"
+	// SessionListActive 仅返回未吊销且按服务端时钟未过 idle/absolute 过期的会话。
+	SessionListActive SessionListStatus = "active"
+	// SessionListRevoked 仅返回已吊销会话。
+	SessionListRevoked SessionListStatus = "revoked"
+)
+
+// ListSessions 分页返回账号的受信 Session 元数据视图（含已吊销标记）；
+// status 决定过滤语义（active/revoked/all），total 与列表使用同一过滤条件。
+func (s *Service) ListSessions(ctx context.Context, accountID string, offset, limit int, status SessionListStatus) (SessionList, error) {
 	if strings.TrimSpace(accountID) == "" {
-		return nil, ErrSessionInvalid
+		return SessionList{}, ErrSessionInvalid
 	}
+	offset, limit, err := normalizePage(offset, limit)
+	if err != nil {
+		return SessionList{}, err
+	}
+	activeOnly, revokedOnly, err := sessionStatusFilter(status)
+	if err != nil {
+		return SessionList{}, err
+	}
+	now := s.clock.Now().UTC()
 	var records []repo.SessionRecord
-	err := s.store.Use(ctx, func(r *repo.Unit) error {
-		account, err := r.AccountByID(ctx, accountID)
+	var total int64
+	err = s.store.Use(ctx, func(r *repo.Unit) error {
+		if _, err := r.AccountByID(ctx, accountID); err != nil {
+			return err
+		}
+		total, err = r.CountSessionsByAccount(ctx, accountID, now, activeOnly, revokedOnly)
 		if err != nil {
 			return err
 		}
-		_ = account
-		records, err = r.ListSessionsByAccount(ctx, accountID)
+		records, err = r.ListSessionsByAccount(ctx, accountID, now, activeOnly, revokedOnly, offset, limit)
 		return err
 	})
 	if err != nil {
-		return nil, err
+		return SessionList{}, err
 	}
 	items := make([]SessionInfo, len(records))
 	for index, record := range records {
@@ -1358,7 +1448,21 @@ func (s *Service) ListSessions(ctx context.Context, accountID string) ([]Session
 			RevokedAt: record.RevokedAt,
 		}
 	}
-	return items, nil
+	return SessionList{Items: items, Offset: offset, Limit: limit, Total: total}, nil
+}
+
+// sessionStatusFilter 把会话列表状态类目映射为 repo 过滤语义；未知类目拒绝。
+func sessionStatusFilter(status SessionListStatus) (activeOnly, revokedOnly bool, err error) {
+	switch status {
+	case SessionListAll, "":
+		return false, false, nil
+	case SessionListActive:
+		return true, false, nil
+	case SessionListRevoked:
+		return false, true, nil
+	default:
+		return false, false, fmt.Errorf("iam session list status %q is unknown", status)
+	}
 }
 
 // RevokeSessions 按 idHash 摘要批量吊销指定账号的受信 Session；摘要无法

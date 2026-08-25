@@ -50,6 +50,10 @@ func buildMetrics(ctx context.Context, _ struct{}, _ struct{}) (*metricsResource
 			return nil, fmt.Errorf("register %s metric: %w", name, err)
 		}
 	}
+	// 进程级监控（081）：注册 prometheus 官方 Go/Process collector，暴露
+	// go_goroutines、go_memstats_*、process_cpu_seconds_total、
+	// process_resident_memory_bytes、process_start_time_seconds 等标准指标。
+	result.registry.MustRegister(prometheus.NewGoCollector(), prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}))
 	return result, nil
 }
 

@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"runtime"
 	"sync"
+	"time"
 
 	"github.com/rin721/go-scaffold-template/internal/kernel"
 	"github.com/rin721/go-scaffold-template/internal/module/auth"
@@ -69,6 +71,7 @@ func (s *opsRuntimeSource) Snapshot(ctx context.Context) (opsmodel.RuntimeSnapsh
 		CleanupRequired:  generationDiagnostics.CleanupRequired,
 		LastFailurePhase: generationDiagnostics.LastFailurePhase, LastFailureOwner: generationDiagnostics.LastFailureOwner,
 		LastFailureType: generationDiagnostics.LastFailureType, Since: generationDiagnostics.Since,
+		Units: processDiagnostics.Units,
 	}
 	return result, nil
 }
@@ -117,7 +120,21 @@ func (s generationOpsSource) Snapshot(ctx context.Context) (opsmodel.RuntimeSnap
 		return opsmodel.RuntimeSnapshot{}, fmt.Errorf("read telemetry diagnostics: %w", diagnosticsErr)
 	}
 	result.Telemetry = telemetry
+	result.Process = sampleProcessState(result.Since)
 	return result, nil
+}
+
+// sampleProcessState 采样进程级运行状态（081）：标准库 runtime 只读指标，
+// uptime 以 supervisor 起始时间为基准（低敏、跨平台）。
+func sampleProcessState(since time.Time) opsmodel.ProcessSnapshot {
+	var memory runtime.MemStats
+	runtime.ReadMemStats(&memory)
+	sample := opsmodel.ProcessSnapshot{AllocBytes: memory.Alloc, SysBytes: memory.Sys, HeapAllocBytes: memory.HeapAlloc, NumGC: memory.NumGC}
+	sample.NumGoroutine = runtime.NumGoroutine()
+	if !since.IsZero() {
+		sample.UptimeSeconds = time.Since(since).Seconds()
+	}
+	return sample
 }
 
 func (s generationOpsSource) Readiness(ctx context.Context) (bool, bool, error) {

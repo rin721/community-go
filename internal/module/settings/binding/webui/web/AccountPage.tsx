@@ -14,15 +14,13 @@ export default function AccountPage() {
   useEffect(() => { void loadSession().then((session) => { setUsername(session.identity.username); setProfileSaved(session.identity.username !== ""); }).catch(() => undefined); }, []);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmationId, setConfirmationId] = useState("");
-  const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const requestClosure = () => {
     setMessage("");
     beginSelfArchive().then(({ confirmationId: id }) => { setConfirmationId(id); setConfirmOpen(true); }).catch(() => setMessage(t("webui.settings.error")));
   };
   const performClosure = () => {
-    setBusy(true);
-    void confirmSelfArchive(confirmationId).then(() => { setBusy(false); window.location.href = "/login"; }).catch(() => { setBusy(false); setMessage(t("webui.settings.error")); });
+    void confirmSelfArchive(confirmationId).then(() => { window.location.href = "/login"; }).catch(() => setMessage(t("webui.settings.error")));
   };
   return <div className={`${styles.settingsModule} module-page`}>
     

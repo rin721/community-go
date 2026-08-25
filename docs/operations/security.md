@@ -75,6 +75,10 @@ IAM 在 composition 提供普通 WebUI 业务 mutation 共用的窄 Origin/CSRF 
 
 安全运营基线告警基于既有认证/写操作边界（`alerting` 配置节，默认关闭）：账号锁定（critical）、连续认证失败、MFA 连续失败、敏感权限写操作（账号/角色归档、账号角色或角色权限替换、API 令牌创建/轮换/吊销/禁用/启用）触发低敏 Webhook 事件（`pkg/alerting` → `application.alerting` kernel 组件：有界异步队列 + 单 worker、可选 HMAC-SHA256 签名、超时/重试/合并窗口）。告警事件不携带 token、密码、IP 全文、URL query 与配置密钥；URL 与签名密钥为配置秘密不进入日志/审计；投递失败只记录稳定类目（不阻断业务与审计）。连续失败计数为进程内窗口（多实例不跨副本合并，与限流同边界）。动态风险控制（来源 IP/设备指纹/地理数据源、风险档位与 MFA/告警联动）设计已归档为后续立项依据（R079-002），未实施。
 
+## 可观测性低敏边界（081）
+
+运行监控（`/diagnostics`、`/metrics`、Ops「监控」分区）只暴露低敏状态：进程内存/goroutine/GC/uptime、supervisor unit 名称与状态、调度执行计数、消息消费计数；不含凭据、路径、URL query、subject、队列内容或配置快照。OS 级（CPU/磁盘/网络）由宿主机 Prometheus node-exporter 按部署方安全策略接入（不进入进程内采集）。management 鉴权沿用（AccessMode protected 下需 management scope）。
+
 ## 账号与角色生命周期（066）
 
 - 账号/角色资料更新与归档共用 `iam:account:write` / `iam:role:write` 权限键与既有乐观并发（版本 409）语义；账号改名与归档属安全变更，成功变更在事务内 bump SecurityRevision 并撤销该账号全部 Session。

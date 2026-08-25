@@ -78,6 +78,11 @@ Linux 使用 `bash scripts/verify-webui.sh`。质量链覆盖生成检查、冻�
 
 - 全部业务模块（IAM/Organization/Navigation）的写操作均要求 `webuiSession` 认证：mutation 请求必须携带 `Origin`（同源）与 `X-CSRF-Token`（来自当前 Session），缺失或失效由服务端 403 `csrf_invalid` 拒绝。模块前端统一使用「加载 Session 时 remember csrfToken → mutation headers」模式（先例 `internal/module/iam/binding/webui/web/api.ts`，076 起 Organization 页面对齐）。
 
+## 图表原语与运行监控（081）
+
+- `webui/src/ui` 新增**自研 SVG 图表原语** `Sparkline`/`LineChart`（零第三方依赖、多系列/空数据态/aria-label、Vitest 覆盖），任何模块可复用；复杂交互图表（缩放/联动）出现时再评估引入图表库。
+- Ops Dashboard 新增「监控」分区：进程级服务器状态卡（内存/goroutine/GC/uptime，来自 `/diagnostics.process` 与 `/metrics` 的 Go/Process collector）+ 组件状态卡（supervisor units，`diagnostics.units`）+ 时序报表图（请求速率/在途/内存/goroutine，前端滚动窗口约 5s×60 点轮询累积，重启即空）。仅在 available 状态下挂载（degraded 路由保持既有能力边界）。OS 级指标由宿主机 Prometheus node-exporter 补齐（运维文档指引）。
+
 ## 安全页：MFA 与 API 令牌（078/080）
 
 - 设置中心「安全」页（`settings/.../SecurityPage.tsx`）新增 **MFA/TOTP 区块**（绑定显示 otpauth URI、确认激活展示一次性恢复码、禁用需验证码/恢复码复核）；080 起 API 令牌区块降级为**入口与摘要**（数量/最近使用 + 跳转）。

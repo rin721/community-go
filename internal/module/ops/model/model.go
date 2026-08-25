@@ -7,6 +7,7 @@ import (
 	pkgmessaging "github.com/rin721/go-scaffold-template/pkg/messaging"
 	"github.com/rin721/go-scaffold-template/pkg/observability"
 	pkgschedule "github.com/rin721/go-scaffold-template/pkg/schedule"
+	"github.com/rin721/go-scaffold-template/pkg/supervisor"
 )
 
 // ProbeKind 是管理端点支持的有限探针集合。
@@ -60,7 +61,22 @@ type RuntimeSnapshot struct {
 	SchedulerHealth   string                    `json:"schedulerHealth"`
 	Messaging         pkgmessaging.Diagnostics  `json:"messaging"`
 	MessagingHealth   string                    `json:"messagingHealth"`
-	Since             time.Time                 `json:"since"`
+	// Process 是进程级运行状态（081）：标准库 runtime 采样，低敏。
+	Process ProcessSnapshot `json:"process"`
+	// Units 是 supervisor 监督单元摘要（participants + tasks，081）。
+	Units []supervisor.UnitSnapshot `json:"units,omitempty"`
+	Since time.Time                 `json:"since"`
+}
+
+// ProcessSnapshot 是进程级服务器状态（081）：内存、goroutine、GC 与启动时长，
+// 全部来自标准库 runtime，跨平台且低敏。
+type ProcessSnapshot struct {
+	AllocBytes     uint64  `json:"allocBytes"`
+	SysBytes       uint64  `json:"sysBytes"`
+	HeapAllocBytes uint64  `json:"heapAllocBytes"`
+	NumGoroutine   int     `json:"numGoroutine"`
+	NumGC          uint32  `json:"numGC"`
+	UptimeSeconds  float64 `json:"uptimeSeconds"`
 }
 
 // Probe 是公开探针的最小响应，不包含内部失败细节。

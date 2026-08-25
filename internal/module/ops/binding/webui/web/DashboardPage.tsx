@@ -6,6 +6,7 @@ import type { CapabilityState } from "@webui/sdk/runtime";
 import { booleanCapabilityState, healthCapabilityState, readBuildSnapshot, readRuntimeSnapshot, type RuntimeSnapshot } from "./dashboard-data";
 import { readMetricsSnapshot, type MetricsSnapshot } from "./metrics-data";
 import { opsOperations, operationCapabilityState, refreshNoticeTone } from "./operations";
+import { MonitoringSection } from "./monitoring-section";
 import { resolveManagementSource, type ManagementSource } from "./environment";
 import styles from "./ops.module.css";
 
@@ -119,6 +120,7 @@ export default function DashboardPage() {
     <div className="page-sections">
       <CapabilityBanner state={sourceUnreachable ? "unavailable" : overallState} statusLabel={t(`webui.ops.dashboard.${sourceUnreachable ? "unavailable" : overallState}`)} title={sourceUnreachable ? t("webui.ops.dashboard.source.unreachable.title") : hasPending ? t("webui.ops.dashboard.loadingTitle") : requiredFailedCount > 0 ? t("webui.ops.dashboard.unavailableTitle", { count: requiredFailedCount }) : optionalFailedCount > 0 ? t("webui.ops.dashboard.degradedTitle", { count: optionalFailedCount }) : t("webui.ops.dashboard.availableTitle")} detail={sourceUnreachable ? t("webui.ops.dashboard.source.unreachable.detail") : hasPending ? t("webui.ops.dashboard.loadingDetail") : requiredFailedCount > 0 ? t("webui.ops.dashboard.unavailableDetail") : optionalFailedCount > 0 ? t("webui.ops.dashboard.degradedDetail") : t("webui.ops.dashboard.availableDetail")} />
       {renderOverview()}
+      {overallState === "available" && <MonitoringSection />}
       {renderGroup(true)}
       {renderGroup(false)}
     </div>

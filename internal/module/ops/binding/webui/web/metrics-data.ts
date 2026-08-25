@@ -5,11 +5,21 @@ export type MetricsSnapshot = {
   droppedSpans?: number;
 };
 
+
+export type RuntimeMetrics = {
+  goroutines?: number;
+  residentMemoryBytes?: number;
+  startTimeSeconds?: number;
+};
+
 const metricNames = {
   requestCount: "app_http_requests_total",
   inFlightRequests: "app_http_in_flight_requests",
   exportedSpans: "app_telemetry_exported_spans_total",
   droppedSpans: "app_telemetry_dropped_spans_total",
+  goroutines: "go_goroutines",
+  residentMemoryBytes: "process_resident_memory_bytes",
+  startTimeSeconds: "process_start_time_seconds",
 } as const;
 
 function readMetricValue(payload: string, metricName: string): number | undefined {
@@ -34,5 +44,15 @@ export function readMetricsSnapshot(value: unknown): MetricsSnapshot | undefined
     inFlightRequests: readMetricValue(value, metricNames.inFlightRequests),
     exportedSpans: readMetricValue(value, metricNames.exportedSpans),
     droppedSpans: readMetricValue(value, metricNames.droppedSpans),
+  };
+}
+
+// readRuntimeMetrics parses the process-level metrics (081).
+export function readRuntimeMetrics(value: unknown): RuntimeMetrics | undefined {
+  if (typeof value !== "string") return undefined;
+  return {
+    goroutines: readMetricValue(value, metricNames.goroutines),
+    residentMemoryBytes: readMetricValue(value, metricNames.residentMemoryBytes),
+    startTimeSeconds: readMetricValue(value, metricNames.startTimeSeconds),
   };
 }

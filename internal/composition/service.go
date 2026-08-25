@@ -137,9 +137,10 @@ func applicationRouter(
 	}
 	switch httpConfig.RateLimit.Mode {
 	case httpx.RateLimitModeLocal:
-		rateLimiter, rateErr := httpx.NewRateLimiterWithBurst(
+		rateLimiter, rateErr := httpx.NewPathRateLimiter(
 			httpConfig.RateLimit.RequestsPerSecond,
 			httpConfig.RateLimit.Burst,
+			httpConfig.RateLimit.Routes,
 		)
 		if rateErr != nil {
 			return nil, fmt.Errorf("compose HTTP rate limiter: %w", rateErr)

@@ -205,7 +205,7 @@ func serviceError(err error) error {
 		return statusError(http.StatusTooManyRequests, "account_locked", err)
 	case errors.Is(err, service.ErrAccountDisabled):
 		return statusError(http.StatusForbidden, "account_disabled", err)
-	case errors.Is(err, service.ErrSetupClosed), errors.Is(err, model.ErrOwnerInvariant), errors.Is(err, service.ErrImmutableOwner), errors.Is(err, service.ErrUnknownPermission), errors.Is(err, service.ErrVersionConflict), repo.IsDuplicate(err), repo.IsConflict(err):
+	case errors.Is(err, service.ErrSetupClosed), errors.Is(err, model.ErrOwnerInvariant), errors.Is(err, service.ErrImmutableOwner), errors.Is(err, service.ErrUnknownPermission), errors.Is(err, service.ErrVersionConflict), errors.Is(err, service.ErrPasswordReused), repo.IsDuplicate(err), repo.IsConflict(err):
 		return statusError(http.StatusConflict, "conflict", err)
 	case repo.IsNotFound(err):
 		return statusError(http.StatusNotFound, "not_found", err)

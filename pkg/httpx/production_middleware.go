@@ -464,6 +464,63 @@ func (r *RateLimiter) Middleware() Middleware {
 // OverloadLimiter 以非阻塞 semaphore 限制单进程 in-flight 请求。
 type OverloadLimiter struct{ slots chan struct{} }
 
+// PathRateLimiter 是带按路径覆盖规则的入口令牌桶：请求路径命中任意
+// RateLimitRoute 前缀时使用该路由的独立 token bucket，否则使用全局 bucket。
+// 路径规则用于登录/初始化等端点施加比全局更严的限流，不改变未命中请求的
+// 全局语义。
+type PathRateLimiter struct {
+	global *rate.Limiter
+	routes []pathRateLimit
+}
+
+type pathRateLimit struct {
+	prefix  string
+	limiter *rate.Limiter
+}
+
+// NewPathRateLimiter 构造全局与按路径规则限流器；routes 为空时仅全局生效。
+func NewPathRateLimiter(requestsPerSecond, burst int, routes []RateLimitRoute) (*PathRateLimiter, error) {
+	global, err := NewRateLimiterWithBurst(requestsPerSecond, burst)
+	if err != nil {
+		return nil, err
+	}
+	result := &PathRateLimiter{global: global.limiter}
+	for _, route := range routes {
+		limited, routeErr := NewRateLimiterWithBurst(route.RequestsPerSecond, route.Burst)
+		if routeErr != nil {
+			return nil, routeErr
+		}
+		result.routes = append(result.routes, pathRateLimit{prefix: route.Path, limiter: limited.limiter})
+	}
+	return result, nil
+}
+
+// Middleware 返回 HTTP 中间件；path 前缀命中路由规则时用路由 bucket。
+func (r *PathRateLimiter) Middleware() Middleware {
+	return func(next Handler) Handler {
+		return func(ctx *Context) error {
+			if r == nil || r.global == nil {
+				return fmt.Errorf("path rate limiter is nil")
+			}
+			if err := ctx.Request.Context().Err(); err != nil {
+				return err
+			}
+			limiter := r.global
+			path := ctx.Request.URL.Path
+			for _, route := range r.routes {
+				if strings.HasPrefix(path, route.prefix) {
+					limiter = route.limiter
+					break
+				}
+			}
+			if !limiter.Allow() {
+				return &StatusError{StatusCode: http.StatusTooManyRequests, Code: "rate_limited", Message: "local request rate exceeded", RetryAfter: 1}
+			}
+			return next(ctx)
+		}
+	}
+}
+
 // NewOverloadLimiter 创建不启动后台 goroutine 的并发门禁。
 func NewOverloadLimiter(maxInFlight int) (*OverloadLimiter, error) {
 	if maxInFlight <= 0 {

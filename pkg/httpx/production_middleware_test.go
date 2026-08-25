@@ -352,6 +352,40 @@ func TestRateAndOverloadLimitsFailWithoutQueueing(t *testing.T) {
 	}
 }
 
+func TestPathRateLimiterUsesRouteBuckets(t *testing.T) {
+	// 全局 1 rps / burst 1；登录路径 1 rps / burst 2（独立 bucket）。
+	limiter, err := NewPathRateLimiter(1, 1, []RateLimitRoute{{Path: "/api/v1/iam/login", RequestsPerSecond: 1, Burst: 2}})
+	if err != nil {
+		t.Fatalf("NewPathRateLimiter() error = %v", err)
+	}
+	router := NewRouter(nil)
+	router.Use(limiter.Middleware())
+	router.Handle(MethodPost, "/api/v1/iam/login", func(ctx *Context) error { return ctx.NoContent(http.StatusNoContent) })
+	router.Handle(MethodGet, "/other", func(ctx *Context) error { return ctx.NoContent(http.StatusNoContent) })
+
+	// 登录路径：burst 2 容纳前两个请求，第三个 429。
+	for index := 0; index < 2; index++ {
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, httptest.NewRequest(http.MethodPost, "/api/v1/iam/login", nil))
+		if recorder.Code != http.StatusNoContent {
+			t.Fatalf("login request %d status = %d", index, recorder.Code)
+		}
+	}
+	limited := httptest.NewRecorder()
+	router.ServeHTTP(limited, httptest.NewRequest(http.MethodPost, "/api/v1/iam/login", nil))
+	assertProblem(t, limited, http.StatusTooManyRequests, "rate_limited")
+
+	// 非登录路径走全局 bucket（burst 1）：第一个通过，第二个 429。
+	otherRecorder := httptest.NewRecorder()
+	router.ServeHTTP(otherRecorder, httptest.NewRequest(http.MethodGet, "/other", nil))
+	if otherRecorder.Code != http.StatusNoContent {
+		t.Fatalf("other request status = %d", otherRecorder.Code)
+	}
+	otherLimited := httptest.NewRecorder()
+	router.ServeHTTP(otherLimited, httptest.NewRequest(http.MethodGet, "/other", nil))
+	assertProblem(t, otherLimited, http.StatusTooManyRequests, "rate_limited")
+}
+
 func TestRateLimiterRejectsInvalidBudgetAndRefills(t *testing.T) {
 	for _, values := range [][2]int{{0, 1}, {1, 0}, {-1, 1}, {1, -1}} {
 		if _, err := NewRateLimiterWithBurst(values[0], values[1]); err == nil {

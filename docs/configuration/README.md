@@ -56,7 +56,7 @@ go run ./cmd/app config init --output .data/generated-config.yaml
 | `messaging` | Application Messaging Component | 命名 Provider、逻辑 Route、confirm/handoff/恢复与 RabbitMQ topology 要求 |
 | `todo` | Todo 模块 | Todo 业务约束 |
 | `auth` | Auth 模块 | development-anonymous 或 JWT 鉴权配置 |
-| `iam` | IAM 模块 | 本地 setup、登录锁定、Session timeout 安全预算与密码策略（`local.passwordPolicy`：`minLength`/`maxLength` 默认 15/128、`requireComplexity` 默认 false） |
+| `iam` | IAM 模块 | 本地 setup、登录锁定、Session timeout 安全预算、密码策略（`local.passwordPolicy`：`minLength`/`maxLength` 默认 15/128、`requireComplexity` 默认 false、`historySize`/`maxPasswordAge` 默认关闭）与会话上限（`local.maxSessionsPerAccount` 默认 0=不限，超限主动剔最旧） |
 | `http` | Kernel HTTP composition | 业务 HTTP listener 与请求治理 |
 | `management` | Ops 模块 | management listener、readiness、metrics access |
 | `observability` | Kernel Observability composition | service name、tracing exporter 与采样参数 |
@@ -74,7 +74,7 @@ Bootstrap CLI、migration one-shot、Todo CLI 和长期 Service 都必须识别�
 
 ## HTTP 入口保护
 
-`http.rateLimit.mode` 只接受 `local` 或 `disabled`。默认 `local` 使用当前 Application Generation 私有的进程级 token bucket，要求 `requestsPerSecond` 与 `burst` 都为正；reload 后新代从完整 burst 开始，旧代独立排空。`disabled` 只关闭速率门禁，`maxInFlight` 的非阻塞 503 过载门禁仍然生效。`100/200/128` 是待按真实容量和 SLO 校准的脚手架起点，不代表跨副本、按主体或按路由的业务 quota；management listener 不经过该 application 入口策略。
+`http.rateLimit.mode` 只接受 `local` 或 `disabled`。默认 `local` 使用当前 Application Generation 私有的进程级 token bucket，要求 `requestsPerSecond` 与 `burst` 都为正；reload 后新代从完整 burst 开始，旧代独立排空。`disabled` 只关闭速率门禁，`maxInFlight` 的非阻塞 503 过载门禁仍然生效。`http.rateLimit.routes` 是按路径前缀覆盖全局速率的可选规则（默认空=不启用）：命中路径使用独立 token bucket（如 `/api/v1/iam/login`、`/api/v1/iam/setup` 施加更严限流，与账号级锁定构成「IP+账号」双维度），未命中继续使用全局规则。`100/200/128` 是待按真实容量和 SLO 校准的脚手架起点，不代表跨副本、按主体或按路由的业务 quota；management listener 不经过该 application 入口策略。
 
 ## Tracing
 

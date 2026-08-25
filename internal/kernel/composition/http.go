@@ -68,6 +68,22 @@ func (httpDefaults) Defaults(ctx context.Context) (config.Object, config.Control
 	if err != nil {
 		return nil, config.Continue, err
 	}
+	routes := make([]config.Value, 0, len(value.RateLimit.Routes))
+	for _, route := range value.RateLimit.Routes {
+		routeRPS, rpsErr := config.Number(fmt.Sprintf("%d", route.RequestsPerSecond))
+		if rpsErr != nil {
+			return nil, config.Continue, rpsErr
+		}
+		routeBurst, burstErr := config.Number(fmt.Sprintf("%d", route.Burst))
+		if burstErr != nil {
+			return nil, config.Continue, burstErr
+		}
+		routes = append(routes, config.ObjectValue(config.Object{
+			config.FieldOf("path", config.String(route.Path)),
+			config.FieldOf("requestsPerSecond", routeRPS),
+			config.FieldOf("burst", routeBurst),
+		}))
+	}
 	return config.Object{
 		config.FieldOf("addr", config.String(value.Addr)),
 		config.FieldOf("readHeaderTimeout", config.Duration(value.ReadHeaderTimeout)),
@@ -83,6 +99,8 @@ func (httpDefaults) Defaults(ctx context.Context) (config.Object, config.Control
 			config.FieldOf("mode", config.String(string(value.RateLimit.Mode))),
 			config.FieldOf("requestsPerSecond", requestsPerSecond),
 			config.FieldOf("burst", burst),
+			// routes 是按路径前缀覆盖入口速率的可选规则；默认空即不启用。
+			config.FieldOf("routes", config.List(routes...)),
 		})),
 		config.FieldOf("cors", config.ObjectValue(config.Object{
 			config.FieldOf("allowedOrigins", httpStringList(value.CORS.AllowedOrigins)),

@@ -95,11 +95,16 @@ func NormalizeName(value string) (string, error) {
 
 // PasswordPolicy 是创建/重置/修改密码时的强度策略；由配置注入并在 Service
 // 构造时冻结。MinLength/MaxLength 按 rune 计数（与既有 ValidatePassword 一致）。
+// HistorySize/MaxPasswordAge 在 Service 层校验（需要数据库），model 只承载值。
 type PasswordPolicy struct {
 	MinLength int
 	MaxLength int
 	// RequireComplexity 开启时要求密码同时包含大写字母、小写字母与数字。
 	RequireComplexity bool
+	// HistorySize 启用时禁止新密码与最近 HistorySize 条历史口令相同（0=不启用）。
+	HistorySize int
+	// MaxPasswordAge 启用时口令超过该期限的账号登录后进入受限改密（0=不过期）。
+	MaxPasswordAge time.Duration
 }
 
 // DefaultPasswordPolicy 返回与既有硬编码语义一致的默认策略（15/128、不要求复杂度）。

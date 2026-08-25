@@ -14,18 +14,21 @@ const configPath = "iam"
 
 // PasswordPolicy 是 IAM 本地密码强度策略配置；字段语义见 model.PasswordPolicy。
 type PasswordPolicy struct {
-	MinLength         int  `mapstructure:"minLength"`
-	MaxLength         int  `mapstructure:"maxLength"`
-	RequireComplexity bool `mapstructure:"requireComplexity"`
+	MinLength         int           `mapstructure:"minLength"`
+	MaxLength         int           `mapstructure:"maxLength"`
+	RequireComplexity bool          `mapstructure:"requireComplexity"`
+	HistorySize       int           `mapstructure:"historySize"`
+	MaxPasswordAge    time.Duration `mapstructure:"maxPasswordAge"`
 }
 
 type Local struct {
-	SetupToken        string         `mapstructure:"setupToken"`
-	IdleTimeout       time.Duration  `mapstructure:"idleTimeout"`
-	AbsoluteTimeout   time.Duration  `mapstructure:"absoluteTimeout"`
-	MaxFailedAttempts int            `mapstructure:"maxFailedAttempts"`
-	LockDuration      time.Duration  `mapstructure:"lockDuration"`
-	PasswordPolicy    PasswordPolicy `mapstructure:"passwordPolicy"`
+	SetupToken           string         `mapstructure:"setupToken"`
+	IdleTimeout          time.Duration  `mapstructure:"idleTimeout"`
+	AbsoluteTimeout      time.Duration  `mapstructure:"absoluteTimeout"`
+	MaxFailedAttempts    int            `mapstructure:"maxFailedAttempts"`
+	LockDuration         time.Duration  `mapstructure:"lockDuration"`
+	PasswordPolicy       PasswordPolicy `mapstructure:"passwordPolicy"`
+	MaxSessionsPerAccount int           `mapstructure:"maxSessionsPerAccount"`
 }
 type Config struct {
 	Local Local `mapstructure:"local"`
@@ -54,9 +57,15 @@ func Decode(snapshot config.Snapshot) (Config, error) {
 	if value.Local.IdleTimeout <= 0 || value.Local.AbsoluteTimeout <= value.Local.IdleTimeout || value.Local.MaxFailedAttempts <= 0 || value.Local.LockDuration <= 0 {
 		return Config{}, fmt.Errorf("iam local security budgets are invalid")
 	}
+	if value.Local.MaxSessionsPerAccount < 0 {
+		return Config{}, fmt.Errorf("iam max sessions per account is invalid")
+	}
 	policy := value.Local.PasswordPolicy
 	if policy.MinLength < 1 || policy.MaxLength < policy.MinLength || policy.MaxLength > maxPasswordMaxLength {
 		return Config{}, fmt.Errorf("iam password policy is invalid")
+	}
+	if policy.HistorySize < 0 || policy.MaxPasswordAge < 0 {
+		return Config{}, fmt.Errorf("iam password history or age is invalid")
 	}
 	return value, nil
 }
@@ -74,9 +83,11 @@ func (defaults) Defaults(ctx context.Context) (config.Object, config.Control, er
 	return config.Object{config.FieldOf("local", config.ObjectValue(config.Object{
 		config.FieldOf("setupToken", config.String(v.Local.SetupToken)), config.FieldOf("idleTimeout", config.Duration(v.Local.IdleTimeout)), config.FieldOf("absoluteTimeout", config.Duration(v.Local.AbsoluteTimeout)),
 		config.FieldOf("maxFailedAttempts", mustNumber(v.Local.MaxFailedAttempts)), config.FieldOf("lockDuration", config.Duration(v.Local.LockDuration)),
+		config.FieldOf("maxSessionsPerAccount", mustNumber(v.Local.MaxSessionsPerAccount)),
 		config.FieldOf("passwordPolicy", config.ObjectValue(config.Object{
 			config.FieldOf("minLength", mustNumber(v.Local.PasswordPolicy.MinLength)), config.FieldOf("maxLength", mustNumber(v.Local.PasswordPolicy.MaxLength)),
 			config.FieldOf("requireComplexity", config.Bool(v.Local.PasswordPolicy.RequireComplexity)),
+			config.FieldOf("historySize", mustNumber(v.Local.PasswordPolicy.HistorySize)), config.FieldOf("maxPasswordAge", config.Duration(v.Local.PasswordPolicy.MaxPasswordAge)),
 		})),
 	}))}, config.Continue, nil
 }

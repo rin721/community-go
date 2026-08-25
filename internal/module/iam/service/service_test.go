@@ -1157,3 +1157,186 @@ func TestPasswordPolicyComplexityOption(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// newLimitService 使用显式口令策略与会话上限构造 IAM Service（077 P2）。
+func newLimitService(t *testing.T, policy model.PasswordPolicy, maxSessions int) *service.Service {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "iam.db")
+	cfg := database.DefaultConfig()
+	cfg.Driver = database.DriverSQLite
+	cfg.DSN = path
+	runner, err := dbmigrate.New(t.Context(), dbmigrate.Config{Database: cfg, LockTimeout: 5 * time.Second}, migrationbinding.Set())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := runner.Up(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	if err := runner.Close(); err != nil {
+		t.Fatal(err)
+	}
+	resource, err := database.NewGORM(t.Context(), &cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = resource.Close() })
+	store := storeForResource(t, resource)
+	catalog, err := permissioncatalog.BuildCatalog(iampermission.Definitions()...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	runtime, err := authorization.New(store, catalog)
+	if err != nil {
+		t.Fatal(err)
+	}
+	iam, err := service.New(store, clock.Fixed(time.Date(2026, 8, 22, 1, 0, 0, 0, time.UTC)), idgen.UUID(), passwordadapter.Hasher{}, service.Config{SetupToken: "setup-secret", IdleTimeout: 30 * time.Minute, AbsoluteTimeout: 12 * time.Hour, MaxFailedAttempts: 3, LockDuration: 15 * time.Minute, PasswordPolicy: policy, MaxSessionsPerAccount: maxSessions}, catalog, runtime)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return iam
+}
+
+// TestPasswordHistoryPreventsReuse 验证 historySize 启用后禁止复用最近 N 次口令，
+// 且裁剪后旧口令可重新使用（077 P1）。
+func TestPasswordHistoryPreventsReuse(t *testing.T) {
+	iam := newLimitService(t, model.PasswordPolicy{MinLength: 8, MaxLength: 128, HistorySize: 3}, 0)
+	if _, err := iam.Setup(t.Context(), "setup-secret", "owner", "Owner", "password01"); err != nil {
+		t.Fatal(err)
+	}
+	member, err := iam.CreateAccount(t.Context(), "member", "成员", "password01")
+	if err != nil {
+		t.Fatal(err)
+	}
+	session, err := iam.Login(t.Context(), "member", "password01")
+	if err != nil {
+		t.Fatal(err)
+	}
+	accountID := session.Identity.AccountID
+	if accountID != member.ID {
+		t.Fatalf("session account = %s, want %s", accountID, member.ID)
+	}
+	if err := iam.ChangePassword(t.Context(), accountID, "password01", "password02"); err != nil {
+		t.Fatal(err)
+	}
+	if err := iam.ChangePassword(t.Context(), accountID, "password02", "password03"); err != nil {
+		t.Fatal(err)
+	}
+	// 最近 3 条历史包含 password01/02/03，复用 password01 拒绝。
+	if err := iam.ChangePassword(t.Context(), accountID, "password03", "password01"); !errors.Is(err, service.ErrPasswordReused) {
+		t.Fatalf("reuse within history error = %v", err)
+	}
+	// 改到 password04 后历史裁剪为 [04,03,02]，password01 已移出最近 3 条，可复用。
+	if err := iam.ChangePassword(t.Context(), accountID, "password03", "password04"); err != nil {
+		t.Fatal(err)
+	}
+	if err := iam.ChangePassword(t.Context(), accountID, "password04", "password01"); err != nil {
+		t.Fatalf("reuse outside history should succeed: %v", err)
+	}
+}
+
+// TestPasswordAgeForcesRestrictedChange 验证 maxPasswordAge 到期后登录进入受限
+// 改密状态（MustChangePassword），改密后恢复普通会话（077 P1）。两个 Service
+// 共享同一数据库，用不同固定时钟构造「口令已过期」场景。
+func TestPasswordAgeForcesRestrictedChange(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "iam.db")
+	cfg := database.DefaultConfig()
+	cfg.Driver = database.DriverSQLite
+	cfg.DSN = path
+	runner, err := dbmigrate.New(t.Context(), dbmigrate.Config{Database: cfg, LockTimeout: 5 * time.Second}, migrationbinding.Set())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := runner.Up(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	if err := runner.Close(); err != nil {
+		t.Fatal(err)
+	}
+	resource, err := database.NewGORM(t.Context(), &cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = resource.Close() })
+	store := storeForResource(t, resource)
+	catalog, err := permissioncatalog.BuildCatalog(iampermission.Definitions()...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	runtime, err := authorization.New(store, catalog)
+	if err != nil {
+		t.Fatal(err)
+	}
+	makeService := func(now time.Time, policy model.PasswordPolicy) *service.Service {
+		iam, serviceErr := service.New(store, clock.Fixed(now), idgen.UUID(), passwordadapter.Hasher{}, service.Config{SetupToken: "setup-secret", IdleTimeout: 30 * time.Minute, AbsoluteTimeout: 12 * time.Hour, MaxFailedAttempts: 3, LockDuration: 15 * time.Minute, PasswordPolicy: policy}, catalog, runtime)
+		if serviceErr != nil {
+			t.Fatal(serviceErr)
+		}
+		return iam
+	}
+	base := makeService(time.Date(2026, 8, 22, 1, 0, 0, 0, time.UTC), model.PasswordPolicy{MinLength: 8, MaxLength: 128})
+	if _, err := base.Setup(t.Context(), "setup-secret", "owner", "Owner", "password01"); err != nil {
+		t.Fatal(err)
+	}
+	// 2 分钟后登录：口令 changed_at=01:00，maxPasswordAge=1m => 过期受限。
+	aged := makeService(time.Date(2026, 8, 22, 1, 2, 0, 0, time.UTC), model.PasswordPolicy{MinLength: 8, MaxLength: 128, MaxPasswordAge: time.Minute})
+	session, err := aged.Login(t.Context(), "owner", "password01")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !session.Identity.MustChangePassword {
+		t.Fatal("expired password login must be restricted")
+	}
+	// 改密后 changed_at=01:02，不再过期，恢复普通会话。
+	if err := aged.ChangePassword(t.Context(), session.Identity.AccountID, "password01", "password02"); err != nil {
+		t.Fatal(err)
+	}
+	after, err := aged.Login(t.Context(), "owner", "password02")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if after.Identity.MustChangePassword {
+		t.Fatal("password change must clear restricted state")
+	}
+}
+
+// TestMaxSessionsEvictsOldest 验证 maxSessionsPerAccount 启用后新登录主动吊销
+// 最旧 active 会话（077 P2），会话总数保持上限。
+func TestMaxSessionsEvictsOldest(t *testing.T) {
+	iam := newLimitService(t, model.PasswordPolicy{MinLength: 8, MaxLength: 128}, 2)
+	first, err := iam.Setup(t.Context(), "setup-secret", "owner", "Owner", "password01")
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := iam.Login(t.Context(), "owner", "password01")
+	if err != nil {
+		t.Fatal(err)
+	}
+	third, err := iam.Login(t.Context(), "owner", "password01")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 第三次登录时应主动剔一个最旧 active 会话（固定时钟下 created_at 相同，
+	// 由 id_hash 决定次序），new 会话永远不被踢；被踢会话 Resolve 失效。
+	if _, err := iam.Resolve(t.Context(), third.ID); err != nil {
+		t.Fatalf("newest session must survive eviction: %v", err)
+	}
+	evicted := 0
+	for _, id := range []string{first.ID, second.ID} {
+		if _, err := iam.Resolve(t.Context(), id); err != nil {
+			if !errors.Is(err, service.ErrSessionInvalid) {
+				t.Fatalf("session resolve error = %v", err)
+			}
+			evicted++
+		}
+	}
+	if evicted != 1 {
+		t.Fatalf("evicted oldest sessions = %d, want 1", evicted)
+	}
+	active, err := iam.ListSessions(t.Context(), first.Identity.AccountID, 0, 100, service.SessionListActive)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if active.Total != 2 {
+		t.Fatalf("active sessions after eviction = %d, want 2", active.Total)
+	}
+}

@@ -49,6 +49,16 @@ IAM 在 composition 提供普通 WebUI 业务 mutation 共用的窄 Origin/CSRF 
 
 创建/重置/修改密码的强度策略由 `iam.local.passwordPolicy` 配置（`minLength`/`maxLength` 默认 15/128，`requireComplexity` 默认 false）；策略在 Service 构造时冻结，只约束新建密码路径、不重验存量哈希，默认值保持与历史硬编码一致。`requireComplexity` 开启时要求密码同时包含大写字母、小写字母与数字（按 rune 计数）。HTTP 契约的密码字段只做非空与长度上限防御校验，真实策略统一由服务端判定（避免契约静态校验与配置策略双 authority）。
 
+## 口令治理与会话治理（077）
+
+- **口令历史**：`passwordPolicy.historySize`（默认 0=不启用）启用后，创建/重置/修改口令的新口令不得与最近 N 条历史口令相同（历史只存 Argon2id 哈希，逐条验证）；历史按最近 N 条裁剪。复用命中返回稳定 409 `conflict`。
+- **口令过期**：`passwordPolicy.maxPasswordAge`（默认 0=不过期）启用后，口令超过期限的账号登录/会话解析进入既有受限改密语义（MustChangePassword：只能使用自助权限并修改密码），改密成功后清除过期；不新增会话类型。
+- **会话上限（主动剔最旧）**：`iam.local.maxSessionsPerAccount`（默认 0=不限）启用后，新登录在账号 active 会话达到上限时主动吊销最旧 active 会话并建立新会话（会话总数保持上限）；踢除行为按低敏操作审计（`iam.session.evict`）记录，管理员批量吊销与分页列表能力不变。
+
+## 登录限流（077）
+
+`http.rateLimit` 扩展按路径前缀规则（`rateLimit.routes`，默认空=不启用）：命中路径使用独立 token bucket，未命中继续使用全局规则。`/api/v1/iam/login`、`/api/v1/iam/setup` 可配置更严限流（IP 维度），与账号级锁定（MaxFailedAttempts）构成「IP+账号」双维度防爆破；429 `rate_limited`/503 Problem 与全局门禁同语义，`setup` 仅 loopback/同源语义不变。限流为 per-generation 进程级 token bucket，多实例一致性沿用既有边界。
+
 ## 账号与角色生命周期（066）
 
 - 账号/角色资料更新与归档共用 `iam:account:write` / `iam:role:write` 权限键与既有乐观并发（版本 409）语义；账号改名与归档属安全变更，成功变更在事务内 bump SecurityRevision 并撤销该账号全部 Session。

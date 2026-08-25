@@ -20,6 +20,10 @@ IAM（Identity and Access Management）拥有本地 Account、Credential、Sessi
 
 IAM 提供只读影响分析查询：角色→持有账号（`GET /api/v1/iam/roles/{id}/accounts`，`iam:role:read`）与权限键→使用角色（`GET /api/v1/iam/permissions/roles?key=…`，`iam:permission:read`），供角色归档/权限退役前影响分析；不新增权限键、不改变授权状态。账号列表支持 status/archived/roleId typed 过滤（Count/List 同条件）；会话列表支持分页与 status（all/active/revoked，active = 未吊销且未过期）过滤，保持 IDHash 低敏摘要。密码强度策略由 `iam.local.passwordPolicy` 配置（默认 15/128、复杂度开关默认关），在 Service 构造时冻结，只约束新建密码路径，不重验存量哈希。
 
+## 口令治理与会话治理（077）
+
+`passwordPolicy.historySize`（默认 0）启用后禁止复用最近 N 次口令（历史只存 Argon2id 哈希，逐条验证并裁剪）；`passwordPolicy.maxPasswordAge`（默认 0）启用后口令过期登录/会话解析复用既有受限改密语义（MustChangePassword，不新增会话类型）；`iam.local.maxSessionsPerAccount`（默认 0=不限）启用后新登录在 active 会话达到上限时主动吊销最旧会话（`iam.session.evict` 低敏审计），会话总数保持上限。新增行为的操作/授权留痕纳入既有 `auth_audit_events` 低敏审计面；登录/初始化端点的 IP 维度限流由 `http.rateLimit.routes` 提供（077，transport 层），与账号级锁定构成双维度。
+
 ## 对外边界
 
 IAM 通过窄 facet 对外输出：`Sessions`（Session 解析）、`Authorization`（evaluator 决策/投影）、`Accounts`（可指派账号校验）、`Administration`（owner reconcile/兼容/密码重置）与 `Mutation`（CSRF 校验）；根 composition 不取得 `*service.Service`，Auth 只消费 project `DecisionPoint`，HTTP/Huma 与业务模块不接触 Casbin 类型。composition 的 identity-access 子装配把 IAM `Authorization` facet 适配为 Auth `DecisionPoint`，把 IAM Session 适配为 `iam-rbac` Principal。

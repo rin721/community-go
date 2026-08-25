@@ -37,8 +37,18 @@ type ServerConfig struct {
 }
 
 // RateLimitConfig 定义单进程入口令牌桶；跨副本配额不在本契约范围。
+// Routes 是按路径前缀覆盖全局速率的可选规则（如登录/初始化端点专用更严限流）。
 type RateLimitConfig struct {
 	Mode              RateLimitMode
+	RequestsPerSecond int
+	Burst             int
+	Routes            []RateLimitRoute
+}
+
+// RateLimitRoute 是入口速率的按路径前缀覆盖规则；命中路径的请求使用独立
+// token bucket，未命中继续使用全局规则。
+type RateLimitRoute struct {
+	Path              string
 	RequestsPerSecond int
 	Burst             int
 }

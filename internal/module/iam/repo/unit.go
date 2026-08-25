@@ -152,7 +152,35 @@ func (unit *Unit) CredentialByAccount(ctx context.Context, id string) (Credentia
 }
 
 func (unit *Unit) UpdateCredential(ctx context.Context, id, hash string, now time.Time) error {
-	return unit.update(ctx, credentialTable, "account_id = ?", []any{id}, map[string]any{"password_hash": hash, "updated_at": now})
+	return unit.update(ctx, credentialTable, "account_id = ?", []any{id}, map[string]any{"password_hash": hash, "updated_at": now, "password_changed_at": now})
+}
+
+// CreatePasswordHistory 记录一条口令哈希到历史（供 historySize 就近复用校验）。
+func (unit *Unit) CreatePasswordHistory(ctx context.Context, value *PasswordHistoryRecord) error {
+	return unit.useDB(ctx, func(db *gorm.DB) error { return db.Table(passwordHistoryTable).Create(value).Error })
+}
+
+// PasswordHistoryHashes 返回账号最近 limit 条口令哈希（按创建时间降序；limit=0 返回空）。
+func (unit *Unit) PasswordHistoryHashes(ctx context.Context, accountID string, limit int) ([]string, error) {
+	var hashes []string
+	if limit <= 0 {
+		return hashes, nil
+	}
+	err := unit.useDB(ctx, func(db *gorm.DB) error {
+		return db.Table(passwordHistoryTable).Where("account_id = ?", accountID).Order("created_at DESC").Limit(limit).Pluck("password_hash", &hashes).Error
+	})
+	return hashes, err
+}
+
+// TrimPasswordHistory 只保留账号最近 keep 条口令历史，删除更旧的记录。
+func (unit *Unit) TrimPasswordHistory(ctx context.Context, accountID string, keep int) error {
+	if keep <= 0 {
+		return nil
+	}
+	return unit.useDB(ctx, func(db *gorm.DB) error {
+		recent := db.Table(passwordHistoryTable).Where("account_id = ?", accountID).Order("created_at DESC").Limit(keep).Select("created_at")
+		return db.Table(passwordHistoryTable).Where("account_id = ? AND created_at NOT IN (?)", accountID, recent).Delete(nil).Error
+	})
 }
 
 func (unit *Unit) CreateRole(ctx context.Context, value *RoleRecord) error {
@@ -421,6 +449,17 @@ func (unit *Unit) sessionScope(ctx context.Context, db *gorm.DB, accountID strin
 		query = query.Where("revoked_at IS NOT NULL")
 	}
 	return query
+}
+
+// FindOldestActiveSession 返回账号按创建时间最早的 active 会话（077 会话上限
+// 超限时用于「主动剔最旧」）；无匹配返回 ErrNotFound。
+func (unit *Unit) FindOldestActiveSession(ctx context.Context, accountID string, now time.Time) (SessionRecord, error) {
+	var record SessionRecord
+	err := unit.useDB(ctx, func(db *gorm.DB) error {
+		query := unit.sessionScope(ctx, db, accountID, now, true, false)
+		return query.Order("created_at ASC, id_hash ASC").First(&record).Error
+	})
+	return record, err
 }
 
 func (unit *Unit) update(ctx context.Context, table, condition string, arguments []any, values map[string]any) error {

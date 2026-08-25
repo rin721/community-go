@@ -39,6 +39,8 @@ var (
 	ErrUnknownPermission  = errors.New("iam permission is not in catalog")
 	ErrImmutableOwner     = errors.New("iam owner role is immutable")
 	ErrIncompatibleState  = errors.New("iam persistent state is incompatible with permission catalog")
+	// ErrPasswordReused 表示新口令与最近 historySize 条历史口令相同（077）。
+	ErrPasswordReused = errors.New("iam password was reused")
 	// ErrVersionConflict 表示关系替换请求携带的 expected version 已过期，
 	// 客户端必须重新读取最新快照后由用户确认，不允许静默覆盖或自动 merge。
 	ErrVersionConflict = errors.New("iam relationship version is stale")
@@ -107,6 +109,9 @@ type Config struct {
 	// PasswordPolicy 是创建/重置/修改密码时的强度策略；由配置注入并在
 	// New 构造时校验冻结（076），不与运行期配置联动。
 	PasswordPolicy model.PasswordPolicy
+	// MaxSessionsPerAccount 是单账号最大并发 active 会话数；0=不限。启用后
+	// 新登录在达到上限时主动吊销最旧 active 会话（077）。
+	MaxSessionsPerAccount int
 }
 type Session struct {
 	ID, CSRFToken                                           string
@@ -217,6 +222,12 @@ func New(store *repo.Store, currentClock clock.Clock, ids idgen.Generator, passw
 	if config.PasswordPolicy.MinLength < 1 || config.PasswordPolicy.MaxLength < config.PasswordPolicy.MinLength {
 		return nil, fmt.Errorf("iam service password policy is invalid")
 	}
+	if config.PasswordPolicy.HistorySize < 0 || config.PasswordPolicy.MaxPasswordAge < 0 {
+		return nil, fmt.Errorf("iam service password history or age is invalid")
+	}
+	if config.MaxSessionsPerAccount < 0 {
+		return nil, fmt.Errorf("iam service max sessions per account is invalid")
+	}
 	dummy, err := passwords.Hash("fixed-cost-dummy-password")
 	if err != nil {
 		return nil, fmt.Errorf("create iam fixed-cost verifier: %w", err)
@@ -265,8 +276,11 @@ func (s *Service) Setup(ctx context.Context, setupToken, username, displayName, 
 		if err := r.CreateAccount(txCtx, &ar); err != nil {
 			return false, mapSetupConflict(err)
 		}
-		credential := repo.CredentialRecord{AccountID: account.ID, PasswordHash: hash, UpdatedAt: now}
+		credential := repo.CredentialRecord{AccountID: account.ID, PasswordHash: hash, UpdatedAt: now, PasswordChangedAt: now}
 		if err := r.CreateCredential(txCtx, &credential); err != nil {
+			return false, err
+		}
+		if err := s.recordPasswordHistory(txCtx, r, account.ID, hash, now); err != nil {
 			return false, err
 		}
 		rr := roleRecord(owner)
@@ -374,7 +388,11 @@ func (s *Service) Login(ctx context.Context, username, password string) (Session
 		account.FailedAttempts = 0
 		account.LockedUntil = nil
 		account.Version++
-		result, err = s.createSession(txCtx, r, modelAccount(account))
+		principal := modelAccount(account)
+		if s.passwordExpired(now, credential.PasswordChangedAt) {
+			principal.MustChangePassword = true
+		}
+		result, err = s.createSession(txCtx, r, principal)
 		return err
 	})
 	if err == nil && outcome != nil {
@@ -495,6 +513,7 @@ func (s *Service) Resolve(ctx context.Context, sessionID string) (Session, error
 	var session repo.SessionRecord
 	var account repo.AccountRecord
 	var revision uint64
+	var passwordExpired bool
 	err := s.store.WithinTx(ctx, func(txCtx context.Context, r *repo.Unit) error {
 		var err error
 		session, err = r.SessionByHash(txCtx, digest(sessionID))
@@ -509,6 +528,11 @@ func (s *Service) Resolve(ctx context.Context, sessionID string) (Session, error
 		if err != nil || account.Status != string(model.AccountActive) || account.Archived || account.SecurityRevision != session.SecurityRevision {
 			return ErrSessionInvalid
 		}
+		credential, credentialErr := r.CredentialByAccount(txCtx, session.AccountID)
+		if credentialErr != nil {
+			return ErrSessionInvalid
+		}
+		passwordExpired = s.passwordExpired(now, credential.PasswordChangedAt)
 		revision, err = r.CurrentAuthorizationRevision(txCtx)
 		if err != nil {
 			return err
@@ -523,7 +547,11 @@ func (s *Service) Resolve(ctx context.Context, sessionID string) (Session, error
 	if err != nil {
 		return Session{}, err
 	}
-	result := sessionOutput(sessionID, session, modelAccount(account), nil)
+	principal := modelAccount(account)
+	if passwordExpired {
+		principal.MustChangePassword = true
+	}
+	result := sessionOutput(sessionID, session, principal, nil)
 	result.AuthorizationRevision = revision
 	return s.projectSession(ctx, result)
 }
@@ -596,7 +624,13 @@ func (s *Service) ChangePassword(ctx context.Context, accountID, currentPassword
 			return ErrInvalidCredentials
 		}
 		now := s.clock.Now().UTC()
+		if err = s.ensurePasswordNotReused(txCtx, r, accountID, newPassword); err != nil {
+			return err
+		}
 		if err = r.UpdateCredential(txCtx, accountID, hash, now); err != nil {
+			return err
+		}
+		if err = s.recordPasswordHistory(txCtx, r, accountID, hash, now); err != nil {
 			return err
 		}
 		return bumpAndRevokeWith(txCtx, r, account, now, nil, nil, false)
@@ -605,6 +639,36 @@ func (s *Service) ChangePassword(ctx context.Context, accountID, currentPassword
 
 func credentialVerificationError(err error) error {
 	return errors.Join(ErrInvalidCredentials, fmt.Errorf("verify stored password credential: %w", err))
+}
+
+// ensurePasswordNotReused 校验新口令（明文）不在账号最近 historySize 条历史
+// 口令中（077）；historySize<=0 时不启用。历史哈希损坏跳过该条，不阻断改密。
+func (s *Service) ensurePasswordNotReused(ctx context.Context, r *repo.Unit, accountID string, password string) error {
+	if s.config.PasswordPolicy.HistorySize <= 0 {
+		return nil
+	}
+	history, err := r.PasswordHistoryHashes(ctx, accountID, s.config.PasswordPolicy.HistorySize)
+	if err != nil {
+		return fmt.Errorf("read iam password history: %w", err)
+	}
+	for _, previous := range history {
+		verification, verifyErr := s.passwords.Verify(previous, password)
+		if verifyErr == nil && verification.Match {
+			return ErrPasswordReused
+		}
+	}
+	return nil
+}
+
+// recordPasswordHistory 在口令成功写入后记录新哈希并裁剪到 historySize 条（077）。
+func (s *Service) recordPasswordHistory(ctx context.Context, r *repo.Unit, accountID string, hash string, now time.Time) error {
+	if s.config.PasswordPolicy.HistorySize <= 0 {
+		return nil
+	}
+	if err := r.CreatePasswordHistory(ctx, &repo.PasswordHistoryRecord{AccountID: accountID, PasswordHash: hash, CreatedAt: now}); err != nil {
+		return err
+	}
+	return r.TrimPasswordHistory(ctx, accountID, s.config.PasswordPolicy.HistorySize)
 }
 func (s *Service) ResetPassword(ctx context.Context, accountID, newPassword string) error {
 	if err := model.ValidatePasswordWith(newPassword, s.config.PasswordPolicy); err != nil {
@@ -623,7 +687,13 @@ func (s *Service) ResetPassword(ctx context.Context, accountID, newPassword stri
 			return ErrAccountDisabled
 		}
 		now := s.clock.Now().UTC()
+		if err = s.ensurePasswordNotReused(txCtx, r, accountID, newPassword); err != nil {
+			return err
+		}
 		if err = r.UpdateCredential(txCtx, accountID, hash, now); err != nil {
+			return err
+		}
+		if err = s.recordPasswordHistory(txCtx, r, accountID, hash, now); err != nil {
 			return err
 		}
 		account.MustChangePassword = true
@@ -655,7 +725,11 @@ func (s *Service) CreateAccount(ctx context.Context, username, displayName, pass
 		if err := r.CreateAccount(txCtx, &record); err != nil {
 			return err
 		}
-		return r.CreateCredential(txCtx, &repo.CredentialRecord{AccountID: account.ID, PasswordHash: hash, UpdatedAt: account.UpdatedAt})
+		now := s.clock.Now().UTC()
+		if err := r.CreateCredential(txCtx, &repo.CredentialRecord{AccountID: account.ID, PasswordHash: hash, UpdatedAt: now, PasswordChangedAt: now}); err != nil {
+			return err
+		}
+		return s.recordPasswordHistory(txCtx, r, account.ID, hash, now)
 	})
 	s.auditOperation(ctx, "iam.accounts.create", "create", "account", account.ID, err)
 	return account, err
@@ -1535,6 +1609,24 @@ func (s *Service) createSession(ctx context.Context, r *repo.Unit, account model
 		return Session{}, err
 	}
 	now := s.clock.Now().UTC()
+	// 077：会话数量上限——active 会话达到上限时主动吊销最旧会话（用户体验连续），
+	// 踢除行为按低敏操作审计记录。
+	if s.config.MaxSessionsPerAccount > 0 {
+		active, countErr := r.CountSessionsByAccount(ctx, account.ID, now, true, false)
+		if countErr != nil {
+			return Session{}, countErr
+		}
+		if active >= int64(s.config.MaxSessionsPerAccount) {
+			oldest, oldestErr := r.FindOldestActiveSession(ctx, account.ID, now)
+			if oldestErr != nil {
+				return Session{}, fmt.Errorf("find oldest active session for eviction: %w", oldestErr)
+			}
+			if evictErr := r.RevokeSession(ctx, oldest.IDHash, now); evictErr != nil {
+				return Session{}, evictErr
+			}
+			s.auditOperation(ctx, "iam.session.evict", "evict", "session", hex.EncodeToString(oldest.IDHash), nil)
+		}
+	}
 	record := repo.SessionRecord{IDHash: digest(id), AccountID: account.ID, CSRFHash: digest(csrf), SecurityRevision: account.SecurityRevision, CreatedAt: now, LastSeenAt: now, IdleExpiresAt: now.Add(s.config.IdleTimeout), AbsoluteExpiresAt: now.Add(s.config.AbsoluteTimeout)}
 	if err := r.CreateSession(ctx, &record); err != nil {
 		return Session{}, err
@@ -1543,6 +1635,15 @@ func (s *Service) createSession(ctx context.Context, r *repo.Unit, account model
 	result.AuthorizationRevision = revision
 	result.CSRFToken = csrf
 	return result, nil
+}
+
+// passwordExpired 判定口令是否超过 maxPasswordAge 期限（077）；策略关闭或无
+// 变更时间时返回 false。
+func (s *Service) passwordExpired(now time.Time, changedAt time.Time) bool {
+	if s.config.PasswordPolicy.MaxPasswordAge <= 0 || changedAt.IsZero() {
+		return false
+	}
+	return now.Sub(changedAt) > s.config.PasswordPolicy.MaxPasswordAge
 }
 
 // projectSession 在事务/写锁外填充 Session 的权限投影：用 evaluator 在

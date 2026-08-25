@@ -11,12 +11,13 @@ import (
 )
 
 const (
-	accountTable        = "iam_accounts"
-	credentialTable     = "iam_local_credentials"
-	roleTable           = "iam_roles"
-	accountRoleTable    = "iam_account_roles"
-	rolePermissionTable = "iam_role_permissions"
-	sessionTable        = "iam_sessions"
+	accountTable          = "iam_accounts"
+	credentialTable       = "iam_local_credentials"
+	roleTable             = "iam_roles"
+	accountRoleTable      = "iam_account_roles"
+	rolePermissionTable   = "iam_role_permissions"
+	sessionTable          = "iam_sessions"
+	passwordHistoryTable  = "iam_password_history"
 )
 
 type Access interface {
@@ -39,6 +40,16 @@ type AccountRecord struct {
 type CredentialRecord struct {
 	AccountID, PasswordHash string
 	UpdatedAt               time.Time
+	// PasswordChangedAt 是最近一次创建/重置/修改口令的时间；maxPasswordAge
+	// 过期判定与口令历史写入以它为基准。
+	PasswordChangedAt time.Time
+}
+
+// PasswordHistoryRecord 是一条口令历史（只存哈希，不存明文）。
+type PasswordHistoryRecord struct {
+	AccountID    string
+	PasswordHash string
+	CreatedAt    time.Time
 }
 type RoleRecord struct {
 	ID, Code, Name, Description string

@@ -235,10 +235,17 @@ iam:
     lockDuration: 15m0s
     # 密码强度策略（创建/重置/修改密码时生效，不重验存量哈希）；默认 15/128、
     # 不要求复杂度，与既有行为一致；requireComplexity 开启时要求大写+小写+数字。
+    # historySize 启用后禁止复用最近 N 次口令；maxPasswordAge 启用后口令超过
+    # 期限登录进入受限改密（两者默认关闭）。
     passwordPolicy:
       minLength: 15
       maxLength: 128
       requireComplexity: false
+      historySize: 0
+      maxPasswordAge: 0s
+    # 单账号最大并发 active 会话；0=不限。启用后新登录在达到上限时主动吊销
+    # 最旧 active 会话（会话总数保持上限）。
+    maxSessionsPerAccount: 0
 
 http:
   # HTTP listener 在进程 ready 前同步绑定；端口占用会使启动失败。
@@ -261,6 +268,10 @@ http:
     mode: local
     requestsPerSecond: 100
     burst: 200
+    # routes 是按路径前缀覆盖全局速率的可选规则（登录/初始化等端点施加更严限流，
+    # 与账号级锁定构成「IP+账号」双维度）；默认空即不启用。命中路径使用独立
+    # token bucket，未命中继续使用全局规则。
+    routes: []
   cors:
     # 本地 WebUI 只允许固定 Vite HTTPS Origin；生产配置应替换为真实部署 Origin。
     allowedOrigins: [https://localhost:5173, https://127.0.0.1:5173]

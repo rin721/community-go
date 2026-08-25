@@ -91,6 +91,9 @@ func resolveServerConfig(cfg *ServerConfig) (resolvedServerConfig, error) {
 			return resolvedServerConfig{}, fmt.Errorf("unsupported server rate limit mode %q", rateLimit.Mode)
 		}
 	}
+	if err := validateRateLimitRoutes(rateLimit.Routes); err != nil {
+		return resolvedServerConfig{}, err
+	}
 	if err := validateTrustedProxyCIDRs(cfg.TrustedProxyCIDRs); err != nil {
 		return resolvedServerConfig{}, err
 	}
@@ -178,6 +181,25 @@ func cloneCORSConfig(cfg CORSConfig) CORSConfig {
 		AllowedMethods: append([]string(nil), cfg.AllowedMethods...),
 		AllowedHeaders: append([]string(nil), cfg.AllowedHeaders...),
 	}
+}
+
+// validateRateLimitRoutes 校验按路径速率规则：路径非空且以 / 开头、速率与
+// 突发为正、路径不重复。
+func validateRateLimitRoutes(routes []RateLimitRoute) error {
+	seen := make(map[string]struct{}, len(routes))
+	for index, route := range routes {
+		if !strings.HasPrefix(route.Path, "/") || strings.TrimSpace(route.Path) == "/" {
+			return fmt.Errorf("rate limit route %d path %q must start with a non-root slash prefix", index, route.Path)
+		}
+		if route.RequestsPerSecond <= 0 || route.Burst <= 0 {
+			return fmt.Errorf("rate limit route %q requires positive requestsPerSecond and burst", route.Path)
+		}
+		if _, exists := seen[route.Path]; exists {
+			return fmt.Errorf("rate limit route %q is duplicated", route.Path)
+		}
+		seen[route.Path] = struct{}{}
+	}
+	return nil
 }
 
 func methodOrDefault(method Method) Method {

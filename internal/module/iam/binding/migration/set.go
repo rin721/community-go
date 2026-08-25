@@ -7,7 +7,7 @@ import (
 	dbmigrate "github.com/rin721/go-scaffold-template/pkg/database/migrate"
 )
 
-const CurrentVersion uint = 4
+const CurrentVersion uint = 5
 const TableName = "iam_schema_migrations"
 
 //go:embed sqlite/*.sql postgres/*.sql mysql/*.sql
@@ -30,6 +30,9 @@ func Set() dbmigrate.Set {
 			"sqlite/000004_add_iam_account_profile.up.sql": "b5a62f2f3fceb5c2455b75602e09db5d0669e138e41af418f3c3ef3f94ead400", "sqlite/000004_add_iam_account_profile.down.sql": "09f30b717b938bef170096e599d0fc048864c94392e5da89f44ca29b2f1f1801",
 			"postgres/000004_add_iam_account_profile.up.sql": "b5a62f2f3fceb5c2455b75602e09db5d0669e138e41af418f3c3ef3f94ead400", "postgres/000004_add_iam_account_profile.down.sql": "09f30b717b938bef170096e599d0fc048864c94392e5da89f44ca29b2f1f1801",
 			"mysql/000004_add_iam_account_profile.up.sql": "02d7b9e9bdbd88319609a6441eb7b92ebba54d9643050e07e58cb45d0f4790ee", "mysql/000004_add_iam_account_profile.down.sql": "09f30b717b938bef170096e599d0fc048864c94392e5da89f44ca29b2f1f1801",
+			"sqlite/000005_add_iam_password_security.up.sql": "fd9ef41bea060dcbbdcb2ebeeef77ba799df02d3c698928190ea1ac1612f19ce", "sqlite/000005_add_iam_password_security.down.sql": "1960b3e0a0d32671a8727791bae1fe78fa6cf4c174eadbc0ee81b90f9893242e",
+			"postgres/000005_add_iam_password_security.up.sql": "cc76e730d6722de72b536f22d03a9b09cdc9a0b40f16f4de561958891217fd4b", "postgres/000005_add_iam_password_security.down.sql": "1960b3e0a0d32671a8727791bae1fe78fa6cf4c174eadbc0ee81b90f9893242e",
+			"mysql/000005_add_iam_password_security.up.sql": "c2b4ca5c469edaa1e7547b884fd35f28502210126646e811df272cd711cbd0a9", "mysql/000005_add_iam_password_security.down.sql": "1960b3e0a0d32671a8727791bae1fe78fa6cf4c174eadbc0ee81b90f9893242e",
 		},
 	}
 }

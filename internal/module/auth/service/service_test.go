@@ -3,12 +3,27 @@ package service
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/rin721/go-scaffold-template/internal/module/auth/model"
+	pkgalerting "github.com/rin721/go-scaffold-template/pkg/alerting"
 	"github.com/rin721/go-scaffold-template/pkg/clock"
 )
+
+// testAlertReporter 记录告警事件（079 触发测试用）。
+type testAlertReporter struct {
+	mu     sync.Mutex
+	events []pkgalerting.Event
+}
+
+func (r *testAlertReporter) Notify(_ context.Context, event pkgalerting.Event) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.events = append(r.events, event)
+	return nil
+}
 
 func TestServiceFailsClosedAndEnforcesOperationAndOwner(t *testing.T) {
 	now := time.Date(2026, 8, 15, 8, 0, 0, 0, time.UTC)
@@ -199,5 +214,46 @@ func TestServiceRequiresDecisionPointForHTTPProfile(t *testing.T) {
 		{Operation: "run", Mode: model.PolicyProtected, Scope: "todos:read", Action: "todo.read"},
 	}); err == nil {
 		t.Fatal("New() without decision point succeeded")
+	}
+}
+
+// TestRepeatedAuthFailureAlerts 验证连续认证失败达到阈值触发一次低敏告警（079），
+// 未注入 reporter 时零行为。
+func TestRepeatedAuthFailureAlerts(t *testing.T) {
+	now := time.Date(2026, 8, 15, 8, 0, 0, 0, time.UTC)
+	principal, err := model.NewPrincipal("actor-a", model.ActorService, []model.Scope{"todos:read"}, now, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	service, err := New(clock.Fixed(now), &testVerifier{ready: true, principal: principal}, nil, &testAudit{}, &stubDecisionPoint{}, []model.Policy{
+		{Operation: "live", Mode: model.PolicyPublic},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	reporter := &testAlertReporter{}
+	service.WithAlertReporter(reporter)
+	for index := 0; index < 5; index++ {
+		if err := service.RecordAuthenticationFailure(t.Context()); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if len(reporter.events) != 1 || reporter.events[0].Type != "auth_failed" {
+		t.Fatalf("alert events = %#v", reporter.events)
+	}
+	// 阈值以下不触发。
+	service2, err := New(clock.Fixed(now), &testVerifier{ready: true, principal: principal}, nil, &testAudit{}, &stubDecisionPoint{}, []model.Policy{
+		{Operation: "live", Mode: model.PolicyPublic},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	reporter2 := &testAlertReporter{}
+	service2.WithAlertReporter(reporter2)
+	for index := 0; index < 4; index++ {
+		_ = service2.RecordAuthenticationFailure(t.Context())
+	}
+	if len(reporter2.events) != 0 {
+		t.Fatalf("below-threshold alert events = %#v", reporter2.events)
 	}
 }

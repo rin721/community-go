@@ -13,6 +13,7 @@ import (
 	"github.com/rin721/go-scaffold-template/internal/module/iam/repo"
 	"github.com/rin721/go-scaffold-template/internal/module/iam/service"
 	permissioncatalog "github.com/rin721/go-scaffold-template/internal/permission"
+	pkgalerting "github.com/rin721/go-scaffold-template/pkg/alerting"
 	"github.com/rin721/go-scaffold-template/pkg/clock"
 	"github.com/rin721/go-scaffold-template/pkg/idgen"
 )
@@ -25,6 +26,8 @@ type Dependencies struct {
 	IDGenerator idgen.Generator
 	Config      configbinding.Config
 	Permissions permissioncatalog.Catalog
+	// AlertNotifier 是安全告警事件汇报通道（079）；nil 时告警 no-op。
+	AlertNotifier pkgalerting.Notifier
 }
 type HTTPDependencies struct {
 	Dependencies
@@ -70,6 +73,9 @@ func newModule(dependencies Dependencies) (Module, *service.Service, error) {
 	iamService, err := service.New(store, dependencies.Clock, dependencies.IDGenerator, passwordadapter.Hasher{}, service.Config{SetupToken: local.SetupToken, IdleTimeout: local.IdleTimeout, AbsoluteTimeout: local.AbsoluteTimeout, MaxFailedAttempts: local.MaxFailedAttempts, LockDuration: local.LockDuration, PasswordPolicy: model.PasswordPolicy{MinLength: local.PasswordPolicy.MinLength, MaxLength: local.PasswordPolicy.MaxLength, RequireComplexity: local.PasswordPolicy.RequireComplexity, HistorySize: local.PasswordPolicy.HistorySize, MaxPasswordAge: local.PasswordPolicy.MaxPasswordAge}, MaxSessionsPerAccount: local.MaxSessionsPerAccount}, dependencies.Permissions, runtime)
 	if err != nil {
 		return Module{}, nil, fmt.Errorf("compose iam service: %w", err)
+	}
+	if dependencies.AlertNotifier != nil {
+		iamService.WithAlertReporter(dependencies.AlertNotifier)
 	}
 	contribution := module.Contribution{ID: moduleID}
 	if err := module.ValidateContributions(contribution); err != nil {

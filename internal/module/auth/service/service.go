@@ -6,9 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/rin721/go-scaffold-template/internal/module/auth/model"
+	pkgalerting "github.com/rin721/go-scaffold-template/pkg/alerting"
 	"github.com/rin721/go-scaffold-template/pkg/clock"
 )
 
@@ -161,6 +163,29 @@ type Service struct {
 	decisionPoint DecisionPoint
 	byOperation   map[string]model.Policy
 	byAction      map[model.Action]model.Policy
+
+	alertReporter  pkgalerting.Notifier
+	authFailures   map[string]authFailureWindow
+	authFailuresMu sync.Mutex
+}
+
+// authFailureWindow 是连续认证失败告警的进程内计数窗口。
+type authFailureWindow struct {
+	Count       int
+	WindowStart time.Time
+}
+
+const (
+	authFailureAlertThreshold = 5
+	authFailureWindowDuration = 10 * time.Minute
+)
+
+// WithAlertReporter 注入安全告警事件汇报通道（079）；nil 时告警 no-op。
+func (s *Service) WithAlertReporter(reporter pkgalerting.Notifier) {
+	if s == nil {
+		return
+	}
+	s.alertReporter = reporter
 }
 
 // New 构造不执行 I/O 的 Auth Service，并冻结 policy authority；
@@ -220,6 +245,7 @@ func newService(currentClock clock.Clock, verifier CredentialVerifier, developme
 	return &Service{
 		clock: currentClock, verifier: verifier, development: development, audit: audit,
 		auditReader: auditReader, decisionPoint: decisionPoint, byOperation: byOperation, byAction: byAction,
+		authFailures: map[string]authFailureWindow{},
 	}, nil
 }
 
@@ -425,9 +451,9 @@ func (s *Service) RecordOperation(ctx context.Context, request model.OperationAu
 	}
 	event := model.AuditEvent{
 		Operation: request.Operation, Action: request.Action, Principal: principal,
-		Resource:  model.ResourceFacts{Type: request.ResourceType, ID: request.ResourceID},
-		Decision:  model.Decision{Allowed: request.Outcome != model.AuditDenied && request.Outcome != model.AuditFailed, Reason: operationAuditReason(request.Outcome)},
-		Outcome:   request.Outcome,
+		Resource: model.ResourceFacts{Type: request.ResourceType, ID: request.ResourceID},
+		Decision: model.Decision{Allowed: request.Outcome != model.AuditDenied && request.Outcome != model.AuditFailed, Reason: operationAuditReason(request.Outcome)},
+		Outcome:  request.Outcome,
 	}
 	return s.Record(ctx, event)
 }
@@ -455,11 +481,40 @@ func normalizeAuditPage(offset, limit int) (int, int, error) {
 	return offset, limit, nil
 }
 
-// RecordAuthenticationFailure 记录不含 token、claims 或 raw path 的认证拒绝。
+// RecordAuthenticationFailure 记录不含 token、claims 或 raw path 的认证拒绝，
+// 并在连续失败窗口触发低敏告警（079）。
 func (s *Service) RecordAuthenticationFailure(ctx context.Context) error {
-	return s.Record(ctx, model.AuditEvent{
+	err := s.Record(ctx, model.AuditEvent{
 		Operation: "http.authenticate", Decision: model.Decision{Reason: model.ReasonUnauthenticated}, Outcome: model.AuditDenied,
 	})
+	if err != nil {
+		return err
+	}
+	s.reportRepeatedAuthFailure(ctx)
+	return nil
+}
+
+// reportRepeatedAuthFailure 在进程内窗口统计连续认证失败；达到阈值后汇报一次
+// 并重置窗口。未注入 reporter 时零行为。
+func (s *Service) reportRepeatedAuthFailure(ctx context.Context) {
+	if s == nil || s.alertReporter == nil {
+		return
+	}
+	now := s.clock.Now().UTC()
+	s.authFailuresMu.Lock()
+	entry := s.authFailures["anonymous"]
+	if now.Sub(entry.WindowStart) > authFailureWindowDuration {
+		entry = authFailureWindow{WindowStart: now}
+	}
+	entry.Count++
+	if entry.Count < authFailureAlertThreshold {
+		s.authFailures["anonymous"] = entry
+		s.authFailuresMu.Unlock()
+		return
+	}
+	delete(s.authFailures, "anonymous")
+	s.authFailuresMu.Unlock()
+	_ = s.alertReporter.Notify(ctx, pkgalerting.Event{Type: "auth_failed", Severity: pkgalerting.SeverityWarning, Summary: "repeated authentication failures", OccurredAt: now})
 }
 
 // Ready 表示当前 HTTP verifier 是否可用；development profile 始终 Ready。

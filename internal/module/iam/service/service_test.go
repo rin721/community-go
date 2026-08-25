@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -21,6 +22,7 @@ import (
 	"github.com/rin721/go-scaffold-template/internal/module/iam/repo"
 	"github.com/rin721/go-scaffold-template/internal/module/iam/service"
 	permissioncatalog "github.com/rin721/go-scaffold-template/internal/permission"
+	pkgalerting "github.com/rin721/go-scaffold-template/pkg/alerting"
 	"github.com/rin721/go-scaffold-template/pkg/clock"
 	"github.com/rin721/go-scaffold-template/pkg/database"
 	dbmigrate "github.com/rin721/go-scaffold-template/pkg/database/migrate"
@@ -1511,5 +1513,111 @@ func TestMFALoginWithRecoveryCode(t *testing.T) {
 	}
 	if _, err := iam.VerifyMFAChallenge(t.Context(), mfaRequired.ChallengeID, codes[0]); !errors.Is(err, service.ErrMFAInvalidCode) {
 		t.Fatalf("reused recovery code error = %v", err)
+	}
+}
+
+// fakeAlertReporter 记录告警事件（079 触发测试用）。
+type fakeAlertReporter struct {
+	mu     sync.Mutex
+	events []pkgalerting.Event
+}
+
+func (r *fakeAlertReporter) Notify(_ context.Context, event pkgalerting.Event) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.events = append(r.events, event)
+	return nil
+}
+
+func (r *fakeAlertReporter) types() []string {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	seen := make([]string, 0, len(r.events))
+	for _, event := range r.events {
+		seen = append(seen, event.Type)
+	}
+	return seen
+}
+
+// TestAlertOnLockAndSensitiveWrites 验证账号锁定与敏感写操作触发告警（079）。
+func TestAlertOnLockAndSensitiveWrites(t *testing.T) {
+	iam, resource := newService(t)
+	defer resource.Close()
+	reporter := &fakeAlertReporter{}
+	iam.WithAlertReporter(reporter)
+	if _, err := iam.Setup(t.Context(), "setup-secret", "owner", "Owner", "123456789012345"); err != nil {
+		t.Fatal(err)
+	}
+	// 三次错误密码触发锁定（MaxFailedAttempts=3）-> account_locked。
+	for index := 0; index < 3; index++ {
+		_, _ = iam.Login(t.Context(), "owner", "wrong-password")
+	}
+	found := false
+	for _, alertType := range reporter.types() {
+		if alertType == "account_locked" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("alert types = %v, want account_locked", reporter.types())
+	}
+	// 敏感写：角色归档 -> privilege_changed。
+	editor, err := iam.CreateRole(t.Context(), "editor", "Editor", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := iam.ArchiveRole(t.Context(), editor.ID); err != nil {
+		t.Fatal(err)
+	}
+	foundPrivilege := false
+	for _, alertType := range reporter.types() {
+		if alertType == "privilege_changed" {
+			foundPrivilege = true
+		}
+	}
+	if !foundPrivilege {
+		t.Fatalf("alert types after archive = %v, want privilege_changed", reporter.types())
+	}
+}
+
+// TestAlertOnRepeatedMFAFailure 验证 MFA 连续失败触发告警（079）。
+func TestAlertOnRepeatedMFAFailure(t *testing.T) {
+	iam, resource := newService(t)
+	defer resource.Close()
+	reporter := &fakeAlertReporter{}
+	iam.WithAlertReporter(reporter)
+	owner, err := iam.Setup(t.Context(), "setup-secret", "owner", "Owner", "123456789012345")
+	if err != nil {
+		t.Fatal(err)
+	}
+	enroll, err := iam.BeginMFAEnroll(t.Context(), owner.Identity.AccountID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := time.Date(2026, 8, 22, 1, 0, 0, 0, time.UTC)
+	code, err := totp.CodeAt(enroll.Secret, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := iam.ConfirmMFAEnroll(t.Context(), owner.Identity.AccountID, code); err != nil {
+		t.Fatal(err)
+	}
+	// 三次错误验证码（阈值 3）-> mfa_failed。
+	for index := 0; index < 3; index++ {
+		_, err := iam.Login(t.Context(), "owner", "123456789012345")
+		var mfaRequired *service.MFARequiredError
+		if !errors.As(err, &mfaRequired) {
+			t.Fatalf("login error = %v", err)
+		}
+		_, _ = iam.VerifyMFAChallenge(t.Context(), mfaRequired.ChallengeID, "000000")
+	}
+	found := false
+	for _, alertType := range reporter.types() {
+		if alertType == "mfa_failed" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("alert types = %v, want mfa_failed", reporter.types())
 	}
 }

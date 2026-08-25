@@ -13,6 +13,7 @@ func TestApplicationOwnedConfigurationBindingsAreCompleteAndOrdered(t *testing.T
 		{capabilityID: "module.todo", configPath: "todo"},
 		{capabilityID: "module.ops.management", configPath: "management"},
 		{capabilityID: "observability.telemetry", configPath: "observability"},
+		{capabilityID: "application.alerting", configPath: "alerting"},
 		{capabilityID: "application.webui.hosting", configPath: "webui"},
 	}
 

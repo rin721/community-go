@@ -21,6 +21,7 @@ func applicationOwnedConfigurationBindings() []config.Binding {
 		todoconfig.Binding(),
 		opsconfig.Binding(),
 		composed.ObservabilityConfiguration(),
+		composed.AlertingConfiguration(),
 		webuihost.Binding(),
 	}
 }

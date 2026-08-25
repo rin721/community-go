@@ -278,6 +278,18 @@ http:
     allowedMethods: [GET, POST, PATCH, OPTIONS]
     allowedHeaders: [Authorization, Content-Type, X-Request-ID]
 
+# 安全告警（079）：webhook 通道，默认关闭；启用时 URL 必须 HTTPS 或 loopback HTTP。
+# signingKey 用于 HMAC-SHA256 签名；URL 与密钥属配置秘密，不进入日志与审计。
+# 事件：账号锁定/连续认证失败/MFA 连续失败/敏感权限写操作（归档、关系替换、API 令牌）。
+alerting:
+  enabled: false
+  webhookUrl: ""
+  signingKey: ""
+  timeout: 5s
+  retries: 1
+  retryDelay: 1s
+  queueSize: 256
+
 # management 使用独立 listener；模式 A（前后端分离）业务 Router 不挂载这些路径，
 # 模式 B（Go 服务托管 WebUI，webui.hosting.enabled: true）下业务 listener 挂载同一受保护
 # facade（/management/*），供托管 WebUI 同源读取真实数据；未命中子路径保持 JSON 404。

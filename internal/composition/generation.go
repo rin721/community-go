@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 
 	"github.com/rin721/go-scaffold-template/internal/kernel"
+	kernelalerting "github.com/rin721/go-scaffold-template/internal/kernel/app/alerting"
 	cacheapp "github.com/rin721/go-scaffold-template/internal/kernel/app/cache"
 	databaseapp "github.com/rin721/go-scaffold-template/internal/kernel/app/database"
 	executionapp "github.com/rin721/go-scaffold-template/internal/kernel/app/execution"
@@ -40,6 +41,7 @@ import (
 	todohttp "github.com/rin721/go-scaffold-template/internal/module/todo/binding/http"
 	httptransport "github.com/rin721/go-scaffold-template/internal/transport/http"
 	"github.com/rin721/go-scaffold-template/internal/webuihost"
+	pkgalerting "github.com/rin721/go-scaffold-template/pkg/alerting"
 	"github.com/rin721/go-scaffold-template/pkg/clock"
 	"github.com/rin721/go-scaffold-template/pkg/httpx"
 	"github.com/rin721/go-scaffold-template/pkg/i18n"
@@ -93,6 +95,7 @@ type applicationGeneration struct {
 	execution *resourceHandle[executionapp.Access]
 	metrics   *resourceHandle[pkgobservability.Metrics]
 	telemetry *immutableComponent[pkgobservability.Telemetry]
+	alerting  *immutableComponent[pkgalerting.Notifier]
 	scheduler *immutableComponent[scheduleapp.Access]
 	messaging *immutableComponent[messagingapp.Output]
 
@@ -325,6 +328,15 @@ func (f *applicationGenerationFactory) Prepare(
 		return abort(err)
 	}
 	generation.resourceStats.Built = append(generation.resourceStats.Built, "observability.telemetry")
+	alertingDefinition, err := kernelcomposition.AlertingDefinition(kernelalerting.Dependencies{Logger: generation.logger.value()})
+	if err != nil {
+		return abort(err)
+	}
+	generation.alerting, err = startImmutableComponent(ctx, snapshot, f.logging, alertingDefinition)
+	if err != nil {
+		return abort(err)
+	}
+	generation.resourceStats.Built = append(generation.resourceStats.Built, "application.alerting")
 
 	authConfig, err := authconfig.Decode(snapshot)
 	if err != nil {
@@ -358,6 +370,7 @@ func (f *applicationGenerationFactory) Prepare(
 		IAMConfig: iamConfig, AuthConfig: authConfig,
 		Permissions: generation.blueprint.permissions, Policies: generation.blueprint.policyCopy(),
 		AllowedOrigins: httpConfig.CORS.AllowedOrigins,
+		AlertNotifier:  generation.alerting.output,
 	})
 	if err != nil {
 		return abort(err)
@@ -1040,6 +1053,9 @@ func (g *applicationGeneration) releaseResources(ctx context.Context) error {
 	}
 	if g.telemetry != nil {
 		joined = errors.Join(joined, g.telemetry.close(ctx))
+	}
+	if g.alerting != nil {
+		joined = errors.Join(joined, g.alerting.close(ctx))
 	}
 	if g.metrics != nil {
 		joined = errors.Join(joined, g.metrics.release(ctx))

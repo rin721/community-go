@@ -18,6 +18,7 @@ import (
 	organizationservice "github.com/rin721/go-scaffold-template/internal/module/organization/service"
 	permissioncatalog "github.com/rin721/go-scaffold-template/internal/permission"
 	"github.com/rin721/go-scaffold-template/internal/transport/http"
+	pkgalerting "github.com/rin721/go-scaffold-template/pkg/alerting"
 	"github.com/rin721/go-scaffold-template/pkg/clock"
 	"github.com/rin721/go-scaffold-template/pkg/idgen"
 	"github.com/rin721/go-scaffold-template/pkg/logger"
@@ -55,6 +56,8 @@ type identityAccessInput struct {
 	Permissions    permissioncatalog.Catalog
 	Policies       []authmodel.Policy
 	AllowedOrigins []string
+	// AlertNotifier 是安全告警事件汇报通道（079）；nil 时告警 no-op。
+	AlertNotifier pkgalerting.Notifier
 }
 
 // identityAccess 是根 Generation 消费的 typed 完成品。
@@ -81,7 +84,7 @@ func composeIdentityAccess(ctx context.Context, input identityAccessInput) (iden
 	iamModule, err := iam.NewHTTP(iam.HTTPDependencies{
 		Dependencies: iam.Dependencies{
 			Database: input.Database, Clock: clock.System(), IDGenerator: idgen.UUID(),
-			Config: input.IAMConfig, Permissions: input.Permissions,
+			Config: input.IAMConfig, Permissions: input.Permissions, AlertNotifier: input.AlertNotifier,
 		},
 		AllowedOrigins: input.AllowedOrigins,
 	})
@@ -126,7 +129,7 @@ func composeIdentityAccess(ctx context.Context, input identityAccessInput) (iden
 		Clock: clock.System(), Logger: input.Logger, Config: input.AuthConfig,
 		Policies: input.Policies, SessionSource: sessionSource, DecisionPoint: decisionPoint,
 		Database: authDatabase, AuditRetentionLimit: defaultAuditRetentionLimit,
-		ExtraVerifiers: extraVerifiers,
+		ExtraVerifiers: extraVerifiers, AlertNotifier: input.AlertNotifier,
 	})
 	if err != nil {
 		return identityAccess{}, fmt.Errorf("compose auth module: %w", err)

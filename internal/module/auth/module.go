@@ -17,6 +17,7 @@ import (
 	"github.com/rin721/go-scaffold-template/internal/module/auth/model"
 	"github.com/rin721/go-scaffold-template/internal/module/auth/repo"
 	"github.com/rin721/go-scaffold-template/internal/module/auth/service"
+	pkgalerting "github.com/rin721/go-scaffold-template/pkg/alerting"
 	"github.com/rin721/go-scaffold-template/pkg/clock"
 	"github.com/rin721/go-scaffold-template/pkg/logger"
 	"github.com/rin721/go-scaffold-template/pkg/supervisor"
@@ -37,6 +38,8 @@ type Dependencies struct {
 	// ExtraVerifiers 是附加的 Bearer 凭据验证器（078：API-Token 等），
 	// 按声明顺序排在模块自有 verifier（JWT/development）之后尝试。
 	ExtraVerifiers []service.CredentialVerifier
+	// AlertNotifier 是安全告警事件汇报通道（079）；nil 时告警 no-op。
+	AlertNotifier pkgalerting.Notifier
 	// Database 是持久化低敏审计的可选数据库访问；nil 时回退 logger Sink。
 	// 模块内部拥有 storage Sink 装配，composition 只注入数据库租约。
 	Database repo.Access
@@ -166,6 +169,9 @@ func NewHTTP(dependencies Dependencies) (Module, error) {
 	authService, err := service.New(dependencies.Clock, verifier, development, audit, dependencies.DecisionPoint, dependencies.Policies)
 	if err != nil {
 		return Module{}, fmt.Errorf("compose auth service: %w", err)
+	}
+	if dependencies.AlertNotifier != nil {
+		authService.WithAlertReporter(dependencies.AlertNotifier)
 	}
 	if auditReader != nil {
 		if err := authService.WithAuditReader(auditReader); err != nil {

@@ -60,6 +60,7 @@ go run ./cmd/app config init --output .data/generated-config.yaml
 | `http` | Kernel HTTP composition | 业务 HTTP listener 与请求治理 |
 | `management` | Ops 模块 | management listener、readiness、metrics access |
 | `observability` | Kernel Observability composition | service name、tracing exporter 与采样参数 |
+| `alerting` | Kernel Alerting App（`application.alerting`） | 安全告警 webhook 通道（默认关闭；webhookUrl/signingKey 属配置秘密） |
 | `webui` | 应用 WebUI 托管组件（`internal/webuihost`） | 托管开关、托管目录（默认 `webui/dist`）、托管前构建脚本路径与运行时 |
 
 Bootstrap CLI、migration one-shot、Todo CLI 和长期 Service 都必须识别同一套官方应用配置节。某个运行模式可以只创建自己需要的资源，但不能把其他官方配置节当作未知字段拒绝。

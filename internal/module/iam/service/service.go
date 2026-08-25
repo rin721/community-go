@@ -21,6 +21,7 @@ import (
 	"github.com/rin721/go-scaffold-template/internal/module/iam/model"
 	"github.com/rin721/go-scaffold-template/internal/module/iam/repo"
 	permissioncatalog "github.com/rin721/go-scaffold-template/internal/permission"
+	pkgalerting "github.com/rin721/go-scaffold-template/pkg/alerting"
 	"github.com/rin721/go-scaffold-template/pkg/clock"
 	"github.com/rin721/go-scaffold-template/pkg/idgen"
 )
@@ -196,6 +197,61 @@ type Service struct {
 	// 短 TTL 且单次使用，不落库（进程内）。
 	mfaChallenges map[string]mfaChallenge
 	mfaMu         sync.Mutex
+	// alertReporter 是安全告警事件汇报通道（079）；nil 时告警 no-op。
+	alertReporter pkgalerting.Notifier
+	// mfaFailureWindows 是 MFA 连续失败告警的进程内窗口（按账号）。
+	mfaFailureWindows map[string]mfaFailureWindow
+	mfaWindowMu       sync.Mutex
+}
+
+// mfaFailureWindow 是 MFA 连续失败告警的进程内计数窗口。
+type mfaFailureWindow struct {
+	Count       int
+	WindowStart time.Time
+}
+
+const (
+	mfaFailureAlertThreshold = 3
+	mfaFailureWindowDuration = 10 * time.Minute
+)
+
+// WithAlertReporter 注入安全告警事件汇报通道（079）。
+func (s *Service) WithAlertReporter(reporter pkgalerting.Notifier) {
+	if s == nil {
+		return
+	}
+	s.alertReporter = reporter
+}
+
+// reportAlert 低敏汇报安全事件；未注入 reporter 时零行为，失败被忽略
+// （告警写入失败不阻断业务与审计）。
+func (s *Service) reportAlert(ctx context.Context, alertType string, severity pkgalerting.Severity, summary, resourceType, resourceID string) {
+	if s == nil || s.alertReporter == nil {
+		return
+	}
+	_ = s.alertReporter.Notify(ctx, pkgalerting.Event{Type: alertType, Severity: severity, Summary: summary, ResourceType: resourceType, ResourceIDHash: resourceID, OccurredAt: s.clock.Now().UTC()})
+}
+
+// reportMFAFailure 统计账号 MFA 连续失败并触发告警（每窗口一次）。
+func (s *Service) reportMFAFailure(ctx context.Context, accountID string) {
+	if s == nil || s.alertReporter == nil {
+		return
+	}
+	now := s.clock.Now().UTC()
+	s.mfaWindowMu.Lock()
+	entry := s.mfaFailureWindows[accountID]
+	if now.Sub(entry.WindowStart) > mfaFailureWindowDuration {
+		entry = mfaFailureWindow{WindowStart: now}
+	}
+	entry.Count++
+	if entry.Count < mfaFailureAlertThreshold {
+		s.mfaFailureWindows[accountID] = entry
+		s.mfaWindowMu.Unlock()
+		return
+	}
+	delete(s.mfaFailureWindows, accountID)
+	s.mfaWindowMu.Unlock()
+	s.reportAlert(ctx, "mfa_failed", pkgalerting.SeverityWarning, "repeated MFA verification failures", "account", accountID)
 }
 
 // pendingArchive 是软注销两步确认的临时凭据。
@@ -213,18 +269,35 @@ func (s *Service) WithOperationAudit(writer OperationAuditWriter) {
 }
 
 // auditOperation 在写操作完成边界记录低敏操作审计；writer 未注入或审计
-// 失败都不阻断业务结果（低敏上报由 writer/Auth 侧负责）。
+// 失败都不阻断业务结果（低敏上报由 writer/Auth 侧负责）。成功且属于敏感
+// 授权面操作时（079）附带告警汇报（resourceID 摘要）。
 func (s *Service) auditOperation(ctx context.Context, operation, action, resourceType, resourceID string, err error) {
-	if s == nil || s.operationAudit == nil {
+	if s == nil {
 		return
 	}
-	outcome := OperationSucceeded
-	if err != nil {
-		outcome = OperationFailed
+	if s.operationAudit != nil {
+		outcome := OperationSucceeded
+		if err != nil {
+			outcome = OperationFailed
+		}
+		_ = s.operationAudit.RecordOperation(ctx, OperationAuditRequest{
+			Operation: operation, Action: action, ResourceType: resourceType, ResourceID: resourceID, Outcome: outcome,
+		})
 	}
-	_ = s.operationAudit.RecordOperation(ctx, OperationAuditRequest{
-		Operation: operation, Action: action, ResourceType: resourceType, ResourceID: resourceID, Outcome: outcome,
-	})
+	if err == nil && sensitiveAlertOperation(operation) {
+		s.reportAlert(ctx, "privilege_changed", pkgalerting.SeverityWarning, "privilege-bearing operation changed", resourceType, hex.EncodeToString(digest(resourceID)))
+	}
+}
+
+// sensitiveAlertOperation 是触发权限变更告警的敏感写操作集合（079）。
+func sensitiveAlertOperation(operation string) bool {
+	switch operation {
+	case "iam.accounts.archive", "iam.roles.archive", "iam.accounts.roles.replace", "iam.roles.permissions.replace",
+		"iam.api-tokens.create", "iam.api-tokens.rotate", "iam.api-tokens.revoke":
+		return true
+	default:
+		return false
+	}
 }
 
 func New(store *repo.Store, currentClock clock.Clock, ids idgen.Generator, passwords PasswordHasher, config Config, catalog permissioncatalog.Catalog, authorization AuthorizationPublisher) (*Service, error) {
@@ -247,7 +320,7 @@ func New(store *repo.Store, currentClock clock.Clock, ids idgen.Generator, passw
 	if err != nil {
 		return nil, fmt.Errorf("create iam fixed-cost verifier: %w", err)
 	}
-	return &Service{store: store, clock: currentClock, ids: ids, passwords: passwords, config: config, catalog: catalog, authorization: authorization, dummyHash: dummy, selfArchiveConfirmations: map[string]pendingArchive{}, mfaChallenges: map[string]mfaChallenge{}}, nil
+	return &Service{store: store, clock: currentClock, ids: ids, passwords: passwords, config: config, catalog: catalog, authorization: authorization, dummyHash: dummy, selfArchiveConfirmations: map[string]pendingArchive{}, mfaChallenges: map[string]mfaChallenge{}, mfaFailureWindows: map[string]mfaFailureWindow{}}, nil
 }
 
 func (s *Service) Setup(ctx context.Context, setupToken, username, displayName, password string) (Session, error) {
@@ -425,6 +498,9 @@ func (s *Service) Login(ctx context.Context, username, password string) (Session
 				return Session{}, challengeErr
 			}
 			return Session{}, &MFARequiredError{ChallengeID: challenge}
+		}
+		if errors.Is(outcome, ErrAccountLocked) {
+			s.reportAlert(ctx, "account_locked", pkgalerting.SeverityCritical, "account locked after repeated failures", "account", hex.EncodeToString(digest(resolvedAccountID)))
 		}
 		return Session{}, outcome
 	}
@@ -2270,6 +2346,11 @@ func (s *Service) VerifyMFAChallenge(ctx context.Context, challengeID, code stri
 		s.mfaMu.Unlock()
 	}
 	if err != nil {
+		if errors.Is(err, ErrMFAInvalidCode) {
+			// 连续 MFA 失败触发告警并补低敏审计（079）。
+			s.reportMFAFailure(ctx, candidate.AccountID)
+			s.auditOperation(ctx, "iam.login.mfa-verify", "verify", "account", candidate.AccountID, err)
+		}
 		return Session{}, err
 	}
 	return s.projectSession(ctx, result)

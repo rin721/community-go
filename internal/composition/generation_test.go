@@ -21,8 +21,8 @@ import (
 	kernelcomposition "github.com/rin721/go-scaffold-template/internal/kernel/composition"
 	"github.com/rin721/go-scaffold-template/internal/kernel/config"
 	kernellogging "github.com/rin721/go-scaffold-template/internal/kernel/logging"
-	authmodel "github.com/rin721/go-scaffold-template/internal/module/auth/model"
 	authmigration "github.com/rin721/go-scaffold-template/internal/module/auth/binding/migration"
+	authmodel "github.com/rin721/go-scaffold-template/internal/module/auth/model"
 	iammigration "github.com/rin721/go-scaffold-template/internal/module/iam/binding/migration"
 	navigationmigration "github.com/rin721/go-scaffold-template/internal/module/navigation/binding/migration"
 	organizationmigration "github.com/rin721/go-scaffold-template/internal/module/organization/binding/migration"
@@ -64,7 +64,7 @@ func TestApplicationGenerationReloadsTodoAndHTTPWithoutRestart(t *testing.T) {
 	})
 	initial := coordinator.Diagnostics()
 	if initial.CurrentGeneration != 1 || initial.ConfiguredAddress != "127.0.0.1:0" || initial.BoundAddress == "" ||
-		initial.RestartPolicy != "" || fmt.Sprint(initial.ResourceBuilt) != fmt.Sprint([]string{"logger", "database", "cache", "i18n", "storage", "observability.metrics", "observability.telemetry", "execution", "messaging", "todo", "scheduler", "auth", "iam", "organization", "navigation", "ops", "http"}) {
+		initial.RestartPolicy != "" || fmt.Sprint(initial.ResourceBuilt) != fmt.Sprint([]string{"logger", "database", "cache", "i18n", "storage", "observability.metrics", "observability.telemetry", "application.alerting", "execution", "messaging", "todo", "scheduler", "auth", "iam", "organization", "navigation", "ops", "http"}) {
 		t.Fatalf("initial diagnostics = %#v", initial)
 	}
 	if status := createTodo(t, initial.BoundAddress, strings.Repeat("x", 100)); status != http.StatusCreated {
@@ -96,7 +96,7 @@ func TestApplicationGenerationReloadsTodoAndHTTPWithoutRestart(t *testing.T) {
 		t.Fatalf("reloaded diagnostics = %#v, initial = %#v", after, initial)
 	}
 	if fmt.Sprint(after.ResourceReused) != fmt.Sprint([]string{"logger", "database", "cache", "i18n", "storage", "observability.metrics", "execution"}) ||
-		fmt.Sprint(after.ResourceBuilt) != fmt.Sprint([]string{"observability.telemetry", "messaging", "todo", "scheduler", "auth", "iam", "organization", "navigation", "ops", "http"}) {
+		fmt.Sprint(after.ResourceBuilt) != fmt.Sprint([]string{"observability.telemetry", "application.alerting", "messaging", "todo", "scheduler", "auth", "iam", "organization", "navigation", "ops", "http"}) {
 		t.Fatalf("reloaded resource diagnostics = %#v", after)
 	}
 	if status := createTodo(t, after.BoundAddress, strings.Repeat("x", 100)); status != http.StatusBadRequest {

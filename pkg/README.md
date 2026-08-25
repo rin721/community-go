@@ -42,6 +42,7 @@
 | [`schedule`](schedule/README.md) | 项目自有声明契约；`gocron/v2` 只存在于内部 Adapter | 模块声明 cron/fixedDelay、任务级并发和分布式执行策略；不暴露 scheduler、生命周期或注册权。 |
 | [`messaging`](messaging/README.md) | 项目自有 Contract/Binding/Publisher；`amqp091-go` 只存在于内部 RabbitMQ Adapter | 模块声明消息 Contract、生产/消费关系、交付预算、重要性和并发；composition 解析逻辑 Route 并治理 confirm、ack、重投、死信、恢复和 Consumer 代际，不暴露 Broker Client 或物理 topology。 |
 | [`coordination`](coordination/README.md) | 项目自有租约契约；production Adapter 复用 Cache 的 `go-redis/v9` client | 表达 acquire/renew/release、未获得、不可用与失权；不把 Redis 类型或 token 暴露给业务模块。 |
+| [`alerting`](alerting/README.md) | 标准库 `net/http`、`crypto/hmac` | 低敏安全告警事件契约与 Webhook 发送（可选 HMAC-SHA256 签名、超时/重试）；Kernel App 以异步队列/生命周期治理消费，业务只经窄 Notifier 汇报。 |
 
 ## 暂缓路线
 

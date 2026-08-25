@@ -1,6 +1,6 @@
 # 075 研究档案
 
-本任务现有六个研究记录：外部选型、契约快照链、平台组件呈现、可测试工作台、Apifox 形态拆解、设计语言回归（当前有效）。
+本任务现有七个研究记录：外部选型、契约快照链、平台组件呈现、可测试工作台、Apifox 形态拆解、设计语言回归、层级分类与多页面（当前有效）。
 
 ## 记录索引
 
@@ -12,6 +12,7 @@
 | R075-004 | 可测试工作台（树/详情/执行器/模型） | `superseded`（R075-005）：执行语义与纯函数层复用 |
 | R075-005 | Apifox 产品形态拆解（官方物料 + 产品知识） | `superseded`（R075-006 UI 结论）：业务能力清单继续有效（文档/调试双模式、参数表单、Try it out、响应元素、Cmd+K、深链），UI 呈现结论被取代 |
 | [R075-006](R075-006-design-language-realignment/) | 设计语言回归（提取业务能力、融入后台视觉，去 Apifox 外壳） | 当前有效：平台组件 + 标准后台流程呈现（列表 → 详情/弹层 → 表单 → 发送 → 响应卡片），删除 apifox 自定义外观，业务层（openapi-data/run-store/highlight/执行语义/深链/快照链）保留 |
+| [R075-007](R075-007-hierarchy-multipage/) | 层级分类与多页面（GroupLayout 073 多静态路由 + SectionNav 动态条目 + query 深链） | 当前有效：/openapi 总览（分类卡片）→ /openapi/tags（分类接口列表）→ /openapi/operation（文档/调试页），模型独立 /openapi/models；共享 OpenAPILayout，详情 Drawer 升级为页面，数据/执行/mock 全部复用 |
 
 ## 有效性
 

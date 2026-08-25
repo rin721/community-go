@@ -1,8 +1,25 @@
-/* OpenAPI 模块专属样式（R075-006）：呈现层全部使用平台组件与平台样式语义
+/* OpenAPI 模块专属样式（075-007）：呈现层全部使用平台组件与平台样式语义
    （styles.css 的 Shell/表单/表格/卡片 token），本文件只保留模块业务 selector，
    与 iam/organization 等模块 css 同类，不引入第三方主题或自定义设计系统。 */
-.openapiModule {
-  /* 业务 selector 收拢处；无平台 token 覆盖 */
+
+/* ---- 共享分组布局（073 范式，同 settings-inner） ---- */
+.moduleInner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--section-gap);
+}
+
+.moduleContent {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  gap: var(--section-gap);
+}
+
+@media (max-width: 900px) {
+  .moduleInner {
+    flex-direction: column;
+  }
 }
 
 .pageMeta {
@@ -11,13 +28,58 @@
   opacity: 0.75;
 }
 
+/* ---- 总览分类卡片 ---- */
+.categoryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.categoryCard {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.categoryCard:hover {
+  border-color: var(--primary);
+}
+
+.categoryCardHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.categoryCardTag {
+  overflow: hidden;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.categoryCardCount {
+  flex: 0 0 auto;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.categoryCardMethods {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
 /* ---- 列表区 ---- */
 .listSearch {
   min-width: 240px;
-}
-
-.listFilter {
-  min-width: 160px;
 }
 
 .rowActions {
@@ -47,39 +109,62 @@
   color: var(--primary);
 }
 
+.modelItemActive {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.modelDetail {
+  min-width: 0;
+}
+
 .modelEmpty {
   margin: 0;
   font-size: 12px;
   color: var(--text-muted);
 }
 
-/* ---- Drawer 详情 ---- */
-.drawerTitle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+/* 模型属性表（ModelPane 复用） */
+.modelPane {
+  display: grid;
+  gap: 10px;
   min-width: 0;
 }
 
-.drawerTitleId {
-  overflow: hidden;
-  font-size: 14px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.modelPaneHeader {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
 }
 
-.drawerFooter {
+.modelPaneName {
+  font: 600 13px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.modelPaneType {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ---- 接口详情页 ---- */
+.opSection {
+  display: grid;
+  gap: 16px;
+}
+
+.opTitle {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  width: 100%;
+  gap: 10px;
+  min-width: 0;
+  flex-wrap: wrap;
 }
 
-.modeToggle {
+.opModeToggle {
   display: inline-flex;
   gap: 2px;
-  margin-bottom: 12px;
+  margin-left: auto;
 }
 
 .docsSection,
@@ -167,6 +252,11 @@
 
 .authField {
   max-width: 320px;
+}
+
+.runActions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 /* ---- 响应卡片 ---- */

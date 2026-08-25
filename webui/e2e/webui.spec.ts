@@ -40,7 +40,10 @@ function manifest(authenticated: boolean, availability: "available" | "degraded"
       { moduleId: "settings", id: "settings.language", path: "/settings/language", entryId: "settings.language", titleMessageId: "webui.settings.language.title", layout: "app", groupLayoutId: "settings.layout", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
       { moduleId: "settings", id: "settings.about", path: "/settings/about", entryId: "settings.about", titleMessageId: "webui.settings.about.title", layout: "app", groupLayoutId: "settings.layout", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
       { moduleId: "settings", id: "settings.acknowledgement", path: "/settings/acknowledgement", entryId: "settings.acknowledgement", titleMessageId: "webui.settings.acknowledgement.title", layout: "app", groupLayoutId: "settings.layout", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
-      { moduleId: "openapi", id: "openapi.docs", path: "/openapi", entryId: "openapi.docs", titleMessageId: "webui.openapi.docs.title", layout: "app", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
+      { moduleId: "openapi", id: "openapi.overview", path: "/openapi", entryId: "openapi.overview", titleMessageId: "webui.openapi.docs.title", layout: "app", groupLayoutId: "openapi.layout", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
+      { moduleId: "openapi", id: "openapi.tags", path: "/openapi/tags", entryId: "openapi.tags", titleMessageId: "webui.openapi.tags.title", layout: "app", groupLayoutId: "openapi.layout", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
+      { moduleId: "openapi", id: "openapi.operation", path: "/openapi/operation", entryId: "openapi.operation", titleMessageId: "webui.openapi.operation.title", layout: "app", groupLayoutId: "openapi.layout", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
+      { moduleId: "openapi", id: "openapi.models", path: "/openapi/models", entryId: "openapi.models", titleMessageId: "webui.openapi.models.title", layout: "app", groupLayoutId: "openapi.layout", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
     ],
     menu: authenticated && access !== "denied" ? [
       { moduleId: "ops", id: "ops.dashboard", routeId: "ops.dashboard", titleMessageId: "webui.ops.dashboard.title", iconId: "activity", order: 10 },
@@ -60,7 +63,7 @@ function manifest(authenticated: boolean, availability: "available" | "degraded"
       { moduleId: "settings", id: "settings.language", parentId: "settings.center", routeId: "settings.language", titleMessageId: "webui.settings.language.title", iconId: "languages", order: 101 },
       { moduleId: "settings", id: "settings.about", parentId: "settings.center", routeId: "settings.about", titleMessageId: "webui.settings.about.title", iconId: "info", order: 102 },
       { moduleId: "settings", id: "settings.acknowledgement", parentId: "settings.center", routeId: "settings.acknowledgement", titleMessageId: "webui.settings.acknowledgement.title", iconId: "star", order: 103 },
-      { moduleId: "openapi", id: "openapi.docs", routeId: "openapi.docs", titleMessageId: "webui.openapi.docs.title", iconId: "book", order: 130 },
+      { moduleId: "openapi", id: "openapi.docs", routeId: "openapi.overview", titleMessageId: "webui.openapi.docs.title", iconId: "book", order: 130 },
       ...(navigationEnabled ? [{ moduleId: "navigation", id: "navigation.menus", routeId: "navigation.menus", titleMessageId: "webui.navigation.menus.title", iconId: "menu", order: 110 }] : []),
     ] : [],
   };
@@ -313,57 +316,48 @@ test("organization management pages render tree, position and assignment evidenc
   await page.screenshot({ path: testInfo.outputPath("organization-assignment.png"), fullPage: true });
 });
 
-test("075 openapi list, docs/debug drawer and execution", async ({ page }, testInfo) => {
+test("075 openapi hierarchy: categories, tag operations, docs/debug page and execution", async ({ page }, testInfo) => {
   (page as unknown as { setWebUIState: (state: { authenticated: boolean }) => void }).setWebUIState({ authenticated: true });
   await page.goto("/openapi");
   await expect(page.getByRole("heading", { name: "API Docs", exact: true })).toBeVisible();
-  // 平台列表（搜索 + 表格 + 行操作，R075-006）。
-  await expect(page.getByRole("heading", { name: "API operations", exact: true })).toBeVisible();
-  const sessionRow = page.locator("tr").filter({ hasText: "iam.session.read" });
-  await expect(sessionRow).toBeVisible();
-  // 调试 Drawer：发送（拦截的会话路由）→ 响应卡片。
-  await sessionRow.getByRole("button", { name: "Debug", exact: true }).click();
-  await expect(page.getByRole("dialog")).toBeVisible();
-  await page.getByRole("button", { name: "Send", exact: true }).click();
-  await expect(page.locator('[data-testid="openapi-response"]')).toBeVisible();
-  await expect(page.getByText(/200 OK/)).toBeVisible();
-  await expect(page.getByText(/csrf-test-token/)).toBeVisible();
-  // 文档模式切换。
-  await page.locator('[data-testid="openapi-mode-docs"]').click();
-  await expect(page.getByRole("heading", { name: "Responses", exact: true })).toBeVisible();
-  await page.getByRole("dialog").getByRole("button", { name: "Close", exact: true }).first().click();
-  await expect(page.getByRole("dialog")).toHaveCount(0);
-  // bearerAuth 注入：拦截 POST /api/v1/todos，断言 Authorization 头。
+  // 层级第一级：总览分类卡片（R075-007）。
+  const categoryCard = page.locator('[data-testid="openapi-category-card"]').filter({ hasText: "Todo" });
+  await expect(categoryCard).toBeVisible();
+  // 层级第二级：进入分类接口列表页（?tag=Todo）。
+  await categoryCard.click();
+  await expect(page).toHaveURL(/\/openapi\/tags\?tag=Todo/);
+  const todoRow = page.locator("tr").filter({ hasText: "createTodo" });
+  await expect(todoRow).toBeVisible();
+  // 层级第三级：接口文档/调试页（?op=&mode=debug），发送 Todo 时断言 bearerAuth 头。
   let bearerHeader = "";
   await page.route("**/api/v1/todos", async (route) => {
     bearerHeader = route.request().headers()["authorization"] ?? "";
     await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ id: "todo-1", title: "created" }) });
   });
-  const todoRow = page.locator("tr").filter({ hasText: "createTodo" });
   await todoRow.getByRole("button", { name: "Debug", exact: true }).click();
+  await expect(page).toHaveURL(/\/openapi\/operation\?op=post-%2Fapi%2Fv1%2Ftodos&mode=debug/);
   await page.getByLabel("Bearer token").fill("exec-token-123");
   await page.getByRole("button", { name: "Send", exact: true }).click();
+  await expect(page.locator('[data-testid="openapi-response"]')).toBeVisible();
   await expect(page.getByText(/201 Created/)).toBeVisible();
   expect(bearerHeader).toBe("Bearer exec-token-123");
-  // 搜索过滤列表。
-  await page.getByRole("dialog").getByRole("button", { name: "Close", exact: true }).first().click();
-  await expect(page.getByRole("dialog")).toHaveCount(0);
-  const searchInput = page.getByLabel("Search by method, path or ID");
-  await searchInput.fill("navigation");
-  await expect(searchInput).toHaveValue("navigation");
-  await expect(page.locator("tr").filter({ hasText: "auth.audit.list" })).toHaveCount(0);
-  await page.getByLabel("Search by method, path or ID").fill("");
-  // 模型 Drawer。
-  await page.getByRole("button", { name: "AccountResponse", exact: true }).first().click();
-  await expect(page.getByRole("dialog")).toBeVisible();
-  await expect(page.getByText("AccountResponse", { exact: true }).first()).toBeVisible();
-  await page.getByRole("dialog").getByRole("button", { name: "Close", exact: true }).first().click();
-  await expect(page.getByRole("dialog")).toHaveCount(0);
-  // 深链：docs 模式直达。
-  await page.goto("/openapi?op=get-/api/v1/iam/accounts&mode=docs");
-  await expect(page.getByRole("dialog")).toBeVisible();
+  // 文档模式切换（页内分段）。
+  await page.locator('[data-testid="openapi-mode-docs"]').click();
   await expect(page.getByRole("heading", { name: "Responses", exact: true })).toBeVisible();
-  await page.screenshot({ path: testInfo.outputPath("075-integrated-docs.png"), fullPage: true });
+  // 共享布局导航：IAM 分类下会话接口调试（webuiSession + CSRF）。
+  await page.goto("/openapi/operation?op=get-/api/v1/iam/session&mode=debug");
+  await expect(page.getByRole("button", { name: "Send", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Send", exact: true }).click();
+  await expect(page.getByText(/200 OK/)).toBeVisible();
+  await expect(page.getByText(/csrf-test-token/)).toBeVisible();
+  // 深链 docs 模式直达（?op=&mode=docs）。
+  await page.goto("/openapi/operation?op=get-/api/v1/iam/accounts&mode=docs");
+  await expect(page.getByRole("heading", { name: "Responses", exact: true })).toBeVisible();
+  // 模型页（?model= 直达）。
+  await page.goto("/openapi/models?model=AccountResponse");
+  await expect(page.locator('[data-testid="openapi-model-pane"]')).toBeVisible();
+  await expect(page.locator('[data-testid="openapi-model-pane"]').getByText("AccountResponse", { exact: true })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("075-hierarchy-docs.png"), fullPage: true });
 });
 
 test("navigation policy refreshes the manifest while keeping the registered route", async ({ page }, testInfo) => {

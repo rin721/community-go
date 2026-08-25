@@ -1,17 +1,18 @@
 import { useMemo, useState } from "react";
 import { Button, Chip, Select, Spinner, TextArea } from "@heroui/react";
 import { ListBox } from "@heroui/react";
-import { DataTable, Drawer, Field, InlineAlert, type DataTableColumn } from "@webui/sdk/ui";
+import { DataTable, EmptyState, Field, InlineAlert, PageHeader, PageSection, type DataTableColumn } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { readWebUIDataSource } from "@webui/sdk/runtime";
+import { webuiOpenAPISpec } from "@webui/generated/openapi-spec";
 import { loadSessionSnapshot } from "./api";
 import { MethodBadge } from "./MethodBadge";
 import { highlightJSON } from "./highlight";
-import { formatBytes, type RunState } from "./run-store";
+import { assembleRunResult, formatBytes, type RunResult, type RunState } from "./run-store";
 import {
-  bodyTypeOptions, buildRequest, executionParameters, formFieldRows, hasSecurityScheme, isMutation,
-  requestBodySchema, responseRows, sampleJSON,
-  type BodyType, type ExecutionParameterRow, type FormFieldRow, type OperationRow, type ResponseRow, type SchemaObject,
+  bodyTypeOptions, buildRequest, executionParameters, formFieldRows, groupedOperations, hasSecurityScheme, isMutation,
+  isOpenAPIDocument, requestBodySchema, responseRows, sampleJSON,
+  type BodyType, type ExecutionParameterRow, type FormFieldRow, type OpenAPIDocument, type OperationRow, type ResponseRow, type SchemaObject,
 } from "./openapi-data";
 import styles from "./openapi.module.css";
 
@@ -28,18 +29,36 @@ function responseColumns(t: Translate): ReadonlyArray<DataTableColumn<ResponseRo
   ];
 }
 
-// OperationDrawer hosts the docs/debug sections for one operation inside the
-// platform Drawer (R075-006): standard admin form/table controls, execution
-// with the established same-origin semantics and the response card at the end
-// of the debug section.
-export function OperationDrawer({ row, schemas, mode, onModeChange, onClose }: {
-  row: OperationRow;
-  schemas: Record<string, SchemaObject> | undefined;
-  mode: "docs" | "debug";
-  onModeChange: (mode: "docs" | "debug") => void;
-  onClose: () => void;
-}) {
+// OpenAPIOperationPage renders one operation as a full page (/openapi/operation,
+// ?op=&mode=): the docs section and the debug section with same-origin
+// execution and the response card. The selected operation and initial mode come
+// from the browser location on mount; switching mode keeps the URL in sync via
+// replaceState so deep links survive reload (075-007). The interior is keyed by
+// operation id so editing state resets when the ?op= changes in place.
+export default function OpenAPIOperationPage() {
   const { t } = useWebUITranslation("webui.openapi");
+  const search = useMemo(() => new URLSearchParams(window.location.search), [window.location.search]);
+  const op = search.get("op") ?? "";
+  const usable = isOpenAPIDocument(webuiOpenAPISpec);
+  const document = webuiOpenAPISpec as unknown as OpenAPIDocument;
+  const rowsById = useMemo(() => new Map((usable ? groupedOperations(document) : []).flatMap((group) => group.operations).map((row) => [row.id, row])), [usable, document]);
+  const row = op ? rowsById.get(op) : undefined;
+
+  return <div className="module-page">
+    <PageHeader eyebrow={t("webui.openapi.docs.eyebrow")} title={row ? row.operationId : t("webui.openapi.operation.title")} description={row?.summary} />
+    <div className="page-sections">
+      {!usable
+        ? <EmptyState title={t("webui.openapi.operation.title")} detail={t("webui.openapi.docs.unavailable")} />
+        : !row
+          ? <EmptyState title={t("webui.openapi.operation.title")} detail={t("webui.openapi.operation.missing")} />
+          : <OperationDetail key={row.id} row={row} schemas={document.components?.schemas} initialMode={search.get("mode") === "debug" ? "debug" : "docs"} />}
+    </div>
+  </div>;
+}
+
+function OperationDetail({ row, schemas, initialMode }: { row: OperationRow; schemas: Record<string, SchemaObject> | undefined; initialMode: "docs" | "debug" }) {
+  const { t } = useWebUITranslation("webui.openapi");
+  const [mode, setMode] = useState<"docs" | "debug">(initialMode);
   const [parameters, setParameters] = useState<ExecutionParameterRow[]>(() => executionParameters(row));
   const bodySchema = requestBodySchema(row);
   const bodyTypes = useMemo(() => bodyTypeOptions(row), [row]);
@@ -54,6 +73,13 @@ export function OperationDrawer({ row, schemas, mode, onModeChange, onClose }: {
   const [bearerToken, setBearerToken] = useState("");
   const [runState, setRunState] = useState<RunState>({ kind: "idle" });
   const executable = readWebUIDataSource() !== "mock";
+
+  const switchMode = (next: "docs" | "debug") => {
+    setMode(next);
+    const params = new URLSearchParams(window.location.search);
+    params.set("mode", next);
+    window.history.replaceState(null, "", `${window.location.pathname}?${params.toString()}`);
+  };
 
   const updateParameter = (name: string, value: string) => setParameters((current) => current.map((parameter) => (parameter.name === name ? { ...parameter, value } : parameter)));
 
@@ -110,35 +136,17 @@ export function OperationDrawer({ row, schemas, mode, onModeChange, onClose }: {
       const body = await response.text();
       const headers: Record<string, string> = {};
       response.headers.forEach((value, name) => { headers[name] = value; });
-      setRunState({ kind: "done", result: { ok: response.ok, status: response.status, statusText: response.statusText, durationMs, headers, body, sizeBytes: new TextEncoder().encode(body).length, bodyClass: classifyJSON(body) } });
+      setRunState({ kind: "done", result: assembleRunResult({ ok: response.ok, status: response.status, statusText: response.statusText, durationMs, headers, body }) });
     } catch (error) {
       setRunState({ kind: "error", message: error instanceof Error ? error.message : "request_failed" });
     }
   };
 
-  const footer = <div className={styles.drawerFooter}>
-    <Button variant="secondary" onPress={onClose}>{t("webui.openapi.drawer.close")}</Button>
-    {mode === "debug" && executable && (
-      <Button onPress={() => void execute()} isDisabled={runState.kind === "pending"}>
-        {runState.kind === "pending" && <Spinner size="sm" />}
-        {t(runState.kind === "pending" ? "webui.openapi.run.running" : "webui.openapi.run.execute")}
-      </Button>
-    )}
-  </div>;
-
-  return <Drawer
-    open
-    title={row.operationId}
-    description={row.summary}
-    closeLabel={t("webui.openapi.drawer.close")}
-    onClose={onClose}
-    footer={footer}
-  >
-    <div className={styles.drawerTitle}><MethodBadge method={row.method} /><code className={styles.monoCell}>{row.path}</code></div>
-    <div className={styles.modeToggle}>
-      <Button size="sm" variant={mode === "docs" ? "primary" : "ghost"} data-testid="openapi-mode-docs" onPress={() => onModeChange("docs")}>{t("webui.openapi.op.mode.docs")}</Button>
-      <Button size="sm" variant={mode === "debug" ? "primary" : "ghost"} data-testid="openapi-mode-debug" onPress={() => onModeChange("debug")}>{t("webui.openapi.op.mode.debug")}</Button>
-    </div>
+  return <div className={styles.opSection}>
+    <div className={styles.opTitle}><MethodBadge method={row.method} /><code className={styles.monoCell}>{row.path}</code><span className={styles.opModeToggle}>
+      <Button size="sm" variant={mode === "docs" ? "primary" : "ghost"} data-testid="openapi-mode-docs" onPress={() => switchMode("docs")}>{t("webui.openapi.op.mode.docs")}</Button>
+      <Button size="sm" variant={mode === "debug" ? "primary" : "ghost"} data-testid="openapi-mode-debug" onPress={() => switchMode("debug")}>{t("webui.openapi.op.mode.debug")}</Button>
+    </span></div>
     {!executable && <InlineAlert tone="info" title={t("webui.openapi.run.mockDisabled")} />}
     {mode === "docs"
       ? <DocsSection row={row} schemas={schemas} t={t} />
@@ -170,21 +178,21 @@ export function OperationDrawer({ row, schemas, mode, onModeChange, onClose }: {
         </section>}
         {runState.kind === "error" && <InlineAlert tone="danger" title={t("webui.openapi.run.error")} detail={runState.message} />}
         <ResponseCard state={runState} />
+        <div className={styles.runActions}>
+          {executable && <Button onPress={() => void execute()} isDisabled={runState.kind === "pending"}>
+            {runState.kind === "pending" && <Spinner size="sm" />}
+            {t(runState.kind === "pending" ? "webui.openapi.run.running" : "webui.openapi.run.execute")}
+          </Button>}
+        </div>
       </div>}
-  </Drawer>;
-}
-
-function classifyJSON(text: string): "json" | "text" {
-  const trimmed = text.trimStart();
-  return trimmed.startsWith("{") || trimmed.startsWith("[") ? "json" : "text";
+  </div>;
 }
 
 function DocsSection({ row, schemas, t }: { row: OperationRow; schemas: Record<string, SchemaObject> | undefined; t: Translate }) {
   const bodySchema = requestBodySchema(row);
   const example = bodySchema ? sampleJSON(bodySchema.schema, schemas) : undefined;
-  return <div className={styles.docsSection}>
+  return <PageSection title={t("webui.openapi.op.docs.title")} description={row.description} className={styles.docsSection}>
     {row.summary && <p className={styles.formHint}>{row.summary}</p>}
-    {row.description && <p className={styles.formHint}>{row.description}</p>}
     <section className={styles.formSection}>
       <h3 className={styles.formSectionTitle}>{t("webui.openapi.detail.params")}</h3>
       <DataTable columns={[
@@ -202,7 +210,7 @@ function DocsSection({ row, schemas, t }: { row: OperationRow; schemas: Record<s
       <h3 className={styles.formSectionTitle}>{t("webui.openapi.detail.responses")}</h3>
       <DataTable columns={responseColumns(t)} rows={responseRows(row)} ariaLabel={t("webui.openapi.detail.responses")} getRowKey={(item) => item.status} />
     </section>
-  </div>;
+  </PageSection>;
 }
 
 function DebugParams({ parameters, onParameterChange, t, executable }: {
@@ -305,7 +313,7 @@ function ResponseCard({ state }: { state: RunState }) {
       <InlineAlert tone="danger" title={t("webui.openapi.run.error")} detail={state.message} />
     </section>;
   }
-  const result = state.result;
+  const result: RunResult = state.result;
   const statusClass = result.status < 300 ? styles.statusOk : result.status < 400 ? styles.statusWarn : styles.statusError;
   const headerLines = Object.entries(result.headers).map(([name, value]) => `${name}: ${value}`).join("\n");
   return <section className={styles.responseCard} data-testid="openapi-response">

@@ -6,8 +6,11 @@ import { MethodBadge } from "./MethodBadge";
 import type { OperationGroup } from "./openapi-data";
 import styles from "./openapi.module.css";
 
-// CommandPalette is the Cmd/Ctrl+K quick navigation (R075-006): a platform
-// modal that filters operations and models and opens the matching drawer.
+// CommandPalette is the Cmd/Ctrl+K quick navigation (075-007): a platform
+// modal that filters operations and models and navigates to the matching
+// operation page (?op=&mode=docs) or models page (?model=). Callbacks are
+// supplied by the shared OpenAPILayout so the same palette works on every
+// module route.
 export function CommandPalette({ open, onClose, groups, models, onSelectOperation, onSelectModel }: {
   open: boolean;
   onClose: () => void;

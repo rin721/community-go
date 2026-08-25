@@ -1,22 +1,22 @@
-# 075 新增 openapi 模块：API 文档与在线调试（融入后台设计语言）
+# 075 新增 openapi 模块：API 文档与在线调试（层级分类 + 多页面）
 
-状态：研究门禁通过（R075-001 … R075-006）。用户已确认第五轮方案（去 Apifox 外壳、融入后台设计语言）；**已实施完成**（55ee70f → 9ea2f13 → e4865ca → 9536334 → 本轮；Go/WebUI/e2e 全绿，截图留存）。
+状态：研究门禁通过（R075-001 … R075-007）。前五轮已提交（55ee70f → 9ea2f13 → e4865ca → 9536334 → 72ba96f，平台语言集成完成）。**第六轮已确认并实施完成（待提交）**：层级分类、多页面（GroupLayout 073）。
 
 ## 背景
 
-`api/openapi.yaml` 是当前公开 HTTP 契约产物（模块 Huma 代码声明唯一生成）。用户需要 Admin WebUI 内补齐 **API 文档查看与在线调试（Try it out）** 能力：接口列表、参数输入、请求发送、响应展示用系统既有组件（表单/表格/弹窗/折叠面板）以贴合后台操作习惯的流程呈现；去除 9536334 中偏离后台主题的 Apifox 自定义外观（资源树壳层/自定义标签/命令面板观感/afx token）。
+`api/openapi.yaml` 是当前公开 HTTP 契约产物（模块 Huma 代码声明唯一生成）。用户需要 Admin WebUI 内补齐 **API 文档查看与在线调试（Try it out）** 能力，并在第六轮明确要求：**请做层级分类，不要放到一个页面上** —— 当前 72ba96f 把接口列表、模型区、命令面板、详情 Drawer 全部堆在单页 `/openapi`，需要改为按分类（tag）组织的多页面层级结构。
 
-## 方案（摘要，R075-006）
+## 方案（摘要，R075-006/007）
 
-- `openapi` 页重构为平台设计语言的标准后台模块：PageHeader + 接口列表区（搜索 + 标签筛选 + DataTable，行操作「文档 / 调试」）→ 平台 Drawer 详情（文档分区 / 调试分区：参数、Body 含 JSON/form-文件/urlencoded、Headers、Auth、发送）→ 调试分区内响应卡片（状态/耗时/大小/JSON 高亮/响应头）；
-- **业务能力全部保留**：文档查看、Try it out（真实执行：bearer 内存 token、webuiSession Cookie+CSRF、mock 禁用）、深链 `?op=&mode=`、Cmd+K（平台 Modal，推荐保留）；
-- **复用不重做**：`openapi-data`/`run-store`/`highlight`/`api.ts`/快照链/图标 `book`/alias/DataTable 修复；删除 ApiTree/WorkspaceTabs/afx 外观层与自定义响应右栏；
+- **层级分类、多页面（R075-007）**：模块声明 4 个静态路由（共享 `GroupLayoutID: openapi.layout`，沿用 settings 073 范式）：`/openapi` 总览（分类卡片）→ `/openapi/tags`（分类接口列表，`?tag=`）→ `/openapi/operation`（接口文档/调试，`?op=&mode=`）、`/openapi/models`（数据模型，`?model=`）；共享 `OpenAPILayout`（SectionNav 动态条目：总览 / 各 tag / 模型）；
+- **业务能力全部保留**：文档查看、Try it out（真实执行：bearer 内存 token、webuiSession Cookie+CSRF、mock 禁用）、深链（`?tag=`/`?op=&mode=`/`?model=`）、Cmd+K（平台 Modal）；
+- **复用不重做**：`openapi-data`/`run-store`/`highlight`/`api.ts`/快照链/图标 `book`/alias/DataTable 修复；OperationDrawer/ModelDrawer 撤壳后内容并入页面，删除单页壳 OpenAPIPage；
 - 控件基座仍为 HeroUI（经 `@webui/sdk/ui` 透传，符合 068 与先前约束）。
 
 ## 阅读顺序
 
-1. [研究档案](research/README.md)：R075-001/003/004/005（已归档或 UI 结论被取代）、R075-002（快照链，有效）、R075-006（设计语言回归，当前有效）
-2. [需求](requirements.md)、[设计](design.md)、[任务清单](tasks.md)：OAP-075-I1..I8
+1. [研究档案](research/README.md)：R075-001/003/004/005（已归档或 UI 结论被取代）、R075-002（快照链，有效）、R075-006（设计语言回归，有效）、R075-007（层级分类与多页面，当前有效）
+2. [需求](requirements.md)、[设计](design.md)、[任务清单](tasks.md)：OAP-075-J1..J9（第六轮，待确认）
 
 ## 背景
 

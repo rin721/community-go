@@ -245,11 +245,16 @@ PageHeader（eyebrow/title/description/actions；标题用 HeroUI Typography.Hea
 - **页面职责边界**：WebUI 功能模块**自己实现页面**；需要他模块（如 iam）能力时**调用其接口**实现（settings 调 `self/profile`、`self/archive`、`self/password`），不把他人页面挂进自己的菜单/页内导航。
 - 全局「设置」两项级是否展开由菜单声明决定；跨 owner `ParentID` 与 `HostNavigation` 仍是平台能力（供未来宿主分组），当前应用不再把 iam 页面挂入设置组。
 
-## OpenAPI：API 文档与在线调试（075）
+## OpenAPI：API 文档与在线调试（075/007）
 
-- **模块形态**：`openapi` 是 WebUI-only 模块（无 module.go 业务层）：`/openapi` 单路由 + `openapi.docs` 顶级菜单项（无 ViewOperationID，契约是公开仓库产物）。
-- **呈现遵循后台设计语言（R075-006，去 Apifox 外壳）**：页面由平台组件构成（PageHeader/PageSection/DataTable/Field/SelectField/Drawer/InlineAlert/EmptyState），流程贴合后台（列表 → 行操作 → Drawer 详情/调试 → 表单 → 发送 → 响应卡片）；模块 css 只保留业务 selector，无自定义主题；控件基座为 HeroUI（`@heroui/react` 或经 `@webui/sdk/ui` 透传）。接口详情 Drawer 分「文档/调试」两模式（`op.mode.docs/debug`）；列表支持搜索与 tag 筛选；模型在数据模型区块打开 `ModelDrawer`；Cmd/Ctrl+K 平台 Modal 快速跳转。
-- **在线调试（Try it out）**：`openapi-data.ts` 纯函数自动构建参数/表单/Body 类型；`OperationDrawer` 执行同源 fetch（bearer 内存 token、webuiSession Cookie + CSRF、form-data 文件上传、mock 禁用）；`run-store.ts` 状态机 + `highlight.ts`（highlight.js 仅 json）高亮 JSON body；响应卡片呈现状态/耗时/大小/响应头，错误如实展示。深链 `?op=<id>&mode=docs|debug` 与 `?model=<name>`（replaceState + popstate 恢复）。
+- **模块形态**：`openapi` 是 WebUI-only 模块（无 module.go 业务层）：四个静态路由共享 `openapi.layout` 分组布局（R075-007，沿用 073 范式）+ `openapi.docs` 顶级菜单项（无 ViewOperationID，契约是公开仓库产物）：
+  - `/openapi` 总览页（分类卡片，每个 tag：名称/操作数/方法徽标）；
+  - `/openapi/tags?tag=` 分类接口列表页（该分类下 DataTable + 行操作「文档 / 调试」）；
+  - `/openapi/operation?op=&mode=` 接口文档/调试页（单个接口，文档分区 + 调试分区）；
+  - `/openapi/models?model=` 数据模型页（模型列表 + 属性表）。
+- **层级分类（R075-007）**：`OpenAPILayout`（SectionNav：总览 / 各 tag / 数据模型，动态计算）作为一族路由的共享布局，路由切换布局不卸载；动态 tag/接口/模型选择全部走 query 深链（路由集合编译期冻结，`validPath` 拒绝路径参数），不再是单页堆叠 + Drawer。
+- **呈现遵循后台设计语言（R075-006，去 Apifox 外壳）**：页面由平台组件构成（PageHeader/PageSection/SectionNav/DataTable/Field/InlineAlert/EmptyState），流程贴合后台（总览 → 分类 → 接口文档/调试 → 发送 → 响应卡片）；模块 css 只保留业务 selector，无自定义主题；控件基座为 HeroUI（`@heroui/react` 或经 `@webui/sdk/ui` 透传）。接口页分「文档/调试」两模式（`op.mode.docs/debug`，mode 切换 replaceState 同步 URL）；Cmd/Ctrl+K 平台 Modal 快速跳转（布局内统一持有）。
+- **在线调试（Try it out）**：`openapi-data.ts` 纯函数自动构建参数/表单/Body 类型；`OpenAPIOperationPage` 执行同源 fetch（bearer 内存 token、webuiSession Cookie + CSRF、form-data 文件上传、mock 禁用）；`run-store.ts` 状态机 + `highlight.ts`（highlight.js 仅 json）高亮 JSON body；响应卡片呈现状态/耗时/大小/响应头，错误如实展示。深链 `?tag=`/`?op=<id>&mode=docs|debug` 与 `?model=<name>`。
 - **契约数据源（单权威）**：`webui generate` 从 `api/openapi.yaml` 渲染 `webui/src/generated/openapi-spec.ts`；`webui.specOutput` 路径、`--check` 严格比对（R075-002）；mock 浏览零请求、`mock.ts` 空表。
 
 ## 强制 i18n 契约

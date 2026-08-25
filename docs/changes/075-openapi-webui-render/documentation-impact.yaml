@@ -13,12 +13,12 @@ areas:
     decision: updated
     documents:
       - webui/README.md
-    reason: openapi 模块回归后台设计语言（R075-006）：去除 Apifox 外观壳层（自定义资源树/标签条/命令面板观感/afx token/右侧响应栏），改为平台组件列表 + Drawer 详情（文档/调试） + 调试区响应卡片；业务能力保留（解析/执行/highlight/深链/Cmd+K/mock 禁用）；控件基座仍为 HeroUI；docs/development/webui.md 同步更新。
+    reason: openapi 模块第六轮改为层级分类多页面（R075-007）：4 个静态路由（/openapi 总览、/openapi/tags 分类接口列表、/openapi/operation 文档/调试、/openapi/models 模型）共享 GroupLayout（073 范式）与 SectionNav 页内导航；详情 Drawer 撤壳升为页面，深链 ?tag=/?op=&mode=/?model= 跨页导航；业务能力保留（解析/执行/highlight/深链/Cmd+K/mock 禁用）；控件基座仍为 HeroUI；docs/development/webui.md 同步更新。
   - id: module
     decision: updated
     documents:
       - internal/module/README.md
-    reason: openapi 模块（WebUI-only）重构为平台组件呈现（OpenAPIPage 列表/OperationDrawer/ModelDrawer/CommandPalette 等，删除 ApiTree/WorkspaceTabs/OperationPane/ResponsePanel），模块 README 更新；模块清单权威 internal/module/README.md 已同步。
+    reason: openapi 模块（WebUI-only）第六轮重组为多页面层级（OpenAPILayout + 总览/分类/接口/模型四个页面，删除单页壳 OpenAPIPage 与 Drawer 外壳），模块 README 更新；模块清单权威 internal/module/README.md 已同步。
   - id: startup
     decision: reviewed-no-change
     reason: 宿主 boot 装配链（manifest -> registry -> Shell -> route）、revision 门禁、托管构建链（webui generate 扩展为同一命令多产物）与 mock 传输层语义不变；openapi 页面零请求，三态数据源环境一致渲染。

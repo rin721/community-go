@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
-  bodyTypeOptions, buildRequest, executionParameters, filterOperationGroups, formFieldRows, groupedOperations,
-  hasSecurityScheme, isMutation, isOpenAPIDocument, parameterDefaultValue, requestBodySchema, responseRows,
-  sampleJSON, schemaPropertyRows, schemaSummary, type OpenAPIDocument,
+  bodyTypeOptions, buildApiTree, buildRequest, executionParameters, filterApiTree, filterOperationGroups, formFieldRows,
+  groupedOperations, hasSecurityScheme, isMutation, isOpenAPIDocument, parameterDefaultValue, requestBodySchema,
+  responseRows, sampleJSON, schemaPropertyRows, schemaSummary, treeNodeCount, type OpenAPIDocument,
 } from "./openapi-data";
 
 const fixture: OpenAPIDocument = {
@@ -244,5 +244,55 @@ describe("openapi-data request building", () => {
     expect(request.headers["X-Trace"]).toBe("abc");
     expect(request.headers["Content-Type"]).toBe("application/json");
     expect(request.body).toBe('{"title":"x"}');
+  });
+});
+
+describe("openapi-data API tree (R075-009)", () => {
+  it("builds group nodes from tags and operation leaves in order", () => {
+    const tree = buildApiTree(fixture);
+    expect(tree.map((node) => ({ id: node.id, kind: node.kind, label: node.label, count: treeNodeCount(node) }))).toEqual([
+      { id: "group:IAM", kind: "group", label: "IAM", count: 1 },
+      { id: "group:Todo", kind: "group", label: "Todo", count: 2 },
+      { id: "group:Navigation", kind: "group", label: "Navigation", count: 1 },
+    ]);
+    const todo = tree[1];
+    expect(todo.kind).toBe("group");
+    if (todo.kind === "group") {
+      expect(todo.children.map((child) => child.row?.operationId)).toEqual(["todo.create", "todo.complete"]);
+      expect(todo.children[0].id).toBe("op:post-/api/v1/todos");
+    }
+  });
+
+  it("nests dot-separated tag segments into deeper groups", () => {
+    const nested: OpenAPIDocument = {
+      openapi: "3.0.3",
+      paths: {
+        "/api/v1/x": {
+          get: { operationId: "x.read", tags: ["IAM.Accounts.Profile"], responses: { "200": { description: "OK" } } },
+        },
+      },
+    };
+    const tree = buildApiTree(nested);
+    expect(tree.map((node) => node.id)).toEqual(["group:IAM"]);
+    const iam = tree[0];
+    expect(iam.kind).toBe("group");
+    if (iam.kind === "group") {
+      expect(iam.children.map((node) => node.id)).toEqual(["group:IAM.Accounts"]);
+      expect(iam.children[0].children.map((node) => node.id)).toEqual(["group:IAM.Accounts.Profile"]);
+      expect(iam.children[0].children[0].children[0].row?.operationId).toBe("x.read");
+    }
+  });
+
+  it("filters leaves and retains ancestor chains", () => {
+    const tree = buildApiTree(fixture);
+    const todo = filterApiTree(tree, "complete");
+    expect(todo.map((node) => node.id)).toEqual(["group:Todo"]);
+    const kept = todo[0];
+    expect(kept.kind).toBe("group");
+    if (kept.kind === "group") {
+      expect(kept.children.map((child) => child.row?.operationId)).toEqual(["todo.complete"]);
+    }
+    expect(filterApiTree(tree, "")).toEqual(tree);
+    expect(filterApiTree(tree, "missing")).toEqual([]);
   });
 });

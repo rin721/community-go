@@ -1,26 +1,6 @@
-/* OpenAPI 模块专属样式（075-007）：呈现层全部使用平台组件与平台样式语义
-   （styles.css 的 Shell/表单/表格/卡片 token），本文件只保留模块业务 selector，
+/* OpenAPI 模块专属样式（075-009 工作台式骨架）：呈现层全部使用平台组件与平台
+   token（styles.css 的 Shell/表单/表格/卡片语义），本文件只保留模块业务 selector，
    与 iam/organization 等模块 css 同类，不引入第三方主题或自定义设计系统。 */
-
-/* ---- 共享分组布局（073 范式，同 settings-inner） ---- */
-.moduleInner {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--section-gap);
-}
-
-.moduleContent {
-  flex: 1 1 auto;
-  min-width: 0;
-  display: grid;
-  gap: var(--section-gap);
-}
-
-@media (max-width: 900px) {
-  .moduleInner {
-    flex-direction: column;
-  }
-}
 
 .pageMeta {
   margin: 0.25rem 0 0;
@@ -28,151 +8,393 @@
   opacity: 0.75;
 }
 
-/* ---- 总览分类卡片 ---- */
-.categoryGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 12px;
-}
-
-.categoryCard {
-  display: grid;
-  gap: 10px;
-  padding: 14px 16px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface);
-  color: var(--text);
-  text-align: left;
-  cursor: pointer;
-}
-
-.categoryCard:hover {
-  border-color: var(--primary);
-}
-
-.categoryCardHead {
+/* ---- 工作台壳 ---- */
+.workspaceShell {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
 }
 
-.categoryCardTag {
-  overflow: hidden;
-  font-size: 14px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.categoryCardCount {
-  flex: 0 0 auto;
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-.categoryCardMethods {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-}
-
-/* ---- 列表区 ---- */
-.listSearch {
-  min-width: 240px;
-}
-
-.rowActions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-/* ---- 模型区 ---- */
-.modelList {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.modelItem {
-  padding: 4px 10px;
+.shellSearchTrigger {
+  padding: 6px 12px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--surface);
   color: var(--text);
+  font-size: 12px;
   cursor: pointer;
 }
 
-.modelItem:hover {
+.shellSearchTrigger:hover {
   border-color: var(--primary);
   color: var(--primary);
 }
 
-.modelItemActive {
-  border-color: var(--primary);
+.workspaceRow {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.workspaceMain {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+.workspaceEmpty {
+  display: grid;
+  place-items: center;
+  flex: 1 1 auto;
+  height: 100%;
+  padding: 32px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.workspaceInner {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+}
+
+.workspace-announce {
+  flex: 0 0 auto;
+  padding: 8px 12px;
+}
+
+/* ---- 左资源树 ---- */
+.treePanel {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 280px;
+  min-width: 0;
+  border-right: 1px solid var(--border);
+  background: var(--surface-muted);
+}
+
+.treeRail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 40px;
+  padding: 8px 0;
+  border-right: 1px solid var(--border);
+  background: var(--surface-muted);
+}
+
+.treeRailToggle {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.treeRailToggle:hover {
   background: var(--primary-soft);
   color: var(--primary);
 }
 
-.modelDetail {
-  min-width: 0;
-}
-
-.modelEmpty {
-  margin: 0;
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-/* 模型属性表（ModelPane 复用） */
-.modelPane {
-  display: grid;
-  gap: 10px;
-  min-width: 0;
-}
-
-.modelPaneHeader {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-}
-
-.modelPaneName {
-  font: 600 13px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-}
-
-.modelPaneType {
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-/* ---- 接口详情页 ---- */
-.opSection {
-  display: grid;
-  gap: 16px;
-}
-
-.opTitle {
+.treeHead {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
+  padding: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.treeSearch {
+  flex: 1 1 auto;
+}
+
+.treeScroller {
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 6px;
+}
+
+.treeEmpty {
+  margin: 0;
+  padding: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.treeGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.treeGroupTrigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.treeGroupTrigger:hover {
+  background: var(--surface);
+}
+
+.treeGroupLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.treeGroupCount {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.treeLeaf {
+  display: flex;
+  align-items: center;
+}
+
+.treeLeafActive {
+  border-radius: 6px;
+  background: var(--primary-soft);
+}
+
+.treeLeafButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   min-width: 0;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.treeLeafButton:hover {
+  background: var(--surface);
+}
+
+.treeLeafLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+/* ---- 模块内多标签 ---- */
+.workspaceTabs {
+  flex: 0 0 auto;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.workspaceTabsRoot {
+  width: 100%;
+}
+
+.workspaceTabsList {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 0;
+  scrollbar-width: none;
+}
+
+.workspaceTab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  padding: 8px 10px;
+  border-right: 1px solid var(--border);
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.workspaceTab[data-selected="true"] {
+  color: var(--primary-strong);
+  background: var(--primary-soft);
+}
+
+.workspaceTabLabel {
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.workspaceTabClose {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.workspaceTabClose:hover {
+  background: var(--surface-muted);
+  color: var(--text);
+}
+
+/* ---- 请求区 ---- */
+.requestPane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 12px;
+  gap: 12px;
+  overflow: auto;
+}
+
+.requestUrlRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
-.opModeToggle {
-  display: inline-flex;
-  gap: 2px;
-  margin-left: auto;
+.requestUrlMethod {
+  flex: 0 0 auto;
 }
 
-.docsSection,
-.debugSection {
-  display: grid;
-  gap: 16px;
+.requestUrlInput {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
 }
 
+.requestTabs {
+  min-height: 0;
+}
+
+/* ---- 响应区 ---- */
+.responsePane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 12px;
+  gap: 10px;
+  overflow: auto;
+  background: var(--surface-muted);
+  border-top: 1px solid var(--border);
+}
+
+.responseIdle {
+  margin: 0;
+  padding: 24px 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.responsePending {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.responseMeta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.responseStat {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.responseBody {
+  margin: 0;
+  max-height: 320px;
+  overflow: auto;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: 11px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.responseHeaders {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.statusOk {
+  background: #16a34a;
+  color: #fff;
+}
+
+.statusWarn {
+  background: #d97706;
+  color: #fff;
+}
+
+.statusError {
+  background: #dc2626;
+  color: #fff;
+}
+
+/* ---- 上下分割线 ---- */
+.splitArea {
+  flex: 0 0 8px;
+  position: relative;
+  background: var(--border);
+  cursor: ns-resize;
+}
+
+.resizer {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+  cursor: ns-resize;
+}
+
+.resizer:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -1px;
+}
+
+/* ---- 编辑区（共享） ---- */
 .formSection {
   display: grid;
   gap: 8px;
@@ -203,30 +425,15 @@
   min-width: 140px;
 }
 
-.exampleBlock {
-  margin: 0;
-  max-height: 320px;
-  overflow: auto;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface-muted);
-  font: 11px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-/* ---- 调试编辑区 ---- */
 .editorRows {
   display: grid;
   gap: 8px;
 }
 
 .editorRow {
-  display: grid;
-  grid-template-columns: minmax(160px, 0.8fr) minmax(0, 1.6fr);
-  gap: 10px;
+  display: flex;
   align-items: end;
+  gap: 8px;
 }
 
 .editorCell {
@@ -239,6 +446,7 @@
 
 .editorCellInput {
   min-width: 0;
+  flex: 1 1 0;
 }
 
 .bodyEditor {
@@ -254,86 +462,68 @@
   max-width: 320px;
 }
 
-.runActions {
-  display: flex;
-  justify-content: flex-end;
-}
-
-/* ---- 响应卡片 ---- */
-.responseCard {
-  display: grid;
-  gap: 10px;
-  padding: 12px 14px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface-muted);
-}
-
-.responseIdle {
-  margin: 0;
-  padding: 16px 8px;
-  font-size: 12px;
-  color: var(--text-muted);
+/* ---- 通用 ---- */
+.methodBadge {
+  display: inline-block;
+  min-width: 48px;
+  padding: 0 8px;
+  border-radius: 6px;
   text-align: center;
+  font: 600 11px/1.8 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.04em;
+  color: #fff;
+  flex-shrink: 0;
 }
 
-.responsePending {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 16px 8px;
-  font-size: 12px;
-  color: var(--text-secondary);
+.methodBadgeCompact {
+  display: inline-block;
+  min-width: 40px;
+  padding: 0 6px;
+  border-radius: 5px;
+  text-align: center;
+  font: 600 10px/1.7 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: #fff;
+  flex-shrink: 0;
 }
 
-.responseMeta {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.responseStat {
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-.statusOk {
+.methodBadge[data-method="get"],
+.methodBadgeCompact[data-method="get"] {
   background: #16a34a;
-  color: #fff;
 }
 
-.statusWarn {
+.methodBadge[data-method="post"],
+.methodBadgeCompact[data-method="post"] {
+  background: #2563eb;
+}
+
+.methodBadge[data-method="put"],
+.methodBadgeCompact[data-method="put"] {
   background: #d97706;
-  color: #fff;
 }
 
-.statusError {
+.methodBadge[data-method="patch"],
+.methodBadgeCompact[data-method="patch"] {
+  background: #7c3aed;
+}
+
+.methodBadge[data-method="delete"],
+.methodBadgeCompact[data-method="delete"] {
   background: #dc2626;
-  color: #fff;
 }
 
-.responseBody {
+.monoCell {
+  font: 11px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.monoBlock {
   margin: 0;
-  max-height: 360px;
   overflow: auto;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-  color: var(--text);
   font: 11px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   white-space: pre-wrap;
   word-break: break-word;
 }
 
-.responseHeaders {
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-/* ---- 全局搜索 ---- */
+/* ---- 全局搜索（Cmd+K） ---- */
 .paletteDialog {
   width: min(560px, 90vw);
 }
@@ -385,49 +575,4 @@
   padding: 8px;
   font-size: 12px;
   color: var(--text-muted);
-}
-
-/* ---- 通用 ---- */
-.methodBadge {
-  display: inline-block;
-  min-width: 48px;
-  padding: 0 8px;
-  border-radius: 6px;
-  text-align: center;
-  font: 600 11px/1.8 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  letter-spacing: 0.04em;
-  color: #fff;
-  flex-shrink: 0;
-}
-
-.methodBadge[data-method="get"] {
-  background: #16a34a;
-}
-
-.methodBadge[data-method="post"] {
-  background: #2563eb;
-}
-
-.methodBadge[data-method="put"] {
-  background: #d97706;
-}
-
-.methodBadge[data-method="patch"] {
-  background: #7c3aed;
-}
-
-.methodBadge[data-method="delete"] {
-  background: #dc2626;
-}
-
-.monoCell {
-  font: 11px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-}
-
-.monoBlock {
-  margin: 0;
-  overflow: auto;
-  font: 11px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  white-space: pre-wrap;
-  word-break: break-word;
 }

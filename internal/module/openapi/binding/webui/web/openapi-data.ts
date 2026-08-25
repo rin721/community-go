@@ -347,3 +347,76 @@ export function buildRequest(
   }
   return { url, method: operation.method, headers, body };
 }
+
+// ---------------------------------------------------------------------------
+// API tree (pure)
+// ---------------------------------------------------------------------------
+
+// ApiTreeNode is a node in the API resource tree (R075-009): group nodes
+// render as collapsible branches (Disclosure), operation nodes render as
+// leaves with the method badge. Tag paths support unlimited nesting via
+// dot-separated segments (e.g. "IAM.Accounts" opens two group levels).
+export type ApiTreeNode = {
+  id: string;
+  kind: "group" | "operation";
+  label: string;
+  row?: OperationRow;
+  children: ApiTreeNode[];
+};
+
+// buildApiTree projects the contract into the resource tree: each operation
+// is placed under its tag split by "." so deep tag namespaces produce nested
+// groups; nodes keep a stable pre-order so search and expansion stay stable.
+export function buildApiTree(spec: OpenAPIDocument): ApiTreeNode[] {
+  const roots: ApiTreeNode[] = [];
+  const rootByPath = new Map<string, ApiTreeNode>();
+  // ensureChildren walks (creating) the group chain and returns the children
+  // array where operation leaves for the tag should be appended.
+  const ensureChildren = (segments: string[]): ApiTreeNode[] => {
+    let current = roots;
+    let prefix: string[] = [];
+    for (const segment of segments) {
+      prefix = [...prefix, segment];
+      const pathKey = prefix.join(".");
+      let node = rootByPath.get(pathKey);
+      if (!node) {
+        node = { id: `group:${pathKey}`, kind: "group", label: segment, children: [] };
+        rootByPath.set(pathKey, node);
+        current.push(node);
+      }
+      current = node.children;
+    }
+    return current;
+  };
+  for (const group of groupedOperations(spec)) {
+    const segments = group.tag.split(".").map((segment) => segment.trim()).filter(Boolean);
+    const container = segments.length > 0 ? ensureChildren(segments) : roots;
+    for (const row of group.operations) {
+      container.push({ id: `op:${row.id}`, kind: "operation", label: row.operationId, row, children: [] });
+    }
+  }
+  return roots;
+}
+
+// filterApiTree narrows the tree by a case-insensitive query over
+// method/path/operationId: matching operation leaves are kept and their
+// ancestor group chain is retained so the filtered tree stays navigable.
+export function filterApiTree(nodes: ApiTreeNode[], query: string): ApiTreeNode[] {
+  const needle = query.trim().toLowerCase();
+  if (needle === "") return nodes;
+  const keep = (node: ApiTreeNode): ApiTreeNode | null => {
+    if (node.kind === "operation") {
+      const row = node.row!;
+      return `${row.method} ${row.path} ${row.operationId}`.toLowerCase().includes(needle) ? node : null;
+    }
+    const children = node.children.map(keep).filter((child): child is ApiTreeNode => child !== null);
+    return children.length > 0 ? { ...node, children } : null;
+  };
+  return nodes.map(keep).filter((node): node is ApiTreeNode => node !== null);
+}
+
+// treeNodeCount returns the total operation-leaf count under a node.
+export function treeNodeCount(node: ApiTreeNode): number {
+  if (node.kind === "operation") return 1;
+  return node.children.reduce((sum, child) => sum + treeNodeCount(child), 0);
+}

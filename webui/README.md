@@ -50,12 +50,12 @@ Linux 使用 `bash scripts/verify-webui.sh`。质量链覆盖生成检查、冻�
 - 交互状态链原语：`ActionTrigger`（pending/防重复/禁用原因/权限呈现）、`BulkActionBar`、`FormSubmitActions`；图标目录 authority 在 `webui/src/icon-catalog.ts`（Go `internal/webui/icons.go` 校验，测试守护一致）。
 - 完整契约与接入步骤见 [WebUI 开发指南](../docs/development/webui.md)。
 
-## OpenAPI：API 文档与在线调试（075/007）
+## OpenAPI：API 文档与在线调试（075/009）
 
-- 新业务模块 `openapi` 提供「API 文档」模块（`/openapi` 顶级菜单项）：**层级分类、多页面（R075-007）**，沿用 settings 的 GroupLayout（073）——共享布局 `OpenAPILayout`（SectionNav：总览 / 各 tag / 数据模型）承载四个静态路由：`/openapi` 总览（分类卡片）→ `/openapi/tags`（分类接口列表，`?tag=`）→ `/openapi/operation`（接口文档/调试页，`?op=&mode=`）、`/openapi/models`（数据模型，`?model=`）；完全融入后台设计语言（R075-006），无单页堆叠。
-- **业务能力（提取自 Apifox，不用其外壳）**：文档查看（说明、参数表、请求体与返回示例 JSON 高亮、响应表）；在线调试 Try it out（参数 Field 行、Body：JSON Textarea 样例+校验 / form-data 含文件上传 / urlencoded、Headers、Auth、发送 Button）→ 响应卡片（状态 Chip、耗时、大小、JSON 高亮/原始、响应头折叠）。
-- **可测试执行语义**：同源 `fetch`（credentials include）——bearerAuth 注入内存 token（不持久化）；webuiSession 自动携带会话 Cookie，CSRF 绑定写操作自动附加 `Origin`+`X-CSRF-Token`；错误如实呈现（Problem JSON 优先）；mock 演示构建执行禁用并提示。深链 `?tag=`/`?op=&mode=`/`?model=`；Cmd/Ctrl+K 快速跳转（平台 Modal）。
-- 契约数据源：`webui generate` 生成 `webui/src/generated/openapi-spec.ts`（`api/openapi.yaml` 的 JSON 变换，含 sha256），页面直接 import，三态环境一致、mock 浏览零请求；控件基座为 HeroUI（经 `@webui/sdk/ui` 透传）；JSON 高亮 `highlight.js`（仅 json 语言）；布局清单新增 `webui.specOutput`；受控图标目录新增 `book`；平台 DataTable 修复延续。
+- 新业务模块 `openapi` 提供「API 文档」模块（`/openapi` 顶级菜单项）：**Apifox 核心骨架、系统组件呈现（R075-009）**——单路由工作台：左资源树（`ApiTree`：Disclosure 递归接口树 + 搜索 + 折叠）→ 顶部多标签（`WorkspaceTabs`：HeroUI Tabs 受控、关闭/横滑/激活高亮）→ 主工作台上下分割（`RequestPane`：URL+发送 + Params/Body/Headers/Cookies/Auth 动态表单；`Resizer` 模块内可拖动分割线；`ResponsePane`：状态/耗时/大小/高亮 JSON）。
+- **业务能力（提取自 Apifox，不用其外壳）**：文档查看（说明、参数表、请求体与返回示例 JSON 高亮、响应表）；在线调试 Try it out（参数 Field 行、Body：JSON Textarea 样例+校验 / form-data 含文件上传 / urlencoded、Headers、Cookies、Auth、发送 Button）→ 响应卡片（状态 Chip、耗时、大小、JSON 高亮/原始、响应头折叠）。
+- **可测试执行语义**：同源 `fetch`（credentials include）——bearerAuth 注入内存 token（不持久化）；webuiSession 自动携带会话 Cookie，CSRF 绑定写操作自动附加 `Origin`+`X-CSRF-Token`；错误如实呈现（Problem JSON 优先）；mock 演示构建执行禁用并提示。深链 `?op=&mode=`；Cmd/Ctrl+K 快速跳转（平台 Modal）。
+- 契约数据源：`webui generate` 生成 `webui/src/generated/openapi-spec.ts`（`api/openapi.yaml` 的 JSON 变换，含 sha256），页面直接 import，三态环境一致、mock 浏览零请求；控件基座为 HeroUI（经 `@webui/sdk/ui` 透传）；JSON 高亮 `highlight.js`（仅 json 语言）；布局清单新增 `webui.specOutput`；受控图标目录新增 `book`；平台 DataTable 修复延续。访问门槛绑定 `iam.session.read`（未登录跳 /login，mock 恒 allowed）。
 
 ## 侧边栏菜单层级分类（063）
 

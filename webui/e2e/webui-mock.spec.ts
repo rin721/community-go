@@ -1,28 +1,24 @@
 import { expect, test } from "@playwright/test";
 
-// 075 模块：mock 演示构建下按层级浏览（分类 → 接口 → 文档/调试 → 模型）可用、
-// 执行明确禁用（R075-007）。
-test("075 openapi browses the hierarchy in mock mode with execution disabled", async ({ page }) => {
+// 075 模块：mock 演示构建下工作台（资源树 + 标签 + 请求/响应上下分割）可浏览、
+// 执行明确禁用（R075-009）。
+test("075 openapi browses the workspace in mock mode with execution disabled", async ({ page }) => {
   await page.goto("/openapi");
   await expect(page.getByRole("heading", { name: "API Docs", exact: true })).toBeVisible();
-  // 层级第一级：总览分类卡片。
-  const categoryCard = page.locator('[data-testid="openapi-category-card"]').filter({ hasText: "IAM" });
-  await expect(categoryCard).toBeVisible();
-  // 层级第二级：分类接口列表（?tag=IAM），Debug 进入接口页但执行禁用。
-  await categoryCard.click();
-  await expect(page).toHaveURL(/\/openapi\/tags\?tag=IAM/);
-  const sessionRow = page.locator("tr").filter({ hasText: "iam.session.read" });
-  await sessionRow.getByRole("button", { name: "Debug", exact: true }).click();
-  await expect(page).toHaveURL(/\/openapi\/operation\?op=/);
+  // 左资源树可浏览。
+  const tree = page.locator('[data-testid="openapi-tree"]');
+  await expect(tree).toBeVisible();
+  await expect(tree.getByText("IAM", { exact: true }).first()).toBeVisible();
+  // 点击接口叶子 → 工作台出现，执行禁用。
+  const treeLeaf = page.locator('button[data-testid="openapi-tree-leaf"]').filter({ hasText: "iam.session.read" });
+  await treeLeaf.scrollIntoViewIfNeeded();
+  await treeLeaf.click();
+  await expect(page.locator('[data-testid="openapi-workspace"]')).toBeVisible();
   await expect(page.getByText(/Execution is unavailable in mock demo builds/)).toBeVisible();
   await expect(page.getByRole("button", { name: "Send", exact: true })).toHaveCount(0);
-  // 文档模式可浏览。
-  await page.locator('[data-testid="openapi-mode-docs"]').click();
-  await expect(page.getByRole("heading", { name: "Responses", exact: true })).toBeVisible();
-  // 模型可浏览（?model= 直达）。
-  await page.goto("/openapi/models?model=AccountResponse");
-  await expect(page.locator('[data-testid="openapi-model-pane"]')).toBeVisible();
-  await page.screenshot({ path: "test-results/075-hierarchy-mock.png", fullPage: true });
+  // 响应区默认占位。
+  await expect(page.getByText(/Send the request to see the response here/)).toBeVisible();
+  await page.screenshot({ path: "test-results/075-workspace-mock.png", fullPage: true });
 });
 
 // mock project 专用：不拦截任何路由——整个 WebUI（宿主骨架 + 全部模块数据）

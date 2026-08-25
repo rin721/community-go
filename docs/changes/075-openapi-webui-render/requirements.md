@@ -1,44 +1,43 @@
-# 075 需求：API 文档与在线调试（层级分类 + 多页面）
+# 075 需求：API 文档与在线调试（工作台式骨架，第八轮）
 
-> 第六轮（R075-007）：把单页堆叠改为「层级分类、多页面」结构。前五轮需求（平台语言、业务能力、执行语义、清理、复用）继续有效，本文件按第六轮重写页面形态。
+> 第八轮（R075-009）：把模块重构为 **Apifox 核心骨架**（左资源树 + 顶部多标签 + 请求/响应上下分割工作台），**保留现有主题、后台布局、字体与系统自带组件**，不照搬 Apifox 颜色/外包装。前几轮的业务能力、执行语义、数据层、快照链、访问门槛结论继续有效；多路由页面结构（R075-007）被本轮工作台取代。
 
 ## 产品目标
 
-`openapi` 模块呈现为**按分类组织的多页面 API 文档 + 在线调试（Try it out）**，完全融入 Community Go 后台设计语言（R075-006）：深色左侧导航（宿主既有）、蓝色主调、圆角卡片、标准中后台表单/表格/弹窗控件（`@webui/sdk/ui` 平台组件，HeroUI 底座）。**层级分类、不把全部内容堆在一个页面**：总览（分类卡片）→ 分类接口列表 → 接口文档/调试页，数据模型独立成页；共享页内导航（SectionNav）。
+`openapi` 模块呈现为**工作台式 API 调试台**（骨架对齐 Apifox，视觉 100% 平台设计语言）：左侧可折叠资源区（接口树 + 搜索）、顶部多标签（每个接口一个标签，可关闭/横滑/高亮）、主工作台强制上下分割（上半请求区：URL+方法+发送 + Params/Body/Headers/Cookies/Auth 动态表单；下半响应区：状态/耗时/大小/格式化 JSON），交互组件全部来自现有 HeroUI v3 + `@webui/sdk/ui` 平台组件。
 
-## 范围（重组层）
+## 范围（骨架重构层）
 
-1. **页面形态（平台语言 + GroupLayout 073 多路由）**：
-   - 模块声明 4 个静态路由，共享 `GroupLayoutID: openapi.layout`（沿用 settings 8 分区范式）：
-     - `/openapi` 总览页：PageHeader + 契约信息 + **分类卡片区**（每个 tag：名称 + 操作数 + 方法徽标）+ 模型入口卡片；
-     - `/openapi/tags` 分类接口列表页：`?tag=` 定位分类；该分类下接口 DataTable（方法/路径/操作 ID/操作），行操作「文档 / 调试」；
-     - `/openapi/operation` 接口文档/调试页：`?op=<id>&mode=docs|debug` 定位；页内分段（文档 | 调试）：文档分区（说明/参数表/请求体+返回示例高亮/响应表）、调试分区（参数 Field 行、Body JSON/form/urlencoded、Headers、Auth、发送、响应卡片）；
-     - `/openapi/models` 数据模型页：`?model=` 定位；模型列表 + 属性表。
-   - 共享布局 `OpenAPILayout.tsx`：SectionNav（总览 / 各 tag / 数据模型，动态计算）+ 宿主注入内容区（children）；路由切换布局不卸载。
-   - 深链从「同页 Drawer 内 replaceState」升级为「跨页 navigate」：`?tag=`、`?op=&mode=`、`?model=`。
-2. **业务能力（全部保留）**：
-   - 文档查看：接口说明、参数/请求体/响应 schema 表（DataTable）、返回示例（highlight.js 高亮）；
-   - 在线调试（Try it out）：Query/Path 参数编辑、Body（JSON Textarea 样例 + 校验 / form-data 含文件上传 / urlencoded）、Headers 行、Auth（bearer 内存 token / session 说明）、发送（Button + pending）；
-   - 执行语义不变：同源 fetch、credentials include、webuiSession Cookie + CSRF 附加、20s 超时、错误如实呈现（Problem JSON 优先）、mock 演示构建执行禁用并提示；
-   - Cmd+K 全局搜索保留（平台 Modal 列表选择 → 跳转到对应页面）。
-3. **清理与复用**：
-   - `OperationDrawer`/`ModelDrawer` 外壳移除，内容区改造为页面分区（文档/调试分区、模型属性表）；
-   - `OpenAPIPage.tsx`（单页堆叠）拆分：总览页 + 分类页 + 接口页 + 模型页；
-   - 复用不重做：`openapi-data`/`run-store`/`highlight`/`api.ts`/快照链/mock 空表/图标 `book`/`@webui/generated` alias/DataTable 修复；模块 css 仅业务 selector。
+1. **左资源区（ApiTree）**：
+   - 可折叠侧栏（模块内展开/收起按钮 + 宽度收缩）；
+   - 顶部搜索 Field（过滤接口与分组）；
+   - 接口树：分组节点（tag/模块）+ 叶子（方法徽标 + 方法 + 路径 + 操作 ID），**无限层级**（Disclosure 递归渲染），分组可展开/收起。
+2. **顶部多标签（WorkspaceTabs 模块内）**：
+   - 点击接口树叶子生成/激活标签（标题如 `GET /api/...`）；
+   - 标签支持关闭、横向滑动、当前激活高亮（复用宿主 `.workspace-tab` 语义类与 HeroUI Tabs 受控 selectedKey）。
+3. **主工作台（标签内上下分割）**：
+   - **请求区**：URL 拼接行（方法 Chip + 完整 URL + 「发送」Button）→ 下方 Tabs（**Params / Body / Headers / Cookies / Auth**）：Params 动态表单行（参数名/值/类型/说明，可增删行）、Body（JSON Textarea 样例+校验 / form-data 含文件 / urlencoded）、Headers 行、Cookies 行、Auth（bearer 内存 token / session 说明）；
+   - **响应区**：默认「点击发送按钮获取返回结果」；发送后状态 Chip + 耗时 + 大小 + 格式化 JSON（高亮/原始切换）+ 响应头折叠；
+   - **上下分割线**：模块内自研窄 `Resizer`（可拖动，pointer events + flex-basis，平台 token 样式；键盘可操作）。
+4. **业务能力与语义（全部保留）**：文档查看、Try it out 执行（bearer 内存 / webuiSession Cookie+CSRF / 20s 超时 / mock 禁用）、`?op=&mode=` 深链、Cmd+K、模型浏览（并入树或保留入口）。
+5. **复用不重做**：`openapi-data`（解析/请求构建/form/bodyType/executionParameters）、`run-store`（状态机/响应组装）、`highlight`、`api.ts`、`mock.ts` 空表、快照链、图标 `book`、`@webui/generated` alias、`MethodBadge`、`CommandPalette`。
 
 ## 非目标（明确不做）
 
-- 路径参数路由（`validPath` 拒绝 query/fragment/参数，路由集合编译期冻结）；
-- 为每个动态 tag 生成独立路由；自定义树形导航壳（R075-006 已否决）；
-- Apifox 工具类布局/自定义主题/第三方组件观感；团队协作/Mock 服务/导入导出/代码生成；
-- 不引入新依赖（highlight.js 已装并复用；不引入 Monaco）。
+- 引入 Element Plus / Ant Design / 第三方 tree / splitter 库（项目基座是 HeroUI RAC，068 契约；R075-009 已确认等价交互可用现有件承载）；
+- Apifox 颜色/外包装/自定义 token（R075-006 持续有效）；
+- 路径参数路由、每动态项一个路由；
+- 多路由页面结构（R075-007 被取代，回归单路由 /openapi 工作台）；
+- 团队协作/Mock 服务/导入导出/代码生成；不引入新依赖。
 
 ## 验收标准
 
-1. 层级结构：总览 → 分类接口列表 → 接口文档/调试页可逐级进入与返回；SectionNav 在 4 个页面间保持固定并正确高亮当前分类；模型页独立可浏览。
-2. 页面风格与现有模块一致：PageHeader/PageSection/Surface/DataTable/Field/SectionNav/Drawer（不再用于详情）/InlineAlert/EmptyState；无 afx token、无 `.afx-*` 样式残留（`git grep -E "afx-|apifox"` 仅文档/记录命中）。
-3. 分类页按 `?tag=` 过滤正确；接口页按 `?op=&mode=` 直达对应接口与模式；`?model=` 直达模型；刷新/回退恢复。
-4. 文档查看：说明/参数表/请求体与返回示例（高亮）渲染正确。
-5. 在线调试：参数编辑、Body（JSON 校验；form-data 文件控件；urlencoded）、Auth；dev 环境（路由拦截）发送 GET 会话与 POST bearer 头注入断言；响应卡片呈现状态/耗时/大小/高亮 body/响应头；错误如实呈现；mock 环境发送禁用并提示。
-6. 门禁：Go `go test ./...`/`go vet`、`webui generate --check`、WebUI `generate:check/typecheck/lint/lint:modules/test/build`、`pnpm e2e -- --workers=1` 全绿；`git grep -i swagger` 无残留。
-7. 文档与 documentation-impact.yaml 覆盖本轮；单页堆叠实现单轨替换（业务层与能力保留）。
+1. 左树：渲染分组与接口（方法徽标/路径/操作 ID）；搜索过滤；分组展开收起；侧栏可折叠。
+2. 顶部标签：点击接口生成/激活标签（标题 `GET /path`）；关闭、横向滑动、激活高亮；刷新/深链恢复当前标签。
+3. 请求区：URL 拼接正确（方法 + path + query 参数）；Params/Body/Headers/Cookies/Auth 五个 Tab 可用；Params 动态增删行；Body JSON 校验、form 文件、urlencoded；Headers/Cookies 行增删。
+4. 响应区：默认占位；发送后状态/耗时/大小/高亮 body/响应头正确；错误如实呈现；mock 环境发送禁用并提示。
+5. 上下分割：可拖动调整上下比例；键盘可操作；最小高度约束。
+6. 深链：`?op=&mode=` 打开对应标签与模式；刷新恢复。
+7. 门禁：Go `go test ./...`/`go vet`、`webui generate --check`、WebUI `generate:check/typecheck/lint/lint:modules/test/build`、`pnpm e2e -- --workers=1` 全绿；`git grep -i swagger` 无残留；`git grep -E "afx-|apifox"` 仅文档/记录命中。
+8. 访问门槛（R075-008）：单路由仍绑定 `iam.session.read`（未登录跳 /login，mock 恒可浏览）。
+9. 文档与 documentation-impact.yaml 覆盖本轮；多路由实现单轨替换（业务层与能力保留）。

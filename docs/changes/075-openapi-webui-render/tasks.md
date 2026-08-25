@@ -1,8 +1,22 @@
-# 075 openapi 模块：API 文档与在线调试（层级分类 + 多页面）— 任务清单
+# 075 openapi 模块：API 文档与在线调试（工作台式骨架）— 任务清单
 
-> 依赖：研究门禁通过（R075-007 新增，取代单页堆叠结论；R075-006 设计语言结论不变）。状态：**已确认，第六轮实施完成待提交**（用户确认「确认，实施」）。
+> 依赖：研究门禁通过（R075-009 当前有效，取代 R075-007 多路由 UI 结论；R075-006/008 结论不变）。状态：**第八轮待确认**（用户要求工作台式骨架：左树 + 多标签 + 请求/响应上下分割，保留系统主题与组件）。
 
-## 任务
+## 任务（第八轮，OAP-075-M 系列）
+
+| ID | 任务 | 完成条件 |
+| --- | --- | --- |
+| OAP-075-M1 | binding.go 收敛单路由 `/openapi`（EntryID openapi.workspace + ViewOperationID "iam.session.read"）；删除多路由与 OpenAPILayout | `go vet`/`webui generate --check` 通过；registry 单路由 |
+| OAP-075-M2 | `ApiTree.tsx`：Disclosure 递归接口树（分组/叶子 + MethodBadge + 搜索 Field + 折叠） | 渲染/搜索/展开收起断言 |
+| OAP-075-M3 | `WorkspaceTabs.tsx`（模块内）：HeroUI Tabs 受控 + 关闭按钮 + 横滑 + 激活高亮（复用 .workspace-tab 语义类） | 生成/切换/关闭/深链恢复断言 |
+| OAP-075-M4 | `RequestPane.tsx`：URL 行（方法 + 拼接 URL + 发送）+ 请求 Tabs（Params/Body/Headers/Cookies/Auth）动态表单 | 参数增删、Body JSON 校验/form 文件/urlencoded、Headers/Cookies 行断言 |
+| OAP-075-M5 | `ResponsePane.tsx` + `Resizer.tsx`：占位 → 状态/耗时/大小/高亮/响应头；上下分割可拖动 + 键盘 | 发送断言（GET 会话/POST bearer）、mock 禁用、分割线操作断言 |
+| OAP-075-M6 | `OpenAPIPage.tsx` 工作台壳 + 状态模型（树/标签/请求/分割）；`?op=&mode=` 深链；Cmd+K 适配 | 工作台流转/深链/mock 断言 |
+| OAP-075-M7 | 清理与收敛：删除多路由页面（OpenAPIOverview/Tag/Operation/Models + OpenAPILayout），OpenAPIOperationPage 内容并入 RequestPane/ResponsePane；css 仅业务 selector；locales 增补 | `git grep -E "afx-|apifox"` 仅文档/记录命中；`rg -i swagger` 无残留 |
+| OAP-075-M8 | 测试与文档：vitest（树/标签/请求/响应/分割线/深链/mock）、Playwright dev/mock 工作台流转 + 截图（075-workspace-*）、权威文档与 impact 更新 | 门禁全绿 + 文档提交 |
+| OAP-075-M9 | 全量门禁与提交（单轨替换 32d3477 多路由结构，业务层保留） | 提交完成 |
+
+## 任务（前六轮已完成，保留为历史证据）
 
 | ID | 任务 | 完成条件 |
 | --- | --- | --- |
@@ -18,6 +32,8 @@
 
 ## 状态记录
 
-- 2026-08-25（第六轮）：用户要求「请做层级分类，不要放到一个页面上」。研究 R075-007 完成（GroupLayout 073 多静态路由 + SectionNav 动态条目 + query 深链；路径参数不可用，动态选择走 query）。requirements/design/tasks 已按多页面层级结构重写。**已实施完成待提交**：J1 binding 4 路由 + openapi.layout（GroupLayout 073）；J2 OpenAPILayout（SectionNav 总览/各 tag/模型动态条目 + Cmd+K 统一持有）；J3 总览页（契约信息 + 分类卡片 + 模型入口）；J4 分类接口列表页（?tag= + 行操作 + 页内搜索 + 空态）；J5 接口文档/调试页（?op=&mode=，撒 Drawer 壳复用 OperationDrawer 内容 + 执行 + 响应卡片）；J6 模型页（?model= + ModelPane）；J7 清理（删 OpenAPIPage/OperationDrawer/ModelDrawer 外壳，CommandPalette navigate 到页面，css 收敛，locales 增补 20 keys en/zh 对等）；J8 测试与文档（vitest 149/149 含新 14 用例、Playwright dev/mock 22/22 含 075-hierarchy-* 截图、权威文档与 impact 更新）；J9 门禁：go test/vet、webui generate --check、typecheck/eslint/i18n/architecture/modules/build 全绿。
-- 前五轮已提交：55ee70f（Swagger UI）→ 9ea2f13（平台组件）→ e4865ca（可测试工作台）→ 9536334（Apifox 外壳）→ 72ba96f（设计语言回归）；vitest 141 / e2e 22 全绿（72ba96f 基线）。
+- 2026-08-25（第八轮）：用户要求重构为 Apifox 核心骨架（左资源树 + 顶部多标签 + 请求/响应上下分割），保留系统主题/布局/组件，不照搬 Apifox 外观；项目基座确认为 HeroUI v3（非 Element Plus/AntD）。研究 R075-009 完成（Tabs 受控/Disclosure 递归树/自研窄 Resizer；单路由工作台）。**已实施完成待提交**：M1 binding 单路由 + ViewOperationID 保留；M2 ApiTree（Disclosure 递归 + 搜索 + 折叠 + buildApiTree/filterApiTree 纯函数）；M3 WorkspaceTabs（HeroUI Tabs 受控 + 关闭/横滑/高亮）；M4 RequestPane（URL+发送 + Params/Body/Headers/Cookies/Auth 动态表单）；M5 ResponsePane + Resizer（可拖动分割 + 键盘）；M6 OpenAPIPage 工作台壳 + ?op=&mode= 深链 + Cmd+K；M7 清理（删 OpenAPILayout/Overview/Tag/Operation/Models/ModelPane/command-context，css 收敛，locales 增补 20 keys）；M8 测试与文档（vitest 144/144 含树/工作台 27 用例、Playwright dev/mock 22/22 含 075-workspace-* 截图、权威文档与 impact 更新）；M9 门禁（go test/vet、webui generate --check、typecheck/eslint/i18n/architecture/modules/build）。**提交 32d3477→待提交**。
+- 2026-08-25（第七轮）：用户提出「openapi 页面不登录也能访问」。研究 R075-008 完成；**路由绑定 iam.session.read 已并入第八轮单路由实现**（未单独提交，避免中间态）。
+- 2026-08-25（第六轮）：用户要求「请做层级分类，不要放到一个页面上」。研究 R075-007 完成，多路由实现 32d3477 提交（UI 结论被第八轮 R075-009 取代，业务能力继续有效）。
+- 前五轮已提交：55ee70f（Swagger UI）→ 9ea2f13（平台组件）→ e4865ca（可测试工作台）→ 9536334（Apifox 外壳）→ 72ba96f（设计语言回归）。
 - 范围外既有事实：`internal/module/settings/README.md` 缺失导致 docs-guard 报错（070–074 遗留）。

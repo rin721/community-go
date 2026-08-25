@@ -1,22 +1,23 @@
-# 075 新增 openapi 模块：API 文档与在线调试（层级分类 + 多页面）
+# 075 新增 openapi 模块：API 文档与在线调试（工作台式骨架）
 
-状态：研究门禁通过（R075-001 … R075-007）。前五轮已提交（55ee70f → 9ea2f13 → e4865ca → 9536334 → 72ba96f，平台语言集成完成）。**第六轮已确认并实施完成（待提交）**：层级分类、多页面（GroupLayout 073）。
+状态：研究门禁通过（R075-001 … R075-009）。前六轮已提交（55ee70f → 9ea2f13 → e4865ca → 9536334 → 72ba96f → 32d3477）。**第八轮已确认并实施完成（待提交）**：工作台式骨架（左资源树 + 顶部多标签 + 请求/响应上下分割），对齐 Apifox 核心骨架、系统组件呈现。
 
 ## 背景
 
-`api/openapi.yaml` 是当前公开 HTTP 契约产物（模块 Huma 代码声明唯一生成）。用户需要 Admin WebUI 内补齐 **API 文档查看与在线调试（Try it out）** 能力，并在第六轮明确要求：**请做层级分类，不要放到一个页面上** —— 当前 72ba96f 把接口列表、模型区、命令面板、详情 Drawer 全部堆在单页 `/openapi`，需要改为按分类（tag）组织的多页面层级结构。
+`api/openapi.yaml` 是当前公开 HTTP 契约产物（模块 Huma 代码声明唯一生成）。用户需要 Admin WebUI 内补齐 **API 文档查看与在线调试（Try it out）** 能力，并在第八轮明确要求：**百分之百复刻 Apifox 核心骨架与交互布局**（左资源树、顶部多标签、请求/响应上下分割工作台），但**保留现有主题/后台布局/字体/系统自带组件、不照搬 Apifox 颜色与外观**。
 
-## 方案（摘要，R075-006/007）
+## 方案（摘要，R075-009）
 
-- **层级分类、多页面（R075-007）**：模块声明 4 个静态路由（共享 `GroupLayoutID: openapi.layout`，沿用 settings 073 范式）：`/openapi` 总览（分类卡片）→ `/openapi/tags`（分类接口列表，`?tag=`）→ `/openapi/operation`（接口文档/调试，`?op=&mode=`）、`/openapi/models`（数据模型，`?model=`）；共享 `OpenAPILayout`（SectionNav 动态条目：总览 / 各 tag / 模型）；
-- **业务能力全部保留**：文档查看、Try it out（真实执行：bearer 内存 token、webuiSession Cookie+CSRF、mock 禁用）、深链（`?tag=`/`?op=&mode=`/`?model=`）、Cmd+K（平台 Modal）；
-- **复用不重做**：`openapi-data`/`run-store`/`highlight`/`api.ts`/快照链/图标 `book`/alias/DataTable 修复；OperationDrawer/ModelDrawer 撤壳后内容并入页面，删除单页壳 OpenAPIPage；
-- 控件基座仍为 HeroUI（经 `@webui/sdk/ui` 透传，符合 068 与先前约束）。
+- **工作台式骨架**：单路由 `/openapi` 工作台——`ApiTree`（Disclosure 递归接口树：分组/方法徽标叶子、顶部搜索、可折叠）→ `WorkspaceTabs`（HeroUI Tabs 受控多标签：关闭/横滑/激活高亮）→ `OperationWorkspace`（`RequestPane`：URL+发送 + Params/Body/Headers/Cookies/Auth 动态表单；`Resizer`：模块内窄可拖动分割线；`ResponsePane`：状态/耗时/大小/高亮 JSON）；
+- **项目组件基座是 HeroUI v3（非 Element Plus/AntD）**：Tabs/Disclosure/Menu/Separator 复用；Tree 用 Disclosure 递归、Splitter 用模块内自研窄 Resizer（无成熟第三方引入）；宿主 `.workspace-tab` 视觉语义复用；
+- **业务能力全部保留**：文档查看、Try it out（真实执行：bearer 内存 token、webuiSession Cookie+CSRF、mock 禁用）、深链 `?op=&mode=`、Cmd+K；访问门槛绑定 `iam.session.read`（未登录跳 /login）；
+- **复用不重做**：`openapi-data`（含新增 `buildApiTree`/`filterApiTree` 树纯函数）/`run-store`/`highlight`/`api.ts`/快照链/图标 `book`/alias 全保留；
+- 删除多路由页面（Overview/Tag/Operation/Models + OpenAPILayout），回归单路由工作台。
 
 ## 阅读顺序
 
-1. [研究档案](research/README.md)：R075-001/003/004/005（已归档或 UI 结论被取代）、R075-002（快照链，有效）、R075-006（设计语言回归，有效）、R075-007（层级分类与多页面，当前有效）
-2. [需求](requirements.md)、[设计](design.md)、[任务清单](tasks.md)：OAP-075-J1..J9（第六轮，待确认）
+1. [研究档案](research/README.md)：R075-001/003/004/005（已归档或 UI 结论被取代）、R075-002（快照链，有效）、R075-006（设计语言回归，有效）、R075-008（访问门槛，有效）、R075-009（工作台式骨架，当前有效）
+2. [需求](requirements.md)、[设计](design.md)、[任务清单](tasks.md)：OAP-075-M1..M9（第八轮，已确认实施完成）
 
 ## 背景
 

@@ -111,10 +111,22 @@ func composeIdentityAccess(ctx context.Context, input identityAccessInput) (iden
 	if err != nil {
 		return identityAccess{}, err
 	}
+	// API-Token verifier 只在非 development-anonymous 模式注入：development
+	// 匿名 profile 保持「无真实凭据路径」不变量（auth service 禁止 verifier
+	// 与 development principal 并存）。
+	var extraVerifiers []authservice.CredentialVerifier
+	if input.AuthConfig.Mode != authconfig.ModeDevelopmentAnonymous {
+		apiTokenVerifier, verifierErr := newApiTokenVerifierAdapter(iamModule.ApiTokens)
+		if verifierErr != nil {
+			return identityAccess{}, verifierErr
+		}
+		extraVerifiers = []authservice.CredentialVerifier{apiTokenVerifier}
+	}
 	authModule, err := auth.NewHTTP(auth.Dependencies{
 		Clock: clock.System(), Logger: input.Logger, Config: input.AuthConfig,
 		Policies: input.Policies, SessionSource: sessionSource, DecisionPoint: decisionPoint,
 		Database: authDatabase, AuditRetentionLimit: defaultAuditRetentionLimit,
+		ExtraVerifiers: extraVerifiers,
 	})
 	if err != nil {
 		return identityAccess{}, fmt.Errorf("compose auth module: %w", err)
@@ -169,3 +181,37 @@ func (adapter iamRBACDecisionAdapter) Decide(ctx context.Context, request authse
 
 var _ authservice.DecisionPoint = iamRBACDecisionAdapter{}
 var _ service.AuthorizationPublisher = (*authorization.Runtime)(nil)
+
+// apiTokenVerifierAdapter 是 IAM API-Token 解析 facet 到 Auth CredentialVerifier
+// 的唯一中介（078）：把 Bearer `iam_<secret>` 解析为 token-scopes Principal；
+// 任何解析失败统一映射为未认证（401），不泄露凭据细节。
+type apiTokenVerifierAdapter struct {
+	resolvers iam.ApiTokenResolver
+}
+
+func newApiTokenVerifierAdapter(resolvers iam.ApiTokenResolver) (authservice.CredentialVerifier, error) {
+	if nilDependency(resolvers) {
+		return nil, fmt.Errorf("iam api token resolver facet is nil")
+	}
+	return apiTokenVerifierAdapter{resolvers: resolvers}, nil
+}
+
+func (adapter apiTokenVerifierAdapter) Verify(ctx context.Context, credential authmodel.Credential) (authmodel.Principal, error) {
+	if adapter.resolvers == nil || credential.Scheme != "Bearer" || credential.Value == "" {
+		return authmodel.Principal{}, authmodel.ErrUnauthenticated
+	}
+	resolution, err := adapter.resolvers.ResolveApiToken(ctx, credential.Value)
+	if err != nil {
+		return authmodel.Principal{}, authmodel.ErrUnauthenticated
+	}
+	scopes := make([]authmodel.Scope, len(resolution.Scopes))
+	for index, scope := range resolution.Scopes {
+		scopes[index] = authmodel.Scope(scope)
+	}
+	now := clock.System().Now().UTC()
+	return authmodel.NewPrincipal(resolution.AccountID, authmodel.ActorService, scopes, now, now)
+}
+
+func (apiTokenVerifierAdapter) Ready() bool { return true }
+
+var _ authservice.CredentialVerifier = apiTokenVerifierAdapter{}

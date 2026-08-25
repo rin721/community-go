@@ -69,6 +69,88 @@ components:
         - authorizationRevision
         - roleIds
       type: object
+    ApiTokenCreateInputBody:
+      additionalProperties: false
+      properties:
+        expiresAt:
+          format: date-time
+          type: string
+        name:
+          maxLength: 128
+          minLength: 1
+          type: string
+        scopes:
+          items:
+            type: string
+          nullable: true
+          type: array
+      required:
+        - name
+        - scopes
+      type: object
+    ApiTokenIssuedResponse:
+      additionalProperties: false
+      properties:
+        createdAt:
+          format: date-time
+          type: string
+        expiresAt:
+          format: date-time
+          type: string
+        id:
+          type: string
+        lastUsedAt:
+          format: date-time
+          type: string
+        name:
+          type: string
+        revokedAt:
+          format: date-time
+          type: string
+        scopes:
+          items:
+            type: string
+          nullable: true
+          type: array
+        secret:
+          type: string
+      required:
+        - id
+        - name
+        - scopes
+        - createdAt
+        - secret
+      type: object
+    ApiTokenResponse:
+      additionalProperties: false
+      properties:
+        createdAt:
+          format: date-time
+          type: string
+        expiresAt:
+          format: date-time
+          type: string
+        id:
+          type: string
+        lastUsedAt:
+          format: date-time
+          type: string
+        name:
+          type: string
+        revokedAt:
+          format: date-time
+          type: string
+        scopes:
+          items:
+            type: string
+          nullable: true
+          type: array
+      required:
+        - id
+        - name
+        - scopes
+        - createdAt
+      type: object
     Assignment:
       additionalProperties: false
       properties:
@@ -438,6 +520,29 @@ components:
         - limit
         - total
       type: object
+    ListResponseApiTokenResponse:
+      additionalProperties: false
+      properties:
+        items:
+          items:
+            $ref: "#/components/schemas/ApiTokenResponse"
+          nullable: true
+          type: array
+        limit:
+          format: int64
+          type: integer
+        offset:
+          format: int64
+          type: integer
+        total:
+          format: int64
+          type: integer
+      required:
+        - items
+        - offset
+        - limit
+        - total
+      type: object
     ListResponseRoleResponse:
       additionalProperties: false
       properties:
@@ -498,6 +603,27 @@ components:
       required:
         - username
         - password
+      type: object
+    LoginResultBody:
+      additionalProperties: false
+      properties:
+        absoluteExpiresAt:
+          format: date-time
+          type: string
+        challengeId:
+          type: string
+        createdAt:
+          format: date-time
+          type: string
+        csrfToken:
+          type: string
+        identity:
+          $ref: "#/components/schemas/IdentityResponse"
+        idleExpiresAt:
+          format: date-time
+          type: string
+        mfaRequired:
+          type: boolean
       type: object
     Menu:
       additionalProperties: false
@@ -566,6 +692,61 @@ components:
         - items
         - catalogRevision
         - navigationRevision
+      type: object
+    MfaCodeInputBody:
+      additionalProperties: false
+      properties:
+        code:
+          maxLength: 64
+          minLength: 4
+          type: string
+      required:
+        - code
+      type: object
+    MfaConfirmResponse:
+      additionalProperties: false
+      properties:
+        recoveryCodes:
+          items:
+            type: string
+          nullable: true
+          type: array
+      required:
+        - recoveryCodes
+      type: object
+    MfaEnrollResponse:
+      additionalProperties: false
+      properties:
+        secret:
+          type: string
+        uri:
+          type: string
+      required:
+        - secret
+        - uri
+      type: object
+    MfaStatusResponse:
+      additionalProperties: false
+      properties:
+        registered:
+          type: boolean
+      required:
+        - registered
+      type: object
+    MfaVerifyInputBody:
+      additionalProperties: false
+      properties:
+        challengeId:
+          maxLength: 128
+          minLength: 1
+          type: string
+        code:
+          maxLength: 64
+          minLength: 4
+          type: string
+      required:
+        - challengeId
+        - code
       type: object
     PasswordInputBody:
       additionalProperties: false
@@ -841,10 +1022,6 @@ components:
           type: string
       required:
         - identity
-        - csrfToken
-        - createdAt
-        - idleExpiresAt
-        - absoluteExpiresAt
       type: object
     SessionRevokeInputBody:
       additionalProperties: false
@@ -1487,6 +1664,166 @@ paths:
         - webuiSession: []
       tags:
         - IAM
+  /api/v1/iam/api-tokens:
+    get:
+      operationId: iam.api-tokens.list
+      parameters:
+        - explode: false
+          in: query
+          name: offset
+          schema:
+            default: 0
+            format: int64
+            minimum: 0
+            type: integer
+        - explode: false
+          in: query
+          name: limit
+          schema:
+            default: 20
+            format: int64
+            maximum: 100
+            minimum: 1
+            type: integer
+        - explode: false
+          in: query
+          name: query
+          schema:
+            maxLength: 128
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListResponseApiTokenResponse"
+          description: OK
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      security:
+        - webuiSession: []
+      tags:
+        - IAM
+    post:
+      operationId: iam.api-tokens.create
+      parameters:
+        - in: header
+          name: Origin
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApiTokenCreateInputBody"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiTokenIssuedResponse"
+          description: OK
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      security:
+        - webuiSession: []
+      tags:
+        - IAM
+  /api/v1/iam/api-tokens/{id}/revoke:
+    post:
+      operationId: iam.api-tokens.revoke
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: Origin
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: No Content
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      security:
+        - webuiSession: []
+      tags:
+        - IAM
+  /api/v1/iam/api-tokens/{id}/rotate:
+    post:
+      operationId: iam.api-tokens.rotate
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: Origin
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiTokenIssuedResponse"
+          description: OK
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      security:
+        - webuiSession: []
+      tags:
+        - IAM
   /api/v1/iam/login:
     post:
       operationId: iam.login
@@ -1501,6 +1838,44 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/LoginInputBody"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResultBody"
+          description: OK
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+            Set-Cookie:
+              schema:
+                type: string
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      security: []
+      tags:
+        - IAM
+  /api/v1/iam/login/mfa-verify:
+    post:
+      operationId: iam.login.mfa-verify
+      parameters:
+        - in: header
+          name: Origin
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MfaVerifyInputBody"
         required: true
       responses:
         "200":
@@ -1971,6 +2346,127 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/SelfArchiveInputBody"
+        required: true
+      responses:
+        "204":
+          description: No Content
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      security:
+        - webuiSession: []
+      tags:
+        - IAM
+  /api/v1/iam/self/mfa:
+    get:
+      operationId: iam.self.mfa.status
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MfaStatusResponse"
+          description: OK
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      security:
+        - webuiSession: []
+      tags:
+        - IAM
+    post:
+      operationId: iam.self.mfa.begin
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MfaEnrollResponse"
+          description: OK
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      security:
+        - webuiSession: []
+      tags:
+        - IAM
+  /api/v1/iam/self/mfa/confirm:
+    post:
+      operationId: iam.self.mfa.confirm
+      parameters:
+        - in: header
+          name: Origin
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MfaCodeInputBody"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MfaConfirmResponse"
+          description: OK
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      security:
+        - webuiSession: []
+      tags:
+        - IAM
+  /api/v1/iam/self/mfa/disable:
+    post:
+      operationId: iam.self.mfa.disable
+      parameters:
+        - in: header
+          name: Origin
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MfaCodeInputBody"
         required: true
       responses:
         "204":

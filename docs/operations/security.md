@@ -59,6 +59,14 @@ IAM 在 composition 提供普通 WebUI 业务 mutation 共用的窄 Origin/CSRF 
 
 `http.rateLimit` 扩展按路径前缀规则（`rateLimit.routes`，默认空=不启用）：命中路径使用独立 token bucket，未命中继续使用全局规则。`/api/v1/iam/login`、`/api/v1/iam/setup` 可配置更严限流（IP 维度），与账号级锁定（MaxFailedAttempts）构成「IP+账号」双维度防爆破；429 `rate_limited`/503 Problem 与全局门禁同语义，`setup` 仅 loopback/同源语义不变。限流为 per-generation 进程级 token bucket，多实例一致性沿用既有边界。
 
+## 机器访问令牌（API-Token，078）
+
+自管 API-Token 支持机器/脚本/CI 访问：secret 为 `crypto/rand` 32 字节（`iam_` 前缀 + base64url），**只以 sha256 哈希持久化，明文仅在创建/轮换响应返回一次**；Bearer 认证链（`ChainVerifier`）在外部 JWT 之后尝试 API-Token，解析为 token-scopes Principal 直达既有精确 scope 授权，授权路径零改动。管理面（`iam.api-tokens.list/create/rotate/revoke`，权限键 `iam:api-token:read/write`）支持列表/发证/轮换（旧立即失效）/终端吊销；scope 创建时须为 Catalog 已知精确键；创建/轮换/吊销走低敏操作审计（不记录明文）。API-Token 不替代 IAM Session（webuiSession 语义不变）。
+
+## MFA/TOTP（078，RFC 6238）
+
+本地账号支持 TOTP（RFC 6238，标准库自研，官方向量验证与 Google Authenticator 等互通）：自助绑定（enroll 生成 base32 secret 与 otpauth URI）→ 确认（验证激活并生成 10 条一次性恢复码，只存哈希）→ 登录两步（密码通过后已绑定账号返回 `mfa_required` + 一次性短 TTL 挑战，`login/mfa-verify` 用 TOTP 或恢复码完成，建立 `mfa_verified` 会话）；解绑需当前验证码或恢复码复核。会话标记仅作用于认证（授权权威不变）；绑定/确认/解绑与登录验证成功/失败均接入既有低敏审计；challenge 进程内短 TTL、单次成功、尝试上限内可重试。
+
 ## 账号与角色生命周期（066）
 
 - 账号/角色资料更新与归档共用 `iam:account:write` / `iam:role:write` 权限键与既有乐观并发（版本 409）语义；账号改名与归档属安全变更，成功变更在事务内 bump SecurityRevision 并撤销该账号全部 Session。

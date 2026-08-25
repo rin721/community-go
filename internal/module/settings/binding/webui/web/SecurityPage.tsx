@@ -1,36 +1,134 @@
-import { useEffect, useState } from "react";
-import { Button, Field, PageHeader, PageSection, StatusPill } from "@webui/sdk/ui";
+import { useCallback, useEffect, useState } from "react";
+import { Button, DataTable, EmptyState, Field, InlineAlert, PageHeader, PageSection, StatusPill } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
-import { changePassword, loadSession } from "./api";
+import { beginMFAEnroll, changePassword, confirmMFAEnroll, createApiToken, disableMFA, listApiTokens, loadSession, mfaStatus, revokeApiToken, rotateApiToken, type ApiTokenView } from "./api";
 import styles from "./settings.module.css";
 
 // SecurityPage provides password/authentication settings: the password change
-// form (migrated from the former Account page, 072) plus a security summary.
+// form (072) plus MFA/TOTP enrollment and API-Token management (078).
 export default function SecurityPage() {
   const { t } = useWebUITranslation("webui.settings");
   const [mustChange, setMustChange] = useState(false);
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [message, setMessage] = useState("");
-  useEffect(() => { void loadSession().then((value) => setMustChange(value.identity.mustChangePassword)).catch(() => undefined); }, []);
+
+
+  const [mfaRegistered, setMfaRegistered] = useState<boolean | null>(null);
+  const [mfaEnroll, setMfaEnroll] = useState<{ secret: string; uri: string } | null>(null);
+  const [mfaCode, setMfaCode] = useState("");
+  const [mfaRecovery, setMfaRecovery] = useState<string[] | null>(null);
+  const [mfaMessage, setMfaMessage] = useState("");
+  const [mfaPending, setMfaPending] = useState(false);
+
+
+  const [tokens, setTokens] = useState<ApiTokenView[]>([]);
+  const [tokenName, setTokenName] = useState("");
+  const [tokenScopes, setTokenScopes] = useState("");
+  const [tokenSecret, setTokenSecret] = useState("");
+  const [tokenError, setTokenError] = useState("");
+
+  const refreshTokens = useCallback(() => {
+    void listApiTokens().then((value) => setTokens(value.items)).catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    void loadSession().then((value) => setMustChange(value.identity.mustChangePassword)).catch(() => undefined);
+    void mfaStatus().then((value) => setMfaRegistered(value.registered)).catch(() => setMfaRegistered(false));
+    void refreshTokens();
+  }, [refreshTokens]);
+
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setMessage("");
     changePassword(current, next).then(() => { setMessage(t("webui.settings.security.changed")); setCurrent(""); setNext(""); }).catch(() => setMessage(t("webui.settings.error")));
   };
+
+  const enableMFA = () => {
+    setMfaPending(true);
+    setMfaMessage("");
+    beginMFAEnroll().then((value) => { setMfaEnroll(value); setMfaRecovery(null); }).catch(() => setMfaMessage(t("webui.settings.error"))).finally(() => setMfaPending(false));
+  };
+  const confirmMFA = () => {
+    setMfaPending(true);
+    setMfaMessage("");
+    confirmMFAEnroll(mfaCode).then((value) => { setMfaEnroll(null); setMfaRecovery(value.recoveryCodes); setMfaRegistered(true); setMfaCode(""); }).catch(() => setMfaMessage(t("webui.settings.error"))).finally(() => setMfaPending(false));
+  };
+  const stopMFA = () => {
+    setMfaPending(true);
+    setMfaMessage("");
+    disableMFA(mfaCode).then(() => { setMfaRegistered(false); setMfaRecovery(null); setMfaCode(""); }).catch(() => setMfaMessage(t("webui.settings.error"))).finally(() => setMfaPending(false));
+  };
+
+  const createToken = () => {
+    setTokenError("");
+    const scopes = tokenScopes.split(",").map((value) => value.trim()).filter(Boolean);
+    createApiToken(tokenName.trim(), scopes).then((issued) => { setTokenSecret(issued.secret); setTokenName(""); setTokenScopes(""); refreshTokens(); }).catch(() => setTokenError(t("webui.settings.error")));
+  };
+
   return <div className={`${styles.settingsModule} module-page`}>
-    
-      <PageHeader eyebrow={t("webui.settings.brand")} title={t("webui.settings.security.title")} description={t("webui.settings.security.description")} actions={mustChange && <StatusPill state="degraded">{t("webui.settings.security.changeRequired")}</StatusPill>} />
-      <div className="page-sections">
-        <PageSection kicker={t("webui.settings.security.kicker")} title={t("webui.settings.security.passwordTitle")}>
-          <form className="form-panel" onSubmit={submit}>
-            <Field label={t("webui.settings.security.current")} type="password" required value={current} onChange={(event) => setCurrent(event.target.value)} />
-            <Field label={t("webui.settings.security.next")} type="password" minLength={15} required value={next} onChange={(event) => setNext(event.target.value)} />
-            {message && <p className="page-meta" role="status">{message}</p>}
-            <div className="toolbar-actions"><Button type="submit">{t("webui.settings.security.submit")}</Button></div>
-          </form>
-        </PageSection>
-      </div>
-    
+    <PageHeader eyebrow={t("webui.settings.brand")} title={t("webui.settings.security.title")} description={t("webui.settings.security.description")} actions={mustChange && <StatusPill state="degraded">{t("webui.settings.security.changeRequired")}</StatusPill>} />
+    <div className="page-sections">
+      <PageSection kicker={t("webui.settings.security.kicker")} title={t("webui.settings.security.passwordTitle")}>
+        <form className="form-panel" onSubmit={submit}>
+          <Field label={t("webui.settings.security.current")} type="password" required value={current} onChange={(event) => setCurrent(event.target.value)} />
+          <Field label={t("webui.settings.security.next")} type="password" minLength={15} required value={next} onChange={(event) => setNext(event.target.value)} />
+          {message && <p className="page-meta" role="status">{message}</p>}
+          <div className="toolbar-actions"><Button type="submit">{t("webui.settings.security.submit")}</Button></div>
+        </form>
+      </PageSection>
+
+      <PageSection kicker={t("webui.settings.security.mfaKicker")} title={t("webui.settings.security.mfaTitle")}>
+        {mfaRegistered ? <InlineAlert tone="success" title={t("webui.settings.security.mfaRegistered")} /> : <InlineAlert tone="info" title={t("webui.settings.security.mfaNotRegistered")} />}
+        {!mfaRegistered && !mfaEnroll && <div className="toolbar-actions"><Button onClick={enableMFA} disabled={mfaPending}>{t("webui.settings.security.mfaEnable")}</Button></div>}
+        {mfaEnroll && (
+          <div className="form-panel">
+            <p className="page-meta">{t("webui.settings.security.mfaUri")}</p>
+            <code className="page-monospace">{mfaEnroll.uri}</code>
+            <Field label={t("webui.settings.security.mfaCode")} inputMode="numeric" maxLength={6} required value={mfaCode} onChange={(event) => setMfaCode(event.target.value)} />
+            <div className="toolbar-actions"><Button onClick={confirmMFA} disabled={mfaPending || mfaCode.length < 6}>{t("webui.settings.security.mfaConfirm")}</Button></div>
+          </div>
+        )}
+        {mfaRecovery && (
+          <div className="form-panel">
+            <p className="page-meta">{t("webui.settings.security.mfaRecovery")}</p>
+            <ul className="page-stack">{mfaRecovery.map((code) => <li key={code}><code>{code}</code></li>)}</ul>
+          </div>
+        )}
+        {mfaRegistered && (
+          <div className="form-panel">
+            <Field label={t("webui.settings.security.mfaCode")} inputMode="numeric" maxLength={6} required value={mfaCode} onChange={(event) => setMfaCode(event.target.value)} />
+            <div className="toolbar-actions"><Button variant="danger" onClick={stopMFA} disabled={mfaPending || mfaCode.length < 6}>{t("webui.settings.security.mfaDisable")}</Button></div>
+          </div>
+        )}
+        {mfaMessage && <p className="page-meta" role="status">{mfaMessage}</p>}
+      </PageSection>
+
+      <PageSection kicker={t("webui.settings.security.tokensKicker")} title={t("webui.settings.security.tokensTitle")}>
+        {tokenSecret && <InlineAlert tone="success" title={t("webui.settings.security.tokenSecret")} detail={tokenSecret} />}
+        {tokenError && <p className="page-meta" role="status">{tokenError}</p>}
+        <div className="form-panel">
+          <Field label={t("webui.settings.security.tokenName")} required value={tokenName} onChange={(event) => setTokenName(event.target.value)} />
+          <Field label={t("webui.settings.security.tokenScopes")} value={tokenScopes} onChange={(event) => setTokenScopes(event.target.value)} />
+          <div className="toolbar-actions"><Button onClick={createToken} disabled={!tokenName.trim()}>{t("webui.settings.security.tokensCreate")}</Button></div>
+        </div>
+        <DataTable
+          ariaLabel={t("webui.settings.security.tokensTitle")}
+          emptyState={<EmptyState title={t("webui.settings.security.tokenEmpty")} />}
+          columns={[
+            { id: "name", header: t("webui.settings.security.tokenName"), cell: (row) => row.name },
+            { id: "scopes", header: t("webui.settings.security.tokenScopes"), cell: (row) => row.scopes.join(", ") || "—" },
+            { id: "actions", header: "", cell: (row) => (
+              <div className="toolbar-actions">
+                <Button variant="secondary" onClick={() => { void rotateApiToken(row.id).then((issued) => setTokenSecret(issued.secret)).then(refreshTokens); }}>{t("webui.settings.security.tokenRotate")}</Button>
+                <Button variant="danger" onClick={() => { void revokeApiToken(row.id).then(refreshTokens); }}>{t("webui.settings.security.tokenRevoke")}</Button>
+              </div>
+            ) },
+          ]}
+          rows={tokens}
+          getRowKey={(row) => row.id}
+        />
+      </PageSection>
+    </div>
   </div>;
 }

@@ -18,6 +18,60 @@ type CredentialVerifier interface {
 	Ready() bool
 }
 
+// ChainVerifier 按声明顺序尝试多个 CredentialVerifier（078）：首个成功即
+// 返回 Principal；全部失败返回最后一个错误。用于 Bearer 认证链上并存
+// 外部 JWT 与自管 API-Token，语义对调用方透明。
+type ChainVerifier struct {
+	verifiers []CredentialVerifier
+}
+
+// NewChainVerifier 构造非空、去 nil 的复合 verifier。
+func NewChainVerifier(verifiers ...CredentialVerifier) (*ChainVerifier, error) {
+	chain := make([]CredentialVerifier, 0, len(verifiers))
+	for _, verifier := range verifiers {
+		if verifier == nil {
+			continue
+		}
+		chain = append(chain, verifier)
+	}
+	if len(chain) == 0 {
+		return nil, errors.New("auth chain verifier is empty")
+	}
+	return &ChainVerifier{verifiers: chain}, nil
+}
+
+func (c *ChainVerifier) Verify(ctx context.Context, credential model.Credential) (model.Principal, error) {
+	if c == nil || len(c.verifiers) == 0 {
+		return model.Principal{}, model.ErrUnauthenticated
+	}
+	var lastErr error
+	for _, verifier := range c.verifiers {
+		principal, err := verifier.Verify(ctx, credential)
+		if err == nil {
+			return principal, nil
+		}
+		lastErr = err
+	}
+	if lastErr == nil {
+		return model.Principal{}, model.ErrUnauthenticated
+	}
+	return model.Principal{}, lastErr
+}
+
+func (c *ChainVerifier) Ready() bool {
+	if c == nil {
+		return false
+	}
+	for _, verifier := range c.verifiers {
+		if verifier != nil && verifier.Ready() {
+			return true
+		}
+	}
+	return false
+}
+
+var _ CredentialVerifier = (*ChainVerifier)(nil)
+
 // AuditSink 是 Auth Service 使用方定义的低敏审计 port。
 type AuditSink interface {
 	Record(context.Context, model.AuditEvent) error

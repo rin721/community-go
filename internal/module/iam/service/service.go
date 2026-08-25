@@ -8,6 +8,7 @@ import (
 	"crypto/subtle"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -16,6 +17,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/rin721/go-scaffold-template/internal/module/iam/adapter/totp"
 	"github.com/rin721/go-scaffold-template/internal/module/iam/model"
 	"github.com/rin721/go-scaffold-template/internal/module/iam/repo"
 	permissioncatalog "github.com/rin721/go-scaffold-template/internal/permission"
@@ -41,6 +43,14 @@ var (
 	ErrIncompatibleState  = errors.New("iam persistent state is incompatible with permission catalog")
 	// ErrPasswordReused 表示新口令与最近 historySize 条历史口令相同（077）。
 	ErrPasswordReused = errors.New("iam password was reused")
+	// ErrMFARequired 是登录第一步密码通过、需要第二步 TOTP 的内部信号。
+	ErrMFARequired = errors.New("iam mfa verification is required")
+	// ErrMFAInvalidCode 表示 TOTP/恢复码校验失败。
+	ErrMFAInvalidCode = errors.New("iam mfa code is invalid")
+	// ErrMFANotBound 表示账号未绑定已确认的 TOTP。
+	ErrMFANotBound = errors.New("iam mfa is not bound")
+	// ErrMFAChallengeInvalid 表示 MFA 挑战缺失、过期或尝试超限。
+	ErrMFAChallengeInvalid = errors.New("iam mfa challenge is invalid")
 	// ErrVersionConflict 表示关系替换请求携带的 expected version 已过期，
 	// 客户端必须重新读取最新快照后由用户确认，不允许静默覆盖或自动 merge。
 	ErrVersionConflict = errors.New("iam relationship version is stale")
@@ -118,6 +128,7 @@ type Session struct {
 	Identity                                                model.SessionIdentity
 	AuthorizationRevision                                   uint64
 	CreatedAt, LastSeenAt, IdleExpiresAt, AbsoluteExpiresAt time.Time
+	MfaVerified                                             bool
 }
 type AccountList struct {
 	Items         []model.Account
@@ -181,6 +192,10 @@ type Service struct {
 	// confirmationId → {AccountID, ExpiresAt}；TTL 由 config.ArchiveConfirmationTTL 控制。
 	selfArchiveConfirmations map[string]pendingArchive
 	archiveConfirmationsMu   sync.Mutex
+	// mfaChallenges 是登录两步的一次性 MFA 挑战（078）：challengeId → 账号，
+	// 短 TTL 且单次使用，不落库（进程内）。
+	mfaChallenges map[string]mfaChallenge
+	mfaMu         sync.Mutex
 }
 
 // pendingArchive 是软注销两步确认的临时凭据。
@@ -232,7 +247,7 @@ func New(store *repo.Store, currentClock clock.Clock, ids idgen.Generator, passw
 	if err != nil {
 		return nil, fmt.Errorf("create iam fixed-cost verifier: %w", err)
 	}
-	return &Service{store: store, clock: currentClock, ids: ids, passwords: passwords, config: config, catalog: catalog, authorization: authorization, dummyHash: dummy, selfArchiveConfirmations: map[string]pendingArchive{}}, nil
+	return &Service{store: store, clock: currentClock, ids: ids, passwords: passwords, config: config, catalog: catalog, authorization: authorization, dummyHash: dummy, selfArchiveConfirmations: map[string]pendingArchive{}, mfaChallenges: map[string]mfaChallenge{}}, nil
 }
 
 func (s *Service) Setup(ctx context.Context, setupToken, username, displayName, password string) (Session, error) {
@@ -299,7 +314,7 @@ func (s *Service) Setup(ctx context.Context, setupToken, username, displayName, 
 		}
 		return true, nil
 	}, func(txCtx context.Context, r *repo.Unit) error {
-		session, err := s.createSession(txCtx, r, account)
+		session, err := s.createSession(txCtx, r, account, false)
 		if err != nil {
 			return err
 		}
@@ -323,6 +338,7 @@ func (s *Service) Login(ctx context.Context, username, password string) (Session
 	}
 	var result Session
 	var outcome error
+	var resolvedAccountID string
 	err = s.store.WithinTx(ctx, func(txCtx context.Context, r *repo.Unit) error {
 		account, findErr := r.AccountByUsername(txCtx, username)
 		if findErr != nil {
@@ -379,6 +395,13 @@ func (s *Service) Login(ctx context.Context, username, password string) (Session
 				return updateErr
 			}
 		}
+		resolvedAccountID = account.ID
+		// MFA（078）：账号已绑定并确认 TOTP 时，本步只验证密码，第二步走
+		// mfa-verify（一次性挑战）；未绑定账号直接建立会话。
+		if secret, mfaErr := r.MFASecretByAccount(txCtx, account.ID); mfaErr == nil && secret.Confirmed {
+			outcome = ErrMFARequired
+			return nil
+		}
 		zero := 0
 		var unlocked *time.Time
 		err = r.UpdateAccount(txCtx, account.ID, account.Version, repo.AccountChanges{FailedAttempts: &zero, LockedUntil: &unlocked, UpdatedAt: now})
@@ -392,10 +415,17 @@ func (s *Service) Login(ctx context.Context, username, password string) (Session
 		if s.passwordExpired(now, credential.PasswordChangedAt) {
 			principal.MustChangePassword = true
 		}
-		result, err = s.createSession(txCtx, r, principal)
+		result, err = s.createSession(txCtx, r, principal, false)
 		return err
 	})
 	if err == nil && outcome != nil {
+		if errors.Is(outcome, ErrMFARequired) {
+			challenge, challengeErr := s.BeginMFAChallenge(ctx, resolvedAccountID)
+			if challengeErr != nil {
+				return Session{}, challengeErr
+			}
+			return Session{}, &MFARequiredError{ChallengeID: challenge}
+		}
 		return Session{}, outcome
 	}
 	if err != nil {
@@ -1595,7 +1625,7 @@ func (s *Service) RevokeSessions(ctx context.Context, accountID string, idHashes
 
 // createSession 在事务内创建会话记录；Permissions 投影由调用方在事务外
 // 通过 projectSession 填充（evaluator 同 revision 导出）。
-func (s *Service) createSession(ctx context.Context, r *repo.Unit, account model.Account) (Session, error) {
+func (s *Service) createSession(ctx context.Context, r *repo.Unit, account model.Account, mfaVerified bool) (Session, error) {
 	id, err := randomToken()
 	if err != nil {
 		return Session{}, err
@@ -1627,7 +1657,7 @@ func (s *Service) createSession(ctx context.Context, r *repo.Unit, account model
 			s.auditOperation(ctx, "iam.session.evict", "evict", "session", hex.EncodeToString(oldest.IDHash), nil)
 		}
 	}
-	record := repo.SessionRecord{IDHash: digest(id), AccountID: account.ID, CSRFHash: digest(csrf), SecurityRevision: account.SecurityRevision, CreatedAt: now, LastSeenAt: now, IdleExpiresAt: now.Add(s.config.IdleTimeout), AbsoluteExpiresAt: now.Add(s.config.AbsoluteTimeout)}
+	record := repo.SessionRecord{IDHash: digest(id), AccountID: account.ID, CSRFHash: digest(csrf), SecurityRevision: account.SecurityRevision, CreatedAt: now, LastSeenAt: now, IdleExpiresAt: now.Add(s.config.IdleTimeout), AbsoluteExpiresAt: now.Add(s.config.AbsoluteTimeout), MfaVerified: mfaVerified}
 	if err := r.CreateSession(ctx, &record); err != nil {
 		return Session{}, err
 	}
@@ -1737,7 +1767,7 @@ func randomToken() (string, error) {
 }
 func digest(value string) []byte { sum := sha256.Sum256([]byte(value)); return sum[:] }
 func sessionOutput(id string, record repo.SessionRecord, account model.Account, permissions []permissioncatalog.Key) Session {
-	return Session{ID: id, Identity: model.SessionIdentity{AccountID: account.ID, Username: account.Username, DisplayName: account.DisplayName, Nickname: account.Nickname, Bio: account.Bio, BirthDate: account.BirthDate, Permissions: append([]permissioncatalog.Key(nil), permissions...), MustChangePassword: account.MustChangePassword, SecurityRevision: account.SecurityRevision, AuthenticatedAt: record.CreatedAt}, CreatedAt: record.CreatedAt, LastSeenAt: record.LastSeenAt, IdleExpiresAt: record.IdleExpiresAt, AbsoluteExpiresAt: record.AbsoluteExpiresAt}
+	return Session{ID: id, Identity: model.SessionIdentity{AccountID: account.ID, Username: account.Username, DisplayName: account.DisplayName, Nickname: account.Nickname, Bio: account.Bio, BirthDate: account.BirthDate, Permissions: append([]permissioncatalog.Key(nil), permissions...), MustChangePassword: account.MustChangePassword, SecurityRevision: account.SecurityRevision, AuthenticatedAt: record.CreatedAt}, CreatedAt: record.CreatedAt, LastSeenAt: record.LastSeenAt, IdleExpiresAt: record.IdleExpiresAt, AbsoluteExpiresAt: record.AbsoluteExpiresAt, MfaVerified: record.MfaVerified}
 }
 func accountRecord(v model.Account) repo.AccountRecord {
 	return repo.AccountRecord{ID: v.ID, Username: v.Username, DisplayName: v.DisplayName, Nickname: v.Nickname, Bio: v.Bio, BirthDate: v.BirthDate, Status: string(v.Status), Archived: v.Archived, MustChangePassword: v.MustChangePassword, SecurityRevision: v.SecurityRevision, FailedAttempts: v.FailedAttempts, LockedUntil: v.LockedUntil, Version: v.Version, CreatedAt: v.CreatedAt, UpdatedAt: v.UpdatedAt}
@@ -1788,4 +1818,491 @@ func mapSetupConflict(err error) error {
 		return ErrSetupClosed
 	}
 	return err
+}
+
+// ---- API-Token（078，R078-001） ----
+
+// ApiTokenView 是 API 令牌的管理视图（永不包含明文 secret）。
+type ApiTokenView struct {
+	ID        string
+	Name      string
+	Scopes    []permissioncatalog.Key
+	ExpiresAt *time.Time
+	RevokedAt *time.Time
+	CreatedAt time.Time
+	LastUsed  *time.Time
+}
+
+// ApiTokenIssued 是创建/轮换响应：Secret 明文只在本次返回一次。
+type ApiTokenIssued struct {
+	ApiTokenView
+	Secret string
+}
+
+// ApiTokenList 是 API 令牌分页列表。
+type ApiTokenList struct {
+	Items         []ApiTokenView
+	Offset, Limit int
+	Total         int64
+}
+
+// ApiTokenResolution 是认证解析结果（供 Auth api-token verifier 适配）。
+type ApiTokenResolution struct {
+	AccountID string
+	Scopes    []permissioncatalog.Key
+}
+
+const apiTokenPrefix = "iam_"
+
+// mfaIssuer 是 otpauth URI 的展示名（验证器 app 内显示）。
+const mfaIssuer = "community-go"
+
+// MFARequiredError 表示登录需要第二步 TOTP 验证；ChallengeID 单次有效、短 TTL。
+type MFARequiredError struct {
+	ChallengeID string
+}
+
+func (e *MFARequiredError) Error() string { return "iam mfa verification is required" }
+
+// CreateApiToken 为当前账号发放机器访问令牌；所有 scope 必须是 Catalog 已知
+// 精确键；明文 secret 只在本响应返回，之后只读哈希摘要。
+func (s *Service) CreateApiToken(ctx context.Context, accountID, name string, scopes []permissioncatalog.Key, expiresAt *time.Time) (ApiTokenIssued, error) {
+	normalized, err := s.validateApiTokenScopes(scopes)
+	if err != nil {
+		return ApiTokenIssued{}, err
+	}
+	if strings.TrimSpace(name) == "" || len([]rune(name)) > 128 {
+		return ApiTokenIssued{}, model.ErrInvalidName
+	}
+	if expiresAt != nil && !expiresAt.After(s.clock.Now().UTC()) {
+		return ApiTokenIssued{}, model.ErrInvalidTime
+	}
+	if err := s.requireAccount(ctx, accountID); err != nil {
+		return ApiTokenIssued{}, err
+	}
+	secret, err := newApiTokenSecret()
+	if err != nil {
+		return ApiTokenIssued{}, err
+	}
+	id, err := s.ids.New()
+	if err != nil {
+		return ApiTokenIssued{}, err
+	}
+	now := s.clock.Now().UTC()
+	encoded, err := encodeApiTokenScopes(normalized)
+	if err != nil {
+		return ApiTokenIssued{}, err
+	}
+	record := repo.ApiTokenRecord{ID: id, AccountID: accountID, Name: strings.TrimSpace(name), TokenHash: apiTokenHash(secret), Scopes: encoded, ExpiresAt: expiresAt, CreatedAt: now}
+	err = s.store.Use(ctx, func(r *repo.Unit) error { return r.CreateApiToken(ctx, &record) })
+	s.auditOperation(ctx, "iam.api-tokens.create", "create", "api-token", record.ID, err)
+	if err != nil {
+		return ApiTokenIssued{}, err
+	}
+	return ApiTokenIssued{ApiTokenView: apiTokenView(record), Secret: secret}, nil
+}
+
+// ListApiTokens 分页返回账号令牌管理视图（无明文）。
+func (s *Service) ListApiTokens(ctx context.Context, accountID string, offset, limit int) (ApiTokenList, error) {
+	offset, limit, err := normalizePage(offset, limit)
+	if err != nil {
+		return ApiTokenList{}, err
+	}
+	var records []repo.ApiTokenRecord
+	var total int64
+	err = s.store.Use(ctx, func(r *repo.Unit) error {
+		var listErr error
+		total, listErr = r.CountApiTokens(ctx, accountID)
+		if listErr != nil {
+			return listErr
+		}
+		records, listErr = r.ListApiTokens(ctx, accountID, offset, limit)
+		return listErr
+	})
+	if err != nil {
+		return ApiTokenList{}, err
+	}
+	items := make([]ApiTokenView, len(records))
+	for index, record := range records {
+		items[index] = apiTokenView(record)
+	}
+	return ApiTokenList{Items: items, Offset: offset, Limit: limit, Total: total}, nil
+}
+
+// RotateApiToken 轮换令牌：旧哈希立即失效并返回新明文 secret。
+func (s *Service) RotateApiToken(ctx context.Context, accountID, id string) (ApiTokenIssued, error) {
+	now := s.clock.Now().UTC()
+	if err := s.store.Use(ctx, func(r *repo.Unit) error {
+		_, findErr := r.ApiTokenByID(ctx, accountID, id)
+		return findErr
+	}); err != nil {
+		return ApiTokenIssued{}, err
+	}
+	secret, err := newApiTokenSecret()
+	if err != nil {
+		return ApiTokenIssued{}, err
+	}
+	err = s.store.Use(ctx, func(r *repo.Unit) error { return r.RotateApiTokenHash(ctx, accountID, id, apiTokenHash(secret), now) })
+	s.auditOperation(ctx, "iam.api-tokens.rotate", "rotate", "api-token", id, err)
+	if err != nil {
+		return ApiTokenIssued{}, err
+	}
+	var record repo.ApiTokenRecord
+	_ = s.store.Use(ctx, func(r *repo.Unit) error {
+		record, err = r.ApiTokenByID(ctx, accountID, id)
+		return err
+	})
+	return ApiTokenIssued{ApiTokenView: apiTokenView(record), Secret: secret}, nil
+}
+
+// RevokeApiToken 把令牌置为终态吊销；后续认证立即失败。
+func (s *Service) RevokeApiToken(ctx context.Context, accountID, id string) error {
+	now := s.clock.Now().UTC()
+	err := s.store.Use(ctx, func(r *repo.Unit) error { return r.RevokeApiToken(ctx, accountID, id, now) })
+	s.auditOperation(ctx, "iam.api-tokens.revoke", "revoke", "api-token", id, err)
+	return err
+}
+
+// ResolveApiToken 供 Auth api-token verifier 适配：按明文 secret 哈希解析
+// 未吊销未过期的令牌并刷新最后使用时间；任何失败返回 ErrSessionInvalid
+// （认证层映射为 401）。
+func (s *Service) ResolveApiToken(ctx context.Context, token string) (ApiTokenResolution, error) {
+	secret := strings.TrimSpace(token)
+	if !strings.HasPrefix(secret, apiTokenPrefix) {
+		return ApiTokenResolution{}, ErrSessionInvalid
+	}
+	var resolution ApiTokenResolution
+	now := s.clock.Now().UTC()
+	err := s.store.Use(ctx, func(r *repo.Unit) error {
+		record, err := r.ApiTokenByHash(ctx, apiTokenHash(secret))
+		if err != nil {
+			return ErrSessionInvalid
+		}
+		if record.RevokedAt != nil || (record.ExpiresAt != nil && !now.Before(*record.ExpiresAt)) {
+			return ErrSessionInvalid
+		}
+		scopes, scopeErr := decodeApiTokenScopes(record.Scopes)
+		if scopeErr != nil {
+			return scopeErr
+		}
+		resolution = ApiTokenResolution{AccountID: record.AccountID, Scopes: scopes}
+		return r.TouchApiTokenUsage(ctx, record.ID, now)
+	})
+	return resolution, err
+}
+
+func (s *Service) validateApiTokenScopes(scopes []permissioncatalog.Key) ([]permissioncatalog.Key, error) {
+	normalized := make([]permissioncatalog.Key, 0, len(scopes))
+	seen := make(map[permissioncatalog.Key]struct{}, len(scopes))
+	for _, scope := range scopes {
+		if strings.TrimSpace(string(scope)) == "" {
+			return nil, ErrUnknownPermission
+		}
+		if _, ok := s.catalog.Lookup(scope); !ok {
+			return nil, fmt.Errorf("%w: %s", ErrUnknownPermission, scope)
+		}
+		if _, exists := seen[scope]; exists {
+			continue
+		}
+		seen[scope] = struct{}{}
+		normalized = append(normalized, scope)
+	}
+	sort.Slice(normalized, func(left, right int) bool { return normalized[left] < normalized[right] })
+	return normalized, nil
+}
+
+func (s *Service) requireAccount(ctx context.Context, accountID string) error {
+	return s.store.Use(ctx, func(r *repo.Unit) error {
+		_, err := r.AccountByID(ctx, accountID)
+		return err
+	})
+}
+
+func newApiTokenSecret() (string, error) {
+	raw := make([]byte, 32)
+	if _, err := rand.Read(raw); err != nil {
+		return "", fmt.Errorf("generate api token secret: %w", err)
+	}
+	return apiTokenPrefix + base64.RawURLEncoding.EncodeToString(raw), nil
+}
+
+func apiTokenHash(secret string) string {
+	sum := sha256.Sum256([]byte(secret))
+	return hex.EncodeToString(sum[:])
+}
+
+func encodeApiTokenScopes(scopes []permissioncatalog.Key) (string, error) {
+	values := make([]string, len(scopes))
+	for index, scope := range scopes {
+		values[index] = string(scope)
+	}
+	encoded, err := json.Marshal(values)
+	if err != nil {
+		return "", fmt.Errorf("encode api token scopes: %w", err)
+	}
+	return string(encoded), nil
+}
+
+func decodeApiTokenScopes(encoded string) ([]permissioncatalog.Key, error) {
+	var values []string
+	if err := json.Unmarshal([]byte(encoded), &values); err != nil {
+		return nil, fmt.Errorf("decode api token scopes: %w", err)
+	}
+	scopes := make([]permissioncatalog.Key, 0, len(values))
+	for _, value := range values {
+		scopes = append(scopes, permissioncatalog.Key(value))
+	}
+	return scopes, nil
+}
+
+func apiTokenView(record repo.ApiTokenRecord) ApiTokenView {
+	scopes, err := decodeApiTokenScopes(record.Scopes)
+	if err != nil {
+		scopes = nil
+	}
+	return ApiTokenView{ID: record.ID, Name: record.Name, Scopes: scopes, ExpiresAt: record.ExpiresAt, RevokedAt: record.RevokedAt, CreatedAt: record.CreatedAt, LastUsed: record.LastUsed}
+}
+
+// ---- MFA/TOTP（078，R078-002） ----
+
+// mfaChallenge 是登录两步的一次性挑战（内存态、短 TTL、最多 maxMFAChallengeAttempts 次）。
+type mfaChallenge struct {
+	AccountID string
+	ExpiresAt time.Time
+	Attempts  int
+}
+
+const (
+	mfaChallengeTTL         = 2 * time.Minute
+	maxMFAChallengeAttempts = 5
+	mfaRecoveryCodeCount    = 10
+)
+
+// MFAEnrollView 是绑定预览（secret 明文仅绑定阶段可见）。
+type MFAEnrollView struct {
+	Secret string
+	URI    string
+}
+
+// BeginMFAEnroll 生成 TOTP 种子与 otpauth URI 并落 pending 记录（未确认）。
+func (s *Service) BeginMFAEnroll(ctx context.Context, accountID string) (MFAEnrollView, error) {
+	if err := s.requireAccount(ctx, accountID); err != nil {
+		return MFAEnrollView{}, err
+	}
+	secret, err := totp.GenerateSecret()
+	if err != nil {
+		return MFAEnrollView{}, err
+	}
+	now := s.clock.Now().UTC()
+	err = s.store.Use(ctx, func(r *repo.Unit) error {
+		return r.UpsertMFASecret(ctx, &repo.MFASecretRecord{AccountID: accountID, Secret: secret, CreatedAt: now})
+	})
+	if err != nil {
+		return MFAEnrollView{}, err
+	}
+	return MFAEnrollView{Secret: secret, URI: totp.URI(mfaIssuer, accountID, secret)}, nil
+}
+
+// ConfirmMFAEnroll 校验验证码并激活绑定，返回一次性恢复码（明文仅此一次）。
+func (s *Service) ConfirmMFAEnroll(ctx context.Context, accountID, code string) ([]string, error) {
+	now := s.clock.Now().UTC()
+	var recoveryCodes []string
+	err := s.store.Use(ctx, func(r *repo.Unit) error {
+		secret, err := r.MFASecretByAccount(ctx, accountID)
+		if err != nil {
+			return err
+		}
+		ok, verifyErr := totp.Validate(secret.Secret, code, now, totp.DefaultWindow)
+		if verifyErr != nil {
+			return verifyErr
+		}
+		if !ok {
+			return ErrMFAInvalidCode
+		}
+		if err := r.ConfirmMFASecret(ctx, accountID, now); err != nil {
+			return err
+		}
+		hashes := make([]string, 0, mfaRecoveryCodeCount)
+		codes := make([]string, 0, mfaRecoveryCodeCount)
+		records := make([]repo.MfaRecoveryCodeRecord, 0, mfaRecoveryCodeCount)
+		for range mfaRecoveryCodeCount {
+			plain, generateErr := newRecoveryCode()
+			if generateErr != nil {
+				return generateErr
+			}
+			codes = append(codes, plain)
+			hashes = append(hashes, recoveryCodeHash(plain))
+			records = append(records, repo.MfaRecoveryCodeRecord{AccountID: accountID, CodeHash: recoveryCodeHash(plain)})
+		}
+		if err := r.CreateRecoveryCodes(ctx, records); err != nil {
+			return err
+		}
+		recoveryCodes = codes
+		return nil
+	})
+	s.auditOperation(ctx, "iam.self.mfa.confirm", "confirm", "mfa", accountID, err)
+	if err != nil {
+		return nil, err
+	}
+	return recoveryCodes, nil
+}
+
+// DisableMFA 校验验证码或恢复码后解绑 MFA（删除种子与恢复码）。
+func (s *Service) DisableMFA(ctx context.Context, accountID, code string) error {
+	now := s.clock.Now().UTC()
+	err := s.store.Use(ctx, func(r *repo.Unit) error {
+		secret, err := r.MFASecretByAccount(ctx, accountID)
+		if err != nil {
+			return err
+		}
+		valid, verifyErr := totp.Validate(secret.Secret, code, now, totp.DefaultWindow)
+		if verifyErr != nil {
+			return verifyErr
+		}
+		if !valid {
+			// 允许使用恢复码解绑（丢失设备场景）。
+			if !s.recoveryCodeValid(ctx, r, accountID, code) {
+				return ErrMFAInvalidCode
+			}
+		}
+		if err := r.DeleteMFASecret(ctx, accountID); err != nil {
+			return err
+		}
+		return r.DeleteRecoveryCodes(ctx, accountID)
+	})
+	s.auditOperation(ctx, "iam.self.mfa.disable", "disable", "mfa", accountID, err)
+	return err
+}
+
+// MFABound 判断账号是否已绑定并确认 TOTP。
+func (s *Service) MFABound(ctx context.Context, accountID string) (bool, error) {
+	var bound bool
+	err := s.store.Use(ctx, func(r *repo.Unit) error {
+		secret, err := r.MFASecretByAccount(ctx, accountID)
+		if err != nil {
+			if repo.IsNotFound(err) {
+				return nil
+			}
+			return err
+		}
+		bound = secret.Confirmed
+		return nil
+	})
+	return bound, err
+}
+
+// BeginMFAChallenge 为已通过密码验证的账号签发一次性 MFA 挑战。
+func (s *Service) BeginMFAChallenge(ctx context.Context, accountID string) (string, error) {
+	bound, err := s.MFABound(ctx, accountID)
+	if err != nil {
+		return "", err
+	}
+	if !bound {
+		return "", ErrMFANotBound
+	}
+	challenge, err := randomToken()
+	if err != nil {
+		return "", err
+	}
+	s.mfaMu.Lock()
+	s.mfaChallenges[challenge] = mfaChallenge{AccountID: accountID, ExpiresAt: s.clock.Now().UTC().Add(mfaChallengeTTL)}
+	s.mfaMu.Unlock()
+	return challenge, nil
+}
+
+// VerifyMFAChallenge 校验一次性挑战 + TOTP/恢复码并建立 MFA 已验证会话。
+func (s *Service) VerifyMFAChallenge(ctx context.Context, challengeID, code string) (Session, error) {
+	s.mfaMu.Lock()
+	candidate, ok := s.mfaChallenges[challengeID]
+	if ok {
+		if !s.clock.Now().UTC().Before(candidate.ExpiresAt) {
+			delete(s.mfaChallenges, challengeID)
+			ok = false
+		}
+	}
+	if !ok {
+		s.mfaMu.Unlock()
+		return Session{}, ErrMFAChallengeInvalid
+	}
+	candidate.Attempts++
+	s.mfaChallenges[challengeID] = candidate
+	s.mfaMu.Unlock()
+	if candidate.Attempts > maxMFAChallengeAttempts {
+		s.mfaMu.Lock()
+		delete(s.mfaChallenges, challengeID)
+		s.mfaMu.Unlock()
+		return Session{}, ErrMFAChallengeInvalid
+	}
+
+	var result Session
+	err := s.store.Use(ctx, func(r *repo.Unit) error {
+		secret, err := r.MFASecretByAccount(ctx, candidate.AccountID)
+		if err != nil {
+			return err
+		}
+		now := s.clock.Now().UTC()
+		valid, verifyErr := totp.Validate(secret.Secret, code, now, totp.DefaultWindow)
+		if verifyErr != nil {
+			return verifyErr
+		}
+		if !valid && !s.recoveryCodeValid(ctx, r, candidate.AccountID, code) {
+			return ErrMFAInvalidCode
+		}
+		account, err := r.AccountByID(ctx, candidate.AccountID)
+		if err != nil || account.Status != string(model.AccountActive) || account.Archived {
+			return ErrAccountDisabled
+		}
+		credential, credentialErr := r.CredentialByAccount(ctx, candidate.AccountID)
+		if credentialErr != nil {
+			return ErrSessionInvalid
+		}
+		principal := modelAccount(account)
+		if s.passwordExpired(now, credential.PasswordChangedAt) {
+			principal.MustChangePassword = true
+		}
+		result, err = s.createSession(ctx, r, principal, true)
+		return err
+	})
+	if err == nil {
+		// 挑战一次性：仅在成功后销毁；错误码/失败保留以便在尝试上限内重试。
+		s.mfaMu.Lock()
+		delete(s.mfaChallenges, challengeID)
+		s.mfaMu.Unlock()
+	}
+	if err != nil {
+		return Session{}, err
+	}
+	return s.projectSession(ctx, result)
+}
+
+func (s *Service) recoveryCodeValid(ctx context.Context, r *repo.Unit, accountID, code string) bool {
+	if strings.TrimSpace(code) == "" {
+		return false
+	}
+	hash := recoveryCodeHash(strings.TrimSpace(code))
+	hashes, err := r.RecoveryCodesByAccount(ctx, accountID)
+	if err != nil {
+		return false
+	}
+	for _, existing := range hashes {
+		if subtle.ConstantTimeCompare([]byte(existing), []byte(hash)) != 1 {
+			continue
+		}
+		return r.MarkRecoveryCodeUsed(ctx, accountID, hash, s.clock.Now().UTC()) == nil
+	}
+	return false
+}
+
+func newRecoveryCode() (string, error) {
+	raw := make([]byte, 9)
+	if _, err := rand.Read(raw); err != nil {
+		return "", fmt.Errorf("generate mfa recovery code: %w", err)
+	}
+	encoded := base64.RawURLEncoding.EncodeToString(raw)
+	return strings.ToUpper(encoded[:6]) + "-" + strings.ToUpper(encoded[6:12]), nil
+}
+
+func recoveryCodeHash(code string) string {
+	sum := sha256.Sum256([]byte(code))
+	return hex.EncodeToString(sum[:])
 }

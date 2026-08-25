@@ -45,3 +45,9 @@ type Administration interface {
 	ReconcileOwnerCatalog(context.Context) error
 	ResetPasswordByUsername(context.Context, string, string) error
 }
+
+// ApiTokenResolver 是 API-Token 认证解析的窄 facet（078）；composition 把
+// 它适配为 Auth Bearer 链上的 CredentialVerifier。
+type ApiTokenResolver interface {
+	ResolveApiToken(context.Context, string) (service.ApiTokenResolution, error)
+}

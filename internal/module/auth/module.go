@@ -34,6 +34,9 @@ type Dependencies struct {
 	// DecisionPoint 是 iam-rbac 来源主体的 RBAC 决策 port；由 composition
 	// 注入 IAM Authorization facet 的适配实现。
 	DecisionPoint service.DecisionPoint
+	// ExtraVerifiers 是附加的 Bearer 凭据验证器（078：API-Token 等），
+	// 按声明顺序排在模块自有 verifier（JWT/development）之后尝试。
+	ExtraVerifiers []service.CredentialVerifier
 	// Database 是持久化低敏审计的可选数据库访问；nil 时回退 logger Sink。
 	// 模块内部拥有 storage Sink 装配，composition 只注入数据库租约。
 	Database repo.Access
@@ -112,6 +115,7 @@ func NewHTTP(dependencies Dependencies) (Module, error) {
 		verifier     service.CredentialVerifier
 		development  *model.Principal
 		participants []supervisor.Participant
+		verifiers    []service.CredentialVerifier
 	)
 	switch dependencies.Config.Mode {
 	case configbinding.ModeDevelopmentAnonymous:
@@ -140,10 +144,24 @@ func NewHTTP(dependencies Dependencies) (Module, error) {
 		if adapterErr != nil {
 			return Module{}, fmt.Errorf("compose JWT verifier: %w", adapterErr)
 		}
-		verifier = adapter
+		verifiers = append(verifiers, adapter)
 		participants = append(participants, adapter)
 	default:
 		return Module{}, fmt.Errorf("compose auth module: unsupported mode %q", dependencies.Config.Mode)
+	}
+	// 078：附加 Bearer verifier（API-Token 等）排在模块自有 verifier 之后。
+	verifiers = append(verifiers, dependencies.ExtraVerifiers...)
+	switch len(verifiers) {
+	case 0:
+		verifier = nil
+	case 1:
+		verifier = verifiers[0]
+	default:
+		chain, chainErr := service.NewChainVerifier(verifiers...)
+		if chainErr != nil {
+			return Module{}, fmt.Errorf("compose auth chain verifier: %w", chainErr)
+		}
+		verifier = chain
 	}
 	authService, err := service.New(dependencies.Clock, verifier, development, audit, dependencies.DecisionPoint, dependencies.Policies)
 	if err != nil {

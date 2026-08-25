@@ -13,6 +13,7 @@ import (
 	"time"
 
 	passwordadapter "github.com/rin721/go-scaffold-template/internal/module/iam/adapter/password"
+	"github.com/rin721/go-scaffold-template/internal/module/iam/adapter/totp"
 	"github.com/rin721/go-scaffold-template/internal/module/iam/authorization"
 	migrationbinding "github.com/rin721/go-scaffold-template/internal/module/iam/binding/migration"
 	iampermission "github.com/rin721/go-scaffold-template/internal/module/iam/binding/permission"
@@ -1338,5 +1339,177 @@ func TestMaxSessionsEvictsOldest(t *testing.T) {
 	}
 	if active.Total != 2 {
 		t.Fatalf("active sessions after eviction = %d, want 2", active.Total)
+	}
+}
+
+// TestApiTokenLifecycle 验证 API-Token 发证→使用→轮换→吊销闭环（078）：
+// secret 明文仅一次、scope 校验、吊销/轮换失效、未知 scope 拒绝。
+func TestApiTokenLifecycle(t *testing.T) {
+	iam, resource := newService(t)
+	defer resource.Close()
+	owner, err := iam.Setup(t.Context(), "setup-secret", "owner", "Owner", "123456789012345")
+	if err != nil {
+		t.Fatal(err)
+	}
+	accountID := owner.Identity.AccountID
+	issued, err := iam.CreateApiToken(t.Context(), accountID, "ci", []permissioncatalog.Key{iampermission.AccountRead}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(issued.Secret, "iam_") || issued.Secret == "" {
+		t.Fatalf("issued secret invalid: %q", issued.Secret)
+	}
+	// 解析成功且 scope 正确。
+	resolution, err := iam.ResolveApiToken(t.Context(), issued.Secret)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resolution.AccountID != accountID || len(resolution.Scopes) != 1 || resolution.Scopes[0] != iampermission.AccountRead {
+		t.Fatalf("resolution = %#v", resolution)
+	}
+	// 列表不含明文。
+	list, err := iam.ListApiTokens(t.Context(), accountID, 0, 20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if list.Total != 1 || len(list.Items) != 1 || list.Items[0].Name != "ci" {
+		t.Fatalf("api token list = %#v", list)
+	}
+	// 未知 scope 创建拒绝。
+	if _, err := iam.CreateApiToken(t.Context(), accountID, "bad", []permissioncatalog.Key{"no:such:key"}, nil); !errors.Is(err, service.ErrUnknownPermission) {
+		t.Fatalf("unknown scope error = %v", err)
+	}
+	// 轮换：旧 secret 立即失效，新 secret 可用。
+	rotated, err := iam.RotateApiToken(t.Context(), accountID, issued.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := iam.ResolveApiToken(t.Context(), issued.Secret); !errors.Is(err, service.ErrSessionInvalid) {
+		t.Fatalf("rotated secret resolve error = %v", err)
+	}
+	if _, err := iam.ResolveApiToken(t.Context(), rotated.Secret); err != nil {
+		t.Fatal(err)
+	}
+	// 吊销：认证失败；非所属令牌 404。
+	if err := iam.RevokeApiToken(t.Context(), accountID, issued.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := iam.ResolveApiToken(t.Context(), rotated.Secret); !errors.Is(err, service.ErrSessionInvalid) {
+		t.Fatalf("revoked secret resolve error = %v", err)
+	}
+	if _, err := iam.RotateApiToken(t.Context(), accountID, "missing-token"); !errors.Is(err, repo.ErrNotFound) {
+		t.Fatalf("rotate unknown token error = %v", err)
+	}
+}
+
+// TestMFABindAndLoginFlow 验证 TOTP 绑定/确认/登录两步/解绑闭环（078）：
+// 绑定后登录返回一次性挑战，验证码通过后建立 mfa_verified 会话。
+func TestMFABindAndLoginFlow(t *testing.T) {
+	iam, resource := newService(t)
+	defer resource.Close()
+	owner, err := iam.Setup(t.Context(), "setup-secret", "owner", "Owner", "123456789012345")
+	if err != nil {
+		t.Fatal(err)
+	}
+	accountID := owner.Identity.AccountID
+	bound, err := iam.MFABound(t.Context(), accountID)
+	if err != nil || bound {
+		t.Fatalf("mfa bound before enroll = %v, %v", bound, err)
+	}
+	enroll, err := iam.BeginMFAEnroll(t.Context(), accountID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if enroll.Secret == "" || !strings.HasPrefix(enroll.URI, "otpauth://totp/") {
+		t.Fatalf("enroll view = %#v", enroll)
+	}
+	now := time.Date(2026, 8, 22, 1, 0, 0, 0, time.UTC)
+	code, err := totp.CodeAt(enroll.Secret, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	codes, err := iam.ConfirmMFAEnroll(t.Context(), accountID, code)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(codes) != 10 {
+		t.Fatalf("recovery codes = %d, want 10", len(codes))
+	}
+	bound, err = iam.MFABound(t.Context(), accountID)
+	if err != nil || !bound {
+		t.Fatalf("mfa bound after confirm = %v, %v", bound, err)
+	}
+	// 登录第一步：密码通过但需要 MFA。
+	_, err = iam.Login(t.Context(), "owner", "123456789012345")
+	var mfaRequired *service.MFARequiredError
+	if !errors.As(err, &mfaRequired) || mfaRequired.ChallengeID == "" {
+		t.Fatalf("login error = %v", err)
+	}
+	// 第二步：错误码拒绝；正确码通过并建立 mfa_verified 会话。
+	if _, err := iam.VerifyMFAChallenge(t.Context(), "bogus-challenge", code); !errors.Is(err, service.ErrMFAChallengeInvalid) {
+		t.Fatalf("bogus challenge error = %v", err)
+	}
+	if _, err := iam.VerifyMFAChallenge(t.Context(), mfaRequired.ChallengeID, "000000"); !errors.Is(err, service.ErrMFAInvalidCode) {
+		t.Fatalf("wrong code error = %v", err)
+	}
+	verified, err := iam.VerifyMFAChallenge(t.Context(), mfaRequired.ChallengeID, code)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !verified.MfaVerified {
+		t.Fatal("session must be mfa verified")
+	}
+	// 挑战一次性：再次使用同一 challenge 失败。
+	if _, err := iam.VerifyMFAChallenge(t.Context(), mfaRequired.ChallengeID, code); !errors.Is(err, service.ErrMFAChallengeInvalid) {
+		t.Fatalf("replayed challenge error = %v", err)
+	}
+	// 解绑：错误码拒绝、正确码通过；解绑后恢复单步登录。
+	if err := iam.DisableMFA(t.Context(), accountID, "000000"); !errors.Is(err, service.ErrMFAInvalidCode) {
+		t.Fatalf("disable wrong code error = %v", err)
+	}
+	if err := iam.DisableMFA(t.Context(), accountID, code); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := iam.Login(t.Context(), "owner", "123456789012345"); err != nil {
+		t.Fatalf("login after disable error = %v", err)
+	}
+}
+
+// TestMFALoginWithRecoveryCode 验证恢复码可在登录第二步替代 TOTP（078）。
+func TestMFALoginWithRecoveryCode(t *testing.T) {
+	iam, resource := newService(t)
+	defer resource.Close()
+	owner, err := iam.Setup(t.Context(), "setup-secret", "owner", "Owner", "123456789012345")
+	if err != nil {
+		t.Fatal(err)
+	}
+	enroll, err := iam.BeginMFAEnroll(t.Context(), owner.Identity.AccountID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := time.Date(2026, 8, 22, 1, 0, 0, 0, time.UTC)
+	code, err := totp.CodeAt(enroll.Secret, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	codes, err := iam.ConfirmMFAEnroll(t.Context(), owner.Identity.AccountID, code)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = iam.Login(t.Context(), "owner", "123456789012345")
+	var mfaRequired *service.MFARequiredError
+	if !errors.As(err, &mfaRequired) {
+		t.Fatalf("login error = %v", err)
+	}
+	// 恢复码登录；同一恢复码不可重复使用（挑战一次性 + 恢复码作废）。
+	if _, err := iam.VerifyMFAChallenge(t.Context(), mfaRequired.ChallengeID, codes[0]); err != nil {
+		t.Fatal(err)
+	}
+	_, err = iam.Login(t.Context(), "owner", "123456789012345")
+	if !errors.As(err, &mfaRequired) {
+		t.Fatalf("second login error = %v", err)
+	}
+	if _, err := iam.VerifyMFAChallenge(t.Context(), mfaRequired.ChallengeID, codes[0]); !errors.Is(err, service.ErrMFAInvalidCode) {
+		t.Fatalf("reused recovery code error = %v", err)
 	}
 }

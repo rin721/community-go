@@ -38,7 +38,9 @@ type Module struct {
 	Accounts       AccountDirectory
 	Administration Administration
 	Mutation       MutationGuard
-	Contribution   module.Contribution
+	// ApiTokens 是 API-Token 认证解析窄 facet（078）。
+	ApiTokens    ApiTokenResolver
+	Contribution module.Contribution
 }
 type HTTPModule struct {
 	Module
@@ -75,7 +77,7 @@ func newModule(dependencies Dependencies) (Module, *service.Service, error) {
 	}
 	return Module{
 		Sessions: iamService, Authorization: runtime, Accounts: iamService,
-		Administration: iamService, Mutation: iamService, Contribution: contribution,
+		Administration: iamService, Mutation: iamService, ApiTokens: iamService, Contribution: contribution,
 	}, iamService, nil
 }
 func NewHTTP(dependencies HTTPDependencies) (HTTPModule, error) {

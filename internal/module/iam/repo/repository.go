@@ -11,13 +11,16 @@ import (
 )
 
 const (
-	accountTable          = "iam_accounts"
-	credentialTable       = "iam_local_credentials"
-	roleTable             = "iam_roles"
-	accountRoleTable      = "iam_account_roles"
-	rolePermissionTable   = "iam_role_permissions"
-	sessionTable          = "iam_sessions"
-	passwordHistoryTable  = "iam_password_history"
+	accountTable         = "iam_accounts"
+	credentialTable      = "iam_local_credentials"
+	roleTable            = "iam_roles"
+	accountRoleTable     = "iam_account_roles"
+	rolePermissionTable  = "iam_role_permissions"
+	sessionTable         = "iam_sessions"
+	passwordHistoryTable = "iam_password_history"
+	apiTokenTable        = "iam_api_tokens"
+	mfaSecretTable       = "iam_totp_secrets"
+	mfaRecoveryCodeTable = "iam_mfa_recovery_codes"
 )
 
 type Access interface {
@@ -51,6 +54,36 @@ type PasswordHistoryRecord struct {
 	PasswordHash string
 	CreatedAt    time.Time
 }
+
+// ApiTokenRecord 是机器访问令牌（078）：secret 只以 sha256 哈希持久化，
+// Scopes 以 JSON 文本存储（service 负责稳定排序编码/解码）。
+type ApiTokenRecord struct {
+	ID        string     `gorm:"column:id"`
+	AccountID string     `gorm:"column:account_id"`
+	Name      string     `gorm:"column:name"`
+	TokenHash string     `gorm:"column:token_hash"`
+	Scopes    string     `gorm:"column:scopes"`
+	ExpiresAt *time.Time `gorm:"column:expires_at"`
+	RevokedAt *time.Time `gorm:"column:revoked_at"`
+	CreatedAt time.Time  `gorm:"column:created_at"`
+	LastUsed  *time.Time `gorm:"column:last_used_at"`
+}
+
+// MFASecretRecord 是 TOTP 种子（078）：已确认前为 pending 绑定，确认后不回读明文。
+type MFASecretRecord struct {
+	AccountID   string
+	Secret      string
+	Confirmed   bool
+	CreatedAt   time.Time
+	ConfirmedAt *time.Time
+}
+
+// MfaRecoveryCodeRecord 是一次性恢复码（只存哈希；used_at 非空即已作废）。
+type MfaRecoveryCodeRecord struct {
+	AccountID string
+	CodeHash  string
+	UsedAt    *time.Time
+}
 type RoleRecord struct {
 	ID, Code, Name, Description string
 	Active, Archived, System    bool
@@ -74,6 +107,7 @@ type SessionRecord struct {
 	SecurityRevision                                        uint64
 	CreatedAt, LastSeenAt, IdleExpiresAt, AbsoluteExpiresAt time.Time
 	RevokedAt                                               *time.Time
+	MfaVerified                                             bool
 }
 
 type Store struct{ access Access }

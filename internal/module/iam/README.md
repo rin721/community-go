@@ -24,6 +24,11 @@ IAM 提供只读影响分析查询：角色→持有账号（`GET /api/v1/iam/ro
 
 `passwordPolicy.historySize`（默认 0）启用后禁止复用最近 N 次口令（历史只存 Argon2id 哈希，逐条验证并裁剪）；`passwordPolicy.maxPasswordAge`（默认 0）启用后口令过期登录/会话解析复用既有受限改密语义（MustChangePassword，不新增会话类型）；`iam.local.maxSessionsPerAccount`（默认 0=不限）启用后新登录在 active 会话达到上限时主动吊销最旧会话（`iam.session.evict` 低敏审计），会话总数保持上限。新增行为的操作/授权留痕纳入既有 `auth_audit_events` 低敏审计面；登录/初始化端点的 IP 维度限流由 `http.rateLimit.routes` 提供（077，transport 层），与账号级锁定构成双维度。
 
+## 机器访问与 MFA（078）
+
+- **API-Token**：`iam_api_tokens` 表（secret 只存 sha256、明文仅创建/轮换一次）+ 管理面 `iam.api-tokens.*`（新权限键 `iam:api-token:read/write`）+ Auth `ChainVerifier`（Bearer 链 JWT→API-Token）解析为 token-scopes Principal；授权路径零改动，不替代 Session。
+- **MFA/TOTP**：`internal/module/iam/adapter/totp`（RFC 6238 自研，官方向量验证互通）；绑定（enroll/confirm/status/disable）+ 登录两步（一次性 challenge + `login/mfa-verify`，TOTP 或恢复码）+ 会话 `mfa_verified` 标记；只加强认证，不改变授权权威。
+
 ## 对外边界
 
 IAM 通过窄 facet 对外输出：`Sessions`（Session 解析）、`Authorization`（evaluator 决策/投影）、`Accounts`（可指派账号校验）、`Administration`（owner reconcile/兼容/密码重置）与 `Mutation`（CSRF 校验）；根 composition 不取得 `*service.Service`，Auth 只消费 project `DecisionPoint`，HTTP/Huma 与业务模块不接触 Casbin 类型。composition 的 identity-access 子装配把 IAM `Authorization` facet 适配为 Auth `DecisionPoint`，把 IAM Session 适配为 `iam-rbac` Principal。

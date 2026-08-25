@@ -78,6 +78,10 @@ Linux 使用 `bash scripts/verify-webui.sh`。质量链覆盖生成检查、冻�
 
 - 全部业务模块（IAM/Organization/Navigation）的写操作均要求 `webuiSession` 认证：mutation 请求必须携带 `Origin`（同源）与 `X-CSRF-Token`（来自当前 Session），缺失或失效由服务端 403 `csrf_invalid` 拒绝。模块前端统一使用「加载 Session 时 remember csrfToken → mutation headers」模式（先例 `internal/module/iam/binding/webui/web/api.ts`，076 起 Organization 页面对齐）。
 
+## 安全页：MFA 与 API 令牌（078）
+
+- 设置中心「安全」页（`settings/.../SecurityPage.tsx`）新增 **MFA/TOTP 区块**（绑定显示 otpauth URI、确认激活展示一次性恢复码、禁用需验证码/恢复码复核）与 **API 令牌区块**（创建/列表/轮换/吊销，创建与轮换明文仅显示一次）；settings 前端 mutation 统一携带 CSRFToken（076 语义），mock 路由由模块自有 `mock.ts` 提供。
+
 ## 设置中心 8 分区与 SPA 导航（072）
 
 - 设置套件细化为 8 分区：Profile（主页资料表单，IAM 自服务 updateProfile 乐观锁）、Account（用户名 + 两步软注销，`self/archive` 复用归档语义）、Security（改密）、Appearance、Notifications、Language（写宿主语言键并重载）、About、Acknowledgement；页内 SectionNav 全列、全局菜单五项。

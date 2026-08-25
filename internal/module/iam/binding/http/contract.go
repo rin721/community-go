@@ -42,6 +42,15 @@ const (
 	opPermissionRolesRead = "iam.permissions.roles.list"
 	opSessionList         = "iam.sessions.list"
 	opSessionRevoke       = "iam.sessions.revoke"
+	opApiTokens           = "iam.api-tokens.list"
+	opApiTokenCreate      = "iam.api-tokens.create"
+	opApiTokenRotate      = "iam.api-tokens.rotate"
+	opApiTokenRevoke      = "iam.api-tokens.revoke"
+	opMFABegin            = "iam.self.mfa.begin"
+	opMFAStatus           = "iam.self.mfa.status"
+	opMFAConfirm          = "iam.self.mfa.confirm"
+	opMFADisable          = "iam.self.mfa.disable"
+	opMFAVerify           = "iam.login.mfa-verify"
 )
 
 type Handler struct {
@@ -85,10 +94,10 @@ type identityResponse struct {
 }
 type sessionResponse struct {
 	Identity          identityResponse `json:"identity"`
-	CSRFToken         string           `json:"csrfToken"`
-	CreatedAt         time.Time        `json:"createdAt"`
-	IdleExpiresAt     time.Time        `json:"idleExpiresAt"`
-	AbsoluteExpiresAt time.Time        `json:"absoluteExpiresAt"`
+	CSRFToken         string           `json:"csrfToken,omitempty"`
+	CreatedAt         time.Time        `json:"createdAt,omitempty"`
+	IdleExpiresAt     time.Time        `json:"idleExpiresAt,omitempty"`
+	AbsoluteExpiresAt time.Time        `json:"absoluteExpiresAt,omitempty"`
 }
 type accountResponse struct {
 	ID                 string              `json:"id"`
@@ -163,6 +172,68 @@ type sessionInfoResponse struct {
 	RevokedAt         *time.Time `json:"revokedAt,omitempty"`
 }
 
+// API-Token（078）：管理视图不携带明文；Issued 响应只在创建/轮换时含 secret。
+type apiTokenResponse struct {
+	ID        string                  `json:"id"`
+	Name      string                  `json:"name"`
+	Scopes    []permissioncatalog.Key `json:"scopes"`
+	ExpiresAt *time.Time              `json:"expiresAt,omitempty"`
+	RevokedAt *time.Time              `json:"revokedAt,omitempty"`
+	CreatedAt time.Time               `json:"createdAt"`
+	LastUsed  *time.Time              `json:"lastUsedAt,omitempty"`
+}
+type apiTokenIssuedResponse struct {
+	ID        string                  `json:"id"`
+	Name      string                  `json:"name"`
+	Scopes    []permissioncatalog.Key `json:"scopes"`
+	ExpiresAt *time.Time              `json:"expiresAt,omitempty"`
+	RevokedAt *time.Time              `json:"revokedAt,omitempty"`
+	CreatedAt time.Time               `json:"createdAt"`
+	LastUsed  *time.Time              `json:"lastUsedAt,omitempty"`
+	Secret    string                  `json:"secret"`
+}
+type apiTokenCreateInput struct {
+	Origin    string `header:"Origin" required:"true"`
+	CSRFToken string `header:"X-CSRF-Token" required:"true"`
+	Body      struct {
+		Name      string                  `json:"name" minLength:"1" maxLength:"128"`
+		Scopes    []permissioncatalog.Key `json:"scopes"`
+		ExpiresAt *time.Time              `json:"expiresAt,omitempty"`
+	}
+}
+type apiTokenPathInput struct {
+	ID        string `path:"id"`
+	Origin    string `header:"Origin" required:"true"`
+	CSRFToken string `header:"X-CSRF-Token" required:"true"`
+}
+
+// MFA/TOTP（078）：绑定预览/确认/解绑与登录第二步验证输入输出。
+type mfaEnrollResponse struct {
+	Secret string `json:"secret"`
+	URI    string `json:"uri"`
+}
+type mfaStatusResponse struct {
+	Registered bool `json:"registered"`
+}
+type mfaConfirmResponse struct {
+	RecoveryCodes []string `json:"recoveryCodes"`
+}
+type mfaCodeInput struct {
+	Origin    string `header:"Origin" required:"true"`
+	CSRFToken string `header:"X-CSRF-Token" required:"true"`
+	Body      struct {
+		Code string `json:"code" minLength:"4" maxLength:"64"`
+	}
+}
+type mfaVerifyInput struct {
+	Origin string `header:"Origin" required:"true"`
+	Body   struct {
+		ChallengeID string `json:"challengeId" minLength:"1" maxLength:"128"`
+		Code        string `json:"code" minLength:"4" maxLength:"64"`
+	}
+}
+type emptyInput struct{}
+
 type sessionListInput struct {
 	AccountID string `query:"accountId"`
 	Offset    int    `query:"offset" minimum:"0" default:"0"`
@@ -194,18 +265,27 @@ func rolePermissionsOutput(v service.RolePermissionsView) rolePermissionsRespons
 func assignmentOutput(id string, v service.AssignmentResult) assignmentResponse {
 	return assignmentResponse{EntityID: id, EntityVersion: v.EntityVersion, AuthorizationRevision: v.AuthorizationRevision, Added: v.Added, Removed: v.Removed}
 }
+func apiTokenViewOutput(v service.ApiTokenView) apiTokenResponse {
+	return apiTokenResponse{ID: v.ID, Name: v.Name, Scopes: v.Scopes, ExpiresAt: v.ExpiresAt, RevokedAt: v.RevokedAt, CreatedAt: v.CreatedAt, LastUsed: v.LastUsed}
+}
+func apiTokenIssuedOutput(v service.ApiTokenIssued) apiTokenIssuedResponse {
+	return apiTokenIssuedResponse{ID: v.ID, Name: v.Name, Scopes: v.Scopes, ExpiresAt: v.ExpiresAt, RevokedAt: v.RevokedAt, CreatedAt: v.CreatedAt, LastUsed: v.LastUsed, Secret: v.Secret}
+}
 
 func serviceError(err error) error {
+	var mfaRequired *service.MFARequiredError
 	switch {
-	case errors.Is(err, model.ErrInvalidUsername), errors.Is(err, model.ErrInvalidName), errors.Is(err, model.ErrInvalidPassword), errors.Is(err, model.ErrInvalidProfile), errors.Is(err, model.ErrInvalidConfirmation):
+	case errors.As(err, &mfaRequired):
+		return statusError(http.StatusConflict, "mfa_required", err)
+	case errors.Is(err, model.ErrInvalidUsername), errors.Is(err, model.ErrInvalidName), errors.Is(err, model.ErrInvalidPassword), errors.Is(err, model.ErrInvalidProfile), errors.Is(err, model.ErrInvalidConfirmation), errors.Is(err, model.ErrInvalidTime):
 		return statusError(http.StatusBadRequest, "invalid_request", err)
-	case errors.Is(err, service.ErrInvalidCredentials):
+	case errors.Is(err, service.ErrInvalidCredentials), errors.Is(err, service.ErrMFAInvalidCode), errors.Is(err, service.ErrMFAChallengeInvalid):
 		return statusError(http.StatusUnauthorized, "invalid_credentials", err)
 	case errors.Is(err, service.ErrAccountLocked):
 		return statusError(http.StatusTooManyRequests, "account_locked", err)
 	case errors.Is(err, service.ErrAccountDisabled):
 		return statusError(http.StatusForbidden, "account_disabled", err)
-	case errors.Is(err, service.ErrSetupClosed), errors.Is(err, model.ErrOwnerInvariant), errors.Is(err, service.ErrImmutableOwner), errors.Is(err, service.ErrUnknownPermission), errors.Is(err, service.ErrVersionConflict), errors.Is(err, service.ErrPasswordReused), repo.IsDuplicate(err), repo.IsConflict(err):
+	case errors.Is(err, service.ErrSetupClosed), errors.Is(err, model.ErrOwnerInvariant), errors.Is(err, service.ErrImmutableOwner), errors.Is(err, service.ErrUnknownPermission), errors.Is(err, service.ErrVersionConflict), errors.Is(err, service.ErrPasswordReused), errors.Is(err, service.ErrMFANotBound), repo.IsDuplicate(err), repo.IsConflict(err):
 		return statusError(http.StatusConflict, "conflict", err)
 	case repo.IsNotFound(err):
 		return statusError(http.StatusNotFound, "not_found", err)

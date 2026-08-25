@@ -2,7 +2,9 @@ package httpbinding
 
 import (
 	"context"
+	"errors"
 	"net/http"
+	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 	iampermission "github.com/rin721/go-scaffold-template/internal/module/iam/binding/permission"
@@ -39,12 +41,12 @@ type pageInput struct {
 	Query  string `query:"query" maxLength:"128"`
 }
 type accountsListInput struct {
-	Offset   int                       `query:"offset" minimum:"0" default:"0"`
-	Limit    int                       `query:"limit" minimum:"1" maximum:"100" default:"20"`
-	Query    string                    `query:"query" maxLength:"128"`
+	Offset   int                          `query:"offset" minimum:"0" default:"0"`
+	Limit    int                          `query:"limit" minimum:"1" maximum:"100" default:"20"`
+	Query    string                       `query:"query" maxLength:"128"`
 	Status   humabinding.Optional[string] `query:"status" enum:"active,disabled"`
 	Archived humabinding.Optional[bool]   `query:"archived"`
-	RoleID   string                    `query:"roleId" maxLength:"36"`
+	RoleID   string                       `query:"roleId" maxLength:"36"`
 }
 type roleAccountsInput struct {
 	ID     string `path:"id"`
@@ -193,6 +195,28 @@ type sessionOutputEnvelope struct {
 	CacheControl string `header:"Cache-Control"`
 	Body         sessionResponse
 }
+
+// loginResultBody 平铺会话字段（与 sessionResponse 顶层同构，兼容既有登录
+// 客户端读取 csrfToken/identity）；MFA 需要时只输出 mfaRequired/challengeId。
+type loginResultBody struct {
+	Identity          identityResponse `json:"identity,omitempty"`
+	CSRFToken         string           `json:"csrfToken,omitempty"`
+	CreatedAt         time.Time        `json:"createdAt,omitempty"`
+	IdleExpiresAt     time.Time        `json:"idleExpiresAt,omitempty"`
+	AbsoluteExpiresAt time.Time        `json:"absoluteExpiresAt,omitempty"`
+	MFARequired       bool             `json:"mfaRequired,omitempty"`
+	ChallengeID       string           `json:"challengeId,omitempty"`
+}
+type loginResultEnvelope struct {
+	SetCookie    string `header:"Set-Cookie"`
+	CacheControl string `header:"Cache-Control"`
+	Body         loginResultBody
+}
+
+func loginResultBodyFrom(session service.Session) loginResultBody {
+	return loginResultBody{Identity: sessionOutput(session).Identity, CSRFToken: session.CSRFToken, CreatedAt: session.CreatedAt, IdleExpiresAt: session.IdleExpiresAt, AbsoluteExpiresAt: session.AbsoluteExpiresAt}
+}
+
 type emptyOutput struct{}
 type logoutOutput struct {
 	SetCookie string `header:"Set-Cookie"`
@@ -230,12 +254,16 @@ func RegisterHuma(api huma.API, handler *Handler) {
 	})
 	login := public(opLogin, http.MethodPost, "/api/v1/iam/login")
 	login.Middlewares = huma.Middlewares{handler.requireOrigin}
-	huma.Register(api, login, func(ctx context.Context, in *loginInput) (*sessionOutputEnvelope, error) {
+	huma.Register(api, login, func(ctx context.Context, in *loginInput) (*loginResultEnvelope, error) {
 		v, err := handler.service.Login(ctx, in.Body.Username, in.Body.Password)
+		var mfaRequired *service.MFARequiredError
+		if errors.As(err, &mfaRequired) {
+			return &loginResultEnvelope{CacheControl: "no-store", Body: loginResultBody{MFARequired: true, ChallengeID: mfaRequired.ChallengeID}}, nil
+		}
 		if err != nil {
 			return nil, problem(ctx, err)
 		}
-		return sessionEnvelope(v), nil
+		return &loginResultEnvelope{SetCookie: sessionCookie(v.ID), CacheControl: "no-store", Body: loginResultBodyFrom(v)}, nil
 	})
 	huma.Register(api, protected(opSession, http.MethodGet, "/api/v1/iam/session", string(iampermission.SelfRead), "read"), func(ctx context.Context, _ *struct{}) (*sessionOutputEnvelope, error) {
 		id, current, ok := service.SessionFromContext(ctx)
@@ -478,6 +506,121 @@ func RegisterHuma(api huma.API, handler *Handler) {
 			items[index] = roleOutput(item)
 		}
 		return jsonEnvelope(listResponse[roleResponse]{Items: items, Offset: result.Offset, Limit: result.Limit, Total: result.Total}), nil
+	})
+
+	// API-Token（078，R078-001）：机器访问凭据；secret 明文只在创建/轮换响应一次。
+	huma.Register(api, protected(opApiTokens, http.MethodGet, "/api/v1/iam/api-tokens", string(iampermission.ApiTokenRead), "list"), func(ctx context.Context, in *pageInput) (*jsonOutput[listResponse[apiTokenResponse]], error) {
+		_, current, ok := service.SessionFromContext(ctx)
+		if !ok {
+			return nil, httpx.NewProtocolProblemError(ctx, statusError(http.StatusUnauthorized, "unauthenticated", nil))
+		}
+		result, err := handler.service.ListApiTokens(ctx, current.Identity.AccountID, in.Offset, in.Limit)
+		if err != nil {
+			return nil, problem(ctx, err)
+		}
+		items := make([]apiTokenResponse, len(result.Items))
+		for index, item := range result.Items {
+			items[index] = apiTokenViewOutput(item)
+		}
+		return jsonEnvelope(listResponse[apiTokenResponse]{Items: items, Offset: result.Offset, Limit: result.Limit, Total: result.Total}), nil
+	})
+	createApiToken := protected(opApiTokenCreate, http.MethodPost, "/api/v1/iam/api-tokens", string(iampermission.ApiTokenWrite), "create")
+	createApiToken.Middlewares = huma.Middlewares{handler.requireMutation}
+	huma.Register(api, createApiToken, func(ctx context.Context, in *apiTokenCreateInput) (*jsonOutput[apiTokenIssuedResponse], error) {
+		_, current, ok := service.SessionFromContext(ctx)
+		if !ok {
+			return nil, httpx.NewProtocolProblemError(ctx, statusError(http.StatusUnauthorized, "unauthenticated", nil))
+		}
+		issued, err := handler.service.CreateApiToken(ctx, current.Identity.AccountID, in.Body.Name, in.Body.Scopes, in.Body.ExpiresAt)
+		if err != nil {
+			return nil, problem(ctx, err)
+		}
+		return jsonEnvelope(apiTokenIssuedOutput(issued)), nil
+	})
+	rotateApiToken := protected(opApiTokenRotate, http.MethodPost, "/api/v1/iam/api-tokens/{id}/rotate", string(iampermission.ApiTokenWrite), "rotate")
+	rotateApiToken.Middlewares = huma.Middlewares{handler.requireMutation}
+	huma.Register(api, rotateApiToken, func(ctx context.Context, in *apiTokenPathInput) (*jsonOutput[apiTokenIssuedResponse], error) {
+		_, current, ok := service.SessionFromContext(ctx)
+		if !ok {
+			return nil, httpx.NewProtocolProblemError(ctx, statusError(http.StatusUnauthorized, "unauthenticated", nil))
+		}
+		issued, err := handler.service.RotateApiToken(ctx, current.Identity.AccountID, in.ID)
+		if err != nil {
+			return nil, problem(ctx, err)
+		}
+		return jsonEnvelope(apiTokenIssuedOutput(issued)), nil
+	})
+	revokeApiToken := protected(opApiTokenRevoke, http.MethodPost, "/api/v1/iam/api-tokens/{id}/revoke", string(iampermission.ApiTokenWrite), "revoke")
+	revokeApiToken.Middlewares = huma.Middlewares{handler.requireMutation}
+	huma.Register(api, revokeApiToken, func(ctx context.Context, in *apiTokenPathInput) (*emptyOutput, error) {
+		_, current, ok := service.SessionFromContext(ctx)
+		if !ok {
+			return nil, httpx.NewProtocolProblemError(ctx, statusError(http.StatusUnauthorized, "unauthenticated", nil))
+		}
+		if err := handler.service.RevokeApiToken(ctx, current.Identity.AccountID, in.ID); err != nil {
+			return nil, problem(ctx, err)
+		}
+		return &emptyOutput{}, nil
+	})
+
+	// MFA/TOTP（078，R078-002）：自助绑定/确认/解绑 + 登录第二步验证。
+	mfaBegin := protected(opMFABegin, http.MethodPost, "/api/v1/iam/self/mfa", string(iampermission.SelfPasswordWrite), "enroll")
+	mfaBegin.Middlewares = huma.Middlewares{handler.requireMutation}
+	huma.Register(api, mfaBegin, func(ctx context.Context, _ *emptyInput) (*jsonOutput[mfaEnrollResponse], error) {
+		_, current, ok := service.SessionFromContext(ctx)
+		if !ok {
+			return nil, httpx.NewProtocolProblemError(ctx, statusError(http.StatusUnauthorized, "unauthenticated", nil))
+		}
+		view, err := handler.service.BeginMFAEnroll(ctx, current.Identity.AccountID)
+		if err != nil {
+			return nil, problem(ctx, err)
+		}
+		return jsonEnvelope(mfaEnrollResponse{Secret: view.Secret, URI: view.URI}), nil
+	})
+	huma.Register(api, protected(opMFAStatus, http.MethodGet, "/api/v1/iam/self/mfa", string(iampermission.SelfRead), "read"), func(ctx context.Context, _ *struct{}) (*jsonOutput[mfaStatusResponse], error) {
+		_, current, ok := service.SessionFromContext(ctx)
+		if !ok {
+			return nil, httpx.NewProtocolProblemError(ctx, statusError(http.StatusUnauthorized, "unauthenticated", nil))
+		}
+		registered, err := handler.service.MFABound(ctx, current.Identity.AccountID)
+		if err != nil {
+			return nil, problem(ctx, err)
+		}
+		return jsonEnvelope(mfaStatusResponse{Registered: registered}), nil
+	})
+	mfaConfirm := protected(opMFAConfirm, http.MethodPost, "/api/v1/iam/self/mfa/confirm", string(iampermission.SelfPasswordWrite), "confirm")
+	mfaConfirm.Middlewares = huma.Middlewares{handler.requireMutation}
+	huma.Register(api, mfaConfirm, func(ctx context.Context, in *mfaCodeInput) (*jsonOutput[mfaConfirmResponse], error) {
+		_, current, ok := service.SessionFromContext(ctx)
+		if !ok {
+			return nil, httpx.NewProtocolProblemError(ctx, statusError(http.StatusUnauthorized, "unauthenticated", nil))
+		}
+		codes, err := handler.service.ConfirmMFAEnroll(ctx, current.Identity.AccountID, in.Body.Code)
+		if err != nil {
+			return nil, problem(ctx, err)
+		}
+		return jsonEnvelope(mfaConfirmResponse{RecoveryCodes: codes}), nil
+	})
+	mfaDisable := protected(opMFADisable, http.MethodPost, "/api/v1/iam/self/mfa/disable", string(iampermission.SelfPasswordWrite), "disable")
+	mfaDisable.Middlewares = huma.Middlewares{handler.requireMutation}
+	huma.Register(api, mfaDisable, func(ctx context.Context, in *mfaCodeInput) (*emptyOutput, error) {
+		_, current, ok := service.SessionFromContext(ctx)
+		if !ok {
+			return nil, httpx.NewProtocolProblemError(ctx, statusError(http.StatusUnauthorized, "unauthenticated", nil))
+		}
+		if err := handler.service.DisableMFA(ctx, current.Identity.AccountID, in.Body.Code); err != nil {
+			return nil, problem(ctx, err)
+		}
+		return &emptyOutput{}, nil
+	})
+	mfaVerify := public(opMFAVerify, http.MethodPost, "/api/v1/iam/login/mfa-verify")
+	mfaVerify.Middlewares = huma.Middlewares{handler.requireOrigin}
+	huma.Register(api, mfaVerify, func(ctx context.Context, in *mfaVerifyInput) (*sessionOutputEnvelope, error) {
+		v, err := handler.service.VerifyMFAChallenge(ctx, in.Body.ChallengeID, in.Body.Code)
+		if err != nil {
+			return nil, problem(ctx, err)
+		}
+		return sessionEnvelope(v), nil
 	})
 }
 

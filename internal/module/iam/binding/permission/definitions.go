@@ -16,6 +16,8 @@ const (
 	PermissionRead    = iampermission.PermissionRead
 	SessionRead       = iampermission.SessionRead
 	SessionRevoke     = iampermission.SessionRevoke
+	ApiTokenRead      = iampermission.ApiTokenRead
+	ApiTokenWrite     = iampermission.ApiTokenWrite
 )
 
 func Definitions() []permissioncatalog.Definition {
@@ -31,5 +33,7 @@ func Definitions() []permissioncatalog.Definition {
 		{Key: PermissionRead, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.permission.read"},
 		{Key: SessionRead, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.session.read"},
 		{Key: SessionRevoke, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.session.revoke"},
+		{Key: ApiTokenRead, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.api-token.read"},
+		{Key: ApiTokenWrite, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.api-token.write"},
 	}
 }

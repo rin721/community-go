@@ -7,9 +7,9 @@ export type Assignment={accountId:string;departmentId?:string;positionIds:string
 export type Account={id:string;username:string;displayName:string};
 type ListResult<T>={items:T[];offset:number;limit:number;total:number};
 
-// 076：org operation 迁移 webuiSession 认证后，mutation 请求必须携带
-// Origin + X-CSRF-Token（复用 IAM Session 的 CSRF 语义）；token 从当前
-// IAM Session（刷新 CSRF）获取，与 iam 模块页面 remember 模式一致。
+
+
+
 let csrfToken="";
 const mutationHeaders=()=>({Origin:window.location.origin,"X-CSRF-Token":csrfToken});
 const ensureCSRF=async()=>{if(!csrfToken){const session=await requestJSON<{csrfToken:string}>("/api/v1/iam/session");csrfToken=session.csrfToken;}};

@@ -15,4 +15,6 @@ const (
 	PermissionRead    permissioncatalog.Key = "iam:permission:read"
 	SessionRead       permissioncatalog.Key = "iam:session:read"
 	SessionRevoke     permissioncatalog.Key = "iam:session:revoke"
+	ApiTokenRead      permissioncatalog.Key = "iam:api-token:read"
+	ApiTokenWrite     permissioncatalog.Key = "iam:api-token:write"
 )

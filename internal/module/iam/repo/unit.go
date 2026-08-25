@@ -8,6 +8,7 @@ import (
 
 	"github.com/rin721/go-scaffold-template/pkg/database"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 var ErrNotFound = database.ErrNotFound
@@ -183,6 +184,131 @@ func (unit *Unit) TrimPasswordHistory(ctx context.Context, accountID string, kee
 	})
 }
 
+// CreateApiToken 写入一条机器访问令牌（名称/哈希/scope JSON/过期由 service 制备）。
+func (unit *Unit) CreateApiToken(ctx context.Context, value *ApiTokenRecord) error {
+	return unit.useDB(ctx, func(db *gorm.DB) error { return db.Table(apiTokenTable).Create(value).Error })
+}
+
+// ApiTokenByID 按 token id 返回（必须是该账号所有）。
+func (unit *Unit) ApiTokenByID(ctx context.Context, accountID, id string) (ApiTokenRecord, error) {
+	var record ApiTokenRecord
+	err := unit.useDB(ctx, func(db *gorm.DB) error {
+		return db.Table(apiTokenTable).Where("id = ? AND account_id = ?", id, accountID).First(&record).Error
+	})
+	return record, err
+}
+
+// ApiTokenByHash 按 token 哈希返回（认证解析用，跨账号独立）。
+func (unit *Unit) ApiTokenByHash(ctx context.Context, hash string) (ApiTokenRecord, error) {
+	var record ApiTokenRecord
+	err := unit.useDB(ctx, func(db *gorm.DB) error {
+		return db.Table(apiTokenTable).Where("token_hash = ?", hash).First(&record).Error
+	})
+	return record, err
+}
+
+// CountApiTokens 统计账号令牌总数。
+func (unit *Unit) CountApiTokens(ctx context.Context, accountID string) (int64, error) {
+	var count int64
+	err := unit.useDB(ctx, func(db *gorm.DB) error {
+		return db.Table(apiTokenTable).Where("account_id = ?", accountID).Count(&count).Error
+	})
+	return count, err
+}
+
+// ListApiTokens 分页返回账号令牌（创建时间降序）。
+func (unit *Unit) ListApiTokens(ctx context.Context, accountID string, offset, limit int) ([]ApiTokenRecord, error) {
+	var records []ApiTokenRecord
+	err := unit.useDB(ctx, func(db *gorm.DB) error {
+		return db.Table(apiTokenTable).Where("account_id = ?", accountID).Order("created_at DESC, id ASC").Offset(offset).Limit(limit).Find(&records).Error
+	})
+	return records, err
+}
+
+// RotateApiTokenHash 替换令牌哈希（轮换：旧哈希立即失效）并刷新修改时间。
+func (unit *Unit) RotateApiTokenHash(ctx context.Context, accountID, id, hash string, now time.Time) error {
+	values := map[string]any{"token_hash": hash, "revoked_at": nil, "last_used_at": nil, "created_at": now}
+	return unit.updateVersioned(ctx, apiTokenTable, "id = ? AND account_id = ?", []any{id, accountID}, values)
+}
+
+// RevokeApiToken 把令牌置为终态吊销。
+func (unit *Unit) RevokeApiToken(ctx context.Context, accountID, id string, now time.Time) error {
+	return unit.update(ctx, apiTokenTable, "id = ? AND account_id = ?", []any{id, accountID}, map[string]any{"revoked_at": &now})
+}
+
+// TouchApiTokenUsage 记录令牌最近使用时间（认证成功时调用，异步无承诺）。
+func (unit *Unit) TouchApiTokenUsage(ctx context.Context, id string, now time.Time) error {
+	return unit.update(ctx, apiTokenTable, "id = ?", []any{id}, map[string]any{"last_used_at": &now})
+}
+
+// UpsertMFASecret 覆盖账号的 TOTP 种子（重新绑定时替换已有 pending/确认记录）。
+func (unit *Unit) UpsertMFASecret(ctx context.Context, value *MFASecretRecord) error {
+	return unit.useDB(ctx, func(db *gorm.DB) error {
+		return db.Table(mfaSecretTable).Clauses(clause.OnConflict{
+			Columns: []clause.Column{{Name: "account_id"}},
+			DoUpdates: clause.Assignments(map[string]any{
+				"secret": value.Secret, "confirmed": value.Confirmed,
+				"created_at": value.CreatedAt, "confirmed_at": value.ConfirmedAt,
+			}),
+		}).Create(value).Error
+	})
+}
+
+// MFASecretByAccount 返回账号 TOTP 种子（无则为 ErrNotFound）。
+func (unit *Unit) MFASecretByAccount(ctx context.Context, accountID string) (MFASecretRecord, error) {
+	var record MFASecretRecord
+	err := unit.useDB(ctx, func(db *gorm.DB) error {
+		return db.Table(mfaSecretTable).Where("account_id = ?", accountID).First(&record).Error
+	})
+	return record, err
+}
+
+// ConfirmMFASecret 把 pending 种子置为已确认（绑定激活）。
+func (unit *Unit) ConfirmMFASecret(ctx context.Context, accountID string, now time.Time) error {
+	return unit.update(ctx, mfaSecretTable, "account_id = ?", []any{accountID}, map[string]any{"confirmed": true, "confirmed_at": &now})
+}
+
+// DeleteMFASecret 删除种子（与恢复码由调用方一并处理）。
+func (unit *Unit) DeleteMFASecret(ctx context.Context, accountID string) error {
+	return unit.useDB(ctx, func(db *gorm.DB) error {
+		return db.Table(mfaSecretTable).Where("account_id = ?", accountID).Delete(nil).Error
+	})
+}
+
+// CreateRecoveryCodes 批量写入一次性恢复码哈希。
+func (unit *Unit) CreateRecoveryCodes(ctx context.Context, values []MfaRecoveryCodeRecord) error {
+	return unit.useDB(ctx, func(db *gorm.DB) error {
+		for _, value := range values {
+			if err := db.Table(mfaRecoveryCodeTable).Create(&value).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+// RecoveryCodesByAccount 返回账号全部恢复码哈希。
+func (unit *Unit) RecoveryCodesByAccount(ctx context.Context, accountID string) ([]string, error) {
+	var hashes []string
+	err := unit.useDB(ctx, func(db *gorm.DB) error {
+		return db.Table(mfaRecoveryCodeTable).Where("account_id = ?", accountID).Pluck("code_hash", &hashes).Error
+	})
+	return hashes, err
+}
+
+// MarkRecoveryCodeUsed 把单条恢复码置为已使用（只影响未使用行；
+// 已使用则返回乐观冲突，调用方据此拒绝复用）。
+func (unit *Unit) MarkRecoveryCodeUsed(ctx context.Context, accountID, hash string, now time.Time) error {
+	return unit.updateVersioned(ctx, mfaRecoveryCodeTable, "account_id = ? AND code_hash = ? AND used_at IS NULL", []any{accountID, hash}, map[string]any{"used_at": &now})
+}
+
+// DeleteRecoveryCodes 删除账号全部恢复码（解绑 MFA 时）。
+func (unit *Unit) DeleteRecoveryCodes(ctx context.Context, accountID string) error {
+	return unit.useDB(ctx, func(db *gorm.DB) error {
+		return db.Table(mfaRecoveryCodeTable).Where("account_id = ?", accountID).Delete(nil).Error
+	})
+}
+
 func (unit *Unit) CreateRole(ctx context.Context, value *RoleRecord) error {
 	value.Version = 1
 	return unit.useDB(ctx, func(db *gorm.DB) error { return db.Table(roleTable).Create(value).Error })
@@ -307,7 +433,7 @@ func (unit *Unit) ListAccountsByRole(ctx context.Context, roleID string, offset,
 	var records []AccountRecord
 	err := unit.useDB(ctx, func(db *gorm.DB) error {
 		return db.Table(accountTable).
-			Joins("JOIN " + accountRoleTable + " r ON r.account_id = " + accountTable + ".id").
+			Joins("JOIN "+accountRoleTable+" r ON r.account_id = "+accountTable+".id").
 			Where("r.role_id = ? AND r.active = ?", roleID, true).
 			Order(accountTable + ".username ASC").
 			Offset(offset).Limit(limit).
@@ -359,7 +485,7 @@ func (unit *Unit) ListRolesByPermissionKey(ctx context.Context, key string, offs
 	var records []RoleRecord
 	err := unit.useDB(ctx, func(db *gorm.DB) error {
 		return db.Table(roleTable).
-			Joins("JOIN " + rolePermissionTable + " rp ON rp.role_id = " + roleTable + ".id").
+			Joins("JOIN "+rolePermissionTable+" rp ON rp.role_id = "+roleTable+".id").
 			Where("rp.permission_key = ? AND rp.active = ?", key, true).
 			Order(roleTable + ".code ASC").
 			Offset(offset).Limit(limit).

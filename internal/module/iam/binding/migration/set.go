@@ -7,7 +7,7 @@ import (
 	dbmigrate "github.com/rin721/go-scaffold-template/pkg/database/migrate"
 )
 
-const CurrentVersion uint = 5
+const CurrentVersion uint = 7
 const TableName = "iam_schema_migrations"
 
 //go:embed sqlite/*.sql postgres/*.sql mysql/*.sql
@@ -33,6 +33,12 @@ func Set() dbmigrate.Set {
 			"sqlite/000005_add_iam_password_security.up.sql": "fd9ef41bea060dcbbdcb2ebeeef77ba799df02d3c698928190ea1ac1612f19ce", "sqlite/000005_add_iam_password_security.down.sql": "1960b3e0a0d32671a8727791bae1fe78fa6cf4c174eadbc0ee81b90f9893242e",
 			"postgres/000005_add_iam_password_security.up.sql": "cc76e730d6722de72b536f22d03a9b09cdc9a0b40f16f4de561958891217fd4b", "postgres/000005_add_iam_password_security.down.sql": "1960b3e0a0d32671a8727791bae1fe78fa6cf4c174eadbc0ee81b90f9893242e",
 			"mysql/000005_add_iam_password_security.up.sql": "c2b4ca5c469edaa1e7547b884fd35f28502210126646e811df272cd711cbd0a9", "mysql/000005_add_iam_password_security.down.sql": "1960b3e0a0d32671a8727791bae1fe78fa6cf4c174eadbc0ee81b90f9893242e",
+			"sqlite/000006_create_iam_api_tokens.up.sql": "e85717309c803138024f512e2a53a76cf2ed3918b3aa9acb95d3fd40062809fb", "sqlite/000006_create_iam_api_tokens.down.sql": "e188aa8a58d528be75a446ed82c46307f58e56097c31887430d1f7e361e2e5c5",
+			"postgres/000006_create_iam_api_tokens.up.sql": "36f3f581bdc621aadf15fe7b88483609f9fa0cd61bc26b958259df2b9700daf2", "postgres/000006_create_iam_api_tokens.down.sql": "e188aa8a58d528be75a446ed82c46307f58e56097c31887430d1f7e361e2e5c5",
+			"mysql/000006_create_iam_api_tokens.up.sql": "2801938d709ac3d3339fe00f04c62ef01c33728bab856ca2a14479a7f76f8dda", "mysql/000006_create_iam_api_tokens.down.sql": "e188aa8a58d528be75a446ed82c46307f58e56097c31887430d1f7e361e2e5c5",
+			"sqlite/000007_create_iam_mfa.up.sql": "53d1c32b160b754191998878b945992b240abdb7d3893b1c399c1839dd7ce70f", "sqlite/000007_create_iam_mfa.down.sql": "5a800d569b65ae52d144798902d1f1907e976bc4337d4d718359f7694df0db6f",
+			"postgres/000007_create_iam_mfa.up.sql": "77f2926da2a8f1cb401ec8404dc6670b60ab6d90d2d8e936198f9f165a13138b", "postgres/000007_create_iam_mfa.down.sql": "5a800d569b65ae52d144798902d1f1907e976bc4337d4d718359f7694df0db6f",
+			"mysql/000007_create_iam_mfa.up.sql": "970a457af0b92a9d7ada51dc7c80d2bd996fbd930e60b8d0f1f2d4d1bd9cffbd", "mysql/000007_create_iam_mfa.down.sql": "5a800d569b65ae52d144798902d1f1907e976bc4337d4d718359f7694df0db6f",
 		},
 	}
 }

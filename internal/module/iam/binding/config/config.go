@@ -22,13 +22,13 @@ type PasswordPolicy struct {
 }
 
 type Local struct {
-	SetupToken           string         `mapstructure:"setupToken"`
-	IdleTimeout          time.Duration  `mapstructure:"idleTimeout"`
-	AbsoluteTimeout      time.Duration  `mapstructure:"absoluteTimeout"`
-	MaxFailedAttempts    int            `mapstructure:"maxFailedAttempts"`
-	LockDuration         time.Duration  `mapstructure:"lockDuration"`
-	PasswordPolicy       PasswordPolicy `mapstructure:"passwordPolicy"`
-	MaxSessionsPerAccount int           `mapstructure:"maxSessionsPerAccount"`
+	SetupToken            string         `mapstructure:"setupToken"`
+	IdleTimeout           time.Duration  `mapstructure:"idleTimeout"`
+	AbsoluteTimeout       time.Duration  `mapstructure:"absoluteTimeout"`
+	MaxFailedAttempts     int            `mapstructure:"maxFailedAttempts"`
+	LockDuration          time.Duration  `mapstructure:"lockDuration"`
+	PasswordPolicy        PasswordPolicy `mapstructure:"passwordPolicy"`
+	MaxSessionsPerAccount int            `mapstructure:"maxSessionsPerAccount"`
 }
 type Config struct {
 	Local Local `mapstructure:"local"`

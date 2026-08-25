@@ -22,7 +22,12 @@ const (
 	OperationIamAccountsRolesReplace        OperationID = "iam.accounts.roles.replace"
 	OperationIamAccountsStatus              OperationID = "iam.accounts.status"
 	OperationIamAccountsUpdate              OperationID = "iam.accounts.update"
+	OperationIamApiTokensCreate             OperationID = "iam.api-tokens.create"
+	OperationIamApiTokensList               OperationID = "iam.api-tokens.list"
+	OperationIamApiTokensRevoke             OperationID = "iam.api-tokens.revoke"
+	OperationIamApiTokensRotate             OperationID = "iam.api-tokens.rotate"
 	OperationIamLogin                       OperationID = "iam.login"
+	OperationIamLoginMfaVerify              OperationID = "iam.login.mfa-verify"
 	OperationIamLogout                      OperationID = "iam.logout"
 	OperationIamPermissionsList             OperationID = "iam.permissions.list"
 	OperationIamPermissionsRolesList        OperationID = "iam.permissions.roles.list"
@@ -35,6 +40,10 @@ const (
 	OperationIamRolesUpdate                 OperationID = "iam.roles.update"
 	OperationIamSelfArchive                 OperationID = "iam.self.archive"
 	OperationIamSelfArchiveConfirm          OperationID = "iam.self.archive.confirm"
+	OperationIamSelfMfaBegin                OperationID = "iam.self.mfa.begin"
+	OperationIamSelfMfaConfirm              OperationID = "iam.self.mfa.confirm"
+	OperationIamSelfMfaDisable              OperationID = "iam.self.mfa.disable"
+	OperationIamSelfMfaStatus               OperationID = "iam.self.mfa.status"
 	OperationIamSelfPasswordChange          OperationID = "iam.self.password.change"
 	OperationIamSelfProfileUpdate           OperationID = "iam.self.profile.update"
 	OperationIamSessionRead                 OperationID = "iam.session.read"
@@ -68,7 +77,12 @@ var operationInventory = [...]Operation{
 	{ID: OperationIamAccountsRolesReplace, Method: "PUT", Path: "/api/v1/iam/accounts/{id}/roles", Policy: "protected", Scope: "iam:account:write", Action: "iam.accounts.roles.replace"},
 	{ID: OperationIamAccountsStatus, Method: "PATCH", Path: "/api/v1/iam/accounts/{id}/status", Policy: "protected", Scope: "iam:account:write", Action: "iam.accounts.status"},
 	{ID: OperationIamAccountsUpdate, Method: "PATCH", Path: "/api/v1/iam/accounts/{id}", Policy: "protected", Scope: "iam:account:write", Action: "iam.accounts.update"},
+	{ID: OperationIamApiTokensCreate, Method: "POST", Path: "/api/v1/iam/api-tokens", Policy: "protected", Scope: "iam:api-token:write", Action: "iam.api-tokens.create"},
+	{ID: OperationIamApiTokensList, Method: "GET", Path: "/api/v1/iam/api-tokens", Policy: "protected", Scope: "iam:api-token:read", Action: "iam.api-tokens.list"},
+	{ID: OperationIamApiTokensRevoke, Method: "POST", Path: "/api/v1/iam/api-tokens/{id}/revoke", Policy: "protected", Scope: "iam:api-token:write", Action: "iam.api-tokens.revoke"},
+	{ID: OperationIamApiTokensRotate, Method: "POST", Path: "/api/v1/iam/api-tokens/{id}/rotate", Policy: "protected", Scope: "iam:api-token:write", Action: "iam.api-tokens.rotate"},
 	{ID: OperationIamLogin, Method: "POST", Path: "/api/v1/iam/login", Policy: "public", Scope: "", Action: ""},
+	{ID: OperationIamLoginMfaVerify, Method: "POST", Path: "/api/v1/iam/login/mfa-verify", Policy: "public", Scope: "", Action: ""},
 	{ID: OperationIamLogout, Method: "POST", Path: "/api/v1/iam/logout", Policy: "protected", Scope: "iam:account:self:read", Action: "iam.logout"},
 	{ID: OperationIamPermissionsList, Method: "GET", Path: "/api/v1/iam/permissions", Policy: "protected", Scope: "iam:permission:read", Action: "iam.permissions.list"},
 	{ID: OperationIamPermissionsRolesList, Method: "GET", Path: "/api/v1/iam/permissions/roles", Policy: "protected", Scope: "iam:permission:read", Action: "iam.permissions.roles.list"},
@@ -81,6 +95,10 @@ var operationInventory = [...]Operation{
 	{ID: OperationIamRolesUpdate, Method: "PATCH", Path: "/api/v1/iam/roles/{id}", Policy: "protected", Scope: "iam:role:write", Action: "iam.roles.update"},
 	{ID: OperationIamSelfArchive, Method: "POST", Path: "/api/v1/iam/self/archive", Policy: "protected", Scope: "iam:account:self:archive", Action: "iam.self.archive"},
 	{ID: OperationIamSelfArchiveConfirm, Method: "POST", Path: "/api/v1/iam/self/archive/confirm", Policy: "protected", Scope: "iam:account:self:archive", Action: "iam.self.archive.confirm"},
+	{ID: OperationIamSelfMfaBegin, Method: "POST", Path: "/api/v1/iam/self/mfa", Policy: "protected", Scope: "iam:account:self:password:write", Action: "iam.self.mfa.begin"},
+	{ID: OperationIamSelfMfaConfirm, Method: "POST", Path: "/api/v1/iam/self/mfa/confirm", Policy: "protected", Scope: "iam:account:self:password:write", Action: "iam.self.mfa.confirm"},
+	{ID: OperationIamSelfMfaDisable, Method: "POST", Path: "/api/v1/iam/self/mfa/disable", Policy: "protected", Scope: "iam:account:self:password:write", Action: "iam.self.mfa.disable"},
+	{ID: OperationIamSelfMfaStatus, Method: "GET", Path: "/api/v1/iam/self/mfa", Policy: "protected", Scope: "iam:account:self:read", Action: "iam.self.mfa.status"},
 	{ID: OperationIamSelfPasswordChange, Method: "POST", Path: "/api/v1/iam/self/password", Policy: "protected", Scope: "iam:account:self:password:write", Action: "iam.self.password.change"},
 	{ID: OperationIamSelfProfileUpdate, Method: "PATCH", Path: "/api/v1/iam/self/profile", Policy: "protected", Scope: "iam:account:self:profile:write", Action: "iam.self.profile.update"},
 	{ID: OperationIamSessionRead, Method: "GET", Path: "/api/v1/iam/session", Policy: "protected", Scope: "iam:account:self:read", Action: "iam.session.read"},

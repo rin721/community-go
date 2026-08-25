@@ -1,24 +1,27 @@
-# 075 openapi 模块：Apifox 风格 API 工作台 — 任务清单
+# 075 openapi 模块：Apifox 复刻 —— 任务清单
 
-> 依赖：研究门禁通过（R075-004 取代 R075-003）；计划按 design.md 执行，状态为**待确认**（用户第三轮调整后重新确认）。
+> 依赖：研究门禁通过（R075-005 取代 R075-004 的 UI 层结论；复用层结论转移）。状态：**待确认**（用户第四轮要求「与 Apifox 完全一模一样，非最小可用，深度研究学习」后的计划）。
 
-## 任务
+## 里程碑与任务
 
 | ID | 任务 | 完成条件 |
 | --- | --- | --- |
-| OAP-075-A/B/C/D | 快照生成链、模块声明、图标 `book`、`@webui/generated` alias（前两轮完成，55ee70f/9ea2f13） | ✅ 保持不变 |
-| OAP-075-E | 移除 swagger-ui-react 依赖与别名（第二轮完成） | ✅ 无残留 |
-| OAP-075-W1 | `openapi-data.ts` 扩展：请求构建纯函数（operationTree/参数默认值/路径展开/body 模板/buildRequestOptions）与单测 | 纯函数单测全绿 |
-| OAP-075-W2 | 工作台视图：左栏操作树（过滤/搜索/高亮）+ 接口详情（参数可编辑/请求体 JSON 校验/响应 schema/安全徽标）+ 模型视图；search 参数深链 | vitest 渲染 + typecheck/lint 通过 |
-| OAP-075-W3 | 执行器：同源 fetch + 认证注入（bearer 内存 token / session Cookie / CSRF+Origin）+ 响应面板（状态/耗时/头/JSON body）；mock 判定禁用执行 | 手动模式 B 三类操作执行验证 + e2e 拦截断言 |
-| OAP-075-W4 | locales 补充（工作台/执行/响应/模型文案 en/zh）；mock.ts 保持空表 | locale 覆盖校验通过 |
-| OAP-075-W5 | Playwright dev/mock 双 project：操作树/详情/模型/执行面板/禁用提示断言 + 截图 | `pnpm e2e -- --workers=1` 全绿 |
-| OAP-075-W6 | 权威文档同步（webui/README、docs/development/webui.md、api/README、module README、075 记录）与 documentation-impact.yaml | 文档影响记录提交 |
-| OAP-075-W7 | 全量门禁与提交：Go + WebUI + e2e + 残留检查 + bundle 基线记录 | 符合完成标准，提交完成 |
+| OAP-075-A1 | 设计 token 与五区骨架：HeroUI 控件基座 + 模块 css 承载 Apifox 设计语言（灰阶/主色/间距/字号/方法色/状态色/选中 hover/动效）+ 顶部工具栏/左树/多标签/主区/响应面板布局 | 桌面/窄屏布局就绪，截图可见 Apifox 观感；HeroUI 基座确认（git grep 无第三方 UI 库） |
+| OAP-075-A2 | 左侧资源树：tag 分组接口目录（展开/选中/搜索过滤）、数据模型分组、面包屑 | 树交互 e2e 断言 + 截图 |
+| OAP-075-A3 | 顶部工具栏：Cmd+K 全局搜索弹层（接口/模型跳转）、环境下拉（BaseURL）、深链/新建呈现入口 | 快捷键与跳转 e2e 断言 |
+| OAP-075-A4 | 多标签工作台：接口/模型标签开/关/切换、激活高亮、关闭回退、与深链同步 | 标签行为 vitest/e2e |
+| OAP-075-A5 | 接口详情：URL 栏（方法下拉/BaseURL/路径 {param} 高亮/发送 loading）+ 文档/调试双模式 | 模式切换与 URL 栏断言 |
+| OAP-075-A6 | 参数表单自动构建：Query/Path 动态表格（增删/启停/值）；Body（JSON 编辑器高亮+样例+校验、form-data 文件上传、urlencoded）；Headers/Auth 分组 | 表单自动构建单测 + e2e |
+| OAP-075-A7 | 在线调试与响应面板：run-store 状态机（size/类型组装）、状态码徽标/耗时/大小、JSON 高亮/原始视图、响应头、错误如实呈现；mock 禁用 | 执行链路单测 + e2e（拦截 GET/POST/bearer 头）+ mock 断言 |
+| OAP-075-A8 | 模型视图与深链：`?op=&mode=docs\|debug`、`?model=`、popstate 恢复 | 深链 e2e |
+| OAP-075-A9 | 细节与动效：加载骨架、交互高亮、Cmd+Enter 发送、空态、reduced-motion 降级 | 视觉清单 e2e/截图 |
+| OAP-075-A10 | 依赖：highlight.js 固定版本（实施期 `pnpm view` 核验并回填记录）+ lock | 安装/构建无回归 |
+| OAP-075-A11 | 测试与文档：vitest 全绿、Playwright 双 project（076：桌面/移动/亮暗截图 075-apifox-*）、权威文档与 impact 更新 | 门禁全绿 + 文档提交 |
+| OAP-075-A12 | 全量门禁与提交；残留检查（`rg -i swagger` 无命中；e4865ca UI 层单轨替换完成） | 提交完成 |
 
 ## 状态记录
 
-- 2026-08-25：研究门禁通过（R075-001/R075-002）；计划建立；用户补充「保持与 webui 同等 UI 组件」。
-- 2026-08-25：用户确认，实施提交 `55ee70f`（swagger-ui-react 版本）。
-- 2026-08-25：用户确认 R075-003 更新计划，实施完成并提交 `9ea2f13`（平台组件自绘只读参考页；顺带修复平台 DataTable isRowHeader 缺陷）。
-- 2026-08-25（当前轮，已完成）：用户再次调整——「要的是如 Apifox 这样、可测试、完整的 API 文档页面，而不是全都放到一个页面、没有完整功能的 Swagger UI」；R075-004 取代 R075-003（单路由工作台 + 执行器 + 模型视图）。确认后实施完成：W1 请求构建纯函数（buildRequest/sampleJSON/executionParameters 等 + 单测）；W2 工作台三视图（树/详情/模型，`?view=&op=` 深链）；W3 同源 fetch 执行器（bearer 内存 token、webuiSession Cookie + CSRF 附加、响应面板、mock 禁用）——e2e 以路由拦截验证 GET 会话执行、POST bearer 头注入与 schemas 深链；W4 locales en/zh；W5 Playwright dev/mock 22/22 全绿 + 截图；W6 权威文档与 impact；W7 门禁全绿（Go test/vet、generate:check、typecheck、lint、vitest 131、build）。bundle：OpenAPIPage chunk 53.14 kB（gzip 8.55 kB）。
+- 2026-08-25：三轮演进已完成（55ee70f swagger 渲染 → 9ea2f13 平台组件参考页 → e4865ca 可测试工作台；Go/WebUI/e2e 全绿）。
+- 2026-08-25（当前轮，实施完成待提交）：用户要求「与 Apifox（骨架、交互、设计）完全一模一样，非最小可用，深度研究学习」+"基于当前后端项目（OpenAPI）开发与 Apifox 完全一致的 API 管理可视化平台（文档查看、接口调试等），像素级视觉还原、商业级 SaaS 前端"；**用户补充：UI 组件依旧使用 HeroUI 组件库**。R075-005 深度研究完成（官方物料 + 产品形态/设计/交互拆解；web_search 与体验版可视化对照不可用，已列刷新触发器）。实施完成 A1..A12：HeroUI 控件基座 + Apifox 设计 token/五区骨架（工具栏/资源树/多标签/文档调试双模式/响应面板）；Cmd+K 搜索、面包屑、深链 `?op=&mode=`/`?model=`；参数表单自动构建（Query/Path、JSON、form-data 文件上传、urlencoded、Auth）；在线调试（run-store 状态机 + highlight.js JSON 高亮 + 状态/耗时/大小/响应头）；mock 执行禁用；vitest 141 / e2e 待确认 / 门禁全绿待提交；OpenAPIPage chunk 103.4 kB（gzip 25.8 kB）。
+- 范围外既有事实：`internal/module/settings/README.md` 缺失导致 docs-guard 报错（070–074 遗留）。
+- 范围外既有事实：`internal/module/settings/README.md` 缺失导致 docs-guard 报错（070–074 遗留）。

@@ -1,22 +1,29 @@
 # 075 研究档案
 
-本任务现有四个研究记录：外部选型（R075-001，已被取代）、契约数据源（R075-002）、页内平台组件呈现（R075-003，已被取代）、Apifox 风格工作台（R075-004，当前有效）。
+本任务现有五个研究记录：外部选型（R075-001，已归档）、契约数据源（R075-002）、平台组件呈现（R075-003，已归档）、可测试工作台（R075-004，已归档）、Apifox 产品形态拆解（R075-005，当前有效）。
 
 ## 研究范围与检索
 
-- 外部研究：R075-001 记录 swagger-ui-react 版本/兼容证据（现已为历史与独立站点场景参考）；R075-004 复核无满足「可嵌入 + 平台组件 + 完整」的成熟工作台库（hoppscotch 等为独立应用）。`docs/**/research/**/metadata.yaml` 已检索，无更早的 API 工作台记录。
-- 内部研究：从 `internal/webui/contract.go`（静态路由契约）、`webui/src/api.ts` 与 `webui/src/contracts/index.tsx`（会话/CSRF/数据源）、`internal/composition/webui_spec.go`（生成链）、settings GroupLayout/SectionNav 先例与 075 已提交实现（55ee70f/9ea2f13）读取代码事实。
+- 外部研究：R075-001（swagger-ui-react 证据，历史）；R075-005 抓取 Apifox 官网与帮助文档（2026-08-25）作为官方物料，结合作者产品知识拆解 Apifox 的布局骨架/设计语言/交互/OpenAPI→UI 映射；docs 门户为 SPA 不可服务端爬取、web_search 工具不可用，均已列入局限与刷新触发器。
+- 内部研究：`internal/webui/contract.go`（静态路由契约）、`webui/src/api.ts` 与 `webui/src/contracts/index.tsx`（会话/CSRF/数据源）、`internal/composition/webui_spec.go`（快照链）、已提交实现（55ee70f/9ea2f13/e4865ca）的复用层与 UI 层边界。
 
 ## 记录索引
 
 | ID | 主题 | 结论 |
 | --- | --- | --- |
-| [R075-001](R075-001-swagger-ui-library/) | Swagger UI 库选型（React19/Vite/StrictMode） | `superseded`（R075-003 取代），保留选择证据供历史/独立站点参考 |
-| [R075-002](R075-002-openapi-spec-data-source/) | 契约数据源与接入机制（单权威、零漂移、mock 三态） | 有效且与呈现/执行层无关，保持不变 |
-| [R075-003](R075-003-platform-component-presentation/) | 页内呈现用平台组件（只读参考页） | `superseded`（R075-004 取代）：平台组件呈现要求继续有效，但「只读单页」形态被工作台取代 |
-| [R075-004](R075-004-apifox-style-api-workspace/) | Apifox 风格可测试 API 工作台（执行能力与视图结构） | 当前有效：/openapi 单路由承载工作台（操作树 + 详情执行面板 + 模型视图，search 参数深链）；同源 fetch 执行器 + 认证/CSRF 复用；mock 仅浏览；无成熟可嵌入第三方，模块内自建 |
+| [R075-001](R075-001-swagger-ui-library/) | Swagger UI 库选型 | `superseded`，历史证据 |
+| [R075-002](R075-002-openapi-spec-data-source/) | 契约快照链（单权威、零漂移） | 有效，与呈现/执行层无关，保持不变 |
+| [R075-003](R075-003-platform-component-presentation/) | 页内呈现用平台组件（只读单页） | `superseded`（R075-004 取代） |
+| [R075-004](R075-004-apifox-style-api-workspace/) | 可测试工作台（树/详情/执行器/模型） | `superseded`（R075-005 取代）：执行语义与纯函数层继续复用，UI 层升级为 Apifox 复刻 |
+| [R075-005](R075-005-apifox-product-research/) | Apifox 产品形态与技术拆解（官方物料 + 产品知识） | 当前有效：模块重做为 Apifox 复刻工作台（四区骨架 + 多标签 + 文档/调试双模式 + 响应面板 + 设计 token + 深链），像素级还原以截图逐轮人工校准为验收路径 |
 
 ## 有效性
 
-- 四条记录均为 snapshot 型（2026-08-25 快照）；实施时若版本/兼容/会话语义证据漂移，先刷新记录再继续（刷新触发器见各 metadata）。
+- 记录均为 snapshot 型（2026-08-25）；Apifox 界面细节在获得可对照的体验版/截图后需按刷新触发器校准设计 token。
 - 研究门禁通过只表示证据足以形成计划，不表示计划已确认或代码已授权实施。
+
+## 证据级别说明
+
+- 官方物料：当日抓取的 apifox.com 首页与帮助文档原文（可复核 locator + 快照）。
+- 作者产品知识：Apifox 2.x/3.x 界面公认形态（本会话无可视化对照，实施时以截图/录屏逐点修订）。
+- 推断：OpenAPI→UI 映射与组件分解的实现方案。

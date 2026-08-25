@@ -257,11 +257,47 @@ export function sampleJSON(schema: SchemaObject | undefined, schemas: Record<str
 
 export type BuiltRequest = { url: string; method: string; headers: Record<string, string>; body?: string };
 
+// BodyType enumerates the editable body encodings the debug panel supports.
+export type BodyType = "json" | "form" | "urlencoded";
+
+// bodyTypeOptions derives the supported encodings from the request body media
+// types; JSON is the fallback when the contract declares none explicitly.
+export function bodyTypeOptions(operation: OperationRow): BodyType[] {
+  const contentKeys = Object.keys(operation.requestBody?.content ?? {});
+  const types: BodyType[] = [];
+  if (contentKeys.some((key) => key.includes("json"))) types.push("json");
+  if (contentKeys.some((key) => key.includes("form-data"))) types.push("form");
+  if (contentKeys.some((key) => key.includes("x-www-form-urlencoded"))) types.push("urlencoded");
+  if (types.length === 0 && operation.requestBody) types.push("json");
+  return types;
+}
+
+// FormFieldRow is an editable form-data row generated from the body schema.
+export type FormFieldRow = { name: string; kind: "text" | "file"; value: string };
+
+// formFieldRows projects the form-data body schema into editable rows; binary
+// properties become file fields (renderer shows the native file input).
+export function formFieldRows(schema: SchemaObject | undefined): FormFieldRow[] {
+  return Object.entries(schema?.properties ?? {}).map(([name, property]) => ({
+    name,
+    kind: property.format === "binary" ? "file" : "text",
+    value: property.format === "binary" ? "" : stringifyFormValue(sampleJSON(property, undefined)),
+  }));
+}
+
+function stringifyFormValue(sample: unknown): string {
+  if (sample === null || sample === undefined) return "";
+  if (typeof sample === "object") return JSON.stringify(sample);
+  return String(sample);
+}
+
 // buildRequest assembles the executable same-origin request from the operation
-// and the current editor values (R075-004):
+// and the current editor values (R075-004/005):
 // - path parameters are substituted and encoded; query parameters with a
-//   non-empty value become the query string;
-// - a non-empty body sets Content-Type: application/json;
+//   non-empty value become the query string; extra headers are merged in;
+// - JSON bodies set Content-Type: application/json; urlencoded bodies are
+//   serialized from the form entries (multipart/form-data with files is built
+//   in the view with FormData and needs no Content-Type here);
 // - bearerAuth injects Authorization; webuiSession mutations attach Origin and
 //   X-CSRF-Token (session cookie itself is carried by the browser).
 export function buildRequest(
@@ -270,6 +306,9 @@ export function buildRequest(
     pathValues: Record<string, string>;
     queryValues: Record<string, string>;
     bodyText?: string;
+    bodyType?: BodyType;
+    formEntries?: Array<[string, string]>;
+    extraHeaders?: Record<string, string>;
     bearerToken?: string;
     csrfToken?: string;
     origin: string;
@@ -288,9 +327,15 @@ export function buildRequest(
   if (query.length > 0) {
     url += "?" + query.map((entry) => `${encodeURIComponent(entry.name)}=${encodeURIComponent(entry.value)}`).join("&");
   }
-  const headers: Record<string, string> = {};
-  const body = options.bodyText !== undefined && options.bodyText.trim() !== "" ? options.bodyText : undefined;
-  if (body) headers["Content-Type"] = "application/json";
+  const headers: Record<string, string> = { ...(options.extraHeaders ?? {}) };
+  let body: string | undefined;
+  if (options.bodyType === "urlencoded" && options.formEntries && options.formEntries.length > 0) {
+    body = options.formEntries.map(([name, value]) => `${encodeURIComponent(name)}=${encodeURIComponent(value)}`).join("&");
+    headers["Content-Type"] = "application/x-www-form-urlencoded";
+  } else if (options.bodyText !== undefined && options.bodyText.trim() !== "") {
+    body = options.bodyText;
+    headers["Content-Type"] = "application/json";
+  }
   if (hasSecurityScheme(operation, "bearerAuth") && options.bearerToken && options.bearerToken.trim() !== "") {
     headers["Authorization"] = `Bearer ${options.bearerToken.trim()}`;
   }

@@ -11,8 +11,8 @@ applicable_scenarios:
 non_applicable_scenarios:
   - "独立部署的完整 API 测试应用（hoppscotch/Postman/Bruno 等独立产品形态）"
   - "多环境/环境变量/脚本断言等 Apifox 高级工作流（无真实用例，成本不成比例）"
-status: active
-summary: "用户要求工作台化（操作树 + 详情 + 执行 + 响应）的可测试 API 文档，取代单页堆叠的只读参考页（R075-003 结论被取代）。无满足『平台组件 + 可嵌入 + 完整』的成熟第三方（hoppscotch 等为独立应用形态），在 openapi 模块内自建工作台：单 manifest 路由 + 模块内部视图状态（树/列表/详情/模型，search 参数深链）；执行器用同源 fetch（credentials include），bearerAuth 注入内存 token、webuiSession 自动携带会话 Cookie 与 CSRF（复用 loadSession 的 csrfToken + Origin）；mock 演示构建无后端时仅浏览。"
+status: superseded
+summary: "（已被 R075-005 取代）原结论：可用测试工作台（操作树 + 详情 + 执行器 + 模型视图，平台组件）。用户随后要求与 Apifox「骨架、交互、设计完全一模一样（非最小可用）」，模块呈现层与骨架按 Apifox 设计语言复刻（R075-005）；本记录的可测试执行语义（同源 fetch、bearer 内存 token、webuiSession Cookie+CSRF、mock 禁用）与解析/请求构建纯函数层继续复用。"
 evidence:
   types: ["source-code", "upstream-issues"]
   primary_sources:
@@ -42,7 +42,9 @@ relations:
   related:
     - R075-002
     - R075-003
+    - R075-005
   supersedes:
     - R075-003
-  superseded_by: []
+  superseded_by:
+    - R075-005
 report: report.md

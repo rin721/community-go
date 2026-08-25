@@ -13,12 +13,12 @@ areas:
     decision: updated
     documents:
       - webui/README.md
-    reason: openapi 模块升级为可测试 API 工作台（R075-004）：OpenAPIPage 工作台 + OperationDetail 执行器 + SchemasView 模型视图，组件全部来自 @webui/sdk/ui；同源 fetch 执行语义（bearerAuth 内存 token / webuiSession Cookie+CSRF）；mock 执行禁用；契约快照链（@webui/generated alias、vitest .test.tsx 覆盖、图标 book）与 DataTable isRowHeader 修复延续；docs/development/webui.md 的 075 小节同步更新。
+    reason: openapi 模块升级为 Apifox 风格 API 管理平台（R075-005）：资源树/多标签工作台/文档调试双模式/在线调试/响应面板/模型视图，UI 控件基座统一为 HeroUI（tsconfig/vite 映射 @heroui/react 与 highlight.js）；JSON 高亮新增 highlight.js 依赖；深链 ?op=&mode=/ ?model=；契约快照链、DataTable isRowHeader 修复延续；docs/development/webui.md 同步更新。
   - id: module
     decision: updated
     documents:
       - internal/module/README.md
-    reason: openapi 模块（WebUI-only）目录扩展为工作台形态（openapi-data/api/OperationDetail/SchemasView/MethodBadge）；模块 README 更新执行语义与视图说明；模块清单权威 internal/module/README.md 已同步。
+    reason: openapi 模块（WebUI-only）工作台形态重组（ApiTree/WorkspaceTabs/OperationPane/ResponsePanel/ModelPane/CommandPalette/run-store/highlight 等），模块 README 更新；模块清单权威 internal/module/README.md 已同步。
   - id: startup
     decision: reviewed-no-change
     reason: 宿主 boot 装配链（manifest -> registry -> Shell -> route）、revision 门禁、托管构建链（webui generate 扩展为同一命令多产物）与 mock 传输层语义不变；openapi 页面零请求，三态数据源环境一致渲染。

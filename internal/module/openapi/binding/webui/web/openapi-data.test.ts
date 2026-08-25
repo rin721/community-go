@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
-  buildRequest, executionParameters, filterOperationGroups, groupedOperations, hasSecurityScheme, isMutation,
-  isOpenAPIDocument, parameterDefaultValue, requestBodySchema, responseRows, sampleJSON, schemaPropertyRows,
-  schemaSummary, type OpenAPIDocument,
+  bodyTypeOptions, buildRequest, executionParameters, filterOperationGroups, formFieldRows, groupedOperations,
+  hasSecurityScheme, isMutation, isOpenAPIDocument, parameterDefaultValue, requestBodySchema, responseRows,
+  sampleJSON, schemaPropertyRows, schemaSummary, type OpenAPIDocument,
 } from "./openapi-data";
 
 const fixture: OpenAPIDocument = {
@@ -210,5 +210,39 @@ describe("openapi-data request building", () => {
     expect(update.url).toBe("/api/v1/navigation/menus/m-1");
     expect(update.headers.Origin).toBe("https://example.test");
     expect(update.headers["X-CSRF-Token"]).toBe("csrf-1");
+  });
+
+  it("derives supported body encodings from the contract", () => {
+    expect(bodyTypeOptions(operationByID("todo.create"))).toEqual(["json"]);
+    expect(bodyTypeOptions(operationByID("iam.session.read"))).toEqual([]);
+  });
+
+  it("projects form rows and flags binary properties as files", () => {
+    const rows = formFieldRows({ type: "object", properties: { file: { type: "string", format: "binary" }, title: { type: "string" }, count: { type: "integer" } } });
+    expect(rows).toEqual([
+      { name: "file", kind: "file", value: "" },
+      { name: "title", kind: "text", value: "string" },
+      { name: "count", kind: "text", value: "0" },
+    ]);
+    expect(formFieldRows(undefined)).toEqual([]);
+  });
+
+  it("serializes urlencoded bodies from form entries", () => {
+    const request = buildRequest(operationByID("todo.create"), {
+      pathValues: {}, queryValues: {}, origin: "https://example.test",
+      bodyType: "urlencoded", formEntries: [["title", "hi there"], ["tags", "a,b"]],
+    });
+    expect(request.body).toBe("title=hi%20there&tags=a%2Cb");
+    expect(request.headers["Content-Type"]).toBe("application/x-www-form-urlencoded");
+  });
+
+  it("merges extra headers and keeps JSON content type", () => {
+    const request = buildRequest(operationByID("todo.create"), {
+      pathValues: {}, queryValues: {}, origin: "https://example.test",
+      bodyType: "json", bodyText: '{"title":"x"}', extraHeaders: { "X-Trace": "abc" },
+    });
+    expect(request.headers["X-Trace"]).toBe("abc");
+    expect(request.headers["Content-Type"]).toBe("application/json");
+    expect(request.body).toBe('{"title":"x"}');
   });
 });

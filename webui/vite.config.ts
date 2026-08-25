@@ -32,6 +32,8 @@ export default defineConfig({
       "react-dom": sdk("node_modules/react-dom"),
       "react-i18next": sdk("node_modules/react-i18next"),
       i18next: sdk("node_modules/i18next"),
+      "@heroui/react": sdk("node_modules/@heroui/react"),
+      "highlight.js": sdk("node_modules/highlight.js"),
       "@tanstack/react-query": sdk("node_modules/@tanstack/react-query"),
     },
   },

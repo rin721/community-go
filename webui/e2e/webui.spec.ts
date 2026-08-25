@@ -313,22 +313,24 @@ test("organization management pages render tree, position and assignment evidenc
   await page.screenshot({ path: testInfo.outputPath("organization-assignment.png"), fullPage: true });
 });
 
-test("075 openapi workspace renders tree, detail and executes requests", async ({ page }, testInfo) => {
+test("075 apifox workspace tree, tabs, docs/debug and execution", async ({ page }, testInfo) => {
   (page as unknown as { setWebUIState: (state: { authenticated: boolean }) => void }).setWebUIState({ authenticated: true });
   await page.goto("/openapi");
   await expect(page.getByRole("heading", { name: "API Docs", exact: true })).toBeVisible();
-  // 平台组件工作台（R075-004）：左栏操作树 + 过滤。
+  // Apifox 资源树 + 多标签工作台（HeroUI 控件基座，R075-005）。
   await expect(page.locator('[data-testid="openapi-tree-item"]').first()).toBeVisible();
-  // webuiSession GET 执行：命中 beforeEach 的会话拦截，响应面板呈现 200 与 body。
   await page.locator('[data-testid="openapi-tree-item"]').filter({ hasText: "iam.session.read" }).click();
-  await expect(page.locator('[data-testid="openapi-operation"]')).toBeVisible();
-  await expect(page.getByRole("heading", { name: "iam.session.read", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Execute", exact: true }).click();
+  await expect(page.locator('[data-testid="openapi-tab-op:get-/api/v1/iam/session"]')).toBeVisible();
+  // 默认调试模式：发送 → 右侧响应面板（拦截的会话路由）。
+  await expect(page.getByRole("button", { name: "Send", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Send", exact: true }).click();
   await expect(page.locator('[data-testid="openapi-response"]')).toBeVisible();
   await expect(page.getByText(/200 OK/)).toBeVisible();
   await expect(page.getByText(/csrf-test-token/)).toBeVisible();
-  await expect(page.getByText(/"username": "operator"/)).toBeVisible();
-  await page.screenshot({ path: testInfo.outputPath("075-openapi-workspace.png"), fullPage: true });
+  await expect(page.getByText(/ms/).first()).toBeVisible();
+  // 文档模式切换：参数表可见。
+  await page.locator('[data-testid="openapi-mode-docs"]').click();
+  await expect(page.getByRole("heading", { name: "Parameters", exact: true })).toBeVisible();
   // bearerAuth 注入：拦截 POST /api/v1/todos，断言 Authorization 头。
   let bearerHeader = "";
   await page.route("**/api/v1/todos", async (route) => {
@@ -338,12 +340,17 @@ test("075 openapi workspace renders tree, detail and executes requests", async (
   await page.locator("input[type=search]").fill("createTodo");
   await page.locator('[data-testid="openapi-tree-item"]').filter({ hasText: "createTodo" }).click();
   await page.getByLabel("Bearer token").fill("exec-token-123");
-  await page.getByRole("button", { name: "Execute", exact: true }).click();
+  await page.getByRole("button", { name: "Send", exact: true }).click();
   await expect(page.getByText(/201 Created/)).toBeVisible();
   expect(bearerHeader).toBe("Bearer exec-token-123");
-  // 深链：schemas 视图可直接打开。
-  await page.goto("/openapi?view=schemas");
-  await expect(page.locator('[data-testid="openapi-model-item"]').first()).toBeVisible();
+  // Cmd+K 全局搜索弹层。
+  await page.keyboard.press("Control+k");
+  await expect(page.getByLabel("Quick search")).toBeVisible();
+  await page.keyboard.press("Escape");
+  // 深链：docs 模式直达接口标签。
+  await page.goto("/openapi?op=get-/api/v1/iam/accounts&mode=docs");
+  await expect(page.locator('[data-testid="openapi-tab-op:get-/api/v1/iam/accounts"]')).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("075-apifox-workspace.png"), fullPage: true });
 });
 
 test("navigation policy refreshes the manifest while keeping the registered route", async ({ page }, testInfo) => {

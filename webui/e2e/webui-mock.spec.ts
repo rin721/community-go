@@ -1,19 +1,22 @@
 import { expect, test } from "@playwright/test";
 
-// 075 API 工作台：mock 演示构建下契约浏览完整，执行明确禁用（R075-004）。
-test("075 openapi workspace browses in mock mode with execution disabled", async ({ page }) => {
+// 075 API 工作台：mock 演示构建下契约浏览完整、执行明确禁用（R075-005）。
+test("075 apifox workspace browses in mock mode with execution disabled", async ({ page }) => {
   await page.goto("/openapi");
   await expect(page.getByRole("heading", { name: "API Docs", exact: true })).toBeVisible();
-  // 操作树来自生成快照（零请求）。
+  // 资源树来自生成快照（零请求）。
   await expect(page.locator('[data-testid="openapi-tree-item"]').first()).toBeVisible();
   await page.locator('[data-testid="openapi-tree-item"]').filter({ hasText: "iam.session.read" }).click();
-  await expect(page.locator('[data-testid="openapi-operation"]')).toBeVisible();
+  await expect(page.locator('[data-testid="openapi-tab-op:get-/api/v1/iam/session"]')).toBeVisible();
+  // 执行禁用提示，无 Send 按钮。
   await expect(page.getByText(/Execution is unavailable in mock demo builds/)).toBeVisible();
-  await expect(page.getByRole("button", { name: "Execute", exact: true })).toHaveCount(0);
-  await page.screenshot({ path: "test-results/075-openapi-workspace-mock.png", fullPage: true });
-  // 模型视图可浏览。
-  await page.getByRole("button", { name: "Schemas", exact: true }).click();
-  await expect(page.locator('[data-testid="openapi-model-item"]').first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Send", exact: true })).toHaveCount(0);
+  // 文档模式可浏览；模型标签可打开。
+  await page.locator('[data-testid="openapi-mode-docs"]').click();
+  await expect(page.getByRole("heading", { name: "Parameters", exact: true }).first()).toBeVisible();
+  await page.getByRole("button", { name: "AccountResponse", exact: true }).click();
+  await expect(page.locator('[data-testid="openapi-model-pane"]')).toBeVisible();
+  await page.screenshot({ path: "test-results/075-apifox-workspace-mock.png", fullPage: true });
 });
 
 // mock project 专用：不拦截任何路由——整个 WebUI（宿主骨架 + 全部模块数据）

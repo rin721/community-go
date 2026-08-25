@@ -50,12 +50,13 @@ Linux 使用 `bash scripts/verify-webui.sh`。质量链覆盖生成检查、冻�
 - 交互状态链原语：`ActionTrigger`（pending/防重复/禁用原因/权限呈现）、`BulkActionBar`、`FormSubmitActions`；图标目录 authority 在 `webui/src/icon-catalog.ts`（Go `internal/webui/icons.go` 校验，测试守护一致）。
 - 完整契约与接入步骤见 [WebUI 开发指南](../docs/development/webui.md)。
 
-## OpenAPI 可测试 API 工作台（075）
+## OpenAPI：Apifox 风格 API 管理平台（075）
 
-- 新业务模块 `openapi` 提供「API 文档」页（`/openapi`，顶级菜单项）：**Apifox 风格工作台（R075-004）**——左栏可搜索/过滤的操作树（按 tag 分组）+ 主区操作详情（可编辑参数、JSON 请求体编辑器、响应 schema）与**执行面板**（真实请求执行），另有模型浏览视图；视图经 `?view=&op=` search 参数深链；页面壳层与页内组件全部使用 `@webui/sdk/ui`（PageHeader/PageSection/Surface/Field/DataTable/Button/InlineAlert 等），HTTP 方法徽标等无语义平台细节由模块内小组件 + css module 承担。
-- **可测试执行语义**：同源 `fetch`（`credentials: include`）——`bearerAuth` 注入页面内存 token（不持久化）；`webuiSession` 自动携带浏览器会话 Cookie，CSRF 绑定写操作自动附加 `Origin`+`X-CSRF-Token`（复用会话快照，与真实 WebUI 同语义）；响应面板呈现状态码/耗时/响应头/格式化 JSON body，错误如实展示；`mock` 演示构建执行禁用并明确提示。
-- 契约数据源：`webui generate` 同时生成 `webui/src/generated/openapi-spec.ts`（`api/openapi.yaml` 的 JSON 变换，含源文件 sha256），页面直接 import——三态环境浏览一致、mock 零请求；`--check` 严格比对防漂移；布局清单新增 `webui.specOutput`；受控图标目录新增 `book`。
-- 平台修复（本任务发现）：`@webui/sdk/ui` 的 `DataTable` 补齐 RAC Table 要求的首列 `isRowHeader`，客户端渲染不再抛错（含回归测试）。
+- 新业务模块 `openapi` 提供「API 文档」页（`/openapi`，顶级菜单项）：**Apifox 复刻工作台（R075-005）**——顶部工具栏（面包屑 + 环境标识 + Cmd/K 全局搜索）、左侧资源树（接口按 tag 分组、可搜索/折叠、模型分组）、中间多标签工作台（接口/模型标签可开/关/切换）、主区接口详情（URL 栏 + 「文档/调试」双模式）、右侧响应面板（状态码徽标、耗时、大小、JSON 高亮、响应头）。
+- **UI 控件基座为 HeroUI 组件库**（用户要求；`@heroui/react` 与 `@webui/sdk/ui` 透传底座，模块 css 只承载 Apifox 设计语言）；JSON 高亮用 `highlight.js`（仅注册 json 语言，按需轻量）；参数表单由 OpenAPI schema 自动构建（Query/Path 动态编辑、JSON 请求体校验、form-data 含文件上传、urlencoded、Auth）。
+- **可测试执行语义**：同源 `fetch`（`credentials: include`）——`bearerAuth` 注入页面内存 token（不持久化）；`webuiSession` 自动携带会话 Cookie，CSRF 绑定写操作自动附加 `Origin`+`X-CSRF-Token`（与真实 WebUI 同语义）；响应面板呈现状态/耗时/大小/高亮 body，错误如实展示；`mock` 演示构建执行禁用并提示。
+- 契约数据源：`webui generate` 生成 `webui/src/generated/openapi-spec.ts`（`api/openapi.yaml` 的 JSON 变换，含 sha256），页面直接 import，三态环境浏览一致；`?op=&mode=` / `?model=` 深链直达；布局清单新增 `webui.specOutput`；受控图标目录新增 `book`；平台 DataTable 修复（RAC isRowHeader）延续。
+- 说明：像素级还原以公开物料 + 产品知识实现，Playwright 截图（`075-apifox-*`）供逐轮对照 Apifox 校准（详见 075 记录刷新触发器）。
 
 ## 侧边栏菜单层级分类（063）
 

@@ -245,14 +245,13 @@ PageHeader（eyebrow/title/description/actions；标题用 HeroUI Typography.Hea
 - **页面职责边界**：WebUI 功能模块**自己实现页面**；需要他模块（如 iam）能力时**调用其接口**实现（settings 调 `self/profile`、`self/archive`、`self/password`），不把他人页面挂进自己的菜单/页内导航。
 - 全局「设置」两项级是否展开由菜单声明决定；跨 owner `ParentID` 与 `HostNavigation` 仍是平台能力（供未来宿主分组），当前应用不再把 iam 页面挂入设置组。
 
-## OpenAPI 可测试 API 工作台（075）
+## OpenAPI：Apifox 风格 API 管理平台（075）
 
-- **模块形态**：`openapi` 是 WebUI-only 模块（settings 同形态，无 module.go 业务层）：`/openapi` 单路由 + `openapi.docs` 顶级菜单项（无 ViewOperationID，契约是公开仓库产物）。
-- **工作台视图（R075-004）**：静态路由契约不支持动态路径，动态详情以模块内视图状态实现——`OpenAPIPage` 为工作台（左栏可搜索操作树 + 主区），`OperationDetail` 承载可编辑参数/JSON 请求体/执行面板，`SchemasView` 浏览模型；`?view=&op=` search 参数深链（`history.replaceState` + `popstate` 恢复）；全部组件来自 `@webui/sdk/ui`，HTTP 方法徽标等无语义平台细节由模块内小组件 + css module 承担。
-- **执行语义**：模块内自建执行器（`openapi-data.ts` 的纯函数 `buildRequest` + `OperationDetail` 的同源 `fetch`）：`bearerAuth` 注入内存 token（不持久化）；`webuiSession` 自动携带会话 Cookie，mutation 自动附加 `Origin`+`X-CSRF-Token`（复用 `/api/v1/iam/session` 快照）；mock 声明（`readWebUIDataSource() === "mock"`）执行禁用并提示；响应面板呈现状态/耗时/头/格式化 JSON body，错误如实展示。
-- **契约数据源（单权威）**：`go run ./cmd/app webui generate` 从 `api/openapi.yaml` 渲染 `webui/src/generated/openapi-spec.ts`（JSON 对象 + sha256），路径由 `.scaffold/layout.json` 的 `webui.specOutput` 声明；`--check` 整文件严格比对；页面直接 import，mock 下浏览零请求、`mock.ts` 空路由表。
-- **DataTable 平台修复**：`@webui/sdk/ui` 的 `DataTable` 将首个可视列标为 RAC Table 的 `isRowHeader`（客户端渲染必需），并新增客户端渲染回归测试。
-- **安全边界如实呈现**：执行是用户主动行为、权限即当前 WebUI 会话；token 仅内存；mock 无后端时仅浏览。
+- **模块形态**：`openapi` 是 WebUI-only 模块（无 module.go 业务层）：`/openapi` 单路由 + `openapi.docs` 顶级菜单项（无 ViewOperationID，契约是公开仓库产物）。
+- **工作台骨架（R075-005，控件基座 HeroUI）**：顶部工具栏（面包屑、环境标识、Cmd/Ctrl+K 全局搜索 `CommandPalette`）+ 左侧资源树 `ApiTree`（接口按 tag 分组且可搜索折叠、模型分组，`Disclosure` 底座）+ 中间多标签 `WorkspaceTabs`（接口/模型标签开/关/切换、激活高亮）+ 主区 `OperationPane`（URL 栏 + 「文档/调试」双模式：`op.mode.docs/debug`）+ 右侧 `ResponsePanel`。`?op=<id>&mode=docs|debug` 与 `?model=<name>` 深链（`replaceState` + `popstate` 恢复）。
+- **UI 控件基座统一为 HeroUI 组件库**（用户要求；`@heroui/react` 或经 `@webui/sdk/ui` 透传，模块 tsconfig/vite 已映射 @heroui/react 与 highlight.js 的模块解析）；模块 css 只承载 Apifox 设计语言 token（灰阶/主色/方法色/状态色/密度/选中态）。参数表单由 `openapi-data.ts` 纯函数自动构建（`executionParameters`/`formFieldRows`/`bodyTypeOptions`），Body 支持 JSON（`sampleJSON` 样例 + 校验）/form-data（含原生 file input 上传）/urlencoded；执行语义同源 fetch（bearer 内存 token、webuiSession Cookie + CSRF、mock 禁用）由 `OperationPane` + `run-store.ts` 状态机承担，`ResponsePanel` 用 `highlight.ts`（highlight.js 仅 json 语言）高亮 JSON body。
+- **契约数据源（单权威）**：`webui generate` 从 `api/openapi.yaml` 渲染 `webui/src/generated/openapi-spec.ts`；`webui.specOutput` 路径、`--check` 严格比对（R075-002）；mock 浏览零请求、`mock.ts` 空表。
+- **验收路径**：像素级还原以公开物料 + 产品知识实现，Playwright 截图（`075-apifox-*`）逐轮对照校准（刷新触发器见 075 记录）。
 
 ## 强制 i18n 契约
 

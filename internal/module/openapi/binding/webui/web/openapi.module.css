@@ -1,62 +1,140 @@
-/* OpenAPI 模块专属样式（R075-003）：页面壳层使用平台组件与布局类
-   （module-page/page-sections），本文件只收拢契约参考页的专属 selector：
-   方法徽标、操作行/组的呈现与等宽字体单元。 */
+/* OpenAPI 模块专属样式（R075-004）：页面壳层使用平台组件与布局类
+   （module-page/page-sections）；本文件只收拢工作台/树/详情/执行/响应的
+   专属 selector 与等宽字体单元。 */
 .openapiModule {
   /* no platform override */
 }
 
-.operationGroups {
+/* ---- workspace shell ---- */
+.workspace {
   display: grid;
-  gap: 18px;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
 }
 
-.operationGroup {
+@media (max-width: 920px) {
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+  .rail {
+    max-height: 320px;
+  }
+}
+
+.rail {
   display: grid;
   gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-muted);
 }
 
-.operationGroupTitle {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  letter-spacing: 0.02em;
+.railTabs {
+  display: flex;
+  gap: 8px;
 }
 
-.operationList {
+.railTab {
+  flex: 1;
+  min-height: 30px;
+}
+
+.treeSearch {
+  min-height: 32px;
+}
+
+.treeSearch input {
+  min-height: 32px;
+}
+
+.operationTree {
   display: grid;
-  gap: 10px;
+  gap: 14px;
+  max-height: 560px;
+  overflow: auto;
+  padding-right: 4px;
 }
 
-.operationCard {
+.treeGroup {
   display: grid;
   gap: 6px;
-  padding: 14px 16px;
 }
 
-.operationHeader {
+.treeGroupTitle {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.treeItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.treeItem:hover {
+  background: var(--surface);
+}
+
+.treeItem[aria-current="true"] {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.treeItemLabel {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.treeEmpty {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.workspaceMain {
+  min-width: 0;
+}
+
+/* ---- operation detail ---- */
+.detailCard {
+  display: grid;
+  gap: 12px;
+  padding: 16px 18px;
+}
+
+.detailHeader {
   display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
 }
 
+.detailTitle {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
 .operationPath {
   font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   color: var(--text-secondary);
-}
-
-.operationId {
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-.operationSpacer {
-  flex: 1;
-}
-
-.operationToggle {
-  min-height: 26px;
 }
 
 .operationSummary {
@@ -66,18 +144,184 @@
   color: var(--text-secondary);
 }
 
-.operationDetails {
+.detailSections {
   display: grid;
-  gap: 14px;
-  margin-top: 10px;
+  gap: 16px;
 }
 
-.requestBodyLine {
+.detailSection {
+  display: grid;
+  gap: 8px;
+}
+
+.detailSectionTitle {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+}
+
+.parameterFields {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+
+.parameterField {
+  min-width: 0;
+}
+
+.parameterField input {
+  min-height: 32px;
+}
+
+.bodyEditor {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-muted);
+  color: var(--text);
+  font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  resize: vertical;
+}
+
+.sessionNote {
   margin: 0;
   font-size: 12px;
   color: var(--text-secondary);
 }
 
+.runBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.runButton {
+  min-height: 34px;
+}
+
+/* ---- response panel ---- */
+.responsePanel {
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-muted);
+}
+
+.responseMeta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.responseOk {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: #15803d;
+  color: #fff;
+  font: 600 12px/1.8 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.responseError {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: #b91c1c;
+  color: #fff;
+  font: 600 12px/1.8 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.responseDuration {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.responseHeaders {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.monoBlock {
+  margin: 0;
+  overflow: auto;
+  font: 11px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.responseBody {
+  margin: 0;
+  max-height: 420px;
+  overflow: auto;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: 11px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ---- schemas view ---- */
+.schemasLayout {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 920px) {
+  .schemasLayout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.modelList {
+  display: grid;
+  gap: 4px;
+  max-height: 560px;
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-muted);
+}
+
+.modelItem {
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font: 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  text-align: left;
+  cursor: pointer;
+}
+
+.modelItem:hover {
+  background: var(--surface);
+}
+
+.modelItem[aria-current="page"] {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.modelDetail {
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-muted);
+}
+
+/* ---- shared ---- */
 .methodBadge {
   display: inline-block;
   min-width: 52px;
@@ -87,6 +331,7 @@
   font: 600 11px/1.8 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   letter-spacing: 0.04em;
   color: #fff;
+  flex-shrink: 0;
 }
 
 .methodBadge[data-method="get"] {
@@ -111,19 +356,6 @@
 
 .monoCell {
   font: 11px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-}
-
-.schemaList {
-  display: grid;
-  gap: 14px;
-}
-
-.schemaCard {
-  display: grid;
-}
-
-.schemaCardInner {
-  padding: 14px 16px;
 }
 
 .openapiMeta {

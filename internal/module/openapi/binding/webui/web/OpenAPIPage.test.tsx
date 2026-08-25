@@ -1,14 +1,15 @@
 // @vitest-environment jsdom
-import { act, createElement } from "react";
+import { act } from "react";
 import { createRoot } from "react-dom/client";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import enMessages from "./locale/en-US.json";
 import OpenAPIPage from "./OpenAPIPage";
 
-// OpenAPIPage 以真实平台组件 + 真实契约快照渲染（R075-003）：不 mock 任何第三方，
-// 生成器产物（openapi-spec.ts）直接进入测试，同时守护快照形状可解析。
+// The workspace renders the real platform components against the real
+// generated contract snapshot (openapi-spec.ts); no third-party is involved
+// (R075-004). Execution is exercised through mocked fetch/session below.
 
 function renderPage(): { unmount: () => void; host: HTMLDivElement } {
   const host = document.createElement("div");
@@ -24,53 +25,99 @@ function renderPage(): { unmount: () => void; host: HTMLDivElement } {
   };
 }
 
-describe("OpenAPIPage", () => {
-  beforeEach(async () => {
-    await i18n.use(initReactI18next).init({
-      lng: "en-US",
-      fallbackLng: "en-US",
-      resources: { "en-US": { "webui.openapi": enMessages } },
-      initImmediate: false,
-      interpolation: { escapeValue: false },
-    });
-  });
+function clickButtonContaining(host: HTMLElement, text: string) {
+  const button = [...host.querySelectorAll("button")].find((candidate) => candidate.textContent?.includes(text));
+  if (!button) throw new Error(`button containing ${text} not found`);
+  act(() => { button.click(); });
+}
 
-  it("renders the platform page shell with translated copy", () => {
-    const { host, unmount } = renderPage();
-    expect(host.querySelector(".module-page")).not.toBeNull();
-    expect(host.textContent).toContain("API Docs");
-    expect(host.textContent).toContain("About this reference");
-    expect(host.textContent).toContain("Contract snapshot: api/openapi.yaml");
-    unmount();
+beforeEach(async () => {
+  await i18n.use(initReactI18next).init({
+    lng: "en-US",
+    fallbackLng: "en-US",
+    resources: { "en-US": { "webui.openapi": enMessages } },
+    initImmediate: false,
+    interpolation: { escapeValue: false },
   });
+  window.history.replaceState(null, "", "/openapi");
+  vi.restoreAllMocks();
+});
 
-  it("renders operations grouped with method badges and known operation ids", () => {
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
+describe("OpenAPIPage workspace", () => {
+  it("renders the operation tree with known operation ids", () => {
     const { host, unmount } = renderPage();
-    const operations = host.querySelectorAll('[data-testid="openapi-operation"]');
-    expect(operations.length).toBeGreaterThan(0);
-    // 真实契约包含 auth/iam/organization/navigation/todo 的全部 operation。
+    const items = host.querySelectorAll('[data-testid="openapi-tree-item"]');
+    expect(items.length).toBeGreaterThan(0);
     expect(host.textContent).toContain("auth.audit.list");
     expect(host.textContent).toContain("iam.session.read");
-    expect(host.textContent).toContain("createTodo");
-    expect(host.querySelectorAll("[data-method]").length).toBe(operations.length);
     unmount();
   });
 
-  it("expands an operation to show parameter and response tables", () => {
+  it("filters the tree by search input", () => {
     const { host, unmount } = renderPage();
-    const first = host.querySelector('[data-testid="openapi-operation"]') as HTMLElement;
-    const toggle = first.querySelector("button") as HTMLButtonElement;
-    act(() => { toggle.click(); });
-    expect(first.querySelectorAll("table").length).toBeGreaterThan(0);
-    // 响应表列头为本地化文案。
-    expect(first.textContent).toContain("Status");
+    const input = host.querySelector("input[type=search]") as HTMLInputElement;
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")!.set!;
+    act(() => {
+      setter.call(input, "navigation");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    const items = host.querySelectorAll('[data-testid="openapi-tree-item"]');
+    expect(items.length).toBeGreaterThan(0);
+    for (const item of items) expect(item.textContent).toContain("navigation");
     unmount();
   });
 
-  it("renders schema cards with property tables", () => {
+  it("opens an operation detail with params, body and execute button", () => {
     const { host, unmount } = renderPage();
-    const schemas = host.querySelectorAll('[data-testid="openapi-schema"]');
-    expect(schemas.length).toBeGreaterThan(0);
+    // iam.accounts.list 在真实契约中有查询参数（offset/limit）。
+    const item = [...host.querySelectorAll('[data-testid="openapi-tree-item"]')].find((candidate) => candidate.textContent?.includes("iam.accounts.list")) as HTMLElement | undefined;
+    expect(item).toBeDefined();
+    act(() => { item!.click(); });
+    expect(host.querySelector('[data-testid="openapi-operation"]')).not.toBeNull();
+    expect(host.textContent).toContain("Parameters");
+    expect(host.textContent).toContain("Responses");
+    expect(host.textContent).toContain("Execute");
+    // deep link was written to the URL (op id 含路径，会被 URL 编码)。
+    expect(window.location.search).toContain("view=operations&op=get-");
+    expect(window.location.search).toContain("iam%2Faccounts");
+    unmount();
+  });
+
+  it("executes a request and shows the response panel", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ hello: "world" }), { status: 200, statusText: "OK" }));
+    vi.stubGlobal("fetch", fetchMock);
+    const { host, unmount } = renderPage();
+    const item = [...host.querySelectorAll('[data-testid="openapi-tree-item"]')].find((candidate) => candidate.textContent?.includes("iam.session.read")) as HTMLElement | undefined;
+    act(() => { item!.click(); });
+    clickButtonContaining(host, "Execute");
+    await act(async () => { await Promise.resolve(); });
+    expect(fetchMock).toHaveBeenCalled();
+    expect(host.querySelector('[data-testid="openapi-response"]')).not.toBeNull();
+    expect(host.textContent).toContain("200 OK");
+    expect(host.textContent).toContain('"hello": "world"');
+    unmount();
+  });
+
+  it("disables execution in mock demo builds with an explicit notice", () => {
+    vi.stubEnv("VITE_WEBUI_DATA_SOURCE", "mock");
+    const { host, unmount } = renderPage();
+    const item = [...host.querySelectorAll('[data-testid="openapi-tree-item"]')].find((candidate) => candidate.textContent?.includes("iam.session.read")) as HTMLElement | undefined;
+    act(() => { item!.click(); });
+    expect(host.textContent).toContain("Execution is unavailable in mock demo builds");
+    const buttons = [...host.querySelectorAll("button")].map((candidate) => candidate.textContent ?? "");
+    expect(buttons.some((text) => text.includes("Execute"))).toBe(false);
+    unmount();
+  });
+
+  it("switches to the schemas view listing models", () => {
+    const { host, unmount } = renderPage();
+    clickButtonContaining(host, "Schemas");
+    const models = host.querySelectorAll('[data-testid="openapi-model-item"]');
+    expect(models.length).toBeGreaterThan(0);
     expect(host.textContent).toContain("AccountResponse");
     unmount();
   });

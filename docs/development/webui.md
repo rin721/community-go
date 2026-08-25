@@ -245,13 +245,14 @@ PageHeader（eyebrow/title/description/actions；标题用 HeroUI Typography.Hea
 - **页面职责边界**：WebUI 功能模块**自己实现页面**；需要他模块（如 iam）能力时**调用其接口**实现（settings 调 `self/profile`、`self/archive`、`self/password`），不把他人页面挂进自己的菜单/页内导航。
 - 全局「设置」两项级是否展开由菜单声明决定；跨 owner `ParentID` 与 `HostNavigation` 仍是平台能力（供未来宿主分组），当前应用不再把 iam 页面挂入设置组。
 
-## OpenAPI 契约可视化页面（075）
+## OpenAPI 可测试 API 工作台（075）
 
 - **模块形态**：`openapi` 是 WebUI-only 模块（settings 同形态，无 module.go 业务层）：`/openapi` 单路由 + `openapi.docs` 顶级菜单项（无 ViewOperationID，契约是公开仓库产物）。
-- **页内呈现全部使用平台组件（R075-003）**：页面壳层与页内控件均来自 `@webui/sdk/ui`（PageHeader/PageSection/Surface/DataTable/InlineAlert/EmptyState/Button）；契约解析放模块内 `openapi-data.ts` 纯函数层（分组/参数行/响应行/schema 属性行，可单测）；HTTP 方法徽标等平台无语义组件由模块内小型组件 + css module 承担；不引入第三方文档控件（swagger-ui-react 及其依赖/别名已从 075 中移除，单轨）。
-- **契约数据源（单权威）**：`go run ./cmd/app webui generate` 在 registry 之外还从 `api/openapi.yaml` 渲染 `webui/src/generated/openapi-spec.ts`（JSON 对象 + 源文件 sha256 常量），路径由 `.scaffold/layout.json` 的 `webui.specOutput` 声明；`--check` 整文件严格比对。页面直接 import 快照，`server-hosted`/`separated`/`mock` 三态零请求一致渲染，模块 `mock.ts` 为空路由表（settings 先例）。
-- **DataTable 平台修复**：`@webui/sdk/ui` 的 `DataTable` 将首个可视列标为 RAC Table 的 `isRowHeader`（客户端渲染必需），并新增客户端渲染回归测试；这是首个在客户端真实渲染 DataTable 的业务页（075）暴露的既有缺陷。
-- **安全边界如实呈现**：页面只读（无请求执行器）；`bearerAuth` 操作可自行携带 token；`webuiSession`/CSRF 绑定写操作无法从参考页执行；mock 演示构建无后端，请求类交互不可用。
+- **工作台视图（R075-004）**：静态路由契约不支持动态路径，动态详情以模块内视图状态实现——`OpenAPIPage` 为工作台（左栏可搜索操作树 + 主区），`OperationDetail` 承载可编辑参数/JSON 请求体/执行面板，`SchemasView` 浏览模型；`?view=&op=` search 参数深链（`history.replaceState` + `popstate` 恢复）；全部组件来自 `@webui/sdk/ui`，HTTP 方法徽标等无语义平台细节由模块内小组件 + css module 承担。
+- **执行语义**：模块内自建执行器（`openapi-data.ts` 的纯函数 `buildRequest` + `OperationDetail` 的同源 `fetch`）：`bearerAuth` 注入内存 token（不持久化）；`webuiSession` 自动携带会话 Cookie，mutation 自动附加 `Origin`+`X-CSRF-Token`（复用 `/api/v1/iam/session` 快照）；mock 声明（`readWebUIDataSource() === "mock"`）执行禁用并提示；响应面板呈现状态/耗时/头/格式化 JSON body，错误如实展示。
+- **契约数据源（单权威）**：`go run ./cmd/app webui generate` 从 `api/openapi.yaml` 渲染 `webui/src/generated/openapi-spec.ts`（JSON 对象 + sha256），路径由 `.scaffold/layout.json` 的 `webui.specOutput` 声明；`--check` 整文件严格比对；页面直接 import，mock 下浏览零请求、`mock.ts` 空路由表。
+- **DataTable 平台修复**：`@webui/sdk/ui` 的 `DataTable` 将首个可视列标为 RAC Table 的 `isRowHeader`（客户端渲染必需），并新增客户端渲染回归测试。
+- **安全边界如实呈现**：执行是用户主动行为、权限即当前 WebUI 会话；token 仅内存；mock 无后端时仅浏览。
 
 ## 强制 i18n 契约
 

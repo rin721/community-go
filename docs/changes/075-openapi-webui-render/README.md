@@ -1,20 +1,18 @@
-# 075 新增 openapi 模块：WebUI 可视化渲染 API 契约
+# 075 新增 openapi 模块：Apifox 风格可测试 API 文档工作台
 
-状态：研究门禁通过（R075-001 / R075-002 / R075-003）；用户已确认更新后的计划（页内呈现改为平台组件自绘、移除 swagger-ui-react）；**已实施完成**（55ee70f → 9ea2f13；Go/WebUI/e2e 全绿，截图留存，DataTable 平台缺陷已修复）。
+状态：研究门禁通过（R075-001 / R075-002 / R075-003 / R075-004）。用户已确认第三轮方案（可测试 API 工作台）；**已实施完成**（55ee70f → 9ea2f13 → 本轮；Go/WebUI/e2e 全绿，截图留存）。
 
 ## 背景
 
-`api/openapi.yaml` 是当前公开 HTTP 契约的产物，由 `go generate ./...` 从各模块 `binding/http` 的 Huma 代码声明（code-first）唯一生成，运行时未暴露任何可视化文档入口（Huma 自带 `OpenAPIPath`/`DocsPath` 均被关闭）。用户要求：新增 openapi 模块，在 Admin WebUI 中把该契约渲染成可视化页面，且**页面壳层与页内组件都使用当前 WebUI 组件体系**（R075-003）。
+`api/openapi.yaml` 是当前公开 HTTP 契约的产物，由 `go generate ./...` 从各模块 `binding/http` 的 Huma 代码声明（code-first）唯一生成，运行时未暴露可视化文档入口。用户要求 Admin WebUI 内提供 **Apifox 风格**：操作树导航 + 操作详情 + **真实请求执行** + 响应展示 + 模型浏览，视图组织清晰（不单页堆叠），页内组件全部使用当前 WebUI 组件体系。
 
 ## 方案（摘要）
 
-- 新增 WebUI-only 业务模块 `openapi`：单页面 `/openapi` + 全局菜单项；页面以 `@webui/sdk/ui` 组件自绘只读契约参考页（Operations tag 分组/方法徽标/参数·响应表、Schemas 属性表、security 说明），**不使用第三方文档控件**；
-- 契约数据源保持单权威：`webui generate [--check]` 从 `api/openapi.yaml` 生成 `webui/src/generated/openapi-spec.ts`（JSON 对象），页面直接 import；`server-hosted` / `separated` / `mock` 三态环境零请求一致渲染；
-- 移除 `swagger-ui-react` 及其依赖/别名（单轨替换 55ee70f 的第三方渲染版本）；`webui` 契约、registry 生成、菜单、locale、mock 与受控图标目录（`book`）按既有模块机制接入。
+- `openapi` 模块单路由 `/openapi` 承载工作台：左栏可搜索操作树（按 tag 分组）+ 主区（接口详情与执行面板 / 模型视图），`?view=&op=` search 参数深链；全部组件来自 `@webui/sdk/ui`；
+- **可测试**：同源 fetch 执行器（`credentials: include`）——`bearerAuth` 注入内存 token、`webuiSession` 自动携带会话 Cookie 并对 mutation 附加 `Origin`+`X-CSRF-Token`（复用 `loadSession` 的 csrfToken）；响应呈现状态/耗时/头/JSON body；`mock` 演示构建仅浏览、执行禁用并有明确提示；
+- 契约快照生成链（`webui generate` → `openapi-spec.ts` + `--check`）、模块声明、图标 `book`、`@webui/generated` alias、mock 空表保持不变；无成熟可嵌入第三方（hoppscotch 等为独立应用），执行器为模块内自建窄实现（R075-004）。
 
 ## 阅读顺序
 
-1. [研究档案](research/README.md)：R075-001（swagger-ui-react 选型，已被取代）、R075-002（契约数据源）、R075-003（页内呈现层决策复核，当前有效）
-2. [需求](requirements.md)：目标、范围、非目标、验收标准
-3. [设计](design.md)：数据流、页内呈现、文件影响、失败语义、验证方案
-4. [任务清单](tasks.md)：OAP-075-A..I
+1. [研究档案](research/README.md)：R075-001/R075-003（已归档）、R075-002（快照链，有效）、R075-004（工作台与执行语义，当前有效）
+2. [需求](requirements.md)、[设计](design.md)、[任务清单](tasks.md)：OAP-075-A..E（已完成）+ OAP-075-W1..W7

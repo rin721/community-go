@@ -50,13 +50,12 @@ Linux 使用 `bash scripts/verify-webui.sh`。质量链覆盖生成检查、冻�
 - 交互状态链原语：`ActionTrigger`（pending/防重复/禁用原因/权限呈现）、`BulkActionBar`、`FormSubmitActions`；图标目录 authority 在 `webui/src/icon-catalog.ts`（Go `internal/webui/icons.go` 校验，测试守护一致）。
 - 完整契约与接入步骤见 [WebUI 开发指南](../docs/development/webui.md)。
 
-## OpenAPI 契约可视化页面（075）
+## OpenAPI 可测试 API 工作台（075）
 
-- 新业务模块 `openapi` 提供「API 文档」页（`/openapi`，顶级菜单项）：页面**壳层与页内组件全部使用 `@webui/sdk/ui` 组件体系**（PageHeader/PageSection/Surface/DataTable/InlineAlert/EmptyState 等，R075-003），按 tag 分组展示 operation（方法徽标 + 路径 + operationId，展开显示参数表/请求体摘要/响应表）与 schema 模型属性表；HTTP 方法徽标等无语义平台的细节由模块内小型组件 + css module 承担。
-- 契约数据源：`webui generate` 同时生成 `webui/src/generated/openapi-spec.ts`（`api/openapi.yaml` 的 JSON 变换，含源文件 sha256），页面直接 import——`server-hosted`/`separated`/`mock` 三态零请求一致渲染；`--check` 严格比对防漂移；模块 `mock.ts` 为空路由表（页面零请求）。
-- 布局清单新增 `webui.specOutput`（默认 `webui/src/generated/openapi-spec.ts`），生成链与 `webui-registry.ts` 同命令同门禁；受控图标目录新增 `book`。
+- 新业务模块 `openapi` 提供「API 文档」页（`/openapi`，顶级菜单项）：**Apifox 风格工作台（R075-004）**——左栏可搜索/过滤的操作树（按 tag 分组）+ 主区操作详情（可编辑参数、JSON 请求体编辑器、响应 schema）与**执行面板**（真实请求执行），另有模型浏览视图；视图经 `?view=&op=` search 参数深链；页面壳层与页内组件全部使用 `@webui/sdk/ui`（PageHeader/PageSection/Surface/Field/DataTable/Button/InlineAlert 等），HTTP 方法徽标等无语义平台细节由模块内小组件 + css module 承担。
+- **可测试执行语义**：同源 `fetch`（`credentials: include`）——`bearerAuth` 注入页面内存 token（不持久化）；`webuiSession` 自动携带浏览器会话 Cookie，CSRF 绑定写操作自动附加 `Origin`+`X-CSRF-Token`（复用会话快照，与真实 WebUI 同语义）；响应面板呈现状态码/耗时/响应头/格式化 JSON body，错误如实展示；`mock` 演示构建执行禁用并明确提示。
+- 契约数据源：`webui generate` 同时生成 `webui/src/generated/openapi-spec.ts`（`api/openapi.yaml` 的 JSON 变换，含源文件 sha256），页面直接 import——三态环境浏览一致、mock 零请求；`--check` 严格比对防漂移；布局清单新增 `webui.specOutput`；受控图标目录新增 `book`。
 - 平台修复（本任务发现）：`@webui/sdk/ui` 的 `DataTable` 补齐 RAC Table 要求的首列 `isRowHeader`，客户端渲染不再抛错（含回归测试）。
-- 页面为只读参考：`bearerAuth` 操作可自行携带 token；`webuiSession`/CSRF 绑定写操作无法从参考页执行；mock 演示构建无后端、请求类交互不可用。
 
 ## 侧边栏菜单层级分类（063）
 

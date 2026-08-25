@@ -313,23 +313,37 @@ test("organization management pages render tree, position and assignment evidenc
   await page.screenshot({ path: testInfo.outputPath("organization-assignment.png"), fullPage: true });
 });
 
-test("075 openapi docs render the generated contract with platform components", async ({ page }, testInfo) => {
+test("075 openapi workspace renders tree, detail and executes requests", async ({ page }, testInfo) => {
   (page as unknown as { setWebUIState: (state: { authenticated: boolean }) => void }).setWebUIState({ authenticated: true });
   await page.goto("/openapi");
   await expect(page.getByRole("heading", { name: "API Docs", exact: true })).toBeVisible();
-  // 平台组件自绘（R075-003）：操作按 tag 分组为操作卡，方法徽标 + 已知 operationId。
-  const firstOperation = page.locator('[data-testid="openapi-operation"]').first();
-  await expect(firstOperation).toBeVisible();
-  await expect(firstOperation).toContainText("auth.audit.list");
-  await expect(page.locator("[data-method=get]").first()).toBeVisible();
-  // 展开首操作：参数/响应表使用平台 DataTable。
-  await firstOperation.getByRole("button", { name: "View details" }).click();
-  await expect(firstOperation.locator("table").first()).toBeVisible();
-  // Schema 模型卡片。
-  await expect(page.locator('[data-testid="openapi-schema"]').first()).toBeVisible();
-  // 菜单已进入全局侧边栏（顶级平铺）。
-  await expect(page.locator(".app-sidebar").getByText("API Docs", { exact: true })).toBeVisible();
-  await page.screenshot({ path: testInfo.outputPath("075-openapi-docs.png"), fullPage: true });
+  // 平台组件工作台（R075-004）：左栏操作树 + 过滤。
+  await expect(page.locator('[data-testid="openapi-tree-item"]').first()).toBeVisible();
+  // webuiSession GET 执行：命中 beforeEach 的会话拦截，响应面板呈现 200 与 body。
+  await page.locator('[data-testid="openapi-tree-item"]').filter({ hasText: "iam.session.read" }).click();
+  await expect(page.locator('[data-testid="openapi-operation"]')).toBeVisible();
+  await expect(page.getByRole("heading", { name: "iam.session.read", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Execute", exact: true }).click();
+  await expect(page.locator('[data-testid="openapi-response"]')).toBeVisible();
+  await expect(page.getByText(/200 OK/)).toBeVisible();
+  await expect(page.getByText(/csrf-test-token/)).toBeVisible();
+  await expect(page.getByText(/"username": "operator"/)).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("075-openapi-workspace.png"), fullPage: true });
+  // bearerAuth 注入：拦截 POST /api/v1/todos，断言 Authorization 头。
+  let bearerHeader = "";
+  await page.route("**/api/v1/todos", async (route) => {
+    bearerHeader = route.request().headers()["authorization"] ?? "";
+    await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ id: "todo-1", title: "created" }) });
+  });
+  await page.locator("input[type=search]").fill("createTodo");
+  await page.locator('[data-testid="openapi-tree-item"]').filter({ hasText: "createTodo" }).click();
+  await page.getByLabel("Bearer token").fill("exec-token-123");
+  await page.getByRole("button", { name: "Execute", exact: true }).click();
+  await expect(page.getByText(/201 Created/)).toBeVisible();
+  expect(bearerHeader).toBe("Bearer exec-token-123");
+  // 深链：schemas 视图可直接打开。
+  await page.goto("/openapi?view=schemas");
+  await expect(page.locator('[data-testid="openapi-model-item"]').first()).toBeVisible();
 });
 
 test("navigation policy refreshes the manifest while keeping the registered route", async ({ page }, testInfo) => {

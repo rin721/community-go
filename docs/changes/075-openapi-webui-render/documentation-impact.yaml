@@ -13,12 +13,12 @@ areas:
     decision: updated
     documents:
       - webui/README.md
-    reason: 新增 openapi 模块页面（OpenAPIPage.tsx + openapi-data.ts 纯函数层，页内组件全部来自 @webui/sdk/ui，R075-003）；移除 swagger-ui-react/@types 及其 tsconfig/vite 别名（单轨）；@webui/generated/openapi-spec alias 与 vitest .test.tsx 覆盖保留；图标目录新增 book；修复 @webui/sdk/ui 的 DataTable 客户端渲染缺陷（首列 isRowHeader + 回归测试）。docs/development/webui.md 的 075 小节是权威 webui 开发文档同步更新。
+    reason: openapi 模块升级为可测试 API 工作台（R075-004）：OpenAPIPage 工作台 + OperationDetail 执行器 + SchemasView 模型视图，组件全部来自 @webui/sdk/ui；同源 fetch 执行语义（bearerAuth 内存 token / webuiSession Cookie+CSRF）；mock 执行禁用；契约快照链（@webui/generated alias、vitest .test.tsx 覆盖、图标 book）与 DataTable isRowHeader 修复延续；docs/development/webui.md 的 075 小节同步更新。
   - id: module
     decision: updated
     documents:
       - internal/module/README.md
-    reason: 新增 WebUI-only 模块 openapi（纯 WebUI、无后端 service/repo/migration/operation）；模块清单权威 internal/module/README.md 已同步；openapi 模块自带 README 说明（平台组件自绘呈现 + 生成链 + 模块四步接入）。
+    reason: openapi 模块（WebUI-only）目录扩展为工作台形态（openapi-data/api/OperationDetail/SchemasView/MethodBadge）；模块 README 更新执行语义与视图说明；模块清单权威 internal/module/README.md 已同步。
   - id: startup
     decision: reviewed-no-change
     reason: 宿主 boot 装配链（manifest -> registry -> Shell -> route）、revision 门禁、托管构建链（webui generate 扩展为同一命令多产物）与 mock 传输层语义不变；openapi 页面零请求，三态数据源环境一致渲染。

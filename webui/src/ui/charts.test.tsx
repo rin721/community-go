@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { LineChart, Sparkline } from "./charts";
+import { AxisLineChart, LineChart, Sparkline } from "./charts";
 
 describe("charts primitives (081)", () => {
   it("renders an empty state with the aria label when there are no values", () => {
@@ -29,5 +29,15 @@ describe("charts primitives (081)", () => {
   it("renders an empty state for a chart whose series are all empty", () => {
     const markup = renderToStaticMarkup(createElement(LineChart, { ariaLabel: "empty chart", series: [{ label: "a", values: [] }] }));
     expect(markup).toContain("chart-empty");
+  });
+
+  it("renders an axis chart with ticks, grid and time labels", () => {
+    const markup = renderToStaticMarkup(createElement(AxisLineChart, { ariaLabel: "axis trend", timeLabels: ["10:00:00", "10:00:05"], series: [{ label: "cpu", values: [2, 5] }] }));
+    expect(markup).toContain('aria-label="axis trend"');
+    expect(markup).toContain("chart-axis");
+    expect(markup).toContain("chart-grid");
+    expect(markup).toContain("10:00:00");
+    expect(markup).toContain("10:00:05");
+    expect((markup.match(/<path/g) ?? []).length).toBeGreaterThanOrEqual(1);
   });
 });

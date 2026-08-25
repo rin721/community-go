@@ -10,6 +10,7 @@ const metricsPayload = [
   "go_goroutines 7",
   "process_resident_memory_bytes 26214400",
   "process_start_time_seconds 1787366400",
+  "process_cpu_seconds_total 12.5",
 ].join("\n");
 
 export const webuiMockRoutes: ReadonlyArray<WebUIMockRoute> = [

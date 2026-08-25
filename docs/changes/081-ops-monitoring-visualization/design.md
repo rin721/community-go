@@ -44,15 +44,19 @@ charts.tsx（或 ui/index.tsx 扩展）：
 测试：charts.test.tsx（空数据/单系列/多系列/路径断言/aria-label）
 ```
 
-### 3.3 Dashboard「监控」分区（ops/binding/webui/web）
+### 3.3 Dashboard「监控」分区（面向用户呈现，R081-003 返工）
 
 ```
-DashboardPage.tsx 增加 monitoring 分区：
-  - 状态卡：process（内存/goroutine/GC/uptime）、components（http/management/scheduler/messaging/execution/participants）
-  - 时序图：请求速率、在途请求、内存 alloc、goroutine、调度执行、消息成败（数据经轮询 /metrics text 解析累积）
-轮询器：useState 滚动窗口（长度上限如 60）+ setInterval(5s) 拉取 /metrics 与 /diagnostics；卸载清理
-data 投影：dashboard-data.ts 扩展（readProcessSnapshot/readComponents）；metrics-data.ts 扩展 metrics 名清单
-locale/mock：监控分区文案 + mock 虚拟时序数据
+monitoring-section（重构）：
+  1) 健康横幅：CapabilityBanner —— 语义态（available=全部系统正常 / degraded=N 项降级 / unavailable=N 项故障），
+     计数来自 units 状态语义映射（running/ready/pending -> available；stopped/forced/failed -> 异常；failed -> unavailable）
+  2) 指标卡行（升级 StatGrid/StatCard 或专用 metric card）：内存（GiB+趋势）、请求速率（/s+趋势）、
+     Goroutine（趋势）、进程 CPU%（process_cpu_seconds_total 差分 -> %、趋势）；大数字+单位+迷你趋势+阈值色
+  3) 坐标轴时序图：chaart 原语演化 AxisLineChart（y 刻度 + x 时间标签 + 网格 + 图例 + 归一化多系列）
+  4) 组件状态表：每行=状态圆点/StatusPill（语义词 Operational/Degraded/Unavailable，不显示内部枚举裸值）
+     + 组件名称 + 一句话说明 + 最近采样时间；degraded/failed 行高亮
+  5) 实时感：显示"最近采样 N 秒前"；滚动窗口轮询沿用（5s×60，上限/清理）
+轮询与数据源：与首版一致（/metrics + /diagnostics）
 ```
 
 ### 3.4 文档

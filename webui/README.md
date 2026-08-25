@@ -81,7 +81,7 @@ Linux 使用 `bash scripts/verify-webui.sh`。质量链覆盖生成检查、冻�
 ## 图表原语与运行监控（081）
 
 - `webui/src/ui` 新增**自研 SVG 图表原语** `Sparkline`/`LineChart`（零第三方依赖、多系列/空数据态/aria-label、Vitest 覆盖），任何模块可复用；复杂交互图表（缩放/联动）出现时再评估引入图表库。
-- Ops Dashboard 新增「监控」分区：进程级服务器状态卡（内存/goroutine/GC/uptime，来自 `/diagnostics.process` 与 `/metrics` 的 Go/Process collector）+ 组件状态卡（supervisor units，`diagnostics.units`）+ 时序报表图（请求速率/在途/内存/goroutine，前端滚动窗口约 5s×60 点轮询累积，重启即空）。仅在 available 状态下挂载（degraded 路由保持既有能力边界）。OS 级指标由宿主机 Prometheus node-exporter 补齐（运维文档指引）。
+- Ops Dashboard 新增「监控」分区（1Panel 式仪表盘，R081-003 人因返工）：健康横幅（全部正常/N 项降级/N 项故障）+ 大数值指标卡行（CPU（进程 %，进度条+趋势）、内存（分配量+占比条+趋势）、磁盘/网络（未接入态+node-exporter 指引））+ 组件状态表（状态圆点+语义词+异常高亮）+ 带坐标轴实时趋势图（y 刻度/x 时间标签/图例，`AxisLineChart`）+ 最近采样 N 秒前；前端滚动窗口约 5s×60 点轮询累积，重启即空。仅在 available 状态下挂载（degraded 路由保持既有能力边界）。OS 级指标由宿主机 Prometheus node-exporter 补齐（运维文档指引）。
 
 ## 安全页：MFA 与 API 令牌（078/080）
 

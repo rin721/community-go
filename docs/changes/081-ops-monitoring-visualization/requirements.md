@@ -13,7 +13,7 @@
 | `REQ-081-001` | **进程指标采集（运行时）**：`RuntimeSnapshot` 增加进程字段（alloc/heap/sys 内存、num_goroutine、gc_count、uptime、goroutine 概况），来源 `runtime.ReadMemStats`/`NumGoroutine`（跨平台、零第三方）；`/metrics` 增加对应 Gauge（如 `go_memstats_alloc_bytes`、`go_goroutines`、`process_uptime_seconds` 等，Prometheus 命名风格）。 |
 | `REQ-081-002` | **组件生命周期明细**：`RuntimeSnapshot` 增加组件状态（supervisor participants 名称与状态、scheduler 健康、messaging consumers 待处理/ack 摘要、execution attempts）——来源 supervisor/schedule/messaging/execution 既有接口，低敏（无队列内数据）。 |
 | `REQ-081-003` | **图表原语（自研）**：`webui/src/ui` 新增 `Sparkline`/`LineChart`（纯 SVG：多系列、空数据态、时间标签、aria-label 可测），面向全部模块可复用；不引入 echarts/recharts。 |
-| `REQ-081-004` | **Dashboard 监控分区（需求 1/2 的可视化闭环）**：Ops Dashboard 新增「监控」分区——进程状态卡（内存/goroutine/GC/uptime）、组件状态卡（HTTP/management/scheduler/messaging/execution/participants）、时序报表图（请求速率、在途请求、内存、goroutine、调度执行与消息成败趋势）；前端定时轮询 `/metrics`+`/diagnostics`（滚动窗口约 60 点，零后端存储，重启即空并文档化）。 |
+| `REQ-081-004` | **Dashboard 监控分区（面向用户的呈现形态，R081-003 返工）**：健康横幅（全部正常 / N 项降级 / N 项故障，语义态）+ 大数值指标卡行（内存、请求速率、goroutine、进程 CPU；数字+单位+迷你趋势+状态色）+ 坐标轴时序图（y 刻度、x 时间标签、图例）+ 组件状态表（名称+状态圆点+状态词+一句话说明，异常行高亮）+ 最近采样时间（实时感）；移除首版文本卡堆叠与无轴迷你线；前端滚动窗口轮询（上限约束、卸载清理）。 |
 | `REQ-081-005` | **node-exporter 接入指引（OS 级）**：文档说明宿主机部署 Prometheus node-exporter 后与既有 `/metrics` 文本兼容的接入/展示方式；进程内不做跨平台 OS 采集（gopsutil 候选）。 |
 | `REQ-081-006` | 低敏与边界：监控数据不含凭据/路径/队列内容；management 鉴权沿用（diagnostics/metrics protected 语义不变）；不引入第三方指标库；不新增权限键。 |
 | `REQ-081-007` | 契约与文档同步：`/diagnostics` 响应扩展（后端类型 + 前端 dashboard-data 投影同步）、`/metrics` 新增指标、WebUI locale/mock 与 Vitest/e2e 覆盖；docs（runtime-capabilities/security/运维 README）同步。 |

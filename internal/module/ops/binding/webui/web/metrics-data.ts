@@ -10,6 +10,7 @@ export type RuntimeMetrics = {
   goroutines?: number;
   residentMemoryBytes?: number;
   startTimeSeconds?: number;
+  cpuSecondsTotal?: number;
 };
 
 const metricNames = {
@@ -20,6 +21,7 @@ const metricNames = {
   goroutines: "go_goroutines",
   residentMemoryBytes: "process_resident_memory_bytes",
   startTimeSeconds: "process_start_time_seconds",
+  cpuSecondsTotal: "process_cpu_seconds_total",
 } as const;
 
 function readMetricValue(payload: string, metricName: string): number | undefined {
@@ -54,5 +56,6 @@ export function readRuntimeMetrics(value: unknown): RuntimeMetrics | undefined {
     goroutines: readMetricValue(value, metricNames.goroutines),
     residentMemoryBytes: readMetricValue(value, metricNames.residentMemoryBytes),
     startTimeSeconds: readMetricValue(value, metricNames.startTimeSeconds),
+    cpuSecondsTotal: readMetricValue(value, metricNames.cpuSecondsTotal),
   };
 }

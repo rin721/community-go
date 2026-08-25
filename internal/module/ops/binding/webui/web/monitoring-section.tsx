@@ -1,47 +1,50 @@
 import { useEffect, useState } from "react";
-import { LineChart, PageSection, Sparkline, StatusPill, Surface } from "@webui/sdk/ui";
+import { AxisLineChart, CapabilityBanner, PageSection, Sparkline, StatusPill } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import type { CapabilityState } from "@webui/sdk/runtime";
 import { loadDiagnostics, loadMetrics } from "./api";
-import { readRuntimeSnapshot, readSchedulerRuns, type RuntimeSnapshot } from "./dashboard-data";
-import { readMetricsSnapshot, readRuntimeMetrics, type RuntimeMetrics } from "./metrics-data";
+import { readRuntimeSnapshot, type RuntimeSnapshot, type UnitView } from "./dashboard-data";
+import { readMetricsSnapshot, readRuntimeMetrics } from "./metrics-data";
 import { appendMonitoringPoint, seriesValues, type MonitoringPoint } from "./monitoring-data";
 
 const monitoringPollIntervalMs = 5000;
 
-function formatBytes(value: number | undefined, missing: string): string {
-  if (value === undefined) return missing;
-  if (value >= 1024 * 1024 * 1024) return `${(value / (1024 * 1024 * 1024)).toFixed(1)} GiB`;
-  if (value >= 1024 * 1024) return `${(value / (1024 * 1024)).toFixed(1)} MiB`;
-  return `${(value / 1024).toFixed(1)} KiB`;
+function formatBytes(bytes: number | undefined, missing: string): string {
+  if (bytes === undefined || !Number.isFinite(bytes)) return missing;
+  if (bytes >= 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GiB`;
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MiB`;
+  return `${(bytes / 1024).toFixed(1)} KiB`;
 }
 
-function formatUptime(value: number | undefined, missing: string): string {
-  if (value === undefined || !Number.isFinite(value)) return missing;
-  const seconds = Math.max(0, Math.floor(value));
-  const days = Math.floor(seconds / 86400);
-  const hours = Math.floor((seconds % 86400) / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  return days > 0 ? `${days}d ${hours}h ${minutes}m` : hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+function formatClock(millis: number): string {
+  return new Date(millis).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
 
-function unitState(state: string): CapabilityState {
-  if (state === "running" || state === "ready" || state === "pending") return "available";
-  if (state === "failed" || state === "forced") return "unavailable";
+function unitState(value: string): CapabilityState {
+  if (value === "running" || value === "ready" || value === "pending") return "available";
+  if (value === "failed" || value === "forced") return "unavailable";
   return "degraded";
 }
 
-function MetricTile({ label, value }: { label: string; value: string }) {
-  return <div className="ops-metric-tile"><strong>{value}</strong><span>{label}</span></div>;
+// ServerMetricCard follows the 1Panel-style dashboard card: big value, optional
+// usage bar, and a live trend sparkline (081 R081-003).
+function ServerMetricCard({ title, value, unit, percent, trend, trendLabel, state, detail }: { title: string; value: string; unit?: string; percent?: number; trend: number[]; trendLabel: string; state: CapabilityState; detail?: string }) {
+  return <div className={`ops-metric-card ops-metric-${state}`}>
+    <div className="ops-metric-heading"><h4>{title}</h4><StatusPill state={state}>{state === "available" ? "Operational" : state === "degraded" ? "Degraded" : "Unavailable"}</StatusPill></div>
+    <div className="ops-metric-value"><strong>{value}</strong>{unit && <span className="ops-metric-unit">{unit}</span>}</div>
+    {percent !== undefined && <div className="ops-metric-bar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(percent)}><span className="ops-metric-bar-fill" style={{ width: `${Math.min(100, Math.max(0, percent))}%` }} /></div>}
+    <Sparkline values={trend} ariaLabel={trendLabel} width={140} height={36} stroke={state === "available" ? "var(--chart-1, #60a5fa)" : "var(--chart-4, #f59e0b)"} />
+    {detail && <p className="page-meta">{detail}</p>}
+  </div>;
 }
 
-
-
+// MonitoringSection renders the 1Panel-style server dashboard (081, R081-003):
+// health banner, big metric cards (CPU/memory/disk/network), component status
+// rows and an axis time-series chart fed by a client-side rolling window.
 export function MonitoringSection() {
   const { t } = useWebUITranslation("webui.ops");
   const [points, setPoints] = useState<MonitoringPoint[]>([]);
   const [runtime, setRuntime] = useState<RuntimeSnapshot>();
-  const [metrics, setMetrics] = useState<RuntimeMetrics>();
   const missing = t("webui.ops.dashboard.monitoring.missing");
 
   useEffect(() => {
@@ -53,20 +56,19 @@ export function MonitoringSection() {
           const metricsSnapshot = readMetricsSnapshot(metricsPayload);
           const runtimeSnapshot = readRuntimeSnapshot(diagnosticsPayload);
           const runtimeMetrics = readRuntimeMetrics(metricsPayload);
-          if (metricsSnapshot || runtimeSnapshot || runtimeMetrics) {
-            const point: MonitoringPoint = {
-              at: Date.now(),
-              requestTotal: metricsSnapshot?.requestCount,
-              inFlight: metricsSnapshot?.inFlightRequests,
-              goroutines: runtimeMetrics?.goroutines ?? runtimeSnapshot?.process?.numGoroutine,
-              residentMemoryBytes: runtimeMetrics?.residentMemoryBytes ?? runtimeSnapshot?.process?.allocBytes,
-              memAllocBytes: runtimeSnapshot?.process?.allocBytes,
-              schedulerRuns: readSchedulerRuns(diagnosticsPayload),
-            };
-            setPoints((current) => appendMonitoringPoint(current, point));
-            setRuntime(runtimeSnapshot ?? undefined);
-            setMetrics(runtimeMetrics ?? undefined);
-          }
+          if (!metricsSnapshot && !runtimeSnapshot && !runtimeMetrics) return;
+          const point: MonitoringPoint = {
+            at: Date.now(),
+            requestTotal: metricsSnapshot?.requestCount,
+            inFlight: metricsSnapshot?.inFlightRequests,
+            goroutines: runtimeMetrics?.goroutines ?? runtimeSnapshot?.process?.numGoroutine,
+            residentMemoryBytes: runtimeMetrics?.residentMemoryBytes ?? runtimeSnapshot?.process?.allocBytes,
+            memAllocBytes: runtimeSnapshot?.process?.allocBytes,
+            memSysBytes: runtimeSnapshot?.process?.sysBytes,
+            cpuSecondsTotal: runtimeMetrics?.cpuSecondsTotal,
+          };
+          setPoints((current) => appendMonitoringPoint(current, point));
+          setRuntime(runtimeSnapshot ?? undefined);
         })
         .catch(() => undefined);
     };
@@ -77,38 +79,56 @@ export function MonitoringSection() {
 
   const process = runtime?.process;
   const units = runtime?.units ?? [];
-  const goroutinesSeries = seriesValues(points, "goroutines");
-  const memorySeries = seriesValues(points, "memAllocBytes");
+
+  // Derived series for the dashboard.
+  const cpuSeries = seriesValues(points, "cpuPercent");
+  const memSeries = seriesValues(points, "memAllocBytes");
   const requestsSeries = seriesValues(points, "requestsPerSecond");
-  const inFlightSeries = seriesValues(points, "inFlight");
+  const latest = points.length > 0 ? points[points.length - 1] : undefined;
+  const cpuPercent = latest?.cpuPercent;
+  const memAllocBytes = latest?.memAllocBytes ?? process?.allocBytes;
+  const memSysBytes = latest?.memSysBytes ?? process?.sysBytes;
+  const memPercent = memAllocBytes !== undefined && memSysBytes ? Math.min(100, (memAllocBytes / Math.max(memSysBytes, 1)) * 100) : undefined;
+  const timeLabels = points.map((point) => formatClock(point.at));
+
+  const degradedCount = units.filter((unit) => unitState(unit.state) === "degraded").length;
+  const failedCount = units.filter((unit) => unitState(unit.state) === "unavailable").length;
+  const processed = units.length > 0;
+  const bannerState: CapabilityState = !processed ? "unavailable" : failedCount > 0 ? "unavailable" : degradedCount > 0 ? "degraded" : "available";
 
   return <PageSection title={t("webui.ops.dashboard.monitoring.title")} description={t("webui.ops.dashboard.monitoring.detail")}>
-    <div className="ops-monitoring-grid">
-      <Surface className="ops-overview-card">
-        <div className="ops-overview-heading"><div><span className="ops-overview-kicker">{t("webui.ops.dashboard.monitoring.process.eyebrow")}</span><h3>{t("webui.ops.dashboard.monitoring.process.title")}</h3></div></div>
-        <div className="ops-metric-grid">
-          <MetricTile label={t("webui.ops.dashboard.monitoring.process.alloc")} value={formatBytes(process?.allocBytes ?? metrics?.residentMemoryBytes, missing)} />
-          <MetricTile label={t("webui.ops.dashboard.monitoring.process.goroutines")} value={process?.numGoroutine?.toLocaleString() ?? missing} />
-          <MetricTile label={t("webui.ops.dashboard.monitoring.process.gc")} value={process?.numGC?.toLocaleString() ?? missing} />
-          <MetricTile label={t("webui.ops.dashboard.monitoring.process.uptime")} value={formatUptime(process?.uptimeSeconds, missing)} />
-        </div>
-        <p className="ops-overview-detail">{t("webui.ops.dashboard.monitoring.process.detail")}</p>
-        <div className="ops-chart-row"><Sparkline values={memorySeries} ariaLabel={t("webui.ops.dashboard.monitoring.blurb.memory")} stroke="var(--chart-2, #22d3ee)" /><Sparkline values={goroutinesSeries} ariaLabel={t("webui.ops.dashboard.monitoring.blurb.goroutines")} stroke="var(--chart-3, #a78bfa)" /></div>
-      </Surface>
+    <CapabilityBanner
+      state={bannerState}
+      statusLabel={failedCount > 0 ? t("webui.ops.dashboard.monitoring.banner.unavailable") : degradedCount > 0 ? t("webui.ops.dashboard.monitoring.banner.degraded") : t("webui.ops.dashboard.monitoring.banner.available")}
+      title={failedCount > 0 ? t("webui.ops.dashboard.monitoring.banner.unavailableTitle", { count: failedCount }) : degradedCount > 0 ? t("webui.ops.dashboard.monitoring.banner.degradedTitle", { count: degradedCount }) : t("webui.ops.dashboard.monitoring.banner.availableTitle")}
+      detail={latest ? t("webui.ops.dashboard.monitoring.sampled", { seconds: Math.max(0, Math.round((Date.now() - latest.at) / 1000)) }) : t("webui.ops.dashboard.monitoring.waiting")}
+    />
 
-      <Surface className="ops-overview-card">
-        <div className="ops-overview-heading"><div><span className="ops-overview-kicker">{t("webui.ops.dashboard.monitoring.components.eyebrow")}</span><h3>{t("webui.ops.dashboard.monitoring.components.title")}</h3></div></div>
-        {units.length === 0 ? <p className="form-error">{t("webui.ops.dashboard.monitoring.components.empty")}</p> : <div className="ops-health-list">{units.map((unit) => <div className="ops-health-row" key={`${unit.kind}-${unit.owner}`}><span>{unit.owner}</span><StatusPill state={unitState(unit.state)}>{unit.state}</StatusPill></div>)}</div>}
-        <p className="ops-overview-detail">{t("webui.ops.dashboard.monitoring.components.detail")}</p>
-      </Surface>
+    <div className="ops-metric-grid">
+      <ServerMetricCard title={t("webui.ops.dashboard.monitoring.cpu")} value={cpuPercent === undefined ? missing : cpuPercent.toFixed(1)} unit="%" percent={cpuPercent} trend={cpuSeries} trendLabel={t("webui.ops.dashboard.monitoring.cpuTrend")} state={cpuPercent === undefined ? "unavailable" : cpuPercent > 85 ? "unavailable" : cpuPercent > 65 ? "degraded" : "available"} detail={t("webui.ops.dashboard.monitoring.cpuDetail")} />
+      <ServerMetricCard title={t("webui.ops.dashboard.monitoring.memory")} value={formatBytes(memAllocBytes, missing)} percent={memPercent} trend={memSeries} trendLabel={t("webui.ops.dashboard.monitoring.memoryTrend")} state={memPercent === undefined ? "unavailable" : memPercent > 90 ? "unavailable" : memPercent > 75 ? "degraded" : "available"} detail={t("webui.ops.dashboard.monitoring.memoryDetail")} />
+      <ServerMetricCard title={t("webui.ops.dashboard.monitoring.disk")} value={t("webui.ops.dashboard.monitoring.notConnected")} trend={[]} trendLabel={t("webui.ops.dashboard.monitoring.diskTrend")} state="unavailable" detail={t("webui.ops.dashboard.monitoring.diskDetail")} />
+      <ServerMetricCard title={t("webui.ops.dashboard.monitoring.network")} value={t("webui.ops.dashboard.monitoring.notConnected")} trend={[]} trendLabel={t("webui.ops.dashboard.monitoring.networkTrend")} state="unavailable" detail={t("webui.ops.dashboard.monitoring.networkDetail")} />
+    </div>
 
-      <Surface className="ops-overview-card">
+    <div className="ops-monitoring-lower">
+      <div className="ops-overview-card">
         <div className="ops-overview-heading"><div><span className="ops-overview-kicker">{t("webui.ops.dashboard.monitoring.trends.eyebrow")}</span><h3>{t("webui.ops.dashboard.monitoring.trends.title")}</h3></div></div>
-        {points.length === 0 ? <p className="form-error">{t("webui.ops.dashboard.monitoring.trends.empty")}</p> : <>
-          <LineChart ariaLabel={t("webui.ops.dashboard.monitoring.trends.requests")} series={[{ label: t("webui.ops.dashboard.monitoring.trends.requestsPerSecond"), values: requestsSeries, stroke: "var(--chart-1, #60a5fa)" }, { label: t("webui.ops.dashboard.monitoring.trends.inFlight"), values: inFlightSeries, stroke: "var(--chart-4, #f59e0b)" }]} />
-          <LineChart ariaLabel={t("webui.ops.dashboard.monitoring.trends.memory")} series={[{ label: t("webui.ops.dashboard.monitoring.trends.allocBytes"), values: memorySeries, stroke: "var(--chart-2, #22d3ee)" }, { label: t("webui.ops.dashboard.monitoring.trends.goroutines"), values: goroutinesSeries, stroke: "var(--chart-3, #a78bfa)" }]} />
-        </>}
-      </Surface>
+        {points.length === 0 ? <p className="form-error">{t("webui.ops.dashboard.monitoring.trends.empty")}</p> : <AxisLineChart ariaLabel={t("webui.ops.dashboard.monitoring.trends.aria")} timeLabels={timeLabels} series={[
+          { label: t("webui.ops.dashboard.monitoring.trends.cpu"), values: cpuSeries, stroke: "var(--chart-1, #60a5fa)" },
+          { label: t("webui.ops.dashboard.monitoring.trends.requests"), values: requestsSeries, stroke: "var(--chart-4, #f59e0b)" },
+        ]} />}
+      </div>
+
+      <div className="ops-overview-card">
+        <div className="ops-overview-heading"><div><span className="ops-overview-kicker">{t("webui.ops.dashboard.monitoring.components.eyebrow")}</span><h3>{t("webui.ops.dashboard.monitoring.components.title")}</h3></div><StatusPill state={bannerState}>{failedCount > 0 ? "Unavailable" : degradedCount > 0 ? "Degraded" : "Operational"}</StatusPill></div>
+        {units.length === 0 ? <p className="form-error">{t("webui.ops.dashboard.monitoring.components.empty")}</p> : <div className="ops-health-list">{units.map((unit: UnitView) => (
+          <div className={`ops-health-row${unitState(unit.state) === "available" ? "" : " ops-health-row-attention"}`} key={`${unit.kind}-${unit.owner}`}>
+            <span className="ops-component-name">{unit.owner}</span>
+            <StatusPill state={unitState(unit.state)}>{unitState(unit.state) === "available" ? "Operational" : unitState(unit.state) === "degraded" ? "Degraded" : "Unavailable"}</StatusPill>
+          </div>
+        ))}</div>}
+      </div>
     </div>
   </PageSection>;
 }

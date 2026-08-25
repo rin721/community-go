@@ -11,6 +11,13 @@ describe("monitoring window (081)", () => {
     expect(window[1].requestsPerSecond).toBeCloseTo(4, 5); // 20 requests / 5s
   });
 
+  it("computes process cpu percent from the cpu seconds delta", () => {
+    const first = { at: 1000, cpuSecondsTotal: 10 };
+    const second = { at: 6000, cpuSecondsTotal: 10.25 };
+    const window = appendMonitoringPoint(appendMonitoringPoint([], first), second);
+    expect(window[1].cpuPercent).toBeCloseTo(5, 5); // 0.25s cpu over 5s = 5%
+  });
+
   it("caps the window at the configured limit", () => {
     let window: ReturnType<typeof appendMonitoringPoint> = [];
     for (let index = 0; index < monitoringWindowLimit + 5; index++) {

@@ -8,7 +8,7 @@ import { useActionAccess, useZoneContributions, ZoneSlot } from "../sdk/zone";
 export { Reveal, RevealList, revealRhythms, revealStaggerStep } from "../motion/reveal";
 export type { RevealProps, RevealRhythm } from "../motion/reveal";
 export { ToastProvider };
-export { Sparkline, LineChart } from "./charts";
+export { Sparkline, LineChart, AxisLineChart } from "./charts";
 export type { ChartSeries } from "./charts";
 
 function alertStatus(state: CapabilityState): "default" | "success" | "warning" | "danger" | "accent" {

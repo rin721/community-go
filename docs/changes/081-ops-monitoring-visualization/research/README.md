@@ -29,3 +29,4 @@
 | --- | --- | --- |
 | [R081-001](R081-001-capability-audit/report.md) | 运维监控可视化能力盘点：运行时仪表盘/时序报表图、进程与宿主监控路径 | active |
 | [R081-002](R081-002-charting-approach/report.md) | 可视化与宿主指标实现取向：自研 SVG vs 图表库、runtime vs gopsutil vs node-exporter | active |
+| [R081-003](R081-003-humane-monitoring-ux/report.md) | 监控可视化的人因形态：主流产品的服务器状态呈现与本地落地（健康横幅、指标卡、带轴时序图、组件状态表） | active（首版 UI 返工依据） |

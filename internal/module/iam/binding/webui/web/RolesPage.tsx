@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActionTrigger, Button, Check, CodeText, DataTable, Drawer, Field, FilterBar, FormField, PageHeader, PageSection, SearchInput, StatusBadge } from "@webui/sdk/ui";
+import { ActionTrigger, Button, Check, CodeText, ConfirmActionTrigger, DataTable, Drawer, Field, FilterBar, FormField, PageHeader, PageSection, SearchInput, StatusBadge } from "@webui/sdk/ui";
 import { useListQueryParams } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { archiveRole, createRole, listPermissions, listRoles, replaceRolePermissions, rolePermissionsView, updateRoleInfo, type PermissionDefinition, type Role } from "./api";
@@ -114,10 +114,6 @@ export default function RolesPage() {
       if (index >= 0) setItems((current) => [...current.slice(0, index), item, ...current.slice(index + 1)]);
     }).catch(() => { void refresh(); });
   };
-  const archive = () => {
-    if (!selected || selected.system) return;
-    void archiveRole(selected.id).then(() => { setFocusedRoleID(""); return refresh(); }).catch(() => setMessage(t("webui.iam.error")));
-  };
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   // 082 REQ-082-014: row menu (real operations only).
   const rowActions = (role: Role) => {
@@ -169,7 +165,18 @@ export default function RolesPage() {
           <div className="toolbar-actions">
             <ActionTrigger operationId="iam.roles.permissions.replace" disabled={!selected || selected.system || selected.archived || (diff.added === 0 && diff.removed === 0)} onAction={save}>{t("webui.iam.roles.savePermissions")}</ActionTrigger>
             {selected && !selected.system && !selected.archived && focusedRoleID !== selected.id && <Button variant="secondary" onClick={() => { setFocusedRoleID(selected.id); setRoleName(selected.name); setRoleDescription(selected.description); }}>{t("webui.iam.roles.edit")}</Button>}
-            {selected && !selected.system && !selected.archived && <ActionTrigger operationId="iam.roles.archive" variant="danger" onAction={archive}>{t("webui.iam.roles.archive")}</ActionTrigger>}
+            {selected && !selected.system && !selected.archived && <ConfirmActionTrigger
+              operationId="iam.roles.archive"
+              variant="danger"
+              label={t("webui.iam.roles.archive")}
+              pendingLabel={t("webui.iam.saving")}
+              confirmTitle={t("webui.iam.roles.confirmArchive")}
+              confirmDescription={t("webui.iam.roles.archiving")}
+              confirmLabel={t("webui.iam.roles.archive")}
+              cancelLabel={t("webui.iam.cancel")}
+              closeLabel={t("webui.iam.cancel")}
+              onConfirm={() => selected ? archiveRole(selected.id).then(() => { setFocusedRoleID(""); return refresh(); }) : Promise.resolve()}
+            />}
           </div>
           {focusedRoleID === selected?.id && <><Field label={t("webui.iam.roles.name")} value={roleName} onChange={(event) => setRoleName(event.target.value)} /><Field label={t("webui.iam.roles.description")} value={roleDescription} onChange={(event) => setRoleDescription(event.target.value)} /><ActionTrigger operationId="iam.roles.update" disabled={!roleName.trim()} onAction={edit}>{t("webui.iam.roles.edit")}</ActionTrigger></>}
         </PageSection>

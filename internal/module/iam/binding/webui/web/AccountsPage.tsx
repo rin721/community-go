@@ -146,6 +146,8 @@ export default function AccountsPage() {
           searchInput={<SearchInput value={listQuery.filters.query} onChange={(next) => listQuery.setFilters({ ...listQuery.filters, query: next })} placeholder={t("webui.iam.search")} label={t("webui.iam.accounts.filter")} />}
           onClear={() => listQuery.clearFilters()}
           clearLabel={t("webui.iam.accounts.clear")}
+          resultCount={total}
+          resultCountLabel={(count) => t("webui.iam.accounts.total", { total: count })}
         />
         {loadError && <ErrorState kind="connectivity" title={hostT("webui.host.route.error.title")} detail={hostT("webui.host.route.error.detail")} action={<Button variant="secondary" onClick={() => void refresh()}>{hostT("webui.host.retry")}</Button>} />}
         <DataTable<Account>
@@ -164,9 +166,8 @@ export default function AccountsPage() {
           enhancements={{
             density: "default",
             stickyHeader: true,
-            columnVisibility: { persistedKey: "iam-accounts" },
+            rowMenuHeader: t("webui.iam.accounts.actions"),
             renderRowMenu: rowActions,
-            columnMenuLabel: t("webui.iam.accounts.columns"),
           }}
         />
       </PageSection>

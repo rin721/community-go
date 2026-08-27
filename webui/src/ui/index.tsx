@@ -164,12 +164,14 @@ export type DataTableEnhancements<Row> = {
   stickyHeader?: boolean;
   /** 行操作菜单：renderRowMenu 返回菜单项（仅渲染真实 operation；空数组不渲染菜单列）。 */
   renderRowMenu?: (row: Row, index: number) => ReadonlyArray<{ key: string; label: ReactNode; onSelect: () => void; danger?: boolean }>;
+  /** 行操作列的可视表头（084：操作列不再是无标题空列）。 */
+  rowMenuHeader?: ReactNode;
   /** 列显隐菜单的 a11y 文案。 */
   columnMenuLabel?: string;
 };
 
 export function DataTable<Row>({ columns, rows, ariaLabel, getRowKey = (_row, index) => String(index), loading = false, loadingLabel, emptyState, selectable = false, selectionLabel, selectedKeys, onSelectedKeysChange, wrapperProps, enhancements }: DataTableProps<Row>) {
-  const { density = "default", stickyHeader = false, columnVisibility, renderRowMenu, columnMenuLabel } = enhancements ?? {};
+  const { density = "default", stickyHeader = false, columnVisibility, renderRowMenu, rowMenuHeader, columnMenuLabel } = enhancements ?? {};
   // 列显隐：受控于 localStorage（persistedKey）或 initialVisible；被隐藏的列通过菜单恢复。
   const [hiddenColumns, setHiddenColumns] = useState<ReadonlySet<string>>(() => {
     if (!columnVisibility) return new Set<string>();
@@ -232,7 +234,7 @@ export function DataTable<Row>({ columns, rows, ariaLabel, getRowKey = (_row, in
         <Table.Header>
           {selectable && <Table.Column id="selection"><input ref={headerSelectionRef} type="checkbox" checked={allSelected} onChange={toggleAll} aria-checked={partiallySelected ? "mixed" : allSelected} aria-label={selectionLabel} /></Table.Column>}
           {visibleColumns.map((column, index) => <Table.Column id={column.id} className={column.className} isRowHeader={index === 0} key={column.id}>{column.header}</Table.Column>)}
-          {hasRowMenu && <Table.Column id="row-menu" aria-label={columnMenuLabel ?? ""} />}
+          {hasRowMenu && <Table.Column id="row-menu" aria-label={columnMenuLabel ?? ""}>{rowMenuHeader}</Table.Column>}
         </Table.Header>
         <Table.Body>
           {loading && <Table.Row>{selectable && <Table.Cell />}{visibleColumns.map((column) => <Table.Cell key={column.id}><Skeleton lines={3} label={loadingLabel ?? ""} /></Table.Cell>)}{hasRowMenu && <Table.Cell />}</Table.Row>}
@@ -683,6 +685,8 @@ export type FilterBarField = {
   control: FilterFieldControl;
   /** select 控件选项（control=select 时必须）。 */
   options?: ReadonlyArray<SelectOption>;
+  /** input 控件占位提示（control=input 时可选，084 提高筛选输入可辨识度）。 */
+  placeholder?: string;
   /** 受控值：select 为字符串 value，switch 为 boolean，input 为字符串。 */
   value: string | boolean | undefined;
   onValueChange: (next: string | boolean) => void;
@@ -716,7 +720,7 @@ export function FilterBar({ fields, onClear, clearLabel, resultCount, resultCoun
             case "switch":
               return <Switch key={field.key} label={field.label} checked={field.value === true} onChange={(next) => field.onValueChange(next)} />;
             case "input":
-              return <label key={field.key} className="filter-field"><span className="filter-field-label">{field.label}</span><input type="text" value={typeof field.value === "string" ? field.value : ""} onChange={(event) => field.onValueChange(event.target.value)} /></label>;
+              return <label key={field.key} className="filter-field"><span className="filter-field-label">{field.label}</span><input type="text" placeholder={field.placeholder} value={typeof field.value === "string" ? field.value : ""} onChange={(event) => field.onValueChange(event.target.value)} /></label>;
             case "select":
             default:
               // 084：筛选下拉改为「行内标签 + 原生 select」紧凑形态，替代带浮动

@@ -145,21 +145,45 @@
   display: grid;
   gap: 6px;
 }
+.iamModule :global(.api-token-scope-head) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
 .iamModule :global(.api-token-scope-owner) {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   margin: 6px 0 2px;
   font-size: 12px;
   font-weight: var(--font-weight-semibold);
   color: var(--text-secondary);
+}
+.scopeOwnerCount {
+  display: inline-flex;
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: var(--font-weight-regular);
+}
+.iamModule :global(.scope-select-all) {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
 }
 .iamModule :global(.api-token-scope-grid) {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 6px 12px;
 }
-/* 084：创建区两栏（基本信息/有效期 + 权限范围），消除右半空白 */
+/* 084：创建区两栏（基本信息/有效期 + 权限范围），左侧表单略宽、右侧填充 */
 .iamModule :global(.api-token-create-grid) {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
   gap: 16px;
   align-items: start;
 }

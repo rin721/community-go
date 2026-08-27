@@ -77,6 +77,21 @@ export default function ApiTokensPage() {
       .catch(() => setMessage(t("webui.iam.apiTokens.error")));
   };
 
+  const submitDisabled = restricted || !name.trim() || selectedScopes.length === 0 || (!neverExpires && !expiresAt);
+  const submitHint = restricted
+    ? t("webui.iam.apiTokens.restrictedDetail")
+    : !name.trim()
+      ? t("webui.iam.apiTokens.nameRequired")
+      : selectedScopes.length === 0
+        ? t("webui.iam.apiTokens.scopeRequired")
+        : (!neverExpires && !expiresAt)
+          ? t("webui.iam.apiTokens.expiryRequired")
+          : "";
+  // 084: required-field hints appear only after the user starts editing, so the
+  // fresh form does not look like it already failed validation.
+  const [touched, setTouched] = useState(false);
+  const markTouched = () => setTouched(true);
+
   const expireToken = (row: ApiTokenView) => {
     // PATCH keeps name/description and clears expiry via neverExpires when requested.
     void updateApiToken(row.id, row.name, row.description || "", undefined, false).then(() => refresh());
@@ -90,46 +105,62 @@ export default function ApiTokensPage() {
       {message && <p className="page-meta" role="status">{message}</p>}
 
       <PageSection kicker={t("webui.iam.apiTokens.createKicker")} title={t("webui.iam.apiTokens.createTitle")}>
-        <div className="api-token-create-grid">
-          <div className="form-panel">
-            <div className="form-section">
-              <h4 className="form-section-title">{t("webui.iam.apiTokens.identity.title")}</h4>
-              <Field label={t("webui.iam.apiTokens.name")} required value={name} onChange={(event) => setName(event.target.value)} />
-              <Field label={t("webui.iam.apiTokens.descriptionLabel")} value={description} onChange={(event) => setDescription(event.target.value)} />
-            </div>
-            <div className="form-section">
-              <h4 className="form-section-title">{t("webui.iam.apiTokens.validity.title")}</h4>
-              <div className="field-grid">
-                <SelectField label={t("webui.iam.apiTokens.expiresAt")} value={neverExpires ? "never" : "custom"} options={[
-                  { value: "custom", label: t("webui.iam.apiTokens.customExpiry") },
-                  { value: "never", label: t("webui.iam.apiTokens.neverExpire") },
-                ]} onValueChange={(value) => setNeverExpires(value === "never")} />
-                {!neverExpires && <Field label={t("webui.iam.apiTokens.expiryValue")} type="datetime-local" required value={expiresAt} onChange={(event) => setExpiresAt(event.target.value)} />}
-              </div>
-              {!neverExpires && message && <p className="page-meta" role="status">{message}</p>}
-            </div>
-            <div className="row-actions">
-              <Button onClick={submit} disabled={restricted || !name.trim() || selectedScopes.length === 0 || (!neverExpires && !expiresAt)}>{t("webui.iam.apiTokens.submit")}</Button>
-            </div>
+        <div className="form-panel form-panel-bounded">
+          <div className="form-section">
+            <h4 className="form-section-title">{t("webui.iam.apiTokens.identity.title")}</h4>
+            <Field label={t("webui.iam.apiTokens.name")} required value={name} onChange={(event) => { setTouched(true); setName(event.target.value); }} />
+            <Field label={t("webui.iam.apiTokens.descriptionLabel")} value={description} onChange={(event) => { setTouched(true); setDescription(event.target.value); }} />
           </div>
-          <fieldset className="scope-fieldset">
+          <div className="form-section">
+            <h4 className="form-section-title">{t("webui.iam.apiTokens.validity.title")}</h4>
+            <div className="field-grid">
+              <SelectField label={t("webui.iam.apiTokens.expiresAt")} value={neverExpires ? "never" : "custom"} options={[
+                { value: "custom", label: t("webui.iam.apiTokens.customExpiry") },
+                { value: "never", label: t("webui.iam.apiTokens.neverExpire") },
+              ]} onValueChange={(value) => setNeverExpires(value === "never")} />
+              {!neverExpires && <Field label={t("webui.iam.apiTokens.expiryValue")} type="datetime-local" required value={expiresAt} onChange={(event) => { setTouched(true); setExpiresAt(event.target.value); }} />}
+            </div>
+            {!neverExpires && message && <p className="page-meta" role="status">{message}</p>}
+          </div>
+        </div>
+        <fieldset className="scope-fieldset">
             <legend className="scope-fieldset-legend">{t("webui.iam.apiTokens.scopes.title")}</legend>
             {availableScopes.length === 0 && <p className="page-meta">{t("webui.iam.apiTokens.scopeEmpty")}</p>}
-            {scopeGroups.map((group) => (
-              <div className="api-token-scope-group" key={group.ownerModuleId}>
-                <h4 className="api-token-scope-owner">{group.ownerModuleId}</h4>
-                <div className="api-token-scope-grid">
-                  {group.scopes.map((scope) => (
-                    <label key={scope} className="page-check">
-                      <input type="checkbox" checked={selectedScopes.includes(scope)} onChange={() => toggleScope(scope)} />
-                      <span>{scope === "*" ? t("webui.iam.apiTokens.scopeWildcard") : scope}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            ))}
+            {scopeGroups.map((group) => {
+                const groupAllSelected = group.scopes.every((scope) => selectedScopes.includes(scope));
+                const setGroupScopes = () => {
+                  setTouched(true);
+                  setSelectedScopes((current) => {
+                    const next = new Set(current);
+                    for (const scope of group.scopes) {
+                      if (!groupAllSelected) next.add(scope);
+                      else next.delete(scope);
+                    }
+                    return [...next];
+                  });
+                };
+                return (
+                  <div className="api-token-scope-group" key={group.ownerModuleId}>
+                    <div className="api-token-scope-head">
+                      <h4 className="api-token-scope-owner">{group.ownerModuleId}<span className={styles.scopeOwnerCount}>{String(group.scopes.length)}</span></h4>
+                      <label className="scope-select-all"><input type="checkbox" checked={groupAllSelected} onChange={setGroupScopes} />{t("webui.iam.apiTokens.selectAll")}</label>
+                    </div>
+                    <div className="api-token-scope-grid">
+                      {group.scopes.map((scope) => (
+                        <label key={scope} className="page-check">
+                          <input type="checkbox" checked={selectedScopes.includes(scope)} onChange={() => { setTouched(true); toggleScope(scope); }} />
+                          <span>{scope === "*" ? t("webui.iam.apiTokens.scopeWildcard") : scope}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
           </fieldset>
+        <div className="row-actions form-actions">
+          <Button onClick={submit} disabled={submitDisabled}>{t("webui.iam.apiTokens.submit")}</Button>
         </div>
+        {submitDisabled && touched && <p className="page-meta" role="status">{submitHint}</p>}
       </PageSection>
 
       <PageSection kicker={t("webui.iam.apiTokens.listKicker")} title={t("webui.iam.apiTokens.listTitle")}>

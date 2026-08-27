@@ -76,15 +76,15 @@ export default function AuditPage() {
         <FilterBar
           ariaLabel={t("webui.auth.audit.filter.kicker")}
           fields={[
-            { key: "operation", label: t("webui.auth.audit.operation"), control: "input", value: listQuery.filters.operation, onValueChange: (next) => listQuery.setFilters({ ...listQuery.filters, operation: String(next) }) },
-            { key: "action", label: t("webui.auth.audit.action"), control: "input", value: listQuery.filters.action, onValueChange: (next) => listQuery.setFilters({ ...listQuery.filters, action: String(next) }) },
+            { key: "operation", label: t("webui.auth.audit.operation"), placeholder: t("webui.auth.audit.operationPh"), control: "input", value: listQuery.filters.operation, onValueChange: (next) => listQuery.setFilters({ ...listQuery.filters, operation: String(next) }) },
+            { key: "action", label: t("webui.auth.audit.action"), placeholder: t("webui.auth.audit.actionPh"), control: "input", value: listQuery.filters.action, onValueChange: (next) => listQuery.setFilters({ ...listQuery.filters, action: String(next) }) },
             { key: "outcome", label: t("webui.auth.audit.outcome"), control: "select", options: [
               { value: "", label: t("webui.auth.audit.outcomeAll") },
               { value: "succeeded", label: t("webui.auth.audit.succeeded") },
               { value: "denied", label: t("webui.auth.audit.denied") },
               { value: "failed", label: t("webui.auth.audit.failed") },
             ], value: listQuery.filters.outcome, onValueChange: (next) => listQuery.setFilters({ ...listQuery.filters, outcome: String(next) }) },
-            { key: "resourceType", label: t("webui.auth.audit.resourceType"), control: "input", value: listQuery.filters.resourceType, onValueChange: (next) => listQuery.setFilters({ ...listQuery.filters, resourceType: String(next) }) },
+            { key: "resourceType", label: t("webui.auth.audit.resourceType"), placeholder: t("webui.auth.audit.resourcePh"), control: "input", value: listQuery.filters.resourceType, onValueChange: (next) => listQuery.setFilters({ ...listQuery.filters, resourceType: String(next) }) },
           ]}
           onClear={() => listQuery.clearFilters()}
           clearLabel={t("webui.auth.audit.clear")}
@@ -97,7 +97,7 @@ export default function AuditPage() {
         <DataTable<AuditEventView>
           columns={[
             { id: "occurredAt", header: t("webui.auth.audit.occurredAt"), cell: (item) => <span title={formatDateTime(item.occurredAt)}>{formatRelativeTime(item.occurredAt, hostT)}</span> },
-            { id: "operation", header: t("webui.auth.audit.operation"), cell: (item) => <CodeText value={item.operation ?? ""} /> },
+            { id: "operation", header: t("webui.auth.audit.operation"), className: "audit-operation-col", cell: (item) => <CodeText value={item.operation ?? ""} /> },
             { id: "action", header: t("webui.auth.audit.action"), cell: (item) => <CodeText value={item.action ?? ""} /> },
             { id: "resource", header: t("webui.auth.audit.resourceType"), cell: (item) => item.resourceType ?? "" },
             { id: "subject", header: t("webui.auth.audit.subjectHash"), cell: (item) => <CodeText value={item.subjectHash ?? ""} /> },
@@ -112,9 +112,8 @@ export default function AuditPage() {
           enhancements={{
             density: "compact",
             stickyHeader: true,
-            columnVisibility: { persistedKey: "auth-audit" },
+            rowMenuHeader: t("webui.auth.audit.actions"),
             renderRowMenu: (item, _index) => [{ key: "detail", label: t("webui.auth.audit.detail"), onSelect: () => setSelected(item) }],
-            columnMenuLabel: t("webui.auth.audit.columns"),
           }}
         />
         <Pagination

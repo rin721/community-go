@@ -1,1 +1,12 @@
-.authModule {} /* 模块根类占位：AuditPage 已迁 DataTable，无模块专属样式（083：audit-* 死代码已删） */
+﻿.authModule {} /* module root placeholder: AuditPage migrated to DataTable */
+
+/* 084: audit operation column truncates instead of wrapping long ids */
+.authModule :global(.audit-operation-col) {
+  max-width: 300px;
+}
+.authModule :global(.audit-operation-col .code-text-value) {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

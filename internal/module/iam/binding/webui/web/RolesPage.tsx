@@ -124,7 +124,7 @@ export default function RolesPage() {
   // 082 REQ-082-014: row menu (real operations only).
   const rowActions = (role: Role) => {
     const actions: Array<{ key: string; label: string; onSelect: () => void; danger?: boolean }> = [];
-    actions.push({ key: "select", label: t("webui.iam.roles.selected"), onSelect: () => setSelectedID(role.id) });
+    actions.push({ key: "select", label: t("webui.iam.roles.manage"), onSelect: () => setSelectedID(role.id) });
     if (!role.system && !role.archived) {
       actions.push({ key: "edit", label: t("webui.iam.roles.edit"), onSelect: () => { setFocusedRoleID(role.id); setRoleName(role.name); setRoleDescription(role.description); } });
       actions.push({ key: "archive", label: t("webui.iam.roles.archive"), danger: true, onSelect: () => void archiveRole(role.id).then(() => refresh()).catch(() => setMessage(t("webui.iam.error"))) });
@@ -152,13 +152,15 @@ export default function RolesPage() {
           searchInput={<SearchInput value={listQuery.filters.query} onChange={(next) => listQuery.setFilters({ query: next })} placeholder={t("webui.iam.search")} label={t("webui.iam.roles.filter")} />}
           onClear={() => listQuery.clearFilters()}
           clearLabel={t("webui.iam.accounts.clear")}
+          resultCount={total}
+          resultCountLabel={(count) => t("webui.iam.roles.total", { total: count })}
         />
         {loadError && <ErrorState kind="connectivity" title={hostT("webui.host.route.error.title")} detail={hostT("webui.host.route.error.detail")} action={<Button variant="secondary" onClick={() => void refresh()}>{hostT("webui.host.retry")}</Button>} />}
         <DataTable<Role>
           columns={[
             { id: "name", header: t("webui.iam.roles.name"), cell: (item) => item.name },
             { id: "code", header: t("webui.iam.roles.code"), cell: (item) => <CodeText value={item.code} /> },
-            { id: "kind", header: t("webui.iam.roles.selected"), cell: (item) => roleKindCell(item, t) },
+            { id: "kind", header: t("webui.iam.roles.kind"), cell: (item) => roleKindCell(item, t) },
           ]}
           rows={items}
           ariaLabel={t("webui.iam.roles.list.title")}
@@ -169,9 +171,8 @@ export default function RolesPage() {
           enhancements={{
             density: "default",
             stickyHeader: true,
-            columnVisibility: { persistedKey: "iam-roles" },
+            rowMenuHeader: t("webui.iam.roles.actions"),
             renderRowMenu: rowActions,
-            columnMenuLabel: t("webui.iam.accounts.columns"),
           }}
         />
       </PageSection>

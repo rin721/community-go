@@ -84,3 +84,23 @@ test("082 migrated pages render with semantic components in mock mode", async ({
   await expect(page.locator('[data-reveal="hidden"]')).toHaveCount(0);
   await page.screenshot({ path: "test-results/082-migrated-pages-mock.png", fullPage: true });
 });
+
+// 083 VER-083：视觉验证截图（供 codex 多模态核对设计基线）。
+// 生成关键页面整页截图到 test-results/083-visual-*,由外部多模态 agent 对照
+// admin-design-baseline.md 检查视觉一致性（布局/密度/语义组件/状态）。
+test("083 visual snapshots for design baseline review", async ({ page }, testInfo) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const targets = [
+    { path: "/dashboard", name: "dashboard" },
+    { path: "/admin/accounts", name: "accounts" },
+    { path: "/admin/roles", name: "roles" },
+    { path: "/settings/profile", name: "settings" },
+    { path: "/admin/audit", name: "audit" },
+  ];
+  for (const target of targets) {
+    await page.goto(target.path);
+    await page.waitForLoadState("networkidle");
+    await page.screenshot({ path: `test-results/083-visual-${target.name}.png`, fullPage: true });
+  }
+  testInfo.attach("083-visual-snapshots", { path: "test-results/083-visual-dashboard.png" });
+});

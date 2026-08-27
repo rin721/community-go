@@ -623,7 +623,7 @@ const statToneClass = { default: "", positive: "stat-tone-positive", attention: 
 export function StatCard({ icon, value, label, trend, tone = "default", rhythm = "balanced", className = "" }: StatCardProps) {
   return (
     <Reveal as="div" rhythm={rhythm} className={`stat-card ${statToneClass[tone]} ${className}`.trim()}>
-      <Card className="flex w-full min-h-[84px] items-center gap-3 px-4 py-3.5 shadow-sm">
+      <Card className="flex w-full min-h-[64px] items-center gap-3 px-4 py-3 shadow-sm">
         {icon && <span className="stat-icon grid size-9 shrink-0 place-items-center rounded-xl bg-primary-100 text-primary-700" aria-hidden="true">{icon}</span>}
         <span className="stat-copy grid min-w-0 gap-1.5">
           <strong className="stat-value text-[22px] font-semibold leading-none tracking-tight">{value}</strong>

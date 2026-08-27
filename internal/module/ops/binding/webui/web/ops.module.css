@@ -52,10 +52,10 @@
   color: var(--text-muted);
   font-size: 11px;
 }
-.opsModule :global(.ops-metrics-card) { margin-top: 14px; padding: 16px; }
-.opsModule :global(.ops-metric-grid) { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 18px; }
-.opsModule :global(.ops-metric-tile) { display: grid; gap: 8px; min-height: 94px; padding: 14px; border-radius: 8px; color: #fff; box-shadow: var(--shadow); }
-.opsModule :global(.ops-metric-tile strong) { font-size: 24px; line-height: 1; letter-spacing: -.04em; }
+.opsModule :global(.ops-metric-card) { margin-top: 14px; padding: 16px; }
+.opsModule :global(.ops-metric-grid) { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+.opsModule :global(.ops-metric-tile) { display: grid; gap: 6px; min-height: 66px; padding: 12px 14px; border-radius: 8px; color: #fff; box-shadow: var(--shadow); }
+.opsModule :global(.ops-metric-tile strong) { font-size: 21px; line-height: 1; letter-spacing: -.04em; }
 .opsModule :global(.ops-metric-tile span) { font-size: 11px; opacity: .86; }
 .opsModule :global(.ops-metric-requests) { background: linear-gradient(135deg, #db2777, #be185d); }
 .opsModule :global(.ops-metric-inFlight) { background: linear-gradient(135deg, #7c3aed, #5b21b6); }

@@ -72,7 +72,7 @@ export default function AuditPage() {
   return <div className={`${styles.authModule} module-page`}>
     <PageHeader eyebrow={t("webui.auth.audit.title")} title={t("webui.auth.audit.title")} description={t("webui.auth.audit.description")} />
     <div className="page-sections">
-      <PageSection kicker={t("webui.auth.audit.filter.kicker")} title={t("webui.auth.audit.filter.title")}>
+      <PageSection kicker={t("webui.auth.audit.list.kicker")} title={t("webui.auth.audit.list.title")}>
         <FilterBar
           ariaLabel={t("webui.auth.audit.filter.kicker")}
           fields={[
@@ -91,8 +91,6 @@ export default function AuditPage() {
           resultCount={total}
           resultCountLabel={(count) => t("webui.auth.audit.total", { total: count })}
         />
-      </PageSection>
-      <PageSection kicker={t("webui.auth.audit.list.kicker")} title={t("webui.auth.audit.list.title")}>
         {loadError && <ErrorState kind="connectivity" title={hostT("webui.host.route.error.title")} detail={hostT("webui.host.route.error.detail")} action={<Button variant="secondary" onClick={() => void refresh()}>{hostT("webui.host.retry")}</Button>} />}
         <DataTable<AuditEventView>
           columns={[

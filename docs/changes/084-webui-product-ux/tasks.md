@@ -25,6 +25,9 @@
 | ABOUT-084-004 | S | 技术栈两列 chip、设置卡内容高度、仓库地址可点击链接 | 截图复核 | 完成 |
 | BULK-084-005 | L | 账号批量操作闭环：后端 `accounts/batch-status` + `accounts/batch-archive`（逐账号复用安全语义/审计，失败不中止并逐条导出稳定错误码）+ 契约生成 + BulkActionBar 多动作扩展 + Accounts 行选择与批量条 + mock/e2e | go test/vet、generate:check、vitest、mock e2e 7/7 全绿 | 完成 |
 | FILTER-084-006 | M | FilterBar `trailingFields` 右侧排序簇（筛选左/排序计数右）；行操作列固定宽度 + 主操作/更多按钮带边界 chip；批量条未选择时降为次级视觉、取消 sticky 遮挡 | typecheck/lint/vitest/e2e/build 全绿；截图复核 | 完成 |
+| AUDIT-084-007 | S | 审计筛选并入列表卡（移除独立筛选卡片，减少堆叠留白） | e2e/截图复核 | 完成 |
+| DASH-084-007 | M | 指标快照前置 + 统计卡/指标块高度压缩，首屏编排收敛 | 截图复核 | 完成 |
+| MICRO-084-007 | S | CodeText 复制按钮改带边界 chip（复制操作可发现） | 截图复核 | 完成 |
 
 ## 验证矩阵（实测 2026-09-01）
 

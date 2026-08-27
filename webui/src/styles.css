@@ -2319,13 +2319,18 @@ textarea.field-input {
   overflow-wrap: anywhere;
 }
 .code-text-copy {
-  border: none;
-  background: none;
-  color: var(--text-muted);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
   cursor: pointer;
   font-size: 12px;
-  padding: 2px 4px;
-  border-radius: var(--radius-xs);
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+}
+.code-text-copy:hover {
+  color: var(--primary-strong);
+  border-color: var(--primary);
+  background: var(--primary-soft);
 }
 .code-text-copy:hover {
   color: var(--text);

@@ -116,7 +116,7 @@ export default function DashboardPage() {
   const diagnosticsState = operationCapabilityState(false, Boolean(diagnosticsQuery?.isPending), Boolean(diagnosticsQuery?.isError));
   const metricsState = operationCapabilityState(false, Boolean(metricsQuery?.isPending), Boolean(metricsQuery?.isError));
 
-  const renderOverview = () => <PageSection title={t("webui.ops.dashboard.overview.title")} description={t("webui.ops.dashboard.overview.detail")}><div className="ops-overview-grid"><BuildSummaryCard build={build} state={buildState} t={t} /><RuntimeSnapshotCard runtime={runtime} state={diagnosticsState} t={t} /><HealthSummaryCard runtime={runtime} state={diagnosticsState} t={t} /></div><MetricsSummaryCard metrics={metrics} state={metricsState} t={t} /></PageSection>;
+  const renderOverview = () => <PageSection title={t("webui.ops.dashboard.overview.title")} description={t("webui.ops.dashboard.overview.detail")}><MetricsSummaryCard metrics={metrics} state={metricsState} t={t} /><div className="ops-overview-grid"><BuildSummaryCard build={build} state={buildState} t={t} /><RuntimeSnapshotCard runtime={runtime} state={diagnosticsState} t={t} /><HealthSummaryCard runtime={runtime} state={diagnosticsState} t={t} /></div></PageSection>;
 
   const renderGroup = (required: boolean) => {
     const groupOperations = operations.filter((operation) => operation.required === required);

@@ -27,7 +27,14 @@ export function formatRelativeTime(iso: string | undefined | null, t: (key: stri
   if (!iso) return "—";
   const timestamp = new Date(iso).getTime();
   if (Number.isNaN(timestamp)) return iso;
-  const elapsedSeconds = Math.max(0, Math.floor((now - timestamp) / 1000));
+  const elapsedSeconds = Math.floor((now - timestamp) / 1000);
+  if (elapsedSeconds < 0) {
+    const remainingMinutes = Math.max(1, Math.ceil(-elapsedSeconds / 60));
+    if (remainingMinutes < 60) return t("webui.host.relative.inMinutes", { minutes: remainingMinutes });
+    const remainingHours = Math.ceil(remainingMinutes / 60);
+    if (remainingHours < 24) return t("webui.host.relative.inHours", { hours: remainingHours });
+    return t("webui.host.relative.inDays", { days: Math.ceil(remainingHours / 24) });
+  }
   if (elapsedSeconds < 60) return t("webui.host.relative.justNow");
   const minutes = Math.floor(elapsedSeconds / 60);
   if (minutes < 60) return t("webui.host.relative.minutes", { minutes });

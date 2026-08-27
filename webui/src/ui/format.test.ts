@@ -27,6 +27,7 @@ describe("083 formatRelativeTime", () => {
     expect(formatRelativeTime("2026-08-27T14:30:00.000Z", t, now)).toContain('"minutes":30');
     expect(formatRelativeTime("2026-08-27T12:00:00.000Z", t, now)).toContain('"hours":3');
     expect(formatRelativeTime("2026-08-25T15:00:00.000Z", t, now)).toContain('"days":2');
+    expect(formatRelativeTime("2026-08-27T16:30:00.000Z", t, now)).toContain("relative.inHours");
     expect(formatRelativeTime("not-a-date", t, now)).toBe("not-a-date");
   });
 });

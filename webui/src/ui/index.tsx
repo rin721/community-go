@@ -22,7 +22,8 @@ export function formatDateTime(iso: string | undefined | null): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-/** formatRelativeTime 将时间戳转换为低噪声相对时间；调用方提供 locale 文案和测试用 now。 */
+/** formatRelativeTime 将时间戳转换为低噪声相对时间；调用方应传入宿主 webui.host 命名空间的 t
+ *  （模块 ns 因 nsSeparator:false 查不到 webui.host.* 键，083 修复）。 */
 export function formatRelativeTime(iso: string | undefined | null, t: (key: string, params?: Record<string, number>) => string, now = Date.now()): string {
   if (!iso) return "—";
   const timestamp = new Date(iso).getTime();

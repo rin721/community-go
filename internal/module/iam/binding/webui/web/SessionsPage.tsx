@@ -72,10 +72,10 @@ export default function SessionsPage() {
         <DataTable<SessionInfo>
           columns={[
             { id: "idHash", header: t("webui.iam.sessions.idHash"), cell: (item) => <CodeText value={item.idHash} copyable /> },
-            { id: "createdAt", header: t("webui.iam.sessions.createdAt"), cell: (item) => <span title={formatDateTime(item.createdAt)}>{formatRelativeTime(item.createdAt, t)}</span> },
-            { id: "lastSeenAt", header: t("webui.iam.sessions.lastSeenAt"), cell: (item) => <span title={formatDateTime(item.lastSeenAt)}>{formatRelativeTime(item.lastSeenAt, t)}</span> },
-            { id: "idleExpiresAt", header: t("webui.iam.sessions.idleExpiresAt"), cell: (item) => <span title={formatDateTime(item.idleExpiresAt)}>{formatRelativeTime(item.idleExpiresAt, t)}</span> },
-            { id: "absoluteExpiresAt", header: t("webui.iam.sessions.absoluteExpiresAt"), cell: (item) => <span title={formatDateTime(item.absoluteExpiresAt)}>{formatRelativeTime(item.absoluteExpiresAt, t)}</span> },
+            { id: "createdAt", header: t("webui.iam.sessions.createdAt"), cell: (item) => <span title={formatDateTime(item.createdAt)}>{formatRelativeTime(item.createdAt, hostT)}</span> },
+            { id: "lastSeenAt", header: t("webui.iam.sessions.lastSeenAt"), cell: (item) => <span title={formatDateTime(item.lastSeenAt)}>{formatRelativeTime(item.lastSeenAt, hostT)}</span> },
+            { id: "idleExpiresAt", header: t("webui.iam.sessions.idleExpiresAt"), cell: (item) => <span title={formatDateTime(item.idleExpiresAt)}>{formatRelativeTime(item.idleExpiresAt, hostT)}</span> },
+            { id: "absoluteExpiresAt", header: t("webui.iam.sessions.absoluteExpiresAt"), cell: (item) => <span title={formatDateTime(item.absoluteExpiresAt)}>{formatRelativeTime(item.absoluteExpiresAt, hostT)}</span> },
             { id: "status", header: t("webui.iam.sessions.statusHeader"), cell: (item) => sessionStatusCell(item, t) },
           ]}
           rows={items}

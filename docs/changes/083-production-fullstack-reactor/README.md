@@ -10,9 +10,9 @@
 
 ## 研究问题（R083-001..003）
 
-1. **新方案 vs 082 现状差异**：每节（1-12、11b/11c/11d）在当前已实现下是已满足/部分满足/未满足/冲突，可落地范围与决策点。
-2. **样式权威与布局骨架事实基线**：122 处 `:global`、`100vh`、居中容器、Tab Bar、Footer 等的精确现状与修复路径。
-3. **设计基线落地缺口**：082 各页面（Accounts/Roles/Sessions/Permissions/Audit/Org/Nav/Ops/Token/Settings）逐页对照 admin-design-baseline，哪些达到、哪些仍是"旧结构沿用"需重做。
+1. **新方案 vs 082 现状差异**：每节（1-12、11b/11c/11d）在当前已实现下是已满足/部分满足/未满足/冲突，可落地范围与决策点（R083-001：四裁决点 A 推倒 App Shell 分治 / B 移除 Tab Bar / C Backend 补足（sorting 必补）/ D 组件栈确认无冲突；三档落地）。
+2. **样式权威与布局骨架事实基线**：**实测 7 模块 CSS 共 137 处 `:global(`**（auth 9/iam 25/navigation 15/openapi 0/ops 75/organization 5/settings 8；与早期表述 122 不符，已更正）；其中 21 处死代码、1 处真全局泄漏（ops header-zone-action）、`.toolbar` 私有覆盖、camelCase 命名分裂均有证据；`100vh` 全仓 11 处、零 `dvh`，`.page-viewport` 居中 max-width:1600，滚动发生在内容容器内（R083-002）。
+3. **设计基线落地缺口**：082 各页面逐页对照 admin-design-baseline，判定达标/需重做（R083-003，建设中）。
 
 ## 阅读顺序
 

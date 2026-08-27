@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type CSSProperties, type HTMLAttributes, type InputHTMLAttributes, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type CSSProperties, type HTMLAttributes, type InputHTMLAttributes, type ReactNode } from "react";
 import { Checkbox as RACCheckbox, Dialog as RACDialog, Modal as RACModal, Switch as RACSwitch } from "react-aria-components";
 import { Alert, Button as HeroButton, Card, Chip, Description, EmptyState as HeroEmptyState, FieldError, Input as HeroInput, Label, ListBox, Pagination as HeroPagination, Select, Skeleton as HeroSkeleton, Table, TextField, Typography } from "@heroui/react";
 import { ToastProvider, addToast, closeToast } from "@heroui/toast";
@@ -96,10 +96,48 @@ type DataTableProps<Row> = {
   onSelectedKeysChange?: (keys: Set<string>) => void;
   /** wrapperProps 透传给 .data-table-wrap，供声明 data-* 滚动行为（067 显式滚动劫持）。 */
   wrapperProps?: HTMLAttributes<HTMLDivElement> & { [key: `data-${string}`]: string | undefined };
+  /** 082 REQ-082-001 DataTable 增强（全部可选，默认关闭，保持既有调用兼容）。 */
+  enhancements?: DataTableEnhancements<Row>;
 };
 
-export function DataTable<Row>({ columns, rows, ariaLabel, getRowKey = (_row, index) => String(index), loading = false, loadingLabel, emptyState, selectable = false, selectionLabel, selectedKeys, onSelectedKeysChange, wrapperProps }: DataTableProps<Row>) {
-  const visibleColumns = columns.filter((column) => column.visible !== false);
+/** 082 REQ-082-001：DataTable 增强配置——列显隐 / 密度 / Sticky 表头 / 行操作菜单。 */
+export type DataTableEnhancements<Row> = {
+  /** 列显隐：initialVisible 缺省为 columns 的 visible !== false；persistedKey 提供时存 localStorage。 */
+  columnVisibility?: { persistedKey?: string; initialVisible?: ReadonlyArray<string> };
+  /** 行密度：可选三档，落 data-density 属性。 */
+  density?: "compact" | "default" | "comfortable";
+  /** 粘性表头：需要容器 max-height 配合（配合 wrapperProps 的滚动容器）。 */
+  stickyHeader?: boolean;
+  /** 行操作菜单：renderRowMenu 返回菜单项（仅渲染真实 operation；空数组不渲染菜单列）。 */
+  renderRowMenu?: (row: Row, index: number) => ReadonlyArray<{ key: string; label: ReactNode; onSelect: () => void; danger?: boolean }>;
+  /** 列显隐菜单的 a11y 文案。 */
+  columnMenuLabel?: string;
+};
+
+export function DataTable<Row>({ columns, rows, ariaLabel, getRowKey = (_row, index) => String(index), loading = false, loadingLabel, emptyState, selectable = false, selectionLabel, selectedKeys, onSelectedKeysChange, wrapperProps, enhancements }: DataTableProps<Row>) {
+  const { density = "default", stickyHeader = false, columnVisibility, renderRowMenu, columnMenuLabel } = enhancements ?? {};
+  // 列显隐：受控于 localStorage（persistedKey）或 initialVisible；被隐藏的列通过菜单恢复。
+  const [hiddenColumns, setHiddenColumns] = useState<ReadonlySet<string>>(() => {
+    if (!columnVisibility) return new Set<string>();
+    const initial = columnVisibility.initialVisible ?? columns.filter((column) => column.visible !== false).map((column) => column.id);
+    if (columnVisibility.persistedKey) {
+      try {
+        const raw = window.localStorage.getItem(`webui:table:${columnVisibility.persistedKey}:cols`);
+        if (raw) return new Set<string>(JSON.parse(raw) as string[]);
+      } catch { /* 解析失败回退初始值 */ }
+    }
+    return new Set(columns.map((column) => column.id).filter((id) => !initial.includes(id)));
+  });
+  const toggleColumn = (id: string) => {
+    if (!columnVisibility) return;
+    const next = new Set(hiddenColumns);
+    next.has(id) ? next.delete(id) : next.add(id);
+    setHiddenColumns(next);
+    if (columnVisibility.persistedKey) {
+      try { window.localStorage.setItem(`webui:table:${columnVisibility.persistedKey}:cols`, JSON.stringify([...next])); } catch { /* 存储不可用时静默 */ }
+    }
+  };
+  const visibleColumns = columns.filter((column) => column.visible !== false && !hiddenColumns.has(column.id));
   const rowKeys = rows.map(getRowKey);
   const selected = selectedKeys ?? new Set<string>();
   const headerSelectionRef = useRef<HTMLInputElement>(null);
@@ -117,20 +155,49 @@ export function DataTable<Row>({ columns, rows, ariaLabel, getRowKey = (_row, in
     if (!onSelectedKeysChange) return;
     onSelectedKeysChange(allSelected ? new Set() : new Set(rowKeys));
   };
+  const hasColumnMenu = Boolean(columnVisibility) && columns.some((column) => column.visible !== false);
+  const hasRowMenu = Boolean(renderRowMenu);
   return (
-    <Table.Root className="data-table-wrap" {...wrapperProps}>
+    <Table.Root className="data-table-wrap" data-density={density} data-sticky={stickyHeader || undefined} {...wrapperProps}>
+      {hasColumnMenu && (
+        <div className="data-table-toolbar">
+          <details className="data-table-columns" aria-label={columnMenuLabel}>
+            <summary role="button" tabIndex={0} className="data-table-columns-toggle">{columnMenuLabel ?? "Columns"}</summary>
+            <div role="menu" className="data-table-columns-menu">
+              {columns.filter((column) => column.visible !== false).map((column) => (
+                <label key={column.id} className="data-table-columns-item" role="menuitemcheckbox" aria-checked={!hiddenColumns.has(column.id)}>
+                  <input type="checkbox" checked={!hiddenColumns.has(column.id)} onChange={() => toggleColumn(column.id)} />
+                  {column.header}
+                </label>
+              ))}
+            </div>
+          </details>
+        </div>
+      )}
       <Table.Content className="data-table" aria-label={ariaLabel} aria-busy={loading}>
         <Table.Header>
           {selectable && <Table.Column id="selection"><input ref={headerSelectionRef} type="checkbox" checked={allSelected} onChange={toggleAll} aria-checked={partiallySelected ? "mixed" : allSelected} aria-label={selectionLabel} /></Table.Column>}
           {visibleColumns.map((column, index) => <Table.Column id={column.id} className={column.className} isRowHeader={index === 0} key={column.id}>{column.header}</Table.Column>)}
+          {hasRowMenu && <Table.Column id="row-menu" aria-label={columnMenuLabel ?? ""} />}
         </Table.Header>
         <Table.Body>
-          {loading && <Table.Row>{selectable && <Table.Cell />}{visibleColumns.map((column) => <Table.Cell key={column.id}><Skeleton lines={3} label={loadingLabel ?? ""} /></Table.Cell>)}</Table.Row>}
-          {!loading && rows.length === 0 && <Table.Row>{selectable && <Table.Cell />}<Table.Cell>{emptyState}</Table.Cell>{visibleColumns.slice(1).map((column) => <Table.Cell key={column.id} />)}</Table.Row>}
-          {!loading && rows.map((row, index) => { const key = getRowKey(row, index); return <Table.Row key={key}>{selectable && <Table.Cell><input type="checkbox" checked={selected.has(key)} onChange={() => toggleKey(key)} aria-label={selectionLabel} /></Table.Cell>}{visibleColumns.map((column) => <Table.Cell className={column.className} key={column.id}>{column.cell(row, index)}</Table.Cell>)}</Table.Row>; })}
+          {loading && <Table.Row>{selectable && <Table.Cell />}{visibleColumns.map((column) => <Table.Cell key={column.id}><Skeleton lines={3} label={loadingLabel ?? ""} /></Table.Cell>)}{hasRowMenu && <Table.Cell />}</Table.Row>}
+          {!loading && rows.length === 0 && <Table.Row>{selectable && <Table.Cell />}<Table.Cell>{emptyState}</Table.Cell>{visibleColumns.slice(1).map((column) => <Table.Cell key={column.id} />)}{hasRowMenu && <Table.Cell />}</Table.Row>}
+          {!loading && rows.map((row, index) => { const key = getRowKey(row, index); return <Table.Row key={key}>{selectable && <Table.Cell><input type="checkbox" checked={selected.has(key)} onChange={() => toggleKey(key)} aria-label={selectionLabel} /></Table.Cell>}{visibleColumns.map((column) => <Table.Cell className={column.className} key={column.id}>{column.cell(row, index)}</Table.Cell>)}{hasRowMenu && <Table.Cell><DataTableRowMenu<Row> row={row} index={index} renderRowMenu={renderRowMenu!} /></Table.Cell>}</Table.Row>; })}
         </Table.Body>
       </Table.Content>
     </Table.Root>
+  );
+}
+
+/** 行操作菜单：渲染 renderRowMenu 返回的真实操作（仅真实 operation；空数组不渲染）。 */
+export function DataTableRowMenu<Row>({ row, index, renderRowMenu }: { row: Row; index: number; renderRowMenu: (row: Row, index: number) => ReadonlyArray<{ key: string; label: ReactNode; onSelect: () => void; danger?: boolean }> }) {
+  const items = renderRowMenu(row, index);
+  if (items.length === 0) return null;
+  return (
+    <div className="data-table-row-actions">
+      {items.map((item) => <button key={item.key} type="button" className={`ui-button ${item.danger ? "data-table-row-action-danger" : ""}`} onClick={item.onSelect}>{item.label}</button>)}
+    </div>
   );
 }
 

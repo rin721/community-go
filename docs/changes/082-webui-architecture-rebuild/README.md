@@ -2,7 +2,7 @@
 
 ## 状态
 
-**计划待确认**（研究门禁已通过）。方案输入 `docs/changes/temp-new-changes.md`（81 章「前端产品能力系统性重构」纲领，commit `3b758bd`）；三份研究档案完成现状审计与差异分析（R003 §4.11 含方案新旧编号映射）；requirements/design/tasks 已按新版方案对齐（含新增 Query/Mutation、Backend 错误分类、Frontend Adapter、Session 管理、三层 QA 要求），需用户确认决策点后进入实施。非纯文档实施，未确认前不修改任何代码。
+**已确认，实施中**（2026-08-27 用户确认「确认 082 方案，实施」）。方案输入 `docs/changes/temp-new-changes.md`（81 章「前端产品能力系统性重构」纲领，commit `3b758bd`）；三份研究档案完成现状审计与差异分析（R003 §4.11 含方案新旧编号映射）；requirements/design/tasks 已按新版方案对齐并展开详细设计（逐 REQ 实现契约）；决策点已确认（DEC-082-001..006 结论见 tasks.md）。实施从平台底座开始，分期提交。
 
 ## 目标
 

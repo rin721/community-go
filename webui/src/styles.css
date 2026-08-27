@@ -17,7 +17,7 @@
    -------------------------------------------------------------------------- */
 :root {
   /* 字体与基础 */
-  font-family: Inter, "Segoe UI", system-ui, sans-serif;
+  font-family: Inter, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", "Segoe UI", system-ui, sans-serif;
   color: #1f2937;
   background: #f5f7fa;
   color-scheme: light;
@@ -42,6 +42,13 @@
   /* 语义状态色：状态页/反馈统一消费，业务模块不得复制宿主颜色 */
   --warning: #d97706;
   --danger: #dc2626;
+  /* 082 REQ-082-006：补齐 info/success 语义色（与 081 监控语义对齐） */
+  --info: #3b82f6;
+  --info-soft: #eff6ff;
+  --info-strong: #2563eb;
+  --success: #16a34a;
+  --success-soft: #f0fdf4;
+  --success-strong: #15803d;
 
   /* shadow：069 对齐 HeroUI 层级阴影（--heroui-box-shadow-small/medium/large） */
   --shadow: var(--heroui-box-shadow-small);
@@ -67,6 +74,42 @@
   --space-6: 24px;
   --space-7: 28px;
   --space-8: 32px;
+
+  /* 082 REQ-082-006：Typography scale（方案「五十一」）——
+     xs 12 / sm 13 / md 14 / lg 16 / xl 18，页面标题 24；粗重 400-700 */
+  --font-scale-xs: 12px;
+  --font-scale-sm: 13px;
+  --font-scale-md: 14px;
+  --font-scale-lg: 16px;
+  --font-scale-xl: 18px;
+  --font-scale-page-title: 24px;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-lineheight-tight: 1.25;
+  --font-lineheight-normal: 1.5;
+  --font-lineheight-loose: 1.75;
+  /* 技术标识符字体栈（方案「五十一」monospace）：权限 ID/Token ID/审计 hash 等 */
+  --font-mono: ui-monospace, SFMono-Regular, "JetBrains Mono", Consolas, "Liberation Mono", monospace;
+
+  /* 082 REQ-082-006：control.* 控件尺寸档（方案「五十二」32-40px） */
+  --control-height-sm: 32px;
+  --control-height-md: 36px;
+  --control-height-lg: 40px;
+  --control-radius: var(--radius-xs);
+  --control-padding-x: 12px;
+  --control-gap: 8px;
+  /* DataTable 行密度档（082 data-density） */
+  --table-row-height-compact: 36px;
+  --table-row-height-default: 40px;
+  --table-row-height-comfortable: 48px;
+
+  /* 082 REQ-082-006：内容宽度档（方案「十四」——Settings/Form/Detail 收窄） */
+  --content-max-wide: 1600px;
+  --content-max-detail: 1200px;
+  --content-max-settings: 960px;
+  --content-max-form: 760px;
 
   /* 布局尺寸：sidebar 展开/收起、Header、页签、内容最大宽度 */
   --shell-sidebar-expanded: 264px;
@@ -128,6 +171,11 @@
   --border: #334155;
   --border-strong: #475569;
   --primary-soft: #172554;
+  /* 082 REQ-082-006：dark 语义色（与 081 监控语义对齐的低亮度档） */
+  --info-soft: #172554;
+  --success: #4ade80;
+  --success-soft: #14301f;
+  --success-strong: #22c55e;
   /* shadow 只覆盖原文件已有的 dark 基准；overlay/dialog/toast 阴影沿用 light 值保持视觉无回归 */
   --shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
@@ -1813,6 +1861,79 @@ textarea.field-input {
 .data-table {
   width: 100%;
   min-width: 680px;
+}
+/* 082 REQ-082-001：DataTable 增强——密度档 / 粘性表头 / 列显隐菜单 / 行操作 */
+.data-table-wrap[data-density="compact"] .data-table tbody tr,
+.data-table-wrap[data-density="compact"] .data-table thead tr {
+  height: var(--table-row-height-compact);
+}
+.data-table-wrap[data-density="comfortable"] .data-table tbody tr,
+.data-table-wrap[data-density="comfortable"] .data-table thead tr {
+  height: var(--table-row-height-comfortable);
+}
+.data-table-wrap[data-sticky] .data-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface);
+}
+.data-table-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--space-2);
+}
+.data-table-columns {
+  position: relative;
+}
+.data-table-columns-toggle {
+  cursor: pointer;
+  user-select: none;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.data-table-columns-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  min-width: 180px;
+  padding: var(--space-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  z-index: var(--z-account-menu);
+  display: grid;
+  gap: 2px;
+}
+.data-table-columns-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  color: var(--text);
+  font-size: 13px;
+}
+.data-table-columns-item:hover {
+  background: var(--surface-muted);
+}
+.data-table-row-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  white-space: nowrap;
+}
+.data-table-row-actions .ui-button {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+.data-table-row-action-danger {
+  color: var(--danger);
 }
 .pagination-total {
   display: block;

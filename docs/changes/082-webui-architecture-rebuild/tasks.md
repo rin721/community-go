@@ -2,7 +2,7 @@
 
 ## 状态
 
-研究门禁已通过（[R001](research/R001-webui-current-state/report.md)、[R002](research/R002-backend-capability-map/report.md)、[R003](research/R003-proposal-gap-analysis/report.md)，R003 §4.11 含方案新旧编号映射）；**计划待确认**（非纯文档实施，需用户确认后进入实施）。方案输入 `docs/changes/temp-new-changes.md`（81 章，commit `3b758bd`，下称「方案」）。
+研究门禁已通过（[R001](research/R001-webui-current-state/report.md)、[R002](research/R002-backend-capability-map/report.md)、[R003](research/R003-proposal-gap-analysis/report.md)，R003 §4.11 含方案新旧编号映射）；**计划已确认（2026-08-27 用户确认「确认 082 方案，实施」）**，进入实施阶段。方案输入 `docs/changes/temp-new-changes.md`（81 章，commit `3b758bd`）。决策点结论：`DEC-082-001` 保留 WorkspaceTabs（导航辅助，不删除）；`DEC-082-002` 正式启用 react-hook-form/zod（迁移表单并评估回归）；`DEC-082-003` DataTable 仅增强列可见性/密度/Sticky/Row menu；`DEC-082-004` IA 归位纳入（audit→Governance、openapi→Developer）；`DEC-082-005` 账号 Directory organization 过滤走前端组合（后端扩展不纳入 082）；`DEC-082-006` Query 统一层平台先建契约、页面迁移逐页接入。
 
 ## 任务
 

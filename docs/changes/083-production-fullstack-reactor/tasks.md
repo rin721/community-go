@@ -74,6 +74,7 @@
   2. **相对时间缺键 + 命名空间错配**：`formatRelativeTime` 用 `webui.host.relative.*` 键但 Audit/Sessions 传模块命名空间 t（`nsSeparator:false` 无法跨 ns）→ 单元格显示「翻译资源缺失」——host locale 补 7 个 relative 键（`e6b5f98`），调用方改传 hostT（`d722820`）；codex 复核 Occurred at 现显示 `3d ago`。
 - 视觉评审剩余 P1 打磨项（记录，不阻塞）：Dashboard 产品化（Trend/Alerts/Activity/Drill-down）、Accounts 菜单展开态行操作外观、Settings 两栏布局利用率。
 - **圆角收敛已修复**（codex 复核确认）：radius token（md 12→8、lg 14→10）+ HeroUI Card 内覆盖 10px（原默认 ~22-24px 超基线）；e2e 断言内容卡片 ≤12px；codex 视觉复核 KPI/Diagnostic 均 10px、阴影 2/5 克制（commit `fa45ff7`）。
+- **行操作折叠已修复**（codex 复核确认）：DataTableRowMenu 从「平铺全部项」改为「1 主操作内联 + … 弹出菜单，危险隔离」——Accounts 4 链接平铺收敛为 View detail + …（commit `cc4aa9d`）；平台组件级修复惠及 Roles/Sessions/ApiTokens 等所有 renderRowMenu 页面。
 
 **关键达成指标（实证）**：
 - 样式 `:global` 平台类重复清零；剩余 95 处全为模块专属（`lint-architecture` L1/L3 守护 + 反向 fixture）

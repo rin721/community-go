@@ -252,6 +252,12 @@ PageHeader（eyebrow/title/description/actions；标题用 HeroUI Typography.Hea
 - **在线调试（Try it out）**：`openapi-data.ts` 纯函数解析/请求构建/树构建（`buildApiTree`/`filterApiTree`，点分 tag 无限层级）；执行同源 fetch（bearer 内存 token、webuiSession Cookie + CSRF、form-data 文件上传、mock 禁用）；`run-store.ts` 状态机 + `highlight.ts`（highlight.js 仅 json）高亮 JSON body。深链 `?op=<id>&mode=<docs|debug>`；Cmd/Ctrl+K 平台 Modal 快速跳转（CommandPalette）。
 - **契约数据源（单权威）**：`webui generate` 从 `api/openapi.yaml` 渲染 `webui/src/generated/openapi-spec.ts`；`webui.specOutput` 路径、`--check` 严格比对（R075-002）；mock 浏览零请求、`mock.ts` 空表。
 
+## 平台语义组件与 Query 契约（082）
+
+- **语义组件**（`@webui/sdk/ui` 导出，模块风格走平台类，业务 selector 不变）：`DataTable` 增强通过可选 `enhancements`（列显隐 `columnVisibility`、行密度 `density`、`stickyHeader`、`renderRowMenu` 行操作，空数组不渲染菜单列；批量操作仅真实后端语义）；`FilterBar`/`SearchInput` 承担统一列表工具栏（Search → filters → clear → result count，Empty vs No Results 区分）；`FormField`/`Field` 支持 `description`/`width`(sm/md/lg/auto)/`optional`；`StatusBadge` 语义状态集（active/inactive/enabled/disabled/pending/healthy/degraded/failed/expired/revoked）；`CodeText`/`CodeViewer` 只读技术标识符与 JSON 展示；`DangerZone` 危险操作流程（后果说明+确认）；`ErrorState` 分级（section/inline/action/permission/connectivity）；`TreeView`/`InspectorPanel`（树 + 详情，不提供后端不支持的 Move/Archive DnD）；`DetailDrawer` 规格化 Master–Detail（480/560/640/720 宽度档）。
+- **Query 契约**（`@webui/sdk/query`）：`useWebUIQuery`/`useWebUIMutation` 统一查询/写操作（缓存/失效/取消/`ProblemError` 错误链）；`useListQueryParams` 将列表过滤/分页/排序同步 URL query（refresh/back/share 稳定）。模块页面禁止每组件自写 fetch；写操作 CSRF/Origin 沿用既有 mutation 契约。
+- **页面迁移约定**：列表页统一 DataTable + FilterBar；Detail 优先 Drawer（`DetailDrawer`），技术标识符用 `CodeText`；后端不存在的字段（如审计 Request metadata、用户 Activity、Device）不展示或呈现不可用态（禁 fake）。迁移示例见 IAM/Organization/Navigation/Auth/Ops 页面。
+
 ## 强制 i18n 契约
 
 WebUI i18n 是所有接入模块必须遵守的规范契约。模块只要贡献页面、菜单或状态，就必须在自身 WebUI Binding 中声明 locale namespace 和资源文件；没有 locale Binding 的模块不得进入生产 registry。locale namespace 的 owner 始终是业务模块，宿主只负责聚合、加载、语言选择、fallback 和缺失资源状态。

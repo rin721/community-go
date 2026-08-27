@@ -1,327 +1,689 @@
-# Community Go Admin WebUI — Product Architecture & UI System Reconstruction
+# Community Go Admin WebUI — 前端产品能力系统性重构
 
-你正在直接操作一个已经拥有真实后端能力、真实 API、权限系统、业务模型和现有前端代码的 Administration Web Application。
+你正在直接操作 Community Go 的真实产品代码。
 
-本次任务不是进行 UI 美化，也不是修改若干页面。
+本次任务不是简单 UI 改版，也不是重新套一个后台模板。
 
-本次任务是：
+你的核心目标是：
 
-> **基于现有真实后端能力，重新建立 Community Go 的完整前端产品架构、信息架构、交互体系、页面骨架、设计系统和品牌 UI，并实际完成代码级系统性重构。**
+> **完整兼容现有后端业务能力、接口能力、权限模型和数据模型，在不破坏 Backend Contract 的前提下，将 Community Go 的前端产品能力、交互能力、信息架构、设计系统和管理体验提升到当前主流成熟 Administration Console / SaaS Admin / Developer Platform 的产品水准。**
 
-将当前系统视为：
+最终需要完成的是：
 
 ```text
-Backend Capability
+Existing Backend
 +
-Basic Routing
+Mature Frontend Product Architecture
 +
-UI Component Mapping
+Mature Interaction System
++
+Mature Design System
++
+Production-grade UX
 ```
 
-目标是将其重建为：
+而不是：
+
+```text
+Existing Backend
++
+Better-looking Components
+```
+
+---
+
+# 一、核心原则
+
+整个重构必须同时遵守两个原则。
+
+## 原则 A：兼容现有 Backend Capability
+
+后端是当前业务事实来源。
+
+必须保留和兼容现有：
+
+* API Contract
+* Authentication
+* Authorization
+* Permission
+* Role
+* User
+* Session
+* API Token
+* Organization
+* Department
+* Position
+* Audit
+* Navigation / Menu
+* Runtime
+* Metrics
+* Management API
+* Settings
+* 以及代码中真实存在的其他能力
+
+禁止为了设计方便擅自改变：
+
+```text
+Backend API
+Permission semantics
+Security semantics
+Data relationships
+Business rules
+```
+
+---
+
+## 原则 B：前端不能被当前后端页面形态限制
+
+兼容 Backend 不意味着：
+
+```text
+一个 API
+=
+一个页面
+```
+
+也不意味着：
+
+```text
+一个数据结构
+=
+一个 Form
+```
+
+更不意味着：
+
+```text
+Backend 返回什么
+Frontend 就原样显示什么
+```
+
+Frontend 必须承担：
+
+```text
+理解
+组织
+搜索
+筛选
+导航
+操作
+反馈
+防错
+恢复
+上下文保持
+权限表达
+状态表达
+工作流编排
+```
+
+等产品责任。
+
+必须将：
 
 ```text
 Backend Capability
-        ↓
+```
+
+转换为：
+
+```text
 Frontend Product Capability
+```
+
+---
+
+# 二、最终目标
+
+将当前产品从：
+
+```text
+Backend APIs
         ↓
-User Workflow
+UI Components
+```
+
+升级为：
+
+```text
+Backend APIs
+        ↓
+Domain Model
+        ↓
+User Tasks
+        ↓
+Product Workflows
         ↓
 Information Architecture
         ↓
-Interaction Model
-        ↓
-Page Architecture
+Interaction Patterns
         ↓
 Design System
         ↓
-Reusable Components
-        ↓
-Production Admin Console
+Production Frontend
 ```
 
-最终产品必须成为真正意义上的：
+最终产品必须达到成熟主流项目应具备的：
 
-**Enterprise Administration Console / Developer Control Plane**
-
-而不是：
-
-**Backend API Visualization / UI Component Showcase / CRUD Demo**
+```text
+Navigation maturity
+Data management maturity
+Interaction maturity
+Form maturity
+Permission maturity
+Feedback maturity
+Error handling maturity
+Design system maturity
+Responsive maturity
+Accessibility maturity
+Frontend engineering maturity
+```
 
 ---
 
-# 01. 不要直接修改页面，首先理解整个产品
+# 三、不要先改 UI
 
-开始任何 UI 编码之前，首先扫描整个代码仓库。
+开始编码之前首先扫描整个项目。
 
-识别并整理：
+不要看到现有页面以后直接：
 
-* Application Routes
-* Navigation
-* Authentication
-* Authorization
-* Permission definitions
-* Roles
-* Users
-* Sessions
-* API Tokens
-* Organizations
-* Departments
-* Positions
-* Menus
-* Audit Logs
-* Management APIs
-* Runtime APIs
-* Diagnostics
-* Metrics
-* Probe / Health
-* Settings
-* Profile
-* Security
-* Notifications
-* Appearance
-* Language
-* API Documentation
-* 所有其他真实存在的业务模块
+```text
+改颜色
+改圆角
+改 Card
+改 Sidebar
+```
 
-同时识别：
+首先完成：
 
-* API Client
-* Data fetching architecture
-* State management
-* Form architecture
-* Component system
-* Current CSS / Theme / Token architecture
-* Responsive architecture
-* Existing frontend framework
-* Existing UI framework
-* Existing permission guards
-* Existing error handling
-* Existing routing conventions
-
-不要假设业务。
-
-不要根据 UI 猜测 Backend Capability。
-
-以：
-
-**真实代码 + 真实 API + 真实数据模型**
-
-作为唯一功能事实来源。
+**Product & Frontend Audit**
 
 ---
 
-# 02. 建立 Capability Map
+# 四、扫描现有 Backend Capability
 
-扫描完成后，在内部建立：
+检查整个代码仓库中的：
 
 ```text
-BACKEND CAPABILITY MAP
+API definitions
+API clients
+routes
+permissions
+roles
+entities
+models
+DTO
+stores
+queries
+mutations
+authentication
+authorization
+management endpoints
+runtime endpoints
+metrics
+settings
 ```
 
-每一个后端能力必须转换为：
+建立：
 
 ```text
+Backend Capability Map
+```
+
+格式：
+
+```text
+Domain
+
 Backend Capability
-↓
-User Goal
-↓
-User Task
-↓
-Workflow
-↓
-UI Pattern
-↓
-Page / Drawer / Modal / Table / Detail
+API
+Required Permission
+Input
+Output
+Current Frontend Usage
+Missing Frontend Capability
 ```
 
-例如不要采用：
+例如：
 
 ```text
-createUser API
-=
-一个创建用户输入框
-```
+IAM
 
-而应该建立：
-
-```text
-User Management
-
-Discover user
-Search user
-Filter user
-Inspect user
+Backend:
+List users
 Create user
-Edit user
-Manage role
-Manage security
-Inspect session
-Inspect activity
+Update user
+Assign role
+Reset password
+
+Existing frontend:
+Basic form
+
+Frontend capability required:
+User directory
+Search
+Filter
+Detail
+Edit
+Role management
+Security actions
+Feedback
+Validation
 ```
-
-同样：
-
-```text
-permission:list
-```
-
-不等于：
-
-```text
-显示 Permission Badge
-```
-
-它应该成为：
-
-```text
-Permission Catalog
-Permission Search
-Permission Group
-Permission Detail
-Permission Role Usage
-Permission Matrix
-```
-
-前提是对应数据确实存在。
 
 ---
 
-# 03. 后端能力不等于前端页面
+# 五、扫描现有 Frontend Capability
 
-禁止采用：
-
-```text
-1 API endpoint = 1 screen
-```
-
-禁止采用：
+检查：
 
 ```text
-1 backend model = 1 page
+Router
+Layouts
+Navigation
+Tables
+Forms
+Drawers
+Dialogs
+Search
+Filters
+Pagination
+State management
+Query caching
+Mutation handling
+Error handling
+Loading
+Empty state
+Permission guards
+URL state
+Theme
+Design tokens
+Accessibility
+Responsive behavior
 ```
 
-页面必须按照：
+建立：
 
-**User Task**
+```text
+Frontend Capability Gap Map
+```
+
+明确哪些：
+
+```text
+Missing
+Weak
+Duplicated
+Incorrect
+Backend-oriented
+Component-oriented
+```
+
+---
+
+# 六、不要按照旧页面重构
+
+现有 UI 只作为：
+
+```text
+业务能力线索
+```
 
 而不是：
 
-**Backend Object**
+```text
+设计规范
+```
 
-进行组织。
+不要执行：
 
-可以：
+```text
+旧 User 页面
+→
+新版 User 页面
+```
 
-* 合并当前页面
-* 删除没有产品意义的页面
-* 将页面改成 Drawer
-* 将表单改成 Wizard
-* 将信息改成 Table
-* 将实体改成 Master Detail
-* 将多个后端能力组合成一个完整工作流
+应该执行：
 
-只要不改变真实业务语义。
+```text
+User Management Capability
+↓
+重新设计 User Management Experience
+```
+
+不要逐截图进行视觉翻新。
 
 ---
 
-# 04. 产品定位
+# 七、达到“主流成熟项目”的前端标准
 
-Community Go Admin 定位为：
+重构后的 Community Go 至少应达到现代成熟项目常见的前端能力水平。
 
-> 面向管理员、开发者、系统维护者和组织管理者使用的现代化 Administration Control Plane。
+包括：
 
-整体品牌气质：
+## Application Shell
 
-```text
-Professional
-Technical
-Precise
-Calm
-Operational
-Trustworthy
-Structured
-Efficient
-Dense but Readable
-Developer Friendly
-Enterprise Ready
-```
+## Navigation Architecture
 
-不要设计成：
+## Data Table Infrastructure
 
-```text
-Consumer App
-Marketing Website
-Low-code Builder
-Template Dashboard
-Component Showcase
-Dribbble Dashboard
-AI SaaS Landing Page
-```
+## Search & Filtering
 
-视觉和交互可以学习现代：
+## Entity Detail
 
-```text
-GitHub
-Cloudflare
-Stripe
-Linear
-Vercel
-Grafana
-Datadog
-Atlassian Administration
-Modern Cloud Consoles
-```
+## Master–Detail
 
-中的：
+## Drawer
 
-* 信息密度
-* 数据层级
-* Navigation Discipline
-* Operational UX
-* Developer UX
-* Table UX
-* Detail UX
-* Command UX
+## Dialog
 
-禁止直接复制任何产品。
+## Form System
+
+## Validation
+
+## Permission-aware UI
+
+## Loading States
+
+## Empty States
+
+## Error States
+
+## Mutation Feedback
+
+## Destructive Action
+
+## URL State
+
+## Pagination
+
+## Sorting
+
+## Responsive
+
+## Accessibility
+
+## Design Tokens
+
+## Component Architecture
+
+## Consistent Interaction
 
 ---
 
-# 05. 删除“Component-first Design”
+# 八、重新建立 Information Architecture
+
+不要直接沿用当前菜单结构。
+
+根据业务能力重新建立：
+
+```text
+Global Navigation
+↓
+Domain
+↓
+Feature
+↓
+Page
+↓
+Entity Detail
+```
+
+可参考以下成熟后台的信息组织原则：
+
+```text
+Overview
+
+Operations
+
+Identity & Access
+
+Organization
+
+Governance
+
+Settings
+
+Developer
+```
+
+但具体结构必须依据真实 Backend Capability。
+
+不要创造不存在的业务模块。
+
+---
+
+# 九、导航不应该暴露后端模块结构
 
 不要按照：
 
 ```text
-需要显示信息
-↓
-找一个 Card
+API Controller
+Service
+Database Entity
 ```
 
-进行设计。
+决定菜单。
 
-新的基本原则是：
-
-```text
-Task First
-Data First
-Workflow First
-State First
-Component Last
-```
-
-视觉优先级必须是：
+菜单应该按照：
 
 ```text
+User Mental Model
 User Task
-↓
-Important Data
-↓
+Frequency
+Business Domain
+```
+
+组织。
+
+例如多个 IAM API 可以共同组成：
+
+```text
+Identity & Access
+```
+
+而不是每个 API 各出现一个入口。
+
+---
+
+# 十、重新建立 App Shell
+
+构建成熟 Administration Shell：
+
+```text
+┌────────────┬─────────────────────────────┐
+│            │ Context / Top Bar           │
+│ Sidebar    ├─────────────────────────────┤
+│            │                             │
+│            │ Main Workspace              │
+│            │                             │
+└────────────┴─────────────────────────────┘
+```
+
+---
+
+# 十一、Sidebar
+
+Desktop：
+
+```text
+232–248px
+```
+
+Collapsed：
+
+```text
+64–72px
+```
+
+结构：
+
+```text
+Brand
+
+Navigation Groups
+
+Primary Features
+
+Secondary Features
+
+Flexible Space
+
+System / Help
+
+Account
+```
+
+按 Domain 分组，而不是所有功能平铺。
+
+例如：
+
+```text
+OPERATIONS
+
+IDENTITY & ACCESS
+
+ORGANIZATION
+
+GOVERNANCE
+```
+
+---
+
+# 十二、不要继续使用全局页面 Tabs
+
+如果产品没有真正：
+
+```text
+multi-document
+multi-workspace
+multi-session console
+```
+
+需求，则移除全局：
+
+```text
+打开页面 Tab Bar
+```
+
+使用：
+
+```text
+Sidebar
+Breadcrumb
+Browser history
+Deep link
+```
+
+完成导航。
+
+后台应用不是浏览器。
+
+---
+
+# 十三、Top Bar
+
+Topbar 应承担：
+
+```text
+Current Context
+
+Breadcrumb
+
+Global Search / Command
+
 System Status
+
+Help
+
+Theme
+
+Account
+```
+
+而不是成为第二套导航。
+
+---
+
+# 十四、统一 Page Architecture
+
+所有页面基于统一骨架：
+
+```text
+Page
+
+├ PageHeader
+│ ├ Title
+│ ├ Description
+│ └ Actions
+│
+├ Toolbar
+│ ├ Search
+│ ├ Filter
+│ ├ Sort
+│ └ View
+│
+├ Main Content
+│
+└ Pagination / Footer
+```
+
+不要每一个页面自己设计一套结构。
+
+---
+
+# 十五、Admin 页面必须 Data First
+
+后台产品的核心不是 Card。
+
+核心应该是：
+
+```text
+Data
+Task
+Status
+Action
+```
+
+优先使用：
+
+```text
+Table
+List
+Tree
+Matrix
+Timeline
+Log
+Chart
+Inspector
+Detail
+Form
+Split View
+```
+
+Card 只作为辅助信息容器。
+
+---
+
+# 十六、禁止 Card-first UI
+
+不要执行：
+
+```text
+发现一组字段
 ↓
-Primary Action
+包一张 Card
+```
+
+页面视觉优先级应该为：
+
+```text
+Task
 ↓
-Secondary Information
+Data
+↓
+State
+↓
+Action
 ↓
 Container
 ```
@@ -335,734 +697,87 @@ Border
 ↓
 Shadow
 ↓
-Heading
-↓
-Data
+Content
 ```
 
 ---
 
-# 06. Card 不再作为主要页面骨架
+# 十七、建立 Production DataTable
 
-禁止把整个后台设计成 Card Collection。
+DataTable 应成为整个系统核心基础设施之一。
 
-Card 只用于：
-
-```text
-Small grouped information
-KPI
-Summary
-Contextual information
-Independent module
-```
-
-后台主要内容优先使用：
-
-```text
-Table
-List
-Tree
-Matrix
-Timeline
-Chart
-Inspector
-Split View
-Detail Panel
-Drawer
-Log Explorer
-Structured Form
-```
-
-减少：
-
-```text
-Card inside Card
-Section inside Card
-Card inside Section
-```
-
-形成的白盒嵌套。
-
-Container 不应该比内容更突出。
-
----
-
-# 07. 重新建立 Information Architecture
-
-重新评估整个系统功能，并建立稳定 IA。
-
-可使用类似：
-
-```text
-Overview
-
-Operations
-  Runtime
-  Health
-  Diagnostics
-
-Identity & Access
-  Users
-  Roles
-  Permissions
-  Sessions
-  API Tokens
-
-Organization
-  Organization
-  Departments
-  Positions
-
-Governance
-  Audit Logs
-  Navigation / Menu Management
-
-Settings
-  Profile
-  Account
-  Security
-  Notifications
-  Appearance
-  Language
-
-Developer
-  API Documentation
-```
-
-这只是结构模型。
-
-最终 IA 必须根据真实项目代码调整。
-
-不要为了匹配以上结构创造不存在的功能。
-
----
-
-# 08. 一个系统只能有一套主导航逻辑
-
-消除多个导航系统互相竞争的问题。
-
-不要同时长期存在：
-
-```text
-Sidebar
-+
-Global page tabs
-+
-Secondary sidebar
-+
-Breadcrumb
-```
-
-需要建立：
-
-```text
-Global Navigation
-↓
-Section
-↓
-Page
-↓
-Entity Detail
-```
-
-Breadcrumb 用于表达当前位置。
-
-Local Navigation 只允许出现在拥有明确子结构的模块，例如 Settings。
-
----
-
-# 09. 移除无业务意义的 Global Page Tab Strip
-
-不要把后台应用设计成浏览器。
-
-不要因为用户进入过：
-
-```text
-Users
-Runtime
-Profile
-Permissions
-Tokens
-```
-
-就在顶部不断生成 Tab。
-
-只有当真实业务存在：
-
-```text
-Multi-document workspace
-Multi-instance workspace
-Multi-console workspace
-```
-
-时才允许设计 persistent workspace tabs。
-
-否则使用：
-
-```text
-Navigation
-Breadcrumb
-Browser history
-Deep link
-```
-
-完成页面移动。
-
----
-
-# 10. App Shell
-
-重新设计统一 App Shell。
-
-结构：
-
-```text
-┌──────────────────────────────────────────┐
-│ Sidebar │ Top Context Bar                │
-│         ├────────────────────────────────│
-│         │ Main Workspace                 │
-│         │                                │
-│         │                                │
-└──────────────────────────────────────────┘
-```
-
----
-
-# 11. Sidebar Architecture
-
-Desktop Expanded：
-
-```text
-232–248px
-```
-
-Collapsed：
-
-```text
-64–72px
-```
-
-Sidebar 内容结构：
-
-```text
-Brand
-
-Primary Navigation
-
-Navigation Groups
-
-Secondary Sections
-
-Flexible Spacer
-
-System / Help
-
-User
-```
-
-可以使用 Group Label：
-
-```text
-OPERATIONS
-
-IDENTITY & ACCESS
-
-ORGANIZATION
-
-GOVERNANCE
-```
-
-不要让所有项目拥有相同视觉重量。
-
----
-
-# 12. Navigation Active State
-
-Active Item 不使用巨大胶囊按钮。
-
-使用：
-
-* subtle background
-* brand accent
-* stronger text
-* clear icon
-* optional left indicator
-
-Selected state 必须：
-
-**明显但克制。**
-
-Hover、Selected、Focus、Disabled 必须明确区分。
-
----
-
-# 13. Top Context Bar
-
-Topbar 推荐：
-
-```text
-52–60px
-```
-
-职责：
-
-左侧：
-
-```text
-Breadcrumb
-Current context
-Optional environment
-```
-
-右侧：
-
-```text
-Command Search
-System Status
-Help
-Theme
-User Menu
-```
-
-不要在 Topbar 堆大量产品功能。
-
----
-
-# 14. Page Anatomy
-
-所有页面统一使用：
-
-```text
-Page
-│
-├─ Page Header
-│  ├─ Eyebrow optional
-│  ├─ Title
-│  ├─ Description
-│  └─ Actions
-│
-├─ Toolbar optional
-│  ├─ Search
-│  ├─ Filters
-│  ├─ Sort
-│  ├─ View
-│  └─ Secondary actions
-│
-├─ Content
-│
-└─ Pagination / Context Footer optional
-```
-
-不允许每个页面重新发明 Layout。
-
----
-
-# 15. 页面最大宽度不采用统一 Website Container
-
-这是 Administration Console。
-
-不同页面应该拥有不同内容宽度：
-
-```text
-Table
-Full workspace
-
-Dashboard
-Full workspace
-
-Master Detail
-Full workspace
-
-Settings
-720–960px
-
-Simple form
-600–760px
-
-Entity Detail
-800–1200px
-```
-
-不要将所有页面压在中央 1000px 容器中。
-
----
-
-# 16. Responsive Grid
-
-Desktop 使用：
-
-```text
-Fluid 12-column Grid
-```
-
-优先设计：
-
-```text
-1440
-1600
-1920
-2560
-```
-
-桌面后台必须有效利用横向空间。
-
-Tablet：
-
-* collapsed navigation
-* adaptive columns
-
-Mobile：
-
-* drawer navigation
-* stacked forms
-* horizontal table handling
-
-不要为了 Mobile 牺牲 Desktop Admin 的信息效率。
-
----
-
-# 17. 建立新的 Design Token Architecture
-
-所有基础 UI 必须由 Token 驱动。
-
-建立：
-
-```text
-color.*
-surface.*
-text.*
-border.*
-space.*
-radius.*
-font.*
-shadow.*
-motion.*
-zIndex.*
-control.*
-```
-
-禁止出现大量页面级：
-
-```text
-#3978ff
-18px
-22px
-13px radius
-random shadow
-random padding
-```
-
----
-
-# 18. Color System
-
-品牌色继续采用专业 Blue 系。
-
-Brand Blue 只用于：
-
-```text
-Primary CTA
-Selected State
-Links
-Focus
-Important interaction
-```
-
-不要把整个应用染蓝。
-
-建立 Neutral System：
-
-```text
-Canvas
-Surface
-Surface Elevated
-Surface Muted
-
-Border
-Border Strong
-
-Text Primary
-Text Secondary
-Text Muted
-
-Brand
-Info
-Success
-Warning
-Danger
-```
-
----
-
-# 19. Semantic Color
-
-颜色代表意义而不是装饰。
-
-```text
-Green = Healthy / Success
-Yellow = Warning
-Red = Error / Destructive
-Blue = Interaction / Information
-Gray = Neutral / Inactive
-```
-
-不要为了视觉丰富而使用多个高饱和 KPI Card。
-
-Dashboard 应该首先专业，其次才是视觉丰富。
-
----
-
-# 20. Typography
-
-建立完整 Typography Scale。
-
-例如：
-
-```text
-Page title        24–28
-Section heading   16–18
-Body              14
-Secondary         13
-Metadata          12
-Code              12–13
-```
-
-中文系统字体：
-
-```text
-system-ui
-PingFang SC
-Microsoft YaHei
-Noto Sans CJK SC
-```
-
-英文：
-
-```text
-Inter
-system-ui
-```
-
-技术字段：
-
-```text
-ui-monospace
-SFMono
-JetBrains Mono
-```
-
----
-
-# 21. Code / Developer Metadata
-
-以下字段使用 monospace：
-
-```text
-Permission ID
-API Scope
-Token ID
-Commit
-Version
-IP
-Resource ID
-Trace ID
-Session ID
-Technical Identifier
-```
-
-技术字符串应该作为：
-
-**metadata**
-
-而不是页面主要视觉元素。
-
----
-
-# 22. Radius
-
-整体保持工程化、克制。
-
-推荐：
-
-```text
-Small control      6px
-Control            8px
-Panel              8–10px
-Dialog             12px
-```
-
-避免：
-
-```text
-20px
-24px
-30px
-```
-
-的大圆角成为整个系统主要视觉特征。
-
----
-
-# 23. Border & Shadow
-
-后台主要依赖：
-
-```text
-Surface
-Border
-Spacing
-Typography
-```
-
-建立层级。
-
-不要依赖大量 Shadow。
-
-普通 Panel：
-
-```text
-1px subtle border
-```
-
-Shadow 主要用于：
-
-```text
-Popover
-Dropdown
-Drawer
-Dialog
-Floating UI
-```
-
----
-
-# 24. Spacing Density
-
-系统采用中高信息密度。
-
-建议建立：
-
-```text
-4px base spacing system
-```
-
-例如：
-
-```text
-4
-8
-12
-16
-20
-24
-32
-40
-48
-```
-
-桌面页面 Padding：
-
-```text
-24–32px
-```
-
-不要出现大量 48–80px 无业务意义留白。
-
----
-
-# 25. Control Density
-
-Admin Control 建议：
-
-```text
-Input height
-36–40px
-
-Button height
-32–36px
-
-Table row
-40–48px
-
-Compact table
-36–40px
-```
-
-避免消费端式巨大输入框和按钮。
-
----
-
-# 26. Button Hierarchy
-
-每一个页面最多一个明显 Primary Action。
-
-层次：
-
-```text
-Primary
-Secondary
-Tertiary
-Ghost
-Danger
-```
-
-例如：
-
-```text
-Create User = Primary
-
-Export = Secondary
-
-Refresh = Ghost
-
-Delete = Danger
-```
-
-不要出现多个同权重蓝色按钮。
-
----
-
-# 27. Data Table 成为核心基础设施
-
-创建统一 Production DataTable。
-
-根据业务需求支持：
+根据实际页面能力支持：
 
 ```text
 Search
+
 Filter
+
 Sort
+
 Pagination
-Selection
-Batch operation
+
+Row actions
+
+Row selection
+
+Batch actions
+
 Column visibility
+
 Sticky header
-Row menu
-Density
-Empty state
-Loading state
-Error state
+
+Loading
+
+Empty
+
+No results
+
+Error
 ```
 
-不要强制每一个 Table 使用全部功能。
-
-按实际任务启用。
+不要每个页面重新实现一套 Table。
 
 ---
 
-# 28. Search & Filter Architecture
+# 十八、Search 必须是真实能力
 
-列表页 Toolbar 使用统一模型：
+所有 Search UI：
+
+必须真正搜索数据。
+
+根据 Backend Capability 决定：
 
 ```text
-Search
-Primary filters
-Advanced filters
-Clear filters
-Result count
+Server-side search
 ```
 
-Filter State 应尽可能同步 URL。
+或：
+
+```text
+Client-side search
+```
+
+禁止存在纯视觉 Search Box。
+
+---
+
+# 十九、Filter
+
+列表类页面根据数据支持：
+
+```text
+Status
+Role
+Type
+Domain
+Created time
+Organization
+```
+
+等真实 Filter。
+
+Filter 尽可能同步至 URL。
 
 例如：
 
@@ -1070,20 +785,46 @@ Filter State 应尽可能同步 URL。
 /users?status=active&role=admin&page=2
 ```
 
-这样：
-
-* Refresh 不丢失上下文
-* URL 可分享
-* Browser back 正常工作
+刷新以后保持状态。
 
 ---
 
-# 29. Master–Detail Pattern
+# 二十、URL 也是 Frontend State
 
-以下类型优先考虑：
+重要页面上下文必须考虑 URL State。
+
+支持：
 
 ```text
-List / Table
+Refresh
+Back
+Forward
+Share
+Deep link
+```
+
+例如：
+
+```text
+/users/:id
+```
+
+或：
+
+```text
+/users?selected=user_id
+```
+
+不要把所有状态只存在 React/Vue Memory 中。
+
+---
+
+# 二十一、Master–Detail
+
+成熟后台高频实体优先支持：
+
+```text
+Table
 +
 Detail Drawer
 ```
@@ -1091,289 +832,108 @@ Detail Drawer
 例如：
 
 ```text
-User
-Role
-Permission
-Token
-Session
-Audit Event
-Dependency
+Users
+Roles
+Permissions
+Sessions
+Tokens
+Audit Events
 ```
 
-用户点击 Row 后打开 Detail Drawer。
-
-这样保留列表上下文。
-
-核心实体同时支持 Deep Link。
+用户查看详情时无需不断离开当前列表。
 
 ---
 
-# 30. Drawer System
+# 二十二、Detail Drawer
 
-建立标准 Drawer：
+建立统一 Detail Drawer Pattern：
 
 ```text
 Header
-Title
-Metadata
+
+Identity
+
+Status
+
 Actions
 
-Tabs optional
+Metadata
 
-Content
+Tabs / Sections
 
-Footer optional
+Detail Content
 ```
 
-宽度按场景：
+Drawer 应支持：
 
 ```text
-480
-560
-640
-720
+Loading
+Error
+Permission state
+Deep link
+Keyboard close
+Focus management
 ```
-
-不要所有 Detail 都打开新的完整页面。
 
 ---
 
-# 31. Modal 使用边界
+# 二十三、Form System
 
-Modal 仅用于：
-
-```text
-Confirmation
-Short form
-Destructive action
-Focused decision
-```
-
-复杂工作流使用：
-
-```text
-Drawer
-Dedicated page
-Wizard
-```
-
-不要把复杂表单塞入 Modal。
-
----
-
-# 32. Form Architecture
-
-统一：
+建立统一：
 
 ```text
 Label
-Description optional
-Control
+Description
+Input
 Helper
+Validation
 Error
 ```
 
-Placeholder 不替代 Label。
+体系。
 
-Settings / Forms 不应该无限横向拉伸。
-
-Field Width 根据数据本身定义。
-
-例如：
+禁止：
 
 ```text
-Name
-320–480px
+placeholder = label
+```
 
-Description
-480–640px
+表单必须具备：
 
-Date
-240px
+```text
+Client validation
+Backend validation
+Submitting
+Success
+Failure
+Disabled
+Read-only
+Unsaved changes
 ```
 
 ---
 
-# 33. Settings Architecture
+# 二十四、Create Flow
 
-所有个人设置收敛到统一：
+创建复杂实体时，不要默认做：
 
 ```text
-Settings
+一个巨大 Form
 ```
 
-Settings 内部 Local Navigation：
+根据复杂度选择：
 
 ```text
-Profile
-Account
-Security
-Notifications
-Appearance
-Language
-```
+Modal
 
-不要把 Profile、Account、Appearance 等作为大量全局 Sidebar 一级入口。
-
----
-
-# 34. User Management 必须产品化
-
-User Management 以：
-
-```text
-Directory
-```
-
-作为核心。
-
-主视图：
-
-```text
-Users                               Create User
-
-Search users
-Status
-Role
-Organization
-More filters
-```
-
-Table 至少根据真实数据选择：
-
-```text
-User
-Display Name
-Role
-Status
-Last Activity
-Created At
-Actions
-```
-
-不要用巨大 Card 创建 User。
-
-Create User 应使用：
-
-```text
 Drawer
+
+Dedicated Page
+
+Wizard
 ```
 
-或独立流程。
-
----
-
-# 35. User Detail
-
-User Detail 应根据真实 Backend Capability 组织：
-
-```text
-Overview
-Roles
-Sessions
-Security
-Activity
-```
-
-如果某项能力不存在：
-
-不要伪造。
-
----
-
-# 36. Role Management
-
-Roles 使用 List / Table。
-
-例如：
-
-```text
-Role
-Description
-Members
-Permissions
-Updated
-```
-
-Role Detail：
-
-```text
-Overview
-Members
-Permissions
-```
-
----
-
-# 37. Permission UX
-
-Permission 不要设计成几十个 Badge。
-
-Permission Catalog：
-
-```text
-Search
-
-Permission
-Domain
-Action
-Description
-Used by Roles
-```
-
-技术 ID：
-
-```text
-iam.account.self.password.write
-```
-
-使用 monospace secondary text。
-
----
-
-# 38. Permission Matrix
-
-分配权限时优先使用：
-
-```text
-Grouped Permission Matrix
-```
-
-例如：
-
-```text
-Resource          Read   Create   Update   Delete
-
-Account            ✓       —        ✓        —
-Role               ✓       —        ✓        —
-Organization       ✓       ✓        ✓        ✓
-```
-
-如果现有权限模型不是 CRUD：
-
-按照真实 Permission Taxonomy 生成对应 Matrix。
-
-不要硬套 CRUD。
-
----
-
-# 39. API Token Management
-
-API Token 创建不使用：
-
-```text
-长表单
-+
-几十个 checkbox
-```
-
-设计为：
-
-```text
-Token Creation
-```
-
-Workflow：
+例如 Token 创建可以采用：
 
 ```text
 Identity
@@ -1385,620 +945,953 @@ Scopes
 Review
 ↓
 Create
-↓
-Reveal Secret
 ```
 
 ---
 
-# 40. Scope Selection
+# 二十五、Mutation 必须完整
 
-Scopes 按 Domain 分组。
-
-例如：
+任何写操作：
 
 ```text
-Account
-IAM
-Organization
-Navigation
-Audit
-API
-```
-
-支持合理的：
-
-```text
-Search scope
-Read-only preset
-Domain selection
-Clear
-```
-
-只在真实 Scope 模型允许时实现。
-
----
-
-# 41. Token Secret
-
-Secret 创建成功：
-
-只展示一次。
-
-页面明确表达：
-
-```text
-This token will only be shown once.
-```
-
-提供：
-
-```text
-Copy
-```
-
-不要再次从 Backend 假装能够读取 Secret。
-
----
-
-# 42. Token List
-
-Token 列表应包含真实支持字段，例如：
-
-```text
-Name
-Status
-Scopes
-Created
-Expires
-Last Used
-```
-
-Actions 根据 Backend：
-
-```text
+Create
+Update
+Delete
+Enable
 Disable
+Assign
+Remove
+Revoke
 Rotate
-Expire
-Revoke
-```
-
-不支持的功能不要出现。
-
----
-
-# 43. Runtime 必须重构成 Operations Experience
-
-不要设计成：
-
-```text
-一个 Metric
-=
-一张彩色 Card
-```
-
-建立：
-
-```text
-Operations Overview
-```
-
-顶部 Context：
-
-```text
-Environment
-Health
-Version
-Uptime
-Last Refresh
-Refresh
-Time Range
-```
-
-根据 Backend Capability 显示。
-
----
-
-# 44. Operations Information Hierarchy
-
-第一层：
-
-```text
-Overall Health
-Requests
-Errors
-Latency
-Dependency Health
-```
-
-第二层：
-
-```text
-Traffic / Request Trend
-Latency Trend
-CPU
-Memory
-```
-
-第三层：
-
-```text
-Dependencies
-```
-
-第四层：
-
-```text
-Instances / Runtime
-```
-
-第五层：
-
-```text
-Host Resources
-```
-
-这是信息架构模型。
-
-只实现真实有数据的部分。
-
----
-
-# 45. 绝不伪造监控数据
-
-如果 Backend 只有 Snapshot：
-
-显示：
-
-```text
-Live Snapshot
-```
-
-而不是假折线图。
-
-如果没有 Historical Metrics：
-
-显示：
-
-```text
-Historical metrics are not available.
-```
-
-如果 Disk Metrics 未接：
-
-显示：
-
-```text
-Disk metrics not configured
-```
-
-不要显示：
-
-```text
-Unavailable
-```
-
-大红色错误 Card，除非磁盘真的发生故障。
-
----
-
-# 46. 区分 Error 与 Missing Integration
-
-必须区分：
-
-```text
-Failure
-Unavailable
-Unsupported
-Not configured
-No data
-No history
-Permission denied
-```
-
-这些不是同一个状态。
-
-建立正确 Semantic State。
-
----
-
-# 47. Organization Management
-
-根据真实数据关系，优先评估：
-
-```text
-Tree
-+
-Detail
-```
-
-模式。
-
-例如：
-
-```text
-Organization
-
- ├ Engineering
- │   ├ Frontend
- │   └ Backend
- └ Operations
-```
-
-右侧展示：
-
-```text
-Name
-Parent
-Members
-Positions
-Metadata
-```
-
-只有 Backend 支持时才允许：
-
-```text
-Move
-Reorder
-Drag
-Archive
-```
-
----
-
-# 48. Audit Log
-
-Audit Log 设计成：
-
-**Log Explorer**
-
-而不是普通 Card。
-
-顶部：
-
-```text
-Search
-Actor
-Action
-Resource
-Result
-Date Range
-```
-
-Table：
-
-```text
-Timestamp
-Actor
-Action
-Resource
-Result
-IP
-```
-
-点击打开：
-
-```text
-Audit Event Detail
-```
-
----
-
-# 49. Audit Detail
-
-展示：
-
-```text
-Event ID
-Timestamp
-Actor
-Action
-Resource
-Result
-Request metadata
-Related metadata
-```
-
-JSON / Metadata 使用代码展示模式。
-
-不要把 JSON 做成普通 Paragraph。
-
----
-
-# 50. Menu / Navigation Management
-
-如果系统支持 Menu Management：
-
-使用：
-
-```text
-Navigation Tree
-+
-Configuration Inspector
-```
-
-而不是一系列普通输入框。
-
-结构：
-
-```text
-Tree
-
-Item Detail
-  Label
-  Route
-  Icon
-  Permission
-  Visibility
-  Parent
-  Order
-```
-
-只有真实支持 reorder 时才允许 Drag & Drop。
-
----
-
-# 51. Command Search
-
-顶部全局搜索必须具有实际意义。
-
-优先实现：
-
-```text
-Page Navigation
-```
-
-如架构允许，再支持：
-
-```text
-Users
-Roles
-Settings
-Resources
-```
-
-快捷键：
-
-```text
-Ctrl + K
-Cmd + K
-```
-
-不要保留一个无法操作的 Search UI。
-
----
-
-# 52. Empty State
-
-所有数据页面建立真实 Empty State。
-
-结构：
-
-```text
-What happened
-Why
-What can be done
-Action
-```
-
-例如：
-
-```text
-No API tokens
-
-Create a token to authenticate automated clients.
-
-Create Token
-```
-
-不要只写：
-
-```text
-暂无数据
-```
-
----
-
-# 53. Loading
-
-建立统一：
-
-```text
-Skeleton
-Table Skeleton
-Panel Skeleton
-Inline Spinner
-```
-
-不要所有加载都使用全屏 Spinner。
-
-Skeleton 应尽量匹配最终布局。
-
----
-
-# 54. Error State
-
-区分：
-
-```text
-Page Error
-Section Error
-Inline Error
-Action Error
-Permission Error
-Connectivity Error
-```
-
-局部请求失败不要让整个应用崩溃。
-
----
-
-# 55. Optimistic UX 谨慎使用
-
-只有 Backend contract 和失败恢复足够明确时使用 Optimistic Update。
-
-安全相关操作：
-
-```text
-Role
-Permission
-Token
-Session
-Delete
-Revoke
-```
-
-优先等待真实 Backend 成功。
-
----
-
-# 56. Feedback System
-
-统一：
-
-Toast：
-
-```text
-Created
-Saved
-Copied
-Updated
-```
-
-Inline：
-
-```text
-Validation error
-Field error
-API field error
-```
-
-Banner：
-
-```text
-Global warning
-System degradation
-Permission limitation
-```
-
-Dialog：
-
-```text
-Confirmation
-Destructive action
-```
-
-不要任何操作都弹 Toast。
-
----
-
-# 57. Danger Zone
-
-以下功能：
-
-```text
-Delete
-Revoke
-Disable
 Reset
-Archive
-Rotate credentials
 ```
 
-必须有完整危险操作设计。
+都必须拥有：
+
+```text
+Loading
+
+Success
+
+Failure
+
+Retry / recovery when appropriate
+```
+
+禁止：
+
+```text
+Button click
+↓
+fake timeout
+↓
+Toast success
+```
+
+所有操作必须真实调用现有 Backend API。
+
+---
+
+# 二十六、Permission-aware Frontend
+
+Frontend 必须真正理解 Permission。
+
+根据当前用户权限控制：
+
+```text
+Navigation
+
+Page visibility
+
+Actions
+
+Fields
+
+Dangerous operations
+
+Read-only states
+```
+
+对于没有权限的能力，根据场景：
+
+```text
+Hide
+
+Disable
+
+Read-only
+
+Explain
+```
+
+不要所有事情都等 Backend 返回：
+
+```text
+403
+```
+
+之后才处理。
+
+Backend 仍然是最终安全边界。
+
+Frontend Permission 只负责用户体验。
+
+---
+
+# 二十七、Permission UX
+
+不要让 permission code 主导页面设计。
+
+技术 Permission：
+
+```text
+iam.account.self.profile.write
+```
+
+应作为 developer metadata。
+
+给管理员显示：
+
+```text
+Update own profile
+
+iam.account.self.profile.write
+```
+
+而不是只显示 permission code。
+
+---
+
+# 二十八、Permission Matrix
+
+Role / Permission 管理优先设计：
+
+```text
+Grouped Permission Matrix
+```
+
+例如：
+
+```text
+Resource        Read   Create   Update   Delete
+
+Accounts         ✓       —        ✓        —
+Roles            ✓       —        ✓        —
+Departments      ✓       ✓        ✓        ✓
+```
+
+真实 permission taxonomy 不是 CRUD 时：
+
+根据真实模型生成。
+
+不要硬套 CRUD。
+
+---
+
+# 二十九、状态系统
+
+统一建立 Semantic Status System。
 
 包括：
-
-```text
-Consequence explanation
-Confirmation
-Optional identifier confirmation
-Loading state
-Failure recovery
-Success feedback
-```
-
-不要只放一个红色 Button。
-
----
-
-# 58. Status System
-
-建立统一 Status Component。
-
-状态包括：
 
 ```text
 Active
 Inactive
 Enabled
 Disabled
-Pending
 Healthy
 Degraded
 Failed
+Pending
 Expired
 Revoked
 ```
 
-Badge 只用于：
-
-**状态和少量分类。**
-
-不要把：
+Badge 主要用于：
 
 ```text
+State
+Category
+```
+
+不要让：
+
+```text
+Permission
+Version
 ID
-Permission Code
-普通文本
 Metadata
 ```
 
-全部做成 Badge。
+全部变成 Badge。
 
 ---
 
-# 59. Interaction States
+# 三十、Loading System
 
-所有 Interactive Component 必须具备：
+建立：
 
 ```text
-Default
-Hover
-Focus
-Active
-Selected
-Disabled
+Page Skeleton
+Table Skeleton
+Panel Skeleton
+Inline Spinner
+Button Loading
+```
+
+避免整个系统只有一个 Spinner。
+
+Loading Layout 尽可能贴近真实 Content Layout。
+
+---
+
+# 三十一、Empty State
+
+成熟项目不能只显示：
+
+```text
+暂无数据
+```
+
+必须表达：
+
+```text
+What happened?
+
+Why?
+
+What can user do?
+```
+
+例如：
+
+```text
+No API tokens yet
+
+Create a token to authenticate automated clients.
+
+[ Create token ]
+```
+
+---
+
+# 三十二、No Results
+
+区分：
+
+```text
+Empty Data
+```
+
+与：
+
+```text
+No Search Results
+```
+
+Search 没结果：
+
+允许：
+
+```text
+Clear filters
+Change keywords
+```
+
+而不是显示 Create Entity。
+
+---
+
+# 三十三、Error Architecture
+
+建立：
+
+```text
+Page Error
+
+Section Error
+
+Inline Error
+
+Action Error
+
+Permission Error
+
+Network Error
+
+Backend Error
+```
+
+局部接口失败不得轻易导致整页不可使用。
+
+---
+
+# 三十四、Backend 错误不能原样倾倒到用户界面
+
+不能直接显示：
+
+```text
+500 Internal Server Error
+
+SQL error
+
+JSON parse error
+```
+
+普通用户看到：
+
+```text
+Unable to load users.
+```
+
+需要开发信息时：
+
+可放入：
+
+```text
+Error details
+Request ID
+Trace ID
+```
+
+---
+
+# 三十五、Feedback System
+
+建立统一：
+
+```text
+Toast
+
+Inline feedback
+
+Banner
+
+Dialog
+```
+
+使用规则：
+
+Toast：
+
+```text
+Saved
+Copied
+Created
+Updated
+```
+
+Inline：
+
+```text
+Validation
+Field issue
+```
+
+Banner：
+
+```text
+Global warning
+Service degradation
+```
+
+Dialog：
+
+```text
+Confirmation
+Dangerous action
+```
+
+---
+
+# 三十六、Destructive Action
+
+删除、撤销、禁用、重置等操作必须具备：
+
+```text
+Clear consequence
+Confirmation
 Loading
-Error
+Failure handling
+Success feedback
 ```
 
-Focus 必须清晰。
+重要实体可要求输入：
 
-不能只针对 Mouse 用户设计。
+```text
+entity name
+```
+
+或其他确认文本。
+
+根据风险决定。
 
 ---
 
-# 60. Accessibility
+# 三十七、Runtime / Operations 前端能力
 
-至少满足：
+Runtime 不应只是：
 
 ```text
-Keyboard Navigation
-Visible Focus
-Semantic HTML
-ARIA labels
-Dialog focus trap
-Escape close
-Table semantics
-Form labels
-Contrast
-Reduced Motion
+Backend metrics
+→
+Metric cards
 ```
 
-Icon-only button：
+应该成为：
 
-必须存在：
+```text
+Operations Experience
+```
+
+根据真实 Backend Capability 组织：
+
+```text
+Overall Health
+
+Runtime State
+
+Requests
+
+Dependencies
+
+Metrics
+
+Instances
+
+Resources
+
+Diagnostics
+```
+
+---
+
+# 三十八、不要伪造监控能力
+
+如果 Backend 只有：
+
+```text
+Snapshot
+```
+
+则显示：
+
+```text
+Live Snapshot
+```
+
+如果没有：
+
+```text
+Historical Metrics
+```
+
+就不要制作假 Trend Chart。
+
+如果 Disk / Network 数据源没配置：
+
+显示：
+
+```text
+Metrics source not configured
+```
+
+而不是把它当成服务器故障。
+
+---
+
+# 三十九、区分状态语义
+
+必须正确区分：
+
+```text
+No data
+
+Not configured
+
+Unavailable
+
+Unsupported
+
+Degraded
+
+Failed
+
+Permission denied
+```
+
+这些必须拥有不同 UX。
+
+---
+
+# 四十、User Management 成熟化
+
+用户管理不应该是：
+
+```text
+Create form
++
+User selector
+```
+
+重构为：
+
+```text
+User Directory
+```
+
+支持真实能力范围内的：
+
+```text
+Search
+Filter
+Sort
+Pagination
+Inspect
+Create
+Edit
+Role assignment
+Security action
+Session inspection
+```
+
+---
+
+# 四十一、Role Management
+
+Role 页面应支持：
+
+```text
+List
+
+Search
+
+Members
+
+Permissions
+
+Detail
+
+Edit
+```
+
+而不是：
+
+```text
+select role
++
+checkbox
++
+save
+```
+
+---
+
+# 四十二、Session Management
+
+根据 Backend 数据设计：
+
+```text
+User
+Session
+Device / Client
+IP
+Created
+Last active
+Expires
+Status
+```
+
+如果 Backend 没有 Device：
+
+不要生成 Device 字段。
+
+---
+
+# 四十三、API Token Management
+
+提升为成熟 Developer Console 水准。
+
+Token List：
+
+```text
+Name
+Status
+Scope
+Created
+Expires
+Last used
+Actions
+```
+
+具体字段必须来自真实 API。
+
+创建流程：
+
+```text
+Identity
+Expiration
+Scopes
+Review
+Create
+```
+
+Secret：
+
+```text
+只显示真实 Backend 返回的数据
+```
+
+如果 Backend 只返回一次：
+
+UI 也只显示一次。
+
+---
+
+# 四十四、Organization Management
+
+如果组织、部门、岗位存在层级：
+
+优先考虑：
+
+```text
+Tree
++
+Inspector
+```
+
+而不是把所有层级分别做成无关联 CRUD 页面。
+
+前提：
+
+必须符合真实 Backend Data Relationship。
+
+---
+
+# 四十五、Audit Log
+
+成熟化为：
+
+```text
+Log Explorer
+```
+
+支持真实 Backend Capability 中的：
+
+```text
+Search
+Filter
+Date
+Actor
+Action
+Resource
+Result
+Pagination
+Detail
+```
+
+Event Detail 使用：
+
+```text
+Drawer / Detail
+```
+
+技术 metadata 使用：
+
+```text
+Structured view
+Code view
+```
+
+---
+
+# 四十六、Settings
+
+把个人设置组织成成熟 Settings Experience。
+
+例如：
+
+```text
+Settings
+
+Profile
+Account
+Security
+Notifications
+Appearance
+Language
+```
+
+使用 Local Navigation。
+
+Settings Form 控制宽度。
+
+不要让普通字段：
+
+```text
+1000px 宽
+```
+
+---
+
+# 四十七、Design System 必须系统性重建
+
+建立统一 Token：
+
+```text
+color
+background
+surface
+text
+border
+spacing
+radius
+shadow
+typography
+motion
+z-index
+control-size
+```
+
+禁止页面自己定义设计标准。
+
+---
+
+# 四十八、视觉方向
+
+整体定位：
+
+```text
+Professional
+Technical
+Calm
+Dense
+Precise
+Structured
+Modern
+Enterprise
+Developer-friendly
+```
+
+避免：
+
+```text
+过多 Card
+过大圆角
+过多阴影
+过多彩色块
+过多留白
+Landing Page 风格
+Dribbble Dashboard 风格
+```
+
+---
+
+# 四十九、品牌视觉
+
+Community Go 应该体现：
+
+```text
+Engineering
+Infrastructure
+Administration
+Reliability
+Precision
+```
+
+品牌不是靠大面积 Logo 和渐变。
+
+品牌来自：
+
+```text
+Typography
+
+Color discipline
+
+Spacing rhythm
+
+Interaction consistency
+
+Data presentation
+
+Technical precision
+```
+
+---
+
+# 五十、Color
+
+Blue 继续作为 Brand / Interactive Color。
+
+用于：
+
+```text
+Primary Action
+Link
+Selected
+Focus
+Information
+```
+
+不要所有页面元素都变蓝。
+
+建立成熟 Neutral Palette。
+
+---
+
+# 五十一、Typography
+
+建立明确层级：
+
+```text
+Page Title       24–28px
+
+Section Title    16–18px
+
+Body             14px
+
+Metadata         12–13px
+
+Code             12–13px
+```
+
+技术字符串使用 monospace。
+
+---
+
+# 五十二、Density
+
+后台优先：
+
+```text
+Information efficiency
+```
+
+而不是：
+
+```text
+Large whitespace
+```
+
+推荐：
+
+```text
+Page padding
+24–32
+
+Table row
+40–48
+
+Input
+36–40
+
+Button
+32–36
+```
+
+根据现有 UI framework 合理落地。
+
+---
+
+# 五十三、Radius
+
+整体采用克制圆角：
+
+```text
+Control
+6–8px
+
+Panel
+8–12px
+
+Dialog
+12px
+```
+
+不要让 20–30px Radius 成为主要视觉语言。
+
+---
+
+# 五十四、Shadow
+
+主要依靠：
+
+```text
+Surface
+Border
+Spacing
+Typography
+```
+
+建立层级。
+
+Shadow 只重点用于：
+
+```text
+Popover
+Dropdown
+Dialog
+Floating layer
+```
+
+---
+
+# 五十五、Responsive
+
+成熟前端至少支持：
+
+```text
+Desktop
+
+Small Desktop
+
+Tablet
+
+Basic Mobile
+```
+
+但这是 Admin：
+
+优先保证：
+
+```text
+1440
+1600
+1920
+2560
+```
+
+环境下的信息效率。
+
+不要为了 Mobile 牺牲 Desktop。
+
+---
+
+# 五十六、Accessibility
+
+达到现代成熟项目基础水准：
+
+```text
+Keyboard navigation
+
+Visible focus
+
+ARIA
+
+Semantic HTML
+
+Form labels
+
+Dialog focus management
+
+Escape close
+
+Contrast
+
+Reduced motion
+```
+
+Icon-only Action 必须具有：
 
 ```text
 Tooltip
@@ -2007,595 +1900,775 @@ aria-label
 
 ---
 
-# 61. Motion System
+# 五十七、Command Search
 
-动画：
-
-```text
-120–180ms
-```
-
-强调：
+如果当前架构适合，实现真实：
 
 ```text
-Fast
-Subtle
-Functional
+Ctrl / Cmd + K
 ```
 
-适合：
+至少支持：
 
 ```text
-Drawer
-Popover
-Dropdown
-Selection
-Collapse
+Navigate to pages
 ```
 
-禁止：
+如 API 和数据结构允许，再支持：
 
 ```text
-Bounce
-Large movement
-Decorative page transitions
+Search users
+Search roles
+Search resources
 ```
+
+如果无法实现真实能力：
+
+不要放假的 Command UI。
 
 ---
 
-# 62. Brand Identity
+# 五十八、Frontend Engineering Standard
 
-Community Go 的品牌存在感来自：
+重构后应形成：
 
 ```text
-Typography
-Color
-Precision
-Layout rhythm
-Navigation
-Interaction quality
-Developer details
+Design Tokens
+
+Primitives
+
+Semantic Components
+
+Page Patterns
+
+Business Modules
 ```
+
+结构。
 
 而不是：
 
 ```text
-Large gradient
-Decorative illustration
-Big rounded cards
-Excess branding
+Page-specific CSS
+Page-specific Card
+Page-specific Button
 ```
 
 ---
 
-# 63. Brand Header
+# 五十九、核心组件层
 
-Sidebar Brand Area 保持简单：
-
-```text
-CG Mark
-
-Community Go
-Admin Console
-```
-
-或者根据现有品牌体系使用等价表达。
-
-不要占据过多垂直空间。
-
----
-
-# 64. Footer
-
-不要在所有页面底部固定显示大型：
-
-```text
-Community Go Admin WebUI
-2026
-```
-
-版本 / Build 信息移动至：
-
-```text
-Sidebar bottom
-About
-System Information
-```
-
-减少 Workspace 噪音。
-
----
-
-# 65. 建立核心 Semantic Components
-
-新的组件系统至少评估并建立：
+根据现有技术栈建立类似：
 
 ```text
 AppShell
+
 Sidebar
+
 Topbar
-Breadcrumb
+
 PageHeader
+
 PageToolbar
 
 DataTable
+
 FilterBar
-SearchInput
-Pagination
 
 StatusBadge
+
 CodeText
 
-EmptyState
-ErrorState
-
 DetailDrawer
+
 ConfirmDialog
+
 DangerZone
 
 FormField
+
 SettingsSection
 
-MetricSummary
-HealthIndicator
+EmptyState
+
+ErrorState
+
+LoadingState
 
 PermissionMatrix
 
 TreeView
-InspectorPanel
 
-LogTable
-CodeViewer
+LogViewer
+
+Pagination
 ```
 
-组件按照：
+组件名称可根据代码规范调整。
 
-**业务语义**
+---
 
-创建。
+# 六十、组件必须是 Semantic Component
 
-不要建立大量：
+优先：
+
+```text
+PermissionMatrix
+
+StatusBadge
+
+DetailDrawer
+```
+
+不要：
 
 ```text
 BlueCard
-BigCard
-SmallCard
-RoundedContainer
+
+PrettyBox
+
+RoundedPanel2
 ```
 
-这类视觉命名组件。
-
----
-
-# 66. Design System 优先于 Page CSS
-
-禁止：
+组件名称应该表达：
 
 ```text
-Page A
-自己写 spacing
-
-Page B
-自己写 button
-
-Page C
-自己写 card
-
-Page D
-自己写 table
-```
-
-必须：
-
-```text
-Token
-↓
-Primitive
-↓
-Semantic Component
-↓
-Page Pattern
-↓
-Business Page
-```
-
----
-
-# 67. 不要无意义替换技术栈
-
-首先理解现有：
-
-```text
-Framework
-Router
-State
-UI library
-CSS architecture
-Form library
-Query library
-```
-
-如果能够在当前技术体系上完成高质量重构：
-
-继续使用。
-
-只有现有基础设施明显阻碍：
-
-```text
-Design System
-Accessibility
-Maintainability
-Performance
-```
-
-时才进行合理架构调整。
-
-不要为了“现代化”重写整个技术栈。
-
----
-
-# 68. 保留 Backend Contract
-
-此次允许大幅重构：
-
-```text
-UI
-UX
-Layout
-Route grouping
-Frontend component architecture
-Interaction model
-```
-
-但不要随意改变：
-
-```text
-Backend contract
-Permission semantics
-Security semantics
-Business semantics
-```
-
----
-
-# 69. 禁止 Fake Frontend
-
-绝对禁止创建后端不存在的假能力。
-
-不要伪造：
-
-```text
-Charts
-Activity
-Location
-History
-Latency
-Batch operation
-Drag & Drop
-Notifications
-Insights
-```
-
-如果数据不存在：
-
-```text
-Omit
-```
-
-或：
-
-```text
-Explain unavailable capability
-```
-
-而不是 Mock。
-
----
-
-# 70. 所有 Action 必须形成 Backend 闭环
-
-以下按钮：
-
-```text
-Create
-Edit
-Save
-Delete
-Enable
-Disable
-Reset
-Revoke
-Rotate
-Refresh
-```
-
-只要展示在 UI：
-
-就必须真正调用 Backend。
-
-禁止：
-
-```text
-Click
-↓
-Fake delay
-↓
-Success toast
-```
-
-这种假交互。
-
----
-
-# 71. Permission-aware UI
-
-所有操作必须考虑：
-
-```text
-Current user permissions
-```
-
-没有权限时根据业务选择：
-
-```text
-Hide
-Disable
-Read-only
-Explain
-```
-
-不要让用户点击后才发现 403，除非无法提前判断。
-
----
-
-# 72. URL State
-
-关键状态尽可能 URL 化。
-
-例如：
-
-```text
-/users?page=2&status=active
-```
-
-Detail：
-
-```text
-/users/:userId
-```
-
-或者：
-
-```text
-/users?selected=:userId
-```
-
-确保：
-
-```text
-Refresh
-Back
-Forward
-Share
-```
-
-行为稳定。
-
----
-
-# 73. 重新定义页面完成标准
-
-任何页面只有同时满足以下条件才算完成：
-
-```text
-User understands location
-
-User understands data
-
-User understands status
-
-User understands available actions
-
-User understands result after action
-```
-
-页面必须快速回答：
-
-```text
-Where am I?
-
-What is here?
-
-What matters?
-
-What can I do?
-
-What happened?
-```
-
----
-
-# 74. 页面不是功能清单
-
-不要因为 Backend 有：
-
-```text
-20 endpoints
-```
-
-就生成：
-
-```text
-20 pages
-```
-
-优先建立：
-
-```text
-5 complete workflows
+Responsibility
 ```
 
 而不是：
 
 ```text
-20 incomplete screens
+Appearance
 ```
 
 ---
 
-# 75. 代码实施顺序
+# 六十一、兼容现有技术栈
 
-严格按照以下 Phase 进行。
-
-## PHASE 1 — Product Audit
-
-输出内部：
+首先识别：
 
 ```text
-Route Map
+Framework
+Router
+State library
+Query library
+UI framework
+Form system
+CSS strategy
+```
 
-Backend Capability Map
+如果现有技术可以完成目标：
 
-Frontend Capability Map
+继续使用。
 
-Permission Map
+不要为了重构 UI 无意义地更换：
 
-Entity Relationship Map
+```text
+React/Vue
+Router
+Query library
+UI framework
+```
 
-Existing UI Architecture
+只有当现有架构明显无法支持成熟化时才局部调整。
+
+---
+
+# 六十二、保留真实 Backend Contract
+
+前端可以：
+
+```text
+重新组合 API
+
+重新设计流程
+
+重新安排页面
+
+重新设计导航
+
+重新设计组件
+
+重新设计视觉
+```
+
+但不能未经必要性判断擅自：
+
+```text
+修改 Backend API
+
+修改 Permission semantics
+
+修改数据关系
+
+改变安全规则
 ```
 
 ---
 
-## PHASE 2 — Product Architecture
+# 六十三、允许 Frontend Adapter Layer
 
-定义：
+如果 Backend 返回的数据过于后端化：
+
+不要直接在 UI 到处处理。
+
+允许建立：
+
+```text
+API
+↓
+Adapter / Mapper
+↓
+Frontend View Model
+↓
+UI
+```
+
+例如将：
+
+```text
+iam.account.self.password.write
+```
+
+转换为：
+
+```text
+label
+description
+domain
+action
+technicalCode
+```
+
+但必须保留原始 Permission Code 用于实际授权。
+
+---
+
+# 六十四、Frontend 可以比 Backend 更聪明
+
+允许前端提供：
+
+```text
+Grouping
+
+Sorting
+
+Derived labels
+
+Human-readable formatting
+
+Contextual actions
+
+Search
+
+Navigation
+
+Local filtering
+
+Data composition
+
+View state
+
+Progressive disclosure
+```
+
+这些属于：
+
+**Frontend Product Capability**
+
+不要求 Backend 为每个 UI 行为新增接口。
+
+---
+
+# 六十五、但禁止虚构业务数据
+
+Frontend 可以计算：
+
+```text
+Display name
+
+Status label
+
+Percentage
+
+Grouping
+
+Formatting
+```
+
+但不能凭空制造：
+
+```text
+Historical data
+
+Activity logs
+
+Locations
+
+Analytics
+
+Permissions
+
+Business states
+```
+
+---
+
+# 六十六、Progressive Disclosure
+
+不要一次把所有后台字段显示出来。
+
+分为：
+
+```text
+Primary Information
+
+Secondary Information
+
+Technical Metadata
+
+Advanced Settings
+```
+
+默认展示用户完成任务所需信息。
+
+Technical Detail 可以通过：
+
+```text
+Drawer
+
+Accordion
+
+Advanced section
+
+Code block
+```
+
+进一步查看。
+
+---
+
+# 六十七、前端能力补齐原则
+
+发现后端存在能力，而当前前端只是：
+
+```text
+Button
+Input
+Checkbox
+Card
+```
+
+时，不要认为：
+
+```text
+功能已经完成
+```
+
+检查它是否缺少：
+
+```text
+Discovery
+
+Context
+
+Search
+
+Filter
+
+Detail
+
+Validation
+
+Confirmation
+
+Feedback
+
+Recovery
+
+Permission handling
+
+Loading state
+
+Empty state
+
+URL state
+```
+
+如果缺失：
+
+将其补齐到合理成熟度。
+
+---
+
+# 六十八、不要为了“成熟”过度设计
+
+成熟项目不是：
+
+```text
+功能越多越好
+```
+
+而是：
+
+```text
+真正需要的功能完整
+```
+
+不要无依据增加：
+
+```text
+Export
+
+Batch operations
+
+Advanced filters
+
+Drag and drop
+
+Analytics
+
+Charts
+
+Realtime
+
+Command actions
+```
+
+每个能力必须满足：
+
+```text
+有真实需求
+或
+基于现有数据能够合理实现
+```
+
+---
+
+# 六十九、复杂度必须与业务匹配
+
+Simple feature：
+
+保持简单。
+
+Complex feature：
+
+提供完整 workflow。
+
+不要：
+
+```text
+简单 Profile
+→
+做成 5 步 Wizard
+```
+
+也不要：
+
+```text
+复杂 Token Permission
+→
+几十个 checkbox 一页结束
+```
+
+---
+
+# 七十、性能
+
+成熟项目必须考虑：
+
+```text
+Large lists
+
+Pagination
+
+Request cancellation
+
+Debounce
+
+Caching
+
+Loading
+
+Rerender
+
+Lazy loading
+
+Code splitting
+```
+
+不要为了视觉重构降低现有性能。
+
+---
+
+# 七十一、Query / Mutation 体系
+
+如果项目已有成熟 Query Layer：
+
+统一使用。
+
+避免：
+
+```text
+每个组件自己 fetch
+```
+
+建立清晰：
+
+```text
+Query
+
+Cache
+
+Mutation
+
+Invalidation
+
+Error
+
+Loading
+```
+
+流程。
+
+---
+
+# 七十二、Design QA
+
+重构后检查所有页面是否遵循同一系统：
+
+```text
+Same header
+
+Same table
+
+Same filter
+
+Same button hierarchy
+
+Same drawer
+
+Same form
+
+Same status
+
+Same feedback
+
+Same spacing
+
+Same typography
+```
+
+用户不应该感觉每个模块来自不同开发人员。
+
+---
+
+# 七十三、Interaction QA
+
+检查：
+
+```text
+Hover
+
+Focus
+
+Keyboard
+
+Loading
+
+Disabled
+
+Success
+
+Failure
+
+Back
+
+Refresh
+
+Deep link
+
+Permission denied
+```
+
+---
+
+# 七十四、Backend Compatibility QA
+
+对所有旧有真实功能建立 checklist：
+
+```text
+Can still read?
+
+Can still create?
+
+Can still update?
+
+Can still delete?
+
+Can still authorize?
+
+Can still revoke?
+
+Can still configure?
+
+Can still diagnose?
+```
+
+不能因为 UI 重构造成能力丢失。
+
+---
+
+# 七十五、不要保留“后端管理页面”的思维
+
+最终前端不应该像：
+
+```text
+API 调试界面
+
+Backend Capability Explorer
+
+CRUD Generator
+```
+
+应该像：
+
+```text
+Administration Product
+```
+
+区别在于：
+
+```text
+Backend exposes operations.
+
+Frontend organizes work.
+```
+
+---
+
+# 七十六、实施顺序
+
+严格按照以下顺序执行。
+
+## Phase 1
+
+扫描真实：
+
+```text
+Backend
+Frontend
+Routes
+Permissions
+Data models
+```
+
+---
+
+## Phase 2
+
+建立：
+
+```text
+Backend Capability Map
+
+Frontend Capability Gap Map
+```
+
+---
+
+## Phase 3
+
+设计：
 
 ```text
 Information Architecture
 
-Navigation Architecture
+Navigation
 
-Entity Architecture
+User workflows
 
-Workflow Architecture
+Entity relationships
 ```
 
 ---
 
-## PHASE 3 — Design Foundation
+## Phase 4
 
 建立：
 
 ```text
 Design Tokens
 
-Color
-
 Typography
+
+Color
 
 Spacing
 
+Density
+
 Radius
 
-Border
-
-Shadow
-
-Motion
-
-Accessibility
+Interaction states
 ```
 
 ---
 
-## PHASE 4 — Application Shell
+## Phase 5
 
-实现：
+重建：
 
 ```text
-AppShell
+App Shell
 
 Sidebar
 
-Top Context Bar
+Topbar
 
 Breadcrumb
 
-Page Container
-
-User Menu
-
-System status
-
-Command Search if supported
+Workspace
 ```
 
 ---
 
-## PHASE 5 — Core UI Infrastructure
+## Phase 6
 
-实现：
+建立成熟前端基础设施：
 
 ```text
-PageHeader
-
-Toolbar
-
 DataTable
 
-Filters
+Search
+
+Filter
+
+Pagination
 
 Drawer
 
 Dialog
 
-Form System
+Form
 
-Empty State
+Feedback
 
-Error State
+Loading
 
-Loading State
+Empty
 
-Status System
+Error
+
+Permission UI
 ```
 
 ---
 
-## PHASE 6 — Core Page Patterns
+## Phase 7
 
-建立：
-
-```text
-Directory
-
-List
-
-Table
-
-Master Detail
-
-Entity Detail
-
-Settings
-
-Dashboard
-
-Operations
-
-Tree Manager
-
-Permission Matrix
-
-Log Explorer
-```
-
----
-
-## PHASE 7 — Business Migration
-
-按照：
+按照 Domain 重构：
 
 ```text
 Operations
@@ -2611,283 +2684,239 @@ Settings
 Developer
 ```
 
-逐步迁移。
+---
 
-不要逐截图复制旧页面。
+## Phase 8
+
+将现有 Backend Capability 接入新的 Frontend Workflow。
 
 ---
 
-## PHASE 8 — Workflow Completion
+## Phase 9
 
-验证：
-
-```text
-Create
-Read
-Update
-Delete
-Search
-Filter
-Inspect
-Confirm
-Recover
-```
-
-是否形成真实完整工作流。
+验证所有旧 Backend 能力没有丢失。
 
 ---
 
-## PHASE 9 — System States
+## Phase 10
 
-补全：
+补齐：
 
 ```text
-Loading
+Responsive
 
-Empty
+Accessibility
 
-No result
+Performance
 
-Error
+Visual QA
 
-Denied
-
-Read-only
-
-Saving
-
-Success
-
-Failed
-
-Unavailable integration
+Interaction QA
 ```
 
 ---
 
-## PHASE 10 — Polish
+# 七十七、每个模块必须进行 Capability Review
 
-最后才处理：
+每个模块完成前回答：
 
 ```text
-Fine spacing
+Backend 已经提供了什么？
 
-Micro interaction
+当前 Frontend 已经提供了什么？
 
-Typography polish
+主流成熟产品通常需要哪些基础 Frontend Capability？
 
-Responsive behavior
+哪些可以基于现有 Backend 真实实现？
 
-Accessibility QA
+哪些目前不能实现？
 
-Visual consistency
+最终应该保留哪些？
 ```
 
-不要先从阴影和圆角开始。
+只实现：
+
+```text
+真实
+合理
+有价值
+可维护
+```
+
+的能力。
 
 ---
 
-# 76. 重构过程中允许删除旧 UI
+# 七十八、最终验收标准
 
-不要把：
-
-**Backward compatibility with bad UI**
-
-作为设计目标。
-
-如果旧：
+最终用户应该感受到：
 
 ```text
-Layout
-Component
-Style
-Page
-Navigation
+数据很好找
+
+功能很好理解
+
+操作很好完成
+
+状态很好判断
+
+错误很好恢复
+
+权限很好理解
+
+页面之间行为一致
+
+系统信息密度合理
+
+技术信息专业但不干扰任务
 ```
 
-已经失去价值：
+---
 
-删除。
+# 七十九、视觉验收
 
-保留的是：
+最终 Community Go 不应该看起来像：
 
 ```text
+UI Library Demo
+
+CRUD Template
+
+Backend Panel
+
+Component Showcase
+```
+
+而应该明显属于：
+
+```text
+Modern Administration Console
+
+Developer Platform
+
+Enterprise Control Plane
+```
+
+---
+
+# 八十、最终产品模型
+
+最终架构：
+
+```text
+Backend Capability
+        ↓
+Compatibility Layer
+        ↓
+Frontend Domain Model
+        ↓
+Product Capability
+        ↓
+Workflow
+        ↓
+Page Pattern
+        ↓
+Design System
+        ↓
+Production UI
+```
+
+Backend 负责：
+
+```text
+Data
+Rules
+Security
+Persistence
 Business capability
-
-Backend contract
-
-Required functionality
 ```
 
-而不是旧视觉。
+Frontend 负责：
+
+```text
+Understand
+Navigate
+Discover
+Inspect
+Operate
+Validate
+Confirm
+Feedback
+Recover
+Visualize
+Organize
+```
+
+两者职责必须明确。
 
 ---
 
-# 77. 不以现有截图作为新设计约束
+# 八十一、最终执行指令
 
-当前 UI 只能用于理解：
+现在不要进行局部 UI 美化。
 
-```text
-Existing capability
-Existing routes
-Existing content
-```
+不要按照当前页面逐个换皮。
 
-不能用于决定：
+首先全面扫描真实项目代码。
+
+识别：
 
 ```text
-New skeleton
-New component
-New page
-New navigation
+Backend capabilities
+
+Frontend capabilities
+
+Capability gaps
+
+Information architecture problems
+
+Interaction problems
+
+Design system problems
 ```
 
-不要进行：
+然后重新设计完整前端产品架构。
+
+保持所有有效 Backend Capability 可用。
+
+不创建假的后端能力。
+
+在现有后端之上补齐成熟 Frontend Product Capability。
+
+所有新增交互必须真实可用。
+
+所有 Backend Action 必须形成完整 UI 闭环。
+
+最终将 Community Go 从：
 
 ```text
-Screenshot A → Improved Screenshot A
+“拥有后台能力的前端界面”
 ```
 
-而应进行：
+升级为：
+
+**“拥有成熟前端产品能力的 Production-grade Administration Control Plane”**
+
+目标不是单纯让 UI 更漂亮。
+
+目标是同时达到：
 
 ```text
-Existing Product
-↓
-Reconstructed Product Architecture
-↓
-New Admin System
+Backend Compatibility
++
+Frontend Capability Maturity
++
+Product UX Maturity
++
+Design System Maturity
++
+Engineering Maturity
 ```
 
----
+直接开始进行：
 
-# 78. 最终视觉标准
+**Audit → Architecture → Foundation → Implementation → Migration → QA**
 
-最终页面必须明显呈现：
+不要停留在建议层。
 
-```text
-Clear hierarchy
-
-High information efficiency
-
-Calm visual system
-
-Strong operational UX
-
-Consistent interaction
-
-Predictable navigation
-
-Developer-level precision
-
-Enterprise quality
-```
-
-必须避免：
-
-```text
-Over-carded
-
-Over-rounded
-
-Over-spaced
-
-Over-colored
-
-Over-decorated
-
-Component-demo feeling
-```
-
----
-
-# 79. 最终产品标准
-
-Community Go Admin 最终不应该让用户感觉：
-
-> 后端已经有接口，所以做了一个页面把它显示出来。
-
-而应该让用户感觉：
-
-> 这是一个完整的 Administration Product。
-
-最终体系：
-
-```text
-BACKEND
-        ↓
-PRODUCT MODEL
-        ↓
-WORKFLOW
-        ↓
-INFORMATION ARCHITECTURE
-        ↓
-INTERACTION SYSTEM
-        ↓
-DESIGN SYSTEM
-        ↓
-FRONTEND CAPABILITY
-        ↓
-ADMIN CONTROL PLANE
-```
-
----
-
-# 80. 开始工作的最终指令
-
-不要从调整现有 Card、颜色或 Margin 开始。
-
-不要先逐页面修改。
-
-首先：
-
-```text
-Audit the entire product.
-```
-
-然后：
-
-```text
-Reconstruct the product architecture.
-```
-
-然后：
-
-```text
-Build the design system.
-```
-
-然后：
-
-```text
-Build the application shell.
-```
-
-然后：
-
-```text
-Build reusable admin interaction patterns.
-```
-
-最后：
-
-```text
-Migrate real backend capabilities into complete frontend workflows.
-```
-
-直接基于当前代码进行系统性设计和实现。
-
-不要只输出设计建议。
-
-不要只生成 Mockup。
-
-不要创建假的 Backend Capability。
-
-不要为了保留现有 UI 而限制新架构。
-
-目标不是：
-
-**Redesign several pages.**
-
-目标是：
-
-# Rebuild Community Go as a complete, production-grade Administration Control Plane.
+基于真实产品代码完成系统性重构。

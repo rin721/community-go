@@ -263,7 +263,7 @@ select:focus-visible {
 .app-shell {
   display: grid;
   grid-template-columns: var(--shell-sidebar-current) minmax(0, 1fr);
-  min-height: 100vh;
+  height: 100dvh;
   background: var(--page);
   transition: grid-template-columns var(--motion-layout) var(--ease-standard);
 }
@@ -275,12 +275,13 @@ select:focus-visible {
   display: flex;
   flex-direction: column;
   width: var(--shell-sidebar-current);
-  min-height: 100vh;
+  height: 100dvh;
   padding: var(--space-4) var(--space-3);
   background: var(--surface);
   border-right: 1px solid var(--border);
   transition: width var(--motion-layout) var(--ease-standard), transform var(--motion-layout) var(--ease-standard);
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 .sidebar-collapsed .app-sidebar {
   padding-inline: 10px;
@@ -467,13 +468,13 @@ select:focus-visible {
 .app-workspace {
   display: flex;
   min-width: 0;
-  min-height: 100vh;
+  min-height: 100dvh;
   flex-direction: column;
 }
-/* 参考站式的固定 Header/页签/Footer：仅把中间工作区交给页面滚动 */
+/* 固定 Header 与独立滚动主区：页面滚动收敛到 .page-viewport（083 LAYOUT-001） */
 .app-workspace {
   min-height: 0;
-  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 
@@ -820,11 +821,26 @@ kbd {
 .page-viewport {
   flex: 1;
   width: 100%;
-  max-width: var(--shell-content-max);
-  margin: 0 auto;
-  padding: var(--space-6) clamp(18px, 3vw, 40px) var(--space-2);
   min-height: 0;
   overflow: auto;
+  padding: var(--space-6) clamp(18px, 3vw, 40px) var(--space-2);
+}
+/* 083 LAYOUT-002：按场景宽度档（默认全宽；Settings/Detail/Form 收窄）。
+   页面根节点加 data-page-width 语义：settings/detail/form；缺省为 wide。 */
+.page-viewport[data-page-width="settings"] .module-page,
+[data-page-width="settings"] .module-page {
+  max-width: var(--content-max-settings);
+  margin-inline: auto;
+}
+.page-viewport[data-page-width="detail"] .module-page,
+[data-page-width="detail"] .module-page {
+  max-width: var(--content-max-detail);
+  margin-inline: auto;
+}
+.page-viewport[data-page-width="form"] .module-page,
+[data-page-width="form"] .module-page {
+  max-width: var(--content-max-form);
+  margin-inline: auto;
 }
 .module-page {
   min-width: 0;

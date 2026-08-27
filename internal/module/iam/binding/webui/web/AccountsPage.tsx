@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActionTrigger, Button, Check, CodeText, DataTable, DetailDrawer, Drawer, Field, FilterBar, FormField, PageHeader, PageSection, SearchInput, SelectField, StatusBadge } from "@webui/sdk/ui";
+import { ActionTrigger, Button, Check, CodeText, ConfirmActionTrigger, DataTable, DetailDrawer, Drawer, Field, FilterBar, FormField, PageHeader, PageSection, SearchInput, SelectField, StatusBadge } from "@webui/sdk/ui";
 import { useListQueryParams } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { accountRolesView, archiveAccount, createAccount, listAccounts, listRoles, replaceAccountRoles, resetAccountPassword, setAccountStatus, updateAccountInfo, type Account, type Role } from "./api";
@@ -97,10 +97,6 @@ export default function AccountsPage() {
       return refresh();
     }).catch(() => { void refresh(); });
   };
-  const archive = () => {
-    if (!selected) return;
-    void archiveAccount(selected.id).then(() => refresh()).catch(() => setArchiveError(true));
-  };
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   // 082 REQ-082-012: DataTable row menu (real operations only, disabled by state).
   const rowActions = (account: Account) => {
@@ -177,7 +173,19 @@ export default function AccountsPage() {
             <ActionTrigger operationId="iam.accounts.password.reset" disabled={selected.archived || resetPassword.length < 15} onAction={() => selected ? resetAccountPassword(selected.id, resetPassword).then(() => setResetPassword("")) : undefined}>{t("webui.iam.accounts.reset")}</ActionTrigger>
             <Field label={t("webui.iam.displayName")} value={renameValue} onChange={(event) => setRenameValue(event.target.value)} />
             <ActionTrigger operationId="iam.accounts.update" disabled={selected.archived || !renameValue.trim()} onAction={rename}>{t("webui.iam.accounts.editName")}</ActionTrigger>
-            <ActionTrigger operationId="iam.accounts.archive" variant="danger" disabled={selected.archived} onAction={archive}>{t("webui.iam.accounts.archive")}</ActionTrigger>
+            <ConfirmActionTrigger
+              operationId="iam.accounts.archive"
+              variant="danger"
+              disabled={selected.archived}
+              label={t("webui.iam.accounts.archive")}
+              pendingLabel={t("webui.iam.saving")}
+              confirmTitle={t("webui.iam.accounts.confirmArchive")}
+              confirmDescription={t("webui.iam.accounts.archiving")}
+              confirmLabel={t("webui.iam.accounts.archive")}
+              cancelLabel={t("webui.iam.cancel")}
+              closeLabel={t("webui.iam.cancel")}
+              onConfirm={() => selected ? archiveAccount(selected.id).then(() => refresh()) : Promise.resolve()}
+            />
             {archiveError && <p className="page-meta">{t("webui.iam.error")}</p>}
           </div>
         </PageSection>

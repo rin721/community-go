@@ -473,6 +473,34 @@ export function BulkActionBar({ open, selectionLabel, actionLabel, clearLabel, c
   </>;
 }
 
+// ConfirmActionTrigger 是危险/不可逆操作的确认动作原语（083 PAGE-007，设计基线「危险即确认」）：
+// 按钮按下 -> ConfirmDialog 确认 -> 执行 onConfirm（Promise，pending 防重复）。
+export function ConfirmActionTrigger({ operationId, variant = "danger", label, pendingLabel, confirmTitle, confirmDescription, confirmLabel, cancelLabel, closeLabel, disabled, disabledReason, onConfirm, onError }: {
+  operationId?: string;
+  variant?: "danger" | "primary" | "secondary" | "ghost";
+  label: ReactNode;
+  pendingLabel?: ReactNode;
+  confirmTitle: string;
+  confirmDescription?: string;
+  confirmLabel: string;
+  cancelLabel: string;
+  closeLabel: string;
+  disabled?: boolean;
+  disabledReason?: ActionDisabledReason;
+  onConfirm: () => Promise<unknown>;
+  onError?: (error: Error) => void;
+}) {
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const run = () => {
+    setConfirmOpen(false);
+    void onConfirm().catch((error) => onError?.(error instanceof Error ? error : new Error("action_failed")));
+  };
+  return <>
+    <ActionTrigger operationId={operationId} variant={variant} deniedBehavior="hidden" pendingLabel={pendingLabel} disabled={disabled} disabledReason={disabledReason} onAction={() => { setConfirmOpen(true); }}>{label}</ActionTrigger>
+    <ConfirmDialog open={confirmOpen} title={confirmTitle} description={confirmDescription} confirmLabel={confirmLabel} cancelLabel={cancelLabel} closeLabel={closeLabel} onConfirm={run} onCancel={() => setConfirmOpen(false)} />
+  </>;
+}
+
 // FormSubmitActions 是表单提交/重置的统一行为契约：提交支持 pending 与条件禁用，
 // 重置为次级动作；表单状态仍由页面 owner 持有（不强制切换表单库）。
 export function FormSubmitActions({ submitLabel, resetLabel, submitPending, submitPendingLabel, submitDisabled, submitDisabledReason, resetDisabled, onSubmit, onReset, className = "" }: {

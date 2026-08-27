@@ -3,6 +3,7 @@ import { ActionTrigger, Button, Check, CodeText, ConfirmActionTrigger, DataTable
 import { useListQueryParams } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { archiveRole, createRole, listPermissions, listRoles, replaceRolePermissions, rolePermissionsView, updateRoleInfo, type PermissionDefinition, type Role } from "./api";
+import { permissionDescription, preloadPermissionDescriptions } from "./permission-label";
 import styles from "./iam.module.css";
 
 type GroupedPermissions = Array<{ ownerModuleId: string; definitions: PermissionDefinition[] }>;
@@ -74,7 +75,7 @@ export default function RolesPage() {
       setSelectedID((current) => current && result.items.some((item) => item.id === current) ? current : result.items[0]?.id || "");
     }).catch(() => { setItems([]); setTotal(0); setLoadError(true); }).finally(() => setLoading(false));
   }, [listQuery.filters.query, listQuery.sort, page]);
-  useEffect(() => { void refresh(); void listPermissions().then(setPermissions); }, [refresh]);
+  useEffect(() => { void refresh(); void listPermissions().then(async (result) => { setPermissions(result); await preloadPermissionDescriptions(result); }); }, [refresh]);
   useEffect(() => { void refresh(); }, [listQuery.filters.query]); // 082: query URL change reloads from page 1.
   const reloadSelection = useCallback((id: string) => {
     if (!id) return;
@@ -179,7 +180,7 @@ export default function RolesPage() {
         <PageSection kicker={t("webui.iam.roles.manage.kicker")} title={`${t("webui.iam.roles.selected")}: ${selected.name} (${selected.code})`}>
           {selected.system
             ? <p className="admin-note">{t("webui.iam.roles.systemReadonly")}</p>
-            : <div className="permission-matrix">{groups.map((group) => <fieldset key={group.ownerModuleId}><legend>{group.ownerModuleId}</legend>{group.definitions.map((definition) => <Check key={definition.key} checked={selectedKeys.includes(definition.key)} disabled={selected.archived} onChange={() => toggle(definition.key)} className="permission-row">{definition.key}<span className="permission-description">{t(definition.descriptionMessageId)}</span></Check>)}</fieldset>)}</div>}
+            : <div className="permission-matrix">{groups.map((group) => <fieldset key={group.ownerModuleId}><legend>{group.ownerModuleId}</legend>{group.definitions.map((definition) => <Check key={definition.key} checked={selectedKeys.includes(definition.key)} disabled={selected.archived} onChange={() => toggle(definition.key)} className="permission-row">{definition.key}<span className="permission-description">{permissionDescription(definition.descriptionMessageId)}</span></Check>)}</fieldset>)}</div>}
           {message && <p className="page-meta">{message}</p>}
           <div className="page-meta">{t("webui.iam.roles.pending")}: +{diff.added} −{diff.removed} · rev {expectedVersion}</div>
           <div className="toolbar-actions">

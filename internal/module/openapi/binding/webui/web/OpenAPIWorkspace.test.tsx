@@ -114,13 +114,15 @@ describe("OpenAPIPage workspace shell (R075-009)", () => {
     unmount();
   });
 
-  it("closes a tab and returns to the empty hint", () => {
+  it("closes a tab and returns to the empty state with an open-first action", () => {
     window.history.replaceState(null, "", "/openapi?op=get-/api/v1/iam/session&mode=docs");
     const { host, unmount } = render(<HostRuntimeProvider value={hostRuntime()}><OpenAPIPage /></HostRuntimeProvider>);
     const close = host.querySelector('[data-testid="openapi-tab-close-get-/api/v1/iam/session"]') as HTMLButtonElement;
     expect(close).not.toBeNull();
     act(() => { close.click(); });
-    expect(host.textContent).toContain("Select an operation from the resource tree to start");
+    // 084 OAPI-084-001：空态升级为「标题 + 说明 + 打开第一个接口」动作，不再是旧单行 hint。
+    expect(host.textContent).toContain("No operation selected");
+    expect(host.textContent).toContain("Open the first operation");
     unmount();
   });
 });

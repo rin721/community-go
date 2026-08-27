@@ -32,19 +32,17 @@ export default function NotificationsPage() {
     });
   };
   return <div className={`${styles.settingsModule} module-page`}>
-    
-      <PageHeader eyebrow={t("webui.settings.brand")} title={t("webui.settings.notifications.title")} description={t("webui.settings.notifications.description")} />
-      <div className="page-sections">
+    <PageHeader eyebrow={t("webui.settings.brand")} title={t("webui.settings.notifications.title")} description={t("webui.settings.notifications.description")} />
+    <div className="page-sections">
       <PageSection kicker={t("webui.settings.notifications.prefs.kicker")} title={t("webui.settings.notifications.prefs.title")}>
         <div className="settings-stack">
-          <Switch label={t("webui.settings.notifications.emailDigest")} checked={prefs.emailDigest} onChange={(emailDigest) => update({ emailDigest })} />
-          <Switch label={t("webui.settings.notifications.inApp")} checked={prefs.inApp} onChange={(inApp) => update({ inApp })} />
-          <Switch label={t("webui.settings.notifications.showSummaries")} checked={prefs.showSummaries} onChange={(showSummaries) => update({ showSummaries })} />
-          <Switch label={t("webui.settings.notifications.dailySummary")} checked={prefs.dailySummary} onChange={(dailySummary) => update({ dailySummary })} />
+          <div className="setting-row"><div className="setting-row-label"><span className="setting-row-title">{t("webui.settings.notifications.emailDigest")}</span></div><div className="setting-row-control"><Switch ariaLabel={t("webui.settings.notifications.emailDigest")} checked={prefs.emailDigest} onChange={(emailDigest) => update({ emailDigest })} /></div></div>
+          <div className="setting-row"><div className="setting-row-label"><span className="setting-row-title">{t("webui.settings.notifications.inApp")}</span></div><div className="setting-row-control"><Switch ariaLabel={t("webui.settings.notifications.inApp")} checked={prefs.inApp} onChange={(inApp) => update({ inApp })} /></div></div>
+          <div className="setting-row"><div className="setting-row-label"><span className="setting-row-title">{t("webui.settings.notifications.showSummaries")}</span></div><div className="setting-row-control"><Switch ariaLabel={t("webui.settings.notifications.showSummaries")} checked={prefs.showSummaries} onChange={(showSummaries) => update({ showSummaries })} /></div></div>
+          <div className="setting-row"><div className="setting-row-label"><span className="setting-row-title">{t("webui.settings.notifications.dailySummary")}</span></div><div className="setting-row-control"><Switch ariaLabel={t("webui.settings.notifications.dailySummary")} checked={prefs.dailySummary} onChange={(dailySummary) => update({ dailySummary })} /></div></div>
         </div>
         <p className="page-meta">{t("webui.settings.notifications.localOnly")}</p>
       </PageSection>
     </div>
-    
   </div>;
 }

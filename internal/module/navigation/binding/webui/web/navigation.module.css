@@ -1,23 +1,79 @@
-/* 083 样式权威：MenusPage 已迁 Tree+Inspector，仅保留 revision 与 policy-controls 消费类；
-   policy-grid/policy-card 死代码与元素级 dl/dt/dd 已删（080 迁移遗留）。 */
+/* 084 NAV-084-001：菜单策略页 = 取景区 + 策略编辑区两栏。
+   旧的 policy-controls 四列 grid（140+180+160+auto）在 320px 右栏内
+   必然横向溢出被裁（083 遗留 P0），现改为纵向分组的策略栈，杜绝截断。 */
+
 .navigationModule :global(.revision) {
   color: var(--text-secondary);
   font-size: 12px;
 }
-.navigationModule :global(.policy-controls) {
-  display: grid;
-  grid-template-columns: 140px minmax(180px, 1fr) 160px auto;
-  gap: 12px;
-  align-items: end;
+
+/* 左栏取景区：注册菜单树，独立滚动 */
+.navPane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
 }
-.navigationModule :global(.policy-controls label) {
+.navPaneHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.navPaneTitle {
+  font-size: 13px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--text);
+}
+.navPaneCount {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.navPaneBody {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 560px;
+  overflow: auto;
+  padding: 8px;
+}
+.navPaneBody .tree-view {
+  padding-right: 2px;
+}
+
+/* 右栏策略编辑区 */
+.navDetail {
+  display: grid;
+  align-content: start;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.navDetailHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 0 8px;
+}
+.policyStack {
+  display: grid;
+  gap: 12px;
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.policyField {
   display: grid;
   gap: 6px;
   color: var(--text-secondary);
   font-size: 12px;
-}
-@media (max-width: 760px) {
-  .navigationModule :global(.policy-controls) {
-    grid-template-columns: 1fr;
-  }
 }

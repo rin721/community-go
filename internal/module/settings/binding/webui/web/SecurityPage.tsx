@@ -12,6 +12,7 @@ export default function SecurityPage() {
   const [mustChange, setMustChange] = useState(false);
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
+  const [confirm, setConfirm] = useState("");
   const [message, setMessage] = useState("");
 
 
@@ -37,10 +38,13 @@ export default function SecurityPage() {
     void refreshTokenSummary();
   }, [refreshTokenSummary]);
 
+  const mismatch = next.length > 0 && confirm.length > 0 && next !== confirm;
+  const canSubmit = current.length > 0 && next.length >= 15 && confirm.length > 0 && !mismatch;
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!canSubmit) return;
     setMessage("");
-    changePassword(current, next).then(() => { setMessage(t("webui.settings.security.changed")); setCurrent(""); setNext(""); }).catch(() => setMessage(t("webui.settings.error")));
+    changePassword(current, next).then(() => { setMessage(t("webui.settings.security.changed")); setCurrent(""); setNext(""); setConfirm(""); }).catch(() => setMessage(t("webui.settings.error")));
   };
 
   const enableMFA = () => {
@@ -68,11 +72,12 @@ export default function SecurityPage() {
     <PageHeader eyebrow={t("webui.settings.brand")} title={t("webui.settings.security.title")} description={t("webui.settings.security.description")} actions={mustChange && <StatusPill state="degraded">{t("webui.settings.security.changeRequired")}</StatusPill>} />
     <div className="page-sections">
       <PageSection kicker={t("webui.settings.security.kicker")} title={t("webui.settings.security.passwordTitle")}>
-        <form className="form-panel" onSubmit={submit}>
+        <form className="form-panel form-panel-bounded" onSubmit={submit}>
           <Field label={t("webui.settings.security.current")} type="password" required value={current} onChange={(event) => setCurrent(event.target.value)} />
-          <Field label={t("webui.settings.security.next")} type="password" minLength={15} required value={next} onChange={(event) => setNext(event.target.value)} />
+          <Field label={t("webui.settings.security.next")} type="password" minLength={15} required value={next} onChange={(event) => setNext(event.target.value)} hint={t("webui.settings.security.helper")} />
+          <Field label={t("webui.settings.security.confirm")} type="password" required value={confirm} onChange={(event) => setConfirm(event.target.value)} error={mismatch ? t("webui.settings.security.confirmMismatch") : undefined} />
           {message && <p className="page-meta" role="status">{message}</p>}
-          <div className="toolbar-actions"><Button type="submit">{t("webui.settings.security.submit")}</Button></div>
+          <div className="row-actions"><Button type="submit" disabled={!canSubmit}>{t("webui.settings.security.submit")}</Button></div>
         </form>
       </PageSection>
 

@@ -1,5 +1,7 @@
-/* 组织模块专属样式；通用布局（toolbar/item-card/page-section/stat-grid 等）由平台
-   webui/src/styles.css 提供，模块不再重复实现（067 布局骨架迁移）。 */
+/* 084 组织模块专属样式：工作台两栏（取景区 + 详情编辑区）。
+   通用布局（page-section/field-grid/split-workspace 等）由平台
+   webui/src/styles.css 提供；本文件只保留模块专属 selector。 */
+
 .organizationModule :global(fieldset) {
   display: flex;
   flex-wrap: wrap;
@@ -20,4 +22,166 @@
   gap: 6px;
   color: var(--text-secondary);
   font-size: 12px;
+}
+
+/* 左栏取景区：搜索 + 列表/树，独立滚动（split-workspace 左栏） */
+.selectPane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+}
+.selectPaneHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.selectPaneTitle {
+  font-size: 13px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--text);
+}
+.selectPaneCount {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.selectPaneSearch {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.selectPaneBody {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 560px;
+  overflow: auto;
+  padding: 8px;
+}
+.selectPaneBody .tree-view {
+  padding-right: 2px;
+}
+
+/* 左栏行（账号列表项） */
+.selectRow {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.selectRow:hover {
+  background: var(--surface);
+}
+.selectRowActive,
+.selectRow[aria-pressed="true"] {
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+.selectRow strong {
+  font-size: 13px;
+  font-weight: 550;
+}
+.selectRow small {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.selectRowActive small,
+.selectRow[aria-pressed="true"] small {
+  color: var(--primary);
+}
+
+/* 右栏详情/编辑区 */
+.detailPane {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.detailPaneHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 0 8px;
+}
+.detailPaneHead h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: var(--font-weight-semibold);
+}
+.editorPaneHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0;
+}
+.detailMeta {
+  display: grid;
+  gap: 6px;
+}
+.detailSection {
+  display: grid;
+  gap: 10px;
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.detailSectionTitle {
+  margin: 0;
+  font-size: 12px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+}
+.detailHint {
+  margin: 0;
+}
+.positionCheckGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px 14px;
+}
+
+/* 084：部门详情右栏 = 实例信息 + 编辑卡两栏（宽屏下填充右半空白） */
+.departmentDetailGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+@media (max-width: 1000px) {
+  .departmentDetailGrid {
+    grid-template-columns: 1fr;
+  }
+}
+.editPane {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  min-width: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+}
+.editPane h4 {
+  margin: 0;
 }

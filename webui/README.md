@@ -137,3 +137,9 @@ Linux 使用 `bash scripts/verify-webui.sh`。质量链覆盖生成检查、冻�
 - 滚动体验运行时（`webui/src/scroll/*`）：`SmoothScrollController` 以项目窄契约封装 `lenis`（唯一新增第三方，R067-002 结论）实现阻尼平滑滚动（`wrapper=.page-viewport`、`content=.page-flow`、触控原生惯性）；`EdgeBand` 边缘阻尼/橡皮筋；`data-snap-x` 磁吸吸附；`data-scroll-hijack="x|y"` 显式滚动场景劫持。页面滚动条默认 `scrollbar-gutter: stable`（稳定插槽、预留右侧）。
 - 派生配置设置：`ThemePreferences.experience`（smoothScroll/damping/edgeDamping/magneticSnap/scrollHijack/reveal/revealRhythm/scrollbar），落到 `<html data-experience-*>` 并由 ThemeDrawer「体验」面板调整；旧主题自动迁移；`data-motion=reduce` 统一降级（销毁 Lenis、停用橡皮筋/劫持、Reveal 立即可见）。
 - 组织模块修复：分配页 `assignments.saved/conflict/revision` 翻译键补全（阻塞「翻译资源缺失」占位）、部门/岗位/分配操作失败反馈与 locale 键一致性用例。
+
+## 逐页产品化工作台（084）
+
+- 平台新增受限表单与工作台原语（`webui/src/styles.css`）：`.field-grid`（自动列、上限 640px，字段不再被 `.toolbar` flex 撑宽）、`.split-workspace`（取景区/详情区两栏，替代固定 320px 右栏，修复 Menus/Org 溢出与比例失衡）、`.row-actions`（行内动作对齐）、`.form-panel-bounded`（密码等短表单 480px 上限）。
+- 跨 namespace 文案解析：`@webui/sdk/i18n` 导出 `translateMessage`/`translateOptional`/`ensureRouteLocale`（`webui/src/i18n.ts` 宿主实现）。Menus 页树标题按需加载并翻译其它模块的 `titleMessageId`；权限目录描述 `permission.<module>.<rest>` 映射到模块自有 `webui.<module>.permission.<rest>` 键，缺失时回落目录键，杜绝「翻译资源缺失」占位。
+- 页面模板落地：目录工作台（搜索树 + InspectorPanel 详情/编辑，如部门）、名录表格（DataTable + 行菜单重命名/归档确认，如岗位）、选择器 + 编辑器两栏（如账号组织分配）、设置行（label 左/控件右 + 单选组）。新页面优先采用这些组合，禁止退化为基础组件铺开。

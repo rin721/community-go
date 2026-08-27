@@ -60,6 +60,38 @@
   font-size: 13px;
 }
 
+/* 084：可操作空态（图标 + 标题 + 说明 + 动作），不再是一行灰字 */
+.workspaceEmptyContent {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  max-width: 420px;
+  text-align: center;
+}
+.workspaceEmptyIcon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+  color: var(--text-muted);
+  font-size: 20px;
+}
+.workspaceEmptyTitle {
+  margin: 0;
+  font-size: 14px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--text);
+}
+.workspaceEmptyDetail {
+  margin: 0 0 4px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+
 .workspaceInner {
   display: flex;
   flex-direction: column;
@@ -77,7 +109,7 @@
 .treePanel {
   display: flex;
   flex-direction: column;
-  flex: 0 0 280px;
+  flex: 0 0 300px;
   min-width: 0;
   border-right: 1px solid var(--border);
   background: var(--surface-muted);

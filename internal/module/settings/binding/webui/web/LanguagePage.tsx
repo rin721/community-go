@@ -12,21 +12,23 @@ const languageOptions: Array<{ value: string; label: string }> = [
 
 export default function LanguagePage() {
   const { t } = useWebUITranslation("webui.settings");
+  const current = localStorage.getItem("community-go-webui-language") ?? "";
   const choose = (value: string) => {
     localStorage.setItem("community-go-webui-language", value);
     window.location.reload();
   };
   return <div className={`${styles.settingsModule} module-page`}>
-    
-      <PageHeader eyebrow={t("webui.settings.brand")} title={t("webui.settings.language.title")} description={t("webui.settings.language.description")} />
-      <div className="page-sections">
-        <PageSection kicker={t("webui.settings.language.kicker")} title={t("webui.settings.language.interfaceTitle")}>
-          <div className="settings-stack">
-            {languageOptions.map((option) => <button type="button" key={option.value} className={`section-nav-item ${option.value === (localStorage.getItem("community-go-webui-language") ?? "") ? "active" : ""}`} onClick={() => choose(option.value)}><span>{t(option.label)}</span></button>)}
-          </div>
-          <p className="page-meta">{t("webui.settings.language.reloadNote")}</p>
-        </PageSection>
-      </div>
-    
+    <PageHeader eyebrow={t("webui.settings.brand")} title={t("webui.settings.language.title")} description={t("webui.settings.language.description")} />
+    <div className="page-sections">
+      <PageSection kicker={t("webui.settings.language.kicker")} title={t("webui.settings.language.interfaceTitle")}>
+        <div className="setting-options" role="radiogroup" aria-label={t("webui.settings.language.interfaceTitle")}>
+          {languageOptions.map((option) => {
+            const selected = option.value === current;
+            return <button type="button" key={option.value} role="radio" aria-checked={selected} className="setting-option" onClick={() => choose(option.value)}><span className="setting-option-radio" aria-hidden="true" /><span>{t(option.label)}</span></button>;
+          })}
+        </div>
+        <p className="page-meta">{t("webui.settings.language.reloadNote")}</p>
+      </PageSection>
+    </div>
   </div>;
 }

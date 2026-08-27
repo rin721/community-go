@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { InlineAlert, PageHeader } from "@webui/sdk/ui";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ActionTrigger, InlineAlert, PageHeader } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { webuiOpenAPISpec, webuiOpenAPISpecSourceRevision } from "@webui/generated/openapi-spec";
 import { ApiTree } from "./ApiTree";
@@ -99,6 +99,21 @@ export default function OpenAPIPage() {
 
   const activeRow = activeId ? rowsById.get(activeId) : undefined;
 
+  // 084 OAPI-084-001: on first visit (no deep link) open the first operation so
+  // the workspace is never blank; runs once and never re-opens after the user
+  // closes all tabs.
+  const autoOpenedRef = useRef(false);
+  const openFirstOperation = useCallback(() => {
+    if (rowsById.size === 0) return;
+    const first = rowsById.values().next().value as OperationRow | undefined;
+    if (first) openOperation(first);
+  }, [rowsById, openOperation]);
+  useEffect(() => {
+    if (initialId || autoOpenedRef.current || rowsById.size === 0) return;
+    autoOpenedRef.current = true;
+    openFirstOperation();
+  }, [initialId, openFirstOperation, rowsById.size]);
+
   return <div className={`${styles.openapiModule} module-page ${styles.workspaceShell}`}>
     <PageHeader eyebrow={t("webui.openapi.docs.eyebrow")} title={t("webui.openapi.docs.title")} description={t("webui.openapi.docs.description")} actions={<button type="button" className={styles.shellSearchTrigger} onClick={() => setPaletteOpen(true)}>{t("webui.openapi.palette.title")}</button>} />
     <p className={styles.pageMeta}>{t("webui.openapi.docs.source", { revision: webuiOpenAPISpecSourceRevision })}</p>
@@ -110,7 +125,14 @@ export default function OpenAPIPage() {
           <WorkspaceTabs tabs={tabs} activeId={activeId} onActivate={activateTab} onClose={closeTab} />
           {activeRow
             ? <OperationWorkspace key={activeRow.id} row={activeRow} schemas={document.components?.schemas} />
-            : <div className={styles.workspaceEmpty}>{t("webui.openapi.workspace.hint")}</div>}
+            : <div className={styles.workspaceEmpty}>
+                <div className={styles.workspaceEmptyContent}>
+                  <span className={styles.workspaceEmptyIcon} aria-hidden="true">◫</span>
+                  <h3 className={styles.workspaceEmptyTitle}>{t("webui.openapi.workspace.empty.title")}</h3>
+                  <p className={styles.workspaceEmptyDetail}>{t("webui.openapi.workspace.empty.detail")}</p>
+                  <ActionTrigger variant="secondary" onAction={openFirstOperation}>{t("webui.openapi.workspace.openFirst")}</ActionTrigger>
+                </div>
+              </div>}
         </div>
       </div>}
     <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} groups={groupedOperationsForPalette(roots)} models={Object.keys(document.components?.schemas ?? {})} onSelectOperation={(id) => { const row = rowsById.get(id); if (row) openOperation(row, "docs"); }} onSelectModel={() => undefined} />

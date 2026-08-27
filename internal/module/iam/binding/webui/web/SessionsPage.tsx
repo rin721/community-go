@@ -57,7 +57,7 @@ export default function SessionsPage() {
           clearLabel={t("webui.iam.accounts.clear")}
         />
         <div className="toolbar accounts-sort-bar">
-          <SelectField label={t("webui.iam.accounts.sortBy")} value={listQuery.sort?.key ?? ""} options={[
+          <SelectField label={t("webui.iam.accounts.sortBy")} placeholder={listQuery.sort ? undefined : t("webui.iam.accounts.sortNone")} value={listQuery.sort?.key ?? ""} options={[
             { value: "", label: t("webui.iam.accounts.sortNone") },
             { value: "createdAt", label: t("webui.iam.sessions.createdAt") },
             { value: "lastSeenAt", label: t("webui.iam.sessions.lastSeenAt") },

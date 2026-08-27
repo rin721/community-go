@@ -15,7 +15,15 @@ export const groupScopesByModule = (scopes: string[]): Array<{ ownerModuleId: st
     group.push(scope);
     byOwner.set(owner, group);
   }
-  return [...byOwner.entries()].map(([ownerModuleId, items]) => ({ ownerModuleId, scopes: items }));
+  // The "other" bucket (wildcard/odd scopes without a module prefix) sorts last
+  // so real module groups come first in the picker.
+  return [...byOwner.entries()]
+    .map(([ownerModuleId, items]) => ({ ownerModuleId, scopes: items }))
+    .sort((left, right) => {
+      if (left.ownerModuleId === "other") return 1;
+      if (right.ownerModuleId === "other") return -1;
+      return left.ownerModuleId.localeCompare(right.ownerModuleId);
+    });
 };
 
 // ApiTokensPage provides full API-Token management (080): status-filtered list,
@@ -82,32 +90,45 @@ export default function ApiTokensPage() {
       {message && <p className="page-meta" role="status">{message}</p>}
 
       <PageSection kicker={t("webui.iam.apiTokens.createKicker")} title={t("webui.iam.apiTokens.createTitle")}>
-        <div className="form-panel">
-          <Field label={t("webui.iam.apiTokens.name")} required value={name} onChange={(event) => setName(event.target.value)} />
-          <Field label={t("webui.iam.apiTokens.descriptionLabel")} value={description} onChange={(event) => setDescription(event.target.value)} />
-          <SelectField label={t("webui.iam.apiTokens.expiresAt")} value={neverExpires ? "never" : "custom"} options={[
-            { value: "custom", label: t("webui.iam.apiTokens.customExpiry") },
-            { value: "never", label: t("webui.iam.apiTokens.neverExpire") },
-          ]} onValueChange={(value) => setNeverExpires(value === "never")} />
-          {!neverExpires && <Field label={t("webui.iam.apiTokens.expiryValue")} type="datetime-local" value={expiresAt} onChange={(event) => setExpiresAt(event.target.value)} />}
-          <fieldset>
-            <legend>{t("webui.iam.apiTokens.scopes")}</legend>
+        <div className="api-token-create-grid">
+          <div className="form-panel">
+            <div className="form-section">
+              <h4 className="form-section-title">{t("webui.iam.apiTokens.identity.title")}</h4>
+              <Field label={t("webui.iam.apiTokens.name")} required value={name} onChange={(event) => setName(event.target.value)} />
+              <Field label={t("webui.iam.apiTokens.descriptionLabel")} value={description} onChange={(event) => setDescription(event.target.value)} />
+            </div>
+            <div className="form-section">
+              <h4 className="form-section-title">{t("webui.iam.apiTokens.validity.title")}</h4>
+              <div className="field-grid">
+                <SelectField label={t("webui.iam.apiTokens.expiresAt")} value={neverExpires ? "never" : "custom"} options={[
+                  { value: "custom", label: t("webui.iam.apiTokens.customExpiry") },
+                  { value: "never", label: t("webui.iam.apiTokens.neverExpire") },
+                ]} onValueChange={(value) => setNeverExpires(value === "never")} />
+                {!neverExpires && <Field label={t("webui.iam.apiTokens.expiryValue")} type="datetime-local" required value={expiresAt} onChange={(event) => setExpiresAt(event.target.value)} />}
+              </div>
+              {!neverExpires && message && <p className="page-meta" role="status">{message}</p>}
+            </div>
+            <div className="row-actions">
+              <Button onClick={submit} disabled={restricted || !name.trim() || selectedScopes.length === 0 || (!neverExpires && !expiresAt)}>{t("webui.iam.apiTokens.submit")}</Button>
+            </div>
+          </div>
+          <fieldset className="scope-fieldset">
+            <legend className="scope-fieldset-legend">{t("webui.iam.apiTokens.scopes.title")}</legend>
             {availableScopes.length === 0 && <p className="page-meta">{t("webui.iam.apiTokens.scopeEmpty")}</p>}
             {scopeGroups.map((group) => (
               <div className="api-token-scope-group" key={group.ownerModuleId}>
                 <h4 className="api-token-scope-owner">{group.ownerModuleId}</h4>
-                {group.scopes.map((scope) => (
-                  <label key={scope} className="page-check">
-                    <input type="checkbox" checked={selectedScopes.includes(scope)} onChange={() => toggleScope(scope)} />
-                    <span>{scope}</span>
-                  </label>
-                ))}
+                <div className="api-token-scope-grid">
+                  {group.scopes.map((scope) => (
+                    <label key={scope} className="page-check">
+                      <input type="checkbox" checked={selectedScopes.includes(scope)} onChange={() => toggleScope(scope)} />
+                      <span>{scope === "*" ? t("webui.iam.apiTokens.scopeWildcard") : scope}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
             ))}
           </fieldset>
-          <div className="toolbar-actions">
-            <Button onClick={submit} disabled={restricted || !name.trim() || selectedScopes.length === 0}>{t("webui.iam.apiTokens.submit")}</Button>
-          </div>
         </div>
       </PageSection>
 
@@ -120,7 +141,7 @@ export default function ApiTokensPage() {
           { value: "revoked", label: t("webui.iam.apiTokens.status.revoked") },
         ]} onValueChange={(value) => { setStatus(value); refresh(value); }} />
         <div className="toolbar accounts-sort-bar">
-          <SelectField label={t("webui.iam.accounts.sortBy")} value={listQuery.sort?.key ?? ""} options={[
+          <SelectField label={t("webui.iam.accounts.sortBy")} placeholder={listQuery.sort ? undefined : t("webui.iam.accounts.sortNone")} value={listQuery.sort?.key ?? ""} options={[
             { value: "", label: t("webui.iam.accounts.sortNone") },
             { value: "name", label: t("webui.iam.apiTokens.name") },
             { value: "createdAt", label: t("webui.iam.sessions.createdAt") },

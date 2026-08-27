@@ -2599,6 +2599,26 @@ textarea.field-input {
   }
 }
 
+/* 084：master-detail 工作台两栏（替代固定 320px 右栏的 org-tree-inspector；
+   Menus 右栏截断 / Org 比例失衡的根因修复处。左栏固定取景，右栏自适应并
+   独立滚动，右栏内容不再因固定宽度溢出）。 */
+.split-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: start;
+  min-height: 0;
+}
+.split-workspace > .split-workspace-pane {
+  min-width: 0;
+  min-height: 0;
+}
+@media (max-width: 900px) {
+  .split-workspace {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* 页元信息行：版本/汇总等辅助说明 */
 .page-meta {
   display: flex;
@@ -2655,6 +2675,33 @@ textarea.field-input {
 .form-panel {
   display: grid;
   gap: 14px;
+}
+
+/* 084：受表单面板宽度约束（密码等短表单不再横铺整卡）。 */
+.form-panel-bounded {
+  max-width: 480px;
+}
+
+/* 084：受限表单网格——在宽卡片内保持字段有界，修复 .toolbar flex 撑宽
+   导致的「输入框巨大且边界不清/左密右空」根因；字段下限 200px、整组
+   上限 640px（对齐设计基线字段宽度档）。 */
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  max-width: 640px;
+}
+.field-grid > * {
+  min-width: 0;
+}
+
+/* 084：行内动作区（次操作 + 主/危险操作右对齐，紧凑行）。 */
+.row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  flex-wrap: wrap;
 }
 
 /* --------------------------------------------------------------------------

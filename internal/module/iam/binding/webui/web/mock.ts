@@ -11,7 +11,7 @@ const mockSession = {
     accountId: "mock-admin",
     username: "admin",
     displayName: "Mock Administrator",
-    permissions: ["*"],
+    permissions: ["*", "iam:account:read", "iam:account:write", "iam:role:read", "iam:role:write", "iam:api-token:read", "iam:api-token:write", "iam:session:read", "iam:session:revoke"],
     mustChangePassword: false,
     securityRevision: 1,
   },
@@ -32,11 +32,11 @@ const roles = [
 ];
 
 const permissions = [
-  { key: "iam.accounts.list", ownerModuleId: "iam", descriptionMessageId: "webui.iam.permissions.list" },
-  { key: "iam.roles.list", ownerModuleId: "iam", descriptionMessageId: "webui.iam.permissions.list" },
-  { key: "iam.permissions.list", ownerModuleId: "iam", descriptionMessageId: "webui.iam.permissions.list" },
-  { key: "ops.diagnostics", ownerModuleId: "ops", descriptionMessageId: "webui.iam.permissions.list" },
-  { key: "ops.metrics", ownerModuleId: "ops", descriptionMessageId: "webui.iam.permissions.list" },
+  { key: "iam.accounts.list", ownerModuleId: "iam", descriptionMessageId: "permission.iam.account.read" },
+  { key: "iam.roles.list", ownerModuleId: "iam", descriptionMessageId: "permission.iam.role.read" },
+  { key: "iam.permissions.list", ownerModuleId: "iam", descriptionMessageId: "permission.iam.permission.read" },
+  { key: "ops.diagnostics", ownerModuleId: "ops", descriptionMessageId: "permission.ops.diagnostics" },
+  { key: "ops.metrics", ownerModuleId: "ops", descriptionMessageId: "permission.ops.metrics" },
 ];
 
 export const webuiMockRoutes: ReadonlyArray<WebUIMockRoute> = [

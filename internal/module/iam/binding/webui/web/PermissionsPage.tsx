@@ -3,6 +3,7 @@ import { CodeText, DataTable, EmptyState, PageHeader, PageSection, SearchInput, 
 import { useListQueryParams } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { listPermissions, permissionRoles, type Role } from "./api";
+import { permissionDescription, preloadPermissionDescriptions } from "./permission-label";
 import styles from "./iam.module.css";
 
 type Item = { key: string; ownerModuleId: string; descriptionMessageId: string };
@@ -27,7 +28,9 @@ export default function PermissionsPage() {
   const [items, setItems] = useState<Item[]>([]);
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const [usage, setUsage] = useState<Record<string, Role[]>>({});
-  useEffect(() => { void listPermissions().then(setItems); }, []);
+  useEffect(() => {
+    void listPermissions().then(async (result) => { setItems(result); await preloadPermissionDescriptions(result); });
+  }, []);
   const filtered = useMemo(() => {
     const q = listQuery.filters.query.trim().toLowerCase();
     if (!q) return items;
@@ -45,14 +48,19 @@ export default function PermissionsPage() {
     <PageHeader eyebrow={t("webui.iam.brand")} title={t("webui.iam.permissions.title")} description={t("webui.iam.permissions.description")} />
     <div className="page-sections">
       <PageSection kicker={t("webui.iam.permissions.list.kicker")} title={t("webui.iam.permissions.list.title")}>
-        <SearchInput value={listQuery.filters.query} onChange={(next) => listQuery.setFilters({ query: next })} placeholder={t("webui.iam.permissions.filter")} label={t("webui.iam.permissions.filter")} />
+        <div className="data-toolbar">
+          <div className="data-toolbar-filters">
+            <SearchInput value={listQuery.filters.query} onChange={(next) => listQuery.setFilters({ query: next })} placeholder={t("webui.iam.permissions.filter")} label={t("webui.iam.permissions.filter")} />
+            <span className="filter-bar-count">{t("webui.iam.permissions.total", { count: filtered.length })}</span>
+          </div>
+        </div>
         {groups.map((group) => (
           <div className="permission-group" key={group.ownerModuleId}>
-            <h3 className="permission-group-title">{group.ownerModuleId}</h3>
+            <h3 className="permission-group-title">{group.ownerModuleId}<span className="page-meta">{String(group.definitions.length)}</span></h3>
             <DataTable<Item>
               columns={[
-                { id: "key", header: t("webui.iam.permissions.key"), cell: (item) => <CodeText value={item.key} /> },
-                { id: "description", header: t("webui.iam.permissions.description"), cell: (item) => t(item.descriptionMessageId) },
+                { id: "key", header: t("webui.iam.permissions.key"), className: "permission-key-col", cell: (item) => <CodeText value={item.key} /> },
+                { id: "description", header: t("webui.iam.permissions.colDescription"), cell: (item) => permissionDescription(item.descriptionMessageId) },
                 { id: "usedBy", header: t("webui.iam.permissions.usedBy"), cell: (item) => {
                   const roles = usage[item.key];
                   if (!roles) return <button type="button" className="ui-button" onClick={() => toggleUsage(item.key)}>{t("webui.iam.permissions.usedByCheck")}</button>;
@@ -63,6 +71,7 @@ export default function PermissionsPage() {
               ariaLabel={`${group.ownerModuleId} permissions`}
               getRowKey={(item) => item.key}
               emptyState={<p className="page-meta">{t("webui.iam.permissions.filterEmpty")}</p>}
+              enhancements={{ density: "compact", stickyHeader: true }}
             />
           </div>
         ))}

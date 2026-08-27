@@ -125,3 +125,40 @@ test("083 visual snapshots for design baseline review", async ({ page }, testInf
   expect(settingsWidth.ok, JSON.stringify(settingsWidth)).toBe(true);
   testInfo.attach("083-visual-snapshots", { path: "test-results/083-visual-dashboard.png" });
 });
+
+// 084：组织三页/菜单页/权限页/OpenAPI 的重构工作台在 mock 下可浏览且无已知
+// 缺陷（无原始 i18n key、权限描述非缺失占位、OpenAPI 首访默认打开第一个接口）。
+test("084 redesigned workspaces render without known P0/P1 defects", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  // Departments：master-detail 工作台（搜索树 + InspectorPanel 详情区），创建入口在页头。
+  await page.goto("/admin/departments");
+  await expect(page.locator(".split-workspace")).toBeVisible();
+  await expect(page.locator(".tree-view")).toBeVisible();
+  await expect(page.locator(".inspector-panel")).toBeVisible();
+  await expect(page.locator(".split-workspace > .split-workspace-pane")).toHaveCount(2);
+  await page.locator(".tree-node-label").first().click();
+  await expect(page.locator(".inspector-field").first()).toBeVisible();
+
+  // Positions：名录表格 + 行菜单折叠。
+  await page.goto("/admin/positions");
+  await expect(page.locator(".data-table")).toBeVisible();
+  await expect(page.locator(".data-table-row-menu").first()).toBeVisible();
+
+  // Menus：树与详情不再显示原始 i18n key。
+  await page.goto("/admin/menus");
+  await expect(page.locator(".tree-view")).toBeVisible();
+  await expect(page.locator(".tree-view")).not.toContainText("webui.");
+  await expect(page.locator(".inspector-field").first()).toBeVisible();
+
+  // Permissions：权限目录描述不再显示缺失占位文案。
+  await page.goto("/admin/permissions");
+  await expect(page.locator(".permission-group").first()).toBeVisible();
+  await expect(page.locator(".permission-group").first().locator("td").nth(1)).not.toBeEmpty();
+  await expect(page.locator(".permission-group").first().locator("td").nth(1)).not.toContainText("翻译资源缺失");
+
+  // OpenAPI：首访自动打开第一个接口（工作台不再是空白面板）。
+  await page.goto("/openapi");
+  await expect(page.locator('[data-testid="openapi-workspace"]')).toBeVisible();
+  await expect(page.getByText(/Execution is unavailable in mock demo builds/)).toBeVisible();
+  await page.screenshot({ path: "test-results/084-workspaces-mock.png", fullPage: true });
+});

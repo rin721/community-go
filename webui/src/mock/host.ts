@@ -12,7 +12,7 @@ const mockSession = {
     accountId: "mock-admin",
     username: "admin",
     displayName: "Mock Administrator",
-    permissions: ["*"],
+    permissions: ["*", "iam:account:read", "iam:account:write", "iam:role:read", "iam:role:write", "iam:api-token:read", "iam:api-token:write", "iam:session:read", "iam:session:revoke"],
     mustChangePassword: false,
     securityRevision: 1,
   },

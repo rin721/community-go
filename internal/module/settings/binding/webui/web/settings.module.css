@@ -22,8 +22,8 @@
 }
 .settingsModule :global(.settings-stack) {
   display: grid;
-  gap: 12px;
-  max-width: 640px;
+  gap: 2px;
+  max-width: 500px;
 }
 /* 071：页内侧边栏布局（SectionNav + 内容区） */
 .settingsModule :global(.settings-inner) {
@@ -41,4 +41,95 @@
   .settingsModule :global(.settings-inner) {
     flex-direction: column;
   }
+}
+
+/* 084：设置行（label 左、控件右，受限宽度内成组；消除全卡横向铺开） */
+.settingsModule :global(.setting-row) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.settingsModule :global(.setting-row:last-child) {
+  border-bottom: 0;
+  padding-bottom: 2px;
+}
+.settingsModule :global(.setting-row-label) {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.settingsModule :global(.setting-row-title) {
+  font-size: 13px;
+  color: var(--text);
+}
+.settingsModule :global(.setting-row-hint) {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+.settingsModule :global(.setting-row-control) {
+  flex: 0 0 auto;
+  min-width: 168px;
+  max-width: 240px;
+}
+@media (max-width: 560px) {
+  .settingsModule :global(.setting-row) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .settingsModule :global(.setting-row-control) {
+    max-width: none;
+  }
+}
+
+/* 084：单选组（语言等互斥设置项），带可见选中态 */
+.settingsModule :global(.setting-options) {
+  display: grid;
+  gap: 6px;
+  max-width: 400px;
+}
+.settingsModule :global(.setting-option) {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.settingsModule :global(.setting-option:hover) {
+  border-color: var(--border-strong);
+}
+.settingsModule :global(.setting-option[aria-checked="true"]) {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+.settingsModule :global(.setting-option-radio) {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+.settingsModule :global(.setting-option[aria-checked="true"] .setting-option-radio) {
+  border-color: var(--primary);
+}
+.settingsModule :global(.setting-option[aria-checked="true"] .setting-option-radio::after) {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--primary);
 }

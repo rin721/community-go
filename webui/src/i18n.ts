@@ -1,7 +1,6 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import { webuiLocaleRegistry, type WebUILocaleMessages } from "./generated/webui-registry";
-import type { ManifestRoute } from "@webui/sdk/runtime";
 import hostMessages from "./i18n/locale/zh-CN.json";
 import hostMessagesEnglish from "./i18n/locale/en-US.json";
 
@@ -40,7 +39,8 @@ export async function initializeI18n(): Promise<void> {
 
 // ensureRouteLocale 在 route access/availability 通过后才加载模块 namespace。
 // 单个 namespace 加载失败由调用方隔离到当前 route，不会阻止宿主 locale 初始化。
-export async function ensureRouteLocale(route: ManifestRoute): Promise<void> {
+// 084：参数收窄为 { titleMessageId }，供 Menus 页对全部菜单标题按需加载。
+export async function ensureRouteLocale(route: { titleMessageId: string }): Promise<void> {
   const namespace = namespaceForMessage(route.titleMessageId);
   if (namespace === "webui.host") return;
   const requestedLanguage = i18n.language || fallbackLanguage;
@@ -82,6 +82,16 @@ export function translateMessage(messageID: string): string {
   return translated === messageID || translated.trim() === ""
     ? hostMessages["webui.host.i18n.missing"]
     : translated;
+}
+
+// translateOptional 与 translateMessage 同语义，但解析失败时返回 null 而非
+// 缺失文案，供调用方做「可读回落」（084：权限目录描述缺失时回落到目录键本身，
+// 避免页面出现「翻译资源缺失」占位）。
+export function translateOptional(messageID: string): string | null {
+  const namespace = namespaceForMessage(messageID);
+  const missing = hostMessages["webui.host.i18n.missing"] ?? "webui_i18n_missing";
+  const translated = i18n.t(messageID, { ns: namespace });
+  return translated === messageID || translated.trim() === "" || translated === missing ? null : translated;
 }
 
 export async function changeLanguage(language: string): Promise<void> {

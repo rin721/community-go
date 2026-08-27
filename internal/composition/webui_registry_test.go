@@ -280,14 +280,7 @@ func TestApplicationWebUICatalogMenuHierarchy(t *testing.T) {
 		{parent: "", child: "navigation.menus"},
 		// 074：设置组子项与页内 SectionNav 完全一致（8 分区；iam.security 归位 iam.access）。
 		{parent: "", child: "settings.center"},
-		{parent: "settings.center", child: "settings.profile"},
-		{parent: "settings.center", child: "settings.account"},
-		{parent: "settings.center", child: "settings.security"},
-		{parent: "settings.center", child: "settings.appearance"},
-		{parent: "settings.center", child: "settings.notifications"},
-		{parent: "settings.center", child: "settings.language"},
-		{parent: "settings.center", child: "settings.about"},
-		{parent: "settings.center", child: "settings.acknowledgement"},
+		// 083（DEC-002 B-2）：Settings 全局菜单收敛为单入口，八个分区由页内 SectionNav 导航。
 		// 082：Governance（audit）与 Developer（openapi）顶级组（REQ-020 IA 归位）。
 		{parent: "", child: "auth.governance"},
 		{parent: "auth.governance", child: "auth.audit"},
@@ -307,7 +300,6 @@ func TestApplicationWebUICatalogMenuHierarchy(t *testing.T) {
 	for _, group := range []struct{ parent, firstChild string }{
 		{parent: "iam.access", firstChild: "iam.accounts"},
 		{parent: "organization.directory", firstChild: "organization.departments"},
-		{parent: "settings.center", firstChild: "settings.profile"},
 		{parent: "auth.governance", firstChild: "auth.audit"},
 		{parent: "openapi.developer", firstChild: "openapi.docs"},
 	} {

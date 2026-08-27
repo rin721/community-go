@@ -29,15 +29,8 @@ func Binding() webuicontract.Binding {
 		{ID: "settings.about", Path: "/settings/about", EntryID: "settings.about", GroupLayoutID: "settings.layout", TitleMessageID: "webui.settings.about.title", Layout: webuicontract.RouteLayoutApp, DeliveryState: webuicontract.DeliveryImplemented},
 		{ID: "settings.acknowledgement", Path: "/settings/acknowledgement", EntryID: "settings.acknowledgement", GroupLayoutID: "settings.layout", TitleMessageID: "webui.settings.acknowledgement.title", Layout: webuicontract.RouteLayoutApp, DeliveryState: webuicontract.DeliveryImplemented},
 	}, Navigation: []webuicontract.Navigation{
-		// 073：全局菜单两级——settings.center 为顶级组「设置」（落地 /settings/profile）。
+		// 083 LAYOUT-003（DEC-002 B-2）：Settings 全局菜单收敛为单入口 settings.center，
+		// 八个分区由页内 SectionNav（SettingsLayout）导航，不再重复挂全局侧边栏子项。
 		{ID: "settings.center", RouteID: "settings.profile", TitleMessageID: "webui.settings.center.title", IconID: "settings", Order: 20},
-		{ID: "settings.profile", ParentID: "settings.center", RouteID: "settings.profile", TitleMessageID: "webui.settings.profile.title", IconID: "user", Order: 26},
-		{ID: "settings.account", ParentID: "settings.center", RouteID: "settings.account", TitleMessageID: "webui.settings.account.title", IconID: "shield", Order: 27},
-		{ID: "settings.security", ParentID: "settings.center", RouteID: "settings.security", TitleMessageID: "webui.settings.security.title", IconID: "key", Order: 28},
-		{ID: "settings.appearance", ParentID: "settings.center", RouteID: "settings.appearance", TitleMessageID: "webui.settings.appearance.title", IconID: "palette", Order: 29},
-		{ID: "settings.notifications", ParentID: "settings.center", RouteID: "settings.notifications", TitleMessageID: "webui.settings.notifications.title", IconID: "bell", Order: 30},
-		{ID: "settings.language", ParentID: "settings.center", RouteID: "settings.language", TitleMessageID: "webui.settings.language.title", IconID: "languages", Order: 31},
-		{ID: "settings.about", ParentID: "settings.center", RouteID: "settings.about", TitleMessageID: "webui.settings.about.title", IconID: "info", Order: 32},
-		{ID: "settings.acknowledgement", ParentID: "settings.center", RouteID: "settings.acknowledgement", TitleMessageID: "webui.settings.acknowledgement.title", IconID: "star", Order: 33},
 	}, Locales: []webuicontract.Locale{{Language: "en-US", Namespace: "webui.settings", SourcePath: "locale/en-US.json"}, {Language: "zh-CN", Namespace: "webui.settings", SourcePath: "locale/zh-CN.json"}}, MockSource: "mock.ts", Requires: []webuicontract.SDKRequirement{{ID: "runtime", MajorVersion: 1}, {ID: "http", MajorVersion: 1}, {ID: "i18n", MajorVersion: 1}, {ID: "ui", MajorVersion: 1}, {ID: "mock", MajorVersion: 1}}}
 }

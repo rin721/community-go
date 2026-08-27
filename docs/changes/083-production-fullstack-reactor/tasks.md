@@ -76,6 +76,7 @@
 - **圆角收敛已修复**（codex 复核确认）：radius token（md 12→8、lg 14→10）+ HeroUI Card 内覆盖 10px（原默认 ~22-24px 超基线）；e2e 断言内容卡片 ≤12px；codex 视觉复核 KPI/Diagnostic 均 10px、阴影 2/5 克制（commit `fa45ff7`）。
 - **行操作折叠已修复**（codex 复核确认）：DataTableRowMenu 从「平铺全部项」改为「1 主操作内联 + … 弹出菜单，危险隔离」——Accounts 4 链接平铺收敛为 View detail + …（commit `cc4aa9d`）；平台组件级修复惠及 Roles/Sessions/ApiTokens 等所有 renderRowMenu 页面。
 - **Dashboard 现状复核**（codex 2026-08-28）：已具备运营总览核心（健康标签/上下文行 Version-Commit-Uptime/KPI 摘要 6-6-0/依赖健康卡/Runtime 快照/Refresh）；监控趋势区（monitoring-section 5s 轮询 rolling window）已实现，截图全页含 fold 下趋势图。无真实数据支撑的表面「产品化」不实施（AGENTS 红线：不伪造数据视图）；结构性运营中心扩展（告警流/活动时间线）留待真实运营数据接入。
+- **Settings 配置区宽度修复**（codex 复核确认）：`[data-page-width=settings] .module-page` 用 `margin-inline:auto` 无显式宽度 → 块收缩到固有 229px，配置卡过窄 + Introduction 截断；改 `width:100%` 后配置卡 ~698px（占内容 69-75%）、表单 624px、Intro 完整可见；e2e 断言 Settings 宽度（commit `04b8706`）。
 
 **关键达成指标（实证）**：
 - 样式 `:global` 平台类重复清零；剩余 95 处全为模块专属（`lint-architecture` L1/L3 守护 + 反向 fixture）

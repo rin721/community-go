@@ -91,5 +91,6 @@
 
 - [083 Production-grade 全栈产品重构（WebUI 产品化二期）](083-production-fullstack-reactor/README.md)：已确认，实施完成（dev e2e/移动视口真机待真实环境）；以 temp-new-changes.md 新方案与 admin-design-baseline.md 为输入，R083-001/002/003 完成差异分析与事实基线；三档落地——样式权威（lint CSS 规则+反向 fixture+137 处 :global 平台类清零）、布局骨架（100dvh/独立滚动/宽度档接线/Tab Bar 与 Footer 移除/Settings 单入口）、页面产品化（Audit 分页+时间戳、FilterBar typed filters、后端 account sorting 白名单、操作列折叠、危险操作确认、状态组件统一）；codex 多模态视觉验证闭环（P0 插值泄漏/相对时间缺键、P1 圆角 10px/行菜单折叠/Settings 宽度/统计卡圆角，5 页终审无新缺陷）；验证 go test/vet、contract-gen、Vitest 199、lint、mock E2E 4、build 全绿。
 - [084 WebUI 产品化重构：逐页推翻低质量布局（第三期）](084-webui-product-ux/README.md)：已确认，实施完成（2026-09-01 全 24 路由严格可用性终审无真实 P0/P1 交互缺陷；残余为主观密度/留白意见与移动视口真机验证）。以 R084-001 全 24 路由截图 + codex 多模态审计 + 代码核对为事实基线；覆盖组织三页（目录/名录/两栏分配）、Menus（右栏截断修复+跨 namespace 标题翻译）、OpenAPI（默认选中+可操作空态）、权限目录描述解析修复、Settings 行/单选组、密码表单确认、ApiTokens 创建分组、登录/初始化产品化、会话按账号过滤、账号批量启停/归档（后端契约+逐条错误码）、FilterBar 排序分组、行操作 chip、仪表盘密度；平台新增 field-grid/split-workspace/row-actions/form-panel-bounded/trailingFields/rowMenuHeader/BulkActionBar 多动作；验证 go test/vet、contract-gen、Vitest 199、mock E2E 7、lint、build、docs-guard 全绿。
+- [085 Workspace Tabs：有界独立工作上下文](085-workspace-tabs/README.md)：研究门禁已通过、计划待确认；不恢复 083 删除的菜单访问历史标签，而以默认禁用的 typed `WorkspaceTabPolicy` 只允许独立工作上下文 opt-in；计划实现 42px 文本式标签、底部 active 指示线、固定/恢复/关闭其他/溢出、真实 mounted dirty 状态、按 principal 隔离的低敏元数据持久化与 12 个打开标签硬上限。当前只交付研究与计划，尚未实施源码、配置、测试或生成物。
 
- 下一个任务序号为 `085`。已完成记录只保存历史证据；当前行为必须回到根 [README](../../README.md) 和对应主题文档确认。
+ 下一个任务序号为 `086`。已完成记录只保存历史证据；当前行为必须回到根 [README](../../README.md) 和对应主题文档确认。

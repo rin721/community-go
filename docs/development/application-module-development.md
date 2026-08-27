@@ -339,5 +339,6 @@ i18n 是业务模块的正式 binding 契约：业务模块按统一方式提供
 - 列表页查询条统一用平台 `FilterBar`：筛选与排序并入同一行（行内标签 + 原生 select/input，input 可带 placeholder），结果计数/清除右对齐；不要在 FilterBar 之外再堆一行排序控件。批量操作使用 `BulkActionBar`（可选常驻禁用态，未选择时可发现不可点，如会话批量吊销）。行级操作列通过 `DataTable` 的 `renderRowMenu` + `rowMenuHeader` 提供可见表头与「1 主操作 + …」折叠；默认不启用 `columnVisibility` 空工具栏，避免表格上方无效留白（列配置能力按需以行内形态回归）。登录/初始化等空白布局页面复用 `.auth-panel` + `auth-section` 分组与密码显隐模式，不要自绘第二套表单。
 - 跨实体筛选优先复用既有契约：会话列表已支持 `accountId` 查询参数（未传时回落当前账号），前端直接接线（账号下拉 + URL 参数），不要为同一能力新增重复接口。
 - 批量操作契约：逐账号复用既有单实体安全语义（owner 不变量/安全 revision/session 撤销/审计），单个失败不中止，响应返回 `processed/failed` 与逐条稳定错误码（如 `not_found`/`owner_invariant`），不得把部分失败吞成成功或整体失败；前端经 `BulkActionBar` 附加动作 + 行选择呈现（先确认，后展示结果统计）。
+- 列表筛选条：业务筛选放 `FilterBar` 左侧 `fields`，排序/次要控件放右侧 `trailingFields`（平台按此分组布局），不要让全部控件一字铺满整行；行级操作列通过 `rowMenuHeader` 提供可见表头，主操作与「…」使用带边界 chip 以增强可发现性。
 
 构建通过不能替代资源生命周期或产品验收。交付必须区分已通过、未执行和被外部环境阻断的验证。

@@ -234,7 +234,7 @@ export function DataTable<Row>({ columns, rows, ariaLabel, getRowKey = (_row, in
         <Table.Header>
           {selectable && <Table.Column id="selection"><input ref={headerSelectionRef} type="checkbox" checked={allSelected} onChange={toggleAll} aria-checked={partiallySelected ? "mixed" : allSelected} aria-label={selectionLabel} /></Table.Column>}
           {visibleColumns.map((column, index) => <Table.Column id={column.id} className={column.className} isRowHeader={index === 0} key={column.id}>{column.header}</Table.Column>)}
-          {hasRowMenu && <Table.Column id="row-menu" aria-label={columnMenuLabel ?? ""}>{rowMenuHeader}</Table.Column>}
+          {hasRowMenu && <Table.Column id="row-menu" aria-label={columnMenuLabel ?? ""} style={{ width: 104 }}>{rowMenuHeader}</Table.Column>}
         </Table.Header>
         <Table.Body>
           {loading && <Table.Row>{selectable && <Table.Cell />}{visibleColumns.map((column) => <Table.Cell key={column.id}><Skeleton lines={3} label={loadingLabel ?? ""} /></Table.Cell>)}{hasRowMenu && <Table.Cell />}</Table.Row>}
@@ -516,8 +516,8 @@ export function BulkActionBar({ open, selectionLabel, actionLabel, clearLabel, c
   return <>
     <div className="bulk-action-bar" role="toolbar">{<span className="bulk-action-count">{selectionLabel}</span>}
       <Button type="button" variant="secondary" onClick={onClear} disabled={pending}>{clearLabel}</Button>
-      {extraActions.map((action) => <ActionTrigger key={action.key} variant={action.variant ?? "secondary"} pending={action.pending} pendingLabel={action.pendingLabel} disabled={disabled} disabledReason={disabled ? disabledReason : undefined} onAction={() => setActiveExtra(action.key)}>{action.label}</ActionTrigger>)}
-      <ActionTrigger variant="danger" pending={pending} pendingLabel={pendingLabel} disabled={disabled} disabledReason={disabled ? disabledReason : undefined} onAction={() => setConfirmOpen(true)}>{actionLabel}</ActionTrigger>
+      {extraActions.map((action) => <ActionTrigger key={action.key} variant={disabled ? "secondary" : (action.variant ?? "secondary")} pending={action.pending} pendingLabel={action.pendingLabel} disabled={disabled} disabledReason={disabled ? disabledReason : undefined} onAction={() => setActiveExtra(action.key)}>{action.label}</ActionTrigger>)}
+      <ActionTrigger variant={disabled ? "secondary" : "danger"} pending={pending} pendingLabel={pendingLabel} disabled={disabled} disabledReason={disabled ? disabledReason : undefined} onAction={() => setConfirmOpen(true)}>{actionLabel}</ActionTrigger>
     </div>
     <ConfirmDialog open={confirmOpen} title={confirmTitle} description={confirmDescription} confirmLabel={confirmLabel} cancelLabel={cancelLabel} closeLabel={closeLabel} onConfirm={() => { setConfirmOpen(false); void onConfirm(); }} onCancel={() => setConfirmOpen(false)} />
     {activeExtraAction && <ConfirmDialog open={Boolean(activeExtra)} title={activeExtraAction.confirmTitle} description={activeExtraAction.confirmDescription} confirmLabel={activeExtraAction.confirmLabel} cancelLabel={cancelLabel} closeLabel={closeLabel} onConfirm={() => { const action = activeExtraAction; setActiveExtra(null); void action.onConfirm(); }} onCancel={() => setActiveExtra(null)} />}
@@ -704,11 +704,28 @@ export type FilterBarField = {
 /**
  * FilterBar：列表页统一 filter 行。
  * - fields 渲染 SearchInput 之外的主/辅过滤器（受控）；
+ * - trailingFields 渲染为右侧对齐的「排序/次要」控件簇（084 分组观感：
+ *   筛选留左、排序/计数/清除靠右，避免多控件横向一字铺开）；
  * - onClear 清空全部 filter（配合 useListQueryParams.clearFilters）；
  * - resultCount 显示「N 条结果」（可选）。
  */
-export function FilterBar({ fields, onClear, clearLabel, resultCount, resultCountLabel, searchInput, ariaLabel }: {
+function renderFilterField(field: FilterBarField) {
+  switch (field.control) {
+    case "switch":
+      return <Switch key={field.key} label={field.label} checked={field.value === true} onChange={(next) => field.onValueChange(next)} />;
+    case "input":
+      return <label key={field.key} className="filter-field"><span className="filter-field-label">{field.label}</span><input type="text" placeholder={field.placeholder} value={typeof field.value === "string" ? field.value : ""} onChange={(event) => field.onValueChange(event.target.value)} /></label>;
+    case "select":
+    default:
+      // 084：筛选下拉改为「行内标签 + 原生 select」紧凑形态，替代带浮动
+      // 标签的 SelectField（多筛选项时不再横向散开、不再出现孤立箭头）。
+      return <label key={field.key} className="filter-select"><span className="filter-select-label">{field.label}</span><select className="field-input" value={typeof field.value === "string" ? field.value : ""} onChange={(event) => field.onValueChange(event.target.value)}>{field.options?.map((option) => <option key={String(option.value)} value={option.value}>{option.label}</option>)}</select></label>;
+  }
+}
+
+export function FilterBar({ fields, trailingFields = [], onClear, clearLabel, resultCount, resultCountLabel, searchInput, ariaLabel }: {
   fields: ReadonlyArray<FilterBarField>;
+  trailingFields?: ReadonlyArray<FilterBarField>;
   onClear?: () => void;
   clearLabel?: ReactNode;
   resultCount?: number;
@@ -716,7 +733,7 @@ export function FilterBar({ fields, onClear, clearLabel, resultCount, resultCoun
   searchInput?: ReactNode;
   ariaLabel?: string;
 }) {
-  const hasActive = fields.some((field) => {
+  const hasActive = [...fields, ...trailingFields].some((field) => {
     if (Array.isArray(field.value) && field.value.length > 0) return true;
     return field.value !== undefined && field.value !== "" && field.value !== false;
   });
@@ -724,19 +741,8 @@ export function FilterBar({ fields, onClear, clearLabel, resultCount, resultCoun
     <div className="filter-bar" role="group" aria-label={ariaLabel}>
       {searchInput}
       <div className="filter-bar-fields">
-        {fields.map((field) => {
-          switch (field.control) {
-            case "switch":
-              return <Switch key={field.key} label={field.label} checked={field.value === true} onChange={(next) => field.onValueChange(next)} />;
-            case "input":
-              return <label key={field.key} className="filter-field"><span className="filter-field-label">{field.label}</span><input type="text" placeholder={field.placeholder} value={typeof field.value === "string" ? field.value : ""} onChange={(event) => field.onValueChange(event.target.value)} /></label>;
-            case "select":
-            default:
-              // 084：筛选下拉改为「行内标签 + 原生 select」紧凑形态，替代带浮动
-              // 标签的 SelectField（多筛选项时不再横向散开、不再出现孤立箭头）。
-              return <label key={field.key} className="filter-select"><span className="filter-select-label">{field.label}</span><select className="field-input" value={typeof field.value === "string" ? field.value : ""} onChange={(event) => field.onValueChange(event.target.value)}>{field.options?.map((option) => <option key={String(option.value)} value={option.value}>{option.label}</option>)}</select></label>;
-          }
-        })}
+        {fields.map(renderFilterField)}
+        {trailingFields.length > 0 && <div className="filter-bar-trailing">{trailingFields.map(renderFilterField)}</div>}
       </div>
       {hasActive && onClear && <button type="button" className="filter-bar-clear ui-button" onClick={onClear}>{clearLabel ?? "Clear"}</button>}
       {resultCount !== undefined && <span className="filter-bar-count">{resultCountLabel ? resultCountLabel(resultCount) : `${resultCount} results`}</span>}

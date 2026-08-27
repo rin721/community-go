@@ -137,7 +137,8 @@ export default function RolesPage() {
       <PageSection kicker={t("webui.iam.roles.list.kicker")} title={t("webui.iam.roles.list.title")} footer={<><div className="page-meta">{t("webui.iam.accounts.pagination", { page, total })}</div><div className="toolbar-actions">{[...Array(pages).keys()].map((index) => <Button key={index} variant={index + 1 === page ? "primary" : "secondary"} onClick={() => { setPage(index + 1); void refresh(index + 1); }}>{index + 1}</Button>)}</div></>}>
         <FilterBar
           ariaLabel={t("webui.iam.roles.filter")}
-          fields={[
+          fields={[]}
+          trailingFields={[
             { key: "sortBy", label: t("webui.iam.accounts.sortBy"), control: "select", options: [
               { value: "", label: t("webui.iam.accounts.sortNone") },
               { value: "name", label: t("webui.iam.roles.name") },

@@ -135,6 +135,8 @@ export default function AccountsPage() {
               { value: "", label: t("webui.iam.accounts.roleAll") },
               ...checklistCandidates(roles).map((role) => ({ value: role.id, label: `${role.name} (${role.code})` })),
             ], value: listQuery.filters.roleId, onValueChange: (next) => listQuery.setFilters({ ...listQuery.filters, roleId: String(next) }) },
+          ]}
+          trailingFields={[
             { key: "sortBy", label: t("webui.iam.accounts.sortBy"), control: "select", options: [
               { value: "", label: t("webui.iam.accounts.sortNone") },
               { value: "displayName", label: t("webui.iam.displayName") },

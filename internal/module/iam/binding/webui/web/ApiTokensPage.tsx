@@ -174,6 +174,8 @@ export default function ApiTokensPage() {
               { value: "expired", label: t("webui.iam.apiTokens.status.expired") },
               { value: "revoked", label: t("webui.iam.apiTokens.status.revoked") },
             ], onValueChange: (value) => { setStatus(String(value)); refresh(String(value)); } },
+          ]}
+          trailingFields={[
             { key: "sortBy", label: t("webui.iam.accounts.sortBy"), control: "select", value: listQuery.sort?.key ?? "", options: [
               { value: "", label: t("webui.iam.accounts.sortNone") },
               { value: "name", label: t("webui.iam.apiTokens.name") },

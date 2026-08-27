@@ -59,16 +59,7 @@ export default function SessionsPage() {
             { value: "active", label: t("webui.iam.sessions.active") },
             { value: "revoked", label: t("webui.iam.sessions.revokedAt") },
           ], onValueChange: (value) => listQuery.setFilters({ ...listQuery.filters, status: String(value) }) },
-          { key: "sortBy", control: "select", label: t("webui.iam.accounts.sortBy"), value: listQuery.sort?.key ?? "", options: [
-            { value: "", label: t("webui.iam.accounts.sortNone") },
-            { value: "createdAt", label: t("webui.iam.sessions.createdAt") },
-            { value: "lastSeenAt", label: t("webui.iam.sessions.lastSeenAt") },
-            { value: "idleExpiresAt", label: t("webui.iam.sessions.idleExpiresAt") },
-          ], onValueChange: (value) => listQuery.setSort(String(value) ? { key: String(value), direction: listQuery.sort?.direction ?? "desc" } : null) },
-          { key: "sortDir", control: "select", label: t("webui.iam.accounts.sortDirection"), value: listQuery.sort?.direction ?? "desc", options: [
-            { value: "asc", label: t("webui.iam.accounts.sortAsc") },
-            { value: "desc", label: t("webui.iam.accounts.sortDesc") },
-          ], onValueChange: (value) => { if (listQuery.sort) listQuery.setSort({ key: listQuery.sort.key, direction: value === "desc" ? "desc" : "asc" }); } }]}
+          ]}
           onClear={() => listQuery.clearFilters()}
           clearLabel={t("webui.iam.accounts.clear")}
         />

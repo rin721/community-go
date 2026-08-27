@@ -40,7 +40,7 @@
 | `PAGE-082-008` | M | — | Ops Dashboard 顶栏 Context + 无数据层级不可用态（REQ-082-017） | e2e（available/degraded/不可用态） | 完成（aceac6a） |
 | `PAGE-082-009` | M | BASE-005 | Organization Tree+Detail（无 DnD/Archive）（REQ-082-018） | Tree 采用 e2e | 完成（ca3863d） |
 | `PAGE-082-010` | M | BASE-005 | Navigation Menus 复核为 Tree+Inspector（DnD 仅真实 reorder）（REQ-082-019） | e2e | 完成（1d928c4） |
-| `PAGE-082-011` | S | 确认 | IA 归位（audit→Governance、openapi→Developer）+ Sidebar Group Label 与宽度 token 收敛（REQ-082-020；DEC-082-004） | 菜单 manifest 归位；Sidebar e2e | 待确认（需确认 Governance/Developer 组结构后实施） |
+| `PAGE-082-011` | S | 确认 | IA 归位（audit→Governance、openapi→Developer）+ Sidebar Group Label 与宽度 token 收敛（REQ-082-020；DEC-082-004） | 菜单 manifest 归位；Sidebar e2e | 完成（877ecce：governance/developer 顶级组 + 菜单断言更新 + registry 重生成） |
 | `PAGE-082-012` | S | DEC-082-001 | WorkspaceTabs 决策落地（保留复核或删除组件与测试）（方案「十二」） | 决策结论一致实现；测试同步 | 保留决策已确认；不删除（现状已实现并测试） |
 
 ### 打磨与验收（PHASE 9–10）

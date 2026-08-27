@@ -33,3 +33,6 @@ export function useGatedQueries(options: GatedQueriesOptions): GatedQueryResult[
 }
 
 export { useTanStackQueryClient as useQueryClient };
+// 082 REQ-082-009/010/002：统一 Query/Mutation 契约 + 列表页 URL 状态同步（见 unified.ts）。
+export { useWebUIQuery, useWebUIMutation, useListQueryParams } from "./unified";
+export type { ProblemError, FilterSchema, FilterValue } from "./unified";

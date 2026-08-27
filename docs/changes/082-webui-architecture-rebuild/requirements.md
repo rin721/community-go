@@ -52,12 +52,12 @@
 
 | ID | 决策 | 选项 | R003 建议 |
 | --- | --- | --- | --- |
-| `DEC-082-001` | WorkspaceTabs（历史页签）去留（方案「十二、不要继续使用全局页面 Tabs」，原 #09） | 保留为导航辅助 / 降级删除（删除组件与测试，单轨 3.8） | 二选一，禁止「保留+宣称符合」双轨 |
-| `DEC-082-002` | react-hook-form/zod 是否正式启用（方案「二十三、Form System」，原 #32） | 启用并迁移全部表单 / 移除声明依赖 | 二选一；启用需评估 Vitest 151+Playwright 22 回归成本 |
-| `DEC-082-003` | DataTable 增强边界（方案「十七、建立 Production DataTable」，原 #27） | 仅列可见性/密度/Sticky/Row menu / 含列排序持久化等扩展 | 按真实列表 API 排序能力裁定 |
-| `DEC-082-004` | IA 归位范围（方案「八、重新建立 Information Architecture」，原 #07） | audit→Governance、openapi→Developer / 保持平铺 | 可实施（仅 manifest 声明调整），是否纳入 082 由确认决定 |
-| `DEC-082-005` | 账号 Directory 是否增加 organization 维度过滤（原 #34） | 前端组合过滤（当前 list API 无 organization 参数）/ 后端扩展 | 前端组合为默认，后端扩展不纳入 082（R002 §12） |
-| `DEC-082-006` | Query/Mutation 统一层推行范围（新增） | Ops 已有 react-query 为范本推广到全部列表/表单页 / 仅新组件采用、旧页渐进迁移 | 平台底座批次先建统一 hook 契约，页面迁移逐页接入（避免一次性大重写） |
+| `DEC-082-001` | WorkspaceTabs（历史页签）去留（方案「十二、不要继续使用全局页面 Tabs」） | 保留为导航辅助 / 降级删除（删除组件与测试，单轨 3.8） | 二选一，禁止「保留+宣称符合」双轨 |
+| `DEC-082-002` | react-hook-form/zod 是否正式启用（方案「二十三、Form System」） | 启用并迁移全部表单 / 移除声明依赖 | 二选一；启用需评估 Vitest 151+Playwright 22 回归成本 |
+| `DEC-082-003` | DataTable 增强边界（方案「十七、建立 Production DataTable」） | 仅列可见性/密度/Sticky/Row menu / 含列排序持久化等扩展 | 按真实列表 API 排序能力裁定 |
+| `DEC-082-004` | IA 归位范围（方案「八、重新建立 Information Architecture」） | audit→Governance、openapi→Developer / 保持平铺 | 可实施（仅 manifest 声明调整），是否纳入 082 由确认决定 |
+| `DEC-082-005` | 账号 Directory 是否增加 organization 维度过滤 | 前端组合过滤（当前 list API 无 organization 参数）/ 后端扩展 | 前端组合为默认，后端扩展不纳入 082（R002 §12） |
+| `DEC-082-006` | Query/Mutation 统一层推行范围（方案「七十一、Query / Mutation 体系」） | Ops 已有 react-query 为范本推广到全部列表/表单页 / 仅新组件采用、旧页渐进迁移 | 平台底座批次先建统一 hook 契约，页面迁移逐页接入（避免一次性大重写） |
 
 ## 4. 候选方向（仅记录）
 

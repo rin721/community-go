@@ -55,11 +55,13 @@ test("mock mode boots the whole WebUI without a backend and marks every page", a
 // 迁移后的页面在 mock 数据源下可浏览：DataTable 增强、行菜单、详情 Drawer、
 // Tree、分组权限目录等语义组件正常装配（Interaction QA 的可见性层）。
 test("082 migrated pages render with semantic components in mock mode", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
   // Interaction QA 基线：账号目录 DataTable + 行操作 + 详情 Drawer 可用。
   await page.goto("/admin/accounts");
   await expect(page.getByRole("heading", { name: "Users" })).toBeVisible();
   await expect(page.locator(".data-table")).toBeVisible();
   await expect(page.locator(".filter-bar")).toBeVisible();
+  await expect(page.locator('[data-reveal="hidden"]')).toHaveCount(0);
   // 行操作菜单（详情）——点击后打开 User 详情 Drawer（082 REQ-013）。
   await page.locator(".data-table-row-actions button").first().click();
   await expect(page.locator(".detail-drawer")).toBeVisible();
@@ -78,5 +80,7 @@ test("082 migrated pages render with semantic components in mock mode", async ({
   // Design QA 基线：页面共享语义类（page-header/filter-bar/data-table）。
   await page.goto("/admin/accounts");
   await expect(page.locator(".page-header")).toBeVisible();
+  await expect(page.locator(".data-table")).not.toHaveAttribute("aria-busy", "true");
+  await expect(page.locator('[data-reveal="hidden"]')).toHaveCount(0);
   await page.screenshot({ path: "test-results/082-migrated-pages-mock.png", fullPage: true });
 });

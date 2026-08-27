@@ -2,7 +2,7 @@
 
 ## 状态
 
-**研究中**（研究门禁未通过）。方案输入 `docs/changes/temp-new-changes.md`（Production-grade 全栈产品重构，606 行，commit `5a3def3`）与 `docs/changes/admin-design-baseline.md`（后台产品设计风格基准，commit `5a3def3`）。本研究阶段回答：新方案主张（推倒骨架/补后端/成熟组件库/移除 Tab Bar/产品化 Feature）与 **082 已实施现状**（HeroUI 单轨、静态插拔、保留 WorkspaceTabs、Backend Freeze、平台语义组件已落地）之间的实质差异、可落地范围与冲突裁决。
+**研究门禁通过，计划中（2026-08-28）**。方案输入 `docs/changes/temp-new-changes.md`（Production-grade 全栈产品重构，606 行，commit `5a3def3`）与 `docs/changes/admin-design-baseline.md`（后台产品设计风格基准）。三份研究档案完成：R083-001 新方案 vs 082 现状差异（四裁决点 A 推倒 App Shell 分治 / B 移除 Tab Bar / C Backend 补足（sorting 必补）/ D 组件栈确认无冲突；三档落地）、R083-002 样式权威与布局事实基线（实测 137 处 :global、21 处死代码、toolbar 私有覆盖、camelCase 命名分裂、100vh 共 11 处、零 dvh、居中 max-width:1600、滚动在内容容器内）、R083-003 设计基线逐页对照（11 页组 × 13 维度，105 项有效判定：达标 28.6%/部分 57.1%/重做 14.3%，无页面整体达标；重做优先序 P0-P5）。研究结论确认样式污染与布局骨架缺陷为真实架构缺陷，并裁决变更 082 的两项决策（移除 Tab Bar、Backend 兼容+需时补足）。下一步：形成 requirements/design/tasks（状态待确认）并提交用户审阅。
 
 ## 背景
 
@@ -16,5 +16,5 @@
 
 ## 阅读顺序
 
-1. [研究档案](research/)（R083-001..003，建设中）
-2. 待研究门禁通过后：[需求](requirements.md)、[设计](design.md)、[任务](tasks.md)
+1. [研究档案](research/)（R083-001 差异分析 / R083-002 样式布局基线 / R083-003 页面对照）
+2. [需求](requirements.md)（计划中）、[设计](design.md)、[任务](tasks.md)

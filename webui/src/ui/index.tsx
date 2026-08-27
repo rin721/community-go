@@ -244,13 +244,35 @@ export function DataTable<Row>({ columns, rows, ariaLabel, getRowKey = (_row, in
   );
 }
 
-/** 行操作菜单：渲染 renderRowMenu 返回的真实操作（仅真实 operation；空数组不渲染）。 */
-export function DataTableRowMenu<Row>({ row, index, renderRowMenu }: { row: Row; index: number; renderRowMenu: (row: Row, index: number) => ReadonlyArray<{ key: string; label: ReactNode; onSelect: () => void; danger?: boolean }> }) {
+/** 行操作菜单：主操作内联 1 个，其余收进「更多」弹出菜单，危险项隔离（083 视觉基线）。
+ *  renderRowMenu 返回菜单项；空数组不渲染。 */
+export function DataTableRowMenu<Row>({ row, index, renderRowMenu, moreLabel = "…" }: { row: Row; index: number; renderRowMenu: (row: Row, index: number) => ReadonlyArray<{ key: string; label: ReactNode; onSelect: () => void; danger?: boolean }>; moreLabel?: string }) {
   const items = renderRowMenu(row, index);
   if (items.length === 0) return null;
+  // 主操作：第一个非危险项内联；其余（含全部危险项）收进「更多」菜单。
+  const primary = items.find((item) => !item.danger);
+  const rest = items.filter((item) => item !== primary);
+  const [open, setOpen] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const close = (event: globalThis.MouseEvent) => {
+      if (buttonRef.current && !buttonRef.current.contains(event.target as Node)) setOpen(false);
+    };
+    const closeKey = (event: KeyboardEvent) => { if (event.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", close);
+    document.addEventListener("keydown", closeKey);
+    return () => { document.removeEventListener("mousedown", close); document.removeEventListener("keydown", closeKey); };
+  }, [open]);
   return (
-    <div className="data-table-row-actions">
-      {items.map((item) => <button key={item.key} type="button" className={`ui-button ${item.danger ? "data-table-row-action-danger" : ""}`} onClick={item.onSelect}>{item.label}</button>)}
+    <div className="data-table-row-menu">
+      {primary && <button type="button" className="ui-button data-table-row-primary" onClick={primary.onSelect}>{primary.label}</button>}
+      {rest.length > 0 && <>
+        <button ref={buttonRef} type="button" className="ui-button data-table-row-more" aria-expanded={open} aria-haspopup="menu" onClick={() => setOpen((current) => !current)}>{moreLabel}</button>
+        {open && <div className="data-table-row-menu-popover" role="menu">
+          {rest.map((item, itemIndex) => <button key={item.key} type="button" role="menuitem" className={`data-table-row-menu-item ${item.danger ? "data-table-row-menu-danger" : ""} ${itemIndex === rest.length - 1 && item.danger ? "data-table-row-menu-border" : ""}`} onClick={() => { setOpen(false); item.onSelect(); }}>{item.label}</button>)}
+        </div>}
+      </>}
     </div>
   );
 }

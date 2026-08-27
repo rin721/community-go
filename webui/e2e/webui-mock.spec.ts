@@ -62,8 +62,8 @@ test("082 migrated pages render with semantic components in mock mode", async ({
   await expect(page.locator(".data-table")).toBeVisible();
   await expect(page.locator(".filter-bar")).toBeVisible();
   await expect(page.locator('[data-reveal="hidden"]')).toHaveCount(0);
-  // 行操作菜单（详情）——点击后打开 User 详情 Drawer（082 REQ-013）。
-  await page.locator(".data-table-row-actions button").first().click();
+  // 行操作菜单（详情）——主操作内联点击后打开 User 详情 Drawer（082 REQ-013；083 折叠菜单）。
+  await page.locator(".data-table-row-menu .data-table-row-primary").first().click();
   await expect(page.locator(".detail-drawer")).toBeVisible();
 
   // Backend Compatibility QA 基线：迁移页面保持原能力（从列表 fixture 可见用户）。

@@ -35,7 +35,7 @@ describe("082 DataTable 增强", () => {
   it("默认不渲染增强工具条与行菜单（兼容既有调用），密度保持 default", () => {
     const markup = renderToStaticMarkup(tableWith());
     expect(markup).not.toContain("data-table-toolbar");
-    expect(markup).not.toContain("data-table-row-actions");
+    expect(markup).not.toContain("data-table-row-menu");
     expect(markup).toContain('data-density="default"');
     expect(markup).toContain("Alice");
     expect(markup).toContain("Bob");
@@ -84,7 +84,7 @@ describe("082 DataTable 增强", () => {
       }),
     );
     expect(withItems).toContain("吊销");
-    expect(withItems).toContain("data-table-row-actions");
+    expect(withItems).toContain("data-table-row-menu");
 
     const empty = renderToStaticMarkup(
       createElement(DataTable<DemoRow>, {
@@ -95,7 +95,7 @@ describe("082 DataTable 增强", () => {
         enhancements: { renderRowMenu: () => [] },
       }),
     );
-    expect(empty).not.toContain("data-table-row-actions");
+    expect(empty).not.toContain("data-table-row-menu");
   });
 
   it("DataTableRowMenu 对空菜单返回 null", () => {

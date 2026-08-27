@@ -1945,18 +1945,61 @@ textarea.field-input {
 .data-table-columns-item:hover {
   background: var(--surface-muted);
 }
-.data-table-row-actions {
+.data-table-row-menu {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: 6px;
   white-space: nowrap;
+  position: relative;
 }
-.data-table-row-actions .ui-button {
+.data-table-row-primary {
   padding: 4px 8px;
   font-size: 12px;
 }
-.data-table-row-action-danger {
+.data-table-row-more {
+  min-width: 28px;
+  padding: 4px 6px;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--text-secondary);
+}
+.data-table-row-menu-popover {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: var(--z-dropdown);
+  min-width: 150px;
+  padding: 5px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+.data-table-row-menu-item {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  text-align: left;
+}
+.data-table-row-menu-item:hover {
+  background: var(--surface-muted);
+}
+.data-table-row-menu-danger {
   color: var(--danger);
+}
+.data-table-row-menu-border {
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+  padding-top: 9px;
+  border-radius: 0;
+  border-left: 0;
+  border-right: 0;
+  border-bottom: 0;
 }
 .pagination-total {
   display: block;

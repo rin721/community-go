@@ -35,7 +35,24 @@
 .opsModule :global(.ops-health-row) { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
 .opsModule :global(.ops-health-row:last-child) { border-bottom: 0; }
 .opsModule :global(.ops-health-row .status-pill) { font-size: 10px; }
-.opsModule :global(.ops-metrics-card) { min-height: 238px; margin-top: 14px; padding: 16px; }
+/* 084：健康行可用态以点 + 低噪文字组成一个状态单元，代替重复状态药丸 */
+.opsModule :global(.ops-health-ok-wrap) {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.opsModule :global(.ops-health-ok) {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+  flex: 0 0 auto;
+}
+.opsModule :global(.ops-health-ok-label) {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+.opsModule :global(.ops-metrics-card) { margin-top: 14px; padding: 16px; }
 .opsModule :global(.ops-metric-grid) { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 18px; }
 .opsModule :global(.ops-metric-tile) { display: grid; gap: 8px; min-height: 94px; padding: 14px; border-radius: 8px; color: #fff; box-shadow: var(--shadow); }
 .opsModule :global(.ops-metric-tile strong) { font-size: 24px; line-height: 1; letter-spacing: -.04em; }

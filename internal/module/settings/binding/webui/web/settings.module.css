@@ -25,6 +25,39 @@
   gap: 2px;
   max-width: 500px;
 }
+
+/* 084：技术栈卡片改 2 列紧凑 chip（图标码 + 名称），消除长距纵向堆叠 */
+.settingsModule :global(.stack-grid) {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+  max-width: 440px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.settingsModule :global(.stack-chip) {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+}
+.settingsModule :global(.stack-chip code) {
+  font: 11px ui-monospace, monospace;
+  color: var(--text-secondary);
+}
+.settingsModule :global(.stack-chip span) {
+  font-size: 12px;
+  color: var(--text);
+}
+.settingsModule :global(.about-repo-link) {
+  color: var(--primary);
+  text-decoration: underline;
+  font-weight: var(--font-weight-medium);
+}
 /* 071：页内侧边栏布局（SectionNav + 内容区） */
 .settingsModule :global(.settings-inner) {
   display: flex;
@@ -35,6 +68,7 @@
   flex: 1 1 auto;
   min-width: 0;
   display: grid;
+  align-items: start;
   gap: var(--section-gap);
 }
 @media (max-width: 900px) {

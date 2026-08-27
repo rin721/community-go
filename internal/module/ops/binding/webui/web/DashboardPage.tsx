@@ -33,6 +33,9 @@ function statusLabel(t: (key: string) => string, state: CapabilityState): string
 }
 
 function HealthRow({ label, state, detail }: { label: string; state: CapabilityState; detail: string }) {
+  // 084: healthy rows use a dot + muted label grouped as one status unit
+  // instead of a repeated pill; non-healthy states keep the full pill.
+  if (state === "available") return <div className="ops-health-row"><span>{label}</span><span className="ops-health-ok-wrap"><span className="ops-health-ok" aria-hidden="true" /><span className="ops-health-ok-label">{detail}</span></span></div>;
   return <div className="ops-health-row"><span>{label}</span><StatusPill state={state}>{detail}</StatusPill></div>;
 }
 

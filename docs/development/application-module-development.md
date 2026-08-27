@@ -337,5 +337,6 @@ i18n 是业务模块的正式 binding 契约：业务模块按统一方式提供
 - 权限目录描述键统一为模块自有命名空间：`binding/permission/definitions.go` 的 `DescriptionMessageID` 使用 `permission.<module>.<rest>`，模块需在自有 webui locale 提供 `webui.<module>.permission.<rest>` 双语键（如 `webui.iam.permission.account.read`）；前端经 `@webui/sdk/i18n` 的 `translateOptional`/`ensureRouteLocale` 解析，缺失时回落目录键而不是显示「翻译资源缺失」。新增权限定义时必须成对补齐这两类键。
 - 模块页面新增用户可见文案只进自有 locale（zh/en 成对），组件源码禁止中文与绕过翻译的用户文案（i18n 契约 lint 守护）。
 - 列表页查询条统一用平台 `FilterBar`：筛选与排序并入同一行（行内标签 + 原生 select/input，input 可带 placeholder），结果计数/清除右对齐；不要在 FilterBar 之外再堆一行排序控件。批量操作使用 `BulkActionBar`（可选常驻禁用态，未选择时可发现不可点，如会话批量吊销）。行级操作列通过 `DataTable` 的 `renderRowMenu` + `rowMenuHeader` 提供可见表头与「1 主操作 + …」折叠；默认不启用 `columnVisibility` 空工具栏，避免表格上方无效留白（列配置能力按需以行内形态回归）。登录/初始化等空白布局页面复用 `.auth-panel` + `auth-section` 分组与密码显隐模式，不要自绘第二套表单。
+- 跨实体筛选优先复用既有契约：会话列表已支持 `accountId` 查询参数（未传时回落当前账号），前端直接接线（账号下拉 + URL 参数），不要为同一能力新增重复接口。
 
 构建通过不能替代资源生命周期或产品验收。交付必须区分已通过、未执行和被外部环境阻断的验证。

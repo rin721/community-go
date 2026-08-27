@@ -14,10 +14,11 @@ export default function AboutPage() {
           <p className="page-description">{t("webui.settings.about.intro.body")}</p>
         </PageSection>
         <PageSection kicker={t("webui.settings.about.stack.kicker")} title={t("webui.settings.about.stack.title")}>
-          <ul className="settings-stack">{["Go", "React 19", "Vite", "TypeScript", "HeroUI v3", "Tailwind CSS v4"].map((item) => <li className="page-meta" key={item}>{item}</li>)}</ul>
+          <ul className="stack-grid">{[["Go", "go"], ["React 19", "react"], ["Vite", "vite"], ["TypeScript", "ts"], ["HeroUI v3", "heroui"], ["Tailwind CSS v4", "tw"]].map(([label, code]) => <li className="stack-chip" key={code}><code>{code}</code><span>{label}</span></li>)}</ul>
         </PageSection>
         <PageSection kicker={t("webui.settings.about.repository.kicker")} title={t("webui.settings.about.repository.title")}>
           <p className="page-description">{t("webui.settings.about.repository.body")}</p>
+          <p className="page-description"><a href="https://github.com/rin721/community-go" target="_blank" rel="noreferrer" className="about-repo-link">{t("webui.settings.about.repository.link")}</a></p>
         </PageSection>
       </div>
     

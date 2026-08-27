@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { BulkActionBar, Button, CodeText, DataTable, EmptyState, ErrorState, FilterBar, formatDateTime, formatRelativeTime, PageHeader, PageSection, StatusBadge } from "@webui/sdk/ui";
 import { useListQueryParams } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
-import { listSessions, revokeSessions, type SessionInfo } from "./api";
+import { listAccounts, listSessions, revokeSessions, type Account, type SessionInfo } from "./api";
 import styles from "./iam.module.css";
 
 // toggleSelection returns an immutable copy of the selection with the id
@@ -23,8 +23,9 @@ export function sessionStatusCell(item: SessionInfo, t: Translate) {
 export default function SessionsPage() {
   const { t } = useWebUITranslation("webui.iam");
   const { t: hostT } = useWebUITranslation("webui.host");
-  const listQuery = useListQueryParams<{ status: string }>({ filters: { status: { queryKey: "status", defaultValue: "all" } } });
+  const listQuery = useListQueryParams<{ status: string; accountId: string }>({ filters: { status: { queryKey: "status", defaultValue: "all" }, accountId: { queryKey: "accountId", defaultValue: "", decode: (raw) => raw ?? "" } } });
   const [items, setItems] = useState<SessionInfo[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [message, setMessage] = useState("");
   const [revoking, setRevoking] = useState(false);
@@ -33,9 +34,10 @@ export default function SessionsPage() {
   const refresh = useCallback(() => {
     setLoading(true);
     setLoadError(false);
-    return listSessions(listQuery.filters.status, listQuery.sort ? `${listQuery.sort.key}:${listQuery.sort.direction}` : undefined).then((result) => { setItems(result.items); setSelected(new Set()); }).catch(() => { setItems([]); setSelected(new Set()); setLoadError(true); }).finally(() => setLoading(false));
-  }, [listQuery.filters.status, listQuery.sort]);
+    return listSessions(listQuery.filters.status, listQuery.filters.accountId || undefined, listQuery.sort ? `${listQuery.sort.key}:${listQuery.sort.direction}` : undefined).then((result) => { setItems(result.items); setSelected(new Set()); }).catch(() => { setItems([]); setSelected(new Set()); setLoadError(true); }).finally(() => setLoading(false));
+  }, [listQuery.filters.status, listQuery.filters.accountId, listQuery.sort]);
   useEffect(() => { void refresh(); }, [refresh]);
+  useEffect(() => { void listAccounts().then((result) => setAccounts(result.items)).catch(() => undefined); }, []);
   const revoke = (): Promise<void> => {
     if (selected.size === 0) return Promise.resolve();
     setRevoking(true);
@@ -48,11 +50,15 @@ export default function SessionsPage() {
         {message && <p className="page-meta">{message}</p>}
         <FilterBar
           ariaLabel={t("webui.iam.sessions.statusHeader")}
-          fields={[{ key: "status", control: "select", label: t("webui.iam.sessions.statusHeader"), value: listQuery.filters.status, options: [
+          fields={[{ key: "accountId", control: "select", label: t("webui.iam.sessions.accountFilter"), value: listQuery.filters.accountId, options: [
+            { value: "", label: t("webui.iam.sessions.accountAll") },
+            ...accounts.map((item) => ({ value: item.id, label: `${item.displayName} (@${item.username})` })),
+          ], onValueChange: (value) => listQuery.setFilters({ ...listQuery.filters, accountId: String(value) }) },
+          { key: "status", control: "select", label: t("webui.iam.sessions.statusHeader"), value: listQuery.filters.status, options: [
             { value: "all", label: t("webui.iam.accounts.statusAll") },
             { value: "active", label: t("webui.iam.sessions.active") },
             { value: "revoked", label: t("webui.iam.sessions.revokedAt") },
-          ], onValueChange: (value) => listQuery.setFilters({ status: String(value) }) },
+          ], onValueChange: (value) => listQuery.setFilters({ ...listQuery.filters, status: String(value) }) },
           { key: "sortBy", control: "select", label: t("webui.iam.accounts.sortBy"), value: listQuery.sort?.key ?? "", options: [
             { value: "", label: t("webui.iam.accounts.sortNone") },
             { value: "createdAt", label: t("webui.iam.sessions.createdAt") },

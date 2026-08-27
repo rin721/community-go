@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActionTrigger, Button, Check, CodeText, DataTable, Drawer, Field, FilterBar, FormField, PageHeader, PageSection, SearchInput, StatusBadge } from "@webui/sdk/ui";
+import { ActionTrigger, Button, Check, CodeText, DataTable, DetailDrawer, Drawer, Field, FilterBar, FormField, PageHeader, PageSection, SearchInput, StatusBadge } from "@webui/sdk/ui";
 import { useListQueryParams } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { accountRolesView, archiveAccount, createAccount, listAccounts, listRoles, replaceAccountRoles, resetAccountPassword, setAccountStatus, updateAccountInfo, type Account, type Role } from "./api";
@@ -43,6 +43,7 @@ export default function AccountsPage() {
   const [total, setTotal] = useState(0);
   const [renameValue, setRenameValue] = useState("");
   const [archiveError, setArchiveError] = useState(false);
+  const [detailAccount, setDetailAccount] = useState<Account | null>(null);
   const refresh = useCallback((nextPage = page) => {
     return listAccounts(listQuery.filters.query, (nextPage - 1) * PAGE_SIZE, PAGE_SIZE).then((result) => {
       setTotal(result.total);
@@ -96,6 +97,7 @@ export default function AccountsPage() {
   // 082 REQ-082-012: DataTable row menu (real operations only, disabled by state).
   const rowActions = (account: Account) => {
     const actions: Array<{ key: string; label: string; onSelect: () => void; danger?: boolean }> = [];
+    actions.push({ key: "detail", label: t("webui.iam.accounts.detail"), onSelect: () => { setSelectedID(account.id); setDetailAccount(account); } });
     actions.push({ key: "select", label: t("webui.iam.accounts.select"), onSelect: () => setSelectedID(account.id) });
     if (!account.archived) {
       actions.push({ key: "status", label: account.status === "active" ? t("webui.iam.accounts.disable") : t("webui.iam.accounts.enable"), onSelect: () => void setAccountStatus(account.id, account.status === "active" ? "disabled" : "active").then(() => refresh()) });
@@ -165,5 +167,25 @@ export default function AccountsPage() {
         </div>
       </div>
     </Drawer>
+    {/* 082 REQ-082-013: User Detail Drawer (Overview/Roles; sessions/security via existing pages; no fake activity) */}
+    <DetailDrawer
+      open={Boolean(detailAccount)}
+      onClose={() => setDetailAccount(null)}
+      title={detailAccount ? detailAccount.displayName : ""}
+      identity={detailAccount ? t("webui.iam.accounts.detailIdentity", { username: `@${detailAccount.username}` }) : undefined}
+      status={detailAccount ? (detailAccount.archived ? <StatusBadge status="revoked">{t("webui.iam.accounts.archived")}</StatusBadge> : <StatusBadge status={detailAccount.status === "active" ? "active" : "disabled"}>{t(detailAccount.status === "active" ? "webui.iam.accounts.statusActive" : "webui.iam.accounts.statusDisabled")}</StatusBadge>) : undefined}
+      width={560}
+    >
+      {detailAccount && (
+        <div className="user-detail">
+          <div className="detail-field"><span className="detail-field-label">{t("webui.iam.username")}</span><CodeText value={detailAccount.username} /></div>
+          <div className="detail-field"><span className="detail-field-label">{t("webui.iam.displayName")}</span><span className="detail-field-value">{detailAccount.displayName}</span></div>
+          <div className="detail-field"><span className="detail-field-label">{t("webui.iam.accounts.revision")}</span><CodeText value={String(detailAccount.securityRevision)} /></div>
+          <div className="detail-field"><span className="detail-field-label">{t("webui.iam.accounts.rolesAssigned")}</span><span className="detail-field-value">{roles.filter((role) => roleIDs.includes(role.id)).map((role) => role.name).join(", ") || "—"}</span></div>
+          {detailAccount.mustChangePassword && <div className="detail-field"><span className="detail-field-label">{t("webui.iam.security.changeRequired")}</span><StatusBadge status="pending">{t("webui.iam.security.changeRequired")}</StatusBadge></div>}
+          <div className="detail-field"><span className="detail-field-label">{t("webui.iam.accounts.detailSessions")}</span><span className="detail-field-value">{t("webui.iam.accounts.detailSessionsHint")}</span></div>
+        </div>
+      )}
+    </DetailDrawer>
   </div>;
 }

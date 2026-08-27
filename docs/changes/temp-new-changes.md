@@ -507,6 +507,42 @@ Failure
 
 ---
 
+## 11d. 后台产品设计风格基准（Design Baseline）
+
+> 完整权威文档见 [admin-design-baseline.md](admin-design-baseline.md)，本节提炼为核心要求。重构执行时每个页面/组件设计前必须对照本基准。
+
+**定位**：Modern Enterprise Admin Console；视觉关键词 Professional / Clean / Dense / Structured / Data-first / Functional / Modern / Enterprise / SaaS。避免廉价管理后台、默认组件库样式、大量蓝色按钮、到处都是 Card、大圆角、玻璃拟态、大面积阴影、低信息密度模板页。
+
+**产品化原则**：
+- 不要把现有页面骨架当约束：页面设计从 User Goal → Workflow → IA → Functional Components → UI Components 推导，不按后端接口数决定前端复杂度；旧页面结构不合理直接推翻重设计。
+- 禁止"原子组件堆砌"：高级筛选是 FilterBar/Query Builder（搜索/条件/快速筛选/Active filters/Saved views/Reset/count/expand），数据分析是 MetricCard（label/value/trend/delta/time range/mini chart/drill-down），不是 Input+Select+Button 或 Card+Number。
+- 复杂功能必须是完整 Feature（用户管理工作区/权限矩阵/审计 Explorer），不是一两个组件。
+
+**业务组件库**（复用而非堆叠）：DataTable（列配置/排序/过滤/选择/批量/列可见性/密度/Sticky/行操作/空载错态/导出/刷新）、FilterBar、EntityHeader、MetricCard、StatusBadge（统一状态色，禁止页面自定）、ActivityTimeline、DetailDrawer（按上下文选 Drawer/Modal/Panel/Page）、BulkActionBar（勾选后出现，非常驻顶部）。
+
+**页面模板体系**：Dashboard（Context Header+KPI+Trend+Alerts+Overview+Activity）、List Workspace（Header+Tabs+Toolbar+Saved Views+FilterBar+DataTable+Bulk+Detail）、Detail Page（Breadcrumb+Entity Header+Status+Actions+Summary+Tabs+Activity+Audit）、Configuration（左侧 Settings Nav + 右侧配置区，按 General/Security/Notifications/Integration/Permissions/Advanced）、Analytics（Date Range+Dimensions+KPI+Trend+Breakdown+Table+Insight+Export）。
+
+**布局与视觉**：
+- Sidebar 固定（sticky/fixed app shell，独立滚动）240px expanded / 64–72px collapsed；Topbar 56–64px 紧凑（Breadcrumb/全局搜索/命令/通知/Help/User）；页面标题在 Page Header。
+- Content 不机械限宽：数据页/表格可全宽，Dashboard 可限阅读宽度；8px spacing（4/8/12/16/20/24/32/40/48），section 间距 24–32px。
+- 圆角：Button/Input 6–8、Card 8–10、Modal 10–12；阴影只用于 Popover/Dropdown/Modal/Floating/Command palette。
+- 色板：bg `#F6F7F9`、surface `#FFF`、text `#111827`/`#6B7280`/`#9CA3AF`、border `#E5E7EB`、primary `#4F46E5` 或 `#2563EB`、success `#16A34A`、warning `#D97706`、danger `#DC2626`、info `#0284C7`；Blue 只用于 Primary Action/Link/Selection/Focus。
+- 字体层级：Page 24–28/600、Section 16–18/600、Card 14–16/600、Body 14、Secondary/Table 13–14、Label 12–13、Metadata 12。
+
+**Table 是核心工作区**：具备产品级能力（sticky/sort/filter/search/pagination/selection/row action/列配置/密度/状态/loading/empty/error/bulk/hover/overflow）；操作列主要操作显示 1 个，其余收进 `...`，危险操作放末尾分隔。
+
+**状态与反馈**：所有页面考虑 Default/Hover/Focus/Active/Selected/Disabled/Loading/Empty/Error/Success/Permission denied；Empty State 给"为什么空/能做什么/动作"；Loading 用 Skeleton/Table skeleton/Button loading 而非整页 Spinner；操作必须有反馈（成功 Toast/失败+retry/危险确认/复杂危险确认输入名称）。
+
+**代码架构**：按 feature 组织（`features/users/{components,hooks,services,types,utils,users-table,user-filters,user-details,bulk-actions}`），全局业务组件单独目录；禁止 `pages/Users.tsx` 千行单文件。
+
+**响应式**：保证 1366×768、1440×900、1920×1080 正常使用；Tablet 允许 sidebar collapse；小屏优先数据与操作能力。
+
+**每次重构页面前执行**：已有问题 → 用户目标 → 缺失能力 → IA → 交互模型 → 业务组件 → 视觉层级，然后实现。
+
+**最终标准**：不像"比原页面漂亮"，而像真实商业产品（用户知道在哪/状态/下一步、高频任务快、复杂任务有工作流、异常有反馈、空态有引导、模式已组件化、充分利用成熟 UI 基础设施、解决旧设计问题、生产可用）。不达标继续重构，目标是 **Redesign the product experience** 而非 Redesign the interface。
+
+---
+
 ## 12. 工作方式
 
 先扫描代码，再直接实施。

@@ -181,6 +181,77 @@ func TestOwnerCatalogExpansionIsReconciledAndInvalidatesSession(t *testing.T) {
 	}
 }
 
+// TestBatchAccountStatusAndArchive 验证批量启停/归档：逐账号复用安全语义、
+// 单个失败不中止、返回计数与逐条稳定错误码。
+func TestBatchAccountStatusAndArchive(t *testing.T) {
+	iam, resource := newService(t)
+	defer resource.Close()
+	ownerSession, err := iam.Setup(t.Context(), "setup-secret", "owner", "Owner", "123456789012345")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ownerID := ownerSession.Identity.AccountID
+	member, err := iam.CreateAccount(t.Context(), "member-a", "Member A", "abcdefghijklmno")
+	if err != nil {
+		t.Fatal(err)
+	}
+	member2, err := iam.CreateAccount(t.Context(), "member-b", "Member B", "abcdefghijklmno")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// 批量禁用：member 成功、缺失账号失败，统计与错误码逐条导出。
+	processed, failed, items := iam.BatchSetAccountStatus(t.Context(), []string{member.ID, "missing-id"}, model.AccountDisabled)
+	if processed != 1 || failed != 1 {
+		t.Fatalf("batch disable counts = %d/%d", processed, failed)
+	}
+	if len(items) != 1 || items[0].AccountID != "missing-id" || items[0].Code != "not_found" {
+		t.Fatalf("batch disable items = %#v", items)
+	}
+	accounts, err := iam.ListAccounts(t.Context(), 0, 20, repo.AccountFilter{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, account := range accounts.Items {
+		if account.ID == member.ID && account.Status != model.AccountDisabled {
+			t.Fatalf("member not disabled after batch: %+v", account)
+		}
+	}
+
+	// 批量归档：member2 成功；owner（最后活跃 owner）失败为 owner_invariant。
+	processed, failed, items = iam.BatchArchiveAccounts(t.Context(), []string{member2.ID, "missing-id-2"})
+	if processed != 1 || failed != 1 {
+		t.Fatalf("batch archive counts = %d/%d", processed, failed)
+	}
+	if len(items) != 1 || items[0].Code != "not_found" {
+		t.Fatalf("batch archive items = %#v", items)
+	}
+	archived, err := iam.ListAccounts(t.Context(), 0, 20, repo.AccountFilter{Archived: boolPtr(true)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, account := range archived.Items {
+		if account.ID == member2.ID {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("member2 not archived after batch: %#v", archived.Items)
+	}
+
+	// owner 无法在批量中被禁用（保持 owner 不变量），错误码为 owner_invariant。
+	processed, failed, items = iam.BatchSetAccountStatus(t.Context(), []string{member.ID, ownerID}, model.AccountDisabled)
+	if processed != 1 || failed != 1 {
+		t.Fatalf("batch disable w/ owner counts = %d/%d", processed, failed)
+	}
+	if len(items) != 1 || items[0].AccountID != ownerID || items[0].Code != "owner_invariant" {
+		t.Fatalf("batch disable w/ owner items = %#v", items)
+	}
+}
+
+func boolPtr(value bool) *bool { return &value }
+
 func TestLastOwnerCannotBeDisabledOrUnassigned(t *testing.T) {
 	iam, resource := newService(t)
 	defer resource.Close()

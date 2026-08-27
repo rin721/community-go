@@ -13,14 +13,14 @@ func TestApplicationHTTPRegistrationsAreComplete(t *testing.T) {
 		t.Fatal(err)
 	}
 	definitions := blueprint.httpDefinitions
-	if len(definitions) != 55 {
+	if len(definitions) != 57 {
 		t.Fatalf("operation count = %d", len(definitions))
 	}
 	seen := make(map[string]struct{}, len(definitions))
 	for _, definition := range definitions {
 		seen[definition.ID] = struct{}{}
 	}
-	for _, id := range []string{"iam.setup", "navigation.menus.update", "organization.departments.update", "completeTodo", "auth.audit.list", "iam.sessions.list", "iam.sessions.revoke", "iam.accounts.update", "iam.accounts.archive", "iam.roles.update", "iam.roles.archive", "iam.self.profile.update", "iam.self.archive", "iam.self.archive.confirm", "iam.roles.accounts.list", "iam.permissions.roles.list", "iam.api-tokens.list", "iam.api-tokens.create", "iam.api-tokens.update", "iam.api-tokens.rotate", "iam.api-tokens.disable", "iam.api-tokens.enable", "iam.api-tokens.revoke", "iam.self.mfa.begin", "iam.self.mfa.status", "iam.self.mfa.confirm", "iam.self.mfa.disable", "iam.login.mfa-verify"} {
+	for _, id := range []string{"iam.setup", "navigation.menus.update", "organization.departments.update", "completeTodo", "auth.audit.list", "iam.sessions.list", "iam.sessions.revoke", "iam.accounts.update", "iam.accounts.archive", "iam.roles.update", "iam.roles.archive", "iam.self.profile.update", "iam.self.archive", "iam.self.archive.confirm", "iam.roles.accounts.list", "iam.permissions.roles.list", "iam.api-tokens.list", "iam.api-tokens.create", "iam.api-tokens.update", "iam.api-tokens.rotate", "iam.api-tokens.disable", "iam.api-tokens.enable", "iam.api-tokens.revoke", "iam.self.mfa.begin", "iam.self.mfa.status", "iam.self.mfa.confirm", "iam.self.mfa.disable", "iam.login.mfa-verify", "iam.accounts.status.batch", "iam.accounts.archive.batch"} {
 		if _, ok := seen[id]; !ok {
 			t.Fatalf("missing operation %q", id)
 		}

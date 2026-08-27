@@ -15,12 +15,14 @@ const (
 	OperationCreateTodo                     OperationID = "createTodo"
 	OperationGetTodo                        OperationID = "getTodo"
 	OperationIamAccountsArchive             OperationID = "iam.accounts.archive"
+	OperationIamAccountsArchiveBatch        OperationID = "iam.accounts.archive.batch"
 	OperationIamAccountsCreate              OperationID = "iam.accounts.create"
 	OperationIamAccountsList                OperationID = "iam.accounts.list"
 	OperationIamAccountsPasswordReset       OperationID = "iam.accounts.password.reset"
 	OperationIamAccountsRolesRead           OperationID = "iam.accounts.roles.read"
 	OperationIamAccountsRolesReplace        OperationID = "iam.accounts.roles.replace"
 	OperationIamAccountsStatus              OperationID = "iam.accounts.status"
+	OperationIamAccountsStatusBatch         OperationID = "iam.accounts.status.batch"
 	OperationIamAccountsUpdate              OperationID = "iam.accounts.update"
 	OperationIamApiTokensCreate             OperationID = "iam.api-tokens.create"
 	OperationIamApiTokensDisable            OperationID = "iam.api-tokens.disable"
@@ -73,12 +75,14 @@ var operationInventory = [...]Operation{
 	{ID: OperationCreateTodo, Method: "POST", Path: "/api/v1/todos", Policy: "protected", Scope: "todos:write", Action: "todo.create"},
 	{ID: OperationGetTodo, Method: "GET", Path: "/api/v1/todos/{id}", Policy: "protected", Scope: "todos:read", Action: "todo.read"},
 	{ID: OperationIamAccountsArchive, Method: "POST", Path: "/api/v1/iam/accounts/{id}/archive", Policy: "protected", Scope: "iam:account:write", Action: "iam.accounts.archive"},
+	{ID: OperationIamAccountsArchiveBatch, Method: "POST", Path: "/api/v1/iam/accounts/batch-archive", Policy: "protected", Scope: "iam:account:write", Action: "iam.accounts.archive.batch"},
 	{ID: OperationIamAccountsCreate, Method: "POST", Path: "/api/v1/iam/accounts", Policy: "protected", Scope: "iam:account:write", Action: "iam.accounts.create"},
 	{ID: OperationIamAccountsList, Method: "GET", Path: "/api/v1/iam/accounts", Policy: "protected", Scope: "iam:account:read", Action: "iam.accounts.list"},
 	{ID: OperationIamAccountsPasswordReset, Method: "POST", Path: "/api/v1/iam/accounts/{id}/password-reset", Policy: "protected", Scope: "iam:account:write", Action: "iam.accounts.password.reset"},
 	{ID: OperationIamAccountsRolesRead, Method: "GET", Path: "/api/v1/iam/accounts/{id}/roles", Policy: "protected", Scope: "iam:account:read", Action: "iam.accounts.roles.read"},
 	{ID: OperationIamAccountsRolesReplace, Method: "PUT", Path: "/api/v1/iam/accounts/{id}/roles", Policy: "protected", Scope: "iam:account:write", Action: "iam.accounts.roles.replace"},
 	{ID: OperationIamAccountsStatus, Method: "PATCH", Path: "/api/v1/iam/accounts/{id}/status", Policy: "protected", Scope: "iam:account:write", Action: "iam.accounts.status"},
+	{ID: OperationIamAccountsStatusBatch, Method: "POST", Path: "/api/v1/iam/accounts/batch-status", Policy: "protected", Scope: "iam:account:write", Action: "iam.accounts.status.batch"},
 	{ID: OperationIamAccountsUpdate, Method: "PATCH", Path: "/api/v1/iam/accounts/{id}", Policy: "protected", Scope: "iam:account:write", Action: "iam.accounts.update"},
 	{ID: OperationIamApiTokensCreate, Method: "POST", Path: "/api/v1/iam/api-tokens", Policy: "protected", Scope: "iam:api-token:write", Action: "iam.api-tokens.create"},
 	{ID: OperationIamApiTokensDisable, Method: "POST", Path: "/api/v1/iam/api-tokens/{id}/disable", Policy: "protected", Scope: "iam:api-token:write", Action: "iam.api-tokens.disable"},

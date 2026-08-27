@@ -15,8 +15,10 @@ areas:
     decision: reviewed-no-change
     reason: ops 自有 locale 补充两条权限描述演示键（webui.ops.permission.diagnostics/metrics），对齐权限目录描述解析契约；无运行语义、能力或配置变化。
   - id: api
-    decision: reviewed-no-change
-    reason: 全部改动使用既有契约（organization PATCH 的 name/parentId/clearParent、iam 权限目录描述 id）；未新增或修改后端接口；clearParent 契约已存在于 code-first 生成规格并由前端 api.ts 显式化。
+    decision: updated
+    documents:
+      - api/README.md
+    reason: 新增账号批量操作契约（POST /api/v1/iam/accounts/batch-status 与 batch-archive，语义 = 逐账号复用既有安全语义/审计、失败不中止并逐条导出稳定错误码）；走 code-first 生成链同步（api/openapi.yaml 与 operation inventory）；认证/授权 Scope（iam:account:write）不变。
   - id: startup
     decision: reviewed-no-change
     reason: 前端呈现与文案解析变更，无新运行组件/配置节/生命周期变化。

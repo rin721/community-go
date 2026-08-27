@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActionTrigger, Button, Check, CodeText, ConfirmActionTrigger, DataTable, DetailDrawer, Drawer, EmptyState, ErrorState, Field, FilterBar, FormField, PageHeader, PageSection, SearchInput, StatusBadge } from "@webui/sdk/ui";
+import { ActionTrigger, Button, BulkActionBar, Check, CodeText, ConfirmActionTrigger, DataTable, DetailDrawer, Drawer, EmptyState, ErrorState, Field, FilterBar, FormField, PageHeader, PageSection, SearchInput, StatusBadge } from "@webui/sdk/ui";
 import { useListQueryParams } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
-import { accountRolesView, archiveAccount, createAccount, listAccounts, listRoles, replaceAccountRoles, resetAccountPassword, setAccountStatus, updateAccountInfo, type Account, type Role } from "./api";
+import { accountRolesView, archiveAccount, batchAccountStatus, batchArchiveAccounts, createAccount, listAccounts, listRoles, replaceAccountRoles, resetAccountPassword, setAccountStatus, updateAccountInfo, type Account, type Role } from "./api";
 import styles from "./iam.module.css";
 
 // checklistCandidates only exposes active, non-archived roles for assignment.
@@ -36,6 +36,9 @@ export default function AccountsPage() {
   });
   const [items, setItems] = useState<Account[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
+  const [selection, setSelection] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkMessage, setBulkMessage] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [username, setUsername] = useState("");
   const [name, setName] = useState("");
@@ -162,6 +165,10 @@ export default function AccountsPage() {
           loading={loading}
           loadingLabel={t("webui.host.page.loading.label")}
           getRowKey={(item) => item.id}
+          selectable
+          selectionLabel={t("webui.iam.accounts.selectAll")}
+          selectedKeys={selection}
+          onSelectedKeysChange={setSelection}
           emptyState={loadError ? null : <EmptyState title={t("webui.iam.accounts.empty")} />}
           enhancements={{
             density: "default",
@@ -169,6 +176,50 @@ export default function AccountsPage() {
             rowMenuHeader: t("webui.iam.accounts.actions"),
             renderRowMenu: rowActions,
           }}
+        />
+        {bulkMessage && <p className="page-meta" role="status">{bulkMessage}</p>}
+        <BulkActionBar
+          open={items.length > 0}
+          selectionLabel={t("webui.iam.accounts.selection", { count: selection.size })}
+          actionLabel={selection.size > 0 && [...selection].every((id) => items.find((item) => item.id === id)?.status === "disabled") ? t("webui.iam.accounts.bulkEnable") : t("webui.iam.accounts.bulkDisable")}
+          clearLabel={t("webui.iam.accounts.clearSelection")}
+          confirmTitle={t("webui.iam.accounts.bulkStatusTitle")}
+          confirmDescription={t("webui.iam.accounts.bulkStatusDetail", { count: selection.size, status: selection.size > 0 && [...selection].every((id) => items.find((item) => item.id === id)?.status === "disabled") ? t("webui.iam.accounts.statusActive") : t("webui.iam.accounts.statusDisabled") })}
+          confirmLabel={t("webui.iam.accounts.bulkDisable")}
+          cancelLabel={t("webui.iam.cancel")}
+          closeLabel={t("webui.iam.cancel")}
+          pending={bulkBusy}
+          pendingLabel={t("webui.iam.saving")}
+          disabled={selection.size === 0}
+          disabledReason="invalid"
+          extraActions={[{
+            key: "archive",
+            label: t("webui.iam.accounts.bulkArchive"),
+            variant: "danger",
+            confirmTitle: t("webui.iam.accounts.bulkArchiveTitle"),
+            confirmDescription: t("webui.iam.accounts.bulkArchiveDetail", { count: selection.size }),
+            confirmLabel: t("webui.iam.accounts.bulkArchive"),
+            onConfirm: () => {
+              setBulkBusy(true);
+              return batchArchiveAccounts([...selection]).then((result) => {
+                setBulkBusy(false);
+                setBulkMessage(t("webui.iam.accounts.bulkArchived", { count: result.processed }));
+                setSelection(new Set());
+                return refresh();
+              }).catch(() => { setBulkBusy(false); setBulkMessage(t("webui.iam.error")); return Promise.resolve(); });
+            },
+          }]}
+          onConfirm={() => {
+            const targetStatus: Account["status"] = [...selection].every((id) => items.find((item) => item.id === id)?.status === "disabled") ? "active" : "disabled";
+            setBulkBusy(true);
+            return batchAccountStatus([...selection], targetStatus).then((result) => {
+              setBulkBusy(false);
+              setBulkMessage(t("webui.iam.accounts.bulkResult", { processed: result.processed, failed: result.failed }));
+              setSelection(new Set());
+              return refresh();
+            }).catch(() => { setBulkBusy(false); setBulkMessage(t("webui.iam.error")); return Promise.resolve(); });
+          }}
+          onClear={() => setSelection(new Set())}
         />
       </PageSection>
       {selected && (

@@ -28,6 +28,8 @@ const (
 	opAccountStatus       = "iam.accounts.status"
 	opAccountUpdate       = "iam.accounts.update"
 	opAccountArchive      = "iam.accounts.archive"
+	opAccountStatusBatch  = "iam.accounts.status.batch"
+	opAccountArchiveBatch = "iam.accounts.archive.batch"
 	opResetPassword       = "iam.accounts.password.reset"
 	opAccountRolesRead    = "iam.accounts.roles.read"
 	opAccountRoles        = "iam.accounts.roles.replace"

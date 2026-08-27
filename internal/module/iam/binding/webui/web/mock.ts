@@ -70,6 +70,14 @@ export const webuiMockRoutes: ReadonlyArray<WebUIMockRoute> = [
   { method: "PATCH", pattern: "/api/v1/iam/accounts/{id}/status", handler: () => undefined },
   { method: "PATCH", pattern: "/api/v1/iam/accounts/{id}", handler: () => undefined },
   { method: "POST", pattern: "/api/v1/iam/accounts/{id}/archive", handler: () => undefined },
+  { method: "POST", pattern: "/api/v1/iam/accounts/batch-status", handler: (request) => {
+    const body = (request.body ?? {}) as { accountIds?: string[] };
+    return { processed: body.accountIds?.length ?? 0, failed: 0 };
+  } },
+  { method: "POST", pattern: "/api/v1/iam/accounts/batch-archive", handler: (request) => {
+    const body = (request.body ?? {}) as { accountIds?: string[] };
+    return { processed: body.accountIds?.length ?? 0, failed: 0 };
+  } },
   { method: "POST", pattern: "/api/v1/iam/accounts/{id}/password-reset", handler: () => undefined },
   { method: "GET", pattern: "/api/v1/iam/accounts/{id}/roles", handler: () => ({ accountId: "acct-1", accountVersion: 1, authorizationRevision: 2, roleIds: roles.map((role) => role.id) }) },
   { method: "PUT", pattern: "/api/v1/iam/accounts/{id}/roles", handler: (request) => {

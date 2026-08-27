@@ -22,6 +22,11 @@ export const createAccount=(username:string,displayName:string,password:string)=
 export const setAccountStatus=(id:string,status:Account["status"])=>requestJSON<void>(`/api/v1/iam/accounts/${id}/status`,{method:"PATCH",body:JSON.stringify({status}),headers:mutationHeaders()});
 export const updateAccountInfo=(id:string,expectedAccountVersion:number,displayName:string)=>requestJSON<void>(`/api/v1/iam/accounts/${id}`,{method:"PATCH",body:JSON.stringify({expectedAccountVersion,displayName}),headers:mutationHeaders()});
 export const archiveAccount=(id:string)=>requestJSON<void>(`/api/v1/iam/accounts/${id}/archive`,{method:"POST",headers:mutationHeaders()});
+// 084: bulk status/archive runs per account server-side and returns processing
+// stats with per-item stable error codes.
+export type BatchResult={processed:number;failed:number;errors?:Array<{accountId:string;code:string}>};
+export const batchAccountStatus=(accountIds:string[],status:Account["status"])=>requestJSON<BatchResult>("/api/v1/iam/accounts/batch-status",{method:"POST",headers:mutationHeaders(),body:JSON.stringify({accountIds,status})});
+export const batchArchiveAccounts=(accountIds:string[])=>requestJSON<BatchResult>("/api/v1/iam/accounts/batch-archive",{method:"POST",headers:mutationHeaders(),body:JSON.stringify({accountIds})});
 export const resetAccountPassword=(id:string,password:string)=>requestJSON<void>(`/api/v1/iam/accounts/${id}/password-reset`,{method:"POST",body:JSON.stringify({password}),headers:mutationHeaders()});
 export const accountRoleIDs=(id:string)=>requestJSON<AccountRolesView>(`/api/v1/iam/accounts/${id}/roles`).then((value)=>value.roleIds);
 export const accountRolesView=(id:string)=>requestJSON<AccountRolesView>(`/api/v1/iam/accounts/${id}/roles`);

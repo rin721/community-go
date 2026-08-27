@@ -146,3 +146,4 @@ Linux 使用 `bash scripts/verify-webui.sh`。质量链覆盖生成检查、冻�
 - 084b：FilterBar 筛选下拉改为「行内标签 + 原生 select」紧凑形态（多筛选项不再散开/孤立箭头），排序并入同一查询条；`BulkActionBar` 支持常驻禁用态（未选择时可见不可点，会话页批量吊销可发现）；登录/初始化页面居中化（`.blank-content` 容器）、密码显隐、字段分组与确认；OpenAPI 执行用例以 `vi.stubEnv` 固定数据源环境（本地 `webui/.env` 声明 mock 不影响测试）。
 - 084c：列表 mock 数据量提升到接近真实规模（账号/角色/会话/令牌/审计 6-11 条），密度复核以此为基线；`DataTable` 新增 `rowMenuHeader`（操作列可见表头），移除默认空置的列显隐工具栏；角色「类型」列头、审计操作列截断、表单输入边界/圆角收敛（6px）、`page-sections` 按内容高度驱动；API 令牌创建表单收窄单列分组、提交按钮/触达后必填提示、权限范围分组「全选」。
 - 084d：会话页新增「按账号过滤」（后端 listSessions 的 accountId 契约对齐）；仪表盘健康行改用点 + 低噪文字状态单元；技术栈两列 chip、设置卡按内容高度、关于页仓库地址可点击链接。
+- 084e：账号批量操作闭环——后端新增 `POST /api/v1/iam/accounts/batch-status` 与 `/batch-archive`（逐账号复用安全语义/审计，失败不中止且逐条导出稳定错误码），契约生成链同步；`BulkActionBar` 支持多个附加动作（各带确认弹窗）；Accounts 表格行选择 + 批量禁用/启用/归档与结果反馈。

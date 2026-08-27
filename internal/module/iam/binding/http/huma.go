@@ -111,6 +111,25 @@ type passwordInput struct {
 	}
 }
 
+// batchAccountInput 是批量账号操作的请求（状态/归档共用）：
+// 扁平声明 Header 与 Body，避免 embedded struct 的 path 绑定不可靠问题。
+type batchAccountInput struct {
+	Origin    string `header:"Origin" required:"true"`
+	CSRFToken string `header:"X-CSRF-Token" required:"true"`
+	Body      struct {
+		AccountIDs []string            `json:"accountIds" minItems:"1" maxItems:"100"`
+		Status     model.AccountStatus `json:"status" enum:"active,disabled"`
+	}
+}
+
+// batchResultOutput 返回逐账号处理的统计与失败明细：processed 为成功数量，
+// failed 为失败数量，errors 内逐条导出稳定错误码（完整向上导出，不吞错误）。
+type batchResultOutput struct {
+	Processed int                      `json:"processed"`
+	Failed    int                      `json:"failed"`
+	Errors    []service.BatchItemError `json:"errors,omitempty"`
+}
+
 // roleIDsInput 扁平声明路径/Header 与 body，避免 embedded struct 的 path
 // 参数绑定歧义；huma 只直接绑定本结构体字段。
 type roleIDsInput struct {
@@ -407,6 +426,20 @@ func RegisterHuma(api huma.API, handler *Handler) {
 	})
 	registerMutation(api, handler, protected(opAccountArchive, http.MethodPost, "/api/v1/iam/accounts/{id}/archive", string(iampermission.AccountWrite), "archive"), func(ctx context.Context, in *archiveInput) error {
 		return handler.service.ArchiveAccount(ctx, in.ID)
+	})
+	// 批量启停/批量归档：逐账号复用既有安全语义（owner 不变量/安全 revision/
+	// session 撤销/审计），失败不中止，返回成功与失败计数（084 产品化补全）。
+	batchStatus := protected(opAccountStatusBatch, http.MethodPost, "/api/v1/iam/accounts/batch-status", string(iampermission.AccountWrite), "update")
+	batchStatus.Middlewares = huma.Middlewares{handler.requireMutation}
+	huma.Register(api, batchStatus, func(ctx context.Context, in *batchAccountInput) (*jsonOutput[batchResultOutput], error) {
+		processed, failed, itemErrors := handler.service.BatchSetAccountStatus(ctx, in.Body.AccountIDs, in.Body.Status)
+		return jsonEnvelope(batchResultOutput{Processed: processed, Failed: failed, Errors: itemErrors}), nil
+	})
+	batchArchive := protected(opAccountArchiveBatch, http.MethodPost, "/api/v1/iam/accounts/batch-archive", string(iampermission.AccountWrite), "archive")
+	batchArchive.Middlewares = huma.Middlewares{handler.requireMutation}
+	huma.Register(api, batchArchive, func(ctx context.Context, in *batchAccountInput) (*jsonOutput[batchResultOutput], error) {
+		processed, failed, itemErrors := handler.service.BatchArchiveAccounts(ctx, in.Body.AccountIDs)
+		return jsonEnvelope(batchResultOutput{Processed: processed, Failed: failed, Errors: itemErrors}), nil
 	})
 	registerMutation(api, handler, protected(opResetPassword, http.MethodPost, "/api/v1/iam/accounts/{id}/password-reset", string(iampermission.AccountWrite), "execute"), func(ctx context.Context, in *passwordInput) error {
 		return handler.service.ResetPassword(ctx, in.ID, in.Body.Password)

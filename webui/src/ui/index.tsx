@@ -489,7 +489,7 @@ export function ActionTrigger({ operationId, pending = false, pendingLabel, disa
 
 // BulkActionBar 是数据表选择联动后的批量操作条（062 交互规范）：
 // 选中 N 项 -> 确认弹窗 -> pending 提交 -> 成功后由调用方复位选择并给出反馈。
-export function BulkActionBar({ open, selectionLabel, actionLabel, clearLabel, confirmTitle, confirmDescription, confirmLabel, cancelLabel, closeLabel, pending, pendingLabel, disabled = false, disabledReason = "invalid", onConfirm, onClear }: {
+export function BulkActionBar({ open, selectionLabel, actionLabel, clearLabel, confirmTitle, confirmDescription, confirmLabel, cancelLabel, closeLabel, pending, pendingLabel, disabled = false, disabledReason = "invalid", extraActions = [], onConfirm, onClear }: {
   open: boolean;
   selectionLabel: string;
   actionLabel: string;
@@ -504,14 +504,23 @@ export function BulkActionBar({ open, selectionLabel, actionLabel, clearLabel, c
   /** 084：常驻批量条在未选择时以禁用态呈现（操作可发现，选择后直接可用）。 */
   disabled?: boolean;
   disabledReason?: ActionDisabledReason;
+  /** 084：附加批量动作（各带独立确认弹窗与 pending 语义），如批量归档。 */
+  extraActions?: ReadonlyArray<{ key: string; label: ReactNode; variant?: "secondary" | "danger"; confirmTitle: string; confirmDescription?: string; confirmLabel: string; pending?: boolean; pendingLabel?: string; onConfirm: () => Promise<unknown> }>;
   onConfirm: () => Promise<unknown>;
   onClear: () => void;
 }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [activeExtra, setActiveExtra] = useState<string | null>(null);
   if (!open) return null;
+  const activeExtraAction = extraActions.find((action) => action.key === activeExtra);
   return <>
-    <div className="bulk-action-bar" role="toolbar">{<span className="bulk-action-count">{selectionLabel}</span>}<Button type="button" variant="secondary" onClick={onClear} disabled={pending}>{clearLabel}</Button><ActionTrigger variant="danger" pending={pending} pendingLabel={pendingLabel} disabled={disabled} disabledReason={disabledReason} onAction={() => setConfirmOpen(true)}>{actionLabel}</ActionTrigger></div>
+    <div className="bulk-action-bar" role="toolbar">{<span className="bulk-action-count">{selectionLabel}</span>}
+      <Button type="button" variant="secondary" onClick={onClear} disabled={pending}>{clearLabel}</Button>
+      {extraActions.map((action) => <ActionTrigger key={action.key} variant={action.variant ?? "secondary"} pending={action.pending} pendingLabel={action.pendingLabel} disabled={disabled} disabledReason={disabled ? disabledReason : undefined} onAction={() => setActiveExtra(action.key)}>{action.label}</ActionTrigger>)}
+      <ActionTrigger variant="danger" pending={pending} pendingLabel={pendingLabel} disabled={disabled} disabledReason={disabled ? disabledReason : undefined} onAction={() => setConfirmOpen(true)}>{actionLabel}</ActionTrigger>
+    </div>
     <ConfirmDialog open={confirmOpen} title={confirmTitle} description={confirmDescription} confirmLabel={confirmLabel} cancelLabel={cancelLabel} closeLabel={closeLabel} onConfirm={() => { setConfirmOpen(false); void onConfirm(); }} onCancel={() => setConfirmOpen(false)} />
+    {activeExtraAction && <ConfirmDialog open={Boolean(activeExtra)} title={activeExtraAction.confirmTitle} description={activeExtraAction.confirmDescription} confirmLabel={activeExtraAction.confirmLabel} cancelLabel={cancelLabel} closeLabel={closeLabel} onConfirm={() => { const action = activeExtraAction; setActiveExtra(null); void action.onConfirm(); }} onCancel={() => setActiveExtra(null)} />}
   </>;
 }
 

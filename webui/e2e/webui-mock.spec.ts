@@ -187,3 +187,22 @@ test("084b auth screens and account role filter render", async ({ page }) => {
   const accountSelectCount = await page.locator(".filter-bar select").count();
   expect(accountSelectCount).toBeGreaterThanOrEqual(3);
 });
+
+// 084c：账号批量操作流程（勾选 → 常驻批量条 → 归档确认 → 结果反馈）。
+test("084c account bulk archive flow renders feedback", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/admin/accounts");
+  await expect(page.locator(".data-table").first()).toBeVisible();
+  const rowCheckboxes = page.locator(".data-table tbody input[type='checkbox']");
+  await rowCheckboxes.nth(0).check();
+  await rowCheckboxes.nth(1).check();
+  await expect(page.locator(".bulk-action-bar")).toBeVisible();
+  // 批量条存在：清除 + 附加动作（归档）+ 主动作（禁用/启用）。
+  expect(await page.locator(".bulk-action-bar button").count()).toBeGreaterThanOrEqual(3);
+  // 触发归档确认弹窗并确认。
+  await page.locator(".bulk-action-bar button").nth(1).click();
+  await expect(page.locator(".rac-modal-panel").last()).toBeVisible();
+  await page.locator(".rac-modal-panel .ui-button-danger").first().click();
+  // 批量结果反馈（mock 返回 processed=2）。
+  await expect(page.locator("[role='status']").last()).toContainText("2");
+});

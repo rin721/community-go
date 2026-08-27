@@ -1019,6 +1019,61 @@ func (s *Service) UpdateAccountInfo(ctx context.Context, accountID string, expec
 	return err
 }
 
+// BatchItemError 是批量操作中单个实体失败的稳定错误码（供调用方完整展示/重试，
+// 不吞细节也不泄露内部错误文本）。
+type BatchItemError struct {
+	AccountID string `json:"accountId"`
+	Code      string `json:"code"`
+}
+
+const (
+	batchCodeNotFound       = "not_found"
+	batchCodeArchived       = "archived"
+	batchCodeOwnerInvariant = "owner_invariant"
+	batchCodeInvalid        = "invalid"
+)
+
+func batchItemErrorCode(err error) string {
+	switch {
+	case errors.Is(err, repo.ErrNotFound):
+		return batchCodeNotFound
+	case errors.Is(err, ErrAccountDisabled):
+		return batchCodeArchived
+	case errors.Is(err, model.ErrOwnerInvariant):
+		return batchCodeOwnerInvariant
+	default:
+		return batchCodeInvalid
+	}
+}
+
+// BatchSetAccountStatus 批量启停账号：逐账号复用 SetAccountStatus 的完整安全语义
+// （owner 不变量/安全 revision/session 撤销/审计）；单个失败不中止，全部结束后
+// 返回成功/失败计数与逐条稳定错误码。
+func (s *Service) BatchSetAccountStatus(ctx context.Context, accountIDs []string, status model.AccountStatus) (processed, failed int, itemErrors []BatchItemError) {
+	for _, id := range accountIDs {
+		if err := s.SetAccountStatus(ctx, id, status); err != nil {
+			failed++
+			itemErrors = append(itemErrors, BatchItemError{AccountID: id, Code: batchItemErrorCode(err)})
+			continue
+		}
+		processed++
+	}
+	return processed, failed, itemErrors
+}
+
+// BatchArchiveAccounts 批量归档账号：逐账号复用 ArchiveAccount 语义；单个失败
+// 不中止，返回统计与逐条稳定错误码。
+func (s *Service) BatchArchiveAccounts(ctx context.Context, accountIDs []string) (processed, failed int, itemErrors []BatchItemError) {
+	for _, id := range accountIDs {
+		if err := s.ArchiveAccount(ctx, id); err != nil {
+			failed++
+			itemErrors = append(itemErrors, BatchItemError{AccountID: id, Code: batchItemErrorCode(err)})
+			continue
+		}
+		processed++
+	}
+	return processed, failed, itemErrors
+}
 // ArchiveAccount 把账号置为归档终态：归档账号不可登录、不可分配、全部 Session
 // 撤销。owner 不变量保持（最后一个 active owner 不可归档）。不做物理删除与恢复。
 func (s *Service) ArchiveAccount(ctx context.Context, accountID string) error {

@@ -10,7 +10,7 @@
     "lint:architecture": "node scripts/lint-architecture.mjs",
     "lint:i18n": "node scripts/lint-i18n-contract.mjs",
     "typecheck": "tsc --noEmit",
-    "test:layout": "node --test scripts/project-layout.test.mjs",
+    "test:layout": "node --test scripts/project-layout.test.mjs scripts/lint-style.test.mjs",
     "test": "pnpm test:layout && vitest run --config vitest.config.ts",
     "build": "vite build",
     "e2e": "playwright test",

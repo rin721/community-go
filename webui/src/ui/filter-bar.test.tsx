@@ -1,0 +1,75 @@
+import { describe, expect, it } from "vitest";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { FilterBar, SearchInput, SelectField } from "./index";
+
+describe("082 FilterBar / SearchInput", () => {
+  it("FilterBar 渲染字段与 result count", () => {
+    const markup = renderToStaticMarkup(
+      createElement(FilterBar, {
+        fields: [
+          { key: "status", label: "Status", control: "select", value: "active", options: [{ value: "active", label: "Active" }], onValueChange: () => undefined },
+          { key: "archived", label: "Archived", control: "switch", value: true, onValueChange: () => undefined },
+        ],
+        resultCount: 12,
+        ariaLabel: "filters",
+      }),
+    );
+    expect(markup).toContain("filter-bar");
+    expect(markup).toContain("Status");
+    expect(markup).toContain("Archived");
+    expect(markup).toContain("12");
+  });
+
+  it("有激活 filter 且提供 onClear 时渲染清除按钮", () => {
+    const markup = renderToStaticMarkup(
+      createElement(FilterBar, {
+        fields: [
+          { key: "status", label: "Status", control: "select", value: "active", options: [], onValueChange: () => undefined },
+        ],
+        onClear: () => undefined,
+        clearLabel: "清除",
+      }),
+    );
+    expect(markup).toContain("filter-bar-clear");
+    expect(markup).toContain("清除");
+  });
+
+  it("无激活 filter 时不渲染清除按钮", () => {
+    const markup = renderToStaticMarkup(
+      createElement(FilterBar, {
+        fields: [
+          { key: "status", label: "Status", control: "select", value: "", options: [], onValueChange: () => undefined },
+        ],
+        onClear: () => undefined,
+      }),
+    );
+    expect(markup).not.toContain("filter-bar-clear");
+  });
+
+  it("searchInput 插槽渲染于 filter 行", () => {
+    const markup = renderToStaticMarkup(
+      createElement(FilterBar, {
+        fields: [],
+        searchInput: createElement(SearchInput, { value: "", onChange: () => undefined, label: "搜索" }),
+      }),
+    );
+    expect(markup).toContain("search-input");
+  });
+
+  it("SearchInput 渲染受控输入与 aria-label", () => {
+    const markup = renderToStaticMarkup(
+      createElement(SearchInput, { value: "alice", onChange: () => undefined, label: "搜索用户" }),
+    );
+    expect(markup).toContain('type="search"');
+    expect(markup).toContain('aria-label="搜索用户"');
+    expect(markup).toContain('value="alice"');
+  });
+
+  it("SelectField 既有契约保持（FilterBar select 复用）", () => {
+    const markup = renderToStaticMarkup(
+      createElement(SelectField, { label: "状态", value: "active", options: [{ value: "active", label: "Active" }], onValueChange: () => undefined }),
+    );
+    expect(markup).toContain("form-field");
+  });
+});

@@ -535,3 +535,97 @@ export function DataCard({ kicker, title, description, actions, footer, classNam
     </section>
   );
 }
+
+/* ---------------------------------------------------------------------------
+   082 REQ-082-002：FilterBar / SearchInput 语义组件（方案「十八/十九」）。
+   FilterBar 承担统一列表工具栏（Search → Primary filters → Clear → Result count），
+   状态由页面 owner 经 useListQueryParams 驱动（URL 同步）；本组件只做受控呈现。
+   --------------------------------------------------------------------------- */
+
+export type FilterFieldControl = "select" | "switch" | "input";
+
+/** FilterBar 的字段声明：一个 filter 对应一个受控控件。 */
+export type FilterBarField = {
+  key: string;
+  label: ReactNode;
+  control: FilterFieldControl;
+  /** select 控件选项（control=select 时必须）。 */
+  options?: ReadonlyArray<SelectOption>;
+  /** 受控值：select 为字符串 value，switch 为 boolean，input 为字符串。 */
+  value: string | boolean | undefined;
+  onValueChange: (next: string | boolean) => void;
+};
+
+/**
+ * FilterBar：列表页统一 filter 行。
+ * - fields 渲染 SearchInput 之外的主/辅过滤器（受控）；
+ * - onClear 清空全部 filter（配合 useListQueryParams.clearFilters）；
+ * - resultCount 显示「N 条结果」（可选）。
+ */
+export function FilterBar({ fields, onClear, clearLabel, resultCount, resultCountLabel, searchInput, ariaLabel }: {
+  fields: ReadonlyArray<FilterBarField>;
+  onClear?: () => void;
+  clearLabel?: ReactNode;
+  resultCount?: number;
+  resultCountLabel?: (count: number) => ReactNode;
+  searchInput?: ReactNode;
+  ariaLabel?: string;
+}) {
+  const hasActive = fields.some((field) => {
+    if (Array.isArray(field.value) && field.value.length > 0) return true;
+    return field.value !== undefined && field.value !== "" && field.value !== false;
+  });
+  return (
+    <div className="filter-bar" role="group" aria-label={ariaLabel}>
+      {searchInput}
+      <div className="filter-bar-fields">
+        {fields.map((field) => {
+          switch (field.control) {
+            case "switch":
+              return <Switch key={field.key} label={field.label} checked={field.value === true} onChange={(next) => field.onValueChange(next)} />;
+            case "input":
+              return <label key={field.key} className="filter-field"><span className="filter-field-label">{field.label}</span><input type="text" value={typeof field.value === "string" ? field.value : ""} onChange={(event) => field.onValueChange(event.target.value)} /></label>;
+            case "select":
+            default:
+              return <SelectField key={field.key} label={String(field.label)} value={typeof field.value === "string" ? field.value : ""} options={field.options ?? []} onValueChange={(next) => field.onValueChange(next)} />;
+          }
+        })}
+      </div>
+      {hasActive && onClear && <button type="button" className="filter-bar-clear ui-button" onClick={onClear}>{clearLabel ?? "Clear"}</button>}
+      {resultCount !== undefined && <span className="filter-bar-count">{resultCountLabel ? resultCountLabel(resultCount) : `${resultCount} results`}</span>}
+    </div>
+  );
+}
+
+/**
+ * SearchInput：带防抖的搜索输入（受控由页面 owner 管理 debounceMs/onChange）。
+ * 只做受控输入渲染；不承载搜索逻辑（真实 server/client search 由页面实现）。
+ */
+export function SearchInput({ value, onChange, placeholder, label, debounceMs = 300, className = "" }: {
+  value: string;
+  onChange: (next: string) => void;
+  placeholder?: string;
+  label?: string;
+  debounceMs?: number;
+  className?: string;
+}) {
+  const timerRef = useRef<number | null>(null);
+  const handleChange = (raw: string) => {
+    if (timerRef.current !== null) window.clearTimeout(timerRef.current);
+    timerRef.current = window.setTimeout(() => onChange(raw), debounceMs);
+  };
+  useEffect(() => () => { if (timerRef.current !== null) window.clearTimeout(timerRef.current); }, []);
+  return (
+    <div className={`search-input-wrap ${className}`.trim()}>
+      <label className="search-input-icon" aria-hidden="true">🔍</label>
+      <input
+        type="search"
+        className="search-input"
+        value={value}
+        aria-label={label ?? placeholder ?? "Search"}
+        placeholder={placeholder ?? "Search…"}
+        onChange={(event) => handleChange(event.target.value)}
+      />
+    </div>
+  );
+}

@@ -1983,6 +1983,85 @@ textarea.field-input {
   flex-wrap: wrap;
 }
 
+/* 082 REQ-082-002：FilterBar / SearchInput（方案「十八/十九」统一列表工具栏） */
+.filter-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.filter-bar-fields {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.filter-field {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.filter-field input {
+  height: var(--control-height-md);
+  padding: 0 var(--control-padding-x);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--control-radius);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--font-scale-md);
+}
+.filter-field input:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+.filter-bar-clear {
+  height: var(--control-height-md);
+  padding: 0 var(--control-padding-x);
+  border: 1px solid var(--border);
+  border-radius: var(--control-radius);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+}
+.filter-bar-clear:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.filter-bar-count {
+  align-self: center;
+  color: var(--text-muted);
+  font-size: 12px;
+  margin-left: auto;
+}
+.search-input-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.search-input-icon {
+  position: absolute;
+  left: 10px;
+  color: var(--text-muted);
+  font-size: 12px;
+  pointer-events: none;
+}
+.search-input {
+  height: var(--control-height-md);
+  padding: 0 12px 0 30px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--control-radius);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--font-scale-md);
+  min-width: 220px;
+}
+.search-input:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
 /* 页元信息行：版本/汇总等辅助说明 */
 .page-meta {
   display: flex;

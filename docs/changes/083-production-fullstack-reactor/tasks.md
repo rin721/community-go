@@ -33,7 +33,7 @@
 | ID | 工作量 | 依赖 | 内容 | 完成条件 | 状态 |
 | --- | --- | --- | --- | --- | --- |
 | `PAGE-083-001` | M | STYLE/LAYOUT | P0：全页样式清理 + 宽度档接线扫尾 | lint/vitest 全绿 | 完成（平台视口单位、宽度档与模块样式门禁已收敛） |
-| `PAGE-083-002` | M | 确认 | P1：Audit 分页（offset/limit URL 化）；时间戳格式化（Sessions/Audit/Ops 人类可读+相对时间） | e2e 断言；无 raw ISO 直出 | 部分完成（分页与 Audit/Sessions/Ops 人类可读时间已落地；真实后端 e2e/相对时间验收待补） |
+| `PAGE-083-002` | M | 确认 | P1：Audit 分页（offset/limit URL 化）；时间戳格式化（Sessions/Audit/Ops 人类可读+相对时间） | e2e 断言；无 raw ISO 直出 | 部分完成（分页与 Audit/Sessions/Ops 人类可读时间已落地；本轮修复 Ops uptime locale 插值；真实后端 e2e/相对时间验收待补） |
 | `PAGE-083-003` | M | 确认 | P1：Settings 双导航 + 宽度 640-960 收敛 | Settings e2e | 完成（单页内 SectionNav、settings 宽度档与既有 SPA e2e 已验证） |
 | `PAGE-083-004` | L | 确认 | P2：FilterBar 接线（Accounts/Sessions 后端 typed filters surface） | filter 参数真实请求 | 完成（本轮） |
 | `BACKEND-083-001` | L | 确认（DEC-003） | 后端 sort 参数（iam accounts/roles/sessions/api-tokens list）+ 白名单 SQL 映射 | operation 生成链同步；Go 测试 | 完成（本轮） |
@@ -41,7 +41,7 @@
 | `PAGE-083-006` | M | 确认 | P3：MetricCard/EntityHeader 组件化 + 操作列「1 主操作 + ...折叠 + 危险隔离」（ApiTokens 优先） | 组件 Vitest + 页面采用 | 完成（公共组件已由 Ops/DetailDrawer 消费） |
 | `PAGE-083-007` | M | 确认 | P4：危险确认（Accounts/Roles/ApiTokens/Departments archive/revoke → Confirm/DangerZone）+ 空载态规格 | 确认 e2e；Empty/Loading 组件采用 | 部分完成（确认、主要列表空态/loading 与五个主要列表 connectivity 错误态已完成；详情错误态与确认 e2e 仍待补） |
 | `PAGE-083-008` | M | 确认 | P5：Feature 拆解（EntityHeader/MetricCard/ActivityTimeline/CommandPalette 业务采用按需求） | 对照 R083-003 每页验收 | 部分完成（MetricCard 已由 Ops 监控消费，EntityHeader 已由 DetailDrawer 消费，CommandPalette 已由 OpenAPI 消费；无真实活动数据契约，不虚构 ActivityTimeline） |
-| `POL-083-001` | M | 上述 | 状态组件统一（StatusPill/StatusBadge 归一套，DEC-004）+ 视觉校准 | StatusPill 复用 StatusBadge；视觉截图复核 | 部分完成（组件单轨，视觉复核待执行） |
+| `POL-083-001` | M | 上述 | 状态组件统一（StatusPill/StatusBadge 归一套，DEC-004）+ 视觉校准 | StatusPill 复用 StatusBadge；视觉截图复核 | 部分完成（组件单轨；已审阅现有 mock 截图并修复 Ops uptime 字面量插值，状态组件专门截图复核待执行） |
 | `QA-083-001` | M | 上述 | 页面达标率复核（R083-003 105 项重跑，目标 ≥70% 达标或收敛）+ 三层 QA | 达标率提升记录 | 待实施 |
 | `DOC-083-001` | M | 上述 | 文档同步：webui 指南（样式权威规则/布局规范/宽度档）、webui README、documentation-impact.yaml、changes 索引 | docs-guard 通过 | 完成（本轮） |
 | `VER-083-001` | M | 全部 | 全量验证与提交（go test/vet、Vitest ≥192、Playwright mock ≥3、lint/build/generate） | 无失败；受限项如实标注 | 待实施 |

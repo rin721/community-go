@@ -25,8 +25,12 @@ const PAGE_SIZE = 10;
 export default function AccountsPage() {
   const { t } = useWebUITranslation("webui.iam");
   // 082 REQ-082-012/002: list state URL-ized (query refresh keeps context).
-  const listQuery = useListQueryParams<{ query: string }>({
-    filters: { query: { queryKey: "query", defaultValue: "" } },
+  const listQuery = useListQueryParams<{ query: string; status: string; archived: boolean }>({
+    filters: {
+      query: { queryKey: "query", defaultValue: "" },
+      status: { queryKey: "status", defaultValue: "", decode: (raw) => raw ?? "" },
+      archived: { queryKey: "archived", defaultValue: false, decode: (raw) => raw === "true" },
+    },
   });
   const [items, setItems] = useState<Account[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
@@ -45,14 +49,15 @@ export default function AccountsPage() {
   const [archiveError, setArchiveError] = useState(false);
   const [detailAccount, setDetailAccount] = useState<Account | null>(null);
   const refresh = useCallback((nextPage = page) => {
-    return listAccounts(listQuery.filters.query, (nextPage - 1) * PAGE_SIZE, PAGE_SIZE).then((result) => {
+    const status = listQuery.filters.status === "active" || listQuery.filters.status === "disabled" ? listQuery.filters.status : undefined;
+    return listAccounts(listQuery.filters.query, (nextPage - 1) * PAGE_SIZE, PAGE_SIZE, { status, archived: listQuery.filters.archived }).then((result) => {
       setTotal(result.total);
       setItems(result.items);
       setSelectedID((current) => current && result.items.some((item) => item.id === current) ? current : result.items[0]?.id || "");
     });
-  }, [listQuery.filters.query, page]);
+  }, [listQuery.filters.query, listQuery.filters.status, listQuery.filters.archived, page]);
   useEffect(() => { void refresh(); void listRoles().then((result) => setRoles(result.items)); }, [refresh]);
-  useEffect(() => { void refresh(); }, [listQuery.filters.query]); // 082: query URL change reloads from page 1.
+  useEffect(() => { void refresh(); }, [listQuery.filters.query, listQuery.filters.status, listQuery.filters.archived]); // 083: filter URL change reloads from page 1.
   const reloadSelection = useCallback((id: string) => {
     if (!id) return;
     void accountRolesView(id).then((view) => {
@@ -111,8 +116,15 @@ export default function AccountsPage() {
       <PageSection kicker={t("webui.iam.accounts.list.kicker")} title={t("webui.iam.accounts.list.title")} footer={<><div className="page-meta">{t("webui.iam.accounts.pagination", { page, total })}</div><div className="toolbar-actions">{[...Array(pages).keys()].map((index) => <Button key={index} variant={index + 1 === page ? "primary" : "secondary"} onClick={() => { setPage(index + 1); void refresh(index + 1); }}>{index + 1}</Button>)}</div></>}>
         <FilterBar
           ariaLabel={t("webui.iam.accounts.filter")}
-          fields={[]}
-          searchInput={<SearchInput value={listQuery.filters.query} onChange={(next) => listQuery.setFilters({ query: next })} placeholder={t("webui.iam.search")} label={t("webui.iam.accounts.filter")} />}
+          fields={[
+            { key: "status", label: t("webui.iam.accounts.statusFilter"), control: "select", options: [
+              { value: "", label: t("webui.iam.accounts.statusAll") },
+              { value: "active", label: t("webui.iam.accounts.statusActive") },
+              { value: "disabled", label: t("webui.iam.accounts.statusDisabled") },
+            ], value: listQuery.filters.status, onValueChange: (next) => listQuery.setFilters({ ...listQuery.filters, status: String(next) }) },
+            { key: "archived", label: t("webui.iam.accounts.archivedFilter"), control: "switch", value: listQuery.filters.archived, onValueChange: (next) => listQuery.setFilters({ ...listQuery.filters, archived: Boolean(next) }) },
+          ]}
+          searchInput={<SearchInput value={listQuery.filters.query} onChange={(next) => listQuery.setFilters({ ...listQuery.filters, query: next })} placeholder={t("webui.iam.search")} label={t("webui.iam.accounts.filter")} />}
           onClear={() => listQuery.clearFilters()}
           clearLabel={t("webui.iam.accounts.clear")}
         />

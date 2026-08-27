@@ -52,14 +52,16 @@ export default function AuditPage() {
   const [items, setItems] = useState<AuditEventView[]>([]);
   const [total, setTotal] = useState(0);
   const [selected, setSelected] = useState<AuditEventView | null>(null);
+  const [loading, setLoading] = useState(false);
   useEffect(() => {
+    setLoading(true);
     const filter: AuditFilter = {};
     if (listQuery.filters.operation) filter.operation = listQuery.filters.operation;
     if (listQuery.filters.action) filter.action = listQuery.filters.action;
     if (listQuery.filters.outcome) filter.outcome = listQuery.filters.outcome as AuditOutcome;
     if (listQuery.filters.resourceType) filter.resourceType = listQuery.filters.resourceType;
     const offset = (listQuery.page - 1) * PAGE_SIZE;
-    void listAuditEvents(filter, offset, PAGE_SIZE).then((result) => { setItems(result.items); setTotal(result.total); });
+    void listAuditEvents(filter, offset, PAGE_SIZE).then((result) => { setItems(result.items); setTotal(result.total); }).finally(() => setLoading(false));
   }, [listQuery.filters.operation, listQuery.filters.action, listQuery.filters.outcome, listQuery.filters.resourceType, listQuery.page]);
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const selectedJSON = useMemo(() => selected ? JSON.stringify(auditDetailFields(selected), null, 2) : "", [selected]);
@@ -99,6 +101,8 @@ export default function AuditPage() {
           rows={items}
           ariaLabel={t("webui.auth.audit.list.title")}
           getRowKey={(item, index) => `${item.occurredAt}-${index}`}
+          loading={loading}
+          loadingLabel={t("webui.host.page.loading.label")}
           emptyState={<EmptyState title={t("webui.auth.audit.empty")} />}
           enhancements={{
             density: "compact",

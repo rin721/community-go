@@ -37,11 +37,13 @@ export default function ApiTokensPage() {
   const [secret, setSecret] = useState("");
   const [message, setMessage] = useState("");
   const [pendingRevokeID, setPendingRevokeID] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const scopeGroups = useMemo(() => groupScopesByModule(availableScopes), [availableScopes]);
 
   const refresh = useCallback((filter = status) => {
-    void listApiTokens(filter, 0, 50, listQuery.sort ? `${listQuery.sort.key}:${listQuery.sort.direction}` : undefined).then((value) => setTokens(value.items)).catch(() => undefined);
+    setLoading(true);
+    return listApiTokens(filter, 0, 50, listQuery.sort ? `${listQuery.sort.key}:${listQuery.sort.direction}` : undefined).then((value) => setTokens(value.items)).catch(() => undefined).finally(() => setLoading(false));
   }, [listQuery.sort, status]);
 
   useEffect(() => {
@@ -129,6 +131,8 @@ export default function ApiTokensPage() {
         </div>
         <DataTable
           ariaLabel={t("webui.iam.apiTokens.listTitle")}
+          loading={loading}
+          loadingLabel={t("webui.host.page.loading.label")}
           emptyState={<EmptyState title={t("webui.iam.apiTokens.empty")} />}
           columns={[
             { id: "name", header: t("webui.iam.apiTokens.name"), cell: (row) => <><strong>{row.name}</strong>{row.description ? <p className="page-meta">{row.description}</p> : null}</> },

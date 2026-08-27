@@ -48,7 +48,9 @@ export default function AccountsPage() {
   const [renameValue, setRenameValue] = useState("");
   const [archiveError, setArchiveError] = useState(false);
   const [detailAccount, setDetailAccount] = useState<Account | null>(null);
+  const [loading, setLoading] = useState(false);
   const refresh = useCallback((nextPage = page) => {
+    setLoading(true);
     const status = listQuery.filters.status === "active" || listQuery.filters.status === "disabled" ? listQuery.filters.status : undefined;
     const sortMap: Record<string, string> = { displayName: "display_name", username: "username", status: "status" };
     const sortKey = listQuery.sort ? sortMap[listQuery.sort.key] : undefined;
@@ -57,7 +59,7 @@ export default function AccountsPage() {
       setTotal(result.total);
       setItems(result.items);
       setSelectedID((current) => current && result.items.some((item) => item.id === current) ? current : result.items[0]?.id || "");
-    });
+    }).finally(() => setLoading(false));
   }, [listQuery.filters.query, listQuery.filters.status, listQuery.filters.archived, listQuery.sort, page]);
   useEffect(() => { void refresh(); void listRoles().then((result) => setRoles(result.items)); }, [refresh]);
   useEffect(() => { void refresh(); }, [listQuery.filters.query, listQuery.filters.status, listQuery.filters.archived]); // 083: filter URL change reloads from page 1.
@@ -148,6 +150,8 @@ export default function AccountsPage() {
           ]}
           rows={items}
           ariaLabel={t("webui.iam.accounts.list.title")}
+          loading={loading}
+          loadingLabel={t("webui.host.page.loading.label")}
           getRowKey={(item) => item.id}
           emptyState={<EmptyState title={t("webui.iam.accounts.empty")} />}
           enhancements={{

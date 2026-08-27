@@ -62,12 +62,14 @@ export default function RolesPage() {
   const [roleName, setRoleName] = useState("");
   const [roleDescription, setRoleDescription] = useState("");
   const [focusedRoleID, setFocusedRoleID] = useState("");
+  const [loading, setLoading] = useState(false);
   const refresh = useCallback((nextPage = page) => {
+    setLoading(true);
     return listRoles(listQuery.filters.query, (nextPage - 1) * PAGE_SIZE, PAGE_SIZE, listQuery.sort ? `${listQuery.sort.key}:${listQuery.sort.direction}` : undefined).then((result) => {
       setTotal(result.total);
       setItems(result.items);
       setSelectedID((current) => current && result.items.some((item) => item.id === current) ? current : result.items[0]?.id || "");
-    });
+    }).finally(() => setLoading(false));
   }, [listQuery.filters.query, listQuery.sort, page]);
   useEffect(() => { void refresh(); void listPermissions().then(setPermissions); }, [refresh]);
   useEffect(() => { void refresh(); }, [listQuery.filters.query]); // 082: query URL change reloads from page 1.
@@ -156,6 +158,8 @@ export default function RolesPage() {
           ]}
           rows={items}
           ariaLabel={t("webui.iam.roles.list.title")}
+          loading={loading}
+          loadingLabel={t("webui.host.page.loading.label")}
           getRowKey={(item) => item.id}
           emptyState={<EmptyState title={t("webui.iam.roles.empty")} />}
           enhancements={{

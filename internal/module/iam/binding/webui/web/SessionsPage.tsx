@@ -27,8 +27,10 @@ export default function SessionsPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [message, setMessage] = useState("");
   const [revoking, setRevoking] = useState(false);
+  const [loading, setLoading] = useState(false);
   const refresh = useCallback(() => {
-    void listSessions(listQuery.filters.status, listQuery.sort ? `${listQuery.sort.key}:${listQuery.sort.direction}` : undefined).then((result) => { setItems(result.items); setSelected(new Set()); });
+    setLoading(true);
+    return listSessions(listQuery.filters.status, listQuery.sort ? `${listQuery.sort.key}:${listQuery.sort.direction}` : undefined).then((result) => { setItems(result.items); setSelected(new Set()); }).finally(() => setLoading(false));
   }, [listQuery.filters.status, listQuery.sort]);
   useEffect(() => { void refresh(); }, [refresh]);
   const revoke = (): Promise<void> => {
@@ -74,6 +76,8 @@ export default function SessionsPage() {
           ]}
           rows={items}
           ariaLabel={t("webui.iam.sessions.list.title")}
+          loading={loading}
+          loadingLabel={t("webui.host.page.loading.label")}
           getRowKey={(item) => item.idHash}
           selectable
           selectionLabel={t("webui.iam.sessions.selectAll")}

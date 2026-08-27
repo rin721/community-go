@@ -18,6 +18,7 @@ func Binding() webuicontract.Binding {
 		// 契约是公开仓库产物，页面不发起后端 operation；访问门槛复用 iam.session.read。
 		{ID: "openapi.workspace", Path: "/openapi", EntryID: "openapi.workspace", TitleMessageID: "webui.openapi.docs.title", ViewOperationID: "iam.session.read", Layout: webuicontract.RouteLayoutApp, DeliveryState: webuicontract.DeliveryImplemented},
 	}, Navigation: []webuicontract.Navigation{
-		{ID: "openapi.docs", RouteID: "openapi.workspace", TitleMessageID: "webui.openapi.docs.title", IconID: "book", Order: 130},
+		{ID: "openapi.developer", RouteID: "openapi.workspace", TitleMessageID: "webui.openapi.developer.title", IconID: "sliders", Order: 60},
+		{ID: "openapi.docs", ParentID: "openapi.developer", RouteID: "openapi.workspace", TitleMessageID: "webui.openapi.docs.title", IconID: "book", Order: 120},
 	}, Locales: []webuicontract.Locale{{Language: "en-US", Namespace: "webui.openapi", SourcePath: "locale/en-US.json"}, {Language: "zh-CN", Namespace: "webui.openapi", SourcePath: "locale/zh-CN.json"}}, MockSource: "mock.ts", Requires: []webuicontract.SDKRequirement{{ID: "runtime", MajorVersion: 1}, {ID: "i18n", MajorVersion: 1}, {ID: "ui", MajorVersion: 1}, {ID: "mock", MajorVersion: 1}}}
 }

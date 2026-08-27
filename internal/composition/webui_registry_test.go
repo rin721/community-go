@@ -250,8 +250,9 @@ func TestApplicationWebUICatalogProtectsIAMSecurityAndExposesNavigation(t *testi
 }
 
 // TestApplicationWebUICatalogMenuHierarchy 锁定当前应用的侧边栏菜单层级分类：
-// 只有 ops 使用两级结构，iam/organization 拥有顶级组父节点且组内顺序父先子后，
-// navigation 保持平铺；任何模块声明变化都必须在此处同步断言。
+// 只有 ops 使用两级结构，iam/organization/settings 拥有顶级组父节点且组内顺序父先子后，
+// 082 起 governance（auth.audit）与 developer（openapi.docs）也已归入顶级组；
+// 任何模块声明变化都必须在此处同步断言。
 func TestApplicationWebUICatalogMenuHierarchy(t *testing.T) {
 	catalog, err := applicationWebUICatalog()
 	if err != nil {
@@ -287,8 +288,11 @@ func TestApplicationWebUICatalogMenuHierarchy(t *testing.T) {
 		{parent: "settings.center", child: "settings.language"},
 		{parent: "settings.center", child: "settings.about"},
 		{parent: "settings.center", child: "settings.acknowledgement"},
-		// 075：openapi 顶级平铺（API 文档）。
-		{parent: "", child: "openapi.docs"},
+		// 082：Governance（audit）与 Developer（openapi）顶级组（REQ-020 IA 归位）。
+		{parent: "", child: "auth.governance"},
+		{parent: "auth.governance", child: "auth.audit"},
+		{parent: "", child: "openapi.developer"},
+		{parent: "openapi.developer", child: "openapi.docs"},
 	}
 	for _, edge := range edges {
 		item, ok := byID[edge.child]
@@ -304,6 +308,8 @@ func TestApplicationWebUICatalogMenuHierarchy(t *testing.T) {
 		{parent: "iam.access", firstChild: "iam.accounts"},
 		{parent: "organization.directory", firstChild: "organization.departments"},
 		{parent: "settings.center", firstChild: "settings.profile"},
+		{parent: "auth.governance", firstChild: "auth.audit"},
+		{parent: "openapi.developer", firstChild: "openapi.docs"},
 	} {
 		if byID[group.parent].Order >= byID[group.firstChild].Order {
 			t.Fatalf("group parent %q order %d must precede first child %q order %d",

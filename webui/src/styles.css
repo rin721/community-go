@@ -2424,6 +2424,15 @@ textarea.field-input {
   font-family: var(--font-mono);
 }
 
+/* 083 PAGE-083-005：列表排序控制行（排序列+方向） */
+.accounts-sort-bar,
+.list-sort-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3);
+  margin: var(--space-2) 0;
+}
+
 /* 082 REQ-082-018：TreeView 语义组件（方案「四十四」） */
 .tree-view {
   list-style: none;

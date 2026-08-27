@@ -47,6 +47,7 @@ type accountsListInput struct {
 	Status   humabinding.Optional[string] `query:"status" enum:"active,disabled"`
 	Archived humabinding.Optional[bool]   `query:"archived"`
 	RoleID   string                       `query:"roleId" maxLength:"36"`
+	Sort     string                       `query:"sort" maxLength:"32"`
 }
 type roleAccountsInput struct {
 	ID     string `path:"id"`
@@ -180,7 +181,7 @@ type updateRoleInput struct {
 // accountFilter 把账号列表 HTTP 过滤参数转换为 repo typed 过滤条件；
 // 空参数保持与既有无过滤语义一致。
 func accountFilter(input *accountsListInput) repo.AccountFilter {
-	filter := repo.AccountFilter{Query: input.Query, RoleID: input.RoleID}
+	filter := repo.AccountFilter{Query: input.Query, RoleID: input.RoleID, Sort: input.Sort}
 	if status := input.Status.Pointer(); status != nil {
 		filter.Status = *status
 	}

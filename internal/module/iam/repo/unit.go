@@ -41,6 +41,19 @@ type AccountFilter struct {
 	Archived *bool
 	// RoleID 非空时只统计/返回拥有该活跃角色的账号。
 	RoleID string
+	// Sort 按白名单列排序（"name:asc|desc"/"username:asc|desc"/"status:asc|desc"，
+	// "" = 默认 id 排序）。排序列白名单防注入。
+	Sort string
+}
+
+// accountSortColumn 白名单：只允许真实列名，非法/未知值回退空。
+func accountSortColumn(sort string) string {
+	switch sort {
+	case "username", "display_name", "status", "created_at":
+		return sort
+	default:
+		return ""
+	}
 }
 
 // accountQuery 构造账号列表/统计的公共过滤条件。
@@ -95,9 +108,34 @@ func (unit *Unit) AccountByID(ctx context.Context, value string) (AccountRecord,
 func (unit *Unit) ListAccounts(ctx context.Context, offset, limit int, filter AccountFilter) ([]AccountRecord, error) {
 	var records []AccountRecord
 	err := unit.useDB(ctx, func(db *gorm.DB) error {
-		return unit.accountQuery(ctx, db, filter).Order("username ASC").Offset(offset).Limit(limit).Find(&records).Error
+		order := "username ASC"
+		if filter.Sort != "" {
+			column, direction := sortParts(filter.Sort)
+			if column != "" {
+				order = column + " " + direction
+			}
+		}
+		return unit.accountQuery(ctx, db, filter).Order(order).Offset(offset).Limit(limit).Find(&records).Error
 	})
 	return records, err
+}
+
+// sortParts 解析 "column:asc|desc"，列经白名单、方向白名单过滤防注入。
+func sortParts(sort string) (column, direction string) {
+	parts := strings.Split(sort, ":")
+	if len(parts) != 2 {
+		return "", ""
+	}
+	column = accountSortColumn(parts[0])
+	if column == "" {
+		return "", ""
+	}
+	switch parts[1] {
+	case "asc", "desc":
+		return column, parts[1]
+	default:
+		return column, "asc"
+	}
 }
 
 func (unit *Unit) UpdateAccount(ctx context.Context, id string, version uint64, changes AccountChanges) error {

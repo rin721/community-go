@@ -2491,6 +2491,13 @@ textarea.field-input {
 .data-card > div[class*="card"] {
   border-radius: var(--radius-lg);
 }
+/* StatCard/MetricCard 内的 HeroUI Card 同样统一 10px（083 终审发现的 20px 统计卡） */
+.stat-card > [data-slot="base"],
+.stat-card > div[class*="card"],
+.metric-card > [data-slot="base"],
+.metric-card > div[class*="card"] {
+  border-radius: var(--radius-lg);
+}
 
 /* 082 REQ-082-018：TreeView 语义组件（方案「四十四」） */
 .tree-view {

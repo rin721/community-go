@@ -80,19 +80,38 @@ Card 只承担局部分组，不承担页面骨架。
 
 ---
 
-## 3. 使用成熟组件库，不重复造基础 UI
+## 3. 基于当前组件栈，缺口用成熟技术补齐，不重复造基础 UI
 
-扫描当前前端技术栈。
+**不替换当前组件栈。**
 
-选择一个与当前 Framework 匹配的成熟组件体系作为基础 UI 层，并统一整个项目。
+扫描当前前端技术栈并确认：
 
-React 优先评估成熟 Enterprise 组件体系，例如 Ant Design / Arco Design；如果现有项目已经有稳定组件库，优先统一使用现有库。
+```text
+Framework
+Router
+State / Query layer
+UI component library
+Form system
+CSS / Design token 体系
+```
 
-Vue 使用对应成熟 Vue Enterprise Component Library。
+当前项目已经有稳定组件库（HeroUI v3 + react-aria-components + Tailwind v4）作为基础 UI 层，重构继续基于它：
 
-不要同时混用多个视觉体系。
+* 统一整个项目使用这套既有组件体系，不要更换或混用第二套视觉体系。
+* 不要因为“想换新”就替换既有稳定组件库；替换只有在当前栈明确阻碍需求时才考虑。
+* 不要同时混用多个视觉体系。
 
-基础组件不要自行重复实现：
+**需求优先，成熟技术补齐缺口：**
+
+只有当新的或既有的需求在当前组件栈上无法合理满足时，才按需求评估并引入对应的成熟技术：
+
+```text
+当前栈无法满足的新控件 / 复杂交互
+→ 优先评估成熟第三方库（受维护、有生态、许可证明确）
+→ 仅在确实没有成熟方案时才考虑自研
+```
+
+基础组件不要自行重复实现（当前栈已覆盖的 UI 原语直接复用）：
 
 ```text
 Button
@@ -116,6 +135,8 @@ Form Control
 自研代码应该主要用于：
 
 **业务复合组件和产品交互。**
+
+新增技术选型时遵守仓库技术选型基线：以成熟、受维护、有生产采用的第三方为优先，禁止无理由自研基础能力。
 
 ---
 
@@ -455,7 +476,7 @@ Failure
 ```text
 Audit existing architecture
 ↓
-Choose / unify component library
+Confirm current stack / fill gaps with mature libs
 ↓
 Replace App Shell
 ↓

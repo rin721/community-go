@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActionTrigger, Button, Check, CodeText, ConfirmActionTrigger, DataTable, Drawer, Field, FilterBar, FormField, PageHeader, PageSection, SearchInput, SelectField, StatusBadge } from "@webui/sdk/ui";
+import { ActionTrigger, Button, Check, CodeText, ConfirmActionTrigger, DataTable, Drawer, EmptyState, Field, FilterBar, FormField, PageHeader, PageSection, SearchInput, SelectField, StatusBadge } from "@webui/sdk/ui";
 import { useListQueryParams } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { archiveRole, createRole, listPermissions, listRoles, replaceRolePermissions, rolePermissionsView, updateRoleInfo, type PermissionDefinition, type Role } from "./api";
@@ -157,7 +157,7 @@ export default function RolesPage() {
           rows={items}
           ariaLabel={t("webui.iam.roles.list.title")}
           getRowKey={(item) => item.id}
-          emptyState={<p className="page-meta">{t("webui.iam.roles.empty")}</p>}
+          emptyState={<EmptyState title={t("webui.iam.roles.empty")} />}
           enhancements={{
             density: "default",
             stickyHeader: true,

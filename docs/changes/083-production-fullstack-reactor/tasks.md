@@ -39,9 +39,9 @@
 | `BACKEND-083-001` | L | 确认（DEC-003） | 后端 sort 参数（iam accounts/roles/sessions/api-tokens list）+ 白名单 SQL 映射 | operation 生成链同步；Go 测试 | 完成（本轮） |
 | `PAGE-083-005` | M | BACKEND-001 | 前端 sort URL 契约接线（Accounts/Roles/Sessions/API Tokens → 列表查询） | sort 参数真实请求 | 完成（本轮） |
 | `PAGE-083-006` | M | 确认 | P3：MetricCard/EntityHeader 组件化 + 操作列「1 主操作 + ...折叠 + 危险隔离」（ApiTokens 优先） | 组件 Vitest + 页面采用 | 部分完成（操作列已完成） |
-| `PAGE-083-007` | M | 确认 | P4：危险确认（Accounts/Roles/ApiTokens/Departments archive/revoke → Confirm/DangerZone）+ 空载态规格 | 确认 e2e；Empty/Loading 组件采用 | 部分完成（确认已完成，空载态待收敛） |
+| `PAGE-083-007` | M | 确认 | P4：危险确认（Accounts/Roles/ApiTokens/Departments archive/revoke → Confirm/DangerZone）+ 空载态规格 | 确认 e2e；Empty/Loading 组件采用 | 部分完成（确认与主要列表空态已完成） |
 | `PAGE-083-008` | M | 确认 | P5：Feature 拆解（EntityHeader/MetricCard/ActivityTimeline/CommandPalette 业务采用按需求） | 对照 R083-003 每页验收 | 待实施 |
-| `POL-083-001` | M | 上述 | 状态组件统一（StatusPill/StatusBadge 归一套，DEC-004）+ 视觉校准 | StatusPill 复用 StatusBadge；视觉截图复核 | 部分完成（组件单轨，本轮） |
+| `POL-083-001` | M | 上述 | 状态组件统一（StatusPill/StatusBadge 归一套，DEC-004）+ 视觉校准 | StatusPill 复用 StatusBadge；视觉截图复核 | 部分完成（组件单轨，视觉复核待执行） |
 | `QA-083-001` | M | 上述 | 页面达标率复核（R083-003 105 项重跑，目标 ≥70% 达标或收敛）+ 三层 QA | 达标率提升记录 | 待实施 |
 | `DOC-083-001` | M | 上述 | 文档同步：webui 指南（样式权威规则/布局规范/宽度档）、webui README、documentation-impact.yaml、changes 索引 | docs-guard 通过 | 待实施 |
 | `VER-083-001` | M | 全部 | 全量验证与提交（go test/vet、Vitest ≥192、Playwright mock ≥3、lint/build/generate） | 无失败；受限项如实标注 | 待实施 |

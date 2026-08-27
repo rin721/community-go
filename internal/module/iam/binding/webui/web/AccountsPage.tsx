@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActionTrigger, Button, Check, CodeText, ConfirmActionTrigger, DataTable, DetailDrawer, Drawer, Field, FilterBar, FormField, PageHeader, PageSection, SearchInput, SelectField, StatusBadge } from "@webui/sdk/ui";
+import { ActionTrigger, Button, Check, CodeText, ConfirmActionTrigger, DataTable, DetailDrawer, Drawer, EmptyState, Field, FilterBar, FormField, PageHeader, PageSection, SearchInput, SelectField, StatusBadge } from "@webui/sdk/ui";
 import { useListQueryParams } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { accountRolesView, archiveAccount, createAccount, listAccounts, listRoles, replaceAccountRoles, resetAccountPassword, setAccountStatus, updateAccountInfo, type Account, type Role } from "./api";
@@ -149,7 +149,7 @@ export default function AccountsPage() {
           rows={items}
           ariaLabel={t("webui.iam.accounts.list.title")}
           getRowKey={(item) => item.id}
-          emptyState={<p className="page-meta">{t("webui.iam.accounts.empty")}</p>}
+          emptyState={<EmptyState title={t("webui.iam.accounts.empty")} />}
           enhancements={{
             density: "default",
             stickyHeader: true,

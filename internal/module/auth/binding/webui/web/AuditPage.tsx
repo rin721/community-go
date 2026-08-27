@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CodeText, CodeViewer, DataTable, DetailDrawer, FilterBar, formatDateTime, PageHeader, PageSection, Pagination, StatusBadge } from "@webui/sdk/ui";
+import { CodeText, CodeViewer, DataTable, DetailDrawer, EmptyState, FilterBar, formatDateTime, PageHeader, PageSection, Pagination, StatusBadge } from "@webui/sdk/ui";
 import { useListQueryParams } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { listAuditEvents, type AuditEventView, type AuditFilter, type AuditOutcome } from "./api";
@@ -99,7 +99,7 @@ export default function AuditPage() {
           rows={items}
           ariaLabel={t("webui.auth.audit.list.title")}
           getRowKey={(item, index) => `${item.occurredAt}-${index}`}
-          emptyState={<p className="page-meta">{t("webui.auth.audit.empty")}</p>}
+          emptyState={<EmptyState title={t("webui.auth.audit.empty")} />}
           enhancements={{
             density: "compact",
             stickyHeader: true,

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CodeText, DataTable, PageHeader, PageSection, SearchInput, StatusBadge } from "@webui/sdk/ui";
+import { CodeText, DataTable, EmptyState, PageHeader, PageSection, SearchInput, StatusBadge } from "@webui/sdk/ui";
 import { useListQueryParams } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { listPermissions, permissionRoles, type Role } from "./api";
@@ -56,7 +56,7 @@ export default function PermissionsPage() {
                 { id: "usedBy", header: t("webui.iam.permissions.usedBy"), cell: (item) => {
                   const roles = usage[item.key];
                   if (!roles) return <button type="button" className="ui-button" onClick={() => toggleUsage(item.key)}>{t("webui.iam.permissions.usedByCheck")}</button>;
-                  return roles.length === 0 ? <span className="page-meta">{t("webui.iam.permissions.unused")}</span> : <span className="permission-roles">{roles.map((role) => <StatusBadge key={role.id} status="enabled">{role.name}</StatusBadge>)}</span>;
+                  return roles.length === 0 ? <EmptyState title={t("webui.iam.permissions.unused")} /> : <span className="permission-roles">{roles.map((role) => <StatusBadge key={role.id} status="enabled">{role.name}</StatusBadge>)}</span>;
                 } },
               ]}
               rows={group.definitions}

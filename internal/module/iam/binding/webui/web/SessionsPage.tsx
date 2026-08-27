@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { BulkActionBar, CodeText, DataTable, FilterBar, formatDateTime, PageHeader, PageSection, SelectField, StatusBadge } from "@webui/sdk/ui";
+import { BulkActionBar, CodeText, DataTable, EmptyState, FilterBar, formatDateTime, PageHeader, PageSection, SelectField, StatusBadge } from "@webui/sdk/ui";
 import { useListQueryParams } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { listSessions, revokeSessions, type SessionInfo } from "./api";
@@ -79,7 +79,7 @@ export default function SessionsPage() {
           selectionLabel={t("webui.iam.sessions.selectAll")}
           selectedKeys={selected}
           onSelectedKeysChange={setSelected}
-          emptyState={<p className="page-meta">{t("webui.iam.sessions.empty")}</p>}
+          emptyState={<EmptyState title={t("webui.iam.sessions.empty")} />}
           enhancements={{ density: "default", stickyHeader: true }}
         />
         <BulkActionBar

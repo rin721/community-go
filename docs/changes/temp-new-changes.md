@@ -467,6 +467,46 @@ Failure
 
 ---
 
+## 11b. 修复样式污染，重建统一样式权威
+
+当前实现存在系统性样式污染（已按代码核实）：
+
+* 模块 `*.module.css` 大量使用 `:global(...)` 选择器定义**平台级通用语义类**（如 `.permission-matrix`、`.role-checklist`、`.form-error`、`.session-row` 等），把本应属于统一样式层的类泄漏为全局样式。
+* 同一语义出现**命名分裂**：平台用 kebab-case（`page-meta`、`filter-bar`），模块出现 camelCase/近似变体（`pageMeta`、`formHint`、`shellSearchTrigger`、`footerStatus`），多份定义并存，行为随模块而异。
+* 平台类在模块内被**私有覆盖**（如移动断点下 `.toolbar` 在模块 media query 里被改写），平台升级或新增需求时模块页面表现不一致，交互被破坏。
+* 新增需求后交互出问题的根因之一：模块样式与平台样式之间没有单一归属，改动互相渗透。
+
+重构对此建立硬性样式架构：
+
+1. **单一样式权威**：所有平台级语义类只存在于统一样式层（`styles.css` 及其 token/原语），模块不得用 `:global` 重新定义平台类。
+2. **模块样式只允许模块专属 selector**：必须使用 CSS Modules 作用域（`module.css` 的局部类），业务专用类经模块局部作用域引用，禁止 `:global` 泄漏到全局。
+3. **命名唯一**：同一语义全局只有一个类名（平台统一 kebab-case），消灭 camelCase 变体。
+4. **禁止私有覆盖平台类**：模块不得在自身样式或媒体查询中改写平台布局类；响应式行为由平台统一提供。
+5. **验收**：重构后 `lint:architecture` 全面执行——平台类在模块样式中的重复定义/`:global` 泄漏/私有覆盖均不得通过；新增页面样式必须落到平台原语或模块局部类。
+
+---
+
+## 11c. 重写布局骨架，修复滚动与视口缺陷
+
+当前布局骨架存在机制性缺陷（已按代码核实）：
+
+* **主区域用 `height: 100vh` 固定**（`styles.css .app-workspace`）：移动端浏览器地址栏伸缩时底部被截断或留白，Inspector/操作区易被挤出 viewport；应使用 `100dvh` 或视口单位组合。
+* **页面内容被压进居中容器**（`.page-viewport` `max-width:1600px + margin:0 auto`）：1440/1600/1920 宽度下两侧大量留白，没有按方案要求充分使用横向空间。
+* **滚动发生在内容容器内而非独立 Main Workspace**：`.page-viewport` 自身 `overflow:auto`，与「Fixed Sidebar + 独立滚动 Main Workspace」的骨架目标不一致；Sidebar 用 grid 列 + `min-height:100vh`，非真正固定在 viewport。
+* **全局 Tab Bar 仍在**（`WorkspaceTabs` 顶部页签），与「移除全局打开页面标签条」冲突。
+* 响应式与页面内容宽度由内容容器统一承担，缺少按场景（Table 全宽 / Settings 收窄 / Detail 中宽）的宽度档。
+
+重构对布局骨架建立硬性要求（对应方案第 1 节）：
+
+1. Sidebar 固定在 viewport（独立可滚动），不随页面内容滚动。
+2. 主工作区独立滚动；document/body 不承担页面滚动。
+3. 视口高度用 `100dvh`（兼容移动端动态视口），不得使用 `100vh` 固定导致底部截断。
+4. 横向空间按场景充分使用：Table/Dashboard 全宽，Settings 640–960px，Detail 中宽；取消“一切压中央 max-width 容器”的唯一路径。
+5. 移除全局打开页面标签条；只保留主导航 + 面包屑 + 浏览器历史。
+6. 禁止主工作区无意义水平滚动（表格横向滚动窗按列语义处理）。
+
+---
+
 ## 12. 工作方式
 
 先扫描代码，再直接实施。

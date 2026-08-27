@@ -161,6 +161,8 @@ SDK 主版本门禁：模块 `Requires` 与宿主 `SDKInventory` 在 catalog 构
 11. **限制性图标目录**：Navigation/zone 的 `iconId` 必须属于受控目录（TS `icon-catalog.ts` 与 Go `internal/webui/icons.go` 双 authority，27 个 Lucide 图标，测试守护一致；`icons.go:1-8`）；模块自定义图标 entry 属未解决研究项（`icons.go:6-8` 注释）。
 12. **数据获取双轨**：仅 Ops 用 react-query，其余模块手写 fetch + useState（无统一请求缓存/失效层）；`useGatedQueries` 为 route 门禁专用封装（sdk/query）。
 13. **已修复历史缺陷（不复发证据）**：071 整页刷新取舍修复为 SPA 导航（`HostRuntime.navigate`）；073 修复 CSS Modules 后代选择器布局堆叠；066 409 差异确认不静默丢弃未保存选择；076 补齐 organization 认证断点（webuiSession + CSRF）。
+14. **样式污染（082 实施期 2026-08-27 复核确认）**：7 个模块 `*.module.css` 共 122 处 `:global(...)` 定义平台级通用语义类（ops.module.css 74、iam 25、auth 9、settings 8、organization 5、navigation 1、openapi 0），如 `.permission-matrix`/`.role-checklist`/`.form-error`/`.session-row` 等本应属于 `styles.css` 平台权威的类被模块全局化；存在命名分裂（平台 kebab-case `page-meta`/`filter-bar` vs 模块 camelCase `pageMeta`/`formHint`/`shellSearchTrigger` 等）与平台类私有覆盖（如 720px 断点内 `.toolbar` 在模块 media query 改写）；`lint-architecture.mjs` 当前不检查 `:global` 泄漏或平台类重复——新增需求时模块样式与平台样式互相渗透易破坏交互（temp-new-changes 方案 §11b 已立样式权威硬要求）。
+15. **布局骨架缺陷（082 实施期 2026-08-27 复核确认）**：`.app-workspace` 用 `height:100vh` 固定（`styles.css:476`）——移动端地址栏伸缩会截断/留白底部；`.page-viewport` 是 `max-width:1600px + margin:0 auto` 居中容器（`styles.css:820-828`），1440/1920 下横向空间未被充分利用；页面滚动在内容容器内而非独立 Main Workspace，Sidebar 用 grid 列 + `min-height:100vh` 非真正固定在 viewport；全局 Tab Bar（`WorkspaceTabs`）仍存在（AppShell.tsx:145 按 `theme.layout.showTabs`）；缺少按场景（Table 全宽/Settings 收窄/Detail 中宽）宽度档。与 temp-new-changes 方案 §11c（重写布局骨架）直接对应。
 
 ## 5. 推断（与事实分离）
 

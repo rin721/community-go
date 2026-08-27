@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AxisLineChart, CapabilityBanner, PageSection, Sparkline, StatusPill } from "@webui/sdk/ui";
+import { AxisLineChart, CapabilityBanner, MetricCard, PageSection, StatusPill } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import type { CapabilityState } from "@webui/sdk/runtime";
 import { loadDiagnostics, loadMetrics } from "./api";
@@ -29,13 +29,7 @@ function unitState(value: string): CapabilityState {
 // ServerMetricCard follows the 1Panel-style dashboard card: big value, optional
 // usage bar, and a live trend sparkline (081 R081-003).
 function ServerMetricCard({ title, value, unit, percent, trend, trendLabel, state, detail }: { title: string; value: string; unit?: string; percent?: number; trend: number[]; trendLabel: string; state: CapabilityState; detail?: string }) {
-  return <div className={`ops-metric-card ops-metric-${state}`}>
-    <div className="ops-metric-heading"><h4>{title}</h4><StatusPill state={state}>{state === "available" ? "Operational" : state === "degraded" ? "Degraded" : "Unavailable"}</StatusPill></div>
-    <div className="ops-metric-value"><strong>{value}</strong>{unit && <span className="ops-metric-unit">{unit}</span>}</div>
-    {percent !== undefined && <div className="ops-metric-bar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(percent)}><span className="ops-metric-bar-fill" style={{ width: `${Math.min(100, Math.max(0, percent))}%` }} /></div>}
-    <Sparkline values={trend} ariaLabel={trendLabel} width={140} height={36} stroke={state === "available" ? "var(--chart-1, #60a5fa)" : "var(--chart-4, #f59e0b)"} />
-    {detail && <p className="page-meta">{detail}</p>}
-  </div>;
+  return <MetricCard title={title} value={value} unit={unit} percent={percent} trend={trend} trendLabel={trendLabel} state={state} stateLabel={state === "available" ? "Operational" : state === "degraded" ? "Degraded" : "Unavailable"} detail={detail} className={`ops-metric-card ops-metric-${state}`} />;
 }
 
 // MonitoringSection renders the 1Panel-style server dashboard (081, R081-003):

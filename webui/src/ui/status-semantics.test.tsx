@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { CodeText, DangerZone, ErrorState, StatusBadge, StatusPill } from "./index";
+import { CodeText, DangerZone, EntityHeader, ErrorState, MetricCard, StatusBadge, StatusPill } from "./index";
 
 describe("082 状态反馈语义组件", () => {
   it("StatusBadge 渲染语义状态 tone 与状态 class", () => {
@@ -16,6 +16,22 @@ describe("082 状态反馈语义组件", () => {
     expect(markup).toContain("status-badge");
     expect(markup).toContain("status-pill");
     expect(markup).toContain("status-available");
+  });
+
+  it("MetricCard 渲染状态、进度和趋势语义", () => {
+    const markup = renderToStaticMarkup(createElement(MetricCard, { title: "CPU", value: "42", unit: "%", percent: 42, trend: [20, 42], trendLabel: "CPU trend", state: "available", stateLabel: "Operational", detail: "sampled" }));
+    expect(markup).toContain("metric-card");
+    expect(markup).toContain('role="progressbar"');
+    expect(markup).toContain("Operational");
+    expect(markup).toContain("CPU trend");
+  });
+
+  it("EntityHeader 统一身份、状态与动作区域", () => {
+    const markup = renderToStaticMarkup(createElement(EntityHeader, { title: "Account", identity: "@owner", status: "Active", actions: "Edit" }));
+    expect(markup).toContain("entity-header");
+    expect(markup).toContain("entity-header-identity");
+    expect(markup).toContain("entity-header-status");
+    expect(markup).toContain("entity-header-actions");
   });
 
   it("CodeText 渲染 monospace code 与可访问名", () => {

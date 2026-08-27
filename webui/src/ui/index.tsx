@@ -5,6 +5,7 @@ import { ToastProvider, addToast, closeToast } from "@heroui/toast";
 import type { CapabilityState } from "../contracts";
 import { Reveal } from "../motion/reveal";
 import { useActionAccess, useZoneContributions, ZoneSlot } from "../sdk/zone";
+import { Sparkline } from "./charts";
 export { Reveal, RevealList, revealRhythms, revealStaggerStep } from "../motion/reveal";
 export type { RevealProps, RevealRhythm } from "../motion/reveal";
 export { ToastProvider };
@@ -576,6 +577,31 @@ export function StatCard({ icon, value, label, trend, tone = "default", rhythm =
   );
 }
 
+/** MetricCard 是带状态、占用率和趋势序列的监控指标卡；业务模块只提供已计算的数据。 */
+export function MetricCard({ title, value, unit, percent, trend = [], trendLabel, state, stateLabel, detail, className = "" }: {
+  title: ReactNode;
+  value: ReactNode;
+  unit?: ReactNode;
+  percent?: number;
+  trend?: number[];
+  trendLabel: string;
+  state?: CapabilityState;
+  stateLabel?: ReactNode;
+  detail?: ReactNode;
+  className?: string;
+}) {
+  const clampedPercent = percent === undefined ? undefined : Math.min(100, Math.max(0, percent));
+  return <Card className={`metric-card ${state ? `metric-card-${state}` : ""} ${className}`.trim()}>
+    <Card.Content className="grid gap-2 px-4 py-3.5">
+      <div className="metric-card-heading"><h4>{title}</h4>{state && stateLabel && <StatusPill state={state}>{stateLabel}</StatusPill>}</div>
+      <div className="metric-card-value"><strong>{value}</strong>{unit && <span className="metric-card-unit">{unit}</span>}</div>
+      {clampedPercent !== undefined && <div className="metric-card-bar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(clampedPercent)}><span style={{ width: `${clampedPercent}%` }} /></div>}
+      <Sparkline values={trend} ariaLabel={trendLabel} width={140} height={36} />
+      {detail && <p className="page-meta">{detail}</p>}
+    </Card.Content>
+  </Card>;
+}
+
 export function StatGrid({ columns = 4, className = "", children }: { columns?: number; className?: string; children?: ReactNode }) {
   return <div className={`stat-grid mb-5 ${className}`.trim()} style={{ "--stat-columns": columns } as CSSProperties} data-stat-columns={columns}>{children}</div>;
 }
@@ -825,6 +851,16 @@ export function CodeViewer({ value, language = "json", maxHeight = 320, initiall
   );
 }
 
+/** EntityHeader 统一详情实体的身份、状态和动作区，供抽屉与页面详情复用。 */
+export function EntityHeader({ title, identity, status, actions, className = "" }: { title?: ReactNode; identity?: ReactNode; status?: ReactNode; actions?: ReactNode; className?: string }) {
+  return <div className={`entity-header ${className}`.trim()}>
+    {title && <h2 className="entity-header-title">{title}</h2>}
+    {identity && <div className="entity-header-identity">{identity}</div>}
+    {status && <div className="entity-header-status">{status}</div>}
+    {actions && <div className="entity-header-actions">{actions}</div>}
+  </div>;
+}
+
 /** DetailDrawer：规格化 Master–Detail 抽屉（REQ-082-005/021/016）。 */
 export function DetailDrawer({ open, onClose, title, identity, status, actions, width = 640, loading = false, loadingLabel, children }: {
   open: boolean;
@@ -840,11 +876,7 @@ export function DetailDrawer({ open, onClose, title, identity, status, actions, 
 }) {
   return (
     <Drawer open={open} title={title} closeLabel={loadingLabel ?? "关闭"} onClose={onClose} className="detail-drawer" style={{ "--drawer-width": `${width}px` } as CSSProperties}>
-      <div className="detail-drawer-head" data-drawer-width={width}>
-        {identity && <div className="detail-drawer-identity">{identity}</div>}
-        {status && <div className="detail-drawer-status">{status}</div>}
-        {actions && <div className="detail-drawer-actions">{actions}</div>}
-      </div>
+      <EntityHeader identity={identity} status={status} actions={actions} className="detail-drawer-head" />
       {loading ? <Skeleton lines={4} label={loadingLabel ?? ""} /> : children}
     </Drawer>
   );

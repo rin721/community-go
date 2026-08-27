@@ -38,7 +38,7 @@
 | `PAGE-083-004` | L | 确认 | P2：FilterBar 接线（Accounts/Sessions 后端 typed filters surface） | filter 参数真实请求 | 完成（本轮） |
 | `BACKEND-083-001` | L | 确认（DEC-003） | 后端 sort 参数（iam accounts/roles/sessions/api-tokens list）+ 白名单 SQL 映射 | operation 生成链同步；Go 测试 | 完成（本轮） |
 | `PAGE-083-005` | M | BACKEND-001 | 前端 sort URL 契约接线（Accounts/Roles/Sessions/API Tokens → 列表查询） | sort 参数真实请求 | 完成（本轮） |
-| `PAGE-083-006` | M | 确认 | P3：MetricCard/EntityHeader 组件化 + 操作列「1 主操作 + ...折叠 + 危险隔离」（ApiTokens 优先） | 组件 Vitest + 页面采用 | 部分完成（操作列已完成） |
+| `PAGE-083-006` | M | 确认 | P3：MetricCard/EntityHeader 组件化 + 操作列「1 主操作 + ...折叠 + 危险隔离」（ApiTokens 优先） | 组件 Vitest + 页面采用 | 完成（公共组件已由 Ops/DetailDrawer 消费） |
 | `PAGE-083-007` | M | 确认 | P4：危险确认（Accounts/Roles/ApiTokens/Departments archive/revoke → Confirm/DangerZone）+ 空载态规格 | 确认 e2e；Empty/Loading 组件采用 | 部分完成（确认与主要列表空态已完成） |
 | `PAGE-083-008` | M | 确认 | P5：Feature 拆解（EntityHeader/MetricCard/ActivityTimeline/CommandPalette 业务采用按需求） | 对照 R083-003 每页验收 | 待实施 |
 | `POL-083-001` | M | 上述 | 状态组件统一（StatusPill/StatusBadge 归一套，DEC-004）+ 视觉校准 | StatusPill 复用 StatusBadge；视觉截图复核 | 部分完成（组件单轨，视觉复核待执行） |

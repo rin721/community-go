@@ -53,18 +53,23 @@
 | `DOC-082-001` | M | 上述 | 文档同步：webui 开发指南（样式/语义组件/Query 契约附录）、webui/README、documentation-impact.yaml、changes/README 索引 | docs-guard 通过 | 待实施 |
 | `VER-082-001` | M | 全部 | 全量验证与提交（go test/vet、generate:check、typecheck/lint、Vitest ≥151、Playwright ≥22、build） | 无失败；受限项如实标注 | 待实施 |
 
-## 验证矩阵（预期，实施后实测填写）
+## 验证矩阵（实测结果 2026-08-27）
 
-| 门禁 | 命令/入口 | 预期结果 |
+| 门禁 | 命令/入口 | 结果 |
 | --- | --- | --- |
 | Go 单元/集成 | `go test ./...` | 全绿 |
 | Go 静态 | `go vet ./...` | 通过 |
-| WebUI | typecheck/lint（含 lint:modules/i18n/architecture）/generate:check/Vitest ≥151/Playwright ≥22/build | 通过 |
-| 文档 | docs-guard | 通过 |
+| WebUI 类型 | `tsc --noEmit` | 通过 |
+| WebUI lint | lint:modules / lint:i18n / lint:architecture | 通过 |
+| 生成物 | `generate.mjs --check` | current |
+| Vitest | `vitest run` | **192 全过**（基线 151 → 192，新增 41 个平台组件/页面纯函数用例） |
+| Playwright | mock 项目（webui-mock.spec.ts 3 用例） | 全过（含 082 迁移页语义组件 QA）；dev 项目未跑（需真实后端，留待后端联调） |
+| Build | `vite build` | 成功（bundle ~326KB gzip，较 068 基线小幅增长，新语义组件预期内） |
+| 文档 | docs-guard / webui 指南 | 通过（082 章节已写入） |
 
 ## 未执行/受限项
 
+- Playwright **dev 项目**（`webui.spec.ts` 20 用例）：需真实后端 + 首次设置，未在实施轮执行；实施轮的浏览器验证以 mock 项目（全部 WebUI 零后端可浏览）为基线，dev 全量留待后端联调轮。
 - 后端能力扩展（用户活动明细、审计完整元数据、部门移动/归档、organization 列表过滤）：R003 否决或列为 082 之外（R002 边界）。
-- Command 实体检索（方案「五十七」后半）：候选，不立项。
-- 多实例/远程模块/复杂图表/无真实需求的 Export-Batch-DnD-Analytics：候选（方案「六十八/六十九」防过度设计）。
-- WorkspaceTabs 决策（DEC-082-001）与表单库决策（DEC-082-002）、Query 统一层范围（DEC-082-006）未落地前，相关任务保持「待实施」并在确认后调整测试基线。
+- Command 实体检索（方案「五十七」后半）、多实例/远程模块/复杂图表/无真实需求的 Export-Batch-DnD-Analytics：候选（方案「六十八/六十九」防过度设计）。
+- `DEC-082-004` IA 归位（audit→Governance、openapi→Developer）待确认新顶层组结构（图标/落地页）后实施；`DEC-082-006` Query 统一层页面接入按范围确认渐进落地；`DEC-082-002` RHF/zod 表单库契约保留待表单页迁移接入。

@@ -2,7 +2,7 @@
 
 ## 状态
 
-**已确认，实施中（2026-08-28 用户确认「确认，实施」）**。方案输入 `docs/changes/temp-new-changes.md`（Production-grade 全栈产品重构，606 行，commit `5a3def3`）与 `docs/changes/admin-design-baseline.md`（后台产品设计风格基准）。三份研究档案完成差异分析、样式/布局事实基线、页面对照；计划已确认（决策点结论：DEC-001 App Shell 分治、DEC-002 移除 Tab Bar、DEC-003 后端仅 sorting 必补、DEC-004 状态组件统一、DEC-005 启用 RHF+zod）。实施从档 1 样式权威重建开始（lint CSS 规则 + 137 处 `:global` 清理），分期提交与验证。
+**已确认，实施完成（2026-08-28；dev e2e 与移动视口真机验证待真实环境）**。方案输入 `docs/changes/temp-new-changes.md` 与 `docs/changes/admin-design-baseline.md`。三档全部落地：档 1 样式权威（lint CSS 规则 + 反向 fixture + `:global` 平台类清零）；档 2 布局骨架（`100dvh`/Sidebar 独立滚动/宽度档接线/移除 Tab Bar 与 Footer/Settings 单入口）；档 3 页面产品化（Audit 分页+时间戳、FilterBar typed filters 接线、后端 account sorting、操作列折叠、危险操作确认、状态组件统一）。验证：`go test ./...`、`go vet ./...`、contract-gen 匹配、Vitest 195、lint（modules/i18n/architecture）、mock E2E 3、build 全绿；Playwright dev 20 用例待真实后端（受限环境，见 tasks.md）。
 
 ## 背景
 

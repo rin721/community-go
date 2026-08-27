@@ -54,6 +54,28 @@
 | WebUI | typecheck/lint（modules/i18n/architecture 含新样式规则）/generate:check/Vitest ≥192/Playwright mock ≥3/build | 通过 |
 | 文档 | docs-guard | 通过 |
 
+## 验证矩阵（实测结果 2026-08-28）
+
+| 门禁 | 命令/入口 | 结果 |
+| --- | --- | --- |
+| Go 全量 | `go test ./...` / `go vet ./...` | 全绿（含 sort 后端、contract-gen artifacts 匹配） |
+| 契约生成 | `go generate ./...` + `generate.mjs --check` | current（sort 参数入 openapi + operation inventory + openapi-spec） |
+| WebUI 类型 | `tsc --noEmit` | 通过 |
+| WebUI lint | lint:modules / lint:i18n / lint:architecture（含样式规则） | 通过 |
+| Vitest | `vitest run` | **195 全过**（基线 193 + confirm-action/format） |
+| Playwright | mock 项目 3 用例 | 全过（样式清理/布局/Tab Bar 移除/Settings 收敛/sort 无回归） |
+| Build | `vite build` | 成功 |
+
+**关键达成指标（实证）**：
+- 样式 `:global` 平台类重复清零；剩余 95 处全为模块专属（`lint-architecture` L1/L3 守护 + 反向 fixture）
+- Tab Bar（WorkspaceTabs）与固定 Footer 移除（组件/状态机/偏好/locale/测试单轨删除）
+- `100dvh` 视口（app-shell/sidebar/workspace）、Sidebar 独立滚动、页面滚动收敛 Main Workspace
+- Settings 全局菜单 8 子项 → 单入口 + 页内 SectionNav
+- 后端 account sorting（白名单列 + 防注入）上线，前端排序条 URL 化
+- 危险操作确认（ConfirmActionTrigger）：Accounts/Roles 详情归档接入确认
+- 操作列收敛：ApiTokens 主操作内联 + 菜单折叠（危险隔离）
+- 状态组件语义域分离：业务态统一 StatusBadge，capability 态 StatusPill（DEC-004 落地）
+
 ## 未执行/受限项
 
 - 移动视口（`100dvh`）需真机/移动仿真验证，桌面环境仅 class 断言与模拟，如实标注。

@@ -25,7 +25,7 @@ export function outcomeCell(item: AuditEventView, t: Translate) {
 // 082 REQ-082-016: detail fields presented in the drawer (low-sensitivity only).
 export function auditDetailFields(item: AuditEventView): Array<{ label: string; value: string; mono?: boolean }> {
   return [
-    { label: "occurredAt", value: item.occurredAt, mono: true },
+    { label: "occurredAt", value: formatDateTime(item.occurredAt), mono: true },
     { label: "operation", value: item.operation ?? "", mono: true },
     { label: "action", value: item.action ?? "", mono: true },
     { label: "actorKind", value: item.actorKind ?? "", mono: true },

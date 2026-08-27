@@ -1421,6 +1421,12 @@ paths:
           schema:
             maxLength: 36
             type: string
+        - explode: false
+          in: query
+          name: sort
+          schema:
+            maxLength: 32
+            type: string
       responses:
         "200":
           content:

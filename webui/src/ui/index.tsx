@@ -891,11 +891,12 @@ function TreeNodes<T>({ nodes, getChildren, renderNode, getKey, collapsed, onTog
 }
 
 /** InspectorPanel：Tree 选中节点的详情区（方案「四十四」；fields 支持 mono 技术字段）。 */
-export function InspectorPanel({ title, fields, status, actions, className = "" }: {
+export function InspectorPanel({ title, fields, status, actions, children, className = "" }: {
   title: ReactNode;
   fields: ReadonlyArray<{ label: ReactNode; value: ReactNode; mono?: boolean }>;
   status?: ReactNode;
   actions?: ReactNode;
+  children?: ReactNode;
   className?: string;
 }) {
   return (
@@ -910,6 +911,7 @@ export function InspectorPanel({ title, fields, status, actions, className = "" 
         ))}
       </div>
       {(status || actions) && <div className="inspector-panel-status">{status}{actions}</div>}
+      {children}
     </section>
   );
 }

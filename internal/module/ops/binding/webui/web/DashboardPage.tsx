@@ -14,6 +14,16 @@ export { operationCapabilityState, refreshNoticeTone } from "./operations";
 
 const operations = opsOperations;
 
+// 082 REQ-082-017: render uptime seconds as a readable "Xd Xh Xm" label.
+export function formatUptime(seconds: number, t: (key: string, params?: Record<string, number>) => string): string {
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  if (days > 0) return t("webui.ops.dashboard.uptime.dh", { days, hours });
+  if (hours > 0) return t("webui.ops.dashboard.uptime.hm", { hours, minutes });
+  return t("webui.ops.dashboard.uptime.m", { minutes });
+}
+
 function valueOrFallback(value: string | number | undefined, fallback: string): string {
   return value === undefined ? fallback : String(value);
 }
@@ -112,6 +122,13 @@ export default function DashboardPage() {
 
   return <div className={`${styles.opsModule} module-page`}>
     <PageHeader eyebrow={t("webui.ops.dashboard.eyebrow")} title={t("webui.ops.dashboard.title")} description={t("webui.ops.dashboard.description")} actions={<Button variant="secondary" onClick={() => requestRefresh(["ops"])} disabled={refreshing} aria-busy={refreshing}><span className={refreshing ? "refresh-icon icon-spin" : "refresh-icon"} aria-hidden="true" />{t(refreshing ? "webui.ops.dashboard.refreshing" : "webui.ops.dashboard.refresh")}</Button>} />
+    {/* 082 REQ-082-017: top context row (Version/Commit/Uptime/source); all data real, missing fields shown as dash */}
+    <div className="ops-context-row" aria-label={t("webui.ops.dashboard.context")}>
+      <span className="ops-context-item"><span className="ops-context-label">{t("webui.ops.dashboard.context.version")}</span><code className="ops-context-value">{build?.version ?? "—"}</code></span>
+      <span className="ops-context-item"><span className="ops-context-label">{t("webui.ops.dashboard.context.commit")}</span><code className="ops-context-value">{build?.commit?.slice(0, 8) ?? "—"}</code></span>
+      <span className="ops-context-item"><span className="ops-context-label">{t("webui.ops.dashboard.context.uptime")}</span><span className="ops-context-value">{runtime?.process?.uptimeSeconds !== undefined ? formatUptime(runtime.process.uptimeSeconds, t) : "—"}</span></span>
+      <span className="ops-context-item"><span className="ops-context-label">{t("webui.ops.dashboard.context.source")}</span><span className="ops-context-value">{t(sourceUnreachable ? "webui.ops.dashboard.context.unreachable" : "webui.ops.dashboard.context.hosted")}</span></span>
+    </div>
     <StatGrid columns={3}>
       <StatCard value={summary[0].value} label={summary[0].label} />
       <StatCard value={summary[1].value} label={summary[1].label} tone="positive" />

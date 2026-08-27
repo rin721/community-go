@@ -2306,6 +2306,32 @@ textarea.field-input {
   overflow-wrap: anywhere;
 }
 
+/* 082 REQ-082-017：Ops 顶栏 Context 行 */
+.ops-context-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+  margin: 0 0 var(--space-5);
+  padding: var(--space-2) var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.ops-context-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+.ops-context-label {
+  color: var(--text-secondary);
+}
+.ops-context-value {
+  color: var(--text);
+  font-family: var(--font-mono);
+}
+
 /* 082 REQ-082-018：TreeView 语义组件（方案「四十四」） */
 .tree-view {
   list-style: none;

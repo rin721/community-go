@@ -102,5 +102,14 @@ test("083 visual snapshots for design baseline review", async ({ page }, testInf
     await page.waitForLoadState("networkidle");
     await page.screenshot({ path: `test-results/083-visual-${target.name}.png`, fullPage: true });
   }
+  // 083 视觉基线：内容卡片圆角 ≤12px（styles.css 覆盖；排除 Alert/抽屉/Modal 等非内容卡片）。
+  await page.goto("/dashboard");
+  await page.waitForSelector(".page-section");
+  await page.waitForTimeout(500);
+  const oversized = await page.evaluate(() => {
+    const radiusOf = (el: Element) => parseFloat(getComputedStyle(el).borderRadius) || 0;
+    return Array.from(document.querySelectorAll(".page-section .card, .page-section > .surface")).filter((el) => radiusOf(el) > 12).map((el) => `${el.className.slice(0, 40)}=>${getComputedStyle(el).borderRadius}`);
+  });
+  expect(oversized).toEqual([]);
   testInfo.attach("083-visual-snapshots", { path: "test-results/083-visual-dashboard.png" });
 });

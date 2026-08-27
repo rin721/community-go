@@ -56,11 +56,12 @@
   --shadow-lg: var(--heroui-box-shadow-large);
   --shadow-drawer: -12px 0 40px rgba(15, 23, 42, 0.16);
 
-  /* radius：069 对齐 HeroUI 视觉语言（--heroui-radius-small/medium/large） */
+  /* radius：083 按设计基线收敛（基线：按钮/输入 6-8、卡片 8-10、Modal 10-12）
+     HeroUI 默认 medium=12/large=14 偏大，改为受控像素值；Popover 用 radius-xl。 */
   --radius-xs: 6px;
-  --radius-sm: var(--heroui-radius-small);
-  --radius-md: var(--heroui-radius-medium);
-  --radius-lg: var(--heroui-radius-large);
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
   --radius-xl: 16px;
   --radius-pill: 999px;
   --radius-round: 50%;
@@ -2431,6 +2432,16 @@ textarea.field-input {
   align-items: flex-end;
   gap: var(--space-3);
   margin: var(--space-2) 0;
+}
+
+/* 083 视觉基线：PageSection/DataCard 内的 HeroUI Card 收敛圆角（HeroUI 默认 ~20px 超基线 8-10px） */
+.page-section > [data-slot="base"],
+.page-section > div[class*="card"] {
+  border-radius: var(--radius-lg);
+}
+.data-card > [data-slot="base"],
+.data-card > div[class*="card"] {
+  border-radius: var(--radius-lg);
 }
 
 /* 082 REQ-082-018：TreeView 语义组件（方案「四十四」） */

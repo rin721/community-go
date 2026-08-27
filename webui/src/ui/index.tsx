@@ -30,15 +30,6 @@ function alertStatus(state: CapabilityState): "default" | "success" | "warning" 
   }
 }
 
-function chipColor(state: CapabilityState): "success" | "warning" | "danger" | "default" {
-  switch (state) {
-    case "available": return "success";
-    case "degraded": return "warning";
-    case "unavailable": return "danger";
-    default: return "default";
-  }
-}
-
 export function PageHeader({ eyebrow, title, description, actions }: { eyebrow?: string; title: string; description?: string; actions?: ReactNode }) {
   const zoneItems = useZoneContributions("page-header");
   return <header className="page-header"><div>{eyebrow && <p className="page-eyebrow">{eyebrow}</p>}<Typography.Heading level={1} className="page-header-title">{title}</Typography.Heading>{description && <p className="page-description">{description}</p>}</div>{(actions || zoneItems.length > 0) && <div className="page-actions">{actions}{zoneItems.map((item) => <ZoneSlot key={item.id} contribution={item} />)}</div>}</header>;
@@ -91,7 +82,8 @@ export function FormField({ label, control, description, helper, error, width = 
 }
 
 export function StatusPill({ state, children }: { state: CapabilityState; children: ReactNode }) {
-  return <Chip color={chipColor(state)} variant="soft" size="sm" className={`status-pill status-${state}`}>{typeof children === "string" ? children : String(children)}</Chip>;
+  const semanticState: SemanticStatus = state === "available" ? "healthy" : state === "degraded" ? "degraded" : state === "unavailable" ? "failed" : "pending";
+  return <StatusBadge status={semanticState} className={`status-pill status-${state}`}>{children}</StatusBadge>;
 }
 
 export function CapabilityBanner({ state, statusLabel, title, detail }: { state: CapabilityState; statusLabel: string; title: string; detail?: string }) {

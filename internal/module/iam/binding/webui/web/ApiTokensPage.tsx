@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActionTrigger, Button, CodeText, DataTable, EmptyState, Field, InlineAlert, PageHeader, PageSection, SelectField, StatusBadge } from "@webui/sdk/ui";
+import { ActionTrigger, Button, CodeText, ConfirmDialog, DataTable, EmptyState, Field, InlineAlert, PageHeader, PageSection, SelectField, StatusBadge } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
+import { useListQueryParams } from "@webui/sdk/query";
 import { createApiToken, disableApiToken, enableApiToken, listApiTokens, loadSession, revokeApiToken, rotateApiToken, updateApiToken, type ApiTokenView } from "./api";
 import styles from "./iam.module.css";
 
@@ -22,6 +23,7 @@ export const groupScopesByModule = (scopes: string[]): Array<{ ownerModuleId: st
 // display, and disable/enable/rotate/revoke lifecycle actions.
 export default function ApiTokensPage() {
   const { t } = useWebUITranslation("webui.iam");
+  const listQuery = useListQueryParams<{}>({ filters: {} });
   const [tokens, setTokens] = useState<ApiTokenView[]>([]);
   const [status, setStatus] = useState("all");
   const [availableScopes, setAvailableScopes] = useState<string[]>([]);
@@ -34,12 +36,13 @@ export default function ApiTokensPage() {
   const [neverExpires, setNeverExpires] = useState(false);
   const [secret, setSecret] = useState("");
   const [message, setMessage] = useState("");
+  const [pendingRevokeID, setPendingRevokeID] = useState("");
 
   const scopeGroups = useMemo(() => groupScopesByModule(availableScopes), [availableScopes]);
 
   const refresh = useCallback((filter = status) => {
-    void listApiTokens(filter).then((value) => setTokens(value.items)).catch(() => undefined);
-  }, [status]);
+    void listApiTokens(filter, 0, 50, listQuery.sort ? `${listQuery.sort.key}:${listQuery.sort.direction}` : undefined).then((value) => setTokens(value.items)).catch(() => undefined);
+  }, [listQuery.sort, status]);
 
   useEffect(() => {
     void loadSession().then((value) => {
@@ -111,6 +114,19 @@ export default function ApiTokensPage() {
           { value: "expired", label: t("webui.iam.apiTokens.status.expired") },
           { value: "revoked", label: t("webui.iam.apiTokens.status.revoked") },
         ]} onValueChange={(value) => { setStatus(value); refresh(value); }} />
+        <div className="toolbar accounts-sort-bar">
+          <SelectField label={t("webui.iam.accounts.sortBy")} value={listQuery.sort?.key ?? ""} options={[
+            { value: "", label: t("webui.iam.accounts.sortNone") },
+            { value: "name", label: t("webui.iam.apiTokens.name") },
+            { value: "createdAt", label: t("webui.iam.sessions.createdAt") },
+            { value: "expiresAt", label: t("webui.iam.apiTokens.expiresHeader") },
+            { value: "lastUsedAt", label: t("webui.iam.apiTokens.lastUsed") },
+          ]} onValueChange={(value) => listQuery.setSort(value ? { key: value, direction: listQuery.sort?.direction ?? "desc" } : null)} />
+          {listQuery.sort && <SelectField label={t("webui.iam.accounts.sortDirection")} value={listQuery.sort.direction} options={[
+            { value: "asc", label: t("webui.iam.accounts.sortAsc") },
+            { value: "desc", label: t("webui.iam.accounts.sortDesc") },
+          ]} onValueChange={(value) => listQuery.setSort({ key: listQuery.sort?.key ?? "createdAt", direction: value === "desc" ? "desc" : "asc" })} />}
+        </div>
         <DataTable
           ariaLabel={t("webui.iam.apiTokens.listTitle")}
           emptyState={<EmptyState title={t("webui.iam.apiTokens.empty")} />}
@@ -134,11 +150,21 @@ export default function ApiTokensPage() {
               const items: Array<{ key: string; label: string; onSelect: () => void; danger?: boolean }> = [];
               items.push({ key: "rotate", label: t("webui.iam.apiTokens.rotate"), onSelect: () => { void rotateApiToken(row.id).then((issued) => setSecret(issued.secret)).then(() => refresh()); } });
               if (row.status === "active") items.push({ key: "expire", label: t("webui.iam.apiTokens.expireNow"), onSelect: () => { void expireToken(row); } });
-              if (row.status !== "revoked") items.push({ key: "revoke", label: t("webui.iam.apiTokens.revoke"), danger: true, onSelect: () => { void revokeApiToken(row.id).then(() => refresh()); } });
+              if (row.status !== "revoked") items.push({ key: "revoke", label: t("webui.iam.apiTokens.revoke"), danger: true, onSelect: () => setPendingRevokeID(row.id) });
               return items;
             },
             columnMenuLabel: t("webui.iam.apiTokens.more"),
           }}
+        />
+        <ConfirmDialog
+          open={Boolean(pendingRevokeID)}
+          title={t("webui.iam.apiTokens.revoke")}
+          description={t("webui.iam.apiTokens.error")}
+          confirmLabel={t("webui.iam.apiTokens.revoke")}
+          cancelLabel={t("webui.iam.cancel")}
+          closeLabel={t("webui.iam.cancel")}
+          onConfirm={() => { void revokeApiToken(pendingRevokeID).then(() => refresh()).finally(() => setPendingRevokeID("")); }}
+          onCancel={() => setPendingRevokeID("")}
         />
       </PageSection>
     </div>

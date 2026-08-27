@@ -26,7 +26,7 @@ export const resetAccountPassword=(id:string,password:string)=>requestJSON<void>
 export const accountRoleIDs=(id:string)=>requestJSON<AccountRolesView>(`/api/v1/iam/accounts/${id}/roles`).then((value)=>value.roleIds);
 export const accountRolesView=(id:string)=>requestJSON<AccountRolesView>(`/api/v1/iam/accounts/${id}/roles`);
 export const replaceAccountRoles=(id:string,expectedAccountVersion:number,roleIds:string[])=>requestJSON<AssignmentResult>(`/api/v1/iam/accounts/${id}/roles`,{method:"PUT",body:JSON.stringify({expectedAccountVersion,roleIds}),headers:mutationHeaders()});
-export const listRoles=(query?:string,offset=0,limit=100)=>requestJSON<ListResult<Role>>(`/api/v1/iam/roles?offset=${offset}&limit=${limit}${query?`&query=${encodeURIComponent(query)}`:""}`);
+export const listRoles=(query?:string,offset=0,limit=100,sort?:string)=>requestJSON<ListResult<Role>>(`/api/v1/iam/roles?offset=${offset}&limit=${limit}${query?`&query=${encodeURIComponent(query)}`:""}${sort?`&sort=${encodeURIComponent(sort)}`:""}`);
 export const createRole=(code:string,name:string,description:string)=>requestJSON<Role>("/api/v1/iam/roles",{method:"POST",body:JSON.stringify({code,name,description}),headers:mutationHeaders()});
 export const updateRoleInfo=(id:string,expectedRoleVersion:number,name:string,description:string)=>requestJSON<Role>(`/api/v1/iam/roles/${id}`,{method:"PATCH",body:JSON.stringify({expectedRoleVersion,name,description}),headers:mutationHeaders()});
 export const archiveRole=(id:string)=>requestJSON<void>(`/api/v1/iam/roles/${id}/archive`,{method:"POST",headers:mutationHeaders()});
@@ -38,12 +38,12 @@ export const permissionRoles=(key:string)=>requestJSON<ListResult<Role>>(`/api/v
 export const principalFromSession=(session:IAMSession):PrincipalView=>({id:session.identity.accountId,username:session.identity.username,scopes:[...session.identity.permissions]});
 export type SessionInfo={idHash:string;accountId:string;createdAt:string;lastSeenAt:string;idleExpiresAt:string;absoluteExpiresAt:string;revokedAt?:string};
 export type SessionListResult={items:SessionInfo[];offset:number;limit:number;total:number};
-export const listSessions=()=>requestJSON<SessionListResult>("/api/v1/iam/sessions?limit=100");
+export const listSessions=(status="all",sort?:string)=>requestJSON<SessionListResult>(`/api/v1/iam/sessions?limit=100&status=${status}${sort?`&sort=${encodeURIComponent(sort)}`:""}`);
 export const revokeSessions=(idHashes:string[],accountId?:string)=>requestJSON<void>(`/api/v1/iam/sessions/revoke${accountId?`?accountId=${encodeURIComponent(accountId)}`:""}`,{method:"POST",body:JSON.stringify({idHashes}),headers:mutationHeaders()});
 
 export type ApiTokenView={id:string;name:string;description?:string;scopes:string[];expiresAt?:string;revokedAt?:string;disabledAt?:string;createdAt:string;lastUsedAt?:string;status:"active"|"disabled"|"expired"|"revoked"};
 export type ApiTokenIssued=ApiTokenView&{secret:string};
-export const listApiTokens=(status="all",offset=0,limit=50)=>requestJSON<{items:ApiTokenView[];offset:number;limit:number;total:number}>(`/api/v1/iam/api-tokens?offset=${offset}&limit=${limit}&status=${status}`);
+export const listApiTokens=(status="all",offset=0,limit=50,sort?:string)=>requestJSON<{items:ApiTokenView[];offset:number;limit:number;total:number}>(`/api/v1/iam/api-tokens?offset=${offset}&limit=${limit}&status=${status}${sort?`&sort=${encodeURIComponent(sort)}`:""}`);
 export const createApiToken=(name:string,description:string,scopes:string[],expiresAt?:string)=>requestJSON<ApiTokenIssued>("/api/v1/iam/api-tokens",{method:"POST",headers:mutationHeaders(),body:JSON.stringify({name,description,scopes,expiresAt:expiresAt||undefined})});
 export const updateApiToken=(id:string,name:string,description:string,expiresAt?:string,neverExpires?:boolean)=>requestJSON<void>(`/api/v1/iam/api-tokens/${id}`,{method:"PATCH",headers:mutationHeaders(),body:JSON.stringify({name,description,expiresAt:expiresAt||undefined,neverExpires})});
 export const rotateApiToken=(id:string)=>requestJSON<ApiTokenIssued>(`/api/v1/iam/api-tokens/${id}/rotate`,{method:"POST",headers:mutationHeaders(),body:JSON.stringify({})});

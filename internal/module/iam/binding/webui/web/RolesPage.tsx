@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActionTrigger, Button, Check, CodeText, ConfirmActionTrigger, DataTable, Drawer, Field, FilterBar, FormField, PageHeader, PageSection, SearchInput, StatusBadge } from "@webui/sdk/ui";
+import { ActionTrigger, Button, Check, CodeText, ConfirmActionTrigger, DataTable, Drawer, Field, FilterBar, FormField, PageHeader, PageSection, SearchInput, SelectField, StatusBadge } from "@webui/sdk/ui";
 import { useListQueryParams } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { archiveRole, createRole, listPermissions, listRoles, replaceRolePermissions, rolePermissionsView, updateRoleInfo, type PermissionDefinition, type Role } from "./api";
@@ -63,12 +63,12 @@ export default function RolesPage() {
   const [roleDescription, setRoleDescription] = useState("");
   const [focusedRoleID, setFocusedRoleID] = useState("");
   const refresh = useCallback((nextPage = page) => {
-    return listRoles(listQuery.filters.query, (nextPage - 1) * PAGE_SIZE, PAGE_SIZE).then((result) => {
+    return listRoles(listQuery.filters.query, (nextPage - 1) * PAGE_SIZE, PAGE_SIZE, listQuery.sort ? `${listQuery.sort.key}:${listQuery.sort.direction}` : undefined).then((result) => {
       setTotal(result.total);
       setItems(result.items);
       setSelectedID((current) => current && result.items.some((item) => item.id === current) ? current : result.items[0]?.id || "");
     });
-  }, [listQuery.filters.query, page]);
+  }, [listQuery.filters.query, listQuery.sort, page]);
   useEffect(() => { void refresh(); void listPermissions().then(setPermissions); }, [refresh]);
   useEffect(() => { void refresh(); }, [listQuery.filters.query]); // 082: query URL change reloads from page 1.
   const reloadSelection = useCallback((id: string) => {
@@ -136,6 +136,18 @@ export default function RolesPage() {
           onClear={() => listQuery.clearFilters()}
           clearLabel={t("webui.iam.accounts.clear")}
         />
+        <div className="toolbar accounts-sort-bar">
+          <SelectField label={t("webui.iam.accounts.sortBy")} value={listQuery.sort?.key ?? ""} options={[
+            { value: "", label: t("webui.iam.accounts.sortNone") },
+            { value: "name", label: t("webui.iam.roles.name") },
+            { value: "code", label: t("webui.iam.roles.code") },
+            { value: "createdAt", label: t("webui.iam.sessions.createdAt") },
+          ]} onValueChange={(value) => listQuery.setSort(value ? { key: value, direction: listQuery.sort?.direction ?? "asc" } : null)} />
+          {listQuery.sort && <SelectField label={t("webui.iam.accounts.sortDirection")} value={listQuery.sort.direction} options={[
+            { value: "asc", label: t("webui.iam.accounts.sortAsc") },
+            { value: "desc", label: t("webui.iam.accounts.sortDesc") },
+          ]} onValueChange={(value) => listQuery.setSort({ key: listQuery.sort?.key ?? "name", direction: value === "desc" ? "desc" : "asc" })} />}
+        </div>
         <DataTable<Role>
           columns={[
             { id: "name", header: t("webui.iam.roles.name"), cell: (item) => item.name },

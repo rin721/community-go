@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { CodeText, DangerZone, ErrorState, StatusBadge } from "./index";
+import { CodeText, DangerZone, ErrorState, StatusBadge, StatusPill } from "./index";
 
 describe("082 状态反馈语义组件", () => {
   it("StatusBadge 渲染语义状态 tone 与状态 class", () => {
@@ -9,6 +9,13 @@ describe("082 状态反馈语义组件", () => {
     expect(markup).toContain("status-badge");
     expect(markup).toContain("status-revoked");
     expect(markup).toContain("已吊销");
+  });
+
+  it("StatusPill 复用统一状态组件并保留能力状态 class", () => {
+    const markup = renderToStaticMarkup(createElement(StatusPill, { state: "available", children: "Operational" }));
+    expect(markup).toContain("status-badge");
+    expect(markup).toContain("status-pill");
+    expect(markup).toContain("status-available");
   });
 
   it("CodeText 渲染 monospace code 与可访问名", () => {

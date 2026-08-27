@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { BulkActionBar, CodeText, DataTable, formatDateTime, PageHeader, PageSection, StatusBadge } from "@webui/sdk/ui";
+import { BulkActionBar, CodeText, DataTable, FilterBar, formatDateTime, PageHeader, PageSection, SelectField, StatusBadge } from "@webui/sdk/ui";
+import { useListQueryParams } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { listSessions, revokeSessions, type SessionInfo } from "./api";
 import styles from "./iam.module.css";
@@ -21,13 +22,14 @@ export function sessionStatusCell(item: SessionInfo, t: Translate) {
 
 export default function SessionsPage() {
   const { t } = useWebUITranslation("webui.iam");
+  const listQuery = useListQueryParams<{ status: string }>({ filters: { status: { queryKey: "status", defaultValue: "all" } } });
   const [items, setItems] = useState<SessionInfo[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [message, setMessage] = useState("");
   const [revoking, setRevoking] = useState(false);
   const refresh = useCallback(() => {
-    void listSessions().then((result) => { setItems(result.items); setSelected(new Set()); });
-  }, []);
+    void listSessions(listQuery.filters.status, listQuery.sort ? `${listQuery.sort.key}:${listQuery.sort.direction}` : undefined).then((result) => { setItems(result.items); setSelected(new Set()); });
+  }, [listQuery.filters.status, listQuery.sort]);
   useEffect(() => { void refresh(); }, [refresh]);
   const revoke = (): Promise<void> => {
     if (selected.size === 0) return Promise.resolve();
@@ -39,6 +41,28 @@ export default function SessionsPage() {
     <div className="page-sections">
       <PageSection kicker={t("webui.iam.sessions.list.kicker")} title={t("webui.iam.sessions.list.title")}>
         {message && <p className="page-meta">{message}</p>}
+        <FilterBar
+          ariaLabel={t("webui.iam.sessions.statusHeader")}
+          fields={[{ key: "status", control: "select", label: t("webui.iam.sessions.statusHeader"), value: listQuery.filters.status, options: [
+            { value: "all", label: t("webui.iam.accounts.statusAll") },
+            { value: "active", label: t("webui.iam.sessions.active") },
+            { value: "revoked", label: t("webui.iam.sessions.revokedAt") },
+          ], onValueChange: (value) => listQuery.setFilters({ status: String(value) }) }]}
+          onClear={() => listQuery.clearFilters()}
+          clearLabel={t("webui.iam.accounts.clear")}
+        />
+        <div className="toolbar accounts-sort-bar">
+          <SelectField label={t("webui.iam.accounts.sortBy")} value={listQuery.sort?.key ?? ""} options={[
+            { value: "", label: t("webui.iam.accounts.sortNone") },
+            { value: "createdAt", label: t("webui.iam.sessions.createdAt") },
+            { value: "lastSeenAt", label: t("webui.iam.sessions.lastSeenAt") },
+            { value: "idleExpiresAt", label: t("webui.iam.sessions.idleExpiresAt") },
+          ]} onValueChange={(value) => listQuery.setSort(value ? { key: value, direction: listQuery.sort?.direction ?? "desc" } : null)} />
+          {listQuery.sort && <SelectField label={t("webui.iam.accounts.sortDirection")} value={listQuery.sort.direction} options={[
+            { value: "asc", label: t("webui.iam.accounts.sortAsc") },
+            { value: "desc", label: t("webui.iam.accounts.sortDesc") },
+          ]} onValueChange={(value) => listQuery.setSort({ key: listQuery.sort?.key ?? "createdAt", direction: value === "desc" ? "desc" : "asc" })} />}
+        </div>
         <DataTable<SessionInfo>
           columns={[
             { id: "idHash", header: t("webui.iam.sessions.idHash"), cell: (item) => <CodeText value={item.idHash} copyable /> },

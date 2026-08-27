@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActionTrigger, CodeText, Field, InlineAlert, InspectorPanel, PageHeader, PageSection, SelectField, StatusBadge, TreeView } from "@webui/sdk/ui";
+import { ActionTrigger, CodeText, ConfirmActionTrigger, Field, InlineAlert, InspectorPanel, PageHeader, PageSection, SelectField, StatusBadge, TreeView } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
-import { createDepartment, departmentTree, updateDepartment, type Department, type DepartmentNode } from "./api";
+import { createDepartment, departmentTree, updateDepartment, type DepartmentNode } from "./api";
 import styles from "./organization.module.css";
 
 // flatten expands the department tree into a stable depth-annotated list used by
@@ -25,9 +25,6 @@ export default function DepartmentsPage() {
   useEffect(() => { void refresh(); }, [refresh]);
   const flat = flatten(items);
   const selected = flat.find((entry) => entry.item.id === selectedID)?.item;
-  const toggleArchive = (item: Department) => {
-    void updateDepartment(item, { archived: !item.archived }).then(refresh).catch(() => setError(t("webui.organization.error")));
-  };
   return <div className={`${styles.organizationModule} module-page`}>
     <PageHeader eyebrow={t("webui.organization.brand")} title={t("webui.organization.departments.title")} description={t("webui.organization.departments.description")} />
     <div className="page-sections">
@@ -61,7 +58,7 @@ export default function DepartmentsPage() {
                 { label: t("webui.organization.status"), value: selected.archived ? t("webui.organization.archived") : t("webui.organization.active") },
               ]}
               status={selected.archived ? <StatusBadge status="revoked">{t("webui.organization.archived")}</StatusBadge> : <StatusBadge status="active">{t("webui.organization.active")}</StatusBadge>}
-              actions={<ActionTrigger operationId="organization.departments.update" variant="secondary" onAction={() => toggleArchive(selected)}>{selected.archived ? t("webui.organization.restore") : t("webui.organization.archive")}</ActionTrigger>}
+              actions={<ConfirmActionTrigger operationId="organization.departments.update" variant="danger" label={selected.archived ? t("webui.organization.restore") : t("webui.organization.archive")} pendingLabel={t("webui.organization.saving")} confirmTitle={selected.archived ? t("webui.organization.restore") : t("webui.organization.archive")} confirmDescription={t("webui.organization.confirmArchive")} confirmLabel={selected.archived ? t("webui.organization.restore") : t("webui.organization.archive")} cancelLabel={t("webui.organization.cancel")} closeLabel={t("webui.organization.cancel")} onConfirm={() => updateDepartment(selected, { archived: !selected.archived }).then(refresh)} />}
             />
           )}
         </div>

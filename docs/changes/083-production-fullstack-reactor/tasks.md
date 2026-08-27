@@ -32,9 +32,9 @@
 
 | ID | 工作量 | 依赖 | 内容 | 完成条件 | 状态 |
 | --- | --- | --- | --- | --- | --- |
-| `PAGE-083-001` | M | STYLE/LAYOUT | P0：全页样式清理 + 宽度档接线扫尾 | lint/vitest 全绿 | 待实施 |
+| `PAGE-083-001` | M | STYLE/LAYOUT | P0：全页样式清理 + 宽度档接线扫尾 | lint/vitest 全绿 | 完成（平台视口单位、宽度档与模块样式门禁已收敛） |
 | `PAGE-083-002` | M | 确认 | P1：Audit 分页（offset/limit URL 化）；时间戳格式化（Sessions/Audit/Ops 人类可读+相对时间） | e2e 断言；无 raw ISO 直出 | 部分完成（分页与 Audit/Sessions/Ops 人类可读时间已落地；真实后端 e2e/相对时间验收待补） |
-| `PAGE-083-003` | M | 确认 | P1：Settings 双导航 + 宽度 640-960 收敛 | Settings e2e | 待实施 |
+| `PAGE-083-003` | M | 确认 | P1：Settings 双导航 + 宽度 640-960 收敛 | Settings e2e | 完成（单页内 SectionNav、settings 宽度档与既有 SPA e2e 已验证） |
 | `PAGE-083-004` | L | 确认 | P2：FilterBar 接线（Accounts/Sessions 后端 typed filters surface） | filter 参数真实请求 | 完成（本轮） |
 | `BACKEND-083-001` | L | 确认（DEC-003） | 后端 sort 参数（iam accounts/roles/sessions/api-tokens list）+ 白名单 SQL 映射 | operation 生成链同步；Go 测试 | 完成（本轮） |
 | `PAGE-083-005` | M | BACKEND-001 | 前端 sort URL 契约接线（Accounts/Roles/Sessions/API Tokens → 列表查询） | sort 参数真实请求 | 完成（本轮） |

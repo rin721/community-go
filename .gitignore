@@ -57,3 +57,6 @@ __debug_bin*
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+/frontend/node_modules/
+/frontend/.nuxt/

@@ -33,6 +33,8 @@ export const archiveRole=(id:string)=>requestJSON<void>(`/api/v1/iam/roles/${id}
 export const rolePermissionsView=(id:string)=>requestJSON<RolePermissionsView>(`/api/v1/iam/roles/${id}/permissions`);
 export const replaceRolePermissions=(id:string,expectedRoleVersion:number,permissionKeys:string[])=>requestJSON<AssignmentResult>(`/api/v1/iam/roles/${id}/permissions`,{method:"PUT",body:JSON.stringify({expectedRoleVersion,permissionKeys}),headers:mutationHeaders()});
 export const listPermissions=()=>requestJSON<Array<{key:string;ownerModuleId:string;descriptionMessageId:string}>>("/api/v1/iam/permissions");
+// 082 REQ-082-015: permissions.roles.list -> roles that grant this permission (Used-by analysis).
+export const permissionRoles=(key:string)=>requestJSON<ListResult<Role>>(`/api/v1/iam/permissions/roles?key=${encodeURIComponent(key)}&limit=100`);
 export const principalFromSession=(session:IAMSession):PrincipalView=>({id:session.identity.accountId,username:session.identity.username,scopes:[...session.identity.permissions]});
 export type SessionInfo={idHash:string;accountId:string;createdAt:string;lastSeenAt:string;idleExpiresAt:string;absoluteExpiresAt:string;revokedAt?:string};
 export type SessionListResult={items:SessionInfo[];offset:number;limit:number;total:number};

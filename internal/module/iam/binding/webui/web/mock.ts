@@ -68,6 +68,7 @@ export const webuiMockRoutes: ReadonlyArray<WebUIMockRoute> = [
   { method: "GET", pattern: "/api/v1/iam/roles/{id}/permissions", handler: () => ({ roleId: "role-1", roleVersion: 1, authorizationRevision: 2, permissionKeys: permissions.map((permission) => permission.key) }) },
   { method: "PUT", pattern: "/api/v1/iam/roles/{id}/permissions", handler: () => ({ entityId: "role-1", entityVersion: 1, authorizationRevision: 2, added: 1, removed: 0 }) },
   { method: "GET", pattern: "/api/v1/iam/permissions", handler: () => permissions },
+  { method: "GET", pattern: "/api/v1/iam/permissions/roles", handler: () => ({ items: roles.slice(0, 2), offset: 0, limit: 100, total: 2 }) },
   { method: "GET", pattern: "/api/v1/iam/sessions", handler: () => ({
     items: [
       { idHash: "abc123def456", accountId: "acct-1", createdAt, lastSeenAt: createdAt, idleExpiresAt: expiresAt, absoluteExpiresAt: expiresAt },

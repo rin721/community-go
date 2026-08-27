@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { checklistCandidates } from "./AccountsPage";
 import { diffKeys, groupByOwnerModule } from "./RolesPage";
+import { groupByModule } from "./PermissionsPage";
 import type { Role } from "./api";
 
 describe("IAM management selection", () => {
@@ -27,5 +28,26 @@ describe("IAM management selection", () => {
       { id: "c", code: "archived", name: "Archived", description: "", active: true, archived: true, system: false, version: 1 },
     ];
     expect(checklistCandidates(roles).map((role) => role.id)).toEqual(["a"]);
+  });
+});
+
+describe("082 Permission catalog grouping (REQ-015)", () => {
+  it("groups permission items by owner module in stable key order", () => {
+    const groups = groupByModule([
+      { key: "iam.roles.list", ownerModuleId: "iam", descriptionMessageId: "permission.iam.roles.list" },
+      { key: "todo.item.read", ownerModuleId: "todo", descriptionMessageId: "permission.todo.read" },
+      { key: "iam.accounts.list", ownerModuleId: "iam", descriptionMessageId: "permission.iam.accounts.list" },
+    ]);
+    expect(groups.map((group) => group.ownerModuleId)).toEqual(["iam", "todo"]);
+    expect(groups[0].definitions.map((definition) => definition.key)).toEqual(["iam.accounts.list", "iam.roles.list"]);
+  });
+
+  it("keeps module order stable when keys sort identically", () => {
+    const groups = groupByModule([
+      { key: "ops.diagnostics", ownerModuleId: "ops", descriptionMessageId: "permission.ops.diagnostics" },
+      { key: "ops.metrics", ownerModuleId: "ops", descriptionMessageId: "permission.ops.metrics" },
+    ]);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].definitions.map((definition) => definition.key)).toEqual(["ops.diagnostics", "ops.metrics"]);
   });
 });

@@ -2218,6 +2218,24 @@ textarea.field-input {
   margin-left: auto;
 }
 
+/* 082 REQ-082-015：Permission Catalog 分组呈现（方案「二十七/三十七」） */
+.permission-group {
+  margin-top: var(--space-5);
+}
+.permission-group-title {
+  margin: 0 0 var(--space-2);
+  font-size: 13px;
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+}
+.permission-roles {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 /* 页元信息行：版本/汇总等辅助说明 */
 .page-meta {
   display: flex;

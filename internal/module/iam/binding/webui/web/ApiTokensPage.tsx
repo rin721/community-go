@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActionTrigger, Button, CodeText, ConfirmDialog, DataTable, EmptyState, ErrorState, Field, InlineAlert, PageHeader, PageSection, SelectField, StatusBadge } from "@webui/sdk/ui";
+import { ActionTrigger, Button, CodeText, ConfirmDialog, DataTable, EmptyState, ErrorState, Field, formatDateTime, InlineAlert, PageHeader, PageSection, SelectField, StatusBadge } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { useListQueryParams } from "@webui/sdk/query";
 import { createApiToken, disableApiToken, enableApiToken, listApiTokens, loadSession, revokeApiToken, rotateApiToken, updateApiToken, type ApiTokenView } from "./api";
@@ -141,8 +141,8 @@ export default function ApiTokensPage() {
             { id: "name", header: t("webui.iam.apiTokens.name"), cell: (row) => <><strong>{row.name}</strong>{row.description ? <p className="page-meta">{row.description}</p> : null}</> },
             { id: "scopes", header: t("webui.iam.apiTokens.scopes"), cell: (row) => row.scopes.join(", ") || "—" },
             { id: "status", header: t("webui.iam.apiTokens.statusHeader"), cell: (row) => <StatusBadge status={row.status === "active" ? "active" : row.status === "disabled" ? "disabled" : row.status === "expired" ? "expired" : "revoked"}>{t(`webui.iam.apiTokens.status.${row.status}`)}</StatusBadge> },
-            { id: "expiresAt", header: t("webui.iam.apiTokens.expiresHeader"), cell: (row) => row.expiresAt ? new Date(row.expiresAt).toLocaleString() : "—" },
-            { id: "lastUsed", header: t("webui.iam.apiTokens.lastUsed"), cell: (row) => row.lastUsedAt ? new Date(row.lastUsedAt).toLocaleString() : "—" },
+            { id: "expiresAt", header: t("webui.iam.apiTokens.expiresHeader"), cell: (row) => formatDateTime(row.expiresAt) },
+            { id: "lastUsed", header: t("webui.iam.apiTokens.lastUsed"), cell: (row) => formatDateTime(row.lastUsedAt) },
             // 083 PAGE-083-006: primary action inline, rest in row menu with danger isolated at end
             { id: "primary", header: t("webui.iam.apiTokens.actions"), cell: (row) => row.status === "disabled"
               ? <ActionTrigger operationId="iam.api-tokens.enable" onAction={() => { void enableApiToken(row.id).then(() => refresh()); }} variant="secondary">{t("webui.iam.apiTokens.enable")}</ActionTrigger>

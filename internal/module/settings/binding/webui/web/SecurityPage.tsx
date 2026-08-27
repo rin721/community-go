@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Button, Field, InlineAlert, PageHeader, PageSection, StatusPill } from "@webui/sdk/ui";
+import { Button, Field, formatDateTime, InlineAlert, PageHeader, PageSection, StatusPill } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { beginMFAEnroll, changePassword, confirmMFAEnroll, disableMFA, listApiTokens, loadSession, mfaStatus } from "./api";
 import styles from "./settings.module.css";
@@ -104,7 +104,7 @@ export default function SecurityPage() {
 
       <PageSection kicker={t("webui.settings.security.tokensKicker")} title={t("webui.settings.security.tokensTitle")}>
         <p className="page-meta">{t("webui.settings.security.tokenSummary")}: {tokenCount}</p>
-        {tokenLastUsed && <p className="page-meta">{t("webui.settings.security.tokenLastUsed")}: {new Date(tokenLastUsed).toLocaleString()}</p>}
+        {tokenLastUsed && <p className="page-meta">{t("webui.settings.security.tokenLastUsed")}: {formatDateTime(tokenLastUsed)}</p>}
         <div className="toolbar-actions"><Button onClick={createToken}>{t("webui.settings.security.tokensManage")}</Button></div>
       </PageSection>
     </div>

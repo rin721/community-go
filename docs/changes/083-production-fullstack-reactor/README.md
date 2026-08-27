@@ -2,7 +2,7 @@
 
 ## 状态
 
-**研究门禁通过，计划中（2026-08-28）**。方案输入 `docs/changes/temp-new-changes.md`（Production-grade 全栈产品重构，606 行，commit `5a3def3`）与 `docs/changes/admin-design-baseline.md`（后台产品设计风格基准）。三份研究档案完成：R083-001 新方案 vs 082 现状差异（四裁决点 A 推倒 App Shell 分治 / B 移除 Tab Bar / C Backend 补足（sorting 必补）/ D 组件栈确认无冲突；三档落地）、R083-002 样式权威与布局事实基线（实测 137 处 :global、21 处死代码、toolbar 私有覆盖、camelCase 命名分裂、100vh 共 11 处、零 dvh、居中 max-width:1600、滚动在内容容器内）、R083-003 设计基线逐页对照（11 页组 × 13 维度，105 项有效判定：达标 28.6%/部分 57.1%/重做 14.3%，无页面整体达标；重做优先序 P0-P5）。研究结论确认样式污染与布局骨架缺陷为真实架构缺陷，并裁决变更 082 的两项决策（移除 Tab Bar、Backend 兼容+需时补足）。下一步：形成 requirements/design/tasks（状态待确认）并提交用户审阅。
+**已确认，实施中（2026-08-28 用户确认「确认，实施」）**。方案输入 `docs/changes/temp-new-changes.md`（Production-grade 全栈产品重构，606 行，commit `5a3def3`）与 `docs/changes/admin-design-baseline.md`（后台产品设计风格基准）。三份研究档案完成差异分析、样式/布局事实基线、页面对照；计划已确认（决策点结论：DEC-001 App Shell 分治、DEC-002 移除 Tab Bar、DEC-003 后端仅 sorting 必补、DEC-004 状态组件统一、DEC-005 启用 RHF+zod）。实施从档 1 样式权威重建开始（lint CSS 规则 + 137 处 `:global` 清理），分期提交与验证。
 
 ## 背景
 

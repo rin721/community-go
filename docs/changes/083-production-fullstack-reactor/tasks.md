@@ -2,7 +2,7 @@
 
 ## 状态
 
-研究门禁已通过（[R083-001](research/R083-001-proposal-vs-082/report.md)、[R083-002](research/R083-002-style-layout-baseline/report.md)、[R083-003](research/R083-003-baseline-page-audit/report.md)）；**计划待确认**（非纯文档实施，需用户确认后进入实施）。方案输入 `docs/changes/temp-new-changes.md` 与 `docs/changes/admin-design-baseline.md`。
+研究门禁已通过（[R083-001](research/R083-001-proposal-vs-082/report.md)、[R083-002](research/R083-002-style-layout-baseline/report.md)、[R083-003](research/R083-003-baseline-page-audit/report.md)）；**计划已确认（2026-08-28 用户确认「确认，实施」）**，进入实施阶段。方案输入 `docs/changes/temp-new-changes.md` 与 `docs/changes/admin-design-baseline.md`。决策点结论：`DEC-083-001` App Shell 分治（结构保留 + 样式骨架与装配段重写）；`DEC-083-002` 移除 Tab Bar（变更 082 DEC-001，删除 WorkspaceTabs 组件/状态/偏好/测试；Settings 双导航收敛）；`DEC-083-003` 后端仅 sorting 必补（其余按需求评估，审计元数据/User Activity 不补）；`DEC-083-004` 状态组件统一（StatusPill/StatusBadge 归一套）；`DEC-083-005` 启用 RHF+zod 并迁移表单。
 
 ## 任务
 

@@ -73,6 +73,7 @@ test.beforeEach(async ({ page }) => {
   let managementRequestCount = 0;
   let navigationEnabled = true;
   let navigationRevision = "e2e-navigation-revision-1";
+  let accountsFailuresRemaining = 0;
 
   await page.route("**/api/v1/webui/manifest", async (route) => {
     await route.fulfill({ json: manifest(authenticated, availability, accessOverride, navigationEnabled, navigationRevision) });
@@ -105,6 +106,11 @@ test.beforeEach(async ({ page }) => {
     await route.fulfill({ json: { confirmationId: "e2e-confirmation" } });
   });
   await page.route("**/api/v1/iam/accounts?*", async (route) => {
+    if (accountsFailuresRemaining > 0) {
+      accountsFailuresRemaining -= 1;
+      await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ code: "temporarily_unavailable" }) });
+      return;
+    }
     await route.fulfill({ json: { items: [{ id: "user-1", username: "operator", displayName: "Operator", status: "active", mustChangePassword: false, securityRevision: 1, version: 1 }], offset: 0, limit: 100, total: 1 } });
   });
   await page.route("**/api/v1/iam/accounts/user-1/roles", async (route) => { await route.fulfill({ json: { accountId: "user-1", accountVersion: 1, authorizationRevision: 1, roleIds: ["role-owner"] } }); });
@@ -142,11 +148,12 @@ test.beforeEach(async ({ page }) => {
     (window as unknown as { __webuiTestState?: unknown }).__webuiTestState = revision;
   }, { revision: webuiRevision });
 
-  (page as unknown as { setWebUIState: (state: { authenticated?: boolean; availability?: "available" | "degraded" | "unavailable"; access?: "allowed" | "denied" }) => void }).setWebUIState = (state) => {
+  (page as unknown as { setWebUIState: (state: { authenticated?: boolean; availability?: "available" | "degraded" | "unavailable"; access?: "allowed" | "denied" }) => void; setAccountsFailures: (count: number) => void }).setWebUIState = (state) => {
     authenticated = state.authenticated ?? authenticated;
     availability = state.availability ?? availability;
     accessOverride = state.access;
   };
+  (page as unknown as { setAccountsFailures: (count: number) => void }).setAccountsFailures = (count) => { accountsFailuresRemaining = count; };
   (page as unknown as { managementRequestCount: () => number }).managementRequestCount = () => managementRequestCount;
 });
 
@@ -294,6 +301,19 @@ test("account role and permission management pages render module-owned evidence"
   await expect(page.getByRole("heading", { name: "Permissions" })).toBeVisible();
   await expect(page.getByText("iam:account:read", { exact: true })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("iam-permissions.png"), fullPage: true });
+});
+
+test("accounts connectivity error can recover through Retry", async ({ page }) => {
+  const state = page as unknown as { setWebUIState: (state: { authenticated: boolean }) => void; setAccountsFailures: (count: number) => void };
+  state.setWebUIState({ authenticated: true });
+  state.setAccountsFailures(10);
+  await page.goto("/admin/accounts");
+  await expect(page.getByText("Page failed to load", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Retry" })).toBeVisible();
+  state.setAccountsFailures(0);
+  await page.getByRole("button", { name: "Retry" }).click();
+  await expect(page.getByText("Operator", { exact: true })).toBeVisible();
+  await expect(page.getByText("Page failed to load", { exact: true })).toHaveCount(0);
 });
 
 test("organization management pages render tree, position and assignment evidence", async ({ page }, testInfo) => {

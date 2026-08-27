@@ -23,6 +23,7 @@ export const groupScopesByModule = (scopes: string[]): Array<{ ownerModuleId: st
 // display, and disable/enable/rotate/revoke lifecycle actions.
 export default function ApiTokensPage() {
   const { t } = useWebUITranslation("webui.iam");
+  const { t: hostT } = useWebUITranslation("webui.host");
   const listQuery = useListQueryParams<{}>({ filters: {} });
   const [tokens, setTokens] = useState<ApiTokenView[]>([]);
   const [status, setStatus] = useState("all");
@@ -131,7 +132,7 @@ export default function ApiTokensPage() {
             { value: "desc", label: t("webui.iam.accounts.sortDesc") },
           ]} onValueChange={(value) => listQuery.setSort({ key: listQuery.sort?.key ?? "createdAt", direction: value === "desc" ? "desc" : "asc" })} />}
         </div>
-        {loadError && <ErrorState kind="connectivity" title={t("webui.host.route.error.title")} detail={t("webui.host.route.error.detail")} action={<Button variant="secondary" onClick={() => void refresh()}>{t("webui.host.retry")}</Button>} />}
+        {loadError && <ErrorState kind="connectivity" title={hostT("webui.host.route.error.title")} detail={hostT("webui.host.route.error.detail")} action={<Button variant="secondary" onClick={() => void refresh()}>{hostT("webui.host.retry")}</Button>} />}
         <DataTable
           ariaLabel={t("webui.iam.apiTokens.listTitle")}
           loading={loading}

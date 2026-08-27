@@ -39,6 +39,7 @@ export function auditDetailFields(item: AuditEventView): Array<{ label: string; 
 
 export default function AuditPage() {
   const { t } = useWebUITranslation("webui.auth");
+  const { t: hostT } = useWebUITranslation("webui.host");
   const PAGE_SIZE = 50;
   // 082 REQ-082-002/016: filters URL-ized (operation/action/outcome/resourceType).
   const listQuery = useListQueryParams<{ operation: string; action: string; outcome: string; resourceType: string }>({
@@ -92,7 +93,7 @@ export default function AuditPage() {
         />
       </PageSection>
       <PageSection kicker={t("webui.auth.audit.list.kicker")} title={t("webui.auth.audit.list.title")}>
-        {loadError && <ErrorState kind="connectivity" title={t("webui.host.route.error.title")} detail={t("webui.host.route.error.detail")} action={<Button variant="secondary" onClick={() => void refresh()}>{t("webui.host.retry")}</Button>} />}
+        {loadError && <ErrorState kind="connectivity" title={hostT("webui.host.route.error.title")} detail={hostT("webui.host.route.error.detail")} action={<Button variant="secondary" onClick={() => void refresh()}>{hostT("webui.host.retry")}</Button>} />}
         <DataTable<AuditEventView>
           columns={[
             { id: "occurredAt", header: t("webui.auth.audit.occurredAt"), cell: (item) => <span title={formatDateTime(item.occurredAt)}>{formatRelativeTime(item.occurredAt, t)}</span> },

@@ -24,6 +24,7 @@ const PAGE_SIZE = 10;
 
 export default function AccountsPage() {
   const { t } = useWebUITranslation("webui.iam");
+  const { t: hostT } = useWebUITranslation("webui.host");
   // 082 REQ-082-012/002: list state URL-ized (query refresh keeps context).
   const listQuery = useListQueryParams<{ query: string; status: string; archived: boolean }>({
     filters: {
@@ -143,7 +144,7 @@ export default function AccountsPage() {
             { value: "desc", label: t("webui.iam.accounts.sortDesc") },
           ]} onValueChange={(value) => listQuery.setSort({ key: listQuery.sort?.key ?? "displayName", direction: value === "desc" ? "desc" : "asc" })} />}
         </div>
-        {loadError && <ErrorState kind="connectivity" title={t("webui.host.route.error.title")} detail={t("webui.host.route.error.detail")} action={<Button variant="secondary" onClick={() => void refresh()}>{t("webui.host.retry")}</Button>} />}
+        {loadError && <ErrorState kind="connectivity" title={hostT("webui.host.route.error.title")} detail={hostT("webui.host.route.error.detail")} action={<Button variant="secondary" onClick={() => void refresh()}>{hostT("webui.host.retry")}</Button>} />}
         <DataTable<Account>
           columns={[
             { id: "displayName", header: t("webui.iam.displayName"), cell: (item) => item.displayName },

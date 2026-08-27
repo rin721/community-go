@@ -22,6 +22,7 @@ export function sessionStatusCell(item: SessionInfo, t: Translate) {
 
 export default function SessionsPage() {
   const { t } = useWebUITranslation("webui.iam");
+  const { t: hostT } = useWebUITranslation("webui.host");
   const listQuery = useListQueryParams<{ status: string }>({ filters: { status: { queryKey: "status", defaultValue: "all" } } });
   const [items, setItems] = useState<SessionInfo[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -67,7 +68,7 @@ export default function SessionsPage() {
             { value: "desc", label: t("webui.iam.accounts.sortDesc") },
           ]} onValueChange={(value) => listQuery.setSort({ key: listQuery.sort?.key ?? "createdAt", direction: value === "desc" ? "desc" : "asc" })} />}
         </div>
-        {loadError && <ErrorState kind="connectivity" title={t("webui.host.route.error.title")} detail={t("webui.host.route.error.detail")} action={<Button variant="secondary" onClick={() => void refresh()}>{t("webui.host.retry")}</Button>} />}
+        {loadError && <ErrorState kind="connectivity" title={hostT("webui.host.route.error.title")} detail={hostT("webui.host.route.error.detail")} action={<Button variant="secondary" onClick={() => void refresh()}>{hostT("webui.host.retry")}</Button>} />}
         <DataTable<SessionInfo>
           columns={[
             { id: "idHash", header: t("webui.iam.sessions.idHash"), cell: (item) => <CodeText value={item.idHash} copyable /> },

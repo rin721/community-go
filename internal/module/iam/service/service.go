@@ -1177,6 +1177,11 @@ func (s *Service) CreateRole(ctx context.Context, code, name, description string
 	return role, err
 }
 func (s *Service) ListRoles(ctx context.Context, offset, limit int, query string) (RoleList, error) {
+	return s.ListRolesSorted(ctx, offset, limit, query, "")
+}
+
+// ListRolesSorted 分页返回角色，并按受控排序字段排列。
+func (s *Service) ListRolesSorted(ctx context.Context, offset, limit int, query, sortValue string) (RoleList, error) {
 	offset, limit, err := normalizePage(offset, limit)
 	if err != nil {
 		return RoleList{}, err
@@ -1193,7 +1198,7 @@ func (s *Service) ListRoles(ctx context.Context, offset, limit int, query string
 		if listErr != nil {
 			return listErr
 		}
-		records, listErr = r.ListRoles(ctx, offset, limit, query)
+		records, listErr = r.ListRoles(ctx, offset, limit, query, sortValue)
 		return listErr
 	})
 	items := make([]model.Role, len(records))
@@ -1602,6 +1607,11 @@ const (
 // ListSessions 分页返回账号的受信 Session 元数据视图（含已吊销标记）；
 // status 决定过滤语义（active/revoked/all），total 与列表使用同一过滤条件。
 func (s *Service) ListSessions(ctx context.Context, accountID string, offset, limit int, status SessionListStatus) (SessionList, error) {
+	return s.ListSessionsSorted(ctx, accountID, offset, limit, status, "")
+}
+
+// ListSessionsSorted 分页返回会话，并按受控排序字段排列。
+func (s *Service) ListSessionsSorted(ctx context.Context, accountID string, offset, limit int, status SessionListStatus, sortValue string) (SessionList, error) {
 	if strings.TrimSpace(accountID) == "" {
 		return SessionList{}, ErrSessionInvalid
 	}
@@ -1624,7 +1634,7 @@ func (s *Service) ListSessions(ctx context.Context, accountID string, offset, li
 		if err != nil {
 			return err
 		}
-		records, err = r.ListSessionsByAccount(ctx, accountID, now, activeOnly, revokedOnly, offset, limit)
+		records, err = r.ListSessionsByAccount(ctx, accountID, now, activeOnly, revokedOnly, offset, limit, sortValue)
 		return err
 	})
 	if err != nil {
@@ -2047,6 +2057,11 @@ func (s *Service) CreateApiToken(ctx context.Context, accountID, name, descripti
 
 // ListApiTokens 分页返回账号令牌管理视图（无明文）；status 过滤（080）。
 func (s *Service) ListApiTokens(ctx context.Context, accountID string, offset, limit int, status ApiTokenStatus) (ApiTokenList, error) {
+	return s.ListApiTokensSorted(ctx, accountID, offset, limit, status, "")
+}
+
+// ListApiTokensSorted 分页返回令牌，并按受控排序字段排列。
+func (s *Service) ListApiTokensSorted(ctx context.Context, accountID string, offset, limit int, status ApiTokenStatus, sortValue string) (ApiTokenList, error) {
 	offset, limit, err := normalizePage(offset, limit)
 	if err != nil {
 		return ApiTokenList{}, err
@@ -2065,7 +2080,7 @@ func (s *Service) ListApiTokens(ctx context.Context, accountID string, offset, l
 		if listErr != nil {
 			return listErr
 		}
-		records, listErr = r.ListApiTokensFiltered(ctx, accountID, offset, limit, filter)
+		records, listErr = r.ListApiTokensFiltered(ctx, accountID, offset, limit, filter, sortValue)
 		return listErr
 	})
 	if err != nil {

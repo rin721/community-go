@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -288,10 +289,14 @@ func (unit *Unit) CountApiTokensFiltered(ctx context.Context, accountID string, 
 }
 
 // ListApiTokensFiltered 分页返回账号令牌（创建时间降序；status 过滤与 Count 同条件）。
-func (unit *Unit) ListApiTokensFiltered(ctx context.Context, accountID string, offset, limit int, filter ApiTokenFilter) ([]ApiTokenRecord, error) {
+func (unit *Unit) ListApiTokensFiltered(ctx context.Context, accountID string, offset, limit int, filter ApiTokenFilter, sortValue string) ([]ApiTokenRecord, error) {
 	var records []ApiTokenRecord
 	err := unit.useDB(ctx, func(db *gorm.DB) error {
-		return unit.apiTokenQuery(ctx, db, accountID, filter).Order("created_at DESC, id ASC").Offset(offset).Limit(limit).Find(&records).Error
+		order, err := listOrder(sortValue, map[string]string{"name": "name", "createdAt": "created_at", "expiresAt": "expires_at", "lastUsedAt": "last_used_at"}, "created_at DESC, id ASC")
+		if err != nil {
+			return err
+		}
+		return unit.apiTokenQuery(ctx, db, accountID, filter).Order(order).Offset(offset).Limit(limit).Find(&records).Error
 	})
 	return records, err
 }
@@ -432,7 +437,7 @@ func (unit *Unit) CountRolesMatching(ctx context.Context, query string) (int64, 
 	return count, err
 }
 
-func (unit *Unit) ListRoles(ctx context.Context, offset, limit int, query string) ([]RoleRecord, error) {
+func (unit *Unit) ListRoles(ctx context.Context, offset, limit int, query, sortValue string) ([]RoleRecord, error) {
 	var records []RoleRecord
 	err := unit.useDB(ctx, func(db *gorm.DB) error {
 		q := db.Table(roleTable)
@@ -440,9 +445,29 @@ func (unit *Unit) ListRoles(ctx context.Context, offset, limit int, query string
 			like := "%" + strings.TrimSpace(query) + "%"
 			q = q.Where("(code LIKE ? OR name LIKE ?)", like, like)
 		}
-		return q.Order("code ASC").Offset(offset).Limit(limit).Find(&records).Error
+		order, err := listOrder(sortValue, map[string]string{"code": "code", "name": "name", "createdAt": "created_at"}, "code ASC")
+		if err != nil {
+			return err
+		}
+		return q.Order(order).Offset(offset).Limit(limit).Find(&records).Error
 	})
 	return records, err
+}
+
+// listOrder 将排序值转换为固定 SQL 片段；列名和方向都必须来自白名单。
+func listOrder(value string, columns map[string]string, defaultOrder string) (string, error) {
+	if strings.TrimSpace(value) == "" {
+		return defaultOrder, nil
+	}
+	parts := strings.Split(value, ":")
+	if len(parts) != 2 || (parts[1] != "asc" && parts[1] != "desc") {
+		return "", fmt.Errorf("invalid list sort %q", value)
+	}
+	column, ok := columns[parts[0]]
+	if !ok {
+		return "", fmt.Errorf("invalid list sort column %q", parts[0])
+	}
+	return column + " " + parts[1], nil
 }
 
 func (unit *Unit) TouchRole(ctx context.Context, id string, version uint64, now time.Time) error {
@@ -638,11 +663,15 @@ func (unit *Unit) CountSessionsByAccount(ctx context.Context, accountID string, 
 // ListSessionsByAccount 返回账号会话的分页元数据（含已吊销标记），只暴露
 // 摘要（IDHash hex）与过期信息，不泄露明文 SessionID。过滤语义与
 // CountSessionsByAccount 一致，保证 total 与列表不漂移。
-func (unit *Unit) ListSessionsByAccount(ctx context.Context, accountID string, now time.Time, activeOnly, revokedOnly bool, offset, limit int) ([]SessionRecord, error) {
+func (unit *Unit) ListSessionsByAccount(ctx context.Context, accountID string, now time.Time, activeOnly, revokedOnly bool, offset, limit int, sortValue string) ([]SessionRecord, error) {
 	var records []SessionRecord
 	err := unit.useDB(ctx, func(db *gorm.DB) error {
 		query := unit.sessionScope(ctx, db, accountID, now, activeOnly, revokedOnly)
-		return query.Order("created_at DESC, id_hash ASC").Offset(offset).Limit(limit).Find(&records).Error
+		order, err := listOrder(sortValue, map[string]string{"createdAt": "created_at", "lastSeenAt": "last_seen_at", "idleExpiresAt": "idle_expires_at"}, "created_at DESC, id_hash ASC")
+		if err != nil {
+			return err
+		}
+		return query.Order(order).Offset(offset).Limit(limit).Find(&records).Error
 	})
 	return records, err
 }

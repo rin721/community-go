@@ -2,7 +2,7 @@
 
 ## 状态
 
-**已确认，实施完成（2026-08-28；dev e2e 与移动视口真机验证待真实环境）**。方案输入 `docs/changes/temp-new-changes.md` 与 `docs/changes/admin-design-baseline.md`。三档全部落地：档 1 样式权威（lint CSS 规则 + 反向 fixture + `:global` 平台类清零）；档 2 布局骨架（`100dvh`/Sidebar 独立滚动/宽度档接线/移除 Tab Bar 与 Footer/Settings 单入口）；档 3 页面产品化（Audit 分页+时间戳、FilterBar typed filters 接线、后端 account sorting、操作列折叠、危险操作确认、状态组件统一）。验证：`go test ./...`、`go vet ./...`、contract-gen 匹配、Vitest 195、lint（modules/i18n/architecture）、mock E2E 3、build 全绿；Playwright dev 20 用例待真实后端（受限环境，见 tasks.md）。
+**已确认，实施中（2026-08-28；基础骨架与首批页面能力已落地）**。样式权威、布局骨架、Audit 分页/时间戳、账号筛选与排序、API Token 操作列、账号/角色危险确认已落地；本轮补齐角色、会话、API Token 列表的后端排序契约与白名单 SQL 映射。页面剩余 FilterBar、危险操作覆盖、Feature 拆解和真实后端/移动视口验收仍见 [tasks.md](tasks.md)。
 
 ## 背景
 

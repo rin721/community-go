@@ -13,20 +13,20 @@
 | ID | 工作量 | 依赖 | 内容 | 完成条件 | 状态 |
 | --- | --- | --- | --- | --- | --- |
 | `RES-083-001/002/003` | M | — | 研究：差异分析 / 样式布局基线 / 页面对照 | metadata/report 齐全；门禁通过 | 完成 |
-| `PLAN-083-001` | S | RES | 计划（requirements/design/tasks/README）+ 决策点 DEC-083-001..005 | 文档齐全；用户确认 | 待确认 |
-| `STYLE-083-001` | M | 确认 | lint-architecture.mjs 扩展 CSS 扫描（L1 `:global` 平台类 / L2 平台类私有覆盖 / L3 真全局）+ 反向 fixture | 故意违规失败；lint 全绿 | 待实施 |
-| `STYLE-083-002` | M | 确认 | 21 处死代码删除（auth audit-* 9、iam session-* 7、navigation policy-* 5） | grep 无消费方；lint/vitest 全绿 | 待实施 |
-| `STYLE-083-003` | L | 确认 | 剩余 116 处 `:global` 收敛（平台类并入 styles.css / 模块局部类；header-zone-action 改受控平台类） | 137→0；lint 新规则通过 | 待实施 |
-| `STYLE-083-004` | S | 确认 | 命名唯一：camelCase 变体（pageMeta/formHint 等）统一 kebab-case | lint 断言；无重复语义类 | 待实施 |
+| `PLAN-083-001` | S | RES | 计划（requirements/design/tasks/README）+ 决策点 DEC-083-001..005 | 文档齐全；用户确认 | 完成 |
+| `STYLE-083-001` | M | 确认 | lint-architecture.mjs 扩展 CSS 扫描 + 反向 fixture | 故意违规失败；lint 全绿 | 完成 |
+| `STYLE-083-002` | M | 确认 | 21 处死代码删除 | grep 无消费方；lint/vitest 全绿 | 完成 |
+| `STYLE-083-003` | L | 确认 | `:global` 收敛与模块局部化 | lint 新规则通过 | 完成 |
+| `STYLE-083-004` | S | 确认 | 命名唯一与 kebab-case 平台语义类 | lint 断言；无重复语义类 | 完成 |
 
 ### 档 2：布局骨架重写（REQ-083-004..008）
 
 | ID | 工作量 | 依赖 | 内容 | 完成条件 | 状态 |
 | --- | --- | --- | --- | --- | --- |
-| `LAYOUT-083-001` | L | 确认 | 视口与滚动：`100dvh`（app-workspace/app-shell/app-sidebar/app-main）、Sidebar 固定独立滚动、Main Workspace 独立滚动 | class 断言 + mock E2E 页面浏览；移动视口仿真（受限标注） | 待实施 |
-| `LAYOUT-083-002` | M | 确认 | 宽度档接线：`--content-max-*` 4 token 消费（data-page-width 语义；Table 全宽/Settings 960/Detail 1200/form 760） | 各宽度 class 断言 | 待实施 |
-| `LAYOUT-083-003` | L | 确认（DEC-002） | 移除 WorkspaceTabs（装配点/visitedRoutes/showTabs 偏好）与 Footer（showFooter）；删除组件+测试 | e2e 无残留 selector；单轨无旧文件 | 待实施 |
-| `LAYOUT-083-004` | M | 确认 | Settings 双导航收敛（全局入口 + 页内 SectionNav 单形态） | Settings e2e 单导航断言 | 待实施 |
+| `LAYOUT-083-001` | L | 确认 | 视口与滚动：`100dvh`、Sidebar/Main 独立滚动 | class 断言 + mock E2E；移动视口仿真受限 | 完成（移动受限） |
+| `LAYOUT-083-002` | M | 确认 | 宽度档接线 | 各宽度 class 断言 | 完成 |
+| `LAYOUT-083-003` | L | 确认（DEC-002） | 移除 WorkspaceTabs 与 Footer | e2e 无残留 selector；单轨无旧文件 | 完成 |
+| `LAYOUT-083-004` | M | 确认 | Settings 双导航收敛 | Settings e2e 单导航断言 | 完成 |
 
 ### 档 3：页面产品化与后端补足（REQ-083-009..012）
 
@@ -36,7 +36,7 @@
 | `PAGE-083-002` | M | 确认 | P1：Audit 分页（offset/limit URL 化）；时间戳格式化（Sessions/Audit/Ops 人类可读+相对时间） | e2e 断言；无 raw ISO 直出 | 待实施 |
 | `PAGE-083-003` | M | 确认 | P1：Settings 双导航 + 宽度 640-960 收敛 | Settings e2e | 待实施 |
 | `PAGE-083-004` | L | 确认 | P2：FilterBar 接线（Accounts/Sessions 后端 typed filters surface） | filter 参数真实请求 | 待实施 |
-| `BACKEND-083-001` | L | 确认（DEC-003） | 后端 sort 参数（iam accounts/roles/sessions/api-tokens list）+ 失败校验 | operation 生成链同步；Go 测试 | 待实施 |
+| `BACKEND-083-001` | L | 确认（DEC-003） | 后端 sort 参数（iam accounts/roles/sessions/api-tokens list）+ 白名单 SQL 映射 | operation 生成链同步；Go 测试 | 完成（本轮） |
 | `PAGE-083-005` | M | BACKEND-001 | 前端 sort URL 契约接线（useListQueryParams → 列表查询） | sort e2e | 待实施 |
 | `PAGE-083-006` | M | 确认 | P3：MetricCard/EntityHeader 组件化 + 操作列「1 主操作 + ...折叠 + 危险隔离」（ApiTokens 优先） | 组件 Vitest + 页面采用 | 待实施 |
 | `PAGE-083-007` | M | 确认 | P4：危险确认（Accounts/Roles/ApiTokens/Departments archive/revoke → Confirm/DangerZone）+ 空载态规格 | 确认 e2e；Empty/Loading 组件采用 | 待实施 |

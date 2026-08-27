@@ -1741,6 +1741,12 @@ paths:
               - revoked
               - all
             type: string
+        - explode: false
+          in: query
+          name: sort
+          schema:
+            maxLength: 32
+            type: string
       responses:
         "200":
           content:
@@ -2180,6 +2186,12 @@ paths:
           name: query
           schema:
             maxLength: 128
+            type: string
+        - explode: false
+          in: query
+          name: sort
+          schema:
+            maxLength: 32
             type: string
       responses:
         "200":
@@ -2768,6 +2780,12 @@ paths:
               - all
               - active
               - revoked
+            type: string
+        - explode: false
+          in: query
+          name: sort
+          schema:
+            maxLength: 32
             type: string
       responses:
         "200":

@@ -205,6 +205,7 @@ type apiTokenListInput struct {
 	Offset int    `query:"offset" minimum:"0" default:"0"`
 	Limit  int    `query:"limit" minimum:"1" maximum:"100" default:"20"`
 	Status string `query:"status" enum:"active,disabled,expired,revoked,all"`
+	Sort   string `query:"sort" maxLength:"32"`
 }
 type apiTokenCreateInput struct {
 	Origin    string `header:"Origin" required:"true"`
@@ -265,6 +266,7 @@ type sessionListInput struct {
 	Offset    int    `query:"offset" minimum:"0" default:"0"`
 	Limit     int    `query:"limit" minimum:"1" maximum:"100" default:"20"`
 	Status    string `query:"status" enum:"all,active,revoked"`
+	Sort      string `query:"sort" maxLength:"32"`
 }
 
 type sessionRevokeInput struct {

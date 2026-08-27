@@ -39,6 +39,7 @@ type pageInput struct {
 	Offset int    `query:"offset" minimum:"0" default:"0"`
 	Limit  int    `query:"limit" minimum:"1" maximum:"100" default:"20"`
 	Query  string `query:"query" maxLength:"128"`
+	Sort   string `query:"sort" maxLength:"32"`
 }
 type accountsListInput struct {
 	Offset   int                          `query:"offset" minimum:"0" default:"0"`
@@ -344,7 +345,7 @@ func RegisterHuma(api huma.API, handler *Handler) {
 			}
 			accountID = current.Identity.AccountID
 		}
-		result, err := handler.service.ListSessions(ctx, accountID, in.Offset, in.Limit, service.SessionListStatus(in.Status))
+		result, err := handler.service.ListSessionsSorted(ctx, accountID, in.Offset, in.Limit, service.SessionListStatus(in.Status), in.Sort)
 		if err != nil {
 			return nil, problem(ctx, err)
 		}
@@ -428,7 +429,7 @@ func RegisterHuma(api huma.API, handler *Handler) {
 	})
 
 	huma.Register(api, protected(opRoles, http.MethodGet, "/api/v1/iam/roles", string(iampermission.RoleRead), "list"), func(ctx context.Context, in *pageInput) (*jsonOutput[listResponse[roleResponse]], error) {
-		result, err := handler.service.ListRoles(ctx, in.Offset, in.Limit, in.Query)
+		result, err := handler.service.ListRolesSorted(ctx, in.Offset, in.Limit, in.Query, in.Sort)
 		if err != nil {
 			return nil, problem(ctx, err)
 		}
@@ -516,7 +517,7 @@ func RegisterHuma(api huma.API, handler *Handler) {
 		if !ok {
 			return nil, httpx.NewProtocolProblemError(ctx, statusError(http.StatusUnauthorized, "unauthenticated", nil))
 		}
-		result, err := handler.service.ListApiTokens(ctx, current.Identity.AccountID, in.Offset, in.Limit, service.ApiTokenStatus(in.Status))
+		result, err := handler.service.ListApiTokensSorted(ctx, current.Identity.AccountID, in.Offset, in.Limit, service.ApiTokenStatus(in.Status), in.Sort)
 		if err != nil {
 			return nil, problem(ctx, err)
 		}

@@ -346,7 +346,7 @@ export function SelectField({ label, value, options, onValueChange, className = 
   );
 }
 
-export function InlineAlert({ tone = "info", title, detail, action }: { tone?: "info" | "success" | "warning" | "danger"; title: string; detail?: string; action?: ReactNode }) {
+export function InlineAlert({ tone = "info", title, detail, action }: { tone?: "info" | "success" | "warning" | "danger"; title: string; detail?: ReactNode; action?: ReactNode }) {
   const status = tone === "danger" ? "danger" : tone === "warning" ? "warning" : tone === "success" ? "success" : "accent";
   return <Alert status={status} className={`inline-alert inline-alert-${tone}`} role="status"><Alert.Content><Alert.Title><strong>{title}</strong></Alert.Title><Alert.Description>{detail && <span>{detail}</span>}</Alert.Description></Alert.Content>{action && <Alert.Content><span className="inline-alert-action">{action}</span></Alert.Content>}</Alert>;
 }

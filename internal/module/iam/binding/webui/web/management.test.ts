@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { checklistCandidates } from "./AccountsPage";
 import { diffKeys, groupByOwnerModule } from "./RolesPage";
 import { groupByModule } from "./PermissionsPage";
+import { groupScopesByModule } from "./ApiTokensPage";
 import type { Role } from "./api";
 
 describe("IAM management selection", () => {
@@ -49,5 +50,13 @@ describe("082 Permission catalog grouping (REQ-015)", () => {
     ]);
     expect(groups).toHaveLength(1);
     expect(groups[0].definitions.map((definition) => definition.key)).toEqual(["ops.diagnostics", "ops.metrics"]);
+  });
+});
+
+describe("082 API token scope grouping (REQ-022/040)", () => {
+  it("groups scopes by owner prefix in stable order", () => {
+    const groups = groupScopesByModule(["iam:account:self:read", "todo:item:read", "iam:role:read"]);
+    expect(groups.map((group) => group.ownerModuleId)).toEqual(["iam", "todo"]);
+    expect(groups[0].scopes).toEqual(["iam:account:self:read", "iam:role:read"]);
   });
 });

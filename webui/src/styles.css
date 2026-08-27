@@ -2236,6 +2236,19 @@ textarea.field-input {
   gap: 6px;
 }
 
+/* 082 REQ-082-022：API Token scope 按模块分组选择 */
+.api-token-scope-group {
+  margin: 0 0 var(--space-3);
+}
+.api-token-scope-owner {
+  margin: 0 0 var(--space-1);
+  font-size: 12px;
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+}
+
 /* 082 REQ-082-005：CodeViewer / DetailDrawer 语义组件 */
 .code-viewer {
   border: 1px solid var(--border);

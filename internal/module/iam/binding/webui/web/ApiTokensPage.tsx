@@ -1,8 +1,21 @@
-import { useCallback, useEffect, useState } from "react";
-import { ActionTrigger, Button, DataTable, EmptyState, Field, InlineAlert, PageHeader, PageSection, SelectField, StatusPill } from "@webui/sdk/ui";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ActionTrigger, Button, CodeText, DataTable, EmptyState, Field, InlineAlert, PageHeader, PageSection, SelectField, StatusPill } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { createApiToken, disableApiToken, enableApiToken, listApiTokens, loadSession, revokeApiToken, rotateApiToken, updateApiToken, type ApiTokenView } from "./api";
 import styles from "./iam.module.css";
+
+// groupScopesByModule groups available scopes by their owner prefix
+// (e.g. "iam:account:self:read" -> "iam") for the creation matrix (082 REQ-022/040).
+export const groupScopesByModule = (scopes: string[]): Array<{ ownerModuleId: string; scopes: string[] }> => {
+  const byOwner = new Map<string, string[]>();
+  for (const scope of [...scopes].sort()) {
+    const owner = scope.includes(":") ? scope.split(":")[0] : "other";
+    const group = byOwner.get(owner) ?? [];
+    group.push(scope);
+    byOwner.set(owner, group);
+  }
+  return [...byOwner.entries()].map(([ownerModuleId, items]) => ({ ownerModuleId, scopes: items }));
+};
 
 // ApiTokensPage provides full API-Token management (080): status-filtered list,
 // creation wizard scoped to the account's own permissions, one-time secret
@@ -21,6 +34,8 @@ export default function ApiTokensPage() {
   const [neverExpires, setNeverExpires] = useState(false);
   const [secret, setSecret] = useState("");
   const [message, setMessage] = useState("");
+
+  const scopeGroups = useMemo(() => groupScopesByModule(availableScopes), [availableScopes]);
 
   const refresh = useCallback((filter = status) => {
     void listApiTokens(filter).then((value) => setTokens(value.items)).catch(() => undefined);
@@ -55,7 +70,7 @@ export default function ApiTokensPage() {
     <PageHeader eyebrow={t("webui.iam.access.title")} title={t("webui.iam.apiTokens.title")} description={t("webui.iam.apiTokens.description")} actions={restricted ? <StatusPill state="degraded">{t("webui.iam.apiTokens.restricted")}</StatusPill> : undefined} />
     <div className="page-sections">
       {restricted && <InlineAlert tone="warning" title={t("webui.iam.apiTokens.restricted")} detail={t("webui.iam.apiTokens.restrictedDetail")} />}
-      {secret && <InlineAlert tone="success" title={t("webui.iam.apiTokens.secretTitle")} detail={secret} />}
+      {secret && <InlineAlert tone="success" title={t("webui.iam.apiTokens.secretTitle")} detail={<CodeText value={secret} copyable copyLabel={t("webui.iam.apiTokens.copySecret")} />} />}
       {message && <p className="page-meta" role="status">{message}</p>}
 
       <PageSection kicker={t("webui.iam.apiTokens.createKicker")} title={t("webui.iam.apiTokens.createTitle")}>
@@ -70,11 +85,16 @@ export default function ApiTokensPage() {
           <fieldset>
             <legend>{t("webui.iam.apiTokens.scopes")}</legend>
             {availableScopes.length === 0 && <p className="page-meta">{t("webui.iam.apiTokens.scopeEmpty")}</p>}
-            {availableScopes.map((scope) => (
-              <label key={scope} className="page-check">
-                <input type="checkbox" checked={selectedScopes.includes(scope)} onChange={() => toggleScope(scope)} />
-                <span>{scope}</span>
-              </label>
+            {scopeGroups.map((group) => (
+              <div className="api-token-scope-group" key={group.ownerModuleId}>
+                <h4 className="api-token-scope-owner">{group.ownerModuleId}</h4>
+                {group.scopes.map((scope) => (
+                  <label key={scope} className="page-check">
+                    <input type="checkbox" checked={selectedScopes.includes(scope)} onChange={() => toggleScope(scope)} />
+                    <span>{scope}</span>
+                  </label>
+                ))}
+              </div>
             ))}
           </fieldset>
           <div className="toolbar-actions">

@@ -72,7 +72,8 @@
 - codex 视觉评审发现 2 个 P0 缺陷并已修复（codex 复核确认）：
   1. **单花括号插值泄漏**：locale 键用 `{page}`/`{total}`（i18next 只认 `{{var}}` 双花括号），分页文本渲染为字面 `{page} · {total}`——全模块 locale 迁移为双花括号（auth/iam，commit `bdba71b`/`9ecae92`）。
   2. **相对时间缺键 + 命名空间错配**：`formatRelativeTime` 用 `webui.host.relative.*` 键但 Audit/Sessions 传模块命名空间 t（`nsSeparator:false` 无法跨 ns）→ 单元格显示「翻译资源缺失」——host locale 补 7 个 relative 键（`e6b5f98`），调用方改传 hostT（`d722820`）；codex 复核 Occurred at 现显示 `3d ago`。
-- 视觉评审剩余 P1 打磨项（记录，不阻塞）：Dashboard 产品化（Trend/Alerts/Activity/Drill-down）、普通卡片圆角/阴影收敛、Accounts 菜单展开态行操作外观、Settings 两栏布局利用率。
+- 视觉评审剩余 P1 打磨项（记录，不阻塞）：Dashboard 产品化（Trend/Alerts/Activity/Drill-down）、Accounts 菜单展开态行操作外观、Settings 两栏布局利用率。
+- **圆角收敛已修复**（codex 复核确认）：radius token（md 12→8、lg 14→10）+ HeroUI Card 内覆盖 10px（原默认 ~22-24px 超基线）；e2e 断言内容卡片 ≤12px；codex 视觉复核 KPI/Diagnostic 均 10px、阴影 2/5 克制（commit `fa45ff7`）。
 
 **关键达成指标（实证）**：
 - 样式 `:global` 平台类重复清零；剩余 95 处全为模块专属（`lint-architecture` L1/L3 守护 + 反向 fixture）

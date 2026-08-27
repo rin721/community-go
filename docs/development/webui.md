@@ -85,9 +85,22 @@ IAM 用户密码可通过 `go run ./cmd/app iam reset-password --username <用�
 
 模块页面只能依赖 `@webui/sdk/*` 和自身 API，不得导入宿主 Router、菜单、Session Store 或内部全局状态。新增页面时先修改模块 WebUI Binding，再运行生成检查。SDK 公开面按 runtime、http、i18n、query、navigation、ui、zone、feedback、mock 分包；禁止 `resolve/get`、万能 Context 和第三方 client 穿透。
 
-模块样式必须放在模块自己的 `binding/webui/web/*.module.css`，页面根节点使用模块 CSS Module scope；宿主 `webui/src/styles.css` 只允许保留 reset、design token、Shell/platform 和公共 SDK UI 规则。业务 selector 不得回流宿主全局 CSS。`pnpm lint:architecture` 会按目录动态发现所有模块，但通过结果仍只覆盖当前源码和静态规则。
+样式 authority 是宿主 `webui/src/styles.css`：这里只维护 reset、design token、Shell、布局、overlay、公共 SDK UI、loading、responsive 和 reduced-motion 规则；业务 selector 必须留在模块自己的 `binding/webui/web/*.module.css`，页面根节点使用 CSS Module scope。模块 CSS 不得使用平台级 `:global`，也不得用裸 `:global` 绕过 scope；`pnpm lint:architecture` 通过 CSS 扫描和反向 fixture 守护这条边界。平台公共类统一使用 kebab-case 语义命名，新增页面优先复用平台原语和类，不复制模块级布局覆盖。
 
-宿主 Shell 按 `webui/src/components/shell/*` 拆分：`AppSidebar`（品牌、递归菜单、移动抽屉语义）、`AppHeader`（topbar 与工具优先级）、`WorkspaceTabs`（已访问页签与 roving keyboard）、`AccountMenu`（账号 popover，统一 dismiss/focus）、`SidebarMenu`（递归菜单树与子菜单常驻 DOM）、`ShellSkeleton`/`PageSkeleton`（几何占位）。`AppShell` 保留现有公开 props，只负责 manifest/principal/logout 转宿主 view model 并协调 overlay、visited tabs 与 route content。平台样式 token（`--shell-*` 布局、`--z-*` 层级、`--motion-*` 时长与 easing、surface/border/radius/shadow/spacing）集中在 `styles.css` token 分区；前端侧同一个动效常量维护在 `webui/src/motion.ts`，overlay 四态状态机在 `webui/src/components/shell/overlay.ts`。reduced-motion 决策由 `webui/src/theme.ts` 合并显式偏好与系统 `prefers-reduced-motion`，最终落到 `data-motion` 供样式统一降级。
+宿主 Shell 按 `webui/src/components/shell/*` 拆分：`AppSidebar`（品牌、递归菜单、移动抽屉语义）、`AppHeader`（topbar 与工具优先级）、`AccountMenu`（账号 popover，统一 dismiss/focus）、`SidebarMenu`（递归菜单树与子菜单常驻 DOM）、`ShellSkeleton`/`PageSkeleton`（几何占位）。083 已移除宿主 Tab Bar、visited-tabs 状态和固定 Footer；`AppShell` 保留现有公开 props，只负责 manifest/principal/logout 转宿主 view model 并协调 overlay 与 route content。平台样式 token（`--shell-*` 布局、`--z-*` 层级、`--motion-*` 时长与 easing、surface/border/radius/shadow/spacing）集中在 `styles.css` token 分区；前端侧同一个动效常量维护在 `webui/src/motion.ts`，overlay 四态状态机在 `webui/src/components/shell/overlay.ts`。reduced-motion 决策由 `webui/src/theme.ts` 合并显式偏好与系统 `prefers-reduced-motion`，最终落到 `data-motion` 供样式统一降级。
+
+## 083 页面骨架与宽度档
+
+083 的 Shell 使用 `100dvh`：`.app-shell`、`.app-sidebar`、`.app-workspace` 共同锁定视口高度，Sidebar 自己使用 `overflow-y: auto`，主工作区隐藏外层溢出并把页面滚动收敛到 `.page-viewport`。页面内容置于 `.page-flow`，不要为业务页额外建立固定 Tab Bar、Footer 或第二个全局滚动容器；移动视口仍需在真实设备或移动仿真环境补充验收。
+
+页面根节点通过 `data-page-width` 选择内容宽度档，缺省为 `wide`：
+
+- `wide`：列表、监控和数据密集页面，使用 `--content-max-wide`（1600px）；
+- `detail`：详情与 Master–Detail 内容，使用 `--content-max-detail`（1200px）；
+- `settings`：设置中心，使用 `--content-max-settings`（960px）；
+- `form`：创建、编辑和验证表单，使用 `--content-max-form`（760px）。
+
+宽度 token 和档位选择器由 `webui/src/styles.css` 统一维护；页面只声明语义档位，不在模块 CSS 中重复 `max-width`。当前布局、样式和组件边界可用 `pnpm lint:architecture`、`pnpm typecheck`、`pnpm test` 与 `pnpm build` 验证，静态门禁通过不替代移动视口和真实后端联调。
 
 ## 骨架分区注入点（zone）与交互规范
 

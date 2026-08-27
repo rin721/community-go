@@ -43,7 +43,7 @@
 | `PAGE-083-008` | M | 确认 | P5：Feature 拆解（EntityHeader/MetricCard/ActivityTimeline/CommandPalette 业务采用按需求） | 对照 R083-003 每页验收 | 待实施 |
 | `POL-083-001` | M | 上述 | 状态组件统一（StatusPill/StatusBadge 归一套，DEC-004）+ 视觉校准 | StatusPill 复用 StatusBadge；视觉截图复核 | 部分完成（组件单轨，视觉复核待执行） |
 | `QA-083-001` | M | 上述 | 页面达标率复核（R083-003 105 项重跑，目标 ≥70% 达标或收敛）+ 三层 QA | 达标率提升记录 | 待实施 |
-| `DOC-083-001` | M | 上述 | 文档同步：webui 指南（样式权威规则/布局规范/宽度档）、webui README、documentation-impact.yaml、changes 索引 | docs-guard 通过 | 待实施 |
+| `DOC-083-001` | M | 上述 | 文档同步：webui 指南（样式权威规则/布局规范/宽度档）、webui README、documentation-impact.yaml、changes 索引 | docs-guard 通过 | 完成（本轮） |
 | `VER-083-001` | M | 全部 | 全量验证与提交（go test/vet、Vitest ≥192、Playwright mock ≥3、lint/build/generate） | 无失败；受限项如实标注 | 待实施 |
 
 ## 验证矩阵（预期，实施后实测填写）

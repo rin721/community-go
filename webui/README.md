@@ -36,11 +36,18 @@ Linux 使用 `bash scripts/verify-webui.sh`。质量链覆盖生成检查、冻�
 ## 宿主骨架与体验（059）
 
 - `webui/src/styles.css` 是平台样式唯一 authority：分区组织（token/reset/Shell/overlay/public UI/loading/responsive/reduced-motion），
-  layout/z-index/motion 由语义 token 提供（`--shell-*`、`--z-*`、`--motion-*`），业务 selector 禁止进入该文件。
-- 宿主组件按 `webui/src/components/shell/*` 拆分（Sidebar/Header/WorkspaceTabs/AccountMenu/SidebarMenu/ShellSkeleton），
-  AppShell 保留现有公开 props 并在本文件 re-export 纯函数，模块只消费 `@webui/sdk/*`。
+  layout/z-index/motion 由语义 token 提供（`--shell-*`、`--z-*`、`--motion-*`），业务 selector 禁止进入该文件；模块 CSS 不得用平台级或裸 `:global` 绕过 scope。
+- 宿主组件按 `webui/src/components/shell/*` 拆分（Sidebar/Header/AccountMenu/SidebarMenu/ShellSkeleton），
+  083 已移除宿主 Tab Bar、visited-tabs 状态和固定 Footer；AppShell 保留现有公开 props，模块只消费 `@webui/sdk/*`。
 - loading 使用 Shell/Page/Data skeleton 单轨；reduced-motion 同时尊重显式偏好与系统 `prefers-reduced-motion`。
 - 新增平台样式、动效时长或 shell 交互时，同步更新 `webui/src/motion.ts` 与 `webui/src/theme.ts` 并补测试。
+
+## Production-grade 页面骨架（083）
+
+- Shell 使用 `100dvh`；Sidebar 独立滚动，主工作区将页面滚动收敛到 `.page-viewport`/`.page-flow`，不再依赖固定 Tab Bar 或 Footer。移动视口需用真实设备或移动仿真补验。
+- 页面根节点用 `data-page-width` 选择 `wide/detail/settings/form`，对应 `--content-max-wide`（1600px）、`--content-max-detail`（1200px）、`--content-max-settings`（960px）、`--content-max-form`（760px）；宽度 token 只在 `styles.css` 维护。
+- 列表页的 FilterBar、分页和排序由 URL query 驱动；危险 mutation 必须经过确认流程；空态使用 `EmptyState`，业务状态使用 `StatusBadge`，能力状态使用复用 `StatusBadge` 语义映射的 `StatusPill`。
+- 平台 `MetricCard`、`EntityHeader` 等公共原语从 `webui/src/ui` 导出，模块通过 SDK/公共 UI 契约消费，不复制近似卡片和详情头。
 
 ## 骨架分区注入点与交互规范（062）
 
@@ -88,7 +95,7 @@ Linux 使用 `bash scripts/verify-webui.sh`。质量链覆盖生成检查、冻�
 - **平台语义组件**（`webui/src/ui` + `@webui/sdk/ui` 导出：保持既有契约扩展）：`DataTable` 增强（列显隐/行密度/Sticky/行操作菜单，`enhancements` 可选）、`FilterBar`/`SearchInput`（统一列表工具栏）、`FormField`/`Field` 宽度档（Label/Description/Control/Helper/Error）、`StatusBadge`（语义状态集）、`CodeText`/`CodeViewer`（monospace 技术标识符与 JSON 展示）、`DangerZone`（危险操作流程）、`ErrorState`（分级）、`TreeView`/`InspectorPanel`（树 + 详情）、`DetailDrawer`（规格化 Master–Detail）、`Skeleton` 分级；design tokens 补 `font.*`/`control.*`/`info`/`success`/宽度档（`--content-max-*`）。
 - **Query 契约**（`@webui/sdk/query`）：`useWebUIQuery`/`useWebUIMutation`（缓存/失效/取消/ProblemError）+ `useListQueryParams`（列表过滤/分页/排序 URL 化）；`useGatedQueries`（Ops 门禁）保持。
 - **页面迁移**：IAM `AccountsPage`（DataTable 目录 + Create Drawer + User Detail Drawer）、`RolesPage`（DataTable + 权限矩阵详情）、`PermissionsPage`（分组 Catalog + Used by Roles）、`SessionsPage`（DataTable + 批量吊销）、`ApiTokensPage`（Scope 按模块分组 + 可复制密钥）；Auth `AuditPage`（Log Explorer + Detail Drawer，仅低敏摘要字段）；Ops `DashboardPage`（顶栏 Context 行：版本/提交/运行时长/数据源，真实数据）；Organization `DepartmentsPage`（部门树 + Inspector）；Navigation `MenusPage`（导航树 + 策略 Inspector）。
-- 细节见 [082 变更记录](docs/changes/082-webui-architecture-rebuild/README.md)。
+- 细节见 [082 变更记录](../docs/changes/082-webui-architecture-rebuild/README.md)。
 
 ## 安全页：MFA 与 API 令牌（078/080）
 

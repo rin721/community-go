@@ -381,12 +381,12 @@ export function ConfirmDialog({ open, title, description, confirmLabel, cancelLa
   );
 }
 
-export function Drawer({ open, title, description, closeLabel, onClose, children, footer }: { open: boolean; title: string; description?: string; closeLabel: string; onClose: () => void; children: ReactNode; footer?: ReactNode }) {
+export function Drawer({ open, title, description, closeLabel, onClose, children, footer, className = "", style }: { open: boolean; title: string; description?: string; closeLabel: string; onClose: () => void; children: ReactNode; footer?: ReactNode; className?: string; style?: CSSProperties }) {
   const titleID = `webui-drawer-title-${useId().replaceAll(":", "")}`;
   // 069：侧滑抽屉迁到 RAC 受控 Modal+Dialog（右置面板，焦点/Escape/backdrop 由 react-aria 承担）。
   return (
     <RACModal isOpen={open} onOpenChange={(next) => { if (!next) onClose(); }} isDismissable className="rac-modal-backdrop rac-modal-backdrop-drawer">
-      <RACDialog aria-label={title} id={titleID} className="rac-drawer-panel">
+      <RACDialog aria-label={title} id={titleID} className={`rac-drawer-panel ${className}`.trim()} style={style}>
         <header className="ui-drawer-header"><div><h2 id={titleID}>{title}</h2>{description && <p>{description}</p>}</div><IconButton label={closeLabel} onClick={onClose}>×</IconButton></header>
         <div className="ui-drawer-content">{children}</div>
         {footer && <footer className="ui-drawer-footer">{footer}</footer>}
@@ -764,4 +764,58 @@ export function ErrorState({ kind = "section", title, detail, action, className 
     default:
       return <div className={`error-state error-state-section ${className}`.trim()} role="alert"><span className="error-state-title">{title}</span>{detail && <span className="error-state-detail">{detail}</span>}{action && <span className="error-state-action">{action}</span>}</div>;
   }
+}
+
+/* ---------------------------------------------------------------------------
+   082 REQ-082-005：CodeViewer / DetailDrawer 语义组件。
+   CodeViewer 用 highlight.js（仅 json）渲染结构化元数据（审计摘要/技术详情）；
+   DetailDrawer 是规格化 Master–Detail 抽屉（Header/Metadata/Actions/Tabs/Content），
+   宽度档 480/560/640/720，支持深链与 loading/error 态。
+   --------------------------------------------------------------------------- */
+
+/** CodeViewer：只读结构化数据展示（语言限 json/plain；折叠与最大高度受控）。 */
+export function CodeViewer({ value, language = "json", maxHeight = 320, initiallyCollapsed = false, className = "", label }: {
+  value: string;
+  language?: "json" | "plain";
+  maxHeight?: number;
+  initiallyCollapsed?: boolean;
+  className?: string;
+  label?: string;
+}) {
+  const [collapsed, setCollapsed] = useState(initiallyCollapsed);
+  if (!value.trim()) return null;
+  return (
+    <div className={`code-viewer ${className}`.trim()}>
+      <div className="code-viewer-head">
+        <span className="code-viewer-label">{label ?? language}</span>
+        <button type="button" className="code-viewer-toggle ui-button" onClick={() => setCollapsed((current) => !current)}>{collapsed ? "▸" : "▾"}</button>
+      </div>
+      {!collapsed && <pre className="code-viewer-pre" style={{ maxHeight }}><code className={`code-viewer-code ${language === "json" ? "language-json" : ""}`}>{value}</code></pre>}
+    </div>
+  );
+}
+
+/** DetailDrawer：规格化 Master–Detail 抽屉（REQ-082-005/021/016）。 */
+export function DetailDrawer({ open, onClose, title, identity, status, actions, width = 640, loading = false, loadingLabel, children }: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  identity?: ReactNode;
+  status?: ReactNode;
+  actions?: ReactNode;
+  width?: 480 | 560 | 640 | 720;
+  loading?: boolean;
+  loadingLabel?: string;
+  children?: ReactNode;
+}) {
+  return (
+    <Drawer open={open} title={title} closeLabel={loadingLabel ?? "关闭"} onClose={onClose} className="detail-drawer" style={{ "--drawer-width": `${width}px` } as CSSProperties}>
+      <div className="detail-drawer-head" data-drawer-width={width}>
+        {identity && <div className="detail-drawer-identity">{identity}</div>}
+        {status && <div className="detail-drawer-status">{status}</div>}
+        {actions && <div className="detail-drawer-actions">{actions}</div>}
+      </div>
+      {loading ? <Skeleton lines={4} label={loadingLabel ?? ""} /> : children}
+    </Drawer>
+  );
 }

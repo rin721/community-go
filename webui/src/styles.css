@@ -2236,6 +2236,76 @@ textarea.field-input {
   gap: 6px;
 }
 
+/* 082 REQ-082-005：CodeViewer / DetailDrawer 语义组件 */
+.code-viewer {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--surface-muted);
+}
+.code-viewer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border);
+}
+.code-viewer-label {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+.code-viewer-toggle {
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+}
+.code-viewer-pre {
+  margin: 0;
+  padding: var(--space-3);
+  overflow: auto;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: var(--font-lineheight-normal);
+  color: var(--text);
+}
+.detail-drawer-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-4);
+}
+.detail-drawer-identity {
+  font-size: 15px;
+  font-weight: var(--font-weight-semibold);
+}
+.detail-drawer-status {
+  margin-left: auto;
+}
+.detail-drawer-actions {
+  display: flex;
+  gap: 8px;
+}
+.detail-field {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.detail-field-label {
+  color: var(--text-secondary);
+}
+.detail-field-value {
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
 /* 页元信息行：版本/汇总等辅助说明 */
 .page-meta {
   display: flex;

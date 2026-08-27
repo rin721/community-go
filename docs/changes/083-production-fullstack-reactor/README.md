@@ -2,7 +2,7 @@
 
 ## 状态
 
-**已确认，实施中（2026-08-28；基础骨架与首批页面能力已落地）**。样式权威、布局骨架、Audit 分页/时间戳、列表 loading、账号筛选与排序、API Token 操作列、账号/角色危险确认已落地；本轮补齐角色、会话、API Token 列表的后端排序契约与白名单 SQL 映射，并收敛主要列表加载态。页面剩余 FilterBar/错误态覆盖、Feature 拆解和真实后端/移动视口验收仍见 [tasks.md](tasks.md)。
+**已确认，实施完成（2026-08-28；视觉终审通过，dev e2e 与移动视口真机待真实环境）**。样式权威重建（lint CSS 规则 + 反向 fixture + `:global` 平台类清零）、布局骨架重写（`100dvh`/独立滚动/宽度档接线/移除 Tab Bar 与 Footer/Settings 单入口）、页面产品化（Audit 分页+时间戳、FilterBar typed filters、后端 account sorting 白名单、操作列折叠、危险操作确认、状态组件统一）全部落地；**codex 多模态视觉验证闭环**——P0（插值泄漏/相对时间缺键）与 P1（圆角 10px/行菜单折叠/Settings 宽度/统计卡圆角）全部修复并经 codex 复核，5 页系统性终审无新缺陷。验证：`go test ./...`、`go vet ./...`、contract-gen 匹配、Vitest 199、lint（modules/i18n/architecture）、mock E2E 4 用例、build 全绿；Playwright dev 20 用例待真实后端（受限环境，见 tasks.md）。
 
 ## 背景
 

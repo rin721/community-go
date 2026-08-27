@@ -831,7 +831,7 @@ kbd {
 .page-viewport[data-page-width="settings"] .module-page,
 [data-page-width="settings"] .module-page {
   max-width: var(--content-max-settings);
-  margin-inline: auto;
+  width: 100%;
 }
 .page-viewport[data-page-width="detail"] .module-page,
 [data-page-width="detail"] .module-page {
@@ -1769,6 +1769,11 @@ kbd {
   gap: 7px;
   color: var(--text-secondary);
   font-size: 12px;
+}
+/* 083 视觉基线：HeroUI Input 默认并不占满父容器（约 157px 窄），表单字段强制 100% 宽 */
+.form-field [data-slot="input-wrapper"],
+.form-field [data-slot="input"] {
+  width: 100%;
 }
 .field-input {
   width: 100%;

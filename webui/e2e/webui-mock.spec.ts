@@ -111,5 +111,17 @@ test("083 visual snapshots for design baseline review", async ({ page }, testInf
     return Array.from(document.querySelectorAll(".page-section .card, .page-section > .surface")).filter((el) => radiusOf(el) > 12).map((el) => `${el.className.slice(0, 40)}=>${getComputedStyle(el).borderRadius}`);
   });
   expect(oversized).toEqual([]);
+  // 083 视觉基线：Settings 配置区须充满内容列（margin-inline:auto 曾把 module-page 收缩到 229px）。
+  await page.goto("/settings/profile");
+  await page.waitForSelector(".settings-inner");
+  await page.waitForTimeout(500);
+  const settingsWidth = await page.evaluate(() => {
+    const content = document.querySelector(".settings-content");
+    const page = document.querySelector(".settings-content .module-page");
+    const form = document.querySelector(".settings-content .form-panel");
+    if (!content || !page || !form) return { ok: false, reason: "missing" };
+    return { ok: Math.abs(page.getBoundingClientRect().width - content.getBoundingClientRect().width) < 4 && form.getBoundingClientRect().width > 400, pageW: Math.round(page.getBoundingClientRect().width), formW: Math.round(form.getBoundingClientRect().width) };
+  });
+  expect(settingsWidth.ok, JSON.stringify(settingsWidth)).toBe(true);
   testInfo.attach("083-visual-snapshots", { path: "test-results/083-visual-dashboard.png" });
 });

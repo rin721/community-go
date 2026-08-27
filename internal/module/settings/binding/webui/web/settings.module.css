@@ -23,7 +23,7 @@
 .settingsModule :global(.settings-stack) {
   display: grid;
   gap: 12px;
-  max-width: 520px;
+  max-width: 640px;
 }
 /* 071：页内侧边栏布局（SectionNav + 内容区） */
 .settingsModule :global(.settings-inner) {

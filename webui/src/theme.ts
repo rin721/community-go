@@ -6,7 +6,7 @@ export type ContentDensity = "comfortable" | "compact";
 export type ScrollbarStrategy = "stable" | "overlay";
 export type DampingTier = "subtle" | "standard" | "relaxed";
 export type RevealRhythm = "calm" | "balanced" | "playful";
-export type ThemeLayoutPreferences = { showBreadcrumb: boolean; showTabs: boolean; showFooter: boolean; sidebarCollapsed: boolean };
+export type ThemeLayoutPreferences = { showBreadcrumb: boolean; sidebarCollapsed: boolean };
 
 // ThemeExperience 是 067 滚动/动效体验的派生配置组：全部项只影响浏览器呈现层，
 // 由 applyTheme 落到 <html data-experience-*>，样式与运行时统一消费。
@@ -49,7 +49,7 @@ export const defaultTheme: ThemePreferences = {
   mode: "system",
   preset: "blue",
   density: "comfortable",
-  layout: { showBreadcrumb: true, showTabs: true, showFooter: true, sidebarCollapsed: false },
+  layout: { showBreadcrumb: true, sidebarCollapsed: false },
   reduceMotion: false,
   experience: defaultExperience,
 };
@@ -79,8 +79,6 @@ function isThemePreferences(value: unknown): value is ThemePreferences {
     && ["comfortable", "compact"].includes(candidate.density ?? "")
     && typeof candidate.reduceMotion === "boolean"
     && typeof candidate.layout?.showBreadcrumb === "boolean"
-    && typeof candidate.layout?.showTabs === "boolean"
-    && typeof candidate.layout?.showFooter === "boolean"
     && typeof candidate.layout?.sidebarCollapsed === "boolean"
     && isThemeExperience(candidate.experience);
 }

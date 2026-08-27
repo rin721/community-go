@@ -39,10 +39,11 @@ test("mock mode boots the whole WebUI without a backend and marks every page", a
   await expect(page.getByRole("heading", { name: "Runtime status" })).toBeVisible();
   await expect(page.getByText("Runtime diagnostics available")).toBeVisible();
 
-  // 062 分区注入点：顶栏快捷入口与底部 Management 数据源状态在 mock 环境可用。
+  // 062 分区注入点：顶栏快捷入口在 mock 环境可用（083 布局改：footer-status 随 Footer 移除）。
   await expect(page.getByRole("button", { name: "Capabilities" })).toBeVisible();
-  await expect(page.getByText("Mock data source")).toBeVisible();
-  // 062 视觉证据：骨架分区注入点（顶栏快捷入口 / 底部状态项）桌面视口截图。
+  // 083 LAYOUT-003：固定 Footer 已移除，工作区不再占用底部。
+  await expect(page.locator(".app-footer")).toHaveCount(0);
+  // 062 视觉证据：骨架分区注入点（顶栏快捷入口）桌面视口截图。
   await page.screenshot({ path: "test-results/zone-injection-mock.png", fullPage: true });
 
   // 双语：切换语言后徽标使用中文文案（语言下拉按宿主壳设计隐藏可见性，用 force 交互）。

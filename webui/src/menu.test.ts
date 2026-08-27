@@ -3,7 +3,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
 import type { ManifestMenu, ManifestRoute } from "@webui/sdk/runtime";
-import { buildMenuTree, findMenuAncestors, getWorkspaceTabTargetIndex, isWorkspaceTabClosable, shouldIsolateMobileSidebar } from "./components/AppShell";
+import { buildMenuTree, findMenuAncestors, shouldIsolateMobileSidebar } from "./components/AppShell";
 import { SidebarMenu } from "./components/shell/SidebarMenu";
 import { initializeI18n } from "./i18n";
 
@@ -84,22 +84,6 @@ describe("宿主菜单树", () => {
     expect(markup).toMatch(/title="[^"]+"/);
     expect(markup).toContain('<span aria-hidden="true">');
     expect(markup).toContain("sidebar-link active");
-  });
-});
-
-describe("宿主工作区页签", () => {
-  it("保留默认页签不可关闭，其他已访问页签可关闭", () => {
-    expect(isWorkspaceTabClosable({ ...route("home"), default: true })).toBe(false);
-    expect(isWorkspaceTabClosable(route("detail"))).toBe(true);
-  });
-
-  it("按 roving tab 规则计算方向键目标", () => {
-    expect(getWorkspaceTabTargetIndex("ArrowRight", 1, 3)).toBe(2);
-    expect(getWorkspaceTabTargetIndex("ArrowRight", 2, 3)).toBe(0);
-    expect(getWorkspaceTabTargetIndex("ArrowLeft", 0, 3)).toBe(2);
-    expect(getWorkspaceTabTargetIndex("Home", 2, 3)).toBe(0);
-    expect(getWorkspaceTabTargetIndex("End", 0, 3)).toBe(2);
-    expect(getWorkspaceTabTargetIndex("Enter", 0, 3)).toBeUndefined();
   });
 });
 

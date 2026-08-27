@@ -57,8 +57,6 @@ export function ScrollExperience({ target, experience, reducedMotion, panelProps
         });
       }
       container.querySelectorAll<HTMLElement>("[data-snap-x]").forEach((element) => applyMagneticSnap(element, snapEnabled));
-      const tabRail = document.querySelector<HTMLElement>(".workspace-tab-scroll");
-      if (tabRail) applyMagneticSnap(tabRail, snapEnabled);
     };
     applyScenarios();
     const observer = new MutationObserver(() => applyScenarios());

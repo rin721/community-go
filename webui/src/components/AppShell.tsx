@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
-import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Link, Outlet, useLocation } from "react-router-dom";
 import { Languages, Moon, Palette, Sun } from "lucide-react";
 import type { Manifest, ManifestRoute, PrincipalView } from "@webui/sdk/runtime";
 import { useWebUITranslation } from "@webui/sdk/i18n";
@@ -12,10 +12,8 @@ import { ThemeDrawer } from "./ThemeDrawer";
 import { AppSidebar, shouldIsolateMobileSidebar } from "./shell/AppSidebar";
 import { AppHeader } from "./shell/AppHeader";
 import { buildMenuTree, findMenuAncestors, type SidebarMenuEntry } from "./shell/SidebarMenu";
-import { getWorkspaceTabTargetIndex, isWorkspaceTabClosable, workspaceTabID, WorkspaceTabs } from "./shell/WorkspaceTabs";
-import { ZoneItems } from "../zone/ZoneItems";
 
-export { buildMenuTree, findMenuAncestors, getWorkspaceTabTargetIndex, isWorkspaceTabClosable, shouldIsolateMobileSidebar, workspaceTabID };
+export { buildMenuTree, findMenuAncestors, shouldIsolateMobileSidebar };
 export type { SidebarMenuEntry };
 
 export function BlankLayout() {
@@ -31,7 +29,6 @@ export function AppShell({ manifest, principal, onLogout }: { manifest: Manifest
   // 订阅公开 i18n 契约，确保语言切换会刷新宿主壳层及其下的公共 overlay。
   const { i18n: hostI18n } = useWebUITranslation("webui.host");
   const location = useLocation();
-  const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
@@ -47,7 +44,6 @@ export function AppShell({ manifest, principal, onLogout }: { manifest: Manifest
   const localeEligibleRoutes = useMemo(() => accessibleRoutes.filter((route) => route.availability === "available" || (route.availability === "degraded" && (route.availableCapabilities?.length ?? 0) > 0)), [accessibleRoutes]);
   const menu = useMemo(() => buildMenuTree(manifest.menu.map((item) => ({ item, route: accessibleRoutes.find((route) => route.id === item.routeId) })).filter((value): value is { item: NonNullable<typeof manifest.menu>[number]; route: ManifestRoute } => Boolean(value.route))), [accessibleRoutes, manifest.menu]);
   const currentRoute = manifest.routes.find((route) => route.path === location.pathname);
-  const [visitedRouteIDs, setVisitedRouteIDs] = useState<string[]>(() => currentRoute?.layout === "app" ? [currentRoute.id] : []);
   useEffect(() => setCollapsed(theme.layout.sidebarCollapsed), [theme.layout.sidebarCollapsed]);
   useEffect(() => { void Promise.allSettled(localeEligibleRoutes.map(ensureRouteLocale)); }, [localeEligibleRoutes]);
   useEffect(() => {
@@ -71,9 +67,6 @@ export function AppShell({ manifest, principal, onLogout }: { manifest: Manifest
   const [expandedMenuIDs, setExpandedMenuIDs] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
-    if (currentRoute?.layout === "app" && currentRoute.access === "allowed") {
-      setVisitedRouteIDs((current) => current.includes(currentRoute.id) ? current : [...current, currentRoute.id]);
-    }
     setMobileOpen(false);
   }, [currentRoute]);
   useEffect(() => {
@@ -93,14 +86,6 @@ export function AppShell({ manifest, principal, onLogout }: { manifest: Manifest
     return () => window.removeEventListener("keydown", handleKeydown);
   }, []);
 
-  const visitedRoutes = visitedRouteIDs.map((id) => manifest.routes.find((route) => route.id === id)).filter((route): route is ManifestRoute => Boolean(route));
-  const closeTab = (route: ManifestRoute) => {
-    if (!isWorkspaceTabClosable(route)) return;
-    const next = visitedRoutes.filter((value) => value.id !== route.id);
-    setVisitedRouteIDs(next.map((value) => value.id));
-    if (route.id === currentRoute?.id) navigate((next.at(-1) ?? accessibleRoutes.find((value) => value.default) ?? accessibleRoutes[0])?.path ?? "/404");
-  };
-  const refreshCurrentRoute = () => navigate(0);
   const toggleFullscreen = () => document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
   const toggleSidebar = () => { const next = !collapsed; setCollapsed(next); setTheme({ ...theme, layout: { ...theme.layout, sidebarCollapsed: next } }); };
   const toggleColorScheme = () => setTheme({ ...theme, mode: theme.mode === "dark" ? "light" : "dark" });
@@ -126,25 +111,13 @@ export function AppShell({ manifest, principal, onLogout }: { manifest: Manifest
     event.preventDefault();
     focusable[nextIndex]?.focus();
   };
-  const handleWorkspaceTabKeyDown = (event: ReactKeyboardEvent<HTMLButtonElement>, index: number) => {
-    const targetIndex = getWorkspaceTabTargetIndex(event.key, index, visitedRoutes.length);
-    if (targetIndex === undefined) return;
-    event.preventDefault();
-    const target = visitedRoutes[targetIndex];
-    if (!target) return;
-    navigate(target.path);
-    requestAnimationFrame(() => document.getElementById(workspaceTabID(target.id))?.focus());
-  };
-  const activeWorkspaceTabID = currentRoute?.id ?? visitedRoutes[0]?.id;
 
   return <div className={`app-shell ${collapsed ? "sidebar-collapsed" : ""}`}>
     <button type="button" className={`mobile-backdrop ${mobileOpen ? "visible" : ""}`} onClick={() => setMobileOpen(false)} aria-label={translateMessage("webui.host.menu.close")} disabled={!mobileOpen} tabIndex={mobileOpen ? 0 : -1} />
     <AppSidebar sidebarRef={mobileSidebarRef} mobileOpen={mobileOpen} isMobileViewport={isMobileViewport} collapsed={collapsed} menu={menu} currentRouteID={currentRoute?.id} expandedMenuIDs={expandedMenuIDs} onToggleMenu={(menuID) => setExpandedMenuIDs((current) => { const next = new Set(current); next.has(menuID) ? next.delete(menuID) : next.add(menuID); return next; })} onClose={() => setMobileOpen(false)} onKeyDown={handleMobileSidebarKeyDown} revision={manifest.catalogRevision} />
     <div className="app-workspace">
       <AppHeader collapsed={collapsed} onToggleSidebar={toggleSidebar} mobileMenuButtonRef={mobileMenuButtonRef} onOpenMobileMenu={() => setMobileOpen(true)} showBreadcrumb={theme.layout.showBreadcrumb} currentRoute={currentRoute} pathname={location.pathname} hostLanguage={hostI18n.language} availableLanguages={availableLanguages} onLanguageChange={(language) => void changeLanguage(language)} theme={theme} onToggleColorScheme={toggleColorScheme} onOpenTheme={() => setThemeOpen(true)} onOpenSearch={() => setSearchOpen(true)} onToggleFullscreen={toggleFullscreen} principal={principal} onRequestLogout={() => setLogoutOpen(true)} />
-      {theme.layout.showTabs && <WorkspaceTabs routes={visitedRoutes} currentRouteID={currentRoute?.id} panelLabel={translateMessage("webui.host.tabs.list")} onNavigate={(path) => navigate(path)} onCloseTab={closeTab} onRefresh={refreshCurrentRoute} onKeyDown={handleWorkspaceTabKeyDown} />}
-      <ScrollExperience target="panel" experience={theme.experience} reducedMotion={effectiveReduceMotion(theme.reduceMotion)} panelProps={{ id: "webui-workspace-panel", role: theme.layout.showTabs ? "tabpanel" : undefined, ariaLabelledby: theme.layout.showTabs && activeWorkspaceTabID ? workspaceTabID(activeWorkspaceTabID) : undefined }}><Outlet /></ScrollExperience>
-      {theme.layout.showFooter && <footer className="app-footer"><span>{translateMessage("webui.host.footer")}</span><span className="app-footer-zones"><ZoneItems zone="footer-status" /></span><span>{new Date().getFullYear()}</span></footer>}
+      <ScrollExperience target="panel" experience={theme.experience} reducedMotion={effectiveReduceMotion(theme.reduceMotion)} panelProps={{ id: "webui-workspace-panel" }}><Outlet /></ScrollExperience>
     </div>
     <RouteSearch open={searchOpen} routes={accessibleRoutes} onClose={() => setSearchOpen(false)} />
     <ThemeDrawer open={themeOpen} theme={theme} onChange={setTheme} onReset={resetTheme} onClose={() => setThemeOpen(false)} />

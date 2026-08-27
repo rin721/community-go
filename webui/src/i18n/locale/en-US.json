@@ -92,6 +92,7 @@
   "webui.host.route.missing.detail": "The module-declared page entry is not present in the generated registry.",
   "webui.host.route.error.title": "Page failed to load",
   "webui.host.route.error.detail": "This page is temporarily unavailable. Return home and try again.",
+  "webui.host.retry": "Retry",
   "webui.host.notImplemented.title": "Capability not implemented",
   "webui.host.notImplemented.detail": "The page contract is stable, but the real capability has not been delivered.",
   "webui.host.unauthorized.title": "Authentication required",

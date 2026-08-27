@@ -21,16 +21,3 @@
   color: var(--text-secondary);
   font-size: 12px;
 }
-.organizationModule :global(.permission-row) {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--text-secondary);
-  font-size: 12px;
-}
-
-@media (max-width: 720px) {
-  .organizationModule :global(.toolbar) {
-    display: grid;
-  }
-}

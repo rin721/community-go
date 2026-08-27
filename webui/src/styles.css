@@ -885,6 +885,12 @@ kbd {
   border-top: 1px solid var(--border);
   margin-top: auto;
 }
+/* 083 STYLE：header-actions zone 贡献按钮（收敛自 ops.module.css 真全局） */
+.header-zone-action {
+  min-height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
+}
 /* zone 贡献懒加载占位：不伪造业务值 */
 .zone-slot-loading {
   display: inline-block;
@@ -2071,6 +2077,63 @@ textarea.field-input {
 }
 .field-width-lg {
   max-width: 640px;
+}
+
+/* 083 STYLE：平台权限/状态语义类（styles.css 唯一 authority）
+   从模块 :global 收敛而来——.form-error/.permission-*/.role-checklist/.permissions/.admin-note */
+.form-error {
+  color: var(--danger);
+  font-size: 12px;
+}
+.permissions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.permissions code {
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
+  font-size: 11px;
+  font-family: var(--font-mono);
+}
+.role-checklist {
+  display: grid;
+  gap: 8px;
+}
+.permission-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.permission-description {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+.permission-matrix {
+  display: grid;
+  gap: 12px;
+}
+.permission-matrix fieldset {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+}
+.permission-matrix legend {
+  padding: 0 6px;
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+.admin-note {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 12px;
 }
 .form-field {
   display: grid;

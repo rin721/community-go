@@ -25,90 +25,9 @@
 .iamModule :global(.iam-form .ui-button) {
   width: 100%;
 }
-.iamModule :global(.form-error) {
-  color: #dc2626;
-  font-size: 12px;
-}
-.iamModule :global(.permissions) {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.iamModule :global(.permissions code) {
-  padding: 7px 9px;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  background: var(--surface-muted);
-  font-size: 11px;
-}
-.iamModule :global(.role-checklist) {
-  display: grid;
-  gap: 8px;
-}
-.iamModule :global(.permission-row) {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--text-secondary);
-  font-size: 12px;
-}
-.iamModule :global(.permission-matrix) {
-  display: grid;
-  gap: 12px;
-}
-.iamModule :global(.permission-matrix fieldset) {
-  display: grid;
-  gap: 8px;
-  margin: 0;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 12px 14px;
-}
-.iamModule :global(.permission-matrix legend) {
-  padding: 0 6px;
-  color: var(--text-secondary);
-  font-size: 11px;
-}
-.iamModule :global(.permission-description) {
-  color: var(--text-muted);
-  font-size: 11px;
-}
-.iamModule :global(.admin-note) {
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: 12px;
-}
-.iamModule :global(.session-table-head),
-.iamModule :global(.session-row) {
-  display: grid;
-  grid-template-columns: 24px repeat(4, minmax(130px, 1fr)) minmax(90px, 0.6fr);
-  gap: 8px;
-  align-items: center;
-  font-size: 12px;
-}
-.iamModule :global(.session-table-head) {
-  color: var(--text-secondary);
-}
-.iamModule :global(.session-mono) {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 11px;
-}
-.iamModule :global(.sessions-empty) {
-  color: var(--text-secondary);
-}
-
-@media (max-width: 900px) {
-  .iamModule :global(.session-table-head),
-  .iamModule :global(.session-row) {
-    grid-template-columns: 24px repeat(2, 1fr);
-  }
-}
 
 @media (max-width: 720px) {
   .iamModule:global(.auth-panel) {
     padding: 22px;
-  }
-  .iamModule :global(.toolbar) {
-    display: grid;
   }
 }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { BulkActionBar, CodeText, DataTable, EmptyState, ErrorState, FilterBar, formatDateTime, PageHeader, PageSection, SelectField, StatusBadge } from "@webui/sdk/ui";
+import { BulkActionBar, CodeText, DataTable, EmptyState, ErrorState, FilterBar, formatDateTime, formatRelativeTime, PageHeader, PageSection, SelectField, StatusBadge } from "@webui/sdk/ui";
 import { useListQueryParams } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { listSessions, revokeSessions, type SessionInfo } from "./api";
@@ -71,10 +71,10 @@ export default function SessionsPage() {
         <DataTable<SessionInfo>
           columns={[
             { id: "idHash", header: t("webui.iam.sessions.idHash"), cell: (item) => <CodeText value={item.idHash} copyable /> },
-            { id: "createdAt", header: t("webui.iam.sessions.createdAt"), cell: (item) => <CodeText value={formatDateTime(item.createdAt)} /> },
-            { id: "lastSeenAt", header: t("webui.iam.sessions.lastSeenAt"), cell: (item) => <CodeText value={formatDateTime(item.lastSeenAt)} /> },
-            { id: "idleExpiresAt", header: t("webui.iam.sessions.idleExpiresAt"), cell: (item) => <CodeText value={formatDateTime(item.idleExpiresAt)} /> },
-            { id: "absoluteExpiresAt", header: t("webui.iam.sessions.absoluteExpiresAt"), cell: (item) => <CodeText value={formatDateTime(item.absoluteExpiresAt)} /> },
+            { id: "createdAt", header: t("webui.iam.sessions.createdAt"), cell: (item) => <span title={formatDateTime(item.createdAt)}>{formatRelativeTime(item.createdAt, t)}</span> },
+            { id: "lastSeenAt", header: t("webui.iam.sessions.lastSeenAt"), cell: (item) => <span title={formatDateTime(item.lastSeenAt)}>{formatRelativeTime(item.lastSeenAt, t)}</span> },
+            { id: "idleExpiresAt", header: t("webui.iam.sessions.idleExpiresAt"), cell: (item) => <span title={formatDateTime(item.idleExpiresAt)}>{formatRelativeTime(item.idleExpiresAt, t)}</span> },
+            { id: "absoluteExpiresAt", header: t("webui.iam.sessions.absoluteExpiresAt"), cell: (item) => <span title={formatDateTime(item.absoluteExpiresAt)}>{formatRelativeTime(item.absoluteExpiresAt, t)}</span> },
             { id: "status", header: t("webui.iam.sessions.statusHeader"), cell: (item) => sessionStatusCell(item, t) },
           ]}
           rows={items}

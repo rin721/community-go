@@ -22,6 +22,20 @@ export function formatDateTime(iso: string | undefined | null): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+/** formatRelativeTime 将时间戳转换为低噪声相对时间；调用方提供 locale 文案和测试用 now。 */
+export function formatRelativeTime(iso: string | undefined | null, t: (key: string, params?: Record<string, number>) => string, now = Date.now()): string {
+  if (!iso) return "—";
+  const timestamp = new Date(iso).getTime();
+  if (Number.isNaN(timestamp)) return iso;
+  const elapsedSeconds = Math.max(0, Math.floor((now - timestamp) / 1000));
+  if (elapsedSeconds < 60) return t("webui.host.relative.justNow");
+  const minutes = Math.floor(elapsedSeconds / 60);
+  if (minutes < 60) return t("webui.host.relative.minutes", { minutes });
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return t("webui.host.relative.hours", { hours });
+  return t("webui.host.relative.days", { days: Math.floor(hours / 24) });
+}
+
 function alertStatus(state: CapabilityState): "default" | "success" | "warning" | "danger" | "accent" {
   switch (state) {
     case "available": return "success";

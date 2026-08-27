@@ -62,9 +62,17 @@
 | 契约生成 | `go generate ./...` + `generate.mjs --check` | current（sort 参数入 openapi + operation inventory + openapi-spec） |
 | WebUI 类型 | `tsc --noEmit` | 通过 |
 | WebUI lint | lint:modules / lint:i18n / lint:architecture（含样式规则） | 通过 |
-| Vitest | `vitest run` | **198 全过**（当前全量测试） |
-| Playwright | mock 项目 3 用例 | 全过（样式清理/布局/Tab Bar 移除/Settings 收敛/sort 无回归） |
+| Vitest | `vitest run` | **199 全过**（当前全量测试） |
+| Playwright | mock 项目 4 用例 | 全过（样式清理/布局/Tab Bar 移除/Settings 收敛/sort 无回归/083 视觉截图） |
 | Build | `vite build` | 成功 |
+
+## 视觉验证轮（2026-08-28，通过本机 codex 0.150.1 多模态复核）
+
+- 新增 `083 visual snapshots` e2e 用例：生成 Dashboard/Accounts/Roles/Settings/Audit 整页截图至 `test-results/083-visual-*.png`。
+- codex 视觉评审发现 2 个 P0 缺陷并已修复（codex 复核确认）：
+  1. **单花括号插值泄漏**：locale 键用 `{page}`/`{total}`（i18next 只认 `{{var}}` 双花括号），分页文本渲染为字面 `{page} · {total}`——全模块 locale 迁移为双花括号（auth/iam，commit `bdba71b`/`9ecae92`）。
+  2. **相对时间缺键 + 命名空间错配**：`formatRelativeTime` 用 `webui.host.relative.*` 键但 Audit/Sessions 传模块命名空间 t（`nsSeparator:false` 无法跨 ns）→ 单元格显示「翻译资源缺失」——host locale 补 7 个 relative 键（`e6b5f98`），调用方改传 hostT（`d722820`）；codex 复核 Occurred at 现显示 `3d ago`。
+- 视觉评审剩余 P1 打磨项（记录，不阻塞）：Dashboard 产品化（Trend/Alerts/Activity/Drill-down）、普通卡片圆角/阴影收敛、Accounts 菜单展开态行操作外观、Settings 两栏布局利用率。
 
 **关键达成指标（实证）**：
 - 样式 `:global` 平台类重复清零；剩余 95 处全为模块专属（`lint-architecture` L1/L3 守护 + 反向 fixture）

@@ -75,6 +75,7 @@
 - 视觉评审剩余 P1 打磨项（记录，不阻塞）：Dashboard 产品化（Trend/Alerts/Activity/Drill-down）、Accounts 菜单展开态行操作外观、Settings 两栏布局利用率。
 - **圆角收敛已修复**（codex 复核确认）：radius token（md 12→8、lg 14→10）+ HeroUI Card 内覆盖 10px（原默认 ~22-24px 超基线）；e2e 断言内容卡片 ≤12px；codex 视觉复核 KPI/Diagnostic 均 10px、阴影 2/5 克制（commit `fa45ff7`）。
 - **行操作折叠已修复**（codex 复核确认）：DataTableRowMenu 从「平铺全部项」改为「1 主操作内联 + … 弹出菜单，危险隔离」——Accounts 4 链接平铺收敛为 View detail + …（commit `cc4aa9d`）；平台组件级修复惠及 Roles/Sessions/ApiTokens 等所有 renderRowMenu 页面。
+- **Dashboard 现状复核**（codex 2026-08-28）：已具备运营总览核心（健康标签/上下文行 Version-Commit-Uptime/KPI 摘要 6-6-0/依赖健康卡/Runtime 快照/Refresh）；监控趋势区（monitoring-section 5s 轮询 rolling window）已实现，截图全页含 fold 下趋势图。无真实数据支撑的表面「产品化」不实施（AGENTS 红线：不伪造数据视图）；结构性运营中心扩展（告警流/活动时间线）留待真实运营数据接入。
 
 **关键达成指标（实证）**：
 - 样式 `:global` 平台类重复清零；剩余 95 处全为模块专属（`lint-architecture` L1/L3 守护 + 反向 fixture）

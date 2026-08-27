@@ -2,14 +2,14 @@ import { describe, expect, it } from "vitest";
 import { buildTree, effectivePolicy, type MenuTreeNode } from "./MenusPage";
 import type { Menu } from "./api";
 
-function makeMenu(partial: Partial<Menu> & { id: string; defaultParentId?: string; defaultOrder: number }): Menu {
+function makeMenu(partial: Partial<Menu> & { id: string }): Menu {
   return {
     moduleId: "nav",
     routeId: "route",
     titleMessageId: "t",
     iconId: "",
-    defaultParentId: partial.defaultParentId ?? "",
-    defaultOrder: partial.defaultOrder,
+    defaultParentId: "",
+    defaultOrder: 0,
     enabled: true,
     parentId: "",
     order: 0,

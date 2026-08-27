@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActionTrigger, Button, Check, Field, PageHeader, PageSection, RevealList, SelectField, StatusPill } from "@webui/sdk/ui";
+import { ActionTrigger, Button, Check, CodeText, DataTable, Drawer, Field, FilterBar, FormField, PageHeader, PageSection, SearchInput, StatusBadge } from "@webui/sdk/ui";
+import { useListQueryParams } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { accountRolesView, archiveAccount, createAccount, listAccounts, listRoles, replaceAccountRoles, resetAccountPassword, setAccountStatus, updateAccountInfo, type Account, type Role } from "./api";
 import styles from "./iam.module.css";
@@ -7,12 +8,29 @@ import styles from "./iam.module.css";
 // checklistCandidates only exposes active, non-archived roles for assignment.
 export const checklistCandidates = (roles: Role[]) => roles.filter((role) => role.active && !role.archived);
 
+// 082 REQ-082-012: table cell renderers (keep JSX free of inline ternaries).
+type Translate = (key: string, params?: Record<string, string | number>) => string;
+export function accountStatusCell(item: Account, t: Translate) {
+  if (item.archived) return <StatusBadge status="revoked">{t("webui.iam.accounts.archived")}</StatusBadge>;
+  const active = item.status === "active";
+  return <StatusBadge status={active ? "active" : "disabled"}>{t(active ? "webui.iam.accounts.statusActive" : "webui.iam.accounts.statusDisabled")}</StatusBadge>;
+}
+export function accountSecurityCell(item: Account, t: Translate) {
+  if (item.mustChangePassword) return <StatusBadge status="pending">{t("webui.iam.security.changeRequired")}</StatusBadge>;
+  return <CodeText value={String(item.securityRevision)} />;
+}
+
 const PAGE_SIZE = 10;
 
 export default function AccountsPage() {
   const { t } = useWebUITranslation("webui.iam");
+  // 082 REQ-082-012/002: list state URL-ized (query refresh keeps context).
+  const listQuery = useListQueryParams<{ query: string }>({
+    filters: { query: { queryKey: "query", defaultValue: "" } },
+  });
   const [items, setItems] = useState<Account[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
+  const [createOpen, setCreateOpen] = useState(false);
   const [username, setUsername] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
@@ -21,19 +39,19 @@ export default function AccountsPage() {
   const [expectedVersion, setExpectedVersion] = useState(0);
   const [message, setMessage] = useState("");
   const [resetPassword, setResetPassword] = useState("");
-  const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [renameValue, setRenameValue] = useState("");
   const [archiveError, setArchiveError] = useState(false);
-  const refresh = useCallback((nextPage = page, nextQuery = query) => {
-    return listAccounts(nextQuery, (nextPage - 1) * PAGE_SIZE, PAGE_SIZE).then((result) => {
+  const refresh = useCallback((nextPage = page) => {
+    return listAccounts(listQuery.filters.query, (nextPage - 1) * PAGE_SIZE, PAGE_SIZE).then((result) => {
       setTotal(result.total);
       setItems(result.items);
       setSelectedID((current) => current && result.items.some((item) => item.id === current) ? current : result.items[0]?.id || "");
     });
-  }, [page, query]);
+  }, [listQuery.filters.query, page]);
   useEffect(() => { void refresh(); void listRoles().then((result) => setRoles(result.items)); }, [refresh]);
+  useEffect(() => { void refresh(); }, [listQuery.filters.query]); // 082: query URL change reloads from page 1.
   const reloadSelection = useCallback((id: string) => {
     if (!id) return;
     void accountRolesView(id).then((view) => {
@@ -54,8 +72,6 @@ export default function AccountsPage() {
       setMessage(`${t("webui.iam.accounts.saved")} +${result.added} −${result.removed}`);
       return reloadSelection(selected.id);
     }).catch(() => {
-      // Server-side version changed (409): reload the latest roles and ask the
-      // user to re-confirm; never silently discard unsaved selections.
       void accountRolesView(selected.id).then((view) => {
         const added = view.roleIds.filter((id) => !roleIDs.includes(id)).length;
         const removed = roleIDs.filter((id) => !view.roleIds.includes(id)).length;
@@ -76,36 +92,78 @@ export default function AccountsPage() {
     if (!selected) return;
     void archiveAccount(selected.id).then(() => refresh()).catch(() => setArchiveError(true));
   };
-  const applyQuery = () => { setPage(1); void refresh(1, query); };
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  // 082 REQ-082-012: DataTable row menu (real operations only, disabled by state).
+  const rowActions = (account: Account) => {
+    const actions: Array<{ key: string; label: string; onSelect: () => void; danger?: boolean }> = [];
+    actions.push({ key: "select", label: t("webui.iam.accounts.select"), onSelect: () => setSelectedID(account.id) });
+    if (!account.archived) {
+      actions.push({ key: "status", label: account.status === "active" ? t("webui.iam.accounts.disable") : t("webui.iam.accounts.enable"), onSelect: () => void setAccountStatus(account.id, account.status === "active" ? "disabled" : "active").then(() => refresh()) });
+      actions.push({ key: "archive", label: t("webui.iam.accounts.archive"), danger: true, onSelect: () => void archiveAccount(account.id).then(() => refresh()).catch(() => setArchiveError(true)) });
+    }
+    return actions;
+  };
   return <div className={`${styles.iamModule} module-page`}>
-    <PageHeader eyebrow={t("webui.iam.brand")} title={t("webui.iam.accounts.title")} description={t("webui.iam.accounts.description")} />
+    <PageHeader eyebrow={t("webui.iam.brand")} title={t("webui.iam.accounts.title")} description={t("webui.iam.accounts.description")} actions={<ActionTrigger operationId="iam.accounts.create" onAction={() => setCreateOpen(true)}>{t("webui.iam.accounts.create.title")}</ActionTrigger>} />
     <div className="page-sections">
-      <PageSection kicker={t("webui.iam.accounts.create.kicker")} title={t("webui.iam.accounts.create.title")}>
-        <div className="toolbar"><Field label={t("webui.iam.username")} value={username} onChange={(event) => setUsername(event.target.value)} /><Field label={t("webui.iam.displayName")} value={name} onChange={(event) => setName(event.target.value)} /><Field label={t("webui.iam.password")} type="password" value={password} onChange={(event) => setPassword(event.target.value)} /><ActionTrigger operationId="iam.accounts.create" onAction={() => void createAccount(username, name, password).then(() => { setUsername(""); setName(""); setPassword(""); return refresh(); }).catch(() => setMessage(t("webui.iam.error")))}>{t("webui.iam.create")}</ActionTrigger></div>
-      </PageSection>
-      <PageSection kicker={t("webui.iam.accounts.manage.kicker")} title={t("webui.iam.accounts.manage.title")}>
-        <SelectField label={t("webui.iam.accounts.selected")} value={selectedID} onValueChange={setSelectedID} options={items.map((item) => ({ value: item.id, label: `${item.displayName} (@${item.username})${item.archived ? ` · ${t("webui.iam.accounts.archived")}` : ""}` }))} />
-        <div className="role-checklist">{candidates.map((role) => <Check key={role.id} checked={roleIDs.includes(role.id)} disabled={!selected || selected.archived} onChange={() => toggle(role.id)} className="permission-row">{role.name} ({role.code})</Check>)}</div>
-        {message && <p className="page-meta">{message}</p>}
-        <div className="page-meta">{t("webui.iam.accounts.revision")} rev {expectedVersion}</div>
-        <div className="toolbar-actions">
-          <ActionTrigger operationId="iam.accounts.roles.replace" disabled={!selected || selected.archived} onAction={save}>{t("webui.iam.accounts.saveRoles")}</ActionTrigger>
-          <ActionTrigger operationId="iam.accounts.status" variant="secondary" disabled={!selected || selected.archived} onAction={() => selected ? setAccountStatus(selected.id, selected.status === "active" ? "disabled" : "active").then(() => refresh()) : undefined}>{selected?.status === "active" ? t("webui.iam.accounts.disable") : t("webui.iam.accounts.enable")}</ActionTrigger>
-        </div>
-        <Field label={t("webui.iam.accounts.resetPassword")} type="password" value={resetPassword} onChange={(event) => setResetPassword(event.target.value)} />
-        <ActionTrigger operationId="iam.accounts.password.reset" disabled={!selected || selected.archived || resetPassword.length < 15} onAction={() => selected ? resetAccountPassword(selected.id, resetPassword).then(() => setResetPassword("")) : undefined}>{t("webui.iam.accounts.reset")}</ActionTrigger>
-        <Field label={t("webui.iam.displayName")} value={renameValue} onChange={(event) => setRenameValue(event.target.value)} />
-        <ActionTrigger operationId="iam.accounts.update" disabled={!selected || selected.archived || !renameValue.trim()} onAction={rename}>{t("webui.iam.accounts.editName")}</ActionTrigger>
-        <ActionTrigger operationId="iam.accounts.archive" variant="danger" disabled={!selected || selected.archived} onAction={archive}>{t("webui.iam.accounts.archive")}</ActionTrigger>
-        {archiveError && <p className="page-meta">{t("webui.iam.error")}</p>}
-      </PageSection>
       <PageSection kicker={t("webui.iam.accounts.list.kicker")} title={t("webui.iam.accounts.list.title")} footer={<><div className="page-meta">{t("webui.iam.accounts.pagination", { page, total })}</div><div className="toolbar-actions">{[...Array(pages).keys()].map((index) => <Button key={index} variant={index + 1 === page ? "primary" : "secondary"} onClick={() => { setPage(index + 1); void refresh(index + 1); }}>{index + 1}</Button>)}</div></>}>
-        <div className="toolbar"><Field label={t("webui.iam.accounts.filter")} value={query} onChange={(event) => setQuery(event.target.value)} /><Button onClick={applyQuery}>{t("webui.iam.search")}</Button></div>
-        <RevealList className="card-grid">
-          {items.map((item) => <div className="item-card" key={item.id}><div><h3>{item.displayName}</h3><p>@{item.username} · rev {item.securityRevision}</p></div><div className="item-card-meta"><StatusPill state={item.status === "active" && !item.archived ? "available" : "unavailable"}>{item.archived ? t("webui.iam.accounts.archived") : item.status}</StatusPill>{item.mustChangePassword && <StatusPill state="degraded">{t("webui.iam.security.changeRequired")}</StatusPill>}</div></div>)}
-        </RevealList>
+        <FilterBar
+          ariaLabel={t("webui.iam.accounts.filter")}
+          fields={[]}
+          searchInput={<SearchInput value={listQuery.filters.query} onChange={(next) => listQuery.setFilters({ query: next })} placeholder={t("webui.iam.search")} label={t("webui.iam.accounts.filter")} />}
+          onClear={() => listQuery.clearFilters()}
+          clearLabel={t("webui.iam.accounts.clear")}
+        />
+        <DataTable<Account>
+          columns={[
+            { id: "displayName", header: t("webui.iam.displayName"), cell: (item) => item.displayName },
+            { id: "username", header: t("webui.iam.username"), cell: (item) => <CodeText value={item.username} /> },
+            { id: "status", header: t("webui.iam.accounts.tableStatus"), cell: (item) => accountStatusCell(item, t) },
+            { id: "security", header: t("webui.iam.accounts.tableRevision"), cell: (item) => accountSecurityCell(item, t) },
+          ]}
+          rows={items}
+          ariaLabel={t("webui.iam.accounts.list.title")}
+          getRowKey={(item) => item.id}
+          emptyState={<p className="page-meta">{t("webui.iam.accounts.empty")}</p>}
+          enhancements={{
+            density: "default",
+            stickyHeader: true,
+            columnVisibility: { persistedKey: "iam-accounts" },
+            renderRowMenu: rowActions,
+            columnMenuLabel: t("webui.iam.accounts.columns"),
+          }}
+        />
       </PageSection>
+      {selected && (
+        <PageSection kicker={t("webui.iam.accounts.manage.kicker")} title={`${t("webui.iam.accounts.selected")}: ${selected.displayName}`}>
+          <div className="page-meta">{t("webui.iam.accounts.revision")} rev {expectedVersion}</div>
+          <div className="role-checklist">{candidates.map((role) => <Check key={role.id} checked={roleIDs.includes(role.id)} disabled={selected.archived} onChange={() => toggle(role.id)} className="permission-row">{role.name} ({role.code})</Check>)}</div>
+          {message && <p className="page-meta">{message}</p>}
+          <div className="toolbar-actions">
+            <ActionTrigger operationId="iam.accounts.roles.replace" disabled={selected.archived} onAction={save}>{t("webui.iam.accounts.saveRoles")}</ActionTrigger>
+            <ActionTrigger operationId="iam.accounts.status" variant="secondary" disabled={selected.archived} onAction={() => selected ? setAccountStatus(selected.id, selected.status === "active" ? "disabled" : "active").then(() => refresh()) : undefined}>{selected.status === "active" ? t("webui.iam.accounts.disable") : t("webui.iam.accounts.enable")}</ActionTrigger>
+          </div>
+          <div className="toolbar">
+            <Field label={t("webui.iam.accounts.resetPassword")} type="password" value={resetPassword} onChange={(event) => setResetPassword(event.target.value)} />
+            <ActionTrigger operationId="iam.accounts.password.reset" disabled={selected.archived || resetPassword.length < 15} onAction={() => selected ? resetAccountPassword(selected.id, resetPassword).then(() => setResetPassword("")) : undefined}>{t("webui.iam.accounts.reset")}</ActionTrigger>
+            <Field label={t("webui.iam.displayName")} value={renameValue} onChange={(event) => setRenameValue(event.target.value)} />
+            <ActionTrigger operationId="iam.accounts.update" disabled={selected.archived || !renameValue.trim()} onAction={rename}>{t("webui.iam.accounts.editName")}</ActionTrigger>
+            <ActionTrigger operationId="iam.accounts.archive" variant="danger" disabled={selected.archived} onAction={archive}>{t("webui.iam.accounts.archive")}</ActionTrigger>
+            {archiveError && <p className="page-meta">{t("webui.iam.error")}</p>}
+          </div>
+        </PageSection>
+      )}
     </div>
+    <Drawer open={createOpen} title={t("webui.iam.accounts.create.title")} closeLabel={t("webui.iam.cancel")} onClose={() => setCreateOpen(false)}>
+      <div className="toolbar drawer-form">
+        <FormField label={t("webui.iam.username")} htmlFor="account-username" control={<Field id="account-username" label={t("webui.iam.username")} value={username} onChange={(event) => setUsername(event.target.value)} />} />
+        <FormField label={t("webui.iam.displayName")} htmlFor="account-name" control={<Field id="account-name" label={t("webui.iam.displayName")} value={name} onChange={(event) => setName(event.target.value)} />} />
+        <FormField label={t("webui.iam.password")} htmlFor="account-password" control={<Field id="account-password" label={t("webui.iam.password")} type="password" value={password} onChange={(event) => setPassword(event.target.value)} />} />
+        <div className="toolbar-actions">
+          <ActionTrigger operationId="iam.accounts.create" pendingLabel={t("webui.iam.saving")} onAction={() => void createAccount(username, name, password).then(() => { setUsername(""); setName(""); setPassword(""); setCreateOpen(false); return refresh(); }).catch(() => setMessage(t("webui.iam.error")))}>{t("webui.iam.create")}</ActionTrigger>
+          <Button variant="secondary" onClick={() => setCreateOpen(false)}>{t("webui.iam.cancel")}</Button>
+        </div>
+      </div>
+    </Drawer>
   </div>;
 }

@@ -21,7 +21,7 @@ export default function DepartmentsPage() {
   const [name, setName] = useState("");
   const [parentId, setParentId] = useState("");
   const [error, setError] = useState("");
-  const refresh = useCallback(() => departmentTree().then(setItems).catch(() => setError(t("webui.organization.error"))), [t]);
+  const refresh = useCallback(() => departmentTree().then((nodes) => { setItems(nodes); if (nodes.length > 0) setSelectedID((current) => current || nodes[0].id); }).catch(() => setError(t("webui.organization.error"))), [t]);
   useEffect(() => { void refresh(); }, [refresh]);
   const flat = flatten(items);
   const selected = flat.find((entry) => entry.item.id === selectedID)?.item;

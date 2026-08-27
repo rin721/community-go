@@ -83,6 +83,13 @@ Linux 使用 `bash scripts/verify-webui.sh`。质量链覆盖生成检查、冻�
 - `webui/src/ui` 新增**自研 SVG 图表原语** `Sparkline`/`LineChart`（零第三方依赖、多系列/空数据态/aria-label、Vitest 覆盖），任何模块可复用；复杂交互图表（缩放/联动）出现时再评估引入图表库。
 - Ops Dashboard 新增「监控」分区（1Panel 式仪表盘，R081-003 人因返工）：健康横幅（全部正常/N 项降级/N 项故障）+ 大数值指标卡行（CPU（进程 %，进度条+趋势）、内存（分配量+占比条+趋势）、磁盘/网络（未接入态+node-exporter 指引））+ 组件状态表（状态圆点+语义词+异常高亮）+ 带坐标轴实时趋势图（y 刻度/x 时间标签/图例，`AxisLineChart`）+ 最近采样 N 秒前；前端滚动窗口约 5s×60 点轮询累积，重启即空。仅在 available 状态下挂载（degraded 路由保持既有能力边界）。OS 级指标由宿主机 Prometheus node-exporter 补齐（运维文档指引）。
 
+## WebUI 产品架构与 UI 体系重构（082）
+
+- **平台语义组件**（`webui/src/ui` + `@webui/sdk/ui` 导出：保持既有契约扩展）：`DataTable` 增强（列显隐/行密度/Sticky/行操作菜单，`enhancements` 可选）、`FilterBar`/`SearchInput`（统一列表工具栏）、`FormField`/`Field` 宽度档（Label/Description/Control/Helper/Error）、`StatusBadge`（语义状态集）、`CodeText`/`CodeViewer`（monospace 技术标识符与 JSON 展示）、`DangerZone`（危险操作流程）、`ErrorState`（分级）、`TreeView`/`InspectorPanel`（树 + 详情）、`DetailDrawer`（规格化 Master–Detail）、`Skeleton` 分级；design tokens 补 `font.*`/`control.*`/`info`/`success`/宽度档（`--content-max-*`）。
+- **Query 契约**（`@webui/sdk/query`）：`useWebUIQuery`/`useWebUIMutation`（缓存/失效/取消/ProblemError）+ `useListQueryParams`（列表过滤/分页/排序 URL 化）；`useGatedQueries`（Ops 门禁）保持。
+- **页面迁移**：IAM `AccountsPage`（DataTable 目录 + Create Drawer + User Detail Drawer）、`RolesPage`（DataTable + 权限矩阵详情）、`PermissionsPage`（分组 Catalog + Used by Roles）、`SessionsPage`（DataTable + 批量吊销）、`ApiTokensPage`（Scope 按模块分组 + 可复制密钥）；Auth `AuditPage`（Log Explorer + Detail Drawer，仅低敏摘要字段）；Ops `DashboardPage`（顶栏 Context 行：版本/提交/运行时长/数据源，真实数据）；Organization `DepartmentsPage`（部门树 + Inspector）；Navigation `MenusPage`（导航树 + 策略 Inspector）。
+- 细节见 [082 变更记录](docs/changes/082-webui-architecture-rebuild/README.md)。
+
 ## 安全页：MFA 与 API 令牌（078/080）
 
 - 设置中心「安全」页（`settings/.../SecurityPage.tsx`）新增 **MFA/TOTP 区块**（绑定显示 otpauth URI、确认激活展示一次性恢复码、禁用需验证码/恢复码复核）；080 起 API 令牌区块降级为**入口与摘要**（数量/最近使用 + 跳转）。

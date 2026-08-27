@@ -2062,6 +2062,162 @@ textarea.field-input {
   outline-offset: 1px;
 }
 
+/* 082 REQ-082-003：FormField 规格化（Label/Description/Control/Helper/Error + 字段宽度档） */
+.field-width-sm {
+  max-width: 240px;
+}
+.field-width-md {
+  max-width: 480px;
+}
+.field-width-lg {
+  max-width: 640px;
+}
+.form-field {
+  display: grid;
+  gap: 6px;
+}
+.form-field-label {
+  font-size: 13px;
+  font-weight: var(--font-weight-medium);
+  color: var(--text);
+}
+.form-field-optional {
+  color: var(--text-muted);
+  font-weight: var(--font-weight-regular);
+  font-size: 12px;
+}
+.form-field-description,
+.form-field-helper {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: var(--font-lineheight-normal);
+}
+.form-field-error {
+  font-size: 12px;
+  color: var(--danger);
+}
+
+/* 082 REQ-082-004/005：状态反馈体系与语义组件样式 */
+.status-badge {
+  font-variant-numeric: tabular-nums;
+}
+.code-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+}
+.code-text-value {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+.code-text-copy {
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 4px;
+  border-radius: var(--radius-xs);
+}
+.code-text-copy:hover {
+  color: var(--text);
+  background: var(--surface-muted);
+}
+.danger-zone {
+  display: grid;
+  gap: 8px;
+  padding: var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--danger) 4%, transparent);
+}
+.danger-zone-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.danger-zone-title {
+  color: var(--danger);
+  font-weight: var(--font-weight-semibold);
+}
+.danger-zone-consequence {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: var(--font-lineheight-normal);
+}
+.danger-zone-confirm {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+.danger-zone-confirm-input {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text);
+}
+.danger-zone-confirm-input input {
+  height: var(--control-height-md);
+  padding: 0 var(--control-padding-x);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--control-radius);
+  font-size: var(--font-scale-md);
+}
+.danger-zone-confirm-actions {
+  display: flex;
+  gap: 8px;
+}
+.error-state {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+}
+.error-state-section {
+  background: color-mix(in srgb, var(--danger) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--danger) 25%, transparent);
+}
+.error-state-inline {
+  background: transparent;
+  color: var(--danger);
+}
+.error-state-action {
+  gap: 8px;
+}
+.error-state-permission {
+  background: var(--surface-muted);
+  border: 1px dashed var(--border-strong);
+  color: var(--text-secondary);
+}
+.error-state-connectivity {
+  background: color-mix(in srgb, var(--warning) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warning) 30%, transparent);
+  color: var(--text);
+}
+.error-state-title {
+  font-weight: var(--font-weight-medium);
+}
+.error-state-detail {
+  color: var(--text-secondary);
+}
+.error-state-action {
+  margin-left: auto;
+}
+
 /* 页元信息行：版本/汇总等辅助说明 */
 .page-meta {
   display: flex;

@@ -47,8 +47,37 @@ export function Button({ variant = "primary", className = "", type = "button", d
 
 // Field 复用 HeroUI TextField/Input 复合组件（RAC 底座）：Label/Description/FieldError
 // 语义 + 原生 input 事件透传（onChange(event) 契约不变）。
-export function Field({ label, hint, error, className = "", ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string; hint?: string; error?: string }) {
-  return <div className={`form-field ${error ? "has-error" : ""}`.trim()}><TextField isInvalid={Boolean(error)}><Label>{label}</Label><HeroInput className={className} {...props as object} />{hint && <Description>{hint}</Description>}{error && <FieldError>{error}</FieldError>}</TextField></div>;
+// 082 REQ-082-003：规范化 FormField 结构（Label/Description/Control/Helper/Error），
+// 新增 description/width（240/320-480/480-640 档）与 optional 标记，placeholder 不替代 label。
+export type FieldWidth = "sm" | "md" | "lg" | "auto";
+export function fieldWidthClass(width: FieldWidth = "auto"): string {
+  return width === "sm" ? "field-width-sm" : width === "md" ? "field-width-md" : width === "lg" ? "field-width-lg" : "";
+}
+export function Field({ label, hint, error, className = "", description, width = "auto", optional, ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string; hint?: string; error?: string; description?: string; width?: FieldWidth; optional?: boolean }) {
+  return <div className={`form-field ${error ? "has-error" : ""} ${fieldWidthClass(width)}`.trim()}><TextField isInvalid={Boolean(error)}><Label>{label}{optional && <span className="form-field-optional">（可选）</span>}</Label><HeroInput className={className} {...props as object} />{hint && <Description>{hint}</Description>}{description && !hint && <Description>{description}</Description>}{error && <FieldError>{error}</FieldError>}</TextField></div>;
+}
+
+// FormField：通用字段容器（Label/Description/Control/Helper/Error 统一结构，082 REQ-082-003）。
+// 相比 Field 支持任意 control 子节点（Select/Check/Switch/自定义），供 RHF Controller 包裹。
+export function FormField({ label, control, description, helper, error, width = "auto", optional, htmlFor }: {
+  label: ReactNode;
+  control: ReactNode;
+  description?: ReactNode;
+  helper?: ReactNode;
+  error?: ReactNode;
+  width?: FieldWidth;
+  optional?: boolean;
+  htmlFor?: string;
+}) {
+  return (
+    <div className={`form-field ${error ? "has-error" : ""} ${fieldWidthClass(width)}`.trim()}>
+      <label className="form-field-label" htmlFor={htmlFor}>{label}{optional && <span className="form-field-optional">（可选）</span>}</label>
+      {control}
+      {description && <p className="form-field-description">{description}</p>}
+      {helper && <p className="form-field-helper">{helper}</p>}
+      {error && <p className="form-field-error" role="alert">{error}</p>}
+    </div>
+  );
 }
 
 export function StatusPill({ state, children }: { state: CapabilityState; children: ReactNode }) {
@@ -628,4 +657,111 @@ export function SearchInput({ value, onChange, placeholder, label, debounceMs = 
       />
     </div>
   );
+}
+
+/* ---------------------------------------------------------------------------
+   082 REQ-082-004/005：状态与反馈语义体系 + 语义组件（方案「二十九/三十一/三十三/
+   三十六/五十一」）。EmptyState 在既有 HeroEmptyState 之上结构化；StatusBadge 统一
+   状态集；DangerZone 统一危险操作流程；CodeText 统一技术标识符 monospace 呈现；
+   ErrorState 按分级呈现（Page/Section/Inline/Action/Permission/Connectivity）。
+   --------------------------------------------------------------------------- */
+
+/** 语义状态集（方案「二十九」）：对应 080 Token/会话/账号与 081 监控状态机。 */
+export type SemanticStatus = "active" | "inactive" | "enabled" | "disabled" | "pending" | "healthy" | "degraded" | "failed" | "expired" | "revoked";
+
+const statusTone: Record<SemanticStatus, "success" | "warning" | "danger" | "default" | "accent"> = {
+  active: "success",
+  enabled: "success",
+  healthy: "success",
+  pending: "warning",
+  degraded: "warning",
+  inactive: "default",
+  disabled: "default",
+  expired: "warning",
+  revoked: "danger",
+  failed: "danger",
+};
+
+/** StatusBadge：统一状态呈现（Badge 只用于状态/分类；ID/权限码/元数据走 CodeText）。 */
+export function StatusBadge({ status, children, className = "" }: { status: SemanticStatus; children: ReactNode; className?: string }) {
+  return <Chip color={statusTone[status]} variant="soft" size="sm" className={`status-badge status-${status} ${className}`.trim()}>{children}</Chip>;
+}
+
+/** CodeText：技术标识符 monospace 呈现（方案「五十一」；权限 ID/Token ID/审计 hash 等）。 */
+export function CodeText({ value, copyable = false, className = "", copyLabel }: { value: string; copyable?: boolean; className?: string; copyLabel?: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    void navigator.clipboard?.writeText(value).then(() => { setCopied(true); window.setTimeout(() => setCopied(false), 1500); }).catch(() => undefined);
+  };
+  return (
+    <span className={`code-text ${className}`.trim()}>
+      <code className="code-text-value">{value}</code>
+      {copyable && <button type="button" className="code-text-copy ui-button" onClick={copy} aria-label={copyLabel ?? "Copy"}>{copied ? "✓" : "⧉"}</button>}
+    </span>
+  );
+}
+
+/** DangerZone：统一危险操作区（方案「三十六」：后果说明 + 确认（可要求输入标识符）+ pending + 失败反馈）。 */
+export function DangerZone({ title, consequence, confirmTitleText, inputConfirmation, confirmLabel, cancelLabel, closeLabel, busy, busyLabel, onConfirm, className = "" }: {
+  title: string;
+  consequence: ReactNode;
+  confirmTitleText?: string;
+  inputConfirmation?: string;
+  confirmLabel: string;
+  cancelLabel: string;
+  closeLabel: string;
+  busy?: boolean;
+  busyLabel?: string;
+  onConfirm: () => Promise<unknown>;
+  className?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [typed, setTyped] = useState("");
+  const [failed, setFailed] = useState(false);
+  const requireInput = Boolean(inputConfirmation);
+  const canConfirm = !requireInput || typed === inputConfirmation;
+  const run = () => {
+    setFailed(false);
+    void onConfirm().catch(() => setFailed(true)).finally(() => setOpen(false));
+  };
+  return (
+    <div className={`danger-zone ${className}`.trim()}>
+      <div className="danger-zone-header"><strong className="danger-zone-title">{title}</strong><button type="button" className="ui-button" onClick={() => { setTyped(""); setFailed(false); setOpen(true); }}>{confirmLabel}</button></div>
+      <div className="danger-zone-consequence">{consequence}</div>
+      <ConfirmDialog open={open} title={confirmTitleText ?? title} description={failed ? "操作失败，请重试。" : undefined} confirmLabel={confirmLabel} cancelLabel={cancelLabel} closeLabel={closeLabel} onConfirm={() => { setOpen(false); run(); }} onCancel={() => setOpen(false)} />
+      {open && (
+        <div className="danger-zone-confirm" role="dialog" aria-modal="true" aria-label={confirmTitleText ?? title}>
+          <p>{consequence}</p>
+          {requireInput && <label className="danger-zone-confirm-input">请输入 <code>{inputConfirmation}</code> 以确认<input type="text" value={typed} onChange={(event) => setTyped(event.target.value)} /></label>}
+          <div className="danger-zone-confirm-actions">
+            <button type="button" className="ui-button" disabled={!canConfirm || busy} onClick={() => { setFailed(false); void run(); }}>{busy ? busyLabel ?? "处理中…" : confirmLabel}</button>
+            <button type="button" className="ui-button" onClick={() => setOpen(false)}>{cancelLabel}</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** ErrorState：错误分级呈现（方案「三十三」；Page 用 SystemStatePage 由宿主承担，此处提供 Section/Inline/Action/Permission/Connectivity）。 */
+export function ErrorState({ kind = "section", title, detail, action, className = "" }: {
+  kind?: "section" | "inline" | "action" | "permission" | "connectivity";
+  title: string;
+  detail?: string;
+  action?: ReactNode;
+  className?: string;
+}) {
+  if (kind === "permission") {
+    return <div className={`error-state error-state-permission ${className}`.trim()} role="alert"><span className="error-state-title">{title}</span>{detail && <span className="error-state-detail">{detail}</span>}</div>;
+  }
+  switch (kind) {
+    case "inline":
+      return <div className={`error-state error-state-inline ${className}`.trim()} role="alert"><span className="error-state-title">{title}</span>{detail && <span className="error-state-detail">{detail}</span>}{action && <span className="error-state-action">{action}</span>}</div>;
+    case "action":
+      return <div className={`error-state error-state-action ${className}`.trim()} role="alert"><span className="error-state-title">{title}</span>{action && <span className="error-state-action">{action}</span>}</div>;
+    case "connectivity":
+      return <div className={`error-state error-state-connectivity ${className}`.trim()} role="alert"><span className="error-state-title">{title}</span>{detail && <span className="error-state-detail">{detail}</span>}{action && <span className="error-state-action">{action}</span>}</div>;
+    default:
+      return <div className={`error-state error-state-section ${className}`.trim()} role="alert"><span className="error-state-title">{title}</span>{detail && <span className="error-state-detail">{detail}</span>}{action && <span className="error-state-action">{action}</span>}</div>;
+  }
 }

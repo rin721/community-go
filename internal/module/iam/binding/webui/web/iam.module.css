@@ -3,7 +3,7 @@
 .iamModule:global(.auth-panel) {
   align-self: center;
   justify-self: center;
-  width: min(480px, calc(100vw - 32px));
+  width: min(520px, calc(100vw - 32px));
   padding: 32px;
 }
 .iamModule :global(.auth-heading) {
@@ -24,6 +24,50 @@
 }
 .iamModule :global(.iam-form .ui-button) {
   width: 100%;
+}
+
+/* 084：登录/初始化面板分组（凭证区/账号区）与密码显隐切换 */
+.iamModule :global(.auth-section) {
+  display: grid;
+  gap: 12px;
+  padding-top: 14px;
+  margin-top: 2px;
+  border-top: 1px solid var(--border);
+}
+.iamModule :global(.auth-section-title) {
+  margin: 0;
+  font-size: 12px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+}
+.iamModule :global(.auth-section-hint) {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+.iamModule :global(.auth-password-wrap) {
+  position: relative;
+}
+.iamModule :global(.auth-password-wrap .ui-button) {
+  position: absolute;
+  top: 26px;
+  right: 6px;
+  z-index: 1;
+  min-width: 0;
+  height: 28px;
+  padding: 0 8px;
+  font-size: 12px;
+  width: auto;
+}
+.iamModule :global(.auth-footnote) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: 12px;
 }
 
 @media (max-width: 720px) {

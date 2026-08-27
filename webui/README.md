@@ -143,3 +143,4 @@ Linux 使用 `bash scripts/verify-webui.sh`。质量链覆盖生成检查、冻�
 - 平台新增受限表单与工作台原语（`webui/src/styles.css`）：`.field-grid`（自动列、上限 640px，字段不再被 `.toolbar` flex 撑宽）、`.split-workspace`（取景区/详情区两栏，替代固定 320px 右栏，修复 Menus/Org 溢出与比例失衡）、`.row-actions`（行内动作对齐）、`.form-panel-bounded`（密码等短表单 480px 上限）。
 - 跨 namespace 文案解析：`@webui/sdk/i18n` 导出 `translateMessage`/`translateOptional`/`ensureRouteLocale`（`webui/src/i18n.ts` 宿主实现）。Menus 页树标题按需加载并翻译其它模块的 `titleMessageId`；权限目录描述 `permission.<module>.<rest>` 映射到模块自有 `webui.<module>.permission.<rest>` 键，缺失时回落目录键，杜绝「翻译资源缺失」占位。
 - 页面模板落地：目录工作台（搜索树 + InspectorPanel 详情/编辑，如部门）、名录表格（DataTable + 行菜单重命名/归档确认，如岗位）、选择器 + 编辑器两栏（如账号组织分配）、设置行（label 左/控件右 + 单选组）。新页面优先采用这些组合，禁止退化为基础组件铺开。
+- 084b：FilterBar 筛选下拉改为「行内标签 + 原生 select」紧凑形态（多筛选项不再散开/孤立箭头），排序并入同一查询条；`BulkActionBar` 支持常驻禁用态（未选择时可见不可点，会话页批量吊销可发现）；登录/初始化页面居中化（`.blank-content` 容器）、密码显隐、字段分组与确认；OpenAPI 执行用例以 `vi.stubEnv` 固定数据源环境（本地 `webui/.env` 声明 mock 不影响测试）。

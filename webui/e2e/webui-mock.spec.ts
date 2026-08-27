@@ -162,3 +162,28 @@ test("084 redesigned workspaces render without known P0/P1 defects", async ({ pa
   await expect(page.getByText(/Execution is unavailable in mock demo builds/)).toBeVisible();
   await page.screenshot({ path: "test-results/084-workspaces-mock.png", fullPage: true });
 });
+
+// 084b：认证/初始化页产品化（居中、分组、密码显隐、确认字段）与账号角色筛选。
+test("084b auth screens and account role filter render", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  // Login：居中 auth 面板 + 密码显隐切换（切换后 input type 变化）。
+  await page.goto("/login");
+  await expect(page.locator(".auth-panel")).toBeVisible();
+  const passwordInput = page.locator(".auth-panel input[type='password']");
+  await expect(passwordInput).toBeVisible();
+  await page.locator(".auth-toggle").click();
+  await expect(page.locator(".auth-password-wrap input[type='text']")).toBeVisible();
+
+  // Setup：凭证与所有者账号两组分区 + 密码确认字段（token/密码/确认 3 个 password 输入）。
+  await page.goto("/setup");
+  await expect(page.locator(".auth-section")).toHaveCount(2);
+  await expect(page.locator(".auth-panel input[type='password']")).toHaveCount(3);
+
+  // Accounts：FilterBar 集成了搜索/状态/归档/角色/排序等字段（原生 select ≥3，
+// 避免应用壳层首帧计数抖动）。
+  await page.goto("/admin/accounts");
+  await expect(page.locator(".data-table").first()).toBeVisible();
+  await page.waitForTimeout(600);
+  const accountSelectCount = await page.locator(".filter-bar select").count();
+  expect(accountSelectCount).toBeGreaterThanOrEqual(3);
+});

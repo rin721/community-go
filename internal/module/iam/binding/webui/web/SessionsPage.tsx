@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { BulkActionBar, Button, CodeText, DataTable, EmptyState, ErrorState, FilterBar, formatDateTime, formatRelativeTime, PageHeader, PageSection, SelectField, StatusBadge } from "@webui/sdk/ui";
+import { BulkActionBar, Button, CodeText, DataTable, EmptyState, ErrorState, FilterBar, formatDateTime, formatRelativeTime, PageHeader, PageSection, StatusBadge } from "@webui/sdk/ui";
 import { useListQueryParams } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { listSessions, revokeSessions, type SessionInfo } from "./api";
@@ -52,22 +52,20 @@ export default function SessionsPage() {
             { value: "all", label: t("webui.iam.accounts.statusAll") },
             { value: "active", label: t("webui.iam.sessions.active") },
             { value: "revoked", label: t("webui.iam.sessions.revokedAt") },
-          ], onValueChange: (value) => listQuery.setFilters({ status: String(value) }) }]}
-          onClear={() => listQuery.clearFilters()}
-          clearLabel={t("webui.iam.accounts.clear")}
-        />
-        <div className="toolbar accounts-sort-bar">
-          <SelectField label={t("webui.iam.accounts.sortBy")} placeholder={listQuery.sort ? undefined : t("webui.iam.accounts.sortNone")} value={listQuery.sort?.key ?? ""} options={[
+          ], onValueChange: (value) => listQuery.setFilters({ status: String(value) }) },
+          { key: "sortBy", control: "select", label: t("webui.iam.accounts.sortBy"), value: listQuery.sort?.key ?? "", options: [
             { value: "", label: t("webui.iam.accounts.sortNone") },
             { value: "createdAt", label: t("webui.iam.sessions.createdAt") },
             { value: "lastSeenAt", label: t("webui.iam.sessions.lastSeenAt") },
             { value: "idleExpiresAt", label: t("webui.iam.sessions.idleExpiresAt") },
-          ]} onValueChange={(value) => listQuery.setSort(value ? { key: value, direction: listQuery.sort?.direction ?? "desc" } : null)} />
-          {listQuery.sort && <SelectField label={t("webui.iam.accounts.sortDirection")} value={listQuery.sort.direction} options={[
+          ], onValueChange: (value) => listQuery.setSort(String(value) ? { key: String(value), direction: listQuery.sort?.direction ?? "desc" } : null) },
+          { key: "sortDir", control: "select", label: t("webui.iam.accounts.sortDirection"), value: listQuery.sort?.direction ?? "desc", options: [
             { value: "asc", label: t("webui.iam.accounts.sortAsc") },
             { value: "desc", label: t("webui.iam.accounts.sortDesc") },
-          ]} onValueChange={(value) => listQuery.setSort({ key: listQuery.sort?.key ?? "createdAt", direction: value === "desc" ? "desc" : "asc" })} />}
-        </div>
+          ], onValueChange: (value) => { if (listQuery.sort) listQuery.setSort({ key: listQuery.sort.key, direction: value === "desc" ? "desc" : "asc" }); } }]}
+          onClear={() => listQuery.clearFilters()}
+          clearLabel={t("webui.iam.accounts.clear")}
+        />
         {loadError && <ErrorState kind="connectivity" title={hostT("webui.host.route.error.title")} detail={hostT("webui.host.route.error.detail")} action={<Button variant="secondary" onClick={() => void refresh()}>{hostT("webui.host.retry")}</Button>} />}
         <DataTable<SessionInfo>
           columns={[
@@ -91,7 +89,7 @@ export default function SessionsPage() {
           enhancements={{ density: "default", stickyHeader: true }}
         />
         <BulkActionBar
-          open={selected.size > 0}
+          open={items.length > 0}
           selectionLabel={t("webui.iam.sessions.selection", { count: selected.size })}
           actionLabel={t("webui.iam.sessions.revoke")}
           clearLabel={t("webui.iam.sessions.clearSelection")}
@@ -102,6 +100,8 @@ export default function SessionsPage() {
           closeLabel={t("webui.iam.cancel")}
           pending={revoking}
           pendingLabel={t("webui.iam.saving")}
+          disabled={selected.size === 0}
+          disabledReason="invalid"
           onConfirm={revoke}
           onClear={() => setSelected(new Set())}
         />

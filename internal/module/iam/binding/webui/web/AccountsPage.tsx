@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActionTrigger, Button, Check, CodeText, ConfirmActionTrigger, DataTable, DetailDrawer, Drawer, EmptyState, ErrorState, Field, FilterBar, FormField, PageHeader, PageSection, SearchInput, SelectField, StatusBadge } from "@webui/sdk/ui";
+import { ActionTrigger, Button, Check, CodeText, ConfirmActionTrigger, DataTable, DetailDrawer, Drawer, EmptyState, ErrorState, Field, FilterBar, FormField, PageHeader, PageSection, SearchInput, StatusBadge } from "@webui/sdk/ui";
 import { useListQueryParams } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { accountRolesView, archiveAccount, createAccount, listAccounts, listRoles, replaceAccountRoles, resetAccountPassword, setAccountStatus, updateAccountInfo, type Account, type Role } from "./api";
@@ -26,11 +26,12 @@ export default function AccountsPage() {
   const { t } = useWebUITranslation("webui.iam");
   const { t: hostT } = useWebUITranslation("webui.host");
   // 082 REQ-082-012/002: list state URL-ized (query refresh keeps context).
-  const listQuery = useListQueryParams<{ query: string; status: string; archived: boolean }>({
+  const listQuery = useListQueryParams<{ query: string; status: string; archived: boolean; roleId: string }>({
     filters: {
       query: { queryKey: "query", defaultValue: "" },
       status: { queryKey: "status", defaultValue: "", decode: (raw) => raw ?? "" },
       archived: { queryKey: "archived", defaultValue: false, decode: (raw) => raw === "true" },
+      roleId: { queryKey: "roleId", defaultValue: "", decode: (raw) => raw ?? "" },
     },
   });
   const [items, setItems] = useState<Account[]>([]);
@@ -58,12 +59,12 @@ export default function AccountsPage() {
     const sortMap: Record<string, string> = { displayName: "display_name", username: "username", status: "status" };
     const sortKey = listQuery.sort ? sortMap[listQuery.sort.key] : undefined;
     const sort = sortKey && listQuery.sort ? `${sortKey}:${listQuery.sort.direction}` : undefined;
-    return listAccounts(listQuery.filters.query, (nextPage - 1) * PAGE_SIZE, PAGE_SIZE, { status, archived: listQuery.filters.archived, sort }).then((result) => {
+    return listAccounts(listQuery.filters.query, (nextPage - 1) * PAGE_SIZE, PAGE_SIZE, { status, archived: listQuery.filters.archived, roleId: listQuery.filters.roleId || undefined, sort }).then((result) => {
       setTotal(result.total);
       setItems(result.items);
       setSelectedID((current) => current && result.items.some((item) => item.id === current) ? current : result.items[0]?.id || "");
     }).catch(() => { setItems([]); setTotal(0); setLoadError(true); }).finally(() => setLoading(false));
-  }, [listQuery.filters.query, listQuery.filters.status, listQuery.filters.archived, listQuery.sort, page]);
+  }, [listQuery.filters.query, listQuery.filters.status, listQuery.filters.archived, listQuery.filters.roleId, listQuery.sort, page]);
   useEffect(() => { void refresh(); void listRoles().then((result) => setRoles(result.items)); }, [refresh]);
   useEffect(() => { void refresh(); }, [listQuery.filters.query, listQuery.filters.status, listQuery.filters.archived]); // 083: filter URL change reloads from page 1.
   const reloadSelection = useCallback((id: string) => {
@@ -127,23 +128,25 @@ export default function AccountsPage() {
               { value: "disabled", label: t("webui.iam.accounts.statusDisabled") },
             ], value: listQuery.filters.status, onValueChange: (next) => listQuery.setFilters({ ...listQuery.filters, status: String(next) }) },
             { key: "archived", label: t("webui.iam.accounts.archivedFilter"), control: "switch", value: listQuery.filters.archived, onValueChange: (next) => listQuery.setFilters({ ...listQuery.filters, archived: Boolean(next) }) },
+            { key: "roleId", label: t("webui.iam.accounts.roleFilter"), control: "select", options: [
+              { value: "", label: t("webui.iam.accounts.roleAll") },
+              ...checklistCandidates(roles).map((role) => ({ value: role.id, label: `${role.name} (${role.code})` })),
+            ], value: listQuery.filters.roleId, onValueChange: (next) => listQuery.setFilters({ ...listQuery.filters, roleId: String(next) }) },
+            { key: "sortBy", label: t("webui.iam.accounts.sortBy"), control: "select", options: [
+              { value: "", label: t("webui.iam.accounts.sortNone") },
+              { value: "displayName", label: t("webui.iam.displayName") },
+              { value: "username", label: t("webui.iam.username") },
+              { value: "status", label: t("webui.iam.accounts.tableStatus") },
+            ], value: listQuery.sort?.key ?? "", onValueChange: (value) => listQuery.setSort(String(value) ? { key: String(value), direction: listQuery.sort?.direction ?? "asc" } : null) },
+            { key: "sortDir", label: t("webui.iam.accounts.sortDirection"), control: "select", options: [
+              { value: "asc", label: t("webui.iam.accounts.sortAsc") },
+              { value: "desc", label: t("webui.iam.accounts.sortDesc") },
+            ], value: listQuery.sort?.direction ?? "desc", onValueChange: (value) => { if (listQuery.sort) listQuery.setSort({ key: listQuery.sort.key, direction: value === "desc" ? "desc" : "asc" }); } },
           ]}
           searchInput={<SearchInput value={listQuery.filters.query} onChange={(next) => listQuery.setFilters({ ...listQuery.filters, query: next })} placeholder={t("webui.iam.search")} label={t("webui.iam.accounts.filter")} />}
           onClear={() => listQuery.clearFilters()}
           clearLabel={t("webui.iam.accounts.clear")}
         />
-        <div className="toolbar accounts-sort-bar">
-          <SelectField label={t("webui.iam.accounts.sortBy")} value={listQuery.sort?.key ?? ""} options={[
-            { value: "", label: t("webui.iam.accounts.sortNone") },
-            { value: "displayName", label: t("webui.iam.displayName") },
-            { value: "username", label: t("webui.iam.username") },
-            { value: "status", label: t("webui.iam.accounts.tableStatus") },
-          ]} onValueChange={(value) => listQuery.setSort(value ? { key: value, direction: listQuery.sort?.direction ?? "asc" } : null)} />
-          {listQuery.sort && <SelectField label={t("webui.iam.accounts.sortDirection")} value={listQuery.sort.direction} options={[
-            { value: "asc", label: t("webui.iam.accounts.sortAsc") },
-            { value: "desc", label: t("webui.iam.accounts.sortDesc") },
-          ]} onValueChange={(value) => listQuery.setSort({ key: listQuery.sort?.key ?? "displayName", direction: value === "desc" ? "desc" : "asc" })} />}
-        </div>
         {loadError && <ErrorState kind="connectivity" title={hostT("webui.host.route.error.title")} detail={hostT("webui.host.route.error.detail")} action={<Button variant="secondary" onClick={() => void refresh()}>{hostT("webui.host.retry")}</Button>} />}
         <DataTable<Account>
           columns={[

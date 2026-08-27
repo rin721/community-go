@@ -336,5 +336,6 @@ i18n 是业务模块的正式 binding 契约：业务模块按统一方式提供
 - WebUI 页面优先使用平台产品化组合，禁止退化为基础组件铺开：目录工作台（搜索树 + `InspectorPanel` 详情/编辑，见部门页）、名录表格（`DataTable` + 行菜单重命名/归档确认，见岗位页）、选择器 + 编辑器两栏（见账号组织分配页）、设置行（label 左/控件右 + 单选组，见设置中心）。平台原语见 [WebUI README](../../webui/README.md)「逐页产品化工作台（084）」。
 - 权限目录描述键统一为模块自有命名空间：`binding/permission/definitions.go` 的 `DescriptionMessageID` 使用 `permission.<module>.<rest>`，模块需在自有 webui locale 提供 `webui.<module>.permission.<rest>` 双语键（如 `webui.iam.permission.account.read`）；前端经 `@webui/sdk/i18n` 的 `translateOptional`/`ensureRouteLocale` 解析，缺失时回落目录键而不是显示「翻译资源缺失」。新增权限定义时必须成对补齐这两类键。
 - 模块页面新增用户可见文案只进自有 locale（zh/en 成对），组件源码禁止中文与绕过翻译的用户文案（i18n 契约 lint 守护）。
+- 列表页查询条统一用平台 `FilterBar`：筛选与排序并入同一行（行内标签 + 原生 select），不要在 FilterBar 之外再堆一行排序控件；批量操作使用 `BulkActionBar`（可选常驻禁用态，未选择时可发现不可点，如会话批量吊销）。登录/初始化等空白布局页面复用 `.auth-panel` + `auth-section` 分组与密码显隐模式，不要自绘第二套表单。
 
 构建通过不能替代资源生命周期或产品验收。交付必须区分已通过、未执行和被外部环境阻断的验证。

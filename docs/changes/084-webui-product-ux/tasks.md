@@ -15,6 +15,9 @@
 | SET-084-001 | M | Settings 开关行/语言单选组重构（appearance/notifications/language）+ 密码表单（confirm + bounded） | 截图复核 | 完成 |
 | QA-084-001 | L | 验证矩阵（typecheck/lint/vitest 199/mock e2e 5）+ 重新截图 + codex 复查 | 全绿；P0 清零，残余 P1 记录 | 完成（残余见下） |
 | DOC-084-001 | S | 变更记录 + changes 索引 + documentation-impact + authority（webui README / 模块开发指南） | docs-guard 通过 | 完成 |
+| AUTH-084-002 | M | 登录/初始化页产品化：居中 auth 面板、分组（凭证/账号）、密码显隐、确认字段、错误 Alert；blank 布局头部分组 | screenshot P2/codex 复核 | 完成 |
+| LIST-084-002 | M | FilterBar 紧凑下拉（行内标签+原生 select）；Accounts 角色筛选（后端 roleId 契约）；Sessions/Accounts/Roles/ApiTokens 排序并入 FilterBar；Sessions 批量条常驻（未选禁用）；data-table-toolbar 收窄 | typecheck/lint/vitest/e2e 全绿 | 完成 |
+| FIX-084-002 | S | OpenAPI 执行用例环境确定性（stubEnv，本地 webui/.env 声明 mock 不再影响） | vitest 199 全绿 | 完成 |
 
 ## 验证矩阵（实测 2026-09-01）
 
@@ -35,6 +38,7 @@
 ## 未执行/受限项
 
 - 校验矩阵：go test/vet 全绿（前端变更不涉 Go）；`vite build` 成功（chunk 体积警告为既有项）。
-- **第一批残余 P1（第二批继续）**：部门页目录卡与详情面板在小数据下密度（Select 弹出箭头与字段关系）、ApiTokens 列表首屏露出度与创建区组间层次、账号安全页 aside 与表单关联、权限目录页纵向/横向空白（mock 2 行数据放大观感）、设置卡 bounded 表单的右侧留白（语言/通知已至 P2）。均不阻断使用，后续轮次按 R084-001 复跑收敛。
-- 第二批页面（Sessions/Accounts 密度与批量、Login/Setup 重构、账号批量操作、会话按账号过滤）留待后续轮次；可推导但涉及后端 list 契约扩展的能力按 DEC 评估。
+- **第一批残余 P1（第二批继续）**：部门页目录卡与详情面板在小数据下密度（Select 弹出箭头与字段关系）、账号安全页 aside 与表单关联、权限目录页纵向/横向空白（mock 2 行数据放大观感）、设置卡 bounded 表单的右侧留白（语言/通知已至 P2）。
+- **084b 残余 P1（第三批继续）**：会话/角色/API 令牌列表在 2 行 mock 数据下的横向铺开与卡片高度观感、角色行主操作语义（选择 vs 查看）、API 令牌创建区两栏比例与按钮归属、权限面板区信息密度。均不阻断使用，属小数据放大后的密度判断，后续轮次按 R084-001 复跑收敛。
+- 第三批页面（Login/Setup 收尾微调、账号批量操作、会话按账号过滤等）留待后续轮次；可推导但涉及后端 list 契约扩展的能力按 DEC 评估。
 - 移动视口与真机验证沿用既有受限项。

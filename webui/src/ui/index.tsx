@@ -487,7 +487,7 @@ export function ActionTrigger({ operationId, pending = false, pendingLabel, disa
 
 // BulkActionBar 是数据表选择联动后的批量操作条（062 交互规范）：
 // 选中 N 项 -> 确认弹窗 -> pending 提交 -> 成功后由调用方复位选择并给出反馈。
-export function BulkActionBar({ open, selectionLabel, actionLabel, clearLabel, confirmTitle, confirmDescription, confirmLabel, cancelLabel, closeLabel, pending, pendingLabel, onConfirm, onClear }: {
+export function BulkActionBar({ open, selectionLabel, actionLabel, clearLabel, confirmTitle, confirmDescription, confirmLabel, cancelLabel, closeLabel, pending, pendingLabel, disabled = false, disabledReason = "invalid", onConfirm, onClear }: {
   open: boolean;
   selectionLabel: string;
   actionLabel: string;
@@ -499,13 +499,16 @@ export function BulkActionBar({ open, selectionLabel, actionLabel, clearLabel, c
   closeLabel: string;
   pending?: boolean;
   pendingLabel?: string;
+  /** 084：常驻批量条在未选择时以禁用态呈现（操作可发现，选择后直接可用）。 */
+  disabled?: boolean;
+  disabledReason?: ActionDisabledReason;
   onConfirm: () => Promise<unknown>;
   onClear: () => void;
 }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   if (!open) return null;
   return <>
-    <div className="bulk-action-bar" role="toolbar">{<span className="bulk-action-count">{selectionLabel}</span>}<Button type="button" variant="secondary" onClick={onClear} disabled={pending}>{clearLabel}</Button><ActionTrigger variant="danger" pending={pending} pendingLabel={pendingLabel} onAction={() => { setConfirmOpen(true); }}>{actionLabel}</ActionTrigger></div>
+    <div className="bulk-action-bar" role="toolbar">{<span className="bulk-action-count">{selectionLabel}</span>}<Button type="button" variant="secondary" onClick={onClear} disabled={pending}>{clearLabel}</Button><ActionTrigger variant="danger" pending={pending} pendingLabel={pendingLabel} disabled={disabled} disabledReason={disabledReason} onAction={() => setConfirmOpen(true)}>{actionLabel}</ActionTrigger></div>
     <ConfirmDialog open={confirmOpen} title={confirmTitle} description={confirmDescription} confirmLabel={confirmLabel} cancelLabel={cancelLabel} closeLabel={closeLabel} onConfirm={() => { setConfirmOpen(false); void onConfirm(); }} onCancel={() => setConfirmOpen(false)} />
   </>;
 }
@@ -716,7 +719,9 @@ export function FilterBar({ fields, onClear, clearLabel, resultCount, resultCoun
               return <label key={field.key} className="filter-field"><span className="filter-field-label">{field.label}</span><input type="text" value={typeof field.value === "string" ? field.value : ""} onChange={(event) => field.onValueChange(event.target.value)} /></label>;
             case "select":
             default:
-              return <SelectField key={field.key} label={String(field.label)} value={typeof field.value === "string" ? field.value : ""} options={field.options ?? []} onValueChange={(next) => field.onValueChange(next)} />;
+              // 084：筛选下拉改为「行内标签 + 原生 select」紧凑形态，替代带浮动
+              // 标签的 SelectField（多筛选项时不再横向散开、不再出现孤立箭头）。
+              return <label key={field.key} className="filter-select"><span className="filter-select-label">{field.label}</span><select className="field-input" value={typeof field.value === "string" ? field.value : ""} onChange={(event) => field.onValueChange(event.target.value)}>{field.options?.map((option) => <option key={String(option.value)} value={option.value}>{option.label}</option>)}</select></label>;
           }
         })}
       </div>

@@ -1706,12 +1706,32 @@ kbd {
   padding: 28px clamp(20px, 7vw, 110px);
   background: radial-gradient(circle at 50% 0, var(--primary-soft), var(--page) 46%);
 }
+/* 084：空白布局主区作为居中容器，登录/初始化等 auth 面板真正居中，
+   不再贴着左上角露出大面积空白。 */
+.blank-content {
+  display: grid;
+  place-content: center;
+  min-height: 0;
+}
 .blank-brand {
   display: inline-flex;
   align-items: center;
   gap: 10px;
   width: fit-content;
   text-decoration: none;
+}
+/* 084：空白布局头部（品牌左、语言/主题动作右）成行分组，不再纵向散落 */
+.blank-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+}
+.blank-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 .blank-brand > span:last-child {
   display: grid;
@@ -1744,6 +1764,9 @@ kbd {
 /* 068：按钮视觉由 HeroUI Button 承担（.ui-button 类仅作兼容钩子，不再覆盖组件外观）。
    bulk action bar 与 form actions 为平台布局行，样式保留。 */
 .bulk-action-bar {
+  position: sticky;
+  bottom: -4px;
+  z-index: 5;
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -1908,6 +1931,8 @@ textarea.field-input {
 .data-table-toolbar {
   display: flex;
   justify-content: flex-end;
+  width: fit-content;
+  margin-left: auto;
   margin-bottom: var(--space-2);
 }
 .data-table-columns {
@@ -2072,6 +2097,20 @@ textarea.field-input {
   gap: 4px;
   font-size: 12px;
   color: var(--text-secondary);
+}
+/* 084：FilterBar 紧凑下拉（行内标签 + 原生 select） */
+.filter-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.filter-select .field-input {
+  width: auto;
+  min-width: 132px;
+  min-height: var(--control-height-md);
+  padding: 0 var(--control-padding-x);
 }
 .filter-field input {
   height: var(--control-height-md);

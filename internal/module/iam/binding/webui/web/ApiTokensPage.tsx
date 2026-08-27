@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActionTrigger, Button, CodeText, ConfirmDialog, DataTable, EmptyState, ErrorState, Field, formatDateTime, InlineAlert, PageHeader, PageSection, SelectField, StatusBadge } from "@webui/sdk/ui";
+import { ActionTrigger, Button, CodeText, ConfirmDialog, DataTable, EmptyState, ErrorState, Field, FilterBar, formatDateTime, InlineAlert, PageHeader, PageSection, SelectField, StatusBadge } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { useListQueryParams } from "@webui/sdk/query";
 import { createApiToken, disableApiToken, enableApiToken, listApiTokens, loadSession, revokeApiToken, rotateApiToken, updateApiToken, type ApiTokenView } from "./api";
@@ -133,26 +133,31 @@ export default function ApiTokensPage() {
       </PageSection>
 
       <PageSection kicker={t("webui.iam.apiTokens.listKicker")} title={t("webui.iam.apiTokens.listTitle")}>
-        <SelectField label={t("webui.iam.apiTokens.filter")} value={status} options={[
-          { value: "all", label: t("webui.iam.apiTokens.filter.all") },
-          { value: "active", label: t("webui.iam.apiTokens.status.active") },
-          { value: "disabled", label: t("webui.iam.apiTokens.status.disabled") },
-          { value: "expired", label: t("webui.iam.apiTokens.status.expired") },
-          { value: "revoked", label: t("webui.iam.apiTokens.status.revoked") },
-        ]} onValueChange={(value) => { setStatus(value); refresh(value); }} />
-        <div className="toolbar accounts-sort-bar">
-          <SelectField label={t("webui.iam.accounts.sortBy")} placeholder={listQuery.sort ? undefined : t("webui.iam.accounts.sortNone")} value={listQuery.sort?.key ?? ""} options={[
-            { value: "", label: t("webui.iam.accounts.sortNone") },
-            { value: "name", label: t("webui.iam.apiTokens.name") },
-            { value: "createdAt", label: t("webui.iam.sessions.createdAt") },
-            { value: "expiresAt", label: t("webui.iam.apiTokens.expiresHeader") },
-            { value: "lastUsedAt", label: t("webui.iam.apiTokens.lastUsed") },
-          ]} onValueChange={(value) => listQuery.setSort(value ? { key: value, direction: listQuery.sort?.direction ?? "desc" } : null)} />
-          {listQuery.sort && <SelectField label={t("webui.iam.accounts.sortDirection")} value={listQuery.sort.direction} options={[
-            { value: "asc", label: t("webui.iam.accounts.sortAsc") },
-            { value: "desc", label: t("webui.iam.accounts.sortDesc") },
-          ]} onValueChange={(value) => listQuery.setSort({ key: listQuery.sort?.key ?? "createdAt", direction: value === "desc" ? "desc" : "asc" })} />}
-        </div>
+        <FilterBar
+          ariaLabel={t("webui.iam.apiTokens.filter")}
+          fields={[
+            { key: "status", label: t("webui.iam.apiTokens.filter"), control: "select", value: status, options: [
+              { value: "all", label: t("webui.iam.apiTokens.filter.all") },
+              { value: "active", label: t("webui.iam.apiTokens.status.active") },
+              { value: "disabled", label: t("webui.iam.apiTokens.status.disabled") },
+              { value: "expired", label: t("webui.iam.apiTokens.status.expired") },
+              { value: "revoked", label: t("webui.iam.apiTokens.status.revoked") },
+            ], onValueChange: (value) => { setStatus(String(value)); refresh(String(value)); } },
+            { key: "sortBy", label: t("webui.iam.accounts.sortBy"), control: "select", value: listQuery.sort?.key ?? "", options: [
+              { value: "", label: t("webui.iam.accounts.sortNone") },
+              { value: "name", label: t("webui.iam.apiTokens.name") },
+              { value: "createdAt", label: t("webui.iam.sessions.createdAt") },
+              { value: "expiresAt", label: t("webui.iam.apiTokens.expiresHeader") },
+              { value: "lastUsedAt", label: t("webui.iam.apiTokens.lastUsed") },
+            ], onValueChange: (value) => listQuery.setSort(String(value) ? { key: String(value), direction: listQuery.sort?.direction ?? "desc" } : null) },
+            { key: "sortDir", label: t("webui.iam.accounts.sortDirection"), control: "select", value: listQuery.sort?.direction ?? "desc", options: [
+              { value: "asc", label: t("webui.iam.accounts.sortAsc") },
+              { value: "desc", label: t("webui.iam.accounts.sortDesc") },
+            ], onValueChange: (value) => { if (listQuery.sort) listQuery.setSort({ key: listQuery.sort.key, direction: value === "desc" ? "desc" : "asc" }); } },
+          ]}
+          onClear={() => { setStatus("all"); refresh("all"); listQuery.clearFilters(); }}
+          clearLabel={t("webui.iam.accounts.clear")}
+        />
         {loadError && <ErrorState kind="connectivity" title={hostT("webui.host.route.error.title")} detail={hostT("webui.host.route.error.detail")} action={<Button variant="secondary" onClick={() => void refresh()}>{hostT("webui.host.retry")}</Button>} />}
         <DataTable
           ariaLabel={t("webui.iam.apiTokens.listTitle")}

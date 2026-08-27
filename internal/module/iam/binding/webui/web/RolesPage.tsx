@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActionTrigger, Button, Check, CodeText, ConfirmActionTrigger, DataTable, Drawer, EmptyState, ErrorState, Field, FilterBar, FormField, PageHeader, PageSection, SearchInput, SelectField, StatusBadge } from "@webui/sdk/ui";
+import { ActionTrigger, Button, Check, CodeText, ConfirmActionTrigger, DataTable, Drawer, EmptyState, ErrorState, Field, FilterBar, FormField, PageHeader, PageSection, SearchInput, StatusBadge } from "@webui/sdk/ui";
 import { useListQueryParams } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { archiveRole, createRole, listPermissions, listRoles, replaceRolePermissions, rolePermissionsView, updateRoleInfo, type PermissionDefinition, type Role } from "./api";
@@ -137,23 +137,22 @@ export default function RolesPage() {
       <PageSection kicker={t("webui.iam.roles.list.kicker")} title={t("webui.iam.roles.list.title")} footer={<><div className="page-meta">{t("webui.iam.accounts.pagination", { page, total })}</div><div className="toolbar-actions">{[...Array(pages).keys()].map((index) => <Button key={index} variant={index + 1 === page ? "primary" : "secondary"} onClick={() => { setPage(index + 1); void refresh(index + 1); }}>{index + 1}</Button>)}</div></>}>
         <FilterBar
           ariaLabel={t("webui.iam.roles.filter")}
-          fields={[]}
+          fields={[
+            { key: "sortBy", label: t("webui.iam.accounts.sortBy"), control: "select", options: [
+              { value: "", label: t("webui.iam.accounts.sortNone") },
+              { value: "name", label: t("webui.iam.roles.name") },
+              { value: "code", label: t("webui.iam.roles.code") },
+              { value: "createdAt", label: t("webui.iam.sessions.createdAt") },
+            ], value: listQuery.sort?.key ?? "", onValueChange: (value) => listQuery.setSort(String(value) ? { key: String(value), direction: listQuery.sort?.direction ?? "asc" } : null) },
+            { key: "sortDir", label: t("webui.iam.accounts.sortDirection"), control: "select", options: [
+              { value: "asc", label: t("webui.iam.accounts.sortAsc") },
+              { value: "desc", label: t("webui.iam.accounts.sortDesc") },
+            ], value: listQuery.sort?.direction ?? "desc", onValueChange: (value) => { if (listQuery.sort) listQuery.setSort({ key: listQuery.sort.key, direction: value === "desc" ? "desc" : "asc" }); } },
+          ]}
           searchInput={<SearchInput value={listQuery.filters.query} onChange={(next) => listQuery.setFilters({ query: next })} placeholder={t("webui.iam.search")} label={t("webui.iam.roles.filter")} />}
           onClear={() => listQuery.clearFilters()}
           clearLabel={t("webui.iam.accounts.clear")}
         />
-        <div className="toolbar accounts-sort-bar">
-          <SelectField label={t("webui.iam.accounts.sortBy")} value={listQuery.sort?.key ?? ""} options={[
-            { value: "", label: t("webui.iam.accounts.sortNone") },
-            { value: "name", label: t("webui.iam.roles.name") },
-            { value: "code", label: t("webui.iam.roles.code") },
-            { value: "createdAt", label: t("webui.iam.sessions.createdAt") },
-          ]} onValueChange={(value) => listQuery.setSort(value ? { key: value, direction: listQuery.sort?.direction ?? "asc" } : null)} />
-          {listQuery.sort && <SelectField label={t("webui.iam.accounts.sortDirection")} value={listQuery.sort.direction} options={[
-            { value: "asc", label: t("webui.iam.accounts.sortAsc") },
-            { value: "desc", label: t("webui.iam.accounts.sortDesc") },
-          ]} onValueChange={(value) => listQuery.setSort({ key: listQuery.sort?.key ?? "name", direction: value === "desc" ? "desc" : "asc" })} />}
-        </div>
         {loadError && <ErrorState kind="connectivity" title={hostT("webui.host.route.error.title")} detail={hostT("webui.host.route.error.detail")} action={<Button variant="secondary" onClick={() => void refresh()}>{hostT("webui.host.retry")}</Button>} />}
         <DataTable<Role>
           columns={[

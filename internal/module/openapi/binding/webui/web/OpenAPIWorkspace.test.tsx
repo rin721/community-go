@@ -11,6 +11,14 @@ import OpenAPIPage from "./OpenAPIPage";
 // The workspace shell renders with platform components against the real
 // generated contract snapshot (R075-009); execution is exercised through a
 // mocked fetch. The shell owns the tree, tabs and request/response split.
+// 执行语义依赖数据源环境：默认（非 mock）构建可执行；本地开发 .env 可能声明
+// VITE_WEBUI_DATA_SOURCE=mock，各用例显式 stub 环境保证确定性。
+beforeEach(() => {
+  vi.stubEnv("VITE_WEBUI_DATA_SOURCE", "server-hosted");
+});
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 function hostRuntime(navigate?: (path: string) => void): HostRuntime {
   const manifest: Manifest = { catalogRevision: "test", navigationRevision: "test", routes: [], menu: [] };

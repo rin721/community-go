@@ -2096,7 +2096,7 @@ textarea.field-input {
 }
 
 /* 083 STYLE：平台权限/状态语义类（styles.css 唯一 authority）
-   从模块 :global 收敛而来——.form-error/.permission-*/.role-checklist/.permissions/.admin-note */
+   从模块 :global 收敛而来：form-error、permission-*、role-checklist、permissions、admin-note。 */
 .form-error {
   color: var(--danger);
   font-size: 12px;

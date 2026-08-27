@@ -1062,7 +1062,7 @@ kbd {
   display: grid;
   grid-template-rows: auto 1fr auto;
   width: min(360px, calc(100vw - 28px));
-  height: 100vh;
+  height: 100dvh;
   background: var(--surface);
   box-shadow: var(--shadow-drawer);
   transform: translateX(100%);
@@ -1079,7 +1079,7 @@ kbd {
   display: grid;
   grid-template-rows: auto 1fr auto;
   width: min(520px, calc(100vw - 28px));
-  height: 100vh;
+  height: 100dvh;
   background: var(--surface);
   box-shadow: var(--shadow-drawer);
   transform: translateX(100%);
@@ -1526,7 +1526,7 @@ kbd {
 }
 .rac-modal-panel {
   width: min(440px, 100%);
-  max-height: calc(100vh - 60px);
+  max-height: calc(100dvh - 60px);
   overflow: auto;
   padding: var(--space-5);
   border: 1px solid var(--border);
@@ -1545,7 +1545,7 @@ kbd {
   display: flex;
   flex-direction: column;
   width: min(520px, 100vw);
-  height: 100vh;
+  height: 100dvh;
   max-height: none;
   padding: 0;
   border-left: 1px solid var(--border);
@@ -1683,7 +1683,7 @@ kbd {
   display: grid;
   place-content: center;
   justify-items: center;
-  min-height: 100vh;
+  min-height: 100dvh;
   padding: var(--space-6);
   text-align: center;
   background: var(--page);
@@ -1701,7 +1701,7 @@ kbd {
 .blank-layout {
   display: grid;
   grid-template-rows: auto 1fr auto;
-  min-height: 100vh;
+  min-height: 100dvh;
   padding: 28px clamp(20px, 7vw, 110px);
   background: radial-gradient(circle at 50% 0, var(--primary-soft), var(--page) 46%);
 }
@@ -2741,7 +2741,7 @@ textarea.field-input {
     position: fixed;
     inset: 0 auto 0 0;
     width: var(--shell-sidebar-expanded);
-    min-height: 100vh;
+    min-height: 100dvh;
     transform: translateX(-100%);
     box-shadow: 12px 0 40px rgba(15, 23, 42, 0.16);
   }

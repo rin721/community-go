@@ -11,6 +11,16 @@ export { ToastProvider };
 export { Sparkline, LineChart, AxisLineChart } from "./charts";
 export type { ChartSeries } from "./charts";
 
+// 083 PAGE-083-002：统一时间戳人类可读化（RFC3339 -> 本地 YYYY-MM-DD HH:mm），
+// 非法输入回退原字符串；供列表/详情跨模块复用（审计、会话、Ops 等）。
+export function formatDateTime(iso: string | undefined | null): string {
+  if (!iso) return "—";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 function alertStatus(state: CapabilityState): "default" | "success" | "warning" | "danger" | "accent" {
   switch (state) {
     case "available": return "success";

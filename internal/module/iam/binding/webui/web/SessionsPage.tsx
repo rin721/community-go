@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { BulkActionBar, CodeText, DataTable, PageHeader, PageSection, StatusBadge } from "@webui/sdk/ui";
+import { BulkActionBar, CodeText, DataTable, formatDateTime, PageHeader, PageSection, StatusBadge } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { listSessions, revokeSessions, type SessionInfo } from "./api";
 import styles from "./iam.module.css";
@@ -42,10 +42,10 @@ export default function SessionsPage() {
         <DataTable<SessionInfo>
           columns={[
             { id: "idHash", header: t("webui.iam.sessions.idHash"), cell: (item) => <CodeText value={item.idHash} copyable /> },
-            { id: "createdAt", header: t("webui.iam.sessions.createdAt"), cell: (item) => <CodeText value={item.createdAt} /> },
-            { id: "lastSeenAt", header: t("webui.iam.sessions.lastSeenAt"), cell: (item) => <CodeText value={item.lastSeenAt} /> },
-            { id: "idleExpiresAt", header: t("webui.iam.sessions.idleExpiresAt"), cell: (item) => <CodeText value={item.idleExpiresAt} /> },
-            { id: "absoluteExpiresAt", header: t("webui.iam.sessions.absoluteExpiresAt"), cell: (item) => <CodeText value={item.absoluteExpiresAt} /> },
+            { id: "createdAt", header: t("webui.iam.sessions.createdAt"), cell: (item) => <CodeText value={formatDateTime(item.createdAt)} /> },
+            { id: "lastSeenAt", header: t("webui.iam.sessions.lastSeenAt"), cell: (item) => <CodeText value={formatDateTime(item.lastSeenAt)} /> },
+            { id: "idleExpiresAt", header: t("webui.iam.sessions.idleExpiresAt"), cell: (item) => <CodeText value={formatDateTime(item.idleExpiresAt)} /> },
+            { id: "absoluteExpiresAt", header: t("webui.iam.sessions.absoluteExpiresAt"), cell: (item) => <CodeText value={formatDateTime(item.absoluteExpiresAt)} /> },
             { id: "status", header: t("webui.iam.sessions.statusHeader"), cell: (item) => sessionStatusCell(item, t) },
           ]}
           rows={items}

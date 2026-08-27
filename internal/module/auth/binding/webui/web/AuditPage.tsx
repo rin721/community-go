@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CodeText, CodeViewer, DataTable, DetailDrawer, FilterBar, PageHeader, PageSection, StatusBadge } from "@webui/sdk/ui";
+import { CodeText, CodeViewer, DataTable, DetailDrawer, FilterBar, formatDateTime, PageHeader, PageSection, Pagination, StatusBadge } from "@webui/sdk/ui";
 import { useListQueryParams } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { listAuditEvents, type AuditEventView, type AuditFilter, type AuditOutcome } from "./api";
@@ -58,8 +58,10 @@ export default function AuditPage() {
     if (listQuery.filters.action) filter.action = listQuery.filters.action;
     if (listQuery.filters.outcome) filter.outcome = listQuery.filters.outcome as AuditOutcome;
     if (listQuery.filters.resourceType) filter.resourceType = listQuery.filters.resourceType;
-    void listAuditEvents(filter, 0, PAGE_SIZE).then((result) => { setItems(result.items); setTotal(result.total); });
-  }, [listQuery.filters.operation, listQuery.filters.action, listQuery.filters.outcome, listQuery.filters.resourceType]);
+    const offset = (listQuery.page - 1) * PAGE_SIZE;
+    void listAuditEvents(filter, offset, PAGE_SIZE).then((result) => { setItems(result.items); setTotal(result.total); });
+  }, [listQuery.filters.operation, listQuery.filters.action, listQuery.filters.outcome, listQuery.filters.resourceType, listQuery.page]);
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const selectedJSON = useMemo(() => selected ? JSON.stringify(auditDetailFields(selected), null, 2) : "", [selected]);
   return <div className={`${styles.authModule} module-page`}>
     <PageHeader eyebrow={t("webui.auth.audit.title")} title={t("webui.auth.audit.title")} description={t("webui.auth.audit.description")} />
@@ -87,7 +89,7 @@ export default function AuditPage() {
       <PageSection kicker={t("webui.auth.audit.list.kicker")} title={t("webui.auth.audit.list.title")}>
         <DataTable<AuditEventView>
           columns={[
-            { id: "occurredAt", header: t("webui.auth.audit.occurredAt"), cell: (item) => <CodeText value={item.occurredAt} /> },
+            { id: "occurredAt", header: t("webui.auth.audit.occurredAt"), cell: (item) => <CodeText value={formatDateTime(item.occurredAt)} /> },
             { id: "operation", header: t("webui.auth.audit.operation"), cell: (item) => <CodeText value={item.operation ?? ""} /> },
             { id: "action", header: t("webui.auth.audit.action"), cell: (item) => <CodeText value={item.action ?? ""} /> },
             { id: "resource", header: t("webui.auth.audit.resourceType"), cell: (item) => item.resourceType ?? "" },
@@ -105,6 +107,21 @@ export default function AuditPage() {
             renderRowMenu: (item, _index) => [{ key: "detail", label: t("webui.auth.audit.detail"), onSelect: () => setSelected(item) }],
             columnMenuLabel: t("webui.auth.audit.columns"),
           }}
+        />
+        <Pagination
+          page={listQuery.page}
+          pageCount={pages}
+          total={total}
+          totalLabel={(count) => t("webui.auth.audit.total", { total: count })}
+          pageLabel={(current) => `Page ${current}`}
+          previousLabel={t("webui.auth.audit.previous")}
+          nextLabel={t("webui.auth.audit.next")}
+          paginationLabel={t("webui.auth.audit.pagination")}
+          pageSize={PAGE_SIZE}
+          pageSizeOptions={[20, 50, 100]}
+          pageSizeLabel={t("webui.auth.audit.pageSize")}
+          onPageChange={listQuery.setPage}
+          onPageSizeChange={(size) => listQuery.setPageSize(size)}
         />
       </PageSection>
     </div>

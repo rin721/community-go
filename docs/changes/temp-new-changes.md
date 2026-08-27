@@ -195,7 +195,7 @@ Frontend engineering maturity
 
 首先完成：
 
-**Product & Frontend Audit**
+# Product & Frontend Audit
 
 ---
 
@@ -2895,7 +2895,7 @@ Design system problems
 
 升级为：
 
-**“拥有成熟前端产品能力的 Production-grade Administration Control Plane”**
+# “拥有成熟前端产品能力的 Production-grade Administration Control Plane”
 
 目标不是单纯让 UI 更漂亮。
 

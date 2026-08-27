@@ -67,7 +67,7 @@ Linux 使用 `bash scripts/verify-webui.sh`。质量链覆盖生成检查、冻�
 ## 侧边栏菜单层级分类（063）
 
 - 宿主 `SidebarMenu` 按 `manifest.menu.parentId` 递归渲染多级菜单；菜单树形状完全由 Go 侧各模块 `binding/webui/binding.go` 的 `Navigation` 声明（`ParentID`/`Order`/落地页 `RouteID`）决定，宿主无菜单树硬编码。
-- 当前应用已分类：`iam.access`（身份与权限管理）与 `organization.directory`（组织管理）为顶级组父节点，各自模块页面归入其下；`ops.dashboard` 两级、`navigation.menus` 平铺。
+- 当前应用已分类：`iam.access`（身份与权限）与 `organization.directory`（组织管理）为顶级组父节点，各自模块页面归入其下；`ops.dashboard` 两级、`navigation.menus` 平铺。
 - 新增分类父节点时同步：模块 locale 组标题、`internal/module/navigation/binding/webui/web/mock.ts` 菜单行、重新生成 `webui/src/generated/webui-registry.ts`（mock manifest `menu` 树），并跑 `pnpm generate:check`。
 
 ## 账号与权限体系进阶页面（064）

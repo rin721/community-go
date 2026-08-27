@@ -4,7 +4,7 @@ WebUI 基线由 `internal/composition` 统一装配，模块只在确有浏览�
 
 IAM 用户/角色页与 Organization 部门/岗位/分配页、Navigation 菜单页的写操作按钮（创建/启停/重置/改名/归档/保存策略等）经模块 Binding `ActionPermissions` 与 SDK `ActionTrigger` 接入既有动作级权限投影（066）：denied 时按钮隐藏或禁用，未声明/未投影的 operation 前端不做呈现限制，服务端授权继续 fail closed；账号/角色列表支持关键字过滤与分页，角色权限与账号角色保存遇到 409 时展示 added/removed 差异并重新加载最新版本，组织分配使用 `expectedVersion` 乐观锁。
 
-审计查询页（`/admin/audit`，Auth owner）与账号会话管理页（`/admin/sessions`，IAM owner，归入「身份与权限管理」组）属于 064/065 能力：两者都只呈现低敏/摘要数据（审计 subject/resource 为哈希，会话仅 IDHash 摘要），并通过 `auth:audit:read` / `iam:session:read|revoke` 权限键投影访问状态；审计页支持按 operation/action/resourceType/outcome 筛选（065，含业务写操作审计事件）；页面不修改宿主，遵循模块接入四步。
+审计查询页（`/admin/audit`，Auth owner）与账号会话管理页（`/admin/sessions`，IAM owner，归入「身份与权限」组）属于 064/065 能力：两者都只呈现低敏/摘要数据（审计 subject/resource 为哈希，会话仅 IDHash 摘要），并通过 `auth:audit:read` / `iam:session:read|revoke` 权限键投影访问状态；审计页支持按 operation/action/resourceType/outcome 筛选（065，含业务写操作审计事件）；页面不修改宿主，遵循模块接入四步。
 
 ## 适用语境与当前门禁范围
 
@@ -281,7 +281,7 @@ WebUI i18n 是所有接入模块必须遵守的规范契约。模块只要贡献
 
 ### 菜单层级分类（063）
 
-webui 契约 `Navigation.ParentID` 原生支持多级菜单，宿主 `SidebarMenu` 按 `manifest.menu.parentId` 递归渲染。当前应用对业务模块已做层级分类（063）：`iam.access`（身份与权限管理，落地页 `iam.accounts`）为 IAM 顶级组父节点，`iam.security/accounts/roles/permissions` 为其子项；`organization.directory`（组织管理，落地页 `organization.departments`）为 Organization 顶级组父节点，`organization.departments/positions/assignments` 为其子项；`ops.dashboard` 保持两级（工作台 → 能力清单）；`navigation.menus` 保持平铺。规则：
+webui 契约 `Navigation.ParentID` 原生支持多级菜单，宿主 `SidebarMenu` 按 `manifest.menu.parentId` 递归渲染。当前应用对业务模块已做层级分类（063）：`iam.access`（身份与权限，落地页 `iam.accounts`）为 IAM 顶级组父节点，`iam.security/accounts/roles/permissions` 为其子项；`organization.directory`（组织管理，落地页 `organization.departments`）为 Organization 顶级组父节点，`organization.departments/positions/assignments` 为其子项；`ops.dashboard` 保持两级（工作台 → 能力清单）；`navigation.menus` 保持平铺。规则：
 
 - 分类父节点必须引用同模块已实现路由作为落地页（不新建页面），并满足 `validateBindings` 的同模块 ParentID、无环、图标目录与 Order 约束；父节点顺序必须在子项之前。
 - 父节点落地页不可加载（access 拒绝或 availability 不可用）时，Manifest 会连带隐藏整棵子树（既有门禁语义）。新增分类父节点时应选择同组内普遍可访问的已实现路由作为落地页。

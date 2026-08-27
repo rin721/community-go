@@ -62,7 +62,7 @@
 | 契约生成 | `go generate ./...` + `generate.mjs --check` | current（sort 参数入 openapi + operation inventory + openapi-spec） |
 | WebUI 类型 | `tsc --noEmit` | 通过 |
 | WebUI lint | lint:modules / lint:i18n / lint:architecture（含样式规则） | 通过 |
-| Vitest | `vitest run` | **195 全过**（基线 193 + confirm-action/format） |
+| Vitest | `vitest run` | **198 全过**（当前全量测试） |
 | Playwright | mock 项目 3 用例 | 全过（样式清理/布局/Tab Bar 移除/Settings 收敛/sort 无回归） |
 | Build | `vite build` | 成功 |
 

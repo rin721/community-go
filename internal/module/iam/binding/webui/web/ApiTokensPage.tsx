@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActionTrigger, Button, CodeText, DataTable, EmptyState, Field, InlineAlert, PageHeader, PageSection, SelectField, StatusPill } from "@webui/sdk/ui";
+import { ActionTrigger, Button, CodeText, DataTable, EmptyState, Field, InlineAlert, PageHeader, PageSection, SelectField, StatusBadge } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { createApiToken, disableApiToken, enableApiToken, listApiTokens, loadSession, revokeApiToken, rotateApiToken, updateApiToken, type ApiTokenView } from "./api";
 import styles from "./iam.module.css";
@@ -67,7 +67,7 @@ export default function ApiTokensPage() {
   };
 
   return <div className={`${styles.iamModule} module-page`}>
-    <PageHeader eyebrow={t("webui.iam.access.title")} title={t("webui.iam.apiTokens.title")} description={t("webui.iam.apiTokens.description")} actions={restricted ? <StatusPill state="degraded">{t("webui.iam.apiTokens.restricted")}</StatusPill> : undefined} />
+    <PageHeader eyebrow={t("webui.iam.access.title")} title={t("webui.iam.apiTokens.title")} description={t("webui.iam.apiTokens.description")} actions={restricted ? <StatusBadge status="degraded">{t("webui.iam.apiTokens.restricted")}</StatusBadge> : undefined} />
     <div className="page-sections">
       {restricted && <InlineAlert tone="warning" title={t("webui.iam.apiTokens.restricted")} detail={t("webui.iam.apiTokens.restrictedDetail")} />}
       {secret && <InlineAlert tone="success" title={t("webui.iam.apiTokens.secretTitle")} detail={<CodeText value={secret} copyable copyLabel={t("webui.iam.apiTokens.copySecret")} />} />}
@@ -117,20 +117,28 @@ export default function ApiTokensPage() {
           columns={[
             { id: "name", header: t("webui.iam.apiTokens.name"), cell: (row) => <><strong>{row.name}</strong>{row.description ? <p className="page-meta">{row.description}</p> : null}</> },
             { id: "scopes", header: t("webui.iam.apiTokens.scopes"), cell: (row) => row.scopes.join(", ") || "—" },
-            { id: "status", header: t("webui.iam.apiTokens.statusHeader"), cell: (row) => <StatusPill state={row.status === "active" ? "available" : row.status === "disabled" ? "degraded" : "unavailable"}>{t(`webui.iam.apiTokens.status.${row.status}`)}</StatusPill> },
+            { id: "status", header: t("webui.iam.apiTokens.statusHeader"), cell: (row) => <StatusBadge status={row.status === "active" ? "active" : row.status === "disabled" ? "disabled" : row.status === "expired" ? "expired" : "revoked"}>{t(`webui.iam.apiTokens.status.${row.status}`)}</StatusBadge> },
             { id: "expiresAt", header: t("webui.iam.apiTokens.expiresHeader"), cell: (row) => row.expiresAt ? new Date(row.expiresAt).toLocaleString() : "—" },
             { id: "lastUsed", header: t("webui.iam.apiTokens.lastUsed"), cell: (row) => row.lastUsedAt ? new Date(row.lastUsedAt).toLocaleString() : "—" },
-            { id: "actions", header: "", cell: (row) => (
-              <div className="toolbar-actions">
-                {row.status === "disabled" ? <ActionTrigger operationId="iam.api-tokens.enable" onAction={() => { void enableApiToken(row.id).then(() => refresh()); }} variant="secondary">{t("webui.iam.apiTokens.enable")}</ActionTrigger> : <ActionTrigger operationId="iam.api-tokens.disable" onAction={() => { void disableApiToken(row.id).then(() => refresh()); }} variant="secondary">{t("webui.iam.apiTokens.disable")}</ActionTrigger>}
-                <ActionTrigger operationId="iam.api-tokens.rotate" onAction={() => { void rotateApiToken(row.id).then((issued) => setSecret(issued.secret)).then(() => refresh()); }} variant="secondary">{t("webui.iam.apiTokens.rotate")}</ActionTrigger>
-                {row.status === "active" && <ActionTrigger operationId="iam.api-tokens.update" onAction={() => { void expireToken(row); }} variant="secondary">{t("webui.iam.apiTokens.expireNow")}</ActionTrigger>}
-                {row.status !== "revoked" && <ActionTrigger operationId="iam.api-tokens.revoke" onAction={() => { void revokeApiToken(row.id).then(() => refresh()); }} variant="danger">{t("webui.iam.apiTokens.revoke")}</ActionTrigger>}
-              </div>
-            ) },
+            // 083 PAGE-083-006: primary action inline, rest in row menu with danger isolated at end
+            { id: "primary", header: t("webui.iam.apiTokens.actions"), cell: (row) => row.status === "disabled"
+              ? <ActionTrigger operationId="iam.api-tokens.enable" onAction={() => { void enableApiToken(row.id).then(() => refresh()); }} variant="secondary">{t("webui.iam.apiTokens.enable")}</ActionTrigger>
+              : <ActionTrigger operationId="iam.api-tokens.disable" onAction={() => { void disableApiToken(row.id).then(() => refresh()); }} variant="secondary">{t("webui.iam.apiTokens.disable")}</ActionTrigger> },
           ]}
           rows={tokens}
           getRowKey={(row) => row.id}
+          enhancements={{
+            density: "compact",
+            stickyHeader: true,
+            renderRowMenu: (row) => {
+              const items: Array<{ key: string; label: string; onSelect: () => void; danger?: boolean }> = [];
+              items.push({ key: "rotate", label: t("webui.iam.apiTokens.rotate"), onSelect: () => { void rotateApiToken(row.id).then((issued) => setSecret(issued.secret)).then(() => refresh()); } });
+              if (row.status === "active") items.push({ key: "expire", label: t("webui.iam.apiTokens.expireNow"), onSelect: () => { void expireToken(row); } });
+              if (row.status !== "revoked") items.push({ key: "revoke", label: t("webui.iam.apiTokens.revoke"), danger: true, onSelect: () => { void revokeApiToken(row.id).then(() => refresh()); } });
+              return items;
+            },
+            columnMenuLabel: t("webui.iam.apiTokens.more"),
+          }}
         />
       </PageSection>
     </div>

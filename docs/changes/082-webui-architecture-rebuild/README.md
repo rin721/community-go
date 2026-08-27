@@ -2,7 +2,7 @@
 
 ## 状态
 
-**已确认，实施中**（2026-08-27 用户确认「确认 082 方案，实施」）。方案输入 `docs/changes/temp-new-changes.md`（81 章「前端产品能力系统性重构」纲领，commit `3b758bd`）；三份研究档案完成现状审计与差异分析（R003 §4.11 含方案新旧编号映射）；requirements/design/tasks 已按新版方案对齐并展开详细设计（逐 REQ 实现契约）；决策点已确认（DEC-082-001..006 结论见 tasks.md）。实施从平台底座开始，分期提交。
+**已确认，实施完成**（2026-08-27 用户确认「确认 082 方案，实施」；dev e2e 待真实后端联调）。方案输入 `docs/changes/temp-new-changes.md`（81 章「前端产品能力系统性重构」纲领，commit `3b758bd`）；三份研究档案完成现状审计与差异分析（R003 §4.11 含方案新旧编号映射）；requirements/design/tasks 已按新版方案对齐并展开详细设计（逐 REQ 实现契约）；决策点已确认并执行（DEC-082-001..006，DEC-004 IA 归位 governance/developer 组落地）。实施覆盖平台底座（DataTable/FilterBar/FormField/状态反馈/语义组件/token/Query 契约）与全部页面迁移（IAM/Auth/Ops/Org/Navigation/Token/UserDetail/Sessions/Menu 归位）+ 三层 QA e2e 基线。验证：`go test ./...`、`go vet ./...`、Vitest 192、mock E2E 3、lint（modules/i18n/architecture）、build 全绿；Playwright dev 20 用例待真实后端联调（受限环境，见 tasks.md）。
 
 ## 目标
 

@@ -819,3 +819,97 @@ export function DetailDrawer({ open, onClose, title, identity, status, actions, 
     </Drawer>
   );
 }
+
+/* ---------------------------------------------------------------------------
+   082 REQ-082-005/018：TreeView 语义组件（方案「四十四」Organization：树 + 详情；
+   仅渲染真实层级，不提供后端不支持的 Move/Reorder/Archive DnD）。
+   --------------------------------------------------------------------------- */
+
+/** TreeView：无环树展示（受控展开）。 */
+export function TreeView<T>({ nodes, getChildren, renderNode, getKey = (node) => String(node), selectedId, onSelect, expandAll = false, ariaLabel }: {
+  nodes: ReadonlyArray<T>;
+  getChildren: (node: T) => ReadonlyArray<T>;
+  renderNode: (node: T) => ReactNode;
+  getKey?: (node: T) => string;
+  selectedId?: string;
+  onSelect?: (key: string) => void;
+  expandAll?: boolean;
+  ariaLabel?: string;
+}) {
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => (expandAll ? new Set<string>() : new Set<string>(collectKeys(nodes, getChildren, getKey))));
+  const toggle = (key: string) => {
+    setCollapsed((current) => {
+      const next = new Set(current);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  };
+  return (
+    <ul className="tree-view" role="tree" aria-label={ariaLabel}>
+      <TreeNodes nodes={nodes} getChildren={getChildren} renderNode={renderNode} getKey={getKey} collapsed={collapsed} onToggle={toggle} selectedId={selectedId} onSelect={onSelect} depth={0} />
+    </ul>
+  );
+}
+
+function collectKeys<T>(nodes: ReadonlyArray<T>, getChildren: (n: T) => ReadonlyArray<T>, getKey: (n: T) => string): string[] {
+  const keys: string[] = [];
+  for (const node of nodes) {
+    const children = getChildren(node);
+    if (children.length > 0) { keys.push(getKey(node)); keys.push(...collectKeys(children, getChildren, getKey)); }
+  }
+  return keys;
+}
+
+function TreeNodes<T>({ nodes, getChildren, renderNode, getKey, collapsed, onToggle, selectedId, onSelect, depth }: {
+  nodes: ReadonlyArray<T>;
+  getChildren: (n: T) => ReadonlyArray<T>;
+  renderNode: (n: T) => ReactNode;
+  getKey: (n: T) => string;
+  collapsed: ReadonlySet<string>;
+  onToggle: (key: string) => void;
+  selectedId?: string;
+  onSelect?: (key: string) => void;
+  depth: number;
+}) {
+  return <>{nodes.map((node) => {
+    const key = getKey(node);
+    const children = getChildren(node);
+    const isCollapsed = collapsed.has(key);
+    const selected = key === selectedId;
+    return (
+      <li key={key} role="treeitem" aria-expanded={children.length > 0 ? !isCollapsed : undefined} aria-selected={selected || undefined} data-tree-depth={depth}>
+        <div className={`tree-node ${selected ? "tree-node-selected" : ""}`.trim()}>
+          {children.length > 0
+            ? <button type="button" className="tree-node-toggle" aria-label={isCollapsed ? "expand" : "collapse"} onClick={() => onToggle(key)}>{isCollapsed ? "▸" : "▾"}</button>
+            : <span className="tree-node-toggle tree-node-toggle-empty" aria-hidden="true" />}
+          <button type="button" className="tree-node-label" onClick={() => onSelect?.(key)}>{renderNode(node)}</button>
+        </div>
+        {children.length > 0 && !isCollapsed && <ul role="group">{<TreeNodes nodes={children} getChildren={getChildren} renderNode={renderNode} getKey={getKey} collapsed={collapsed} onToggle={onToggle} selectedId={selectedId} onSelect={onSelect} depth={depth + 1} />}</ul>}
+      </li>
+    );
+  })}</>;
+}
+
+/** InspectorPanel：Tree 选中节点的详情区（方案「四十四」；fields 支持 mono 技术字段）。 */
+export function InspectorPanel({ title, fields, status, actions, className = "" }: {
+  title: ReactNode;
+  fields: ReadonlyArray<{ label: ReactNode; value: ReactNode; mono?: boolean }>;
+  status?: ReactNode;
+  actions?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <section className={`inspector-panel ${className}`.trim()} aria-label={typeof title === "string" ? title : undefined}>
+      <h3 className="inspector-panel-title">{title}</h3>
+      <div className="inspector-panel-fields">
+        {fields.map((field) => (
+          <div className="inspector-field" key={String(field.label)}>
+            <span className="inspector-field-label">{field.label}</span>
+            {field.mono ? <CodeText value={String(field.value)} /> : <span className="inspector-field-value">{field.value}</span>}
+          </div>
+        ))}
+      </div>
+      {(status || actions) && <div className="inspector-panel-status">{status}{actions}</div>}
+    </section>
+  );
+}

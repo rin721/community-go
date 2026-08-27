@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActionTrigger, Button, CodeText, ConfirmDialog, DataTable, EmptyState, Field, InlineAlert, PageHeader, PageSection, SelectField, StatusBadge } from "@webui/sdk/ui";
+import { ActionTrigger, Button, CodeText, ConfirmDialog, DataTable, EmptyState, ErrorState, Field, InlineAlert, PageHeader, PageSection, SelectField, StatusBadge } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { useListQueryParams } from "@webui/sdk/query";
 import { createApiToken, disableApiToken, enableApiToken, listApiTokens, loadSession, revokeApiToken, rotateApiToken, updateApiToken, type ApiTokenView } from "./api";
@@ -38,12 +38,14 @@ export default function ApiTokensPage() {
   const [message, setMessage] = useState("");
   const [pendingRevokeID, setPendingRevokeID] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   const scopeGroups = useMemo(() => groupScopesByModule(availableScopes), [availableScopes]);
 
   const refresh = useCallback((filter = status) => {
     setLoading(true);
-    return listApiTokens(filter, 0, 50, listQuery.sort ? `${listQuery.sort.key}:${listQuery.sort.direction}` : undefined).then((value) => setTokens(value.items)).catch(() => undefined).finally(() => setLoading(false));
+    setLoadError(false);
+    return listApiTokens(filter, 0, 50, listQuery.sort ? `${listQuery.sort.key}:${listQuery.sort.direction}` : undefined).then((value) => setTokens(value.items)).catch(() => { setTokens([]); setLoadError(true); }).finally(() => setLoading(false));
   }, [listQuery.sort, status]);
 
   useEffect(() => {
@@ -129,11 +131,12 @@ export default function ApiTokensPage() {
             { value: "desc", label: t("webui.iam.accounts.sortDesc") },
           ]} onValueChange={(value) => listQuery.setSort({ key: listQuery.sort?.key ?? "createdAt", direction: value === "desc" ? "desc" : "asc" })} />}
         </div>
+        {loadError && <ErrorState kind="connectivity" title={t("webui.host.route.error.title")} detail={t("webui.host.route.error.detail")} />}
         <DataTable
           ariaLabel={t("webui.iam.apiTokens.listTitle")}
           loading={loading}
           loadingLabel={t("webui.host.page.loading.label")}
-          emptyState={<EmptyState title={t("webui.iam.apiTokens.empty")} />}
+          emptyState={loadError ? null : <EmptyState title={t("webui.iam.apiTokens.empty")} />}
           columns={[
             { id: "name", header: t("webui.iam.apiTokens.name"), cell: (row) => <><strong>{row.name}</strong>{row.description ? <p className="page-meta">{row.description}</p> : null}</> },
             { id: "scopes", header: t("webui.iam.apiTokens.scopes"), cell: (row) => row.scopes.join(", ") || "—" },

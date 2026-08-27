@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CodeText, CodeViewer, DataTable, DetailDrawer, EmptyState, FilterBar, formatDateTime, PageHeader, PageSection, Pagination, StatusBadge } from "@webui/sdk/ui";
+import { CodeText, CodeViewer, DataTable, DetailDrawer, EmptyState, ErrorState, FilterBar, formatDateTime, PageHeader, PageSection, Pagination, StatusBadge } from "@webui/sdk/ui";
 import { useListQueryParams } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { listAuditEvents, type AuditEventView, type AuditFilter, type AuditOutcome } from "./api";
@@ -53,15 +53,17 @@ export default function AuditPage() {
   const [total, setTotal] = useState(0);
   const [selected, setSelected] = useState<AuditEventView | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   useEffect(() => {
     setLoading(true);
+    setLoadError(false);
     const filter: AuditFilter = {};
     if (listQuery.filters.operation) filter.operation = listQuery.filters.operation;
     if (listQuery.filters.action) filter.action = listQuery.filters.action;
     if (listQuery.filters.outcome) filter.outcome = listQuery.filters.outcome as AuditOutcome;
     if (listQuery.filters.resourceType) filter.resourceType = listQuery.filters.resourceType;
     const offset = (listQuery.page - 1) * PAGE_SIZE;
-    void listAuditEvents(filter, offset, PAGE_SIZE).then((result) => { setItems(result.items); setTotal(result.total); }).finally(() => setLoading(false));
+    void listAuditEvents(filter, offset, PAGE_SIZE).then((result) => { setItems(result.items); setTotal(result.total); }).catch(() => { setItems([]); setTotal(0); setLoadError(true); }).finally(() => setLoading(false));
   }, [listQuery.filters.operation, listQuery.filters.action, listQuery.filters.outcome, listQuery.filters.resourceType, listQuery.page]);
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const selectedJSON = useMemo(() => selected ? JSON.stringify(auditDetailFields(selected), null, 2) : "", [selected]);
@@ -89,6 +91,7 @@ export default function AuditPage() {
         />
       </PageSection>
       <PageSection kicker={t("webui.auth.audit.list.kicker")} title={t("webui.auth.audit.list.title")}>
+        {loadError && <ErrorState kind="connectivity" title={t("webui.host.route.error.title")} detail={t("webui.host.route.error.detail")} />}
         <DataTable<AuditEventView>
           columns={[
             { id: "occurredAt", header: t("webui.auth.audit.occurredAt"), cell: (item) => <CodeText value={formatDateTime(item.occurredAt)} /> },
@@ -103,7 +106,7 @@ export default function AuditPage() {
           getRowKey={(item, index) => `${item.occurredAt}-${index}`}
           loading={loading}
           loadingLabel={t("webui.host.page.loading.label")}
-          emptyState={<EmptyState title={t("webui.auth.audit.empty")} />}
+          emptyState={loadError ? null : <EmptyState title={t("webui.auth.audit.empty")} />}
           enhancements={{
             density: "compact",
             stickyHeader: true,

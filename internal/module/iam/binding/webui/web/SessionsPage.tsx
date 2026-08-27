@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { BulkActionBar, CodeText, DataTable, EmptyState, FilterBar, formatDateTime, PageHeader, PageSection, SelectField, StatusBadge } from "@webui/sdk/ui";
+import { BulkActionBar, CodeText, DataTable, EmptyState, ErrorState, FilterBar, formatDateTime, PageHeader, PageSection, SelectField, StatusBadge } from "@webui/sdk/ui";
 import { useListQueryParams } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { listSessions, revokeSessions, type SessionInfo } from "./api";
@@ -28,9 +28,11 @@ export default function SessionsPage() {
   const [message, setMessage] = useState("");
   const [revoking, setRevoking] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const refresh = useCallback(() => {
     setLoading(true);
-    return listSessions(listQuery.filters.status, listQuery.sort ? `${listQuery.sort.key}:${listQuery.sort.direction}` : undefined).then((result) => { setItems(result.items); setSelected(new Set()); }).finally(() => setLoading(false));
+    setLoadError(false);
+    return listSessions(listQuery.filters.status, listQuery.sort ? `${listQuery.sort.key}:${listQuery.sort.direction}` : undefined).then((result) => { setItems(result.items); setSelected(new Set()); }).catch(() => { setItems([]); setSelected(new Set()); setLoadError(true); }).finally(() => setLoading(false));
   }, [listQuery.filters.status, listQuery.sort]);
   useEffect(() => { void refresh(); }, [refresh]);
   const revoke = (): Promise<void> => {
@@ -65,6 +67,7 @@ export default function SessionsPage() {
             { value: "desc", label: t("webui.iam.accounts.sortDesc") },
           ]} onValueChange={(value) => listQuery.setSort({ key: listQuery.sort?.key ?? "createdAt", direction: value === "desc" ? "desc" : "asc" })} />}
         </div>
+        {loadError && <ErrorState kind="connectivity" title={t("webui.host.route.error.title")} detail={t("webui.host.route.error.detail")} />}
         <DataTable<SessionInfo>
           columns={[
             { id: "idHash", header: t("webui.iam.sessions.idHash"), cell: (item) => <CodeText value={item.idHash} copyable /> },
@@ -83,7 +86,7 @@ export default function SessionsPage() {
           selectionLabel={t("webui.iam.sessions.selectAll")}
           selectedKeys={selected}
           onSelectedKeysChange={setSelected}
-          emptyState={<EmptyState title={t("webui.iam.sessions.empty")} />}
+          emptyState={loadError ? null : <EmptyState title={t("webui.iam.sessions.empty")} />}
           enhancements={{ density: "default", stickyHeader: true }}
         />
         <BulkActionBar

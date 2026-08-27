@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActionTrigger, Button, Check, CodeText, ConfirmActionTrigger, DataTable, Drawer, EmptyState, Field, FilterBar, FormField, PageHeader, PageSection, SearchInput, SelectField, StatusBadge } from "@webui/sdk/ui";
+import { ActionTrigger, Button, Check, CodeText, ConfirmActionTrigger, DataTable, Drawer, EmptyState, ErrorState, Field, FilterBar, FormField, PageHeader, PageSection, SearchInput, SelectField, StatusBadge } from "@webui/sdk/ui";
 import { useListQueryParams } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { archiveRole, createRole, listPermissions, listRoles, replaceRolePermissions, rolePermissionsView, updateRoleInfo, type PermissionDefinition, type Role } from "./api";
@@ -63,13 +63,15 @@ export default function RolesPage() {
   const [roleDescription, setRoleDescription] = useState("");
   const [focusedRoleID, setFocusedRoleID] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const refresh = useCallback((nextPage = page) => {
     setLoading(true);
+    setLoadError(false);
     return listRoles(listQuery.filters.query, (nextPage - 1) * PAGE_SIZE, PAGE_SIZE, listQuery.sort ? `${listQuery.sort.key}:${listQuery.sort.direction}` : undefined).then((result) => {
       setTotal(result.total);
       setItems(result.items);
       setSelectedID((current) => current && result.items.some((item) => item.id === current) ? current : result.items[0]?.id || "");
-    }).finally(() => setLoading(false));
+    }).catch(() => { setItems([]); setTotal(0); setLoadError(true); }).finally(() => setLoading(false));
   }, [listQuery.filters.query, listQuery.sort, page]);
   useEffect(() => { void refresh(); void listPermissions().then(setPermissions); }, [refresh]);
   useEffect(() => { void refresh(); }, [listQuery.filters.query]); // 082: query URL change reloads from page 1.
@@ -150,6 +152,7 @@ export default function RolesPage() {
             { value: "desc", label: t("webui.iam.accounts.sortDesc") },
           ]} onValueChange={(value) => listQuery.setSort({ key: listQuery.sort?.key ?? "name", direction: value === "desc" ? "desc" : "asc" })} />}
         </div>
+        {loadError && <ErrorState kind="connectivity" title={t("webui.host.route.error.title")} detail={t("webui.host.route.error.detail")} />}
         <DataTable<Role>
           columns={[
             { id: "name", header: t("webui.iam.roles.name"), cell: (item) => item.name },
@@ -161,7 +164,7 @@ export default function RolesPage() {
           loading={loading}
           loadingLabel={t("webui.host.page.loading.label")}
           getRowKey={(item) => item.id}
-          emptyState={<EmptyState title={t("webui.iam.roles.empty")} />}
+          emptyState={loadError ? null : <EmptyState title={t("webui.iam.roles.empty")} />}
           enhancements={{
             density: "default",
             stickyHeader: true,

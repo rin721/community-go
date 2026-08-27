@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActionTrigger, Button, Check, CodeText, ConfirmActionTrigger, DataTable, DetailDrawer, Drawer, EmptyState, Field, FilterBar, FormField, PageHeader, PageSection, SearchInput, SelectField, StatusBadge } from "@webui/sdk/ui";
+import { ActionTrigger, Button, Check, CodeText, ConfirmActionTrigger, DataTable, DetailDrawer, Drawer, EmptyState, ErrorState, Field, FilterBar, FormField, PageHeader, PageSection, SearchInput, SelectField, StatusBadge } from "@webui/sdk/ui";
 import { useListQueryParams } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { accountRolesView, archiveAccount, createAccount, listAccounts, listRoles, replaceAccountRoles, resetAccountPassword, setAccountStatus, updateAccountInfo, type Account, type Role } from "./api";
@@ -49,8 +49,10 @@ export default function AccountsPage() {
   const [archiveError, setArchiveError] = useState(false);
   const [detailAccount, setDetailAccount] = useState<Account | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const refresh = useCallback((nextPage = page) => {
     setLoading(true);
+    setLoadError(false);
     const status = listQuery.filters.status === "active" || listQuery.filters.status === "disabled" ? listQuery.filters.status : undefined;
     const sortMap: Record<string, string> = { displayName: "display_name", username: "username", status: "status" };
     const sortKey = listQuery.sort ? sortMap[listQuery.sort.key] : undefined;
@@ -59,7 +61,7 @@ export default function AccountsPage() {
       setTotal(result.total);
       setItems(result.items);
       setSelectedID((current) => current && result.items.some((item) => item.id === current) ? current : result.items[0]?.id || "");
-    }).finally(() => setLoading(false));
+    }).catch(() => { setItems([]); setTotal(0); setLoadError(true); }).finally(() => setLoading(false));
   }, [listQuery.filters.query, listQuery.filters.status, listQuery.filters.archived, listQuery.sort, page]);
   useEffect(() => { void refresh(); void listRoles().then((result) => setRoles(result.items)); }, [refresh]);
   useEffect(() => { void refresh(); }, [listQuery.filters.query, listQuery.filters.status, listQuery.filters.archived]); // 083: filter URL change reloads from page 1.
@@ -141,6 +143,7 @@ export default function AccountsPage() {
             { value: "desc", label: t("webui.iam.accounts.sortDesc") },
           ]} onValueChange={(value) => listQuery.setSort({ key: listQuery.sort?.key ?? "displayName", direction: value === "desc" ? "desc" : "asc" })} />}
         </div>
+        {loadError && <ErrorState kind="connectivity" title={t("webui.host.route.error.title")} detail={t("webui.host.route.error.detail")} />}
         <DataTable<Account>
           columns={[
             { id: "displayName", header: t("webui.iam.displayName"), cell: (item) => item.displayName },
@@ -153,7 +156,7 @@ export default function AccountsPage() {
           loading={loading}
           loadingLabel={t("webui.host.page.loading.label")}
           getRowKey={(item) => item.id}
-          emptyState={<EmptyState title={t("webui.iam.accounts.empty")} />}
+          emptyState={loadError ? null : <EmptyState title={t("webui.iam.accounts.empty")} />}
           enhancements={{
             density: "default",
             stickyHeader: true,

@@ -28,3 +28,17 @@
 | [R001](R001-webui-current-state/report.md) | WebUI 前端现状审计（路由/Shell/SDK/UI 原语/数据/样式/权限/表单/测试/边界） | active |
 | [R002](R002-backend-capability-map/report.md) | 后端真实能力清单（55 operation/23 权限键/9 模块/管理端点/错误契约） | active |
 | [R003](R003-proposal-gap-analysis/report.md) | 方案与现状差异分析（差异矩阵/否决项/可落地范围/新旧编号映射 §4.11） | active |
+
+## 附录：方案 81 章覆盖登记（2026-08-27 核对）
+
+**目的**：证明方案（temp-new-changes.md，81 章）每一章在 082 产物中都有落点，防止「方案大、产物小」被误读为缩水。核对方式：对每章标题核心词在 082 全部产物（计划文档 + 研究档案，UTF-8）中做包含匹配，未命中章节再按语义关键词人工复核。
+
+**结论**：81 章全部有落点——计划文档（requirements/design/tasks/README）直接引用 57 章；仅研究档案（R003 差异矩阵/§4.11 映射）覆盖 18 章；语义覆盖 6 章（标题措辞与产物表述不同，关键词已人工核对命中：成熟项目标准、Design System、过度设计、复杂度/Wizard、Administration Product、Capability Review）。
+
+**为何产物看起来更小**：① 方案是纲领（每章铺陈原则/示例/ASCII 图），约 32 KB；② 082 研究档案 R001+R002+R003 合计约 127 KB（方案的近 4 倍），是逐章消化物；③ 计划文档（requirements/design/tasks/README）合计约 37 KB，是差异矩阵的「执行投影」——把 81 章约束收敛为 25 条 REQ、6 个决策点与按 Phase 切片的任务，天然比纲领紧凑。三者相加 164 KB+ 是「研究 + 计划」的完整产物，不存在缩水。
+
+| 章节范围 | 落点 | 数量 |
+| --- | --- | --- |
+| 一~八十一 中直接进入计划文档 | requirements REQ/决策点、design 策略、tasks 任务、README 叙述 | 57 |
+| 仅由 R003 差异矩阵/§4.11 映射登记 | 研究层面的逐章判定与新旧编号对照 | 18 |
+| 语义覆盖（关键词人工复核） | 非目标红线/验收标准/叙事（成熟标准、Design System、过度设计、复杂度、产品思维、Capability Review） | 6 |

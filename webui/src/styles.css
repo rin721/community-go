@@ -1802,6 +1802,29 @@ kbd {
 .form-field [data-slot="input"] {
   width: 100%;
 }
+/* 084：HeroUI Select 的默认指示器在某些容器中被错误锚定到行尾（api-tokens
+   过期策略等场景出现「行尾孤立箭头」）；隐藏它并改在 trigger 内绘制 chevron，
+   保证下拉 affordance 始终紧贴控件自身。 */
+.form-field [data-slot="select-default-indicator"] {
+  display: none;
+}
+.form-field [data-slot="select-trigger"] {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+.form-field [data-slot="select-trigger"]::after {
+  content: "";
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  margin-left: auto;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  transform-origin: center;
+  opacity: 0.7;
+}
 .field-input {
   width: 100%;
   min-height: 38px;

@@ -12,7 +12,10 @@ const languageOptions: Array<{ value: string; label: string }> = [
 
 export default function LanguagePage() {
   const { t } = useWebUITranslation("webui.settings");
-  const current = localStorage.getItem("community-go-webui-language") ?? "";
+  // Same language resolution as the host i18n: without an explicit local choice,
+  // fall back to the browser language (zh-CN/en-US) so the radio group always
+  // has a single selected entry (084 fix).
+  const current = localStorage.getItem("community-go-webui-language") ?? (typeof navigator !== "undefined" && navigator.language.toLowerCase().startsWith("en") ? "en-US" : "zh-CN");
   const choose = (value: string) => {
     localStorage.setItem("community-go-webui-language", value);
     window.location.reload();

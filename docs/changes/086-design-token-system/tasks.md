@@ -17,11 +17,17 @@
 | `COMP-086-001` | TOKEN-086-001 | L | Header/Sidebar/WorkspaceTabs/Table/Form 等组件消费组件 token 并清扫裸值 | 组件规则无裸 px/hex/!important | 完成 |
 | `MODULE-086-001` | TOKEN-086-001 | XL | 7 个模块 CSS 迁移到 token；裁决 :global 与裸色值 | 模块不出新平行规格；回归通过 | 完成 |
 | `GUARD-086-001` | COMP-086-001 | M | 扩展 style lint：禁止公共组件规则 !important/裸 px/hex；禁止模块覆盖宿主组件 | 反向 fixture 通过 | 完成 |
-| `QA-086-001` | VIEW/COMP/MODULE/GUARD | L | 全量验证：几何稳定断言 + Go/TS/lint/test/build/E2E/视觉 | 验收标准 1–6 全绿 | 进行中 |
-| `DOC-086-002` | QA-086-001 | M | 更新 authority（webui README/development/application-module/documentation-impact/索引） | authority 与实现一致 | 未开始 |
-| `COMMIT-086-001` | DOC-086-002 | S | 精确暂存并提交确认范围 | Conventional Commit；不混入用户修改 | 未开始 |
+| `QA-086-001` | VIEW/COMP/MODULE/GUARD | L | 全量验证：几何稳定断言 + Go/TS/lint/test/build/E2E/视觉 | 验收标准 1–6 全绿（dev 后端逐页复核待环境） | 完成 |
+| `DOC-086-002` | QA-086-001 | M | 更新 authority（webui README/development/application-module/documentation-impact/索引） | authority 与实现一致 | 完成 |
+| `COMMIT-086-001` | DOC-086-002 | S | 精确暂存并提交确认范围 | Conventional Commit；不混入用户修改 | 完成 |
 
-## 停止条件
+## 剩余风险 / 待办
+
+- **dev 后端逐页 computed-style 复核**：当前环境 Go 后端未启动（127.0.0.1:8080 ECONNREFUSED），
+  dev e2e 15/7 与纯净 HEAD 基线一致；等后端可用时运行 dev e2e 全量并抽查各路由 Shell
+  computed-style（预期与 mock 一致，token 体系同源）。
+- 固定首页、ContentViewport 宽度档语义等已在 mock e2e 断言；若未来模块引入新的页面
+  宽度/card 语义，应优先复用 `--content-max-*`/`--page-*` token，避免新建平行规格。
 
 - ContentViewport 收敛导致模块页滚动/宽度不可恢复的回归（回到研究评估，不倒退为双 padding）。
 - HeroUI 组件边界 token 化触发大规模视觉回归且无法无 !important 修正（回到研究）。

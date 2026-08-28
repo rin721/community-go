@@ -68,14 +68,17 @@ export function Toast({ open, tone = "info", title, detail, closeLabel, onClose 
 }
 
 /** ErrorState 按作用域区分 section/inline/action/permission/connectivity。 */
-export function ErrorState({ kind = "section", title, detail, action, className = "" }: {
+export function ErrorState({ kind = "section", title, detail, action, requestId, className = "" }: {
   kind?: "section" | "inline" | "action" | "permission" | "connectivity";
   title: string;
   detail?: string;
   action?: ReactNode;
+  /** requestId 只用于低敏故障关联，不把服务端 detail 直接暴露给用户。 */
+  requestId?: string;
   className?: string;
 }) {
-  if (kind === "permission") return <div className={`error-state error-state-permission ${className}`.trim()} role="alert"><span className="error-state-title">{title}</span>{detail && <span className="error-state-detail">{detail}</span>}</div>;
+  const correlation = requestId ? <code className="error-state-request-id" data-request-id={requestId} aria-label="request id">{requestId}</code> : null;
+  if (kind === "permission") return <div className={`error-state error-state-permission ${className}`.trim()} role="alert"><span className="error-state-title">{title}</span>{detail && <span className="error-state-detail">{detail}</span>}{correlation}</div>;
   const variant = kind === "inline" ? "inline" : kind === "action" ? "action" : kind === "connectivity" ? "connectivity" : "section";
-  return <div className={`error-state error-state-${variant} ${className}`.trim()} role="alert"><span className="error-state-title">{title}</span>{detail && <span className="error-state-detail">{detail}</span>}{action && <span className="error-state-action">{action}</span>}</div>;
+  return <div className={`error-state error-state-${variant} ${className}`.trim()} role="alert"><span className="error-state-title">{title}</span>{detail && <span className="error-state-detail">{detail}</span>}{correlation}{action && <span className="error-state-action">{action}</span>}</div>;
 }

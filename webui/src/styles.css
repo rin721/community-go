@@ -2736,6 +2736,15 @@ textarea.field-input {
 .error-state-detail {
   color: var(--text-secondary);
 }
+.error-state-request-id {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--font-scale-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .error-state-action {
   margin-left: auto;
 }

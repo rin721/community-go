@@ -79,4 +79,10 @@ describe("082 状态反馈语义组件", () => {
     expect(renderToStaticMarkup(createElement(ErrorState, { kind: "section", title: "加载失败" }))).toContain("error-state-section");
     expect(renderToStaticMarkup(createElement(ErrorState, { kind: "inline", title: "字段错误" }))).toContain("error-state-inline");
   });
+
+  it("ErrorState 可呈现低敏请求关联 ID", () => {
+    const markup = renderToStaticMarkup(createElement(ErrorState, { kind: "connectivity", title: "加载失败", requestId: "req-123" }));
+    expect(markup).toContain('data-request-id="req-123"');
+    expect(markup).toContain('aria-label="request id"');
+  });
 });

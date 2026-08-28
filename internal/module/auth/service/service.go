@@ -3,6 +3,8 @@ package service
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -107,22 +109,60 @@ type AuditEventView struct {
 	OccurredAt    time.Time
 }
 
-// AuditQueryResult 是分页审计查询结果。
+// AuditQueryResult 是分页审计查询结果；NextCursor 非空表示还有下一页，
+// HasMore 与 NextCursor 同源（服务端按 limit+1 探测）。
 type AuditQueryResult struct {
-	Items         []AuditEventView
-	Offset, Limit int
-	Total         int64
+	Items      []AuditEventView
+	Limit      int
+	Total      int64
+	NextCursor string
+	HasMore    bool
+}
+
+// AuditCursor 是按 (occurredAt,eventId) 倒序翻页的内部稳定位置。
+type AuditCursor struct {
+	OccurredAt time.Time
+	EventID    uint64
+}
+
+// Encode 把游标序列化为不透明字符串（低敏、无签名要求：审计查询本身受
+// auth.audit.list 权限保护，游标不携带任何对象内容）。
+func (cursor AuditCursor) Encode() string {
+	payload, err := json.Marshal(cursor)
+	if err != nil {
+		return ""
+	}
+	return base64.RawURLEncoding.EncodeToString(payload)
+}
+
+// DecodeAuditCursor 解析并校验游标；非法、过期格式返回 ErrAuditCursorInvalid。
+func DecodeAuditCursor(value string) (AuditCursor, error) {
+	payload, err := base64.RawURLEncoding.DecodeString(value)
+	if err != nil {
+		return AuditCursor{}, ErrAuditCursorInvalid
+	}
+	var cursor AuditCursor
+	if err := json.Unmarshal(payload, &cursor); err != nil {
+		return AuditCursor{}, ErrAuditCursorInvalid
+	}
+	if cursor.OccurredAt.IsZero() || cursor.EventID == 0 {
+		return AuditCursor{}, ErrAuditCursorInvalid
+	}
+	return cursor, nil
 }
 
 // AuditReader 是 Auth module 对持久化审计的只读查询 port；由 composition
 // 注入 adapter/audit/storage Sink 实现。查询不提供删除/篡改入口。
 type AuditReader interface {
-	List(context.Context, AuditQueryFilter, int, int) (AuditQueryResult, error)
+	List(context.Context, AuditQueryFilter, *AuditCursor, int) (AuditQueryResult, error)
 	Get(context.Context, uint64) (AuditEventView, error)
 }
 
 // ErrAuditEventNotFound 表示请求的低敏审计事件不存在或已超出保留窗口。
 var ErrAuditEventNotFound = errors.New("auth audit event not found")
+
+// ErrAuditCursorInvalid 表示游标损坏、过期格式或与当前筛选条件不匹配。
+var ErrAuditCursorInvalid = errors.New("auth audit cursor is invalid")
 
 // OperationAuditWriter 是业务模块写操作审计的窄 port：业务模块在写操作
 // 成功/失败边界调用，携带低敏字段域；实现方负责从当前 Principal 推导
@@ -425,17 +465,20 @@ func (s *Service) Record(ctx context.Context, event model.AuditEvent) error {
 	return s.audit.Record(ctx, event)
 }
 
-// ListAuditEvents 返回持久化审计的只读分页视图；reader 未注入时 fail closed，
-// 不返回空数据冒充当前状态。offset/limit 沿用 IAM 分页语义（非法输入返回错误）。
-func (s *Service) ListAuditEvents(ctx context.Context, filter AuditQueryFilter, offset, limit int) (AuditQueryResult, error) {
+// ListAuditEvents 返回持久化审计的只读游标分页视图；reader 未注入时 fail
+// closed，不返回空数据冒充当前状态。limit 沿用 IAM 分页上限语义（非法输入
+// 返回错误）；cursor 为空表示第一页，按 (occurredAt,eventId) 倒序稳定翻页。
+func (s *Service) ListAuditEvents(ctx context.Context, filter AuditQueryFilter, cursor *AuditCursor, limit int) (AuditQueryResult, error) {
 	if s == nil || s.auditReader == nil {
 		return AuditQueryResult{}, fmt.Errorf("auth audit reader is unavailable")
 	}
-	offset, limit, err := normalizeAuditPage(offset, limit)
-	if err != nil {
-		return AuditQueryResult{}, err
+	if limit < 0 || limit > 100 {
+		return AuditQueryResult{}, fmt.Errorf("auth audit pagination is invalid")
 	}
-	return s.auditReader.List(ctx, filter, offset, limit)
+	if limit == 0 {
+		limit = 20
+	}
+	return s.auditReader.List(ctx, filter, cursor, limit)
 }
 
 // AuditEvent 返回单个低敏审计详情投影；reader 未注入时 fail closed。
@@ -487,16 +530,6 @@ func operationAuditReason(outcome model.AuditOutcome) model.DecisionReason {
 	default:
 		return model.ReasonOwnerMismatch
 	}
-}
-
-func normalizeAuditPage(offset, limit int) (int, int, error) {
-	if offset < 0 || limit < 0 || limit > 100 {
-		return 0, 0, fmt.Errorf("auth audit pagination is invalid")
-	}
-	if limit == 0 {
-		limit = 20
-	}
-	return offset, limit, nil
 }
 
 // RecordAuthenticationFailure 记录不含 token、claims 或 raw path 的认证拒绝，

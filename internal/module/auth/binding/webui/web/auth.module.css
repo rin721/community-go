@@ -1,4 +1,4 @@
-﻿.authModule {} /* module root placeholder: AuditPage migrated to DataTable */
+.authModule {} /* module root placeholder: AuditPage migrated to DataTable */
 
 /* 084: audit operation column truncates instead of wrapping long ids */
 .authModule :global(.audit-operation-col) {
@@ -9,4 +9,18 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* 090: audit cursor pagination nav — prev/next buttons with total and page label */
+.authModule :global(.audit-pagination) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+.authModule :global(.audit-pagination .audit-pagination-page) {
+  color: var(--text-secondary);
+  font-size: 12px;
+  margin-right: auto;
 }

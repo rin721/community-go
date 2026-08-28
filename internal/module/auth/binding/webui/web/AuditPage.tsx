@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Button, CodeText, CodeViewer, DataTable, DetailDrawer, EmptyState, ErrorState, FilterBar, formatDateTime, formatRelativeTime, PageFrame, PageHeader, PageSection, Pagination, ResourceIndex, Skeleton, StatusBadge } from "@webui/sdk/ui";
+import { Button, CodeText, CodeViewer, DataTable, DetailDrawer, EmptyState, ErrorState, FilterBar, formatDateTime, formatRelativeTime, PageFrame, PageHeader, PageSection, ResourceIndex, Skeleton, StatusBadge } from "@webui/sdk/ui";
 import { useListQueryParams, type ProblemError } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { auditEvent, listAuditEvents, type AuditEventView, type AuditFilter, type AuditOutcome } from "./api";
@@ -67,14 +67,18 @@ export default function AuditPage() {
   });
   const [items, setItems] = useState<AuditEventView[]>([]);
   const [total, setTotal] = useState(0);
+  const [nextCursor, setNextCursor] = useState<string | undefined>(undefined);
+  const [hasMore, setHasMore] = useState(false);
+  // In-session cursor stack: keeps cursors of pages we left (first page is an
+  // empty string) to support going back; filter/page-size changes reset to page 1.
+  const [cursorStack, setCursorStack] = useState<string[]>([]);
+  const [currentCursor, setCurrentCursor] = useState<string | undefined>(undefined);
   const [selected, setSelected] = useState<AuditEventView | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<ProblemError | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<ProblemError | null>(null);
-  const refresh = useCallback(() => {
-    setLoading(true);
-    setLoadError(null);
+  const buildFilter = useCallback((): AuditFilter => {
     const filter: AuditFilter = {};
     if (listQuery.filters.operation) filter.operation = listQuery.filters.operation;
     if (listQuery.filters.action) filter.action = listQuery.filters.action;
@@ -85,17 +89,51 @@ export default function AuditPage() {
     if (listQuery.filters.correlationId) filter.correlationId = listQuery.filters.correlationId;
     if (listQuery.filters.since) filter.since = toRFC3339(listQuery.filters.since);
     if (listQuery.filters.until) filter.until = toRFC3339(listQuery.filters.until);
-    const offset = (listQuery.page - 1) * PAGE_SIZE;
-    return listAuditEvents(filter, offset, PAGE_SIZE).then((result) => { setItems(result.items); setTotal(result.total); }).catch((error) => { setItems([]); setTotal(0); setLoadError(error as ProblemError); }).finally(() => setLoading(false));
-  }, [listQuery.filters.operation, listQuery.filters.action, listQuery.filters.outcome, listQuery.filters.actorKind, listQuery.filters.subjectHash, listQuery.filters.resourceType, listQuery.filters.correlationId, listQuery.filters.since, listQuery.filters.until, listQuery.page]);
-  useEffect(() => { void refresh(); }, [refresh]);
+    return filter;
+  }, [listQuery.filters.operation, listQuery.filters.action, listQuery.filters.outcome, listQuery.filters.actorKind, listQuery.filters.subjectHash, listQuery.filters.resourceType, listQuery.filters.correlationId, listQuery.filters.since, listQuery.filters.until]);
+  const loadPage = useCallback((cursor: string | undefined) => {
+    setLoading(true);
+    setLoadError(null);
+    return listAuditEvents(buildFilter(), cursor, PAGE_SIZE).then((result) => {
+      setItems(result.items);
+      setTotal(result.total);
+      setNextCursor(result.nextCursor);
+      setHasMore(result.hasMore);
+    }).catch((error) => {
+      setItems([]);
+      setTotal(0);
+      setNextCursor(undefined);
+      setHasMore(false);
+      setLoadError(error as ProblemError);
+    }).finally(() => setLoading(false));
+  }, [buildFilter]);
+  // First load and filter/page-size changes: go back to page 1 (clear the cursor stack).
+  const filterKey = [listQuery.filters.operation, listQuery.filters.action, listQuery.filters.outcome, listQuery.filters.actorKind, listQuery.filters.subjectHash, listQuery.filters.resourceType, listQuery.filters.correlationId, listQuery.filters.since, listQuery.filters.until, listQuery.pageSize].join("|");
+  useEffect(() => {
+    setCursorStack([]);
+    setCurrentCursor(undefined);
+    void loadPage(undefined);
+  }, [filterKey, loadPage]);
+  const goNext = useCallback(() => {
+    if (!nextCursor || loading) return;
+    setCursorStack((stack) => [...stack, currentCursor ?? ""]);
+    setCurrentCursor(nextCursor);
+    void loadPage(nextCursor);
+  }, [nextCursor, currentCursor, loading, loadPage]);
+  const goPrevious = useCallback(() => {
+    if (cursorStack.length === 0 || loading) return;
+    const previous = cursorStack[cursorStack.length - 1];
+    setCursorStack((stack) => stack.slice(0, -1));
+    setCurrentCursor(previous === "" ? undefined : previous);
+    void loadPage(previous === "" ? undefined : previous);
+  }, [cursorStack, loading, loadPage]);
   const openDetail = useCallback((item: AuditEventView) => {
     setSelected(item);
     setDetailLoading(true);
     setDetailError(null);
     void auditEvent(item.eventId).then(setSelected).catch((error) => setDetailError(error as ProblemError)).finally(() => setDetailLoading(false));
   }, []);
-  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const currentPage = cursorStack.length + 1;
   const selectedJSON = useMemo(() => selected ? JSON.stringify(auditDetailFields(selected), null, 2) : "", [selected]);
   return <PageFrame variant="index" className={styles.authModule}>
     <PageHeader eyebrow={t("webui.auth.audit.title")} title={t("webui.auth.audit.title")} description={t("webui.auth.audit.description")} />
@@ -124,7 +162,7 @@ export default function AuditPage() {
           resultCount={total}
           resultCountLabel={(count) => t("webui.auth.audit.total", { total: count })}
         />}>
-          {loadError && <ErrorState kind="connectivity" title={hostT("webui.host.route.error.title")} detail={hostT("webui.host.route.error.detail")} requestId={loadError.requestId} action={<Button variant="secondary" onClick={() => void refresh()}>{hostT("webui.host.retry")}</Button>} />}
+          {loadError && <ErrorState kind="connectivity" title={hostT("webui.host.route.error.title")} detail={hostT("webui.host.route.error.detail")} requestId={loadError.requestId} action={<Button variant="secondary" onClick={() => void loadPage(undefined)}>{hostT("webui.host.retry")}</Button>} />}
           <DataTable<AuditEventView>
           columns={[
             { id: "eventId", header: "ID", className: "audit-event-id-col", cell: (item) => <CodeText value={String(item.eventId)} /> },
@@ -149,21 +187,13 @@ export default function AuditPage() {
             renderRowMenu: (item, _index) => [{ key: "detail", label: t("webui.auth.audit.detail"), onSelect: () => openDetail(item) }],
           }}
           />
-          <Pagination
-          page={listQuery.page}
-          pageCount={pages}
-          total={total}
-          totalLabel={(count) => t("webui.auth.audit.total", { total: count })}
-          pageLabel={(current) => `Page ${current}`}
-          previousLabel={t("webui.auth.audit.previous")}
-          nextLabel={t("webui.auth.audit.next")}
-          paginationLabel={t("webui.auth.audit.pagination")}
-          pageSize={PAGE_SIZE}
-          pageSizeOptions={[20, 50, 100]}
-          pageSizeLabel={t("webui.auth.audit.pageSize")}
-          onPageChange={listQuery.setPage}
-            onPageSizeChange={(size) => listQuery.setPageSize(size)}
-          />
+          <div className="audit-pagination" role="navigation" aria-label={t("webui.auth.audit.pagination")}>
+            <span className="pagination-total">{t("webui.auth.audit.total", { total })}</span>
+            <span className="audit-pagination-page" aria-label={t("webui.auth.audit.page")}>{t("webui.auth.audit.pageLabel", { page: currentPage })}</span>
+            <Button variant="secondary" disabled={cursorStack.length === 0 || loading} onClick={() => void goPrevious()}>{t("webui.auth.audit.previous")}</Button>
+            <Button variant="secondary" disabled={!hasMore || loading} onClick={() => void goNext()}>{t("webui.auth.audit.next")}</Button>
+            <select aria-label={t("webui.auth.audit.pageSize")} value={listQuery.pageSize} onChange={(event) => listQuery.setPageSize(Number(event.target.value))} className="pagination-size">{[20, 50, 100].map((option) => <option value={option} key={option}>{option}</option>)}</select>
+          </div>
         </ResourceIndex>
       </PageSection>
     </div>

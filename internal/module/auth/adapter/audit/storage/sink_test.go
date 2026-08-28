@@ -3,6 +3,7 @@ package auditstorage
 import (
 	"context"
 	"errors"
+	"fmt"
 	"path/filepath"
 	"testing"
 	"time"
@@ -109,12 +110,18 @@ func TestSinkRecordsAndListsLowSensitivityEvents(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	result, err := sink.List(t.Context(), authservice.AuditQueryFilter{}, 0, 20)
+	result, err := sink.List(t.Context(), authservice.AuditQueryFilter{}, nil, 20)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if result.Total != 2 || len(result.Items) != 2 {
 		t.Fatalf("unexpected audit list: %#v", result)
+	}
+	if result.HasMore {
+		t.Fatalf("page with all events must not advertise more: %#v", result)
+	}
+	if result.NextCursor != "" {
+		t.Fatalf("last page must not expose a next cursor: %#v", result)
 	}
 	if result.Items[0].Operation != "iam.sessions.revoke" || result.Items[1].Operation != "iam.accounts.list" {
 		t.Fatalf("audit events not sorted by occurrence desc: %#v", result.Items)
@@ -144,7 +151,7 @@ func TestSinkRecordsAndListsLowSensitivityEvents(t *testing.T) {
 		t.Fatalf("missing audit detail error = %v", err)
 	}
 
-	filtered, err := sink.List(t.Context(), authservice.AuditQueryFilter{Operation: "iam.accounts.list"}, 0, 20)
+	filtered, err := sink.List(t.Context(), authservice.AuditQueryFilter{Operation: "iam.accounts.list"}, nil, 20)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -155,7 +162,7 @@ func TestSinkRecordsAndListsLowSensitivityEvents(t *testing.T) {
 		t.Fatalf("filtered decision/outcome mismatch: %#v", filtered.Items[0])
 	}
 
-	byAction, err := sink.List(t.Context(), authservice.AuditQueryFilter{Action: "revoke"}, 0, 20)
+	byAction, err := sink.List(t.Context(), authservice.AuditQueryFilter{Action: "revoke"}, nil, 20)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -163,7 +170,7 @@ func TestSinkRecordsAndListsLowSensitivityEvents(t *testing.T) {
 		t.Fatalf("action filter failed: %#v", byAction)
 	}
 
-	byResource, err := sink.List(t.Context(), authservice.AuditQueryFilter{ResourceType: "account"}, 0, 20)
+	byResource, err := sink.List(t.Context(), authservice.AuditQueryFilter{ResourceType: "account"}, nil, 20)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -171,7 +178,7 @@ func TestSinkRecordsAndListsLowSensitivityEvents(t *testing.T) {
 		t.Fatalf("resource type filter failed: %#v", byResource)
 	}
 
-	byCorrelation, err := sink.List(t.Context(), authservice.AuditQueryFilter{CorrelationID: "corr-account-1"}, 0, 20)
+	byCorrelation, err := sink.List(t.Context(), authservice.AuditQueryFilter{CorrelationID: "corr-account-1"}, nil, 20)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -194,12 +201,79 @@ func TestSinkTrimsOldestEventsAtLimit(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	result, err := sink.List(t.Context(), authservice.AuditQueryFilter{}, 0, 20)
+	result, err := sink.List(t.Context(), authservice.AuditQueryFilter{}, nil, 20)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if result.Total != 3 {
 		t.Fatalf("trim did not bound table size: total=%d", result.Total)
+	}
+}
+
+// TestSinkCursorPagination 验证游标分页按 (occurredAt,eventId) 倒序稳定翻页，
+// 不重不漏，并在最后一页停止提供 nextCursor。
+func TestSinkCursorPagination(t *testing.T) {
+	store, resource := newTestStore(t)
+	defer resource.Close()
+	fixed := clock.Fixed(time.Date(2026, 8, 24, 0, 0, 0, 0, time.UTC))
+	sink, err := New(store, fixed, 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 写入 7 条事件；occurredAt 相同，仅 eventId 不同（验证 id 决胜排序）。
+	for index := uint64(1); index <= 7; index++ {
+		event := testEvent("auth.audit.list", "list", fmt.Sprintf("subject-%d", index), index, authmodel.AuditSucceeded)
+		if err := sink.Record(t.Context(), event); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var collected []authservice.AuditEventView
+	var cursor *authservice.AuditCursor
+	page := 0
+	for {
+		result, err := sink.List(t.Context(), authservice.AuditQueryFilter{}, cursor, 3)
+		if err != nil {
+			t.Fatal(err)
+		}
+		collected = append(collected, result.Items...)
+		page++
+		if page > 10 {
+			t.Fatal("cursor pagination did not terminate")
+		}
+		if !result.HasMore {
+			if result.NextCursor != "" {
+				t.Fatalf("terminal page must not expose a next cursor: %#v", result)
+			}
+			break
+		}
+		if result.NextCursor == "" {
+			t.Fatalf("page with more results must expose a next cursor: %#v", result)
+		}
+		decoded, err := authservice.DecodeAuditCursor(result.NextCursor)
+		if err != nil {
+			t.Fatalf("decode next cursor: %v", err)
+		}
+		cursor = &decoded
+	}
+	if len(collected) != 7 {
+		t.Fatalf("cursor pagination lost or duplicated events: %d", len(collected))
+	}
+	// 顺序必须严格按 (occurredAt,eventId) 倒序。
+	for index := 1; index < len(collected); index++ {
+		previous, current := collected[index-1], collected[index]
+		if previous.EventID != 7-uint64(index-1) {
+			t.Fatalf("cursor page order unexpected at %d: %#v", index, current)
+		}
+		if previous.OccurredAt.Before(current.OccurredAt) {
+			t.Fatalf("cursor page not in occurredAt desc order: %#v after %#v", current, previous)
+		}
+	}
+	if collected[0].EventID != 7 || collected[len(collected)-1].EventID != 1 {
+		t.Fatalf("cursor pagination bounds mismatch: first=%d last=%d", collected[0].EventID, collected[len(collected)-1].EventID)
+	}
+	// 无效游标必须 fail closed。
+	if _, err := authservice.DecodeAuditCursor("not-a-cursor"); !errors.Is(err, authservice.ErrAuditCursorInvalid) {
+		t.Fatalf("invalid cursor error = %v", err)
 	}
 }
 
@@ -216,7 +290,7 @@ func TestServiceQueryFailClosedWithoutReader(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := svc.ListAuditEvents(t.Context(), authservice.AuditQueryFilter{}, 0, 20); err == nil {
+	if _, err := svc.ListAuditEvents(t.Context(), authservice.AuditQueryFilter{}, nil, 20); err == nil {
 		t.Fatal("audit query without reader must fail closed")
 	}
 	if err := svc.WithAuditReader(sink); err != nil {
@@ -226,7 +300,7 @@ func TestServiceQueryFailClosedWithoutReader(t *testing.T) {
 	if err := sink.Record(t.Context(), evt); err != nil {
 		t.Fatal(err)
 	}
-	result, err := svc.ListAuditEvents(t.Context(), authservice.AuditQueryFilter{}, 0, 20)
+	result, err := svc.ListAuditEvents(t.Context(), authservice.AuditQueryFilter{}, nil, 20)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -266,7 +340,7 @@ func TestRecordOperationWritesLowSensitivityEvent(t *testing.T) {
 	if err := svc.RecordOperation(ctx, req); err != nil {
 		t.Fatal(err)
 	}
-	result, err := svc.ListAuditEvents(t.Context(), authservice.AuditQueryFilter{Action: "create"}, 0, 20)
+	result, err := svc.ListAuditEvents(t.Context(), authservice.AuditQueryFilter{Action: "create"}, nil, 20)
 	if err != nil {
 		t.Fatal(err)
 	}

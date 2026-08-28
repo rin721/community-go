@@ -17,12 +17,13 @@ export type AuditEventView = {
   occurredAt: string;
 };
 
-export type AuditListResult = { items: AuditEventView[]; offset: number; limit: number; total: number };
+export type AuditListResult = { items: AuditEventView[]; limit: number; total: number; nextCursor?: string; hasMore: boolean };
 
 export type AuditFilter = { correlationId?: string; operation?: string; action?: string; outcome?: AuditOutcome; actorKind?: string; subjectHash?: string; resourceType?: string; since?: string; until?: string };
 
-export const listAuditEvents = (filter: AuditFilter, offset: number, limit: number) => {
-  const params = new URLSearchParams({ offset: String(offset), limit: String(limit) });
+export const listAuditEvents = (filter: AuditFilter, cursor: string | undefined, limit: number) => {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (cursor) params.set("cursor", cursor);
   if (filter.correlationId) params.set("correlationId", filter.correlationId);
   if (filter.operation) params.set("operation", filter.operation);
   if (filter.action) params.set("action", filter.action);

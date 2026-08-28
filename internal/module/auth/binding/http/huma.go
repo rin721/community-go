@@ -46,7 +46,15 @@ func RegisterHuma(api huma.API, handler *Handler) {
 		if err != nil {
 			return nil, httpx.NewProtocolProblemError(ctx, err)
 		}
-		result, err := handler.service.ListAuditEvents(ctx, filter, in.Offset, in.Limit)
+		var cursor *authservice.AuditCursor
+		if in.Cursor != "" {
+			decoded, err := authservice.DecodeAuditCursor(in.Cursor)
+			if err != nil {
+				return nil, httpx.NewProtocolProblemError(ctx, serviceError(err))
+			}
+			cursor = &decoded
+		}
+		result, err := handler.service.ListAuditEvents(ctx, filter, cursor, in.Limit)
 		if err != nil {
 			return nil, httpx.NewProtocolProblemError(ctx, serviceError(err))
 		}
@@ -56,7 +64,7 @@ func RegisterHuma(api huma.API, handler *Handler) {
 		}
 		return &auditListOutput{
 			CacheControl: "no-store",
-			Body:         auditEventListResponse{Items: items, Offset: result.Offset, Limit: result.Limit, Total: result.Total},
+			Body:         auditEventListResponse{Items: items, Limit: result.Limit, Total: result.Total, NextCursor: result.NextCursor, HasMore: result.HasMore},
 		}, nil
 	})
 

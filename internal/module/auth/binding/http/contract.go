@@ -46,14 +46,15 @@ type auditEventViewResponse struct {
 }
 
 type auditEventListResponse struct {
-	Items  []auditEventViewResponse `json:"items"`
-	Offset int                      `json:"offset"`
-	Limit  int                      `json:"limit"`
-	Total  int64                    `json:"total"`
+	Items      []auditEventViewResponse `json:"items"`
+	Limit      int                      `json:"limit"`
+	Total      int64                    `json:"total"`
+	NextCursor string                   `json:"nextCursor,omitempty"`
+	HasMore    bool                     `json:"hasMore"`
 }
 
 type auditListInput struct {
-	Offset        int    `query:"offset" minimum:"0" default:"0"`
+	Cursor        string `query:"cursor"`
 	Limit         int    `query:"limit" minimum:"1" maximum:"100" default:"20"`
 	CorrelationID string `query:"correlationId"`
 	Operation     string `query:"operation"`
@@ -73,6 +74,9 @@ type auditReadInput struct {
 func serviceError(err error) error {
 	if errors.Is(err, authservice.ErrAuditEventNotFound) {
 		return &httpx.StatusError{StatusCode: http.StatusNotFound, Code: "not_found", Message: "not_found", Err: err}
+	}
+	if errors.Is(err, authservice.ErrAuditCursorInvalid) {
+		return &httpx.StatusError{StatusCode: http.StatusBadRequest, Code: "invalid_cursor", Message: "invalid_cursor", Err: err}
 	}
 	return &httpx.StatusError{StatusCode: http.StatusInternalServerError, Code: "internal_server_error", Message: "internal_server_error", Err: err}
 }

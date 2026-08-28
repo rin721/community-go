@@ -90,8 +90,9 @@ func (s *Sink) trimToLimit(ctx context.Context, unit *repo.Unit) error {
 	return unit.DeleteOldestAuditEvents(ctx, excess)
 }
 
-// List 返回低敏事件视图的只读分页查询。
-func (s *Sink) List(ctx context.Context, filter service.AuditQueryFilter, offset, limit int) (service.AuditQueryResult, error) {
+// List 返回低敏事件视图的只读游标分页查询：按 (occurredAt,eventId) 倒序，
+// cursor 为空表示第一页；limit+1 探测下一页并用最后一条构造 NextCursor。
+func (s *Sink) List(ctx context.Context, filter service.AuditQueryFilter, cursor *service.AuditCursor, limit int) (service.AuditQueryResult, error) {
 	if ctx == nil {
 		return service.AuditQueryResult{}, fmt.Errorf("auth audit query context is nil")
 	}
@@ -102,6 +103,10 @@ func (s *Sink) List(ctx context.Context, filter service.AuditQueryFilter, offset
 		CorrelationID: filter.CorrelationID, Operation: filter.Operation, Action: filter.Action, Outcome: filter.Outcome, ActorKind: filter.ActorKind,
 		SubjectHash: filter.SubjectHash, ResourceType: filter.ResourceType, Since: filter.Since, Until: filter.Until,
 	}
+	var repoCursor *repo.AuditCursor
+	if cursor != nil {
+		repoCursor = &repo.AuditCursor{OccurredAt: cursor.OccurredAt, EventID: cursor.EventID}
+	}
 	var total int64
 	var records []repo.AuditEventRecord
 	err := s.store.Use(ctx, func(unit *repo.Unit) error {
@@ -110,17 +115,26 @@ func (s *Sink) List(ctx context.Context, filter service.AuditQueryFilter, offset
 		if listErr != nil {
 			return listErr
 		}
-		records, listErr = unit.ListAuditEvents(ctx, repoFilter, offset, limit)
+		records, listErr = unit.ListAuditEventsAfter(ctx, repoFilter, repoCursor, limit+1)
 		return listErr
 	})
 	if err != nil {
 		return service.AuditQueryResult{}, err
 	}
+	hasMore := len(records) > limit
+	if hasMore {
+		records = records[:limit]
+	}
 	items := make([]service.AuditEventView, len(records))
 	for index, record := range records {
 		items[index] = auditEventView(record)
 	}
-	return service.AuditQueryResult{Items: items, Offset: offset, Limit: limit, Total: total}, nil
+	result := service.AuditQueryResult{Items: items, Limit: limit, Total: total, HasMore: hasMore}
+	if hasMore && len(records) > 0 {
+		last := records[len(records)-1]
+		result.NextCursor = (service.AuditCursor{OccurredAt: last.OccurredAt, EventID: last.ID}).Encode()
+	}
+	return result, nil
 }
 
 // Get 返回单个低敏审计详情；保留窗口外的 ID 使用稳定 not-found 语义。

@@ -451,3 +451,26 @@ test("087 workspace tabs visual: explicit singleton rail and light/dark", async 
     await page.screenshot({ path: `test-results/085-workspace-tabs-${viewport.name}-light.png`, fullPage: true });
   }
 });
+
+// 090 BE-090-003：审计页使用服务端稳定游标翻页——mock 下验证
+// 上一页/下一页导航、页签文案与筛选变化回到第一页。
+test("090 audit page paginates with server cursor in mock mode", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const activePage = page.locator('.page-viewport:visible').first();
+  await page.goto("/admin/audit");
+  await expect(activePage.getByRole("heading", { name: "Audit log" })).toBeVisible();
+  // 首页：上一页禁用；60 条 mock 事件 > 默认每页 50 条，下一页可用。
+  await expect(activePage.getByRole("button", { name: "Previous" })).toBeDisabled();
+  await expect(activePage.getByRole("button", { name: "Next" })).toBeEnabled();
+  await expect(activePage.getByText("Page 1", { exact: false })).toBeVisible();
+  // 下一页：进入第 2 页。
+  await activePage.getByRole("button", { name: "Next" }).click();
+  await expect(activePage.getByText("Page 2", { exact: false })).toBeVisible();
+  await expect(activePage.getByRole("button", { name: "Previous" })).toBeEnabled();
+  // 回到第一页。
+  await activePage.getByRole("button", { name: "Previous" }).click();
+  await expect(activePage.getByText("Page 1", { exact: false })).toBeVisible();
+  // 筛选变化（操作字段）回到第一页。
+  await activePage.getByLabel("Operation").fill("iam.accounts.list");
+  await expect(activePage.getByText("Page 1", { exact: false })).toBeVisible();
+});

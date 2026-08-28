@@ -105,12 +105,23 @@ func (unit *Unit) CountAuditEvents(ctx context.Context, filter AuditFilter) (int
 	return count, err
 }
 
-func (unit *Unit) ListAuditEvents(ctx context.Context, filter AuditFilter, offset, limit int) ([]AuditEventRecord, error) {
+// AuditCursor 是按 (occurredAt,eventId) 倒序翻页的存储层稳定位置。
+type AuditCursor struct {
+	OccurredAt time.Time
+	EventID    uint64
+}
+
+// ListAuditEventsAfter 返回按 (occurredAt,id) 倒序、在 cursor 之前的 limit 条
+// 事件；cursor 为空表示从最新开始。limit+1 探测由调用方决定是否还有下一页。
+func (unit *Unit) ListAuditEventsAfter(ctx context.Context, filter AuditFilter, cursor *AuditCursor, limit int) ([]AuditEventRecord, error) {
 	var records []AuditEventRecord
 	err := unit.useDB(ctx, func(db *gorm.DB) error {
 		query := db.Table(auditEventTable)
 		query = applyAuditFilter(query, filter)
-		return query.Order("occurred_at DESC, id DESC").Offset(offset).Limit(limit).Find(&records).Error
+		if cursor != nil {
+			query = query.Where("occurred_at < ? OR (occurred_at = ? AND id < ?)", cursor.OccurredAt.UTC(), cursor.OccurredAt.UTC(), cursor.EventID)
+		}
+		return query.Order("occurred_at DESC, id DESC").Limit(limit).Find(&records).Error
 	})
 	return records, err
 }

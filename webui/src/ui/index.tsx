@@ -444,10 +444,10 @@ function renderFilterField(field: FilterBarField) {
 }
 
 /** ActiveFilters 将已应用筛选集中呈现，并允许逐项移除，避免用户只能依赖“清除全部”。 */
-export function ActiveFilters({ items, clearLabel }: { items: ReadonlyArray<{ key: string; label: ReactNode; value?: ReactNode; onClear: () => void }>; clearLabel?: string }) {
+export function ActiveFilters({ items, clearLabel, ariaLabel }: { items: ReadonlyArray<{ key: string; label: ReactNode; value?: ReactNode; onClear: () => void }>; clearLabel?: string; ariaLabel?: string }) {
   if (items.length === 0) return null;
   const clearText = clearLabel ?? translateMessage("webui.host.ui.clear");
-  return <div className="filter-bar-active" aria-label={translateMessage("webui.host.ui.results")}>
+  return <div className="filter-bar-active" aria-label={ariaLabel ?? translateMessage("webui.host.ui.results")}>
     {items.map((item) => <span className="active-filter" key={item.key}><span className="active-filter-label">{item.label}{item.value !== undefined && <>: {item.value}</>}</span><button type="button" onClick={item.onClear} aria-label={`${clearText} ${String(item.label)}`}>×</button></span>)}
   </div>;
 }
@@ -487,7 +487,7 @@ export function FilterBar({ fields, trailingFields = [], onClear, clearLabel, re
         {fields.map(renderFilterField)}
         {trailingFields.length > 0 && <div className="filter-bar-trailing">{trailingFields.map(renderFilterField)}</div>}
       </div>
-      <ActiveFilters items={activeFilters} clearLabel={typeof clearLabel === "string" ? clearLabel : undefined} />
+      <ActiveFilters items={activeFilters} clearLabel={typeof clearLabel === "string" ? clearLabel : undefined} ariaLabel={ariaLabel} />
     </div>
   );
 }

@@ -443,6 +443,15 @@ function renderFilterField(field: FilterBarField) {
   }
 }
 
+/** ActiveFilters 将已应用筛选集中呈现，并允许逐项移除，避免用户只能依赖“清除全部”。 */
+export function ActiveFilters({ items, clearLabel }: { items: ReadonlyArray<{ key: string; label: ReactNode; value?: ReactNode; onClear: () => void }>; clearLabel?: string }) {
+  if (items.length === 0) return null;
+  const clearText = clearLabel ?? translateMessage("webui.host.ui.clear");
+  return <div className="filter-bar-active" aria-label={translateMessage("webui.host.ui.results")}>
+    {items.map((item) => <span className="active-filter" key={item.key}><span className="active-filter-label">{item.label}{item.value !== undefined && <>: {item.value}</>}</span><button type="button" onClick={item.onClear} aria-label={`${clearText} ${String(item.label)}`}>×</button></span>)}
+  </div>;
+}
+
 export function FilterBar({ fields, trailingFields = [], onClear, clearLabel, resultCount, resultCountLabel, searchInput, ariaLabel }: {
   fields: ReadonlyArray<FilterBarField>;
   trailingFields?: ReadonlyArray<FilterBarField>;
@@ -453,10 +462,17 @@ export function FilterBar({ fields, trailingFields = [], onClear, clearLabel, re
   searchInput?: ReactNode;
   ariaLabel?: string;
 }) {
-  const hasActive = [...fields, ...trailingFields].some((field) => {
+  const allFields = [...fields, ...trailingFields];
+  const isFieldActive = (field: FilterBarField) => {
     if (field.active !== undefined) return field.active;
     if (Array.isArray(field.value) && field.value.length > 0) return true;
     return field.value !== undefined && field.value !== "" && field.value !== false;
+  };
+  const hasActive = allFields.some(isFieldActive);
+  const activeFilters = allFields.filter(isFieldActive).map((field) => {
+    const selected = field.control === "select" ? field.options?.find((option) => String(option.value) === String(field.value))?.label : undefined;
+    const value = field.control === "switch" ? undefined : selected ?? (typeof field.value === "string" ? field.value : undefined);
+    return { key: field.key, label: field.label, value, onClear: () => field.onValueChange(field.control === "switch" ? false : "") };
   });
   return (
     <div className="filter-bar" role="group" aria-label={ariaLabel}>
@@ -471,6 +487,7 @@ export function FilterBar({ fields, trailingFields = [], onClear, clearLabel, re
         {fields.map(renderFilterField)}
         {trailingFields.length > 0 && <div className="filter-bar-trailing">{trailingFields.map(renderFilterField)}</div>}
       </div>
+      <ActiveFilters items={activeFilters} clearLabel={typeof clearLabel === "string" ? clearLabel : undefined} />
     </div>
   );
 }

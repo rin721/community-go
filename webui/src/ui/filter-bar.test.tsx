@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { FilterBar, SearchInput, SelectField } from "./index";
+import { ActiveFilters, FilterBar, SearchInput, SelectField } from "./index";
 
 describe("082 FilterBar / SearchInput", () => {
   it("FilterBar 渲染字段与 result count", () => {
@@ -71,5 +71,15 @@ describe("082 FilterBar / SearchInput", () => {
       createElement(SelectField, { label: "状态", value: "active", options: [{ value: "active", label: "Active" }], onValueChange: () => undefined }),
     );
     expect(markup).toContain("form-field");
+  });
+
+  it("ActiveFilters 公开逐项清除语义", () => {
+    const markup = renderToStaticMarkup(createElement(ActiveFilters, {
+      items: [{ key: "status", label: "Status", value: "Active", onClear: () => undefined }],
+      clearLabel: "清除",
+    }));
+    expect(markup).toContain("active-filter");
+    expect(markup).toContain("Status: Active");
+    expect(markup).toContain("aria-label=\"清除 Status\"");
   });
 });

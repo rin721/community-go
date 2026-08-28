@@ -174,6 +174,7 @@
   --header-actions-gap: 5px;
   --header-badge-height: 26px;
   --icon-button-size: 34px;
+  --icon-button-size-sm: calc(var(--icon-button-size) - 10px);
   --avatar-size: 26px;
   --search-trigger-min-width: 180px;
   --header-zone-action-min-height: 28px;
@@ -4053,6 +4054,48 @@ textarea.field-input {
 .filter-bar-fields .filter-select .field-input {
   width: var(--filter-select-width);
   min-width: 0;
+}
+.filter-bar-active {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  padding-top: var(--space-1);
+}
+.active-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: var(--control-height-sm);
+  padding: 0 var(--space-1) 0 var(--space-2);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+  font-size: var(--font-scale-xs);
+}
+.active-filter-label {
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.active-filter button {
+  display: inline-grid;
+  place-items: center;
+  width: var(--icon-button-size-sm);
+  height: var(--icon-button-size-sm);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-round);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  line-height: 1;
+}
+.active-filter button:hover {
+  background: var(--surface);
+  color: var(--text);
 }
 @media (max-width: 720px) {
   .page-section-header,

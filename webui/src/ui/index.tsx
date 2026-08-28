@@ -8,7 +8,7 @@ import { Reveal } from "../motion/reveal";
 import { useActionAccess } from "../sdk/zone";
 import { Sparkline } from "./charts";
 import { Skeleton, StatusPill } from "./feedback";
-export { CapabilityBanner, EmptyState, ErrorState, InlineAlert, Skeleton, StatusBadge, StatusPill, Toast } from "./feedback";
+export { BatchResultSummary, CapabilityBanner, EmptyState, ErrorState, InlineAlert, Skeleton, StatusBadge, StatusPill, Toast } from "./feedback";
 export type { SemanticStatus } from "./feedback";
 import type { SelectOption } from "./forms";
 export { Field, FormField, SelectField, fieldWidthClass } from "./forms";

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActionTrigger, Button, BulkActionBar, Check, CodeText, ConfirmActionTrigger, DataTable, DetailDrawer, Drawer, EmptyState, EntityDetail, ErrorState, Field, FilterBar, FormField, PageFrame, PageHeader, PageSection, Pagination, ResourceIndex, SearchInput, StatusBadge } from "@webui/sdk/ui";
+import { ActionTrigger, BatchResultSummary, Button, BulkActionBar, Check, CodeText, ConfirmActionTrigger, DataTable, DetailDrawer, Drawer, EmptyState, EntityDetail, ErrorState, Field, FilterBar, FormField, PageFrame, PageHeader, PageSection, Pagination, ResourceIndex, SearchInput, StatusBadge } from "@webui/sdk/ui";
 import { useListQueryParams, type ProblemError } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { accountRolesView, archiveAccount, batchAccountStatus, batchArchiveAccounts, createAccount, listAccounts, listRoles, replaceAccountRoles, resetAccountPassword, setAccountStatus, updateAccountInfo, type Account, type Role } from "./api";
@@ -197,8 +197,7 @@ export default function AccountsPage() {
             renderRowMenu: rowActions,
           }}
         />
-        {bulkMessage && <p className="page-meta" role="status">{bulkMessage}</p>}
-        {bulkErrors.length > 0 && <ul className="bulk-error-list" aria-label={t("webui.iam.error")}>{bulkErrors.map((item) => <li key={`${item.accountId}-${item.code}`}><CodeText value={`${item.accountId}: ${item.code}`} /></li>)}</ul>}
+        <BatchResultSummary summary={bulkMessage} errors={bulkErrors.map((item) => ({ key: item.accountId, code: item.code }))} errorsLabel={t("webui.iam.error")} />
         <BulkActionBar
           open={items.length > 0}
           selectionLabel={t("webui.iam.accounts.selection", { count: selection.size })}

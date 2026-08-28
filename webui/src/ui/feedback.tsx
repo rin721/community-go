@@ -51,6 +51,16 @@ export function InlineAlert({ tone = "info", title, detail, action }: { tone?: "
   return <Alert status={status} className={`inline-alert inline-alert-${tone}`} role="status"><Alert.Content><Alert.Title><strong>{title}</strong></Alert.Title><Alert.Description>{detail && <span>{detail}</span>}</Alert.Description></Alert.Content>{action && <Alert.Content><span className="inline-alert-action">{action}</span></Alert.Content>}</Alert>;
 }
 
+/** BatchResultSummary 统一批量操作的汇总与逐项失败呈现，避免页面各自拼接反馈结构。 */
+export function BatchResultSummary({ summary, errors, errorsLabel }: { summary?: string; errors?: ReadonlyArray<{ key: string; code: string }>; errorsLabel: string }) {
+  const failureItems = errors ?? [];
+  if (!summary && failureItems.length === 0) return null;
+  return <div className="batch-result-summary" role="status">
+    {summary && <p className="page-meta">{summary}</p>}
+    {failureItems.length > 0 && <ul className="bulk-error-list" aria-label={errorsLabel}>{failureItems.map((item) => <li key={`${item.key}-${item.code}`}><code>{item.key}: {item.code}</code></li>)}</ul>}
+  </div>;
+}
+
 /** Toast 通过 HeroUI 队列呈现短暂反馈；页面仍负责持有 open 状态与业务文案。 */
 export function Toast({ open, tone = "info", title, detail, closeLabel, onClose }: { open: boolean; tone?: "info" | "success" | "warning" | "danger"; title: string; detail?: string; closeLabel: string; onClose: () => void }) {
   const keyRef = useRef<string | null>(null);

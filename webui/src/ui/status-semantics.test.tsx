@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { CodeText, DangerZone, EntityHeader, ErrorState, MetricCard, StatusBadge, StatusPill } from "./index";
+import { BatchResultSummary, CodeText, DangerZone, EntityHeader, ErrorState, MetricCard, StatusBadge, StatusPill } from "./index";
 
 describe("082 状态反馈语义组件", () => {
   it("StatusBadge 渲染语义状态 tone 与状态 class", () => {
@@ -84,5 +84,12 @@ describe("082 状态反馈语义组件", () => {
     const markup = renderToStaticMarkup(createElement(ErrorState, { kind: "connectivity", title: "加载失败", requestId: "req-123" }));
     expect(markup).toContain('data-request-id="req-123"');
     expect(markup).toContain('aria-label="request id"');
+  });
+
+  it("BatchResultSummary 同时呈现汇总与逐项失败", () => {
+    const markup = renderToStaticMarkup(createElement(BatchResultSummary, { summary: "已处理 2 个，失败 1 个。", errors: [{ key: "acct-3", code: "conflict" }], errorsLabel: "批量错误" }));
+    expect(markup).toContain("batch-result-summary");
+    expect(markup).toContain("acct-3: conflict");
+    expect(markup).toContain("已处理 2 个，失败 1 个。");
   });
 });

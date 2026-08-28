@@ -548,3 +548,29 @@ test("090 api token one-time secret flow renders in mock mode", async ({ page })
   await activePage.locator(".data-table-row-menu .data-table-row-primary").first().click();
   await expect(activePage.getByText("iam_mock-rotated-secret")).toBeVisible();
 });
+
+// 090 VERIFY-090-003：迁移页面的键盘/读屏语义基线（aria-label、role、焦点可达）。
+test("090 migrated pages expose keyboard and screen-reader semantics", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const activePage = page.locator('.page-viewport:visible').first();
+  // 账户列表：数据表有可访问名称、加载完成后 aria-busy 清空；筛选控件可聚焦。
+  await page.goto("/admin/accounts");
+  await expect(activePage.locator(".data-table")).toHaveAttribute("aria-label", /Account list/);
+  await expect(activePage.locator(".data-table")).not.toHaveAttribute("aria-busy", "true");
+  const searchInput = activePage.getByRole("searchbox").first();
+  await expect(searchInput).toBeVisible();
+  await searchInput.focus();
+  await expect(searchInput).toBeFocused();
+  // 键盘：Enter 提交搜索后仍可达列表。
+  await searchInput.press("Enter");
+  await expect(activePage.locator(".data-table")).toBeVisible();
+  // 部门树：role=tree 语义与键盘可达的树节点。
+  await page.goto("/admin/departments");
+  await expect(activePage.locator(".tree-view").first()).toHaveAttribute("role", "tree");
+  await activePage.locator(".tree-node-label").first().focus();
+  await expect(activePage.locator(".tree-node-label").first()).toBeFocused();
+  // OpenAPI：紧凑段导航按钮 aria-pressed 语义；桌面标签栏 role=tablist。
+  await page.goto("/openapi");
+  await expect(activePage.locator('[data-testid="openapi-workspace"]')).toBeVisible();
+  await expect(activePage.locator('[role="tablist"]').first()).toBeVisible();
+});

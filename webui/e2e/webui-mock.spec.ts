@@ -138,7 +138,10 @@ test("090 page family viewport matrix keeps content inside the viewport", async 
     { width: 768, height: 1024, name: "tablet" },
     { width: 390, height: 844, name: "mobile" },
   ];
-  const targets = ["/dashboard", "/admin/accounts", "/admin/roles", "/admin/departments", "/settings/profile", "/admin/audit", "/openapi"];
+  // VERIFY-090-002 全部页面族：列表（账户/角色/岗位/会话/API Token/审计）、
+  // master-detail（部门）、设置组（profile/appearance/notifications）、
+  // 工作台（dashboard/openapi）。
+  const targets = ["/dashboard", "/admin/accounts", "/admin/roles", "/admin/departments", "/admin/positions", "/admin/sessions", "/admin/api-tokens", "/settings/profile", "/settings/appearance", "/settings/notifications", "/admin/audit", "/openapi"];
   for (const viewport of viewports) {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
     for (const target of targets) {

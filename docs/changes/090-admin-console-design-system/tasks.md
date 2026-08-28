@@ -52,7 +52,7 @@
 ## 验证与收尾
 
 - [ ] VERIFY-090-001 执行单元、组件、集成、E2E、类型、lint、构建和 Go 侧适用验证；前置：全部 P0 实施任务；完成证据：实际命令与结果。
-- [ ] VERIFY-090-002 完成 1440/1280/1024/768/390、亮暗、normal/compact 和完整状态的多模态视觉复核；前置：全部页面迁移；当前证据：`webui/e2e/webui-mock.spec.ts` 的 090 矩阵测试已覆盖 7 个代表页面族、5 档视口、横向溢出断言，并保存 Dashboard 亮色与暗色/compact 截图；完整状态、全部页面族和人工审阅记录仍待补齐。
+- [ ] VERIFY-090-002 完成 1440/1280/1024/768/390、亮暗、normal/compact 和完整状态的多模态视觉复核；前置：全部页面迁移；当前证据：`webui/e2e/webui-mock.spec.ts` 的 090 矩阵测试已覆盖全部 12 个代表页面族（Dashboard、账户、角色、部门、岗位、会话、API Token、设置 Profile/Appearance/Notifications、审计、OpenAPI）× 5 档视口（1440/1280/1024/768/390），逐页断言无横向页面溢出且 shell 宽度非零，并保存 Dashboard 亮色与暗色/compact 截图；完整状态（loading/error/empty）与人工审阅记录仍待补齐。
 - [ ] VERIFY-090-003 完成键盘、焦点、读屏语义、对比度、长文本和高密度数据验证；前置：全部页面迁移；完成证据：自动化与人工记录。
 - [ ] CLEANUP-090-001 搜索并删除旧 UI、旧 Token、HeroUI v2、旧 CSS、旧工作区表现和失效文档；前置：VERIFY-090-001；完成证据：零引用搜索与完整 diff。
 - [ ] DOC-090-001 同步 WebUI 权威文档、OpenAPI、变更导航和视觉基线；前置：CLEANUP-090-001；完成证据：文档链接与实现一致性复核。

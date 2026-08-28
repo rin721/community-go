@@ -56,6 +56,19 @@ report: report.md
 
 研究状态使用 `draft`、`active`、`partial`、`needs-refresh`、`superseded`、`rejected`。过时记录不删除；新记录通过 `supersedes` 与旧记录的 `superseded_by` 双向关联，形成单轨当前结论。研究门禁通过只表示证据足以形成计划，不表示计划已确认或代码已经授权实施。
 
+## 实施时复用研究基线
+
+研究门禁通过后，`metadata.yaml` 中的证据快照、适用场景、不适用场景和 `refresh_triggers` 是实施入口的判定依据，不是要在确认后重做一遍的阅读清单。
+
+实施入口按以下顺序处理：
+
+1. 记录研究快照和当前 revision，检查 Git 状态及快照后变更路径。
+2. 只把与研究边界或计划文件相交的变更与 `refresh_triggers` 比较；无交集的用户变更只需保护，不触发复研。
+3. 未命中触发器时，在任务证据中记录基线未漂移，直接实施；不重新打开全部报告、追踪全部调用方或重跑候选调研。
+4. 命中触发器时，只定向复核受影响结论；前提仍成立就继续实施，前提失效才将记录转为 `needs-refresh` 并返回研究。
+
+失败用例、运行态复现和修改后测试用于证明计划的问题与验收标准，属于实施证据。只有它们产生了推翻研究前提的新事实时，才转化为新研究输入。具体规则及示例见 [088 研究基线复用](../changes/088-research-baseline-reuse/README.md)。
+
 ## 报告
 
 - [001 Go 脚手架底层能力装配架构对比](001-go-capability-composition/README.md)：比较当前 Kernel Capability 模型与 Kratos/Wire、go-zero、Uber Fx、go-clean-template 的装配方式，并给出分轨演进建议。

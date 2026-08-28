@@ -30,15 +30,16 @@ func NewHandler(authService *authservice.Service) (*Handler, error) {
 
 // auditEventViewResponse 是低敏审计事件视图；subject/resource 只暴露摘要。
 type auditEventViewResponse struct {
-	Operation    string               `json:"operation,omitempty"`
-	Action       string               `json:"action,omitempty"`
-	ActorKind    string               `json:"actorKind,omitempty"`
-	SubjectHash  string               `json:"subjectHash,omitempty"`
-	ResourceType string               `json:"resourceType,omitempty"`
-	ResourceHash string               `json:"resourceHash,omitempty"`
+	EventID      uint64                   `json:"eventId"`
+	Operation    string                   `json:"operation,omitempty"`
+	Action       string                   `json:"action,omitempty"`
+	ActorKind    string                   `json:"actorKind,omitempty"`
+	SubjectHash  string                   `json:"subjectHash,omitempty"`
+	ResourceType string                   `json:"resourceType,omitempty"`
+	ResourceHash string                   `json:"resourceHash,omitempty"`
 	Decision     authmodel.DecisionReason `json:"decision"`
-	Outcome      authmodel.AuditOutcome  `json:"outcome"`
-	OccurredAt   time.Time            `json:"occurredAt"`
+	Outcome      authmodel.AuditOutcome   `json:"outcome"`
+	OccurredAt   time.Time                `json:"occurredAt"`
 }
 
 type auditEventListResponse struct {
@@ -49,16 +50,16 @@ type auditEventListResponse struct {
 }
 
 type auditListInput struct {
-	Offset      int    `query:"offset" minimum:"0" default:"0"`
-	Limit       int    `query:"limit" minimum:"1" maximum:"100" default:"20"`
-	Operation   string `query:"operation"`
-	Action      string `query:"action"`
-	Outcome     string `query:"outcome"`
-	ActorKind   string `query:"actorKind"`
-	SubjectHash string `query:"subjectHash"`
+	Offset       int    `query:"offset" minimum:"0" default:"0"`
+	Limit        int    `query:"limit" minimum:"1" maximum:"100" default:"20"`
+	Operation    string `query:"operation"`
+	Action       string `query:"action"`
+	Outcome      string `query:"outcome"`
+	ActorKind    string `query:"actorKind"`
+	SubjectHash  string `query:"subjectHash"`
 	ResourceType string `query:"resourceType"`
-	Since       string `query:"since"`
-	Until       string `query:"until"`
+	Since        string `query:"since"`
+	Until        string `query:"until"`
 }
 
 func serviceError(err error) error {

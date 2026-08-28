@@ -4,6 +4,7 @@ export type AuditOutcome = "succeeded" | "denied" | "failed";
 export type AuditDecision = "allowed" | "public" | "unauthenticated" | "missing_policy" | "missing_scope" | "rbac_denied" | "owner_mismatch";
 
 export type AuditEventView = {
+  eventId: number;
   operation?: string;
   action?: string;
   actorKind?: string;

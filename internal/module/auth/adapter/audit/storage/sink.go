@@ -118,6 +118,7 @@ func (s *Sink) List(ctx context.Context, filter service.AuditQueryFilter, offset
 	items := make([]service.AuditEventView, len(records))
 	for index, record := range records {
 		items[index] = service.AuditEventView{
+			EventID:   record.ID,
 			Operation: record.Operation, Action: modelAction(record.Action),
 			ActorKind: modelActorKind(record.ActorKind), SubjectHash: record.SubjectHash,
 			ResourceType: record.ResourceType, ResourceHash: record.ResourceHash,

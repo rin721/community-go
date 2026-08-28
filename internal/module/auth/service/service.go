@@ -93,6 +93,7 @@ type AuditQueryFilter struct {
 
 // AuditEventView 是查询返回的低敏事件视图（不含原始 token/claims/对象内容）。
 type AuditEventView struct {
+	EventID      uint64
 	Operation    string
 	Action       model.Action
 	ActorKind    model.ActorKind

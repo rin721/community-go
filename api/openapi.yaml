@@ -269,6 +269,10 @@ components:
           type: string
         decision:
           type: string
+        eventId:
+          format: int64
+          minimum: 0
+          type: integer
         occurredAt:
           format: date-time
           type: string
@@ -283,6 +287,7 @@ components:
         subjectHash:
           type: string
       required:
+        - eventId
         - decision
         - outcome
         - occurredAt

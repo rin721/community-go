@@ -119,6 +119,9 @@ func TestSinkRecordsAndListsLowSensitivityEvents(t *testing.T) {
 		t.Fatalf("audit events not sorted by occurrence desc: %#v", result.Items)
 	}
 	for _, item := range result.Items {
+		if item.EventID == 0 {
+			t.Fatalf("audit view does not expose a stable event id: %#v", item)
+		}
 		if item.SubjectHash == "" || item.SubjectHash == "account-1" || item.SubjectHash == "account-2" {
 			t.Fatalf("audit view leaks raw subject: %#v", item)
 		}

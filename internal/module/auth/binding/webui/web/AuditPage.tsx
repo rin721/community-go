@@ -25,6 +25,7 @@ export function outcomeCell(item: AuditEventView, t: Translate) {
 // 082 REQ-082-016: detail fields presented in the drawer (low-sensitivity only).
 export function auditDetailFields(item: AuditEventView): Array<{ label: string; value: string; mono?: boolean }> {
   return [
+    { label: "ID", value: String(item.eventId), mono: true },
     { label: "occurredAt", value: formatDateTime(item.occurredAt), mono: true },
     { label: "operation", value: item.operation ?? "", mono: true },
     { label: "action", value: item.action ?? "", mono: true },
@@ -106,6 +107,7 @@ export default function AuditPage() {
           {loadError && <ErrorState kind="connectivity" title={hostT("webui.host.route.error.title")} detail={hostT("webui.host.route.error.detail")} action={<Button variant="secondary" onClick={() => void refresh()}>{hostT("webui.host.retry")}</Button>} />}
           <DataTable<AuditEventView>
           columns={[
+            { id: "eventId", header: "ID", className: "audit-event-id-col", cell: (item) => <CodeText value={String(item.eventId)} /> },
             { id: "occurredAt", header: t("webui.auth.audit.occurredAt"), cell: (item) => <span title={formatDateTime(item.occurredAt)}>{formatRelativeTime(item.occurredAt, hostT)}</span> },
             { id: "operation", header: t("webui.auth.audit.operation"), className: "audit-operation-col", cell: (item) => <CodeText value={item.operation ?? ""} /> },
             { id: "action", header: t("webui.auth.audit.action"), cell: (item) => <CodeText value={item.action ?? ""} /> },
@@ -115,7 +117,7 @@ export default function AuditPage() {
           ]}
           rows={items}
           ariaLabel={t("webui.auth.audit.list.title")}
-          getRowKey={(item, index) => `${item.occurredAt}-${index}`}
+          getRowKey={(item) => String(item.eventId)}
           loading={loading}
           loadingLabel={t("webui.host.page.loading.label")}
           emptyState={loadError ? null : <EmptyState title={t("webui.auth.audit.empty")} />}

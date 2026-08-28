@@ -54,6 +54,9 @@ export default function AccountsPage() {
   const [renameValue, setRenameValue] = useState("");
   const [archiveError, setArchiveError] = useState(false);
   const [detailAccount, setDetailAccount] = useState<Account | null>(null);
+  const [detailAccountID, setDetailAccountID] = useState("");
+  const [detailRoleIDs, setDetailRoleIDs] = useState<string[] | null>(null);
+  const [detailRoleError, setDetailRoleError] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const refresh = useCallback((nextPage = page) => {
@@ -73,14 +76,16 @@ export default function AccountsPage() {
   useEffect(() => { void refresh(); }, [listQuery.filters.query, listQuery.filters.status, listQuery.filters.archived]); // 083: filter URL change reloads from page 1.
   const reloadSelection = useCallback((id: string) => {
     if (!id) return;
+    if (id === detailAccountID) { setDetailRoleIDs(null); setDetailRoleError(false); }
     void accountRolesView(id).then((view) => {
       setRoleIDs(view.roleIds);
       setExpectedVersion(view.accountVersion);
+      if (id === detailAccountID) setDetailRoleIDs(view.roleIds);
       setRenameValue("");
       setMessage("");
       setArchiveError(false);
-    });
-  }, []);
+    }).catch(() => { if (id === detailAccountID) setDetailRoleError(true); });
+  }, [detailAccountID]);
   useEffect(() => { if (selectedID) reloadSelection(selectedID); }, [selectedID, reloadSelection]);
   const selected = items.find((item) => item.id === selectedID);
   const candidates = checklistCandidates(roles);
@@ -111,7 +116,7 @@ export default function AccountsPage() {
   // 082 REQ-082-012: DataTable row menu (real operations only, disabled by state).
   const rowActions = (account: Account) => {
     const actions: Array<{ key: string; label: string; onSelect: () => void; danger?: boolean }> = [];
-    actions.push({ key: "detail", label: t("webui.iam.accounts.detail"), onSelect: () => { setSelectedID(account.id); setDetailAccount(account); } });
+    actions.push({ key: "detail", label: t("webui.iam.accounts.detail"), onSelect: () => { setDetailAccountID(account.id); setDetailRoleIDs(null); setDetailRoleError(false); setSelectedID(account.id); setDetailAccount(account); } });
     actions.push({ key: "select", label: t("webui.iam.accounts.select"), onSelect: () => setSelectedID(account.id) });
     if (!account.archived) {
       actions.push({ key: "status", label: account.status === "active" ? t("webui.iam.accounts.disable") : t("webui.iam.accounts.enable"), onSelect: () => void setAccountStatus(account.id, account.status === "active" ? "disabled" : "active").then(() => refresh()) });
@@ -288,7 +293,7 @@ export default function AccountsPage() {
           <div className="detail-field"><span className="detail-field-label">{t("webui.iam.username")}</span><CodeText value={detailAccount.username} /></div>
           <div className="detail-field"><span className="detail-field-label">{t("webui.iam.displayName")}</span><span className="detail-field-value">{detailAccount.displayName}</span></div>
           <div className="detail-field"><span className="detail-field-label">{t("webui.iam.accounts.revision")}</span><CodeText value={String(detailAccount.securityRevision)} /></div>
-          <div className="detail-field"><span className="detail-field-label">{t("webui.iam.accounts.rolesAssigned")}</span><span className="detail-field-value">{roles.filter((role) => roleIDs.includes(role.id)).map((role) => role.name).join(", ") || "—"}</span></div>
+          <div className="detail-field"><span className="detail-field-label">{t("webui.iam.accounts.rolesAssigned")}</span><span className="detail-field-value">{detailRoleError ? t("webui.iam.error") : detailRoleIDs === null ? hostT("webui.host.page.loading.label") : roles.filter((role) => detailRoleIDs.includes(role.id)).map((role) => role.name).join(", ") || "—"}</span></div>
           {detailAccount.mustChangePassword && <div className="detail-field"><span className="detail-field-label">{t("webui.iam.security.changeRequired")}</span><StatusBadge status="pending">{t("webui.iam.security.changeRequired")}</StatusBadge></div>}
           <div className="detail-field"><span className="detail-field-label">{t("webui.iam.accounts.detailSessions")}</span><span className="detail-field-value">{t("webui.iam.accounts.detailSessionsHint")}</span></div>
         </div>

@@ -6,16 +6,16 @@
 | --- | --- | --- | --- | --- |
 | 参考图与 TailAdmin 原理 | R090-002 | Layout、列表与表单原则，明确不复制 | SHELL、PATTERN、PAGE | 已覆盖，待实施 |
 | 运行截图与当前视觉 | R090-001；本地服务未运行 | 现有截图审计 + 实施期运行态矩阵 | VERIFY-090-002 | 已覆盖，运行态待实施 |
-| Shell/Sidebar/Header | 比例、工具过载、移动拥挤 | `layout-system.md` | SHELL-090-001/002 | 已覆盖，待实施 |
+| Shell/Sidebar/Header | 比例、工具过载、移动拥挤 | `layout-system.md` | SHELL-090-001/002 | 基础骨架已实施，持续验收 |
 | Workspace/Tab | singleton 仍占独立栏、页面 Tab 语义混杂 | 条件 WorkspaceRail、Tab 分层 | SHELL-090-001、PAGE-090-007 | 已覆盖，待实施 |
-| Content width/留白/节奏 | 多层容器与标题推低内容 | PageFrame 六变体、统一 gutter/rhythm | SHELL-090-002 | 已覆盖，待实施 |
-| 配色/Surface/Border/Shadow | 装饰色与容器层级过多 | semantic color、五层 Surface、受控 elevation | FE-090-002 | 已覆盖，待实施 |
-| Typography/Control/Density | 任意值、表格和页面密度不一 | typography scale、normal/compact/touch | FE-090-002、PATTERN-090-001 | 已覆盖，待实施 |
+| Content width/留白/节奏 | 多层容器与标题推低内容 | PageFrame 六变体、统一 gutter/rhythm | SHELL-090-002 | 基础骨架已实施，持续验收 |
+| 配色/Surface/Border/Shadow | 装饰色与容器层级过多 | semantic color、五层 Surface、受控 elevation | FE-090-002 | Token 基线已实施，持续验收 |
+| Typography/Control/Density | 任意值、表格和页面密度不一 | typography scale、normal/compact/touch | FE-090-002、PATTERN-090-001 | 基线已实施，持续验收 |
 | Card | 默认套 Card、嵌套层级 | 四类 Card、Section 优先 | FE-090-003、页面迁移 | 已覆盖，待实施 |
-| Table/Pagination | 工具分散、列/行密度与响应式不足 | ResourceIndex/DataGrid/RecordList | PATTERN-090-001 | 已覆盖，待实施 |
-| Form/Settings | 手工状态、局部导航过宽 | FormPage/SettingsForm/StickyActionBar | PATTERN-090-002、PAGE-090-005 | 已覆盖，待实施 |
+| Table/Pagination | 工具分散、列/行密度与响应式不足 | ResourceIndex/DataGrid/RecordList | PATTERN-090-001 | 高频列表已实施，持续验收 |
+| Form/Settings | 手工状态、局部导航过宽 | FormPage/SettingsForm/StickyActionBar | PATTERN-090-002、PAGE-090-005 | StickyActionBar 已实施，完整表单流待实施 |
 | Search/Filter | 全局与局部范围、debounce 耦合 | 三层 Search、QueryToolbar、ActiveFilters | PATTERN-090-001/004 | 已覆盖，待实施 |
-| Detail/Related/Danger | Drawer 字段列表，关系与影响弱 | EntityDetail、Relations、Activity、DangerZone | PATTERN-090-002、BE-090-002 | 已覆盖，待实施 |
+| Detail/Related/Danger | Drawer 字段列表，关系与影响弱 | EntityDetail、Relations、Activity、DangerZone | PATTERN-090-002、BE-090-002 | 账户/角色 EntityDetail 头已实施，关系投影待实施 |
 | Dashboard/Statistic/Chart | 装饰性彩色指标、统计契约不足 | attention-first、Statistic anatomy、Chart rules | PAGE-090-006、PATTERN-090-005 | 已覆盖，待实施 |
 | Empty/Loading/Error | 页面表达不统一 | Feedback matrix + 基础状态规格 | PATTERN-090-003 | 已覆盖，待实施 |
 | Modal/Drawer/Toast | 容器选择与反馈层级混杂 | Overlay 决策表和组件契约 | FE-090-003、PATTERN-090-002/003 | 已覆盖，待实施 |
@@ -26,7 +26,7 @@
 | 信息架构 | 模块名、父子 active、位置重复 | 任务导向导航与页面蓝图 | SHELL/PAGE | 已覆盖，待实施 |
 | 响应式 | OpenAPI 裁切、桌面工具硬压缩 | compact/medium/wide 结构转换 | SHELL-090-001、PAGE-090-007 | 已覆盖，待实施 |
 | 可访问性 | Tree/Grid 自研行为证据不足 | React Aria 原语 + 键盘/读屏矩阵 | VERIFY-090-003 | 已覆盖，待实施 |
-| 后端查询/详情/关系 | CRUD 可用但产品投影不足 | P0 查询、详情、影响、审计、偏好 | BE-090-001—005 | 已覆盖，待实施 |
+| 后端查询/详情/关系 | CRUD 可用但产品投影不足 | P0 查询、详情、影响、审计、偏好 | BE-090-001—005 | eventId 已实施，其余 P0 待实施 |
 | 统计/运维/异步任务 | typed history 与 Job 不足 | P1/P2 契约，不以假数据填充 | 后续价值门禁；P0 留出 adapter | 已覆盖，不提前实施 |
 | 迁移与清理 | 旧骨架继续叠补丁风险 | 单轨分页面族迁移、零旧引用 | CLEANUP-090-001 | 已覆盖，待实施 |
 | 多模态验收 | 现有截图不覆盖真实完整状态 | 5 断点 × 主题 × 密度 × 状态矩阵 | VERIFY-090-002 | 已覆盖，待实施 |

@@ -18,6 +18,9 @@ describe("readWebUIDataSource", () => {
   });
 
   it("projects Problem JSON and request correlation into a typed error", async () => {
+    // 显式声明 server-hosted，避免其他测试文件的 VITE_WEBUI_DATA_SOURCE stub 泄漏
+    // 导致本用例误走 mock 传输层（route_not_found）。
+    vi.stubEnv("VITE_WEBUI_DATA_SOURCE", "server-hosted");
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ code: "conflict", detail: "version changed", instance: "urn:request:req%2F123" }), {
       status: 409,
       headers: { "Content-Type": "application/problem+json" },

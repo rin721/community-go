@@ -214,4 +214,17 @@ func TestWriteOperationsAuditOrganizationOutcome(t *testing.T) {
 	}
 }
 
+// TestListQueryValidationRejectsInvalidPage 验证 BE-090-001：组织列表过大
+// 分页返回稳定 ErrInvalidQuery（不再落 500）。
+func TestListQueryValidationRejectsInvalidPage(t *testing.T) {
+	organization, resource := newService(t, accountDirectory{})
+	defer resource.Close()
+	if _, err := organization.ListDepartments(t.Context(), 0, 1001, false, ""); !errors.Is(err, model.ErrInvalidQuery) {
+		t.Fatalf("oversized department page error = %v", err)
+	}
+	if _, err := organization.ListPositions(t.Context(), 0, 1001, false, ""); !errors.Is(err, model.ErrInvalidQuery) {
+		t.Fatalf("oversized position page error = %v", err)
+	}
+}
+
 func ptr(value string) *string { return &value }

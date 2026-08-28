@@ -20,6 +20,9 @@ var (
 	ErrInvalidCode    = errors.New("organization code is invalid")
 	ErrInvalidName    = errors.New("organization name is invalid")
 	ErrInvalidTime    = errors.New("organization time is invalid")
+	// ErrInvalidQuery 表示列表查询参数非法（分页/过滤）；090 BE-090-001
+	// 统一语义：非法查询返回可识别错误，不静默忽略。
+	ErrInvalidQuery  = errors.New("organization list query is invalid")
 	ErrCycle          = errors.New("organization department cycle")
 	ErrDepthExceeded  = errors.New("organization department depth exceeded")
 	ErrReferenced     = errors.New("organization resource is referenced")

@@ -42,6 +42,9 @@ var (
 	ErrUnknownPermission  = errors.New("iam permission is not in catalog")
 	ErrImmutableOwner     = errors.New("iam owner role is immutable")
 	ErrIncompatibleState  = errors.New("iam persistent state is incompatible with permission catalog")
+	// ErrInvalidQuery 表示列表查询参数非法（排序字段/方向、不支持的过滤或
+	// 过大分页）；090 BE-090-001 统一语义：非法查询返回可识别错误，不静默忽略。
+	ErrInvalidQuery = errors.New("iam list query is invalid")
 	// ErrApiTokenScopeNotOwned 表示令牌请求的 scope 超出创建者当前有效权限（080）。
 	ErrApiTokenScopeNotOwned = errors.New("iam api token scope is not owned by the creator")
 	// ErrApiTokenLimit 表示账号未吊销令牌数已达到上限（080）。
@@ -884,6 +887,9 @@ func (s *Service) ListAccounts(ctx context.Context, offset, limit int, filter re
 	if err != nil {
 		return AccountList{}, err
 	}
+	if err := validateAccountSort(filter.Sort); err != nil {
+		return AccountList{}, err
+	}
 	var records []repo.AccountRecord
 	var total int64
 	err = s.store.Use(ctx, func(r *repo.Unit) error {
@@ -1453,6 +1459,9 @@ func (s *Service) ListRolesSorted(ctx context.Context, offset, limit int, query,
 	if err != nil {
 		return RoleList{}, err
 	}
+	if err := validateListSort(sortValue, roleSortColumns); err != nil {
+		return RoleList{}, err
+	}
 	var records []repo.RoleRecord
 	var total int64
 	err = s.store.Use(ctx, func(r *repo.Unit) error {
@@ -1986,6 +1995,9 @@ func (s *Service) ListSessionsSorted(ctx context.Context, accountID string, offs
 	if err != nil {
 		return SessionList{}, err
 	}
+	if err := validateListSort(sortValue, sessionSortColumns); err != nil {
+		return SessionList{}, err
+	}
 	activeOnly, revokedOnly, err := sessionStatusFilter(status)
 	if err != nil {
 		return SessionList{}, err
@@ -2215,7 +2227,7 @@ func bumpAndRevokeWith(ctx context.Context, r *repo.Unit, account repo.AccountRe
 }
 func normalizePage(offset, limit int) (int, int, error) {
 	if offset < 0 || limit < 0 || limit > maxListLimit {
-		return 0, 0, fmt.Errorf("iam pagination is invalid")
+		return 0, 0, fmt.Errorf("%w: offset=%d limit=%d", ErrInvalidQuery, offset, limit)
 	}
 	if limit == 0 {
 		limit = defaultListLimit
@@ -2431,6 +2443,9 @@ func (s *Service) ListApiTokens(ctx context.Context, accountID string, offset, l
 func (s *Service) ListApiTokensSorted(ctx context.Context, accountID string, offset, limit int, status ApiTokenStatus, sortValue string) (ApiTokenList, error) {
 	offset, limit, err := normalizePage(offset, limit)
 	if err != nil {
+		return ApiTokenList{}, err
+	}
+	if err := validateListSort(sortValue, apiTokenSortColumns); err != nil {
 		return ApiTokenList{}, err
 	}
 	statusValue, err := normalizeApiTokenStatus(status)

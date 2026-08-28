@@ -273,6 +273,41 @@ func TestSelfPreferencesContract(t *testing.T) {
 	}
 }
 
+// TestListQueryContractRejectsInvalidSortAndPage 验证 BE-090-001：非法排序与
+// 过大分页在 HTTP 边界返回稳定 400 invalid_request（不静默忽略、不 500）。
+func TestListQueryContractRejectsInvalidSortAndPage(t *testing.T) {
+	iam, resource := testService(t)
+	defer resource.Close()
+	handler, err := NewHandler(iam, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	router := humaRouter(handler)
+	setupResponse := serve(router, http.MethodPost, "http://example.test/api/v1/iam/setup", []byte(`{"setupToken":"setup-secret","username":"owner","displayName":"Owner","password":"123456789012345"}`), nil)
+	if setupResponse.Code != http.StatusCreated {
+		t.Fatalf("setup status = %d, body = %s", setupResponse.Code, setupResponse.Body.String())
+	}
+	resolved, err := iam.Resolve(t.Context(), setupResponse.Result().Cookies()[0].Value)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 账号列表非法排序列 → 400 invalid_request。
+	badSort := serve(router, http.MethodGet, "http://example.test/api/v1/iam/accounts?sort=password:asc", nil, &resolved)
+	if badSort.Code != http.StatusBadRequest || !bytes.Contains(badSort.Body.Bytes(), []byte(`"invalid_request"`)) {
+		t.Fatalf("bad sort status = %d, body = %s", badSort.Code, badSort.Body.String())
+	}
+	// 过大分页 → 422（Huma maximum:100 schema 校验在到达 service 前拦截）。
+	bigPage := serve(router, http.MethodGet, "http://example.test/api/v1/iam/accounts?limit=1001", nil, &resolved)
+	if bigPage.Code != http.StatusUnprocessableEntity || !bytes.Contains(bigPage.Body.Bytes(), []byte(`query.limit`)) {
+		t.Fatalf("big page status = %d, body = %s", bigPage.Code, bigPage.Body.String())
+	}
+	// 合法排序仍可用。
+	ok := serve(router, http.MethodGet, "http://example.test/api/v1/iam/accounts?sort=username:desc", nil, &resolved)
+	if ok.Code != http.StatusOK {
+		t.Fatalf("valid sort status = %d, body = %s", ok.Code, ok.Body.String())
+	}
+}
+
 func humaRouter(handler *Handler) http.Handler {
 	router := chi.NewRouter()
 	config := huma.DefaultConfig("test", "1")

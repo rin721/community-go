@@ -131,7 +131,7 @@ func (h *Handler) ReplaceAssignment(ctx context.Context, request ReplaceAssignme
 func present(err error) error {
 	status, code := http.StatusInternalServerError, "organization_internal_error"
 	switch {
-	case errors.Is(err, model.ErrInvalidID), errors.Is(err, model.ErrInvalidCode), errors.Is(err, model.ErrInvalidName), errors.Is(err, model.ErrInvalidTime):
+	case errors.Is(err, model.ErrInvalidID), errors.Is(err, model.ErrInvalidCode), errors.Is(err, model.ErrInvalidName), errors.Is(err, model.ErrInvalidTime), errors.Is(err, model.ErrInvalidQuery):
 		status, code = http.StatusBadRequest, "organization_invalid_argument"
 	case errors.Is(err, repo.ErrNotFound), errors.Is(err, database.ErrNotFound):
 		status, code = http.StatusNotFound, "organization_not_found"

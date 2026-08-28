@@ -435,7 +435,7 @@ func ensureDepartmentUnreferenced(ctx context.Context, unit *repo.Unit, id strin
 }
 func normalizePage(offset, limit int) (int, int, error) {
 	if offset < 0 || limit < 0 || limit > maxListLimit {
-		return 0, 0, fmt.Errorf("organization pagination is invalid")
+		return 0, 0, fmt.Errorf("%w: offset=%d limit=%d", model.ErrInvalidQuery, offset, limit)
 	}
 	if limit == 0 {
 		limit = defaultListLimit

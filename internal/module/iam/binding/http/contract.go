@@ -392,7 +392,7 @@ func serviceError(err error) error {
 	switch {
 	case errors.As(err, &mfaRequired):
 		return statusError(http.StatusConflict, "mfa_required", err)
-	case errors.Is(err, model.ErrInvalidUsername), errors.Is(err, model.ErrInvalidName), errors.Is(err, model.ErrInvalidPassword), errors.Is(err, model.ErrInvalidProfile), errors.Is(err, model.ErrInvalidConfirmation), errors.Is(err, model.ErrInvalidTime), errors.Is(err, model.ErrInvalidPreferences):
+	case errors.Is(err, model.ErrInvalidUsername), errors.Is(err, model.ErrInvalidName), errors.Is(err, model.ErrInvalidPassword), errors.Is(err, model.ErrInvalidProfile), errors.Is(err, model.ErrInvalidConfirmation), errors.Is(err, model.ErrInvalidTime), errors.Is(err, model.ErrInvalidPreferences), errors.Is(err, service.ErrInvalidQuery):
 		return statusError(http.StatusBadRequest, "invalid_request", err)
 	case errors.Is(err, service.ErrInvalidCredentials), errors.Is(err, service.ErrMFAInvalidCode), errors.Is(err, service.ErrMFAChallengeInvalid):
 		return statusError(http.StatusUnauthorized, "invalid_credentials", err)

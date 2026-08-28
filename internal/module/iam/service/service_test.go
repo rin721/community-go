@@ -2168,5 +2168,40 @@ func TestAlertOnRepeatedMFAFailure(t *testing.T) {
 	}
 }
 
+// TestListQueryValidationRejectsInvalidSortAndPage 验证 BE-090-001 一致查询：
+// 非法排序字段/方向与过大分页返回稳定 ErrInvalidQuery，不再静默忽略或回退。
+func TestListQueryValidationRejectsInvalidSortAndPage(t *testing.T) {
+	iam, resource := newService(t)
+	defer resource.Close()
+	if _, err := iam.Setup(t.Context(), "setup-secret", "owner", "Owner", "123456789012345"); err != nil {
+		t.Fatal(err)
+	}
+	// 账号列表：非法排序列与方向被拒绝。
+	if _, err := iam.ListAccounts(t.Context(), 0, 20, repo.AccountFilter{Sort: "password:asc"}); !errors.Is(err, service.ErrInvalidQuery) {
+		t.Fatalf("account invalid sort column error = %v", err)
+	}
+	if _, err := iam.ListAccounts(t.Context(), 0, 20, repo.AccountFilter{Sort: "username:sideways"}); !errors.Is(err, service.ErrInvalidQuery) {
+		t.Fatalf("account invalid sort direction error = %v", err)
+	}
+	if _, err := iam.ListAccounts(t.Context(), 0, 20, repo.AccountFilter{Sort: "username"}); !errors.Is(err, service.ErrInvalidQuery) {
+		t.Fatalf("account malformed sort error = %v", err)
+	}
+	// 合法排序仍可用（不回归）。
+	if _, err := iam.ListAccounts(t.Context(), 0, 20, repo.AccountFilter{Sort: "username:desc"}); err != nil {
+		t.Fatalf("account valid sort error = %v", err)
+	}
+	// 角色列表：非法排序列被拒绝。
+	if _, err := iam.ListRolesSorted(t.Context(), 0, 20, "", "unknown:asc"); !errors.Is(err, service.ErrInvalidQuery) {
+		t.Fatalf("role invalid sort error = %v", err)
+	}
+	// 过大分页被拒绝。
+	if _, err := iam.ListAccounts(t.Context(), 0, 1001, repo.AccountFilter{}); !errors.Is(err, service.ErrInvalidQuery) {
+		t.Fatalf("oversized page error = %v", err)
+	}
+	if _, err := iam.ListRolesSorted(t.Context(), 0, 1001, "", ""); !errors.Is(err, service.ErrInvalidQuery) {
+		t.Fatalf("oversized role page error = %v", err)
+	}
+}
+
 // testBoolPointer 返回指向给定布尔值的指针（偏好通知更新测试用）。
 func testBoolPointer(value bool) *bool { return &value }

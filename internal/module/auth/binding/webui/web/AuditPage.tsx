@@ -51,11 +51,13 @@ export default function AuditPage() {
   const PAGE_SIZE = 50;
   // Reuse the existing server-side since/until query capability; convert local
   // datetime input to RFC3339 only at the HTTP boundary.
-  const listQuery = useListQueryParams<{ operation: string; action: string; outcome: string; resourceType: string; since: string; until: string }>({
+  const listQuery = useListQueryParams<{ operation: string; action: string; outcome: string; actorKind: string; subjectHash: string; resourceType: string; since: string; until: string }>({
     filters: {
       operation: { queryKey: "operation", defaultValue: "" },
       action: { queryKey: "action", defaultValue: "" },
       outcome: { queryKey: "outcome", defaultValue: "" },
+      actorKind: { queryKey: "actorKind", defaultValue: "" },
+      subjectHash: { queryKey: "subjectHash", defaultValue: "" },
       resourceType: { queryKey: "resourceType", defaultValue: "" },
       since: { queryKey: "since", defaultValue: "" },
       until: { queryKey: "until", defaultValue: "" },
@@ -73,12 +75,14 @@ export default function AuditPage() {
     if (listQuery.filters.operation) filter.operation = listQuery.filters.operation;
     if (listQuery.filters.action) filter.action = listQuery.filters.action;
     if (listQuery.filters.outcome) filter.outcome = listQuery.filters.outcome as AuditOutcome;
+    if (listQuery.filters.actorKind) filter.actorKind = listQuery.filters.actorKind;
+    if (listQuery.filters.subjectHash) filter.subjectHash = listQuery.filters.subjectHash;
     if (listQuery.filters.resourceType) filter.resourceType = listQuery.filters.resourceType;
     if (listQuery.filters.since) filter.since = toRFC3339(listQuery.filters.since);
     if (listQuery.filters.until) filter.until = toRFC3339(listQuery.filters.until);
     const offset = (listQuery.page - 1) * PAGE_SIZE;
     return listAuditEvents(filter, offset, PAGE_SIZE).then((result) => { setItems(result.items); setTotal(result.total); }).catch(() => { setItems([]); setTotal(0); setLoadError(true); }).finally(() => setLoading(false));
-  }, [listQuery.filters.operation, listQuery.filters.action, listQuery.filters.outcome, listQuery.filters.resourceType, listQuery.filters.since, listQuery.filters.until, listQuery.page]);
+  }, [listQuery.filters.operation, listQuery.filters.action, listQuery.filters.outcome, listQuery.filters.actorKind, listQuery.filters.subjectHash, listQuery.filters.resourceType, listQuery.filters.since, listQuery.filters.until, listQuery.page]);
   useEffect(() => { void refresh(); }, [refresh]);
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const selectedJSON = useMemo(() => selected ? JSON.stringify(auditDetailFields(selected), null, 2) : "", [selected]);
@@ -97,6 +101,8 @@ export default function AuditPage() {
               { value: "denied", label: t("webui.auth.audit.denied") },
               { value: "failed", label: t("webui.auth.audit.failed") },
             ], value: listQuery.filters.outcome, onValueChange: (next) => listQuery.setFilters({ ...listQuery.filters, outcome: String(next) }) },
+            { key: "actorKind", label: t("webui.auth.audit.actorKind"), placeholder: t("webui.auth.audit.actorKind"), control: "input", value: listQuery.filters.actorKind, onValueChange: (next) => listQuery.setFilters({ ...listQuery.filters, actorKind: String(next) }) },
+            { key: "subjectHash", label: t("webui.auth.audit.subjectHash"), placeholder: t("webui.auth.audit.subjectHash"), control: "input", value: listQuery.filters.subjectHash, onValueChange: (next) => listQuery.setFilters({ ...listQuery.filters, subjectHash: String(next) }) },
             { key: "resourceType", label: t("webui.auth.audit.resourceType"), placeholder: t("webui.auth.audit.resourcePh"), control: "input", value: listQuery.filters.resourceType, onValueChange: (next) => listQuery.setFilters({ ...listQuery.filters, resourceType: String(next) }) },
             { key: "since", label: `${t("webui.auth.audit.occurredAt")} ≥`, inputType: "datetime-local", control: "input", value: listQuery.filters.since, onValueChange: (next) => listQuery.setFilters({ ...listQuery.filters, since: String(next) }) },
             { key: "until", label: `${t("webui.auth.audit.occurredAt")} ≤`, inputType: "datetime-local", control: "input", value: listQuery.filters.until, onValueChange: (next) => listQuery.setFilters({ ...listQuery.filters, until: String(next) }) },

@@ -1,6 +1,6 @@
 # 任务级变更记录
 
-每项新变更使用递增三位序号和语义名称，固定包含 `README.md`、`research/`、`requirements.md`、`design.md` 和 `tasks.md`。所有任务先通过研究门禁，再形成计划；非纯文档实现必须在计划报告后的独立消息中获得确认。完整规则以根 [AGENTS.md](../../AGENTS.md) 为准。
+每项新变更使用递增三位序号和语义名称，固定包含 `README.md`、`research/`、面向客户的 `requirements/`、面向技术人员的 `design/` 和 checkbox 完成清单 `tasks.md`。需求与详细设计使用目录入口和语义分篇承载，不再以单个 `requirements.md` 或 `design.md` 作为新方案的唯一记录。历史变更保留原结构，不批量迁移。所有任务先通过研究门禁，再形成计划；非纯文档实现必须在计划报告后的独立消息中获得确认。完整规则以根 [AGENTS.md](../../AGENTS.md) 为准。
 
 001–041 是随当前仓库导入的脚手架基线档案，保留作为历史证据；042 起是本仓库原生变更记录。两者都不能替代当前主题 authority，当前边界和来源见[脚手架基线来源](../scaffold-baseline.md)。
 

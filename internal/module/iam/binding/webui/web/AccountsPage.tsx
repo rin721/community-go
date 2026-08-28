@@ -110,9 +110,12 @@ export default function AccountsPage() {
   const candidates = checklistCandidates(roles);
   const roleDirty = Boolean(selected) && !sameRoleIDs(roleIDs, savedRoleIDs);
   const toggle = (id: string) => {
-    setRoleSaveState("dirty");
     setMessage("");
-    setRoleIDs((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+    setRoleIDs((current) => {
+      const next = current.includes(id) ? current.filter((item) => item !== id) : [...current, id];
+      setRoleSaveState(sameRoleIDs(next, savedRoleIDs) ? "clean" : "dirty");
+      return next;
+    });
   };
   const save = (): Promise<void> => {
     if (!selected || roleSaving || !roleDirty) return Promise.resolve();

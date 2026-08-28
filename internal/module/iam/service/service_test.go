@@ -289,12 +289,15 @@ func TestBatchAccountStatusAndArchive(t *testing.T) {
 	}
 
 	// 批量禁用：member 成功、缺失账号失败，统计与错误码逐条导出。
-	processed, failed, items := iam.BatchSetAccountStatus(t.Context(), []string{member.ID, "missing-id"}, model.AccountDisabled)
-	if processed != 1 || failed != 1 {
-		t.Fatalf("batch disable counts = %d/%d", processed, failed)
+	result, err := iam.BatchSetAccountStatusIdempotent(t.Context(), "batch-disable", "corr-disable", []string{member.ID, "missing-id"}, model.AccountDisabled)
+	if err != nil {
+		t.Fatal(err)
 	}
-	if len(items) != 1 || items[0].AccountID != "missing-id" || items[0].Code != "not_found" {
-		t.Fatalf("batch disable items = %#v", items)
+	if result.RequestedCount != 2 || result.ProcessedCount != 2 || len(result.Succeeded) != 1 || len(result.Failed) != 1 {
+		t.Fatalf("batch disable result = %#v", result)
+	}
+	if result.Failed[0].ResourceID != "missing-id" || result.Failed[0].Code != "not_found" || result.CorrelationID != "corr-disable" {
+		t.Fatalf("batch disable items = %#v", result)
 	}
 	accounts, err := iam.ListAccounts(t.Context(), 0, 20, repo.AccountFilter{})
 	if err != nil {
@@ -307,12 +310,12 @@ func TestBatchAccountStatusAndArchive(t *testing.T) {
 	}
 
 	// 批量归档：member2 成功；owner（最后活跃 owner）失败为 owner_invariant。
-	processed, failed, items = iam.BatchArchiveAccounts(t.Context(), []string{member2.ID, "missing-id-2"})
-	if processed != 1 || failed != 1 {
-		t.Fatalf("batch archive counts = %d/%d", processed, failed)
+	result, err = iam.BatchArchiveAccountsIdempotent(t.Context(), "batch-archive", "corr-archive", []string{member2.ID, "missing-id-2"})
+	if err != nil {
+		t.Fatal(err)
 	}
-	if len(items) != 1 || items[0].Code != "not_found" {
-		t.Fatalf("batch archive items = %#v", items)
+	if result.RequestedCount != 2 || result.ProcessedCount != 2 || len(result.Succeeded) != 1 || len(result.Failed) != 1 || result.Failed[0].Code != "not_found" {
+		t.Fatalf("batch archive result = %#v", result)
 	}
 	archived, err := iam.ListAccounts(t.Context(), 0, 20, repo.AccountFilter{Archived: boolPtr(true)})
 	if err != nil {
@@ -329,12 +332,52 @@ func TestBatchAccountStatusAndArchive(t *testing.T) {
 	}
 
 	// owner 无法在批量中被禁用（保持 owner 不变量），错误码为 owner_invariant。
-	processed, failed, items = iam.BatchSetAccountStatus(t.Context(), []string{member.ID, ownerID}, model.AccountDisabled)
-	if processed != 1 || failed != 1 {
-		t.Fatalf("batch disable w/ owner counts = %d/%d", processed, failed)
+	result, err = iam.BatchSetAccountStatusIdempotent(t.Context(), "batch-owner", "corr-owner", []string{member.ID, ownerID}, model.AccountDisabled)
+	if err != nil {
+		t.Fatal(err)
 	}
-	if len(items) != 1 || items[0].AccountID != ownerID || items[0].Code != "owner_invariant" {
-		t.Fatalf("batch disable w/ owner items = %#v", items)
+	if len(result.Succeeded) != 1 || len(result.Failed) != 1 || result.Failed[0].ResourceID != ownerID || result.Failed[0].Code != "owner_invariant" {
+		t.Fatalf("batch disable w/ owner items = %#v", result)
+	}
+}
+
+// TestBatchAccountStatusIdempotency 验证同一请求可稳定重放，且同一 key
+// 不允许绑定不同请求，避免重试导致版本与审计副作用重复发生。
+func TestBatchAccountStatusIdempotency(t *testing.T) {
+	iam, resource := newService(t)
+	defer resource.Close()
+	if _, err := iam.Setup(t.Context(), "setup-secret", "owner", "Owner", "123456789012345"); err != nil {
+		t.Fatal(err)
+	}
+	member, err := iam.CreateAccount(t.Context(), "member-idempotent", "Member", "abcdefghijklmno")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	first, err := iam.BatchSetAccountStatusIdempotent(t.Context(), "batch-status-1", "corr-first", []string{member.ID, "missing-id"}, model.AccountDisabled)
+	if err != nil || first.ProcessedCount != 2 || len(first.Succeeded) != 1 || len(first.Failed) != 1 {
+		t.Fatalf("first idempotent batch = %#v, %v", first, err)
+	}
+	afterFirst, err := iam.AccountDetail(t.Context(), member.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	replayed, err := iam.BatchSetAccountStatusIdempotent(t.Context(), "batch-status-1", "corr-retry", []string{member.ID, "missing-id"}, model.AccountDisabled)
+	if err != nil || replayed.ProcessedCount != first.ProcessedCount || len(replayed.Succeeded) != len(first.Succeeded) || len(replayed.Failed) != len(first.Failed) || replayed.CorrelationID != "corr-first" {
+		t.Fatalf("replayed idempotent batch = %#v, %v", replayed, err)
+	}
+	afterReplay, err := iam.AccountDetail(t.Context(), member.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if afterReplay.Account.Version != afterFirst.Account.Version {
+		t.Fatalf("replay changed account version: first=%d replay=%d", afterFirst.Account.Version, afterReplay.Account.Version)
+	}
+
+	_, err = iam.BatchSetAccountStatusIdempotent(t.Context(), "batch-status-1", "corr-conflict", []string{member.ID}, model.AccountActive)
+	if !errors.Is(err, service.ErrIdempotencyConflict) {
+		t.Fatalf("reused idempotency key error = %v", err)
 	}
 }
 

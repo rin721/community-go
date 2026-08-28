@@ -104,6 +104,58 @@ func TestSessionBoundaryPaginationAndStableConflicts(t *testing.T) {
 	_ = session
 }
 
+func TestBatchAccountMutationRequiresAndReplaysIdempotencyKey(t *testing.T) {
+	iam, resource := testService(t)
+	defer resource.Close()
+	handler, err := NewHandler(iam, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	router := humaRouter(handler)
+	setupResponse := serve(router, http.MethodPost, "http://example.test/api/v1/iam/setup", []byte(`{"setupToken":"setup-secret","username":"owner","displayName":"Owner","password":"123456789012345"}`), nil)
+	if setupResponse.Code != http.StatusCreated {
+		t.Fatalf("setup status = %d, body = %s", setupResponse.Code, setupResponse.Body.String())
+	}
+	var setupSession sessionResponse
+	if err := json.Unmarshal(setupResponse.Body.Bytes(), &setupSession); err != nil {
+		t.Fatal(err)
+	}
+	resolved, err := iam.Resolve(t.Context(), setupResponse.Result().Cookies()[0].Value)
+	if err != nil {
+		t.Fatal(err)
+	}
+	member, err := iam.CreateAccount(t.Context(), "batch-member", "Batch Member", "abcdefghijklmno")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, err := json.Marshal(map[string]any{"accountIds": []string{member.ID, "missing-id"}, "status": "disabled"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	withMutationHeaders := func(request *http.Request) {
+		request.Header.Set("X-CSRF-Token", setupSession.CSRFToken)
+		request.Header.Set("Idempotency-Key", "batch-http-1")
+	}
+
+	first := serve(router, http.MethodPost, "http://example.test/api/v1/iam/accounts/batch-status", body, &resolved, withMutationHeaders)
+	if first.Code != http.StatusOK || !bytes.Contains(first.Body.Bytes(), []byte(`"requestedCount":2`)) || !bytes.Contains(first.Body.Bytes(), []byte(`"processedCount":2`)) || !bytes.Contains(first.Body.Bytes(), []byte(`"succeeded":[`)) || !bytes.Contains(first.Body.Bytes(), []byte(`"failed":[`)) {
+		t.Fatalf("first batch response = %d, %s", first.Code, first.Body.String())
+	}
+	replayed := serve(router, http.MethodPost, "http://example.test/api/v1/iam/accounts/batch-status", body, &resolved, withMutationHeaders)
+	if replayed.Code != http.StatusOK || replayed.Body.String() != first.Body.String() {
+		t.Fatalf("replayed batch response = %d, %s", replayed.Code, replayed.Body.String())
+	}
+
+	conflictingBody, err := json.Marshal(map[string]any{"accountIds": []string{member.ID}, "status": "active"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	conflict := serve(router, http.MethodPost, "http://example.test/api/v1/iam/accounts/batch-status", conflictingBody, &resolved, withMutationHeaders)
+	if conflict.Code != http.StatusConflict || !bytes.Contains(conflict.Body.Bytes(), []byte(`"idempotency_conflict"`)) {
+		t.Fatalf("idempotency conflict = %d, %s", conflict.Code, conflict.Body.String())
+	}
+}
+
 func TestDynamicAssignmentContractVersion409AndSnapshot(t *testing.T) {
 	iam, resource := testService(t)
 	defer resource.Close()

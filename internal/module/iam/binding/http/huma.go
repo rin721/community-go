@@ -114,20 +114,27 @@ type passwordInput struct {
 // batchAccountInput 是批量账号操作的请求（状态/归档共用）：
 // 扁平声明 Header 与 Body，避免 embedded struct 的 path 绑定不可靠问题。
 type batchAccountInput struct {
-	Origin    string `header:"Origin" required:"true"`
-	CSRFToken string `header:"X-CSRF-Token" required:"true"`
-	Body      struct {
+	Origin         string `header:"Origin" required:"true"`
+	CSRFToken      string `header:"X-CSRF-Token" required:"true"`
+	IdempotencyKey string `header:"Idempotency-Key" required:"true" minLength:"1" maxLength:"128"`
+	Body           struct {
 		AccountIDs []string            `json:"accountIds" minItems:"1" maxItems:"100"`
 		Status     model.AccountStatus `json:"status" enum:"active,disabled"`
 	}
 }
 
-// batchResultOutput 返回逐账号处理的统计与失败明细：processed 为成功数量，
-// failed 为失败数量，errors 内逐条导出稳定错误码（完整向上导出，不吞错误）。
+// batchResultOutput 返回请求、处理、成功和失败的完整集合，并用 correlationId
+// 关联同一次管理操作产生的审计与诊断。
 type batchResultOutput struct {
-	Processed int                      `json:"processed"`
-	Failed    int                      `json:"failed"`
-	Errors    []service.BatchItemError `json:"errors,omitempty"`
+	RequestedCount int                        `json:"requestedCount"`
+	ProcessedCount int                        `json:"processedCount"`
+	Succeeded      []service.BatchItemSuccess `json:"succeeded"`
+	Failed         []service.BatchItemFailure `json:"failed"`
+	CorrelationID  string                     `json:"correlationId,omitempty"`
+}
+
+func batchResultOutputFrom(result service.BatchResult) batchResultOutput {
+	return batchResultOutput{RequestedCount: result.RequestedCount, ProcessedCount: result.ProcessedCount, Succeeded: result.Succeeded, Failed: result.Failed, CorrelationID: result.CorrelationID}
 }
 
 // roleIDsInput 扁平声明路径/Header 与 body，避免 embedded struct 的 path
@@ -439,14 +446,22 @@ func RegisterHuma(api huma.API, handler *Handler) {
 	batchStatus := protected(opAccountStatusBatch, http.MethodPost, "/api/v1/iam/accounts/batch-status", string(iampermission.AccountWrite), "update")
 	batchStatus.Middlewares = huma.Middlewares{handler.requireMutation}
 	huma.Register(api, batchStatus, func(ctx context.Context, in *batchAccountInput) (*jsonOutput[batchResultOutput], error) {
-		processed, failed, itemErrors := handler.service.BatchSetAccountStatus(ctx, in.Body.AccountIDs, in.Body.Status)
-		return jsonEnvelope(batchResultOutput{Processed: processed, Failed: failed, Errors: itemErrors}), nil
+		correlationID, _ := httpx.RequestIDFromContext(ctx)
+		result, err := handler.service.BatchSetAccountStatusIdempotent(ctx, in.IdempotencyKey, correlationID, in.Body.AccountIDs, in.Body.Status)
+		if err != nil {
+			return nil, problem(ctx, err)
+		}
+		return jsonEnvelope(batchResultOutputFrom(result)), nil
 	})
 	batchArchive := protected(opAccountArchiveBatch, http.MethodPost, "/api/v1/iam/accounts/batch-archive", string(iampermission.AccountWrite), "archive")
 	batchArchive.Middlewares = huma.Middlewares{handler.requireMutation}
 	huma.Register(api, batchArchive, func(ctx context.Context, in *batchAccountInput) (*jsonOutput[batchResultOutput], error) {
-		processed, failed, itemErrors := handler.service.BatchArchiveAccounts(ctx, in.Body.AccountIDs)
-		return jsonEnvelope(batchResultOutput{Processed: processed, Failed: failed, Errors: itemErrors}), nil
+		correlationID, _ := httpx.RequestIDFromContext(ctx)
+		result, err := handler.service.BatchArchiveAccountsIdempotent(ctx, in.IdempotencyKey, correlationID, in.Body.AccountIDs)
+		if err != nil {
+			return nil, problem(ctx, err)
+		}
+		return jsonEnvelope(batchResultOutputFrom(result)), nil
 	})
 	registerMutation(api, handler, protected(opResetPassword, http.MethodPost, "/api/v1/iam/accounts/{id}/password-reset", string(iampermission.AccountWrite), "execute"), func(ctx context.Context, in *passwordInput) error {
 		return handler.service.ResetPassword(ctx, in.ID, in.Body.Password)

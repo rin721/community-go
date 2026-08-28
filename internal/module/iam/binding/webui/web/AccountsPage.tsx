@@ -46,7 +46,7 @@ export default function AccountsPage() {
   const [selection, setSelection] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkMessage, setBulkMessage] = useState("");
-  const [bulkErrors, setBulkErrors] = useState<Array<{ accountId: string; code: string }>>([]);
+  const [bulkErrors, setBulkErrors] = useState<Array<{ resourceId: string; code: string }>>([]);
   const [createOpen, setCreateOpen] = useState(false);
   const [username, setUsername] = useState("");
   const [name, setName] = useState("");
@@ -228,7 +228,7 @@ export default function AccountsPage() {
             renderRowMenu: rowActions,
           }}
         />
-        <BatchResultSummary summary={bulkMessage} errors={bulkErrors.map((item) => ({ key: item.accountId, code: item.code }))} errorsLabel={t("webui.iam.error")} />
+        <BatchResultSummary summary={bulkMessage} errors={bulkErrors.map((item) => ({ key: item.resourceId, code: item.code }))} errorsLabel={t("webui.iam.error")} />
         <BulkActionBar
           open={items.length > 0}
           selectionLabel={t("webui.iam.accounts.selection", { count: selection.size })}
@@ -254,8 +254,8 @@ export default function AccountsPage() {
               setBulkBusy(true);
               return batchArchiveAccounts([...selection]).then((result) => {
                 setBulkBusy(false);
-                setBulkMessage(t("webui.iam.accounts.bulkArchived", { count: result.processed }));
-                setBulkErrors(result.errors ?? []);
+                setBulkMessage(t("webui.iam.accounts.bulkArchived", { count: result.succeeded.length }));
+                setBulkErrors(result.failed);
                 setSelection(new Set());
                 return refresh();
               }).catch(() => { setBulkBusy(false); setBulkMessage(t("webui.iam.error")); return Promise.resolve(); });
@@ -266,8 +266,8 @@ export default function AccountsPage() {
             setBulkBusy(true);
             return batchAccountStatus([...selection], targetStatus).then((result) => {
               setBulkBusy(false);
-              setBulkMessage(t("webui.iam.accounts.bulkResult", { processed: result.processed, failed: result.failed }));
-              setBulkErrors(result.errors ?? []);
+              setBulkMessage(t("webui.iam.accounts.bulkResult", { processed: result.succeeded.length, failed: result.failed.length }));
+              setBulkErrors(result.failed);
               setSelection(new Set());
               return refresh();
             }).catch(() => { setBulkBusy(false); setBulkMessage(t("webui.iam.error")); return Promise.resolve(); });

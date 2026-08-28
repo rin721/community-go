@@ -7,7 +7,7 @@ import (
 	dbmigrate "github.com/rin721/go-scaffold-template/pkg/database/migrate"
 )
 
-const CurrentVersion uint = 8
+const CurrentVersion uint = 9
 const TableName = "iam_schema_migrations"
 
 //go:embed sqlite/*.sql postgres/*.sql mysql/*.sql
@@ -42,6 +42,9 @@ func Set() dbmigrate.Set {
 			"sqlite/000008_extend_iam_api_tokens.up.sql": "7b6597f756558e2a3414718fe57f02ed8d596934639f59bf681a40e4e4f17123", "sqlite/000008_extend_iam_api_tokens.down.sql": "aacb2c6d44e338eebf2f865ab743626127d7aa5d047d389be3144cb05daabda7",
 			"postgres/000008_extend_iam_api_tokens.up.sql": "35fde3ba1f265ad6dcc146f69b3f0553e06a68a075496527e469cb3f8f7606e0", "postgres/000008_extend_iam_api_tokens.down.sql": "aacb2c6d44e338eebf2f865ab743626127d7aa5d047d389be3144cb05daabda7",
 			"mysql/000008_extend_iam_api_tokens.up.sql": "5206bdfc401486a200693d4d1a3443e602e58a14a0bb7273a8a27d43bbb76249", "mysql/000008_extend_iam_api_tokens.down.sql": "aacb2c6d44e338eebf2f865ab743626127d7aa5d047d389be3144cb05daabda7",
+			"sqlite/000009_create_iam_idempotency.up.sql": "9fc0edbc00d17c3d3c0e8d98319ba4545c3b8185e30301d809f7a458f533f5b6", "sqlite/000009_create_iam_idempotency.down.sql": "2b9286bd440a1fc0ae1a6ecf1f7156b94bc124a54cf209cabb2b9a5a777debc4",
+			"postgres/000009_create_iam_idempotency.up.sql": "9bb938abe5a5ccf35fc690465d483af240a9821ff8d3ca67bc214da757af6ecf", "postgres/000009_create_iam_idempotency.down.sql": "2b9286bd440a1fc0ae1a6ecf1f7156b94bc124a54cf209cabb2b9a5a777debc4",
+			"mysql/000009_create_iam_idempotency.up.sql": "03f050e6ef1c68693d9f17773c7fa4176fcd9c997bdc46d6b830662d44eb8285", "mysql/000009_create_iam_idempotency.down.sql": "2b9286bd440a1fc0ae1a6ecf1f7156b94bc124a54cf209cabb2b9a5a777debc4",
 		},
 	}
 }

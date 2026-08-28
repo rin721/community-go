@@ -27,7 +27,7 @@
 - [x] SHELL-090-002 实现六种 PageFrame 与统一滚动/宽度/错误边界；前置：SHELL-090-001；完成证据：`PageFrameVariant` 六种场景、`layout-pattern.test.tsx`、4 项视觉/几何 E2E；设置组与子页面沿用已验证的双层宽度基线。
 - [x] PATTERN-090-001 实现 ResourceIndex、QueryToolbar、ActiveFilters、DataGrid/RecordList、SelectionBar；前置：FE-090-003、SHELL-090-002；完成证据：`ResourceIndex` 已在账户、角色、权限、会话、API Token、审计和岗位列表统一复用，`FilterBar`、`ActiveFilters`、`DataTable`、`BulkActionBar` 组成 toolbar/content/footer 顺序，筛选 URL 状态、逐项清除、浏览器前进/后退同步、权限目录的加载/失败/空结果反馈和数据表增强测试通过。
 - [ ] PATTERN-090-002 实现 EntityDetail、FormPage、SettingsForm 与 StickyActionBar；前置：FE-090-003、SHELL-090-002；当前证据：账户/角色管理区已使用 `EntityDetail` 的身份/状态头部，IAM/Settings Security、Profile、账号角色分配、角色权限分配、组织部门编辑和任职编辑表单已接入 `PageFrame`/`StickyActionBar`，列表分页已统一复用 `Pagination`；`StickyActionBar` 现支持 clean/dirty/pending/conflict 状态、状态播报与窄屏固定，Profile、Security、账号角色分配与角色权限分配已接入 dirty/pending，Profile、账号角色分配与角色权限分配已接入 conflict；完整详情页冲突/关系状态流程仍由后续页面任务补齐，结构单测通过。
-- [ ] PATTERN-090-003 实现 BatchOperation 与统一 Feedback matrix；前置：PATTERN-090-001；当前增量：账户批量操作已复用 `BatchResultSummary`，统一呈现汇总与逐项失败码；运维诊断失败已复用 `ErrorState` 并投影 request id；同步、部分失败和异步 Job 的完整适配测试仍待后端幂等/Job 契约。
+- [ ] PATTERN-090-003 实现 BatchOperation 与统一 Feedback matrix；前置：PATTERN-090-001；当前增量：账户批量操作已复用 `BatchResultSummary`，服务端同步结果现包含请求/处理/成功/失败集合、稳定错误码、retryable 和 correlation ID，`Idempotency-Key` 可安全重放；运维诊断失败已复用 `ErrorState` 并投影 request id；完整 preview/running/partial 状态机及 P1/P2 异步 Job 适配仍待补齐。
 - [x] PATTERN-090-004 实现 Global Search、Command registry、Action 层级和权限/availability 投影；前置：FE-090-003、SHELL-090-001；完成证据：`webui/src/commands/registry.ts` 统一投影可访问/可加载路由与宿主动作，`AppShell` 注册主题/模式/退出命令，`RouteSearch` 统一键盘选择、动作元数据和危险动作确认入口；`registry.test.ts`、`route-search.test.ts` 覆盖权限过滤、可用性过滤、关键词检索和 ARIA 语义。
 - [ ] PATTERN-090-005 以真实指标完成 Statistic/Chart spike 并实现可解释可视化契约；前置：BE-090-001；当前证据：Dashboard 运维卡片已将标量响应投影为结构化事实列表，避免主界面直接倾倒原始 JSON；Monitoring 只展示已有进程指标，未接入的宿主磁盘/网络遥测改为说明文本，不再伪装为同等重要数据卡片；真实历史指标、数据口径、可访问数据表与 bundle 测量仍待补齐。
 
@@ -36,7 +36,7 @@
 - [ ] BE-090-001 逐资源统一查询、排序、分页/游标和错误语义；前置：R090-003、CONFIRM-090-001；完成证据：OpenAPI、模块测试和生成 registry。
 - [x] BE-090-002 实现账户/角色核心详情与影响摘要；前置：BE-090-001；完成证据：`iam.accounts.read` 在一次存储访问中返回账户生命周期、角色快照、授权 revision、活跃/全部会话与有效 API Token 计数；`iam.roles.read` 返回角色生命周期、权限定义、受影响账户、跨模块范围及关键/敏感权限计数。权限风险已成为各 owner 模块显式声明且 Catalog 强校验的 `standard/elevated/critical` 元数据，前端不再按字符串推断；两类详情分别复用 `iam:account:read` / `iam:role:read`，not-found 保持稳定 Problem 语义，service、HTTP 集成测试、OpenAPI 和 WebUI E2E 已覆盖。
 - [ ] BE-090-003 实现审计 event/correlation/time range/detail 投影；前置：BE-090-001；当前增量：已有自增键已投影为只读 `eventId`，HTTP request-id 已贯通低敏持久化 `correlationId`，服务端按关联请求筛选，WebUI 列表/详情可查看并复制 correlation ID；actor/subject digest 与时间范围筛选及 OpenAPI/WebUI 已同步。客户端 `requestJSON/requestText` 已保留 Problem 的状态、稳定 code、detail 和 requestId 投影，IAM 账户/角色/权限/会话/令牌与审计列表的连接错误已把 requestId 传入 `ErrorState`；游标和更完整详情仍待统一契约与查询测试。
-- [ ] BE-090-004 标准化批量结果、幂等和部分失败；前置：BE-090-001；完成证据：多结果与重试测试。
+- [x] BE-090-004 标准化批量结果、幂等和部分失败；前置：BE-090-001；完成证据：IAM 批量启停/归档要求 `Idempotency-Key`，三驱动 migration 持久化请求摘要与完整结果；响应包含 requested/processed/succeeded/failed/correlation，逐项失败使用稳定 code、受控 message 与 retryable；相同 key+请求重放原结果且不重复递增资源版本，不同请求复用 key 返回 `idempotency_conflict`，并发未完成返回 `idempotency_in_progress`；service、HTTP 集成、migration、OpenAPI 与 WebUI typecheck 已覆盖。
 - [ ] BE-090-005 实现需要跨设备保持的用户偏好契约；前置：BE-090-001；完成证据：默认/覆盖/更新/权限测试。
 
 ## 页面迁移

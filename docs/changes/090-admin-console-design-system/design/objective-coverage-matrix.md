@@ -19,14 +19,14 @@
 | Dashboard/Statistic/Chart | 装饰性彩色指标、统计契约不足 | attention-first、Statistic anatomy、Chart rules | PAGE-090-006、PATTERN-090-005 | 已覆盖，待实施 |
 | Empty/Loading/Error | 页面表达不统一 | Feedback matrix + 基础状态规格 | PATTERN-090-003 | 已覆盖，待实施 |
 | Modal/Drawer/Toast | 容器选择与反馈层级混杂 | Overlay 决策表和组件契约 | FE-090-003、PATTERN-090-002/003 | 已覆盖，待实施 |
-| Batch Action | 部分页面具备但结果模式不统一 | BatchOperation 状态机与 Result | PATTERN-090-003、BE-090-004 | 已覆盖，待实施 |
+| Batch Action | 部分页面具备但结果模式不统一 | BatchOperation 状态机与 Result | PATTERN-090-003、BE-090-004 | 同步结果与幂等 P0 已实施，完整交互状态机待实施 |
 | Command/Action | Header 工具多，动作层级分散 | Command registry、Action taxonomy | PATTERN-090-004 | 已覆盖，待实施 |
 | Design Token | 已有方向但可被 magic value 绕过 | 四层 Token 与静态门禁 | FE-090-002 | 已覆盖，待实施 |
 | 组件复用 | 巨型 UI 文件、控件复用而非工作流复用 | primitives/semantic/pattern/module 四层 | FE-090-003、PATTERN 全部 | 已覆盖，待实施 |
 | 信息架构 | 模块名、父子 active、位置重复 | 任务导向导航与页面蓝图 | SHELL/PAGE | 已覆盖，待实施 |
 | 响应式 | OpenAPI 裁切、桌面工具硬压缩 | compact/medium/wide 结构转换 | SHELL-090-001、PAGE-090-007 | 已覆盖，待实施 |
 | 可访问性 | Tree/Grid 自研行为证据不足 | React Aria 原语 + 键盘/读屏矩阵 | VERIFY-090-003 | 已覆盖，待实施 |
-| 后端查询/详情/关系 | CRUD 可用但产品投影不足 | P0 查询、详情、影响、审计、偏好 | BE-090-001—005 | eventId 已实施，其余 P0 待实施 |
+| 后端查询/详情/关系 | CRUD 可用但产品投影不足 | P0 查询、详情、影响、审计、偏好 | BE-090-001—005 | 账户/角色详情、批量幂等与 eventId 已实施，其余 P0 待实施 |
 | 统计/运维/异步任务 | typed history 与 Job 不足 | P1/P2 契约，不以假数据填充 | 后续价值门禁；P0 留出 adapter | 已覆盖，不提前实施 |
 | 迁移与清理 | 旧骨架继续叠补丁风险 | 单轨分页面族迁移、零旧引用 | CLEANUP-090-001 | 已覆盖，待实施 |
 | 多模态验收 | 现有截图不覆盖真实完整状态 | 5 断点 × 主题 × 密度 × 状态矩阵 | VERIFY-090-002 | 已覆盖，待实施 |

@@ -59,6 +59,10 @@ var (
 	// ErrVersionConflict 表示关系替换请求携带的 expected version 已过期，
 	// 客户端必须重新读取最新快照后由用户确认，不允许静默覆盖或自动 merge。
 	ErrVersionConflict = errors.New("iam relationship version is stale")
+	// ErrIdempotencyConflict 表示同一幂等键被复用于不同请求。
+	ErrIdempotencyConflict = errors.New("iam idempotency key reused with different request")
+	// ErrIdempotencyInProgress 表示相同幂等键的原请求仍在执行。
+	ErrIdempotencyInProgress = errors.New("iam idempotency request is still in progress")
 )
 
 type PasswordHasher interface {
@@ -1043,11 +1047,27 @@ func (s *Service) UpdateAccountInfo(ctx context.Context, accountID string, expec
 	return err
 }
 
-// BatchItemError 是批量操作中单个实体失败的稳定错误码（供调用方完整展示/重试，
-// 不吞细节也不泄露内部错误文本）。
-type BatchItemError struct {
-	AccountID string `json:"accountId"`
-	Code      string `json:"code"`
+// BatchItemSuccess 是批量操作中成功处理的资源引用。
+type BatchItemSuccess struct {
+	ResourceID string `json:"resourceId"`
+}
+
+// BatchItemFailure 是批量操作中单个资源的稳定失败语义。Message 只输出受控
+// 文案键，原始错误仍停留在服务端；Retryable 明确告知客户端是否适合逐项重试。
+type BatchItemFailure struct {
+	ResourceID string `json:"resourceId"`
+	Code       string `json:"code"`
+	Message    string `json:"message"`
+	Retryable  bool   `json:"retryable"`
+}
+
+// BatchResult 是批量 mutation 的完整稳定结果，可按幂等键安全重放。
+type BatchResult struct {
+	RequestedCount int                `json:"requestedCount"`
+	ProcessedCount int                `json:"processedCount"`
+	Succeeded      []BatchItemSuccess `json:"succeeded"`
+	Failed         []BatchItemFailure `json:"failed"`
+	CorrelationID  string             `json:"correlationId,omitempty"`
 }
 
 const (
@@ -1070,33 +1090,113 @@ func batchItemErrorCode(err error) string {
 	}
 }
 
-// BatchSetAccountStatus 批量启停账号：逐账号复用 SetAccountStatus 的完整安全语义
-// （owner 不变量/安全 revision/session 撤销/审计）；单个失败不中止，全部结束后
-// 返回成功/失败计数与逐条稳定错误码。
-func (s *Service) BatchSetAccountStatus(ctx context.Context, accountIDs []string, status model.AccountStatus) (processed, failed int, itemErrors []BatchItemError) {
-	for _, id := range accountIDs {
-		if err := s.SetAccountStatus(ctx, id, status); err != nil {
-			failed++
-			itemErrors = append(itemErrors, BatchItemError{AccountID: id, Code: batchItemErrorCode(err)})
-			continue
-		}
-		processed++
-	}
-	return processed, failed, itemErrors
+func batchItemFailure(resourceID string, err error) BatchItemFailure {
+	code := batchItemErrorCode(err)
+	return BatchItemFailure{ResourceID: resourceID, Code: code, Message: code, Retryable: false}
 }
 
-// BatchArchiveAccounts 批量归档账号：逐账号复用 ArchiveAccount 语义；单个失败
-// 不中止，返回统计与逐条稳定错误码。
-func (s *Service) BatchArchiveAccounts(ctx context.Context, accountIDs []string) (processed, failed int, itemErrors []BatchItemError) {
-	for _, id := range accountIDs {
-		if err := s.ArchiveAccount(ctx, id); err != nil {
-			failed++
-			itemErrors = append(itemErrors, BatchItemError{AccountID: id, Code: batchItemErrorCode(err)})
-			continue
+// BatchSetAccountStatusIdempotent 批量启停账号：逐账号复用完整安全语义，
+// 单项失败不中止，并按 Idempotency-Key 稳定重放同一完整结果。
+func (s *Service) BatchSetAccountStatusIdempotent(ctx context.Context, key, correlationID string, accountIDs []string, status model.AccountStatus) (BatchResult, error) {
+	return s.runBatchIdempotent(ctx, "iam.accounts.status.batch", key, struct {
+		AccountIDs []string            `json:"accountIds"`
+		Status     model.AccountStatus `json:"status"`
+	}{AccountIDs: accountIDs, Status: status}, func() BatchResult {
+		result := BatchResult{RequestedCount: len(accountIDs), Succeeded: []BatchItemSuccess{}, Failed: []BatchItemFailure{}, CorrelationID: correlationID}
+		for _, id := range accountIDs {
+			if err := s.SetAccountStatus(ctx, id, status); err != nil {
+				result.ProcessedCount++
+				result.Failed = append(result.Failed, batchItemFailure(id, err))
+				continue
+			}
+			result.ProcessedCount++
+			result.Succeeded = append(result.Succeeded, BatchItemSuccess{ResourceID: id})
 		}
-		processed++
+		return result
+	})
+}
+
+// BatchArchiveAccountsIdempotent 批量归档账号，并按 Idempotency-Key 稳定重放结果。
+func (s *Service) BatchArchiveAccountsIdempotent(ctx context.Context, key, correlationID string, accountIDs []string) (BatchResult, error) {
+	return s.runBatchIdempotent(ctx, "iam.accounts.archive.batch", key, struct {
+		AccountIDs []string `json:"accountIds"`
+	}{AccountIDs: accountIDs}, func() BatchResult {
+		result := BatchResult{RequestedCount: len(accountIDs), Succeeded: []BatchItemSuccess{}, Failed: []BatchItemFailure{}, CorrelationID: correlationID}
+		for _, id := range accountIDs {
+			if err := s.ArchiveAccount(ctx, id); err != nil {
+				result.ProcessedCount++
+				result.Failed = append(result.Failed, batchItemFailure(id, err))
+				continue
+			}
+			result.ProcessedCount++
+			result.Succeeded = append(result.Succeeded, BatchItemSuccess{ResourceID: id})
+		}
+		return result
+	})
+}
+
+func (s *Service) runBatchIdempotent(ctx context.Context, operation, key string, payload any, execute func() BatchResult) (BatchResult, error) {
+	key = strings.TrimSpace(key)
+	if key == "" {
+		return execute(), nil
 	}
-	return processed, failed, itemErrors
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return BatchResult{}, fmt.Errorf("iam batch request hash: %w", err)
+	}
+	digest := sha256.Sum256(body)
+	requestHash := hex.EncodeToString(digest[:])
+	var existing repo.IdempotencyRecord
+	claimed := false
+	err = s.store.Use(ctx, func(r *repo.Unit) error {
+		existing, err = r.IdempotencyByKey(ctx, operation, key)
+		if err == nil {
+			return nil
+		}
+		if !repo.IsNotFound(err) {
+			return err
+		}
+		record := &repo.IdempotencyRecord{Operation: operation, IdempotencyKey: key, RequestHash: requestHash, ResultJSON: "{}", CreatedAt: s.clock.Now().UTC()}
+		if err := r.CreateIdempotency(ctx, record); err != nil {
+			if !repo.IsDuplicate(err) {
+				return err
+			}
+			existing, err = r.IdempotencyByKey(ctx, operation, key)
+			return err
+		}
+		existing = *record
+		claimed = true
+		return nil
+	})
+	if err != nil {
+		return BatchResult{}, err
+	}
+	if existing.RequestHash != requestHash {
+		return BatchResult{}, ErrIdempotencyConflict
+	}
+	if existing.Completed {
+		var result BatchResult
+		if existing.ResultJSON != "" {
+			if err := json.Unmarshal([]byte(existing.ResultJSON), &result); err != nil {
+				return BatchResult{}, fmt.Errorf("iam batch idempotency result: %w", err)
+			}
+		}
+		return result, nil
+	}
+	if !claimed {
+		return BatchResult{}, ErrIdempotencyInProgress
+	}
+	result := execute()
+	resultJSON, err := json.Marshal(result)
+	if err != nil {
+		return BatchResult{}, fmt.Errorf("iam batch idempotency result: %w", err)
+	}
+	if err := s.store.Use(ctx, func(r *repo.Unit) error {
+		return r.CompleteIdempotency(ctx, operation, key, string(resultJSON))
+	}); err != nil {
+		return BatchResult{}, err
+	}
+	return result, nil
 }
 
 // ArchiveAccount 把账号置为归档终态：归档账号不可登录、不可分配、全部 Session

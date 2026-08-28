@@ -370,6 +370,10 @@ func serviceError(err error) error {
 		return statusError(http.StatusForbidden, "account_disabled", err)
 	case errors.Is(err, service.ErrApiTokenScopeNotOwned):
 		return statusError(http.StatusForbidden, "api_token_scope_not_owned", err)
+	case errors.Is(err, service.ErrIdempotencyConflict):
+		return statusError(http.StatusConflict, "idempotency_conflict", err)
+	case errors.Is(err, service.ErrIdempotencyInProgress):
+		return statusError(http.StatusConflict, "idempotency_in_progress", err)
 	case errors.Is(err, service.ErrSetupClosed), errors.Is(err, model.ErrOwnerInvariant), errors.Is(err, service.ErrImmutableOwner), errors.Is(err, service.ErrUnknownPermission), errors.Is(err, service.ErrVersionConflict), errors.Is(err, service.ErrPasswordReused), errors.Is(err, service.ErrMFANotBound), errors.Is(err, service.ErrApiTokenLimit), repo.IsDuplicate(err), repo.IsConflict(err):
 		return statusError(http.StatusConflict, "conflict", err)
 	case repo.IsNotFound(err):

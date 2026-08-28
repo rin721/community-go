@@ -699,6 +699,25 @@ func (unit *Unit) FindOldestActiveSession(ctx context.Context, accountID string,
 	return record, err
 }
 
+// IdempotencyByKey 返回指定 operation/key 的已占用批量结果。
+func (unit *Unit) IdempotencyByKey(ctx context.Context, operation, key string) (IdempotencyRecord, error) {
+	var record IdempotencyRecord
+	err := unit.useDB(ctx, func(db *gorm.DB) error {
+		return db.Table(idempotencyTable).Where("operation = ? AND idempotency_key = ?", operation, key).First(&record).Error
+	})
+	return record, err
+}
+
+// CreateIdempotency 先占用 operation/key；唯一键保证并发请求只有一个执行者。
+func (unit *Unit) CreateIdempotency(ctx context.Context, record *IdempotencyRecord) error {
+	return unit.useDB(ctx, func(db *gorm.DB) error { return db.Table(idempotencyTable).Create(record).Error })
+}
+
+// CompleteIdempotency 写入批量操作的完整稳定结果。
+func (unit *Unit) CompleteIdempotency(ctx context.Context, operation, key, resultJSON string) error {
+	return unit.update(ctx, idempotencyTable, "operation = ? AND idempotency_key = ?", []any{operation, key}, map[string]any{"result_json": resultJSON, "completed": true})
+}
+
 func (unit *Unit) update(ctx context.Context, table, condition string, arguments []any, values map[string]any) error {
 	return unit.useDB(ctx, func(db *gorm.DB) error {
 		return db.Table(table).Where(condition, arguments...).Updates(values).Error

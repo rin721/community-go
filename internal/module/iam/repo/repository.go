@@ -21,6 +21,7 @@ const (
 	apiTokenTable        = "iam_api_tokens"
 	mfaSecretTable       = "iam_totp_secrets"
 	mfaRecoveryCodeTable = "iam_mfa_recovery_codes"
+	idempotencyTable     = "iam_idempotency_records"
 )
 
 type Access interface {
@@ -102,6 +103,14 @@ type RolePermissionRecord struct {
 	RoleID, PermissionKey string
 	Active                bool
 	UpdatedAt             time.Time
+}
+
+// IdempotencyRecord 保存批量写操作的稳定结果，避免客户端重试重复执行。
+type IdempotencyRecord struct {
+	Operation, IdempotencyKey, RequestHash string
+	ResultJSON                             string
+	Completed                              bool
+	CreatedAt                              time.Time
 }
 type SessionRecord struct {
 	IDHash                                                  []byte

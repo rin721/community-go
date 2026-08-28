@@ -352,33 +352,56 @@ components:
         - accountIds
         - status
       type: object
-    BatchItemError:
+    BatchItemFailure:
       additionalProperties: false
       properties:
-        accountId:
-          type: string
         code:
           type: string
+        message:
+          type: string
+        resourceId:
+          type: string
+        retryable:
+          type: boolean
       required:
-        - accountId
+        - resourceId
         - code
+        - message
+        - retryable
+      type: object
+    BatchItemSuccess:
+      additionalProperties: false
+      properties:
+        resourceId:
+          type: string
+      required:
+        - resourceId
       type: object
     BatchResultOutput:
       additionalProperties: false
       properties:
-        errors:
+        correlationId:
+          type: string
+        failed:
           items:
-            $ref: "#/components/schemas/BatchItemError"
+            $ref: "#/components/schemas/BatchItemFailure"
           nullable: true
           type: array
-        failed:
+        processedCount:
           format: int64
           type: integer
-        processed:
+        requestedCount:
           format: int64
           type: integer
+        succeeded:
+          items:
+            $ref: "#/components/schemas/BatchItemSuccess"
+          nullable: true
+          type: array
       required:
-        - processed
+        - requestedCount
+        - processedCount
+        - succeeded
         - failed
       type: object
     ChangePasswordInputBody:
@@ -1651,6 +1674,13 @@ paths:
           required: true
           schema:
             type: string
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema:
+            maxLength: 128
+            minLength: 1
+            type: string
       requestBody:
         content:
           application/json:
@@ -1691,6 +1721,13 @@ paths:
           name: X-CSRF-Token
           required: true
           schema:
+            type: string
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema:
+            maxLength: 128
+            minLength: 1
             type: string
       requestBody:
         content:

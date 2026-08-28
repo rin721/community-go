@@ -49,7 +49,6 @@ export default function AccountsPage() {
   const [expectedVersion, setExpectedVersion] = useState(0);
   const [message, setMessage] = useState("");
   const [resetPassword, setResetPassword] = useState("");
-  const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [renameValue, setRenameValue] = useState("");
   const [archiveError, setArchiveError] = useState(false);
@@ -59,21 +58,24 @@ export default function AccountsPage() {
   const [detailRoleError, setDetailRoleError] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const page = listQuery.page;
+  const sortKey = listQuery.sort?.key;
+  const sortDirection = listQuery.sort?.direction;
   const refresh = useCallback((nextPage = page) => {
     setLoading(true);
     setLoadError(false);
     const status = listQuery.filters.status === "active" || listQuery.filters.status === "disabled" ? listQuery.filters.status : undefined;
     const sortMap: Record<string, string> = { displayName: "display_name", username: "username", status: "status" };
-    const sortKey = listQuery.sort ? sortMap[listQuery.sort.key] : undefined;
-    const sort = sortKey && listQuery.sort ? `${sortKey}:${listQuery.sort.direction}` : undefined;
+    const mappedSortKey = sortKey ? sortMap[sortKey] : undefined;
+    const sort = mappedSortKey && sortDirection ? `${mappedSortKey}:${sortDirection}` : undefined;
     return listAccounts(listQuery.filters.query, (nextPage - 1) * PAGE_SIZE, PAGE_SIZE, { status, archived: listQuery.filters.archived, roleId: listQuery.filters.roleId || undefined, sort }).then((result) => {
       setTotal(result.total);
       setItems(result.items);
       setSelectedID((current) => current && result.items.some((item) => item.id === current) ? current : result.items[0]?.id || "");
     }).catch(() => { setItems([]); setTotal(0); setLoadError(true); }).finally(() => setLoading(false));
-  }, [listQuery.filters.query, listQuery.filters.status, listQuery.filters.archived, listQuery.filters.roleId, listQuery.sort, page]);
+  }, [listQuery.filters.query, listQuery.filters.status, listQuery.filters.archived, listQuery.filters.roleId, sortKey, sortDirection, page]);
   useEffect(() => { void refresh(); void listRoles().then((result) => setRoles(result.items)); }, [refresh]);
-  useEffect(() => { void refresh(); }, [listQuery.filters.query, listQuery.filters.status, listQuery.filters.archived]); // 083: filter URL change reloads from page 1.
+  useEffect(() => { listQuery.setPage(1); }, [listQuery.filters.query, listQuery.filters.status, listQuery.filters.archived, listQuery.filters.roleId, sortKey, sortDirection]);
   const reloadSelection = useCallback((id: string) => {
     if (!id) return;
     if (id === detailAccountID) { setDetailRoleIDs(null); setDetailRoleError(false); }
@@ -136,7 +138,7 @@ export default function AccountsPage() {
         paginationLabel={t("webui.iam.accounts.pagination", { page, total })}
         previousLabel={t("webui.auth.audit.previous")}
         nextLabel={t("webui.auth.audit.next")}
-        onPageChange={(nextPage) => { setPage(nextPage); void refresh(nextPage); }}
+        onPageChange={(nextPage) => listQuery.setPage(nextPage)}
       />}>
         <ResourceIndex aria-label={t("webui.iam.accounts.list.title")} toolbar={<FilterBar
           ariaLabel={t("webui.iam.accounts.filter")}

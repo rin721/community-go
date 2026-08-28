@@ -59,7 +59,6 @@ export default function RolesPage() {
   const [expectedVersion, setExpectedVersion] = useState(0);
   const [permissions, setPermissions] = useState<PermissionDefinition[]>([]);
   const [message, setMessage] = useState("");
-  const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [roleName, setRoleName] = useState("");
   const [roleDescription, setRoleDescription] = useState("");
@@ -67,17 +66,20 @@ export default function RolesPage() {
   const [permissionLoadState, setPermissionLoadState] = useState<"idle" | "loading" | "error">("idle");
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const page = listQuery.page;
+  const sortKey = listQuery.sort?.key;
+  const sortDirection = listQuery.sort?.direction;
   const refresh = useCallback((nextPage = page) => {
     setLoading(true);
     setLoadError(false);
-    return listRoles(listQuery.filters.query, (nextPage - 1) * PAGE_SIZE, PAGE_SIZE, listQuery.sort ? `${listQuery.sort.key}:${listQuery.sort.direction}` : undefined).then((result) => {
+    return listRoles(listQuery.filters.query, (nextPage - 1) * PAGE_SIZE, PAGE_SIZE, sortKey && sortDirection ? `${sortKey}:${sortDirection}` : undefined).then((result) => {
       setTotal(result.total);
       setItems(result.items);
       setSelectedID((current) => current && result.items.some((item) => item.id === current) ? current : result.items[0]?.id || "");
     }).catch(() => { setItems([]); setTotal(0); setLoadError(true); }).finally(() => setLoading(false));
-  }, [listQuery.filters.query, listQuery.sort, page]);
+  }, [listQuery.filters.query, sortKey, sortDirection, page]);
   useEffect(() => { void refresh(); void listPermissions().then(async (result) => { setPermissions(result); await preloadPermissionDescriptions(result); }); }, [refresh]);
-  useEffect(() => { void refresh(); }, [listQuery.filters.query]); // 082: query URL change reloads from page 1.
+  useEffect(() => { listQuery.setPage(1); }, [listQuery.filters.query, sortKey, sortDirection]);
   const reloadSelection = useCallback((id: string) => {
     if (!id) return;
     setPermissionLoadState("loading");
@@ -146,7 +148,7 @@ export default function RolesPage() {
         paginationLabel={t("webui.iam.accounts.pagination", { page, total })}
         previousLabel={t("webui.auth.audit.previous")}
         nextLabel={t("webui.auth.audit.next")}
-        onPageChange={(nextPage) => { setPage(nextPage); void refresh(nextPage); }}
+        onPageChange={(nextPage) => listQuery.setPage(nextPage)}
       />}>
         <ResourceIndex toolbar={<FilterBar
           ariaLabel={t("webui.iam.roles.filter")}

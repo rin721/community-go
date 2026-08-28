@@ -83,6 +83,15 @@ export type ManifestMenu = {
 export type Manifest = { catalogRevision: string; navigationRevision: string; routes: ManifestRoute[]; menu: ManifestMenu[]; zones?: ManifestZone[]; actionPermissions?: ManifestActionPermission[] };
 export type PrincipalView = { id: string; username: string; scopes: string[] };
 
+/** WebUIRequestError 是 HTTP Problem 的低敏客户端投影；页面只消费状态、代码和关联 ID，
+ * 不把服务端 detail 直接当作用户文案。 */
+export type WebUIRequestError = Error & {
+  status?: number;
+  code?: string;
+  detail?: string;
+  requestId?: string;
+};
+
 export type HostRuntime = {
   manifest: Manifest;
   principal?: PrincipalView;
@@ -171,8 +180,7 @@ export async function requestJSON<T>(input: RequestInfo | URL, init?: RequestIni
     headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
   });
   if (!response.ok) {
-    const body = await response.json().catch(() => ({ code: "request_failed" }));
-    throw new Error(typeof body.code === "string" ? body.code : "request_failed");
+    throw await requestError(response);
   }
   return response.status === 204 ? (undefined as T) : response.json();
 }
@@ -182,6 +190,19 @@ export async function requestText(input: RequestInfo | URL, init?: RequestInit):
     return mockRequestText(input, init);
   }
   const response = await fetch(input, { credentials: "include", ...init });
-  if (!response.ok) throw new Error(`request_failed_${response.status}`);
+  if (!response.ok) throw await requestError(response);
   return response.text();
+}
+
+async function requestError(response: Response): Promise<WebUIRequestError> {
+  const body = await response.json().catch(() => ({})) as { code?: unknown; detail?: unknown; instance?: unknown };
+  const code = typeof body.code === "string" && body.code ? body.code : "request_failed";
+  const error = new Error(code) as WebUIRequestError;
+  error.status = response.status;
+  error.code = code;
+  error.detail = typeof body.detail === "string" ? body.detail : undefined;
+  const headerRequestID = response.headers.get("X-Request-ID") ?? undefined;
+  const instance = typeof body.instance === "string" ? body.instance : undefined;
+  error.requestId = headerRequestID ?? (instance?.startsWith("urn:request:") ? decodeURIComponent(instance.slice("urn:request:".length)) : undefined);
+  return error;
 }

@@ -35,7 +35,7 @@
 
 - [ ] BE-090-001 逐资源统一查询、排序、分页/游标和错误语义；前置：R090-003、CONFIRM-090-001；完成证据：OpenAPI、模块测试和生成 registry。
 - [ ] BE-090-002 实现账户/角色核心详情与影响摘要；前置：BE-090-001；完成证据：领域契约、权限、错误与集成测试。
-- [ ] BE-090-003 实现审计 event/correlation/time range/detail 投影；前置：BE-090-001；当前增量：已有自增键已投影为只读 `eventId`，WebUI 已支持 actor/subject digest 与时间范围筛选，并更新 OpenAPI/WebUI；完整 correlationId、游标和详情投影仍待统一契约与查询测试。
+- [ ] BE-090-003 实现审计 event/correlation/time range/detail 投影；前置：BE-090-001；当前增量：已有自增键已投影为只读 `eventId`，WebUI 已支持 actor/subject digest 与时间范围筛选，并更新 OpenAPI/WebUI；客户端 `requestJSON/requestText` 已保留 Problem 的状态、稳定 code、detail 和 requestId 投影，服务端审计 correlationId、游标和详情投影仍待统一契约与查询测试。
 - [ ] BE-090-004 标准化批量结果、幂等和部分失败；前置：BE-090-001；完成证据：多结果与重试测试。
 - [ ] BE-090-005 实现需要跨设备保持的用户偏好契约；前置：BE-090-001；完成证据：默认/覆盖/更新/权限测试。
 

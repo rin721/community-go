@@ -497,3 +497,29 @@ test("090 appearance preferences persist via server in mock mode", async ({ page
   await page.getByRole("option", { name: "Compact", exact: true }).click();
   await expect(densitySelect).toHaveText("Compact");
 });
+
+// 090 PAGE-090-007：OpenAPI 工作台在紧凑视口使用「资源/请求/响应」三段式
+// 导航（每次单面板），切换请求段后资源树隐藏；页面无横向溢出。
+test("090 openapi workspace switches segments on compact viewport", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 390, height: 844 });
+  const activePage = page.locator('.page-viewport:visible').first();
+  await page.goto("/openapi");
+  // 三段式导航出现，默认资源段显示资源树。
+  const segmentNav = activePage.locator('[aria-label="Workspace view"]');
+  await expect(segmentNav).toBeVisible();
+  await expect(activePage.locator('[data-testid="openapi-tree"]')).toBeVisible();
+  // 点击树叶子打开操作（compact 下自动切到请求段）。
+  await activePage.locator('button[data-testid="openapi-tree-leaf"]').first().click();
+  await expect(activePage.locator('[data-testid="openapi-workspace"]')).toBeVisible();
+  await expect(activePage.locator('[data-testid="openapi-tree"]')).toHaveCount(0);
+  // 切回资源段：资源树恢复。
+  await activePage.getByRole("button", { name: "Resources", exact: true }).click();
+  await expect(activePage.locator('[data-testid="openapi-tree"]')).toBeVisible();
+  // 切到响应段：工作台可见（响应区）。
+  await activePage.getByRole("button", { name: "Response", exact: true }).click();
+  await expect(activePage.locator('[data-testid="openapi-workspace"]')).toBeVisible();
+  // 无横向页面溢出。
+  const geometry = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, documentWidth: document.documentElement.scrollWidth }));
+  expect(geometry.documentWidth).toBeLessThanOrEqual(geometry.viewport + 1);
+});

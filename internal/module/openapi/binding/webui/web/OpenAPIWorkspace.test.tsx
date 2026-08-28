@@ -133,4 +133,32 @@ describe("OpenAPIPage workspace shell (R075-009)", () => {
     expect(host.textContent).toContain("Open the first operation");
     unmount();
   });
+
+  it("switches to the compact three-segment nav on a narrow viewport (090 PAGE-090-007)", () => {
+    // 模拟 compact 视口：matchMedia(<768px) 命中。
+    const listeners: Array<{ query: string; fn: (event: { matches: boolean }) => void }> = [];
+    const stub = (query: string) => ({
+      matches: true,
+      media: query,
+      addEventListener: (_type: string, fn: (event: { matches: boolean }) => void) => { listeners.push({ query, fn }); },
+      removeEventListener: () => undefined,
+    });
+    vi.stubGlobal("matchMedia", stub);
+    window.history.replaceState(null, "", "/openapi?op=get-/api/v1/iam/session&mode=docs");
+    const { host, unmount } = render(<HostRuntimeProvider value={hostRuntime()}><OpenAPIPage /></HostRuntimeProvider>);
+    // 三段式导航出现（资源/请求/响应），默认激活资源段。
+    const nav = host.querySelector('[aria-label="Workspace view"]');
+    expect(nav).not.toBeNull();
+    expect(nav!.textContent).toContain("Resources");
+    expect(nav!.textContent).toContain("Request");
+    expect(nav!.textContent).toContain("Response");
+    expect(host.querySelector('[data-testid="openapi-tree"]')).not.toBeNull();
+    // 点击请求段：资源树隐藏，请求区出现。
+    const requestButton = [...host.querySelectorAll("button")].find((candidate) => candidate.textContent?.trim() === "Request");
+    expect(requestButton).toBeDefined();
+    act(() => { requestButton!.click(); });
+    expect(host.querySelector('[data-testid="openapi-tree"]')).toBeNull();
+    expect(host.querySelector('[data-testid="openapi-workspace"]')).not.toBeNull();
+    unmount();
+  });
 });

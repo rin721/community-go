@@ -6,6 +6,7 @@ import { loadSessionSnapshot } from "./api";
 import { RequestPane, type HeaderRow, type ParamEditorRow } from "./RequestPane";
 import { ResponsePane } from "./ResponsePane";
 import { Resizer } from "./Resizer";
+import type { CompactWorkspaceSegment } from "./OpenAPIPage";
 import {
   bodyTypeOptions, buildRequest, executionParameters, formFieldRows, hasSecurityScheme, isMutation,
   requestBodySchema, sampleJSON,
@@ -22,8 +23,10 @@ const INITIAL_RATIO = 0.5;
 // the request pane (URL + send + Params/Body/Headers/Cookies/Auth), the
 // draggable splitter and the response pane. Execution reuses the established
 // same-origin semantics (bearer in-memory token, webuiSession Cookie+CSRF,
-// mock disabled).
-export function OperationWorkspace({ row, schemas }: { row: OperationRow; schemas: Record<string, SchemaObject> | undefined }) {
+// mock disabled). When compactSegment is set (090 compact three-segment mode)
+// only the request or response pane renders; the splitter and the other pane
+// are hidden.
+export function OperationWorkspace({ row, schemas, compactSegment }: { row: OperationRow; schemas: Record<string, SchemaObject> | undefined; compactSegment?: CompactWorkspaceSegment }) {
   const { t } = useWebUITranslation("webui.openapi");
   const params = useMemo(
     () => executionParameters(row).map((p) => ({ name: p.name, value: p.value, kind: "text" as const, required: p.required, description: "", location: p.location })),
@@ -124,42 +127,80 @@ export function OperationWorkspace({ row, schemas }: { row: OperationRow; schema
 
   return <div className={styles.workspaceInner} data-testid="openapi-workspace">
     {!executable && <div className={styles.workspaceAnnounce}><InlineAlert tone="info" title={t("webui.openapi.run.mockDisabled")} /></div>}
-    <div className={styles.requestArea} style={{ "--pane-flex": String(ratio) } as CSSProperties}>
-      <RequestPane
-        method={row.method}
-        url={url}
-        params={paramRows}
-        bodyTypes={bodyTypes}
-        bodyType={bodyType}
-        onBodyTypeChange={setBodyType}
-        bodyText={bodyText}
-        onBodyTextChange={setBodyText}
-        formRows={formRows}
-        onFormChange={(name, value) => setFormRows((rows) => rows.map((fh) => (fh.name === name ? { ...fh, value } : fh)))}
-        onFormFileChange={(name, file) => setFiles((current) => { const next = { ...current }; if (file) next[name] = file; else delete next[name]; return next; })}
-        headers={headerRows}
-        cookies={cookieRows}
-        executable={executable}
-        onParamChange={updateParam}
-        onAddParam={() => setParamRows((rows) => [...rows, { name: "", value: "", kind: "text", required: false, description: "", location: "query" }])}
-        onRemoveParam={(index) => setParamRows((rows) => rows.filter((_, i) => i !== index))}
-        onHeaderChange={(index, patch) => setHeaderRows((rows) => rows.map((h, i) => (i === index ? { ...h, ...patch } : h)))}
-        onAddHeader={() => setHeaderRows((rows) => [...rows, { name: "", value: "" }])}
-        onRemoveHeader={(index) => setHeaderRows((rows) => rows.filter((_, i) => i !== index))}
-        onCookieChange={(index, patch) => setCookieRows((rows) => rows.map((h, i) => (i === index ? { ...h, ...patch } : h)))}
-        onAddCookie={() => setCookieRows((rows) => [...rows, { name: "", value: "" }])}
-        onRemoveCookie={(index) => setCookieRows((rows) => rows.filter((_, i) => i !== index))}
-        bearer={bearerToken}
-        onBearerChange={setBearerToken}
-        hasBearer={hasSecurityScheme(row, "bearerAuth")}
-        hasSession={hasSecurityScheme(row, "webuiSession")}
-        onExecute={() => void execute()}
-        pending={runState.kind === "pending"}
-      />
-    </div>
-    <Resizer ratio={ratio} onRatioChange={setRatio} />
-    <div className={styles.responseArea} style={{ "--pane-flex": String(1 - ratio) } as CSSProperties}>
-      <ResponsePane state={runState} />
-    </div>
+    {compactSegment === "response"
+      ? <div className={styles.responseArea} style={{ "--pane-flex": String(1) } as CSSProperties}>
+          <ResponsePane state={runState} />
+        </div>
+      : compactSegment === "request"
+        ? <div className={styles.requestArea} style={{ "--pane-flex": String(1) } as CSSProperties}>
+            <RequestPane
+              method={row.method}
+              url={url}
+              params={paramRows}
+              bodyTypes={bodyTypes}
+              bodyType={bodyType}
+              onBodyTypeChange={setBodyType}
+              bodyText={bodyText}
+              onBodyTextChange={setBodyText}
+              formRows={formRows}
+              onFormChange={(name, value) => setFormRows((rows) => rows.map((fh) => (fh.name === name ? { ...fh, value } : fh)))}
+              onFormFileChange={(name, file) => setFiles((current) => { const next = { ...current }; if (file) next[name] = file; else delete next[name]; return next; })}
+              headers={headerRows}
+              cookies={cookieRows}
+              executable={executable}
+              onParamChange={updateParam}
+              onAddParam={() => setParamRows((rows) => [...rows, { name: "", value: "", kind: "text", required: false, description: "", location: "query" }])}
+              onRemoveParam={(index) => setParamRows((rows) => rows.filter((_, i) => i !== index))}
+              onHeaderChange={(index, patch) => setHeaderRows((rows) => rows.map((h, i) => (i === index ? { ...h, ...patch } : h)))}
+              onAddHeader={() => setHeaderRows((rows) => [...rows, { name: "", value: "" }])}
+              onRemoveHeader={(index) => setHeaderRows((rows) => rows.filter((_, i) => i !== index))}
+              onCookieChange={(index, patch) => setCookieRows((rows) => rows.map((h, i) => (i === index ? { ...h, ...patch } : h)))}
+              onAddCookie={() => setCookieRows((rows) => [...rows, { name: "", value: "" }])}
+              onRemoveCookie={(index) => setCookieRows((rows) => rows.filter((_, i) => i !== index))}
+              bearer={bearerToken}
+              onBearerChange={setBearerToken}
+              hasBearer={hasSecurityScheme(row, "bearerAuth")}
+              hasSession={hasSecurityScheme(row, "webuiSession")}
+              onExecute={() => void execute()}
+              pending={runState.kind === "pending"}
+            />
+          </div>
+        : <><div className={styles.requestArea} style={{ "--pane-flex": String(ratio) } as CSSProperties}>
+          <RequestPane
+            method={row.method}
+            url={url}
+            params={paramRows}
+            bodyTypes={bodyTypes}
+            bodyType={bodyType}
+            onBodyTypeChange={setBodyType}
+            bodyText={bodyText}
+            onBodyTextChange={setBodyText}
+            formRows={formRows}
+            onFormChange={(name, value) => setFormRows((rows) => rows.map((fh) => (fh.name === name ? { ...fh, value } : fh)))}
+            onFormFileChange={(name, file) => setFiles((current) => { const next = { ...current }; if (file) next[name] = file; else delete next[name]; return next; })}
+            headers={headerRows}
+            cookies={cookieRows}
+            executable={executable}
+            onParamChange={updateParam}
+            onAddParam={() => setParamRows((rows) => [...rows, { name: "", value: "", kind: "text", required: false, description: "", location: "query" }])}
+            onRemoveParam={(index) => setParamRows((rows) => rows.filter((_, i) => i !== index))}
+            onHeaderChange={(index, patch) => setHeaderRows((rows) => rows.map((h, i) => (i === index ? { ...h, ...patch } : h)))}
+            onAddHeader={() => setHeaderRows((rows) => [...rows, { name: "", value: "" }])}
+            onRemoveHeader={(index) => setHeaderRows((rows) => rows.filter((_, i) => i !== index))}
+            onCookieChange={(index, patch) => setCookieRows((rows) => rows.map((h, i) => (i === index ? { ...h, ...patch } : h)))}
+            onAddCookie={() => setCookieRows((rows) => [...rows, { name: "", value: "" }])}
+            onRemoveCookie={(index) => setCookieRows((rows) => rows.filter((_, i) => i !== index))}
+            bearer={bearerToken}
+            onBearerChange={setBearerToken}
+            hasBearer={hasSecurityScheme(row, "bearerAuth")}
+            hasSession={hasSecurityScheme(row, "webuiSession")}
+            onExecute={() => void execute()}
+            pending={runState.kind === "pending"}
+          />
+        </div>
+        <Resizer ratio={ratio} onRatioChange={setRatio} />
+        <div className={styles.responseArea} style={{ "--pane-flex": String(1 - ratio) } as CSSProperties}>
+          <ResponsePane state={runState} />
+        </div></>}
   </div>;
 }

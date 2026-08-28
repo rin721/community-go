@@ -44,6 +44,7 @@
 - 账户批量启停/归档现在要求 `Idempotency-Key`，持久化请求摘要与完整结果并支持安全重放；响应统一返回请求数、处理数、成功资源、逐项稳定失败、可重试标记和 correlation ID，部分成功不再只显示汇总数字。异步 Job 属于 P1/P2，仍按真实规模需求独立研究。
 - 跨设备用户偏好已落地（BE-090-005）：新增 `iam_user_preferences` 表与 `iam:account:self:preferences:read/write` 权限，`GET/PATCH /api/v1/iam/self/preferences` 自服务契约按「默认 < 用户覆盖」返回有效偏好（语言/时区/主题/密度/动效/通知），PATCH 部分字段合并且显式区分「未提交」与「关闭」；设置中心 Appearance/Language 页改由服务端持久化，本地投影同步并保留离线降级提示。
 - 一致查询语义已收敛（BE-090-001）：IAM 账户/角色/会话/API Token 列表排序经服务层白名单校验，非法排序返回稳定 `invalid_request`（账户列表不再静默忽略、其余资源不再落 500）；过大分页在 HTTP 边界稳定拒绝；审计使用服务端游标分页。
+- OpenAPI 工作台完成紧凑化（PAGE-090-007）：wide 保持可调资源栏与编辑/响应分栏，compact（<768px）切换为「资源/请求/响应」三段式单面板导航（`useCompactWorkspace` 容器级断点），长 revision/path/JSON 走自身换行/滚动且不扩大页面宽度，390px 单面板切换 E2E 断言无横向溢出；发送/响应与 mock 禁执行语义保持既有覆盖。
 - HeroUI v3 依赖与 Toast API 已单轨收敛；最新验证中 `pnpm typecheck`、`pnpm lint`、`pnpm test`（51 files / 248 tests）、`pnpm build`、mock 视觉快照以及组织/安全页面 dev E2E 均通过（lint 保留 4 条既有测试文件 warning；build 仅提示大 bundle）。
 
 ## 阅读顺序

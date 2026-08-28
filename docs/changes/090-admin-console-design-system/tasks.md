@@ -47,7 +47,7 @@
 - [ ] PAGE-090-004 迁移组织 Tree、岗位和任职；前置：PATTERN-090-002；当前证据：部门 Tree、岗位目录和账号任职页均使用统一 PageFrame/分栏骨架，任职保存条已呈现 clean/dirty/pending/conflict 状态，组织管理 E2E 覆盖树、岗位与任职编辑；移动预检、成员视图、键盘与响应式矩阵仍待补齐。
 - [ ] PAGE-090-005 迁移设置；前置：PATTERN-090-002、BE-090-005；当前证据：Profile/Security/Account 子页面统一使用 `PageFrame`，Profile/Security 保存操作使用 `StickyActionBar`，Profile/Security 已呈现 dirty/pending 状态，设置组导航与内容宽度 E2E 已通过；Appearance/Language 已接入服务端跨设备偏好（默认合并覆盖、PATCH 部分更新、本地投影同步与离线降级提示）；作用域、完整保存冲突和窄屏矩阵仍待补齐。
 - [ ] PAGE-090-006 重构 Dashboard 与系统状态；前置：SHELL-090-002；当前证据：运维能力卡片已从原始 JSON 改为有限标量事实摘要，并保留加载/失败/重试状态；监控区不再将未接入的宿主磁盘/网络指标伪装成同等重要卡片，而是明确保留接入说明；真实数据来源、口径、行动路径和视觉矩阵仍待补齐。
-- [ ] PAGE-090-007 重构 OpenAPI workbench；前置：SHELL-090-001、PATTERN-090-003；完成证据：三类断点、长内容、发送/响应和无横向页面溢出。
+- [ ] PAGE-090-007 重构 OpenAPI workbench；前置：SHELL-090-001、PATTERN-090-003；当前证据：三类断点（wide 可调资源栏 + 编辑/响应分栏、compact <768px 切换为「资源/请求/响应」三段式导航、每次单面板，树叶子选择后自动切请求段）、长内容（长 revision/path/JSON 进入 `overflow-wrap:anywhere`/面板自身滚动，绝不扩大页面布局宽度）、发送/响应（dev E2E 覆盖 Send/response、mock 禁执行提示）与无横向页面溢出（390px 单面板切换 E2E 断言 scrollWidth≤viewport）。新增 `useCompactWorkspace` 容器级断点 hook 与紧凑段选择器，单元测试覆盖三段式切换、mock E2E 覆盖 390px 单面板切换与溢出断言。
 
 ## 验证与收尾
 

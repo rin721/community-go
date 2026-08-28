@@ -622,6 +622,32 @@
   color: var(--text-muted);
 }
 
+/* ---- 090 compact 三段式导航（PAGE-090-007，design §77） ---- */
+.segmentNav {
+  display: flex;
+  flex: 0 0 auto;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.segmentButton {
+  flex: 1 1 0;
+  padding: 10px var(--space-2);
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: var(--font-scale-sm);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+
+.segmentButtonActive {
+  color: var(--primary-strong);
+  border-bottom-color: var(--primary);
+  background: var(--primary-soft);
+}
+
 @media (max-width: 720px) {
   .workspaceShell .pageMeta {
     overflow-wrap: anywhere;

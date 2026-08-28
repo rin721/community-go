@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checklistCandidates } from "./AccountsPage";
+import { checklistCandidates, sameRoleIDs } from "./AccountsPage";
 import { diffKeys, groupByOwnerModule } from "./RolesPage";
 import { groupByModule } from "./PermissionsPage";
 import { groupScopesByModule } from "./ApiTokensPage";
@@ -29,6 +29,11 @@ describe("IAM management selection", () => {
       { id: "c", code: "archived", name: "Archived", description: "", active: true, archived: true, system: false, version: 1 },
     ];
     expect(checklistCandidates(roles).map((role) => role.id)).toEqual(["a"]);
+  });
+
+  it("treats role order as irrelevant when deciding whether the form is dirty", () => {
+    expect(sameRoleIDs(["role-b", "role-a"], ["role-a", "role-b"])).toBe(true);
+    expect(sameRoleIDs(["role-a"], [])).toBe(false);
   });
 });
 

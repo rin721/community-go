@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActionTrigger, BatchResultSummary, Button, BulkActionBar, Check, CodeText, ConfirmActionTrigger, DataTable, DetailDrawer, Drawer, EmptyState, EntityDetail, ErrorState, Field, FilterBar, FormField, PageFrame, PageHeader, PageSection, Pagination, ResourceIndex, SearchInput, StatusBadge } from "@webui/sdk/ui";
+import { ActionTrigger, BatchResultSummary, Button, BulkActionBar, Check, CodeText, ConfirmActionTrigger, DataTable, DetailDrawer, Drawer, EmptyState, EntityDetail, ErrorState, Field, FilterBar, FormField, PageFrame, PageHeader, PageSection, Pagination, ResourceIndex, SearchInput, StatusBadge, StickyActionBar } from "@webui/sdk/ui";
 import { useListQueryParams, type ProblemError } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { accountRolesView, archiveAccount, batchAccountStatus, batchArchiveAccounts, createAccount, listAccounts, listRoles, replaceAccountRoles, resetAccountPassword, setAccountStatus, updateAccountInfo, type Account, type Role } from "./api";
@@ -18,6 +18,13 @@ export function accountStatusCell(item: Account, t: Translate) {
 export function accountSecurityCell(item: Account, t: Translate) {
   if (item.mustChangePassword) return <StatusBadge status="pending">{t("webui.iam.security.changeRequired")}</StatusBadge>;
   return <CodeText value={String(item.securityRevision)} />;
+}
+
+export function sameRoleIDs(left: ReadonlyArray<string>, right: ReadonlyArray<string>): boolean {
+  if (left.length !== right.length) return false;
+  const normalizedLeft = [...left].sort();
+  const normalizedRight = [...right].sort();
+  return normalizedLeft.every((value, index) => value === normalizedRight[index]);
 }
 
 const PAGE_SIZE = 10;
@@ -46,7 +53,10 @@ export default function AccountsPage() {
   const [password, setPassword] = useState("");
   const [selectedID, setSelectedID] = useState("");
   const [roleIDs, setRoleIDs] = useState<string[]>([]);
+  const [savedRoleIDs, setSavedRoleIDs] = useState<string[]>([]);
   const [expectedVersion, setExpectedVersion] = useState(0);
+  const [roleSaveState, setRoleSaveState] = useState<"clean" | "dirty" | "pending" | "conflict">("clean");
+  const [roleSaving, setRoleSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [resetPassword, setResetPassword] = useState("");
   const [total, setTotal] = useState(0);
@@ -76,36 +86,52 @@ export default function AccountsPage() {
   }, [listQuery.filters.query, listQuery.filters.status, listQuery.filters.archived, listQuery.filters.roleId, sortKey, sortDirection, page]);
   useEffect(() => { void refresh(); void listRoles().then((result) => setRoles(result.items)); }, [refresh]);
   useEffect(() => { listQuery.setPage(1); }, [listQuery.filters.query, listQuery.filters.status, listQuery.filters.archived, listQuery.filters.roleId, sortKey, sortDirection]);
-  const reloadSelection = useCallback((id: string) => {
-    if (!id) return;
+  const reloadSelection = useCallback((id: string, preserveMessage = false): Promise<void> => {
+    if (!id) return Promise.resolve();
     if (id === detailAccountID) { setDetailRoleIDs(null); setDetailRoleError(false); }
-    void accountRolesView(id).then((view) => {
+    return accountRolesView(id).then((view) => {
       setRoleIDs(view.roleIds);
+      setSavedRoleIDs(view.roleIds);
       setExpectedVersion(view.accountVersion);
+      setRoleSaveState("clean");
       if (id === detailAccountID) setDetailRoleIDs(view.roleIds);
-      setRenameValue("");
-      setMessage("");
-      setArchiveError(false);
-    }).catch(() => { if (id === detailAccountID) setDetailRoleError(true); });
+      if (!preserveMessage) {
+        setRenameValue("");
+        setMessage("");
+        setArchiveError(false);
+      }
+    }).catch(() => {
+      if (id === detailAccountID) setDetailRoleError(true);
+      return undefined;
+    });
   }, [detailAccountID]);
-  useEffect(() => { if (selectedID) reloadSelection(selectedID); }, [selectedID, reloadSelection]);
+  useEffect(() => { if (selectedID) void reloadSelection(selectedID); }, [selectedID, reloadSelection]);
   const selected = items.find((item) => item.id === selectedID);
   const candidates = checklistCandidates(roles);
-  const toggle = (id: string) => setRoleIDs((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
-  const save = () => {
-    if (!selected) return;
-    void replaceAccountRoles(selected.id, expectedVersion, roleIDs).then((result) => {
+  const roleDirty = Boolean(selected) && !sameRoleIDs(roleIDs, savedRoleIDs);
+  const toggle = (id: string) => {
+    setRoleSaveState("dirty");
+    setMessage("");
+    setRoleIDs((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+  };
+  const save = (): Promise<void> => {
+    if (!selected || roleSaving || !roleDirty) return Promise.resolve();
+    setRoleSaving(true);
+    setRoleSaveState("pending");
+    return replaceAccountRoles(selected.id, expectedVersion, roleIDs).then((result) => {
       setMessage(`${t("webui.iam.accounts.saved")} +${result.added} −${result.removed}`);
-      return reloadSelection(selected.id);
+      return reloadSelection(selected.id, true);
     }).catch(() => {
-      void accountRolesView(selected.id).then((view) => {
+      return accountRolesView(selected.id).then((view) => {
         const added = view.roleIds.filter((id) => !roleIDs.includes(id)).length;
         const removed = roleIDs.filter((id) => !view.roleIds.includes(id)).length;
         setMessage(t("webui.iam.accounts.conflictResolve", { added, removed }));
         setRoleIDs(view.roleIds);
+        setSavedRoleIDs(view.roleIds);
         setExpectedVersion(view.accountVersion);
+        setRoleSaveState("conflict");
       });
-    });
+    }).finally(() => setRoleSaving(false));
   };
   const rename = () => {
     if (!selected || !renameValue.trim()) return;
@@ -251,10 +277,10 @@ export default function AccountsPage() {
             <div className="page-meta">{t("webui.iam.accounts.revision")} rev {expectedVersion}</div>
             <div className="role-checklist">{candidates.map((role) => <Check key={role.id} checked={roleIDs.includes(role.id)} disabled={selected.archived} onChange={() => toggle(role.id)} className="permission-row">{role.name} ({role.code})</Check>)}</div>
             {message && <p className="page-meta">{message}</p>}
-            <div className="toolbar-actions">
-              <ActionTrigger operationId="iam.accounts.roles.replace" disabled={selected.archived} onAction={save}>{t("webui.iam.accounts.saveRoles")}</ActionTrigger>
+            <StickyActionBar state={roleSaveState} status={roleSaveState === "dirty" ? t("webui.iam.roles.pending") : roleSaveState === "pending" ? t("webui.iam.saving") : roleSaveState === "conflict" ? message : undefined}>
+              <ActionTrigger operationId="iam.accounts.roles.replace" pending={roleSaving} pendingLabel={t("webui.iam.saving")} disabled={selected.archived || !roleDirty} disabledReason={roleSaving ? "busy" : !roleDirty ? "invalid" : undefined} onAction={save}>{t("webui.iam.accounts.saveRoles")}</ActionTrigger>
               <ActionTrigger operationId="iam.accounts.status" variant="secondary" disabled={selected.archived} onAction={() => selected ? setAccountStatus(selected.id, selected.status === "active" ? "disabled" : "active").then(() => refresh()) : undefined}>{selected.status === "active" ? t("webui.iam.accounts.disable") : t("webui.iam.accounts.enable")}</ActionTrigger>
-            </div>
+            </StickyActionBar>
             <div className="toolbar">
               <Field label={t("webui.iam.accounts.resetPassword")} type="password" value={resetPassword} onChange={(event) => setResetPassword(event.target.value)} />
               <ActionTrigger operationId="iam.accounts.password.reset" disabled={selected.archived || resetPassword.length < 15} onAction={() => selected ? resetAccountPassword(selected.id, resetPassword).then(() => setResetPassword("")) : undefined}>{t("webui.iam.accounts.reset")}</ActionTrigger>

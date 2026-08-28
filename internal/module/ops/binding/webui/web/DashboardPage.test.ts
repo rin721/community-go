@@ -25,6 +25,7 @@ describe("诊断摘要投影", () => {
       { key: "active", value: "2" },
       { key: "enabled", value: "true" },
     ]);
+    expect(projectDiagnosticEntries({ status: "ok" }, 0)).toEqual([]);
   });
 });
 

@@ -73,9 +73,10 @@ type DiagnosticEntry = { key: string; value: string };
 
 export function projectDiagnosticEntries(value: unknown, limit = 8): DiagnosticEntry[] {
   if (value === null || typeof value !== "object" || Array.isArray(value)) return [];
+  const entryLimit = Math.max(0, Math.floor(limit));
   return Object.entries(value as Record<string, unknown>)
     .filter(([, entry]) => ["string", "number", "boolean"].includes(typeof entry))
-    .slice(0, limit)
+    .slice(0, entryLimit)
     .map(([key, entry]) => ({ key, value: String(entry) }));
 }
 

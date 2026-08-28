@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useGatedQueries, useQueryClient } from "@webui/sdk/query";
-import { Button, CapabilityBanner, PageFrame, PageHeader, PageSection, RevealList, Skeleton, StatCard, StatGrid, StatusPill, Surface, Toast } from "@webui/sdk/ui";
+import { Button, CapabilityBanner, ErrorState, PageFrame, PageHeader, PageSection, RevealList, Skeleton, StatCard, StatGrid, StatusPill, Surface, Toast } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import type { CapabilityState } from "@webui/sdk/runtime";
 import { booleanCapabilityState, healthCapabilityState, readBuildSnapshot, readRuntimeSnapshot, type RuntimeSnapshot } from "./dashboard-data";
@@ -26,6 +26,13 @@ export function formatUptime(seconds: number, t: (key: string, params?: Record<s
 
 function valueOrFallback(value: string | number | undefined, fallback: string): string {
   return value === undefined ? fallback : String(value);
+}
+
+/** requestIDOf projects only the low-sensitivity identifier used by ErrorState. */
+export function requestIDOf(error: unknown): string | undefined {
+  if (error === null || typeof error !== "object") return undefined;
+  const value = (error as { requestId?: unknown }).requestId;
+  return typeof value === "string" && value.length > 0 ? value : undefined;
 }
 
 function statusLabel(t: (key: string) => string, state: CapabilityState): string {
@@ -137,7 +144,7 @@ export default function DashboardPage() {
 
   const renderGroup = (required: boolean) => {
     const groupOperations = operations.filter((operation) => operation.required === required);
-    return <PageSection title={t(required ? "webui.ops.dashboard.group.core" : "webui.ops.dashboard.group.optional")} description={t(required ? "webui.ops.dashboard.group.coreDetail" : "webui.ops.dashboard.group.optionalDetail")}><RevealList className="ops-grid">{groupOperations.map((operation) => { const index = operations.indexOf(operation); const query = queries[index]; const state = operationCapabilityState(operation.required, query.isPending, query.isError); return <Surface className="diagnostic-card" key={operation.name}><div className="diagnostic-heading"><div className="diagnostic-title"><span className="diagnostic-icon" aria-hidden="true" /><h3>{t(operation.titleMessageID)}</h3></div><div className="diagnostic-actions"><StatusPill state={state}>{query.isPending ? t("webui.ops.dashboard.loading") : query.isError ? t(state === "unavailable" ? "webui.ops.dashboard.unavailable" : "webui.ops.dashboard.degraded") : t("webui.ops.dashboard.available")}</StatusPill>{query.isError && <Button variant="ghost" className="diagnostic-retry" onClick={() => requestRefresh(["ops", operation.name])}>{t("webui.ops.dashboard.retry")}</Button>}</div></div>{query.isPending ? <Skeleton lines={4} label={t("webui.ops.dashboard.loading")} /> : query.isError ? <p className="form-error">{t("webui.ops.dashboard.requestFailed")}</p> : <DiagnosticSummary value={query.data} t={t} />}</Surface>; })}</RevealList></PageSection>;
+    return <PageSection title={t(required ? "webui.ops.dashboard.group.core" : "webui.ops.dashboard.group.optional")} description={t(required ? "webui.ops.dashboard.group.coreDetail" : "webui.ops.dashboard.group.optionalDetail")}><RevealList className="ops-grid">{groupOperations.map((operation) => { const index = operations.indexOf(operation); const query = queries[index]; const state = operationCapabilityState(operation.required, query.isPending, query.isError); return <Surface className="diagnostic-card" key={operation.name}><div className="diagnostic-heading"><div className="diagnostic-title"><span className="diagnostic-icon" aria-hidden="true" /><h3>{t(operation.titleMessageID)}</h3></div><div className="diagnostic-actions"><StatusPill state={state}>{query.isPending ? t("webui.ops.dashboard.loading") : query.isError ? t(state === "unavailable" ? "webui.ops.dashboard.unavailable" : "webui.ops.dashboard.degraded") : t("webui.ops.dashboard.available")}</StatusPill>{query.isError && <Button variant="ghost" className="diagnostic-retry" onClick={() => requestRefresh(["ops", operation.name])}>{t("webui.ops.dashboard.retry")}</Button>}</div></div>{query.isPending ? <Skeleton lines={4} label={t("webui.ops.dashboard.loading")} /> : query.isError ? <ErrorState kind="inline" title={t("webui.ops.dashboard.requestFailed")} requestId={requestIDOf(query.error)} /> : <DiagnosticSummary value={query.data} t={t} />}</Surface>; })}</RevealList></PageSection>;
   };
 
   return <PageFrame variant="dashboard" className={styles.opsModule}>

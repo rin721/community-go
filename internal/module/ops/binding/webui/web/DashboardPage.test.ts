@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatUptime, operationCapabilityState, projectDiagnosticEntries, refreshNoticeTone } from "./DashboardPage";
+import { formatUptime, operationCapabilityState, projectDiagnosticEntries, refreshNoticeTone, requestIDOf } from "./DashboardPage";
 
 describe("Ops capability state", () => {
   it("keeps core failures unavailable", () => {
@@ -26,6 +26,15 @@ describe("诊断摘要投影", () => {
       { key: "enabled", value: "true" },
     ]);
     expect(projectDiagnosticEntries({ status: "ok" }, 0)).toEqual([]);
+  });
+});
+
+describe("诊断错误关联", () => {
+  it("只接受非空字符串 request id", () => {
+    expect(requestIDOf({ requestId: "req-123" })).toBe("req-123");
+    expect(requestIDOf({ requestId: "" })).toBeUndefined();
+    expect(requestIDOf({ requestId: 123 })).toBeUndefined();
+    expect(requestIDOf(null)).toBeUndefined();
   });
 });
 

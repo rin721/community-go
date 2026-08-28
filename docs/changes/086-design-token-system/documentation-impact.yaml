@@ -1,0 +1,32 @@
+schema_version: 1
+change: 086-design-token-system
+areas:
+  - id: webui
+    decision: planned
+    documents:
+      - webui/README.md
+      - docs/development/webui.md
+    reason: 建立唯一 Design Token 系统（primitive→semantic→component 三级）并把公共框架（Header/Sidebar/WorkspaceTabs/Table/Form）的尺寸、颜色、间距、排版收敛到 token；新增 ContentViewport 唯一滚动/宽度容器，业务路由只渲染它；清扫宿主 styles.css 的 magic values / !important / 死规则（含 data-page-width）；扩展 style lint 守护。涉及 webui/src/styles.css、webui/src/components/AppShell.tsx、新增 ContentViewport、webui/src/workspace/WorkspaceOutlet.tsx、webui/src/ui/index.tsx、webui/scripts/style-rules.mjs/lint-architecture.mjs。
+  - id: module
+    decision: planned
+    documents:
+      - docs/development/application-module-development.md
+    reason: 7 个业务模块 binding/webui/web/*.module.css 迁移到 token 引用，裁决 :global 裸选择器与裸色值；新增页面/组件必须复用 token，不得再建平行样式规格。
+  - id: api
+    decision: reviewed-no-change
+    reason: 无后端 API/契约变化；纯前端样式体系重构。
+  - id: configuration
+    decision: reviewed-no-change
+    reason: 无新配置节；density/theme 仍经 localStorage + html data-* 表达。
+  - id: operations
+    decision: reviewed-no-change
+    reason: 样式 token 与布局重构，无运行组件/进程/外部写入变化。
+  - id: docs
+    decision: planned
+    documents:
+      - docs/changes/README.md
+      - docs/changes/086-design-token-system/README.md
+      - docs/changes/086-design-token-system/requirements.md
+      - docs/changes/086-design-token-system/design.md
+      - docs/changes/086-design-token-system/tasks.md
+    reason: 086 变更记录（研究/需求/设计/任务）与索引登记研究与计划；实施确认后更新为完成态并同步 authority。

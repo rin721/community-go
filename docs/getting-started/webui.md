@@ -31,7 +31,7 @@ go run ./cmd/app webui build
 
 浏览器访问 `http://127.0.0.1:8080`（页面与 API 同源，深链如 `/dashboard` 回退到 SPA）。`logger.environment: production` 时缺产物会快速失败，镜像构建期必须装配好 `webui/dist`，运行期容器不含 node。
 
-模式 B 下业务 listener 额外挂载与 management listener（9090）同语义的受保护 facade（`/management/{startupz,livez,readyz,build,diagnostics,metrics}`，GET）：托管 WebUI 的 Ops 页面（`运行状态`、`能力清单`）同源读取真实数据；未知子路径保持 JSON 404、不回退 SPA。诊断/metrics 仍要求会话与 `management:read`，缺失时页面按既有失败语义降级。
+模式 B 下业务 listener 额外挂载与 management listener（9090）同语义的受保护 facade（`/management/{startupz,livez,readyz,build,diagnostics,metrics,metrics-summary}`，GET）：托管 WebUI 的 Ops 页面（`运行状态`、`能力清单`）同源读取真实数据；`/metrics-summary` 为 090 typed 指标投影（key/value/unit/asOf），产品 UI 消费，不再解析 Prometheus 文本。未知子路径保持 JSON 404、不回退 SPA。诊断/metrics 仍要求会话与 `management:read`，缺失时页面按既有失败语义降级。
 
 ## 数据源环境声明与 mock 预览
 

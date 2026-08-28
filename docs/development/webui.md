@@ -57,7 +57,7 @@ WebUI 构建产物由托管前构建脚本统一装配，`config.yaml` 的 `webu
 - `logger.environment: production` 时缺产物快速失败；镜像构建期由 Dockerfile 的 `webui-build` stage 装配 `webui/dist`，distroless runtime 不含 node，运行期不执行脚本。
 - 托管目录/脚本默认值与布局清单的一致性由 `project-layout --check-webui` 质量门禁守护；生产 Service 不运行期读取 `.scaffold/layout.json`。
 - 静态托管只服务 GET/HEAD；`/api`、`/management` 前缀未命中保持 JSON 404/405，不回退 HTML；`/assets/*`（Vite hash 资源）使用不可变缓存头，`index.html` 与其余文件 `no-cache`；`AcceptJSON` 门禁只作用于 API 分组。
-- 模式 B 下业务 listener 挂载受保护 management facade：`/management/{startupz,livez,readyz,build,diagnostics,metrics}`（GET）复用 management listener 同一 handler（`generation.opsModule.ManagementHTTP`，含 `middleware.Management` 预算与 Authenticate/Authorize/metricsAccess 语义），供托管 WebUI 的 Ops 页面（运行状态/能力清单）同源读取真实数据；未知子路径经 chi NotFound 保持 JSON 404，非 GET 保持 JSON 405。路径清单由 `internal/module/ops/binding/http.ManagementRoutePaths()` 单一导出，composition 与模块注册共用，禁止复制字面量。
+- 模式 B 下业务 listener 挂载受保护 management facade：`/management/{startupz,livez,readyz,build,diagnostics,metrics,metrics-summary}`（GET）复用 management listener 同一 handler（`generation.opsModule.ManagementHTTP`，含 `middleware.Management` 预算与 Authenticate/Authorize/metricsAccess 语义），供托管 WebUI 的 Ops 页面（运行状态/能力清单）同源读取真实数据；`/metrics-summary` 是 090 typed 指标投影（key/value/unit/asOf，产品 UI 消费，不再解析 Prometheus 文本）。未知子路径经 chi NotFound 保持 JSON 404，非 GET 保持 JSON 405。路径清单由 `internal/module/ops/binding/http.ManagementRoutePaths()` 单一导出，composition 与模块注册共用，禁止复制字面量。
 
 ## 数据源环境声明与 mock 数据源
 
@@ -198,7 +198,7 @@ zone 贡献的公共字段：`ID`（全局唯一）、`EntryID`（复用 `Bindin
 
 ### 依赖与主题
 
-- 依赖：`@heroui/react@^3.2`、`@heroui/theme@^2.4`、`@heroui/toast@^2.0`、`@heroui/styles@^3.2`、`tailwindcss@^4`（`@tailwindcss/vite`）。
+- 依赖：`@heroui/react@^3.2`、`@heroui/styles@^3.2`、`tailwindcss@^4`（`@tailwindcss/vite`）。090 已单轨移除 HeroUI v2 的 `@heroui/theme` 与 `@heroui/toast` 依赖（Toast 改走 v3 队列 API），不再出现 v2 包。
 - 装配：`vite.config.ts` 挂 `tailwindcss()`；`webui/tailwind.config.js`（content 覆盖宿主 + 模块页面，`darkMode: "class"`，`heroui()` 插件）；`styles.css` 顶部 `@config` + `@import "tailwindcss"`；`main.tsx` 引入 `@heroui/styles/css`（HeroUI v3 的组件静态样式，`@heroui/react/styles.css` 只是占位转发）。
 - 主题：`theme.ts` 的 `applyTheme` 在写 `data-color-scheme` 时同步切换 `<html>` 的 `dark` class（HeroUI 主题层）；preset 仍以既有 CSS 变量驱动，HeroUI 语义色映射列后续优化。
 
@@ -212,7 +212,7 @@ zone 贡献的公共字段：`ID`（全局唯一）、`EntryID`（复用 `Bindin
 | StatusPill | Chip（success/warning/danger/default） |
 | CapabilityBanner / InlineAlert | Alert 复合 |
 | Skeleton / EmptyState | Skeleton / EmptyState |
-| Toast | `@heroui/toast` 队列（App 根挂 `Toast.Provider`） |
+| Toast | `@heroui/react` 的 `toast` 队列（App 根挂 `Toast.Provider`；090 已单轨使用 v3 API，无 v2 `@heroui/toast` 包） |
 | PageSection / StatCard / StatGrid / DataCard | Card 复合 + Tailwind（保留 `page-section/stat-card/data-card` 类钩子与 `data-reveal`） |
 | DataTable | Table（RAC 底座；选择列、loading、empty、`wrapperProps` 滚动劫持语义保留） |
 | Pagination | Pagination 复合（Root/Content/Item/Link/Previous/Next/Ellipsis） |
@@ -226,6 +226,17 @@ zone 贡献的公共字段：`ID`（全局唯一）、`EntryID`（复用 `Bindin
 ### 验证
 
 质量门禁（typecheck/lint/vitest/build/generate:check/e2e/go build）与 067 一致；e2e 新增 `068 heroui adoption`（`.button--primary/.card/.select__trigger` 标记、dark class 联动、截图证据）；bundle 基线已记录（index ~1.06 MB raw / ~310 KB gzip）。
+
+## 成熟后台控制台（090）
+
+090 把 WebUI 演进为正式后台控制台：统一布局、Design Token、业务语义组件与完整管理流程。当前已实施并同步到权威文档的能力：
+
+- **页面骨架与模式组件**：`@webui/sdk/ui` 新增 `PageFrame`（六种变体 list/detail/form/settings/dashboard/workbench）、`ResourceIndex`（摘要 → 查询工具栏 → 数据表 → 批量操作条 → 分页）、`EntityDetail`（身份/状态头部 + 分区）、`StickyActionBar`（clean/dirty/pending/conflict 四态 + 窄屏固定）、`FilterBar`/`ActiveFilters`（筛选 URL 状态与逐项清除）；账户/角色/权限/会话/API Token/审计/岗位列表统一复用。
+- **一致查询语义**：IAM 列表资源排序经服务层白名单校验，非法排序返回稳定 `invalid_request`；过大分页稳定拒绝；审计使用服务端 `(occurredAt,eventId)` keyset 游标分页（`cursor`/`nextCursor`/`hasMore`）。
+- **跨设备用户偏好**：`GET/PATCH /api/v1/iam/self/preferences` 自服务契约（默认 < 用户覆盖），Appearance/Language 设置页服务端持久化。
+- **typed 指标投影**：`/management/metrics-summary` 返回稳定 key/value/unit/asOf，产品 UI 不再解析 Prometheus 文本（design §8）。
+- **OpenAPI 工作台紧凑化**：wide 可调资源栏 + 编辑/响应分栏；compact（<768px）切换「资源/请求/响应」三段式单面板导航（`useCompactWorkspace` 容器级断点）。
+- **单轨清理**：HeroUI v2（`@heroui/theme`/`@heroui/toast`）已移除；`org-tree-inspector` 旧双栏与死 Footer CSS 已删除。
 
 ## 页面模板与布局规范（069）
 

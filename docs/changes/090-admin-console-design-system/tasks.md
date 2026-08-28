@@ -29,7 +29,7 @@
 - [ ] PATTERN-090-002 实现 EntityDetail、FormPage、SettingsForm 与 StickyActionBar；前置：FE-090-003、SHELL-090-002；当前证据：账户/角色管理区已使用 `EntityDetail` 的身份/状态头部，IAM/Settings Security、Profile、组织部门编辑和任职编辑表单已接入 `PageFrame`/`StickyActionBar`，列表分页已统一复用 `Pagination`；`StickyActionBar` 现支持 clean/dirty/pending/conflict 状态、状态播报与窄屏固定，Profile 与 Security 已接入 dirty/pending，Profile 已接入 conflict；完整详情页冲突/关系状态流程仍由后续页面任务补齐，结构单测通过。
 - [ ] PATTERN-090-003 实现 BatchOperation 与统一 Feedback matrix；前置：PATTERN-090-001；当前增量：账户批量操作已复用 `BatchResultSummary`，统一呈现汇总与逐项失败码；同步、部分失败和异步 Job 的完整适配测试仍待后端幂等/Job 契约。
 - [x] PATTERN-090-004 实现 Global Search、Command registry、Action 层级和权限/availability 投影；前置：FE-090-003、SHELL-090-001；完成证据：`webui/src/commands/registry.ts` 统一投影可访问/可加载路由与宿主动作，`AppShell` 注册主题/模式/退出命令，`RouteSearch` 统一键盘选择、动作元数据和危险动作确认入口；`registry.test.ts`、`route-search.test.ts` 覆盖权限过滤、可用性过滤、关键词检索和 ARIA 语义。
-- [ ] PATTERN-090-005 以真实指标完成 Statistic/Chart spike 并实现可解释可视化契约；前置：BE-090-001；当前证据：Dashboard 运维卡片已将标量响应投影为结构化事实列表，避免主界面直接倾倒原始 JSON；真实历史指标、数据口径、可访问数据表、响应式与 bundle 测量仍待补齐。
+- [ ] PATTERN-090-005 以真实指标完成 Statistic/Chart spike 并实现可解释可视化契约；前置：BE-090-001；当前证据：Dashboard 运维卡片已将标量响应投影为结构化事实列表，避免主界面直接倾倒原始 JSON；Monitoring 只展示已有进程指标，未接入的宿主磁盘/网络遥测改为说明文本，不再伪装为同等重要数据卡片；真实历史指标、数据口径、可访问数据表与 bundle 测量仍待补齐。
 
 ## 后端 P0
 
@@ -46,7 +46,7 @@
 - [ ] PAGE-090-003 迁移审计；前置：PATTERN-090-001、BE-090-003；当前证据：筛选器已覆盖 operation/action/outcome/actor/subject/resource/time range，事件详情保留低敏字段与 JSON 视图；correlation 关联、视觉矩阵与完整查询测试仍待补齐。
 - [ ] PAGE-090-004 迁移组织 Tree、岗位和任职；前置：PATTERN-090-002；当前证据：部门 Tree、岗位目录和账号任职页均使用统一 PageFrame/分栏骨架，任职保存条已呈现 clean/dirty/pending/conflict 状态，组织管理 E2E 覆盖树、岗位与任职编辑；移动预检、成员视图、键盘与响应式矩阵仍待补齐。
 - [ ] PAGE-090-005 迁移设置；前置：PATTERN-090-002、BE-090-005；当前证据：Profile/Security/Account 子页面统一使用 `PageFrame`，Profile/Security 保存操作使用 `StickyActionBar`，Profile/Security 已呈现 dirty/pending 状态，设置组导航与内容宽度 E2E 已通过；作用域、完整保存冲突和窄屏矩阵仍待补齐。
-- [ ] PAGE-090-006 重构 Dashboard 与系统状态；前置：SHELL-090-002；当前证据：运维能力卡片已从原始 JSON 改为有限标量事实摘要，并保留加载/失败/重试状态；真实数据来源、口径、行动路径和视觉矩阵仍待补齐。
+- [ ] PAGE-090-006 重构 Dashboard 与系统状态；前置：SHELL-090-002；当前证据：运维能力卡片已从原始 JSON 改为有限标量事实摘要，并保留加载/失败/重试状态；监控区不再将未接入的宿主磁盘/网络指标伪装成同等重要卡片，而是明确保留接入说明；真实数据来源、口径、行动路径和视觉矩阵仍待补齐。
 - [ ] PAGE-090-007 重构 OpenAPI workbench；前置：SHELL-090-001、PATTERN-090-003；完成证据：三类断点、长内容、发送/响应和无横向页面溢出。
 
 ## 验证与收尾

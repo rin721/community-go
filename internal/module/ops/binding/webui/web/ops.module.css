@@ -70,6 +70,8 @@
    不再用渐变和彩色大面积背景制造装饰性噪声。 */
 .opsModule :global(.ops-metric-card) { display: grid; gap: var(--space-3); min-height: 158px; padding: 0; border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--border); box-shadow: none; margin-top: var(--space-4); }
 .opsModule :global(.ops-metric-grid) { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-3); margin-top: var(--space-4); }
+.opsModule :global(.ops-monitoring-metric-grid) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.opsModule :global(.ops-monitoring-note) { margin: var(--space-2) 0 0; color: var(--text-muted); font-size: var(--font-scale-xs); line-height: var(--font-lineheight-loose); }
 .opsModule :global(.ops-metric-tile) { position: relative; display: grid; gap: var(--space-1); min-height: 66px; padding: var(--space-3) var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-md); color: var(--text); background: var(--surface); box-shadow: none; overflow: hidden; }
 .opsModule :global(.ops-metric-tile)::before { position: absolute; inset: 0 auto 0 0; width: var(--state-indicator-width); content: ""; background: var(--primary); }
 .opsModule :global(.ops-metric-tile strong) { color: var(--text); font-size: var(--font-scale-metric-value); line-height: var(--font-lineheight-tight); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }

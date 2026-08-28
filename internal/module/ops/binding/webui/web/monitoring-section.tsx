@@ -97,12 +97,11 @@ export function MonitoringSection() {
       detail={latest ? t("webui.ops.dashboard.monitoring.sampled", { seconds: Math.max(0, Math.round((Date.now() - latest.at) / 1000)) }) : t("webui.ops.dashboard.monitoring.waiting")}
     />
 
-    <div className="ops-metric-grid">
+    <div className="ops-metric-grid ops-monitoring-metric-grid">
       <ServerMetricCard title={t("webui.ops.dashboard.monitoring.cpu")} value={cpuPercent === undefined ? missing : cpuPercent.toFixed(1)} unit="%" percent={cpuPercent} trend={cpuSeries} trendLabel={t("webui.ops.dashboard.monitoring.cpuTrend")} state={cpuPercent === undefined ? "unavailable" : cpuPercent > 85 ? "unavailable" : cpuPercent > 65 ? "degraded" : "available"} stateLabel={cpuPercent === undefined || cpuPercent > 85 ? t("webui.ops.dashboard.monitoring.banner.unavailable") : cpuPercent > 65 ? t("webui.ops.dashboard.monitoring.banner.degraded") : t("webui.ops.dashboard.monitoring.banner.available")} detail={t("webui.ops.dashboard.monitoring.cpuDetail")} />
       <ServerMetricCard title={t("webui.ops.dashboard.monitoring.memory")} value={formatBytes(memAllocBytes, missing)} percent={memPercent} trend={memSeries} trendLabel={t("webui.ops.dashboard.monitoring.memoryTrend")} state={memPercent === undefined ? "unavailable" : memPercent > 90 ? "unavailable" : memPercent > 75 ? "degraded" : "available"} stateLabel={memPercent === undefined || memPercent > 90 ? t("webui.ops.dashboard.monitoring.banner.unavailable") : memPercent > 75 ? t("webui.ops.dashboard.monitoring.banner.degraded") : t("webui.ops.dashboard.monitoring.banner.available")} detail={t("webui.ops.dashboard.monitoring.memoryDetail")} />
-      <ServerMetricCard title={t("webui.ops.dashboard.monitoring.disk")} value={t("webui.ops.dashboard.monitoring.notConnected")} trend={[]} trendLabel={t("webui.ops.dashboard.monitoring.diskTrend")} state="unavailable" stateLabel={t("webui.ops.dashboard.monitoring.banner.unavailable")} detail={t("webui.ops.dashboard.monitoring.diskDetail")} />
-      <ServerMetricCard title={t("webui.ops.dashboard.monitoring.network")} value={t("webui.ops.dashboard.monitoring.notConnected")} trend={[]} trendLabel={t("webui.ops.dashboard.monitoring.networkTrend")} state="unavailable" stateLabel={t("webui.ops.dashboard.monitoring.banner.unavailable")} detail={t("webui.ops.dashboard.monitoring.networkDetail")} />
     </div>
+    <p className="ops-monitoring-note">{t("webui.ops.dashboard.monitoring.process.detail")}</p>
 
     <div className="ops-monitoring-lower">
       <div className="ops-overview-card">

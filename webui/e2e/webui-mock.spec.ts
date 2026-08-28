@@ -526,3 +526,25 @@ test("090 openapi workspace switches segments on compact viewport", async ({ pag
   const geometry = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, documentWidth: document.documentElement.scrollWidth }));
   expect(geometry.documentWidth).toBeLessThanOrEqual(geometry.viewport + 1);
 });
+
+// 090 PAGE-090-002：API Token 一次性 secret 完整流程（mock）——创建后展示
+// secret，轮换后展示新 secret，旧 secret 不再出现。
+test("090 api token one-time secret flow renders in mock mode", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const activePage = page.locator('.page-viewport:visible').first();
+  await page.goto("/admin/api-tokens");
+  await expect(activePage.getByRole("heading", { name: "API tokens", exact: true })).toBeVisible();
+  // 创建令牌：填写名称并选择至少一个 scope（mock 会话权限包含 iam:account:read）。
+  const nameInput = activePage.getByRole("textbox", { name: "Name", exact: true }).first();
+  await nameInput.fill("e2e-token");
+  await activePage.getByRole("checkbox", { name: "iam:account:read", exact: true }).check();
+  // 有效期默认 custom；填写过期时间（datetime-local input）。
+  await activePage.locator("input[type='datetime-local']").fill("2027-01-01T00:00");
+  await activePage.getByRole("button", { name: "Create token", exact: true }).click();
+  // 一次性 secret 展示（mock 固定 secret）。
+  await expect(activePage.getByText("Token created")).toBeVisible();
+  await expect(activePage.getByText("iam_mock-api-token-secret")).toBeVisible();
+  // 轮换：API Token 行菜单的主操作即 Rotate（首个非危险项），点击后展示新 secret。
+  await activePage.locator(".data-table-row-menu .data-table-row-primary").first().click();
+  await expect(activePage.getByText("iam_mock-rotated-secret")).toBeVisible();
+});

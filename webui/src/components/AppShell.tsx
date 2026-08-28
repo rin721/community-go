@@ -15,7 +15,7 @@ import { AppHeader } from "./shell/AppHeader";
 import { buildMenuTree, findMenuAncestors, type SidebarMenuEntry } from "./shell/SidebarMenu";
 import { WorkspaceTabs } from "./shell/WorkspaceTabs";
 import { WorkspaceOutlet } from "../workspace/WorkspaceOutlet";
-import { useWorkspaceHost, workspaceLocationOf, workspacePolicyOf } from "../workspace/WorkspaceProvider";
+import { deriveContextKey, routeIsFormal, useWorkspaceHost, workspaceLocationOf } from "../workspace/WorkspaceProvider";
 import type { WorkspaceTabView } from "../workspace/registry";
 
 export { buildMenuTree, findMenuAncestors, shouldIsolateMobileSidebar };
@@ -51,21 +51,28 @@ export function AppShell({ manifest, principal, onLogout }: { manifest: Manifest
   const localeEligibleRoutes = useMemo(() => accessibleRoutes.filter((route) => route.availability === "available" || (route.availability === "degraded" && (route.availableCapabilities?.length ?? 0) > 0)), [accessibleRoutes]);
   const menu = useMemo(() => buildMenuTree(manifest.menu.map((item) => ({ item, route: accessibleRoutes.find((route) => route.id === item.routeId) })).filter((value): value is { item: NonNullable<typeof manifest.menu>[number]; route: ManifestRoute } => Boolean(value.route))), [accessibleRoutes, manifest.menu]);
   const currentRoute: ManifestRoute | undefined = manifest.routes.find((route) => route.path === location.pathname);
-  // 085：普通 route 激活时保留已打开标签但清空活动工作区（REQ-085-003/007）；
-  // singleton workspace 路由在导航时打开/激活。效果只依赖路由与位置（不依赖
-  // registry 对象），避免关闭标签后被同一渲染循环重新创建。
+  // 085 Rev.2：所有正式路由在导航时自动打开/激活标签（不要求路由显式声明）；
+  // Dashboard（default route）作为固定首页标签；动态详情按 pathname 差异生成独立
+  // 标签。效果只依赖路由与位置（不依赖 registry 对象），避免关闭标签后被同一渲染
+  // 循环重新创建；blank 布局（登录/初始化）在 AppShell 之外，不生成标签。
   const hostRef = useRef(host);
   hostRef.current = host;
   useEffect(() => {
     if (!currentRoute) return;
-    const policy = workspacePolicyOf(currentRoute);
-    if (!policy || policy.mode === "disabled") {
-      hostRef.current.deactivateWorkspace();
+    if (routeIsFormal(currentRoute)) {
+      const contextKey = deriveContextKey(currentRoute, location.pathname);
+      hostRef.current.openWorkspace({
+        routeID: currentRoute.id,
+        path: currentRoute.path,
+        location: workspaceLocationOf(location.pathname, location.search),
+        contextKey,
+        restoreKey: contextKey,
+        isDefaultHome: currentRoute.default === true,
+      });
       return;
     }
-    if (policy.mode === "singleton" && currentRoute.access === "allowed" && routeIsLoadable(currentRoute)) {
-      hostRef.current.openWorkspace({ routeID: currentRoute.id, policy, location: workspaceLocationOf(location.pathname, location.search) });
-    }
+    // 非正式路由（如被 access 门禁拒绝的页面）不生成标签，清空活动标签。
+    hostRef.current.deactivateWorkspace();
   }, [currentRoute, location.pathname, location.search]);
   useEffect(() => setCollapsed(theme.layout.sidebarCollapsed), [theme.layout.sidebarCollapsed]);
   useEffect(() => { void Promise.allSettled(localeEligibleRoutes.map(ensureRouteLocale)); }, [localeEligibleRoutes]);

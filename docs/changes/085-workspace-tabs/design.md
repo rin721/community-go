@@ -1,8 +1,8 @@
-# 085 设计方案：Workspace Tabs
+# 085 设计方案：页面标签栏（Rev.2：自动页面标签）
 
 引用研究：[R085-001](research/R085-001-current-workspace-tab-boundary/report.md)；需求见 [requirements.md](requirements.md)。
 
-> 实施状态：本方案已获确认并全部落地，实现细节以代码为准；变更记录与逐任务证据见 [tasks.md](tasks.md)。关键收敛：mounted panels 通过共享 `ManifestRouteView`/`renderAppRoutes` + 面板内固定 `<Routes location>` 实现；singleton 打开由 AppShell 导航效果驱动（避免关闭后被同一渲染循环重开）；恢复使用 `hydrate` 并入而非整体替换；`workspace-tabs` zone 因零真实贡献方从 Go/TS contract 与生成链删除。
+> 实施状态：Rev.2 已按用户指令落地并全部验证；实现细节以代码为准，变更记录与逐任务证据见 [tasks.md](tasks.md)。关键收敛：标签资格改为宿主对正式路由自动判定（`routeIsFormal`），Go/TS 契约移除 `WorkspaceTabPolicy`；Dashboard（default route）以 `fixedHome` 固定首页标签；动态详情以 `deriveContextKey` 按实体独立；恢复全部用 `hydrate` 并入；普通 Router Outlet 仅作 fallback，页面真实内容由 mounted panel 承载。
 
 ## 1. 总体边界
 

@@ -15,7 +15,6 @@ export {
   type RouteLayout,
   type PrincipalView,
   type WebUIDataSource,
-  type WorkspaceTabPolicy,
   type WorkspaceSession,
   type WorkspaceSessionLookup,
   WorkspaceSessionLookupProvider,

@@ -37,8 +37,8 @@ Linux 使用 `bash scripts/verify-webui.sh`。质量链覆盖生成检查、冻�
 
 - `webui/src/styles.css` 是平台样式唯一 authority：分区组织（token/reset/Shell/overlay/public UI/loading/responsive/reduced-motion），
   layout/z-index/motion 由语义 token 提供（`--shell-*`、`--z-*`、`--motion-*`），业务 selector 禁止进入该文件；模块 CSS 不得用平台级或裸 `:global` 绕过 scope。
-- 宿主组件按 `webui/src/components/shell/*` 拆分（Sidebar/Header/AccountMenu/SidebarMenu/ShellSkeleton），
-  083 已移除宿主 Tab Bar、visited-tabs 状态和固定 Footer；AppShell 保留现有公开 props，模块只消费 `@webui/sdk/*`。
+- 宿主组件按 `webui/src/components/shell/*` 拆分（Sidebar/Header/AccountMenu/SidebarMenu/ShellSkeleton/WorkspaceTabs），
+  083 已移除旧的「访问历史」Tab Bar 与固定 Footer；085 Rev.2 起宿主以自动页面标签栏（`WorkspaceTabs`）重建顶部标签语义——所有正式路由自动建标签，AppShell 保留现有公开 props，模块只消费 `@webui/sdk/*`。
 - loading 使用 Shell/Page/Data skeleton 单轨；reduced-motion 同时尊重显式偏好与系统 `prefers-reduced-motion`。
 - 新增平台样式、动效时长或 shell 交互时，同步更新 `webui/src/motion.ts` 与 `webui/src/theme.ts` 并补测试。
 
@@ -151,10 +151,13 @@ Linux 使用 `bash scripts/verify-webui.sh`。质量链覆盖生成检查、冻�
 - 084g：审计筛选并入列表卡（移除独立筛选卡）；仪表盘指标快照前置并压缩统计/指标块高度，首屏同时呈现 KPI 与信息卡；`CodeText` 复制按钮改带边界 chip。
 - 084h：严格可用性终审（24 路由）后修复两处真实缺陷——API 令牌「过期策略」HeroUI Select 指示器错位锚定（行尾孤立箭头改为 trigger 内 chevron）、语言单选组无本地选择时的默认选中（与宿主语言解析一致）。终审 24/24 页无真实 P0/P1 交互缺陷。
 
-## 宿主 Workspace Tabs：有界独立工作上下文（085）
+## 宿主页面标签栏（085 Rev.2：自动页面标签）
 
-- **契约**：Go `internal/webui.WorkspaceTabPolicy`（默认 `disabled`，`singleton`/`contextual` + `Restorable`）+ TS discriminated union `WorkspaceTabPolicy`；只有模块显式 opt-in 的 route 才可能生成标签，普通菜单访问、列表、设置分区、详情/编辑 Drawer 一律不生成（REQ-085-001/002）。首批 production 实例为 `openapi.workspace` singleton（DEC-085-002）。
-- **宿主状态机**：`webui/src/workspace/`——`registry.ts` 是唯一状态 owner（12 打开/10 关闭历史上限、pinned 分组、dirty 确认、批量关闭原子性、reconcile），`storage.ts` 是版本化低敏 localStorage adapter（principal 隔离、allowlist 投影、坏数据/抛错 fail closed），`WorkspaceProvider.tsx` 是 composition root（关闭管线 + beforeunload 保护 + logout 决策）。
-- **渲染与生命周期**：`WorkspaceOutlet` 为每个打开 workspace 挂载固定 location 的 panel（inactive `hidden`+`inert` 不卸载，真实保存未提交工作状态，REQ-085-007）；普通 route 走现有 Router outlet，不复制业务 route 声明；`@webui/sdk/runtime` 提供 `useWorkspaceSession()` 窄契约（dirty/active/requestClose/registerBeforeClose，页面不可读全 registry）。
-- **标签栏**：42px 文本式（`--shell-tabs-height`）、Active 底部指示线、hover/focus-within/active 显隐关闭按钮、pinned/dirty 图标+可访问名称、空间不足进溢出菜单；APG 键盘（roving focus、Space/Enter、Delete、Shift+F10 上下文菜单）。
-- **单轨清理**：旧 `.workspace-tab*` 样式与 `workspace-tabs` zone（零真实贡献方）已从 Go/TS contract、生成链与样式删除（REQ-085-012）；`ScrollExperience` 注释同步。
+- **语义**：顶部标签栏代表后台当前「已打开的页面」。**所有正式路由自动创建并保留标签**（app 布局 + 已实现 + 可加载 + access 放行），不要求路由显式声明；Drawer/Modal/Popover 等临时交互不是路由，不生成标签。重复访问同一页面只激活原标签，不重复创建。
+- **固定首页**：`default` 路由（Dashboard）作为固定首页标签——打开即 pinned，不可关闭、不可取消固定、不被「关闭其他/关闭右侧」批量影响。
+- **动态详情**：动态详情页按具体实体生成独立标签（宿主从 pathname 相对 route.path 的差异派生低敏 contextKey，只用于相等性去重与标题区分，不持久化敏感原文）。
+- **宿主状态机**：`webui/src/workspace/`——`registry.ts` 是唯一状态 owner（12 打开/10 关闭历史上限、pinned/fixedHome 分组、dirty 确认、批量关闭原子性、reconcile），`storage.ts` 是版本化低敏 localStorage adapter（principal 隔离、allowlist 投影、坏数据/抛错 fail closed），`WorkspaceProvider.tsx` 是 composition root（关闭管线 + beforeunload 保护 + logout 决策）。
+- **渲染与生命周期**：`WorkspaceOutlet` 为每个打开的正式页面挂载固定 location 的 mounted panel（inactive `hidden`+`inert` 不卸载，真实保存未提交工作状态）；普通 Router Outlet 仅作为 fallback；`@webui/sdk/runtime` 提供 `useWorkspaceSession()` 窄契约（dirty/active/requestClose/registerBeforeClose，页面不可读全 registry）。
+- **标签栏**：42px 文本式（`--shell-tabs-height`）、Active 底部指示线、hover/focus-within/active 显隐关闭按钮（fixedHome 首页无关闭按钮）、pinned/dirty 图标+可访问名称、空间不足进溢出菜单；APG 键盘（roving focus、Space/Enter、Delete、Shift+F10 上下文菜单）。
+- **恢复**：标签元数据按 principal 隔离持久化，刷新后恢复；关闭的标签可「恢复最近关闭」（只恢复低敏元数据，不恢复 dirty/草稿）。
+- **单轨清理**：`WorkspaceTabPolicy`（显式 opt-in 契约）与旧 `.workspace-tab*` 样式、`workspace-tabs` zone 已全部移除；`ScrollExperience` 注释同步。

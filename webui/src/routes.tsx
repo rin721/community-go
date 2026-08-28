@@ -7,14 +7,14 @@ import { PageSkeleton } from "./components/shell/ShellSkeleton";
 import { SystemStatePage } from "./pages/SystemStatePage";
 import { webuiEntryRegistry } from "./generated/webui-registry";
 import type { WorkspaceLocation } from "./workspace/registry";
-import { workspacePolicyOf, useWorkspaceHost, type WorkspaceHost } from "./workspace/WorkspaceProvider";
+import { routeIsFormal, useWorkspaceHost } from "./workspace/WorkspaceProvider";
 
 type EntryModule = { default: ComponentType };
 const entryLoaders = webuiEntryRegistry as unknown as Record<string, () => Promise<EntryModule>>;
 export const entryComponents = Object.fromEntries(Object.entries(entryLoaders).map(([entryID, load]) => [entryID, lazy(load)]));
 
-// ManifestRouteView 按明确 ManifestRoute + manifest 渲染页面内容（ROUTER-085-001）：
-// 普通 Outlet 与 workspace panel 共用同一视图函数，避免第二套业务 route 声明。
+// ManifestRouteView 按明确 ManifestRoute + manifest 渲染页面内容：
+// 普通 fallback Outlet 与 mounted panel 共用同一视图函数，避免第二套业务 route 声明。
 export function ManifestRouteView({ route, manifest }: { route: ManifestRoute; manifest: Manifest }) {
   if (route.access === "authentication-required") {
     const loginRoute = manifest.routes.find((candidate) => candidate.unauthenticatedDefault);
@@ -33,45 +33,39 @@ export function routeIsLoadable(route: ManifestRoute): boolean {
     || (route.availability === "degraded" && (route.availableCapabilities?.length ?? 0) > 0);
 }
 
-export function isWorkspaceRoute(route: ManifestRoute): boolean {
-  const policy = workspacePolicyOf(route);
-  return policy?.mode === "singleton" || policy?.mode === "contextual";
-}
-
-// WorkspaceRouteSlot 是 workspace 路由在普通路由树中的槽位：宿主通过 AppShell 的
-// 导航效果打开/激活 singleton（不在这里自动打开，避免关闭后被同一渲染循环重新创建），
-// 页面内容在 WorkspaceOutlet 的 mounted panel 中呈现；access 门禁与 ManifestRouteView
-// 完全一致（未登录仍跳转登录页）。达到上限时呈现低敏引导，不静默淘汰既有标签
-// （REQ-085-005）。
-export function WorkspaceRouteSlot({ route, manifest }: { route: ManifestRoute; manifest: Manifest }) {
+// RouteSlot 是正式路由在普通路由树中的槽位（Rev.2：所有 app 正式路由统一走槽位）：
+// 宿主通过 AppShell 的导航效果打开/激活标签（不在这里自动打开，避免关闭后被同一
+// 渲染循环重新创建）；页面内容在 WorkspaceOutlet 的 mounted panel 中呈现。access
+// 门禁与 ManifestRouteView 完全一致（未登录仍跳转登录页）。Drawer/Modal/Popover 等
+// 临时交互不是路由，不经过此槽位，因此不生成标签。
+export function RouteSlot({ route, manifest }: { route: ManifestRoute; manifest: Manifest }) {
   const host = useWorkspaceHost();
-  const policy = workspacePolicyOf(route);
   if (route.access === "authentication-required") {
     const loginRoute = manifest.routes.find((candidate) => candidate.unauthenticatedDefault);
     return loginRoute ? <Navigate to={loginRoute.path} replace /> : <SystemStatePage kind="unauthorized" />;
   }
   if (route.access === "denied") return <Navigate to="/403" replace />;
-  if (!policy || policy.mode === "disabled") return <SystemStatePage kind="notImplemented" />;
+  if (route.deliveryState === "not-implemented") return <SystemStatePage kind="notImplemented" />;
+  if (!routeIsLoadable(route)) return <SystemStatePage kind="unavailable" />;
   // 已打开（含恢复/导航打开成功）时由 AppShell 决定渲染 panels；槽位只作为
   // 打开动作前的骨架/上限引导兜底，不让槽位重新创建标签。
   if (host.tabs.some((tab) => tab.routeID === route.id)) {
     return <div className="page-viewport"><div className="page-flow"><PageSkeleton /></div></div>;
   }
   if (host.tabs.length >= 12) {
-    return <div className="page-viewport"><div className="page-flow"><WorkspaceCapAlert host={host} /></div></div>;
+    return <div className="page-viewport"><div className="page-flow"><WorkspaceCapAlert /></div></div>;
   }
   return <div className="page-viewport"><div className="page-flow"><PageSkeleton /></div></div>;
 }
 
-function WorkspaceCapAlert({ host }: { host: WorkspaceHost }) {
-  void host;
+function WorkspaceCapAlert() {
   return <InlineAlert tone="warning" title={translateMessage("webui.host.workspace.cap.title")} detail={translateMessage("webui.host.workspace.cap.detail")} />;
 }
 
-// renderAppRoutes 渲染 app 布局路由；带 groupLayoutId 的一族路由由共享模块布局
+// renderAppRoutes 渲染 app 布局路由（fallback 树：每个正式路由渲染 RouteSlot，
+// 页面真实内容由 mounted panel 承载）；带 groupLayoutId 的一族路由由共享模块布局
 // （ModuleGroupLayout：固定布局 + 内容 Outlet）承载，切换分区时布局不卸载重挂（073）。
-// workspace 资格路由渲染 WorkspaceRouteSlot（页面由 panel 承载），普通路由渲染
-// ManifestRouteView；两者共享同一 ManifestRoute 声明，不复制业务 route 树。
+// 所有 route 声明来自 manifest，不复制业务 route 树。
 export function renderAppRoutes(manifest: Manifest) {
   const grouped = new Map<string, ManifestRoute[]>();
   const standalone: ManifestRoute[] = [];
@@ -84,28 +78,25 @@ export function renderAppRoutes(manifest: Manifest) {
       standalone.push(route);
     }
   }
-  const elementFor = (route: ManifestRoute) => isWorkspaceRoute(route)
-    ? <WorkspaceRouteSlot route={route} manifest={manifest} />
-    : <ManifestRouteView route={route} manifest={manifest} />;
   return <>
-    {standalone.map((route) => <Route key={route.id} path={route.path} element={elementFor(route)} />)}
+    {standalone.map((route) => <Route key={route.id} path={route.path} element={<RouteSlot route={route} manifest={manifest} />} />)}
     {[...grouped.entries()].map(([layoutId, routes]) => {
       const first = routes[0];
       return <Route key={layoutId} element={<ModuleGroupLayout route={first} />}>
-        {routes.map((route) => <Route key={route.id} path={route.path} element={elementFor(route)} />)}
+        {routes.map((route) => <Route key={route.id} path={route.path} element={<RouteSlot route={route} manifest={manifest} />} />)}
       </Route>;
     })}
   </>;
 }
 
-// renderPanelRoutes 是 WorkspaceOutlet 面板使用的 route 树：只包含 workspace 资格
-// route，且一律渲染 ManifestRouteView（面板内不能再出现 WorkspaceRouteSlot 打开动作）。
-// 分组布局逻辑与 renderAppRoutes 共用，避免第二套业务 route 声明（ROUTER-085-001）。
+// renderPanelRoutes 是 WorkspaceOutlet 面板使用的 route 树：只包含 app 正式路由，
+// 且一律渲染 ManifestRouteView（面板内不能再出现 RouteSlot 打开动作）。
+// 分组布局逻辑与 renderAppRoutes 共用，避免第二套业务 route 声明。
 export function renderPanelRoutes(manifest: Manifest) {
-  const workspaceRoutes = manifest.routes.filter((route) => route.layout === "app" && isWorkspaceRoute(route));
+  const formalRoutes = manifest.routes.filter((route) => route.layout === "app" && routeIsFormal(route));
   const grouped = new Map<string, ManifestRoute[]>();
   const standalone: ManifestRoute[] = [];
-  for (const route of workspaceRoutes) {
+  for (const route of formalRoutes) {
     if (route.groupLayoutId) {
       const entries = grouped.get(route.groupLayoutId) ?? [];
       entries.push(route);

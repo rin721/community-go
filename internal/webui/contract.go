@@ -32,42 +32,6 @@ const (
 	RouteLayoutBlank RouteLayout = "blank"
 )
 
-// WorkspaceTabMode 表示 route 是否可以作为宿主 Workspace Tab 的显式独立工作上下文。
-// 默认 disabled：普通菜单访问、列表、设置分区、详情/编辑 Drawer 与普通子路由
-// 一律不生成标签（085 REQ-085-001/002），宿主不得从访问历史推断资格。
-type WorkspaceTabMode string
-
-const (
-	WorkspaceTabDisabled   WorkspaceTabMode = "disabled"
-	WorkspaceTabSingleton  WorkspaceTabMode = "singleton"
-	WorkspaceTabContextual WorkspaceTabMode = "contextual"
-)
-
-// WorkspaceTabPolicy 是 route 的显式工作上下文资格声明；零值归一化为 disabled。
-// Restorable 表示该工作区只允许持久化低敏标签元数据（routeID/pinned/顺序/allowlist
-// 后的 pathname 与 search），绝不保存草稿、凭据、响应 body、任意 query 或 dirty（085
-// REQ-085-008）。contextual 的实例 ID 不在静态 manifest 中，由运行时打开动作提供。
-type WorkspaceTabPolicy struct {
-	Mode       WorkspaceTabMode
-	Restorable bool
-}
-
-// NormalizedWorkspaceTabMode 把空值与未知值收敛为 disabled（fail closed）：
-// 判定语义单一，避免调用方把空字符串当成可 opt-in 的合法值。
-func NormalizedWorkspaceTabMode(mode WorkspaceTabMode) WorkspaceTabMode {
-	if mode != WorkspaceTabSingleton && mode != WorkspaceTabContextual {
-		return WorkspaceTabDisabled
-	}
-	return mode
-}
-
-// ManifestWorkspaceTabPolicy 是 WorkspaceTabPolicy 的安全运行时投影（仅非 disabled
-// 时出现；disabled 省略字段，前端按 disabled 处理）。不含任何实例 ID 或业务数据。
-type ManifestWorkspaceTabPolicy struct {
-	Mode       WorkspaceTabMode `json:"mode"`
-	Restorable bool             `json:"restorable"`
-}
-
 // ZoneID 标识宿主骨架分区；zone 是分区注入点的稳定枚举（Go 与前端共享契约）。
 type ZoneID string
 
@@ -191,8 +155,6 @@ type Route struct {
 	GroupLayoutID          string
 	DeliveryState          DeliveryState
 	DegradedCapabilities   []string
-	// WorkspaceTab 是 route 的显式工作上下文资格（085）；零值归一化为 disabled。
-	WorkspaceTab           WorkspaceTabPolicy
 	Default                bool
 	UnauthenticatedDefault bool
 }
@@ -331,22 +293,20 @@ type ManifestActionPermission struct {
 
 // ManifestRoute 是剥离构建期字段后的路由。
 type ManifestRoute struct {
-	ModuleID               string                     `json:"moduleId"`
-	ID                     string                     `json:"id"`
-	Path                   string                     `json:"path"`
-	EntryID                string                     `json:"entryId"`
-	TitleMessageID         string                     `json:"titleMessageId"`
-	ViewOperationID        string                     `json:"viewOperationId,omitempty"`
-	Layout                 RouteLayout                `json:"layout"`
-	GroupLayoutID          string                     `json:"groupLayoutId,omitempty"`
-	DeliveryState          DeliveryState              `json:"deliveryState"`
-	// WorkspaceTab 是 workspace 资格的非 disabled 投影；disabled 省略，前端按 disabled 处理。
-	WorkspaceTab           *ManifestWorkspaceTabPolicy `json:"workspaceTab,omitempty"`
-	Default                bool                       `json:"default"`
-	UnauthenticatedDefault bool                       `json:"unauthenticatedDefault"`
-	Access                 Access                     `json:"access"`
-	Availability           AvailabilityState          `json:"availability"`
-	AvailableCapabilities  []string                   `json:"availableCapabilities,omitempty"`
+	ModuleID               string            `json:"moduleId"`
+	ID                     string            `json:"id"`
+	Path                   string            `json:"path"`
+	EntryID                string            `json:"entryId"`
+	TitleMessageID         string            `json:"titleMessageId"`
+	ViewOperationID        string            `json:"viewOperationId,omitempty"`
+	Layout                 RouteLayout       `json:"layout"`
+	GroupLayoutID          string            `json:"groupLayoutId,omitempty"`
+	DeliveryState          DeliveryState     `json:"deliveryState"`
+	Default                bool              `json:"default"`
+	UnauthenticatedDefault bool              `json:"unauthenticatedDefault"`
+	Access                 Access            `json:"access"`
+	Availability           AvailabilityState `json:"availability"`
+	AvailableCapabilities  []string          `json:"availableCapabilities,omitempty"`
 }
 
 // ManifestMenu 是剥离构建期字段后的菜单节点。
@@ -479,7 +439,6 @@ func (c Catalog) ManifestForWithNavigation(policy NavigationPolicySnapshot, acce
 				Layout: route.Layout, GroupLayoutID: route.GroupLayoutID, DeliveryState: route.DeliveryState, Default: route.Default,
 				UnauthenticatedDefault: route.UnauthenticatedDefault, Access: access,
 				Availability: availability.State, AvailableCapabilities: availability.Capabilities,
-				WorkspaceTab: manifestWorkspaceTabPolicy(route.WorkspaceTab),
 			})
 		}
 		for _, item := range binding.Navigation {
@@ -568,16 +527,6 @@ func normalizeAccess(access Access) Access {
 		return AccessDenied
 	}
 	return access
-}
-
-// manifestWorkspaceTabPolicy 投影非 disabled 的 workspace 资格到运行时视图；
-// disabled/零值返回 nil（omitempty 省略，前端仍按 disabled 处理）。
-func manifestWorkspaceTabPolicy(policy WorkspaceTabPolicy) *ManifestWorkspaceTabPolicy {
-	mode := NormalizedWorkspaceTabMode(policy.Mode)
-	if mode == WorkspaceTabDisabled {
-		return nil
-	}
-	return &ManifestWorkspaceTabPolicy{Mode: mode, Restorable: policy.Restorable}
 }
 
 // accessRank 定义动作权限的从严排序：denied > authentication-required > allowed。
@@ -1032,9 +981,6 @@ func validateBindings(bindings []Binding, hosts []HostNavigation, deferParentChe
 			if route.DeliveryState != DeliveryImplemented && route.DeliveryState != DeliveryNotImplemented {
 				return fmt.Errorf("webui route %q has unsupported delivery state %q", route.ID, route.DeliveryState)
 			}
-			if err := validateRouteWorkspaceTabPolicy(binding, route); err != nil {
-				return err
-			}
 			if route.DeliveryState == DeliveryNotImplemented && (route.Default || route.UnauthenticatedDefault) {
 				return fmt.Errorf("webui route %q marked not-implemented cannot be a default route", route.ID)
 			}
@@ -1297,25 +1243,4 @@ func cloneBindings(values []Binding) []Binding {
 		}
 	}
 	return result
-}
-
-// validateRouteWorkspaceTabPolicy 校验 route 的 workspace 资格声明：未知 mode 直接
-// 拒绝（fail fast）；blank 布局、default/unauthenticated default 路由不得 opt-in
-// （workspace 是 app 布局内的独立工作上下文，非入口/认证页语义）。零值 mode 允许，
-// 按 disabled 处理，不在校验阶段强制要求显式声明。
-func validateRouteWorkspaceTabPolicy(binding Binding, route Route) error {
-	mode := NormalizedWorkspaceTabMode(route.WorkspaceTab.Mode)
-	if route.WorkspaceTab.Mode != "" && route.WorkspaceTab.Mode != WorkspaceTabDisabled && mode == WorkspaceTabDisabled {
-		return fmt.Errorf("webui route %q has unsupported workspace tab mode %q", route.ID, route.WorkspaceTab.Mode)
-	}
-	if mode == WorkspaceTabDisabled {
-		return nil
-	}
-	if route.Layout != RouteLayoutApp {
-		return fmt.Errorf("webui route %q workspace tab requires app layout", route.ID)
-	}
-	if route.Default || route.UnauthenticatedDefault {
-		return fmt.Errorf("webui route %q cannot opt into workspace tab as a default or unauthenticated default route", route.ID)
-	}
-	return nil
 }

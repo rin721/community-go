@@ -40,7 +40,7 @@ function manifest(authenticated: boolean, availability: "available" | "degraded"
       { moduleId: "settings", id: "settings.language", path: "/settings/language", entryId: "settings.language", titleMessageId: "webui.settings.language.title", layout: "app", groupLayoutId: "settings.layout", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
       { moduleId: "settings", id: "settings.about", path: "/settings/about", entryId: "settings.about", titleMessageId: "webui.settings.about.title", layout: "app", groupLayoutId: "settings.layout", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
       { moduleId: "settings", id: "settings.acknowledgement", path: "/settings/acknowledgement", entryId: "settings.acknowledgement", titleMessageId: "webui.settings.acknowledgement.title", layout: "app", groupLayoutId: "settings.layout", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
-      { moduleId: "openapi", id: "openapi.workspace", path: "/openapi", entryId: "openapi.workspace", titleMessageId: "webui.openapi.docs.title", layout: "app", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [], workspaceTab: { mode: "singleton", restorable: true } },
+      { moduleId: "openapi", id: "openapi.workspace", path: "/openapi", entryId: "openapi.workspace", titleMessageId: "webui.openapi.docs.title", layout: "app", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
     ],
     menu: authenticated && access !== "denied" ? [
       { moduleId: "ops", id: "ops.dashboard", routeId: "ops.dashboard", titleMessageId: "webui.ops.dashboard.title", iconId: "activity", order: 10 },
@@ -522,23 +522,26 @@ test("070 settings center renders with bidirectional menu hierarchy", async ({ p
 
 test("071 settings in-page section navigation switches sections with active highlight", async ({ page }, testInfo) => {
   (page as unknown as { setWebUIState: (state: { authenticated: boolean }) => void }).setWebUIState({ authenticated: true });
+  // Rev.2 每个正式设置分区是独立标签/面板：断言限定在活动面板内。
+  const activePage = page.locator('.workspace-panel[data-active="true"]');
   await page.goto("/settings/profile");
-  await expect(page.getByRole("heading", { name: "Profile", exact: true })).toBeVisible();
+  await expect(activePage.getByRole("heading", { name: "Profile", exact: true })).toBeVisible();
   // 071 页内侧边栏：分区导航存在、当前分区高亮（aria-current）
-  await expect(page.locator("nav.section-nav")).toBeVisible();
-  await expect(page.locator("nav.section-nav [aria-current=page]")).toHaveText("Profile");
+  await expect(activePage.locator("nav.section-nav")).toBeVisible();
+  await expect(activePage.locator("nav.section-nav [aria-current=page]")).toHaveText("Profile");
   await page.screenshot({ path: testInfo.outputPath("071-settings-profile.png"), fullPage: true });
-  await page.locator("nav.section-nav").getByText("Account", { exact: true }).click();
+  // 点击分区 → 打开对应设置的独立标签并激活（URL 驱动标签创建）。
+  await page.locator('nav.section-nav').filter({ visible: true }).getByText("Account", { exact: true }).first().click();
   await expect(page).toHaveURL(/\/settings\/account/);
-  await expect(page.getByRole("heading", { name: "Account", exact: true })).toBeVisible();
-  await expect(page.locator("nav.section-nav [aria-current=page]")).toHaveText("Account");
+  await expect(activePage.getByRole("heading", { name: "Account", exact: true })).toBeVisible();
+  await expect(activePage.locator("nav.section-nav [aria-current=page]")).toHaveText("Account");
   await page.goto("/settings/appearance");
-  await expect(page.getByRole("heading", { name: "Appearance", exact: true })).toBeVisible();
-  await expect(page.locator("nav.section-nav [aria-current=page]")).toHaveText("Appearance");
+  await expect(activePage.getByRole("heading", { name: "Appearance", exact: true })).toBeVisible();
+  await expect(activePage.locator("nav.section-nav [aria-current=page]")).toHaveText("Appearance");
   await page.screenshot({ path: testInfo.outputPath("071-settings-appearance.png"), fullPage: true });
   await page.goto("/settings/notifications");
-  await expect(page.getByRole("heading", { name: "Notifications", exact: true })).toBeVisible();
-  await expect(page.getByText("These preferences are stored locally.", { exact: false })).toBeVisible();
+  await expect(activePage.getByRole("heading", { name: "Notifications", exact: true })).toBeVisible();
+  await expect(activePage.getByText("These preferences are stored locally.", { exact: false })).toBeVisible();
   // 移动视口：页内导航折叠为横向分区条
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: testInfo.outputPath("071-settings-mobile.png"), fullPage: true });
@@ -547,52 +550,50 @@ test("071 settings in-page section navigation switches sections with active high
 test("072 settings section switches stay SPA with profile save, closure, language and about pages", async ({ page }, testInfo) => {
   (page as unknown as { setWebUIState: (state: { authenticated: boolean }) => void }).setWebUIState({ authenticated: true });
   await page.setViewportSize({ width: 1280, height: 800 });
+  // Rev.2 每个设置分区是独立标签/面板：断言限定在活动面板内。
+  const activePage = page.locator('.workspace-panel[data-active="true"]');
   await page.goto("/settings/profile");
-  await expect(page.getByRole("heading", { name: "Profile", exact: true })).toBeVisible();
+  await expect(activePage.getByRole("heading", { name: "Profile", exact: true })).toBeVisible();
   // 071 页内侧边栏：分区导航存在、当前分区高亮（aria-current）
   // 073 固定页内导航 + 行布局回归：导航在内容左侧（flex row），不在顶部堆叠。
-  await expect(page.locator("nav.section-nav")).toBeVisible();
-  const navDirection = await page.locator(".settings-inner").evaluate((element) => getComputedStyle(element).flexDirection);
+  await expect(activePage.locator("nav.section-nav")).toBeVisible();
+  const navDirection = await activePage.locator(".settings-inner").evaluate((element) => getComputedStyle(element).flexDirection);
   expect(navDirection).toBe("row");
-  // 073 固定页内导航：给导航节点打标记，切换分区后标记保留（卸载重挂则丢失）。
-  await page.locator("nav.section-nav").evaluate((element) => { element.setAttribute("data-fixed-nav", "persistent"); });
   let fullLoads = 0;
   const onLoad = () => { fullLoads += 1; };
   page.on("load", onLoad);
   try {
     // SPA 分区切换：URL 与内容变化，且不发生整页 reload（load 计数不变）。
-    await page.locator("nav.section-nav").getByText("Security", { exact: true }).click();
+    await page.locator('nav.section-nav').filter({ visible: true }).getByText("Security", { exact: true }).first().click();
     await expect(page).toHaveURL(/\/settings\/security/);
-    await expect(page.getByRole("heading", { name: "Security", exact: true })).toBeVisible();
-    await expect(page.locator("nav.section-nav [aria-current=page]")).toHaveText("Security");
+    await expect(activePage.getByRole("heading", { name: "Security", exact: true })).toBeVisible();
+    await expect(activePage.locator("nav.section-nav [aria-current=page]")).toHaveText("Security");
     expect(fullLoads).toBe(0);
-    // 导航固定：同一节点仍是之前的导航（dataset 标记保留）
-    await expect(page.locator("nav.section-nav[data-fixed-nav=persistent]")).toBeVisible();
     // 资料保存（PATCH self/profile mock）
-    await page.locator("nav.section-nav").getByText("Profile", { exact: true }).click();
+    await page.locator('nav.section-nav').filter({ visible: true }).getByText("Profile", { exact: true }).first().click();
     await expect(page).toHaveURL(/\/settings\/profile/);
-    const nickname = page.getByLabel("Nickname");
+    const nickname = activePage.getByLabel("Nickname");
     await nickname.fill("Community");
-    await page.getByRole("button", { name: "Save profile" }).click();
-    await expect(page.getByText("Profile saved.", { exact: false })).toBeVisible();
+    await activePage.getByRole("button", { name: "Save profile" }).click();
+    await expect(activePage.getByText("Profile saved.", { exact: false })).toBeVisible();
     // 注销两步入口（对话框出现，取消保持会话）
-    await page.locator("nav.section-nav").getByText("Account", { exact: true }).click();
+    await page.locator('nav.section-nav').filter({ visible: true }).getByText("Account", { exact: true }).first().click();
     await expect(page).toHaveURL(/\/settings\/account/);
-    await page.getByRole("button", { name: "Close account", exact: true }).first().click();
+    await activePage.getByRole("button", { name: "Close account", exact: true }).first().click();
     await expect(page.getByRole("dialog", { name: "Close this account?" })).toBeVisible();
     await page.getByRole("button", { name: "Keep account", exact: true }).click();
     await expect(page.getByRole("dialog", { name: "Close this account?" })).toHaveCount(0);
     // 语言页与关于/鸣谢页渲染
-    await page.locator("nav.section-nav").getByText("Language", { exact: true }).click();
+    await page.locator('nav.section-nav').filter({ visible: true }).getByText("Language", { exact: true }).first().click();
     await expect(page).toHaveURL(/\/settings\/language/);
-    await expect(page.getByRole("heading", { name: "Language", exact: true })).toBeVisible();
+    await expect(activePage.getByRole("heading", { name: "Language", exact: true })).toBeVisible();
     await page.screenshot({ path: testInfo.outputPath("072-settings-language.png"), fullPage: true });
-    await page.locator("nav.section-nav").getByText("About", { exact: true }).click();
-    await expect(page.getByRole("heading", { name: "About", exact: true })).toBeVisible();
-    await expect(page.getByText("Technology stack", { exact: false })).toBeVisible();
+    await page.locator('nav.section-nav').filter({ visible: true }).getByText("About", { exact: true }).first().click();
+    await expect(activePage.getByRole("heading", { name: "About", exact: true })).toBeVisible();
+    await expect(activePage.getByText("Technology stack", { exact: false })).toBeVisible();
     await page.screenshot({ path: testInfo.outputPath("072-settings-about.png"), fullPage: true });
-    await page.locator("nav.section-nav").getByText("Acknowledgements", { exact: true }).click();
-    await expect(page.getByRole("heading", { name: "Acknowledgements", exact: true })).toBeVisible();
+    await page.locator('nav.section-nav').filter({ visible: true }).getByText("Acknowledgements", { exact: true }).first().click();
+    await expect(activePage.getByRole("heading", { name: "Acknowledgements", exact: true })).toBeVisible();
     expect(fullLoads).toBe(0);
     await page.screenshot({ path: testInfo.outputPath("072-settings-acknowledgement.png"), fullPage: true });
   } finally {
@@ -600,40 +601,44 @@ test("072 settings section switches stay SPA with profile save, closure, languag
   }
 });
 
-// 085 Workspace Tabs：只有显式 opt-in 的 singleton 才生成标签；普通路由不生成；
-// 标签切换保留 mounted 面板状态；关闭/上限/溢出/键盘语义可访问。
-test("085 workspace tabs: singleton opt-in, dedup, mounted state and a11y", async ({ page }) => {
+// 085 Rev.2 自动页面标签：所有正式路由自动创建并保留标签（不要求显式声明）；
+// Dashboard 固定首页；重复访问只激活不重复；切换保留 mounted 面板；关闭非首页标签
+// 后首页仍在。
+test("085 workspace tabs: automatic page tabs, dedup, mounted state and fixed home", async ({ page }) => {
   (page as unknown as { setWebUIState: (state: { authenticated: boolean }) => void }).setWebUIState({ authenticated: true });
   // 宿主标签栏按可访问名称定位（面板内模块级 Tabs 也可能带 tablist 语义，不能全属性计数）。
   const hostTabs = page.locator('[role="tablist"][aria-label="Workspace tabs"]');
-  const hostTab = (id: string) => page.locator(`[role="tab"][id^="workspace-tab-"]`).filter({ hasText: id });
+  const hostTab = (name: RegExp) => page.locator('[role="tab"]').filter({ hasText: name });
 
-  // REQ-085-001：普通列表/设置路由访问不生成标签。
+  // Dashboard（default route）→ 固定首页标签。
+  await page.goto("/dashboard");
+  await expect(page.getByRole("heading", { name: "Runtime status", exact: true })).toBeVisible();
+  await expect(hostTabs).toHaveCount(1);
+  await expect(hostTab(/Runtime status/)).toHaveAttribute("aria-selected", "true");
+
+  // 访问普通列表页 → 自动新增标签。
   await page.goto("/admin/accounts");
   await expect(page.getByRole("heading", { name: "Users", exact: true })).toBeVisible();
-  await expect(hostTabs).toHaveCount(0);
+  await expect(hostTabs.getByRole("tab")).toHaveCount(2);
 
-  // 打开 openapi singleton：生成一个标签，且页面内容来自 mounted panel。
+  // 打开 openapi → 第三个标签，且页面内容来自 mounted panel。
   await page.goto("/openapi");
-  await expect(hostTabs).toHaveCount(1);
   await expect(page.getByRole("heading", { name: "API Docs", exact: true })).toBeVisible();
-  await expect(page.locator('[data-testid^="workspace-panel-"]')).toHaveCount(1);
+  await expect(page.locator('[data-testid^="workspace-panel-"]')).toHaveCount(3);
 
-  // 重复打开同一个 singleton 不重复创建标签（去重）。
+  // 重复访问同一页面只激活原标签不重复创建。
   await page.goto("/openapi");
-  await expect(hostTab("API Docs")).toHaveCount(1);
+  await expect(hostTabs.getByRole("tab")).toHaveCount(3);
+  await expect(hostTab(/API Docs/)).toHaveAttribute("aria-selected", "true");
 
-  // 切换到普通路由：标签保留、活动工作区清空、常规页面显示。
-  await page.goto("/admin/roles");
-  await expect(page.getByRole("heading", { name: "Roles", exact: true })).toBeVisible();
-  await expect(hostTabs).toHaveCount(1);
+  // 切换页面：mounted 面板保留（隐藏面板仍在 DOM）。
+  await page.goto("/dashboard");
+  await expect(page.locator('[data-testid^="workspace-panel-"][data-active="true"]')).toHaveCount(1);
 
-  // 回到工作区面板：mounted 状态保留（面板重新可见）。
-  await page.goto("/openapi");
-  await expect(page.locator('[data-testid^="workspace-panel-"]')).toHaveCount(1);
-
-  // 关闭标签：回到默认路由，标签栏消失。
-  await page.goto("/openapi");
+  // 关闭一个普通标签：Dashboard 固定首页仍然保留；关闭首页被拒绝（无关闭按钮）。
+  await page.goto("/admin/accounts");
+  await expect(page.getByRole("heading", { name: "Users", exact: true })).toBeVisible();
   await page.locator('.workspace-tab-close').first().click();
-  await expect(hostTabs).toHaveCount(0);
+  await expect(hostTabs.getByRole("tab")).toHaveCount(2);
+  await expect(hostTab(/Runtime status/)).toHaveCount(1);
 });

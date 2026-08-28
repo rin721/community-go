@@ -682,84 +682,28 @@ func TestManifestZoneOrderingIsStable(t *testing.T) {
 	}
 }
 
-// workspaceTestBinding 在 testBinding 基础上声明 workspace 资格，便于测试
-// 校验与 manifest 投影的契约边界（085 CONTRACT-085-001）。
-func workspaceTestBinding(moduleID string, policy WorkspaceTabPolicy) Binding {
-	binding := testBinding(moduleID, false)
-	binding.Routes[0].WorkspaceTab = policy
-	return binding
-}
-
-func TestWorkspaceTabPolicyProjectionOmitsDisabledAndProjectsOptin(t *testing.T) {
-	disabled := workspaceTestBinding("plain", WorkspaceTabPolicy{})
-	disabled.Routes[0].Default = true
-	singleton := workspaceTestBinding("workspace", WorkspaceTabPolicy{Mode: WorkspaceTabSingleton, Restorable: true})
-	contextual := workspaceTestBinding("docs", WorkspaceTabPolicy{Mode: WorkspaceTabContextual, Restorable: false})
-	catalog, err := BuildCatalog(disabled, singleton, contextual)
+// TestManifestRoutesCarryNoWorkspaceTabContract 属于 085 Rev.2：标签资格不再由路由
+// 显式声明（用户指令推翻 Rev.1 的 opt-in 模型）。任何 route 都不再携带
+// workspaceTab 字段，宿主对所有正式路由自动判定标签资格；该测试守护契约面不会再
+// 出现"必须声明才能出现标签"的残留字段。
+func TestManifestRoutesCarryNoWorkspaceTabContract(t *testing.T) {
+	binding := testBinding("ops", true)
+	catalog, err := BuildCatalog(binding)
 	if err != nil {
 		t.Fatal(err)
 	}
 	manifest := catalog.ManifestFor(func(string) Access { return AccessAllowed })
-	if len(manifest.Routes) != 3 {
+	if len(manifest.Routes) != 1 {
 		t.Fatalf("unexpected route count: %#v", manifest.Routes)
 	}
-	for _, route := range manifest.Routes {
-		switch route.ID {
-		case "plain.page":
-			if route.WorkspaceTab != nil {
-				t.Fatalf("disabled/zero policy leaked into manifest: %#v", route.WorkspaceTab)
-			}
-		case "workspace.page":
-			if route.WorkspaceTab == nil || route.WorkspaceTab.Mode != WorkspaceTabSingleton || !route.WorkspaceTab.Restorable {
-				t.Fatalf("singleton policy projected incorrectly: %#v", route.WorkspaceTab)
-			}
-		case "docs.page":
-			if route.WorkspaceTab == nil || route.WorkspaceTab.Mode != WorkspaceTabContextual || route.WorkspaceTab.Restorable {
-				t.Fatalf("contextual policy projected incorrectly: %#v", route.WorkspaceTab)
-			}
-		}
+	if manifest.Routes[0].Default != true {
+		t.Fatalf("default flag must survive projection: %#v", manifest.Routes[0])
 	}
 	encoded, err := json.Marshal(manifest)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(encoded), `"workspaceTab":{"mode":"singleton","restorable":true}`) {
-		t.Fatalf("manifest JSON misses singleton workspace tab projection: %s", encoded)
-	}
-	if strings.Contains(string(encoded), `"mode":"disabled"`) {
-		t.Fatalf("manifest JSON should omit disabled workspace tab policies: %s", encoded)
-	}
-}
-
-func TestWorkspaceTabPolicyValidationFailsClosed(t *testing.T) {
-	unknown := workspaceTestBinding("bad", WorkspaceTabPolicy{Mode: WorkspaceTabMode("tabs")})
-	if _, err := BuildCatalog(unknown); err == nil {
-		t.Fatal("unknown workspace tab mode was accepted")
-	}
-	blank := workspaceTestBinding("bad", WorkspaceTabPolicy{Mode: WorkspaceTabSingleton})
-	blank.Routes[0].Layout = RouteLayoutBlank
-	if _, err := BuildCatalog(blank); err == nil {
-		t.Fatal("blank layout route opted into workspace tab was accepted")
-	}
-	defaultRoute := workspaceTestBinding("bad", WorkspaceTabPolicy{Mode: WorkspaceTabSingleton})
-	defaultRoute.Routes[0].Default = true
-	if _, err := BuildCatalog(defaultRoute); err == nil {
-		t.Fatal("default route opted into workspace tab was accepted")
-	}
-	unauthDefault := workspaceTestBinding("bad", WorkspaceTabPolicy{Mode: WorkspaceTabContextual})
-	unauthDefault.Routes[0].UnauthenticatedDefault = true
-	unauthDefault.Routes[0].Layout = RouteLayoutBlank
-	unauthDefault.Routes[0].ViewOperationID = ""
-	if _, err := BuildCatalog(unauthDefault); err == nil {
-		t.Fatal("unauthenticated default route opted into workspace tab was accepted")
-	}
-	// 零值 mode 必须仍被接受（显式 disabled 同语义）。
-	zero := workspaceTestBinding("ok", WorkspaceTabPolicy{})
-	if _, err := BuildCatalog(zero); err != nil {
-		t.Fatalf("zero workspace tab policy should normalize to disabled: %v", err)
-	}
-	explicitDisabled := workspaceTestBinding("ok", WorkspaceTabPolicy{Mode: WorkspaceTabDisabled, Restorable: true})
-	if _, err := BuildCatalog(explicitDisabled); err != nil {
-		t.Fatalf("explicit disabled workspace tab policy was rejected: %v", err)
+	if strings.Contains(string(encoded), "workspaceTab") {
+		t.Fatalf("manifest must not carry any workspaceTab contract: %s", encoded)
 	}
 }

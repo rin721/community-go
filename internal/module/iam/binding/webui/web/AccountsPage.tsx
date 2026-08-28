@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { ActionTrigger, Button, BulkActionBar, Check, CodeText, ConfirmActionTrigger, DataTable, DetailDrawer, Drawer, EmptyState, EntityDetail, ErrorState, Field, FilterBar, FormField, PageFrame, PageHeader, PageSection, Pagination, ResourceIndex, SearchInput, StatusBadge } from "@webui/sdk/ui";
-import { useListQueryParams } from "@webui/sdk/query";
+import { useListQueryParams, type ProblemError } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { accountRolesView, archiveAccount, batchAccountStatus, batchArchiveAccounts, createAccount, listAccounts, listRoles, replaceAccountRoles, resetAccountPassword, setAccountStatus, updateAccountInfo, type Account, type Role } from "./api";
 import styles from "./iam.module.css";
@@ -57,13 +57,13 @@ export default function AccountsPage() {
   const [detailRoleIDs, setDetailRoleIDs] = useState<string[] | null>(null);
   const [detailRoleError, setDetailRoleError] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [loadError, setLoadError] = useState(false);
+  const [loadError, setLoadError] = useState<ProblemError | null>(null);
   const page = listQuery.page;
   const sortKey = listQuery.sort?.key;
   const sortDirection = listQuery.sort?.direction;
   const refresh = useCallback((nextPage = page) => {
     setLoading(true);
-    setLoadError(false);
+    setLoadError(null);
     const status = listQuery.filters.status === "active" || listQuery.filters.status === "disabled" ? listQuery.filters.status : undefined;
     const sortMap: Record<string, string> = { displayName: "display_name", username: "username", status: "status" };
     const mappedSortKey = sortKey ? sortMap[sortKey] : undefined;
@@ -72,7 +72,7 @@ export default function AccountsPage() {
       setTotal(result.total);
       setItems(result.items);
       setSelectedID((current) => current && result.items.some((item) => item.id === current) ? current : result.items[0]?.id || "");
-    }).catch(() => { setItems([]); setTotal(0); setLoadError(true); }).finally(() => setLoading(false));
+    }).catch((error) => { setItems([]); setTotal(0); setLoadError(error as ProblemError); }).finally(() => setLoading(false));
   }, [listQuery.filters.query, listQuery.filters.status, listQuery.filters.archived, listQuery.filters.roleId, sortKey, sortDirection, page]);
   useEffect(() => { void refresh(); void listRoles().then((result) => setRoles(result.items)); }, [refresh]);
   useEffect(() => { listQuery.setPage(1); }, [listQuery.filters.query, listQuery.filters.status, listQuery.filters.archived, listQuery.filters.roleId, sortKey, sortDirection]);
@@ -172,7 +172,7 @@ export default function AccountsPage() {
           resultCount={total}
           resultCountLabel={(count) => t("webui.iam.accounts.total", { total: count })}
         />}>
-        {loadError && <ErrorState kind="connectivity" title={hostT("webui.host.route.error.title")} detail={hostT("webui.host.route.error.detail")} action={<Button variant="secondary" onClick={() => void refresh()}>{hostT("webui.host.retry")}</Button>} />}
+        {loadError && <ErrorState kind="connectivity" title={hostT("webui.host.route.error.title")} detail={hostT("webui.host.route.error.detail")} requestId={loadError.requestId} action={<Button variant="secondary" onClick={() => void refresh()}>{hostT("webui.host.retry")}</Button>} />}
         <DataTable<Account>
           columns={[
             { id: "displayName", header: t("webui.iam.displayName"), cell: (item) => item.displayName },

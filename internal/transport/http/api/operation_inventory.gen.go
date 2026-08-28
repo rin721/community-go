@@ -43,6 +43,7 @@ const (
 	OperationIamRolesList                   OperationID = "iam.roles.list"
 	OperationIamRolesPermissionsRead        OperationID = "iam.roles.permissions.read"
 	OperationIamRolesPermissionsReplace     OperationID = "iam.roles.permissions.replace"
+	OperationIamRolesRead                   OperationID = "iam.roles.read"
 	OperationIamRolesUpdate                 OperationID = "iam.roles.update"
 	OperationIamSelfArchive                 OperationID = "iam.self.archive"
 	OperationIamSelfArchiveConfirm          OperationID = "iam.self.archive.confirm"
@@ -104,6 +105,7 @@ var operationInventory = [...]Operation{
 	{ID: OperationIamRolesList, Method: "GET", Path: "/api/v1/iam/roles", Policy: "protected", Scope: "iam:role:read", Action: "iam.roles.list"},
 	{ID: OperationIamRolesPermissionsRead, Method: "GET", Path: "/api/v1/iam/roles/{id}/permissions", Policy: "protected", Scope: "iam:role:read", Action: "iam.roles.permissions.read"},
 	{ID: OperationIamRolesPermissionsReplace, Method: "PUT", Path: "/api/v1/iam/roles/{id}/permissions", Policy: "protected", Scope: "iam:role:write", Action: "iam.roles.permissions.replace"},
+	{ID: OperationIamRolesRead, Method: "GET", Path: "/api/v1/iam/roles/{id}", Policy: "protected", Scope: "iam:role:read", Action: "iam.roles.read"},
 	{ID: OperationIamRolesUpdate, Method: "PATCH", Path: "/api/v1/iam/roles/{id}", Policy: "protected", Scope: "iam:role:write", Action: "iam.roles.update"},
 	{ID: OperationIamSelfArchive, Method: "POST", Path: "/api/v1/iam/self/archive", Policy: "protected", Scope: "iam:account:self:archive", Action: "iam.self.archive"},
 	{ID: OperationIamSelfArchiveConfirm, Method: "POST", Path: "/api/v1/iam/self/archive/confirm", Policy: "protected", Scope: "iam:account:self:archive", Action: "iam.self.archive.confirm"},

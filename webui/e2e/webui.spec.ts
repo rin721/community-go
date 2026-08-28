@@ -123,8 +123,14 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/api/v1/iam/roles?*", async (route) => {
     await route.fulfill({ json: { items: [{ id: "role-owner", code: "owner", name: "System owner", description: "", active: true, archived: false, system: true, version: 1 }], offset: 0, limit: 100, total: 1 } });
   });
+  await page.route("**/api/v1/iam/roles/role-owner", async (route) => { await route.fulfill({ json: {
+    role: { id: "role-owner", code: "owner", name: "System owner", description: "", active: true, archived: false, system: true, version: 1 },
+    permissions: [{ key: "iam:account:read", ownerModuleId: "iam", descriptionMessageId: "permission.iam.account.read", risk: "elevated" }],
+    authorizationRevision: 1, assignedAccountCount: 1, ownerModuleCount: 1, elevatedPermissionCount: 1, criticalPermissionCount: 0,
+    createdAt: "2026-08-01T08:00:00Z", updatedAt: "2026-08-29T08:00:00Z",
+  } }); });
   await page.route("**/api/v1/iam/roles/role-owner/permissions", async (route) => { await route.fulfill({ json: { roleId: "role-owner", roleVersion: 1, authorizationRevision: 1, permissionKeys: ["iam:account:read"] } }); });
-  await page.route("**/api/v1/iam/permissions", async (route) => { await route.fulfill({ json: [{ key: "iam:account:read", ownerModuleId: "iam", descriptionMessageId: "permission.iam.account.read" }] }); });
+  await page.route("**/api/v1/iam/permissions", async (route) => { await route.fulfill({ json: [{ key: "iam:account:read", ownerModuleId: "iam", descriptionMessageId: "permission.iam.account.read", risk: "elevated" }] }); });
   await page.route("**/api/v1/organization/departments?*", async (route) => { await route.fulfill({ json: { items: [{ id: "dept-root", code: "engineering", name: "Engineering", active: true, archived: false, version: 1 }], offset: 0, limit: 100, total: 1 } }); });
   await page.route("**/api/v1/organization/departments/tree", async (route) => { await route.fulfill({ json: [{ id: "dept-root", code: "engineering", name: "Engineering", active: true, archived: false, version: 1, children: [{ id: "dept-child", code: "platform", name: "Platform", parentId: "dept-root", active: true, archived: false, version: 1, children: [] }] }] }); });
   await page.route("**/api/v1/organization/positions?*", async (route) => { await route.fulfill({ json: { items: [{ id: "position-manager", code: "manager", name: "Manager", active: true, archived: false, version: 1 }], offset: 0, limit: 100, total: 1 } }); });
@@ -320,10 +326,17 @@ test("account role and permission management pages render module-owned evidence"
   await page.goto("/admin/roles");
   await expect(page.getByRole("heading", { name: "Roles" })).toBeVisible();
   await expect(page.getByRole("article").getByText("System owner", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Authorization impact summary" })).toBeVisible();
+  await expect(page.getByText("Affected accounts", { exact: true })).toBeVisible();
+  await expect(page.getByText("Critical permissions (plus 1 elevated)", { exact: true })).toBeVisible();
+  const roleManagement = page.locator(".page-section").nth(1);
+  await roleManagement.scrollIntoViewIfNeeded();
+  await roleManagement.screenshot({ path: testInfo.outputPath("iam-role-impact.png") });
   await page.screenshot({ path: testInfo.outputPath("iam-roles.png"), fullPage: true });
   await page.goto("/admin/permissions");
   await expect(page.getByRole("heading", { name: "Permissions" })).toBeVisible();
   await expect(page.getByText("iam:account:read", { exact: true })).toBeVisible();
+  await expect(page.getByText("Elevated", { exact: true })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("iam-permissions.png"), fullPage: true });
 });
 

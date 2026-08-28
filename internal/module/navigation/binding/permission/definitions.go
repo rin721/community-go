@@ -8,7 +8,7 @@ import (
 
 func Definitions() []permissioncatalog.Definition {
 	return []permissioncatalog.Definition{
-		{Key: navigationpermission.MenuRead, OwnerModuleID: "navigation", DescriptionMessageID: "permission.navigation.menu.read"},
-		{Key: navigationpermission.MenuWrite, OwnerModuleID: "navigation", DescriptionMessageID: "permission.navigation.menu.write"},
+		{Key: navigationpermission.MenuRead, OwnerModuleID: "navigation", DescriptionMessageID: "permission.navigation.menu.read", Risk: permissioncatalog.RiskStandard},
+		{Key: navigationpermission.MenuWrite, OwnerModuleID: "navigation", DescriptionMessageID: "permission.navigation.menu.write", Risk: permissioncatalog.RiskElevated},
 	}
 }

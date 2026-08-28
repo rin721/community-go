@@ -479,6 +479,13 @@ func RegisterHuma(api huma.API, handler *Handler) {
 		}
 		return jsonEnvelope(listResponse[roleResponse]{items, result.Offset, result.Limit, result.Total}), nil
 	})
+	huma.Register(api, protected(opRoleRead, http.MethodGet, "/api/v1/iam/roles/{id}", string(iampermission.RoleRead), "read"), func(ctx context.Context, in *idInput) (*jsonOutput[roleDetailResponse], error) {
+		result, err := handler.service.RoleDetail(ctx, in.ID)
+		if err != nil {
+			return nil, problem(ctx, err)
+		}
+		return jsonEnvelope(roleDetailOutput(result)), nil
+	})
 	createRole := protected(opCreateRole, http.MethodPost, "/api/v1/iam/roles", string(iampermission.RoleWrite), "create")
 	createRole.DefaultStatus = http.StatusCreated
 	createRole.Middlewares = huma.Middlewares{handler.requireMutation}
@@ -521,7 +528,7 @@ func RegisterHuma(api huma.API, handler *Handler) {
 		definitions := handler.service.Permissions()
 		items := make([]permissionResponse, len(definitions))
 		for i, item := range definitions {
-			items[i] = permissionResponse{string(item.Key), string(item.OwnerModuleID), item.DescriptionMessageID}
+			items[i] = permissionOutput(item)
 		}
 		return jsonEnvelope(items), nil
 	})

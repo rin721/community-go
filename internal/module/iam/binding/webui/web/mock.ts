@@ -2,6 +2,7 @@
 // only when the WebUI explicitly declares VITE_WEBUI_DATA_SOURCE=mock. They never
 // impersonate the real service state.
 import type { WebUIMockRoute } from "@webui/sdk/mock";
+import type { PermissionDefinition } from "./api";
 
 const createdAt = "2026-01-01T00:00:00.000Z";
 const expiresAt = "2026-01-31T00:00:00.000Z";
@@ -43,18 +44,18 @@ const roles = [
   { id: "role-8", code: "release.mgr", name: "Release Manager", description: "Deployment and rollback rights", active: true, archived: false, system: false, version: 1 },
 ];
 
-const permissions = [
-  { key: "iam.accounts.list", ownerModuleId: "iam", descriptionMessageId: "permission.iam.account.read" },
-  { key: "iam.roles.list", ownerModuleId: "iam", descriptionMessageId: "permission.iam.role.read" },
-  { key: "iam.permissions.list", ownerModuleId: "iam", descriptionMessageId: "permission.iam.permission.read" },
-  { key: "iam.sessions.list", ownerModuleId: "iam", descriptionMessageId: "permission.iam.session.read" },
-  { key: "ops.diagnostics", ownerModuleId: "ops", descriptionMessageId: "permission.ops.diagnostics" },
-  { key: "ops.metrics", ownerModuleId: "ops", descriptionMessageId: "permission.ops.metrics" },
-  { key: "auth.audit.list", ownerModuleId: "auth", descriptionMessageId: "permission.auth.audit.read" },
-  { key: "organization.departments.list", ownerModuleId: "organization", descriptionMessageId: "permission.organization.department.read" },
-  { key: "organization.positions.list", ownerModuleId: "organization", descriptionMessageId: "permission.organization.position.read" },
-  { key: "navigation.menus.list", ownerModuleId: "navigation", descriptionMessageId: "permission.navigation.menu.read" },
-  { key: "todo.item.read", ownerModuleId: "todo", descriptionMessageId: "permission.todo.read" },
+const permissions: PermissionDefinition[] = [
+  { key: "iam.accounts.list", ownerModuleId: "iam", descriptionMessageId: "permission.iam.account.read", risk: "elevated" as const },
+  { key: "iam.roles.list", ownerModuleId: "iam", descriptionMessageId: "permission.iam.role.read", risk: "elevated" as const },
+  { key: "iam.permissions.list", ownerModuleId: "iam", descriptionMessageId: "permission.iam.permission.read", risk: "elevated" as const },
+  { key: "iam.sessions.list", ownerModuleId: "iam", descriptionMessageId: "permission.iam.session.read", risk: "elevated" as const },
+  { key: "ops.diagnostics", ownerModuleId: "ops", descriptionMessageId: "permission.ops.diagnostics", risk: "elevated" as const },
+  { key: "ops.metrics", ownerModuleId: "ops", descriptionMessageId: "permission.ops.metrics", risk: "elevated" as const },
+  { key: "auth.audit.list", ownerModuleId: "auth", descriptionMessageId: "permission.auth.audit.read", risk: "elevated" as const },
+  { key: "organization.departments.list", ownerModuleId: "organization", descriptionMessageId: "permission.organization.department.read", risk: "standard" as const },
+  { key: "organization.positions.list", ownerModuleId: "organization", descriptionMessageId: "permission.organization.position.read", risk: "standard" as const },
+  { key: "navigation.menus.list", ownerModuleId: "navigation", descriptionMessageId: "permission.navigation.menu.read", risk: "standard" as const },
+  { key: "todo.item.read", ownerModuleId: "todo", descriptionMessageId: "permission.todo.read", risk: "standard" as const },
 ];
 
 export const webuiMockRoutes: ReadonlyArray<WebUIMockRoute> = [
@@ -90,6 +91,11 @@ export const webuiMockRoutes: ReadonlyArray<WebUIMockRoute> = [
     return { entityId: "acct-1", entityVersion: 1, authorizationRevision: 2, added: body.roleIds?.length ?? 0, removed: 0 };
   } },
   { method: "GET", pattern: "/api/v1/iam/roles", handler: () => ({ items: roles, offset: 0, limit: 100, total: roles.length }) },
+  { method: "GET", pattern: "/api/v1/iam/roles/{id}", handler: (request) => {
+    const roleID = request.path.split("/").at(-1);
+    const role = roles.find((item) => item.id === roleID) ?? roles[0];
+    return { role, permissions, authorizationRevision: 2, assignedAccountCount: 3, ownerModuleCount: new Set(permissions.map((permission) => permission.ownerModuleId)).size, elevatedPermissionCount: permissions.filter((permission) => permission.risk === "elevated").length, criticalPermissionCount: permissions.filter((permission) => permission.risk === "critical").length, createdAt: "2026-08-01T08:00:00Z", updatedAt: "2026-08-29T08:00:00Z" };
+  } },
   { method: "POST", pattern: "/api/v1/iam/roles", handler: (request) => {
     const body = (request.body ?? {}) as { code?: string; name?: string; description?: string };
     return { id: `role-${roles.length + 1}`, code: body.code ?? "custom", name: body.name ?? "Custom Role", description: body.description ?? "", active: true, archived: false, system: false, version: 1 };

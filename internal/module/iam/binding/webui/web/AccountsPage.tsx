@@ -334,7 +334,7 @@ export default function AccountsPage() {
       {detailError && detailAccount && <ErrorState kind="inline" title={t("webui.iam.accounts.detailFailed")} requestId={detailError.requestId} action={<Button variant="secondary" onClick={() => void loadDetail(detailAccount)}>{t("webui.iam.accounts.detailRetry")}</Button>} />}
       {detail && (
         <div className="user-detail">
-          <section className={styles.accountDetailSection}>
+          <section className={styles.detailSection}>
             <h3>{t("webui.iam.accounts.detailOverview")}</h3>
             <div className="detail-field"><span className="detail-field-label">{t("webui.iam.username")}</span><CodeText value={detail.account.username} /></div>
             <div className="detail-field"><span className="detail-field-label">{t("webui.iam.displayName")}</span><span className="detail-field-value">{detail.account.displayName}</span></div>
@@ -343,16 +343,16 @@ export default function AccountsPage() {
             <div className="detail-field"><span className="detail-field-label">{t("webui.iam.accounts.revision")}</span><CodeText value={String(detail.authorizationRevision)} /></div>
             {detail.account.mustChangePassword && <div className="detail-field"><span className="detail-field-label">{t("webui.iam.security.changeRequired")}</span><StatusBadge status="pending">{t("webui.iam.security.changeRequired")}</StatusBadge></div>}
           </section>
-          <section className={styles.accountDetailSection}>
+          <section className={styles.detailSection}>
             <h3>{t("webui.iam.accounts.detailImpact")}</h3>
-            <div className={styles.accountImpactGrid}>
-              <div className={styles.accountImpactItem}><strong>{detail.roles.length}</strong><span>{t("webui.iam.accounts.impactRoles")}</span></div>
-              <div className={styles.accountImpactItem}><strong>{detail.activeSessionCount}</strong><span>{t("webui.iam.accounts.impactActiveSessions", { total: detail.totalSessionCount })}</span></div>
-              <div className={styles.accountImpactItem}><strong>{detail.activeApiTokenCount}</strong><span>{t("webui.iam.accounts.impactActiveTokens")}</span></div>
+            <div className={styles.impactGrid}>
+              <div className={styles.impactItem}><strong>{detail.roles.length}</strong><span>{t("webui.iam.accounts.impactRoles")}</span></div>
+              <div className={styles.impactItem}><strong>{detail.activeSessionCount}</strong><span>{t("webui.iam.accounts.impactActiveSessions", { total: detail.totalSessionCount })}</span></div>
+              <div className={styles.impactItem}><strong>{detail.activeApiTokenCount}</strong><span>{t("webui.iam.accounts.impactActiveTokens")}</span></div>
             </div>
-            <p className={styles.accountImpactNote}>{t("webui.iam.accounts.impactHint")}</p>
+            <p className={styles.impactNote}>{t("webui.iam.accounts.impactHint")}</p>
           </section>
-          <section className={styles.accountDetailSection}>
+          <section className={styles.detailSection}>
             <h3>{t("webui.iam.accounts.detailAccess")}</h3>
             <div className="detail-field"><span className="detail-field-label">{t("webui.iam.accounts.rolesAssigned")}</span><span className="detail-field-value">{detail.roles.map((role) => role.name).join(", ") || "—"}</span></div>
           </section>

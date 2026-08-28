@@ -26,6 +26,9 @@ describe("mock transport", () => {
     expect(detail.roles.length).toBeGreaterThan(0);
     const rolesView = await mockRequestJSON<{ roleIds: string[] }>("/api/v1/iam/accounts/acct-1/roles");
     expect(rolesView.roleIds.length).toBeGreaterThan(0);
+    const roleDetail = await mockRequestJSON<{ assignedAccountCount: number; permissions: Array<{ risk: string }> }>("/api/v1/iam/roles/role-1");
+    expect(roleDetail.assignedAccountCount).toBeGreaterThan(0);
+    expect(roleDetail.permissions.every((permission) => Boolean(permission.risk))).toBe(true);
     const patched = await mockRequestJSON<void>("/api/v1/iam/accounts/acct-1/status", { method: "PATCH", body: "{}" });
     expect(patched).toBeUndefined();
   });

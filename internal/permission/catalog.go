@@ -14,11 +14,22 @@ import (
 // Key 是授权判断使用的稳定精确权限键；Catalog 不支持通配符。
 type Key string
 
+// Risk 表达权限一旦授予后的管理影响等级。风险由权限所属模块显式声明，
+// 消费方不得按权限键命名或 HTTP method 自行推断。
+type Risk string
+
+const (
+	RiskStandard Risk = "standard"
+	RiskElevated Risk = "elevated"
+	RiskCritical Risk = "critical"
+)
+
 // Definition 是一个业务模块拥有的权限声明。
 type Definition struct {
 	Key                  Key
 	OwnerModuleID        module.ID
 	DescriptionMessageID string
+	Risk                 Risk
 }
 
 // Reference 记录 operation 或 WebUI route 对权限键的引用，便于给出可定位的校验错误。
@@ -87,6 +98,9 @@ func validateDefinition(definition Definition) error {
 	}
 	if strings.TrimSpace(definition.DescriptionMessageID) != definition.DescriptionMessageID || definition.DescriptionMessageID == "" {
 		return fmt.Errorf("permission %q description message id is required", definition.Key)
+	}
+	if definition.Risk != RiskStandard && definition.Risk != RiskElevated && definition.Risk != RiskCritical {
+		return fmt.Errorf("permission %q risk %q is invalid", definition.Key, definition.Risk)
 	}
 	return nil
 }

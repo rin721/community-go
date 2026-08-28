@@ -10,8 +10,8 @@ import (
 
 func TestBuildCatalogSortsAndProtectsDefinitions(t *testing.T) {
 	input := []Definition{
-		{Key: "todos:write", OwnerModuleID: module.ID("todo"), DescriptionMessageID: "permission.todo.write"},
-		{Key: "todos:read", OwnerModuleID: module.ID("todo"), DescriptionMessageID: "permission.todo.read"},
+		{Key: "todos:write", OwnerModuleID: module.ID("todo"), DescriptionMessageID: "permission.todo.write", Risk: RiskElevated},
+		{Key: "todos:read", OwnerModuleID: module.ID("todo"), DescriptionMessageID: "permission.todo.read", Risk: RiskStandard},
 	}
 	catalog, err := BuildCatalog(input...)
 	if err != nil {
@@ -34,9 +34,10 @@ func TestBuildCatalogRejectsInvalidAndDuplicateDefinitions(t *testing.T) {
 		definitions []Definition
 		want        string
 	}{
-		{name: "wildcard", definitions: []Definition{{Key: "todos:*", OwnerModuleID: "todo", DescriptionMessageID: "permission.todo.all"}}, want: "invalid"},
-		{name: "empty owner", definitions: []Definition{{Key: "todos:read", DescriptionMessageID: "permission.todo.read"}}, want: "owner"},
-		{name: "duplicate", definitions: []Definition{{Key: "todos:read", OwnerModuleID: "todo", DescriptionMessageID: "permission.todo.read"}, {Key: "todos:read", OwnerModuleID: "auth", DescriptionMessageID: "permission.auth.read"}}, want: "shared"},
+		{name: "wildcard", definitions: []Definition{{Key: "todos:*", OwnerModuleID: "todo", DescriptionMessageID: "permission.todo.all", Risk: RiskStandard}}, want: "invalid"},
+		{name: "empty owner", definitions: []Definition{{Key: "todos:read", DescriptionMessageID: "permission.todo.read", Risk: RiskStandard}}, want: "owner"},
+		{name: "missing risk", definitions: []Definition{{Key: "todos:read", OwnerModuleID: "todo", DescriptionMessageID: "permission.todo.read"}}, want: "risk"},
+		{name: "duplicate", definitions: []Definition{{Key: "todos:read", OwnerModuleID: "todo", DescriptionMessageID: "permission.todo.read", Risk: RiskStandard}, {Key: "todos:read", OwnerModuleID: "auth", DescriptionMessageID: "permission.auth.read", Risk: RiskElevated}}, want: "shared"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -49,7 +50,7 @@ func TestBuildCatalogRejectsInvalidAndDuplicateDefinitions(t *testing.T) {
 }
 
 func TestCatalogValidatesReferences(t *testing.T) {
-	catalog, err := BuildCatalog(Definition{Key: "todos:read", OwnerModuleID: "todo", DescriptionMessageID: "permission.todo.read"})
+	catalog, err := BuildCatalog(Definition{Key: "todos:read", OwnerModuleID: "todo", DescriptionMessageID: "permission.todo.read", Risk: RiskStandard})
 	if err != nil {
 		t.Fatal(err)
 	}

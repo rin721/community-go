@@ -8,9 +8,9 @@ import type { Role } from "./api";
 describe("IAM management selection", () => {
   it("groups the catalog by owner module in stable key order", () => {
     const groups = groupByOwnerModule([
-      { key: "iam:role:read", ownerModuleId: "iam", descriptionMessageId: "permission.iam.role.read" },
-      { key: "todo:item:read", ownerModuleId: "todo", descriptionMessageId: "permission.todo.read" },
-      { key: "iam:account:read", ownerModuleId: "iam", descriptionMessageId: "permission.iam.account.read" },
+      { key: "iam:role:read", ownerModuleId: "iam", descriptionMessageId: "permission.iam.role.read", risk: "elevated" },
+      { key: "todo:item:read", ownerModuleId: "todo", descriptionMessageId: "permission.todo.read", risk: "standard" },
+      { key: "iam:account:read", ownerModuleId: "iam", descriptionMessageId: "permission.iam.account.read", risk: "elevated" },
     ]);
     expect(groups.map((group) => group.ownerModuleId)).toEqual(["iam", "todo"]);
     expect(groups[0].definitions.map((definition) => definition.key)).toEqual(["iam:account:read", "iam:role:read"]);
@@ -40,9 +40,9 @@ describe("IAM management selection", () => {
 describe("082 Permission catalog grouping (REQ-015)", () => {
   it("groups permission items by owner module in stable key order", () => {
     const groups = groupByModule([
-      { key: "iam.roles.list", ownerModuleId: "iam", descriptionMessageId: "permission.iam.roles.list" },
-      { key: "todo.item.read", ownerModuleId: "todo", descriptionMessageId: "permission.todo.read" },
-      { key: "iam.accounts.list", ownerModuleId: "iam", descriptionMessageId: "permission.iam.accounts.list" },
+      { key: "iam.roles.list", ownerModuleId: "iam", descriptionMessageId: "permission.iam.roles.list", risk: "elevated" },
+      { key: "todo.item.read", ownerModuleId: "todo", descriptionMessageId: "permission.todo.read", risk: "standard" },
+      { key: "iam.accounts.list", ownerModuleId: "iam", descriptionMessageId: "permission.iam.accounts.list", risk: "elevated" },
     ]);
     expect(groups.map((group) => group.ownerModuleId)).toEqual(["iam", "todo"]);
     expect(groups[0].definitions.map((definition) => definition.key)).toEqual(["iam.accounts.list", "iam.roles.list"]);
@@ -50,8 +50,8 @@ describe("082 Permission catalog grouping (REQ-015)", () => {
 
   it("keeps module order stable when keys sort identically", () => {
     const groups = groupByModule([
-      { key: "ops.diagnostics", ownerModuleId: "ops", descriptionMessageId: "permission.ops.diagnostics" },
-      { key: "ops.metrics", ownerModuleId: "ops", descriptionMessageId: "permission.ops.metrics" },
+      { key: "ops.diagnostics", ownerModuleId: "ops", descriptionMessageId: "permission.ops.diagnostics", risk: "elevated" },
+      { key: "ops.metrics", ownerModuleId: "ops", descriptionMessageId: "permission.ops.metrics", risk: "elevated" },
     ]);
     expect(groups).toHaveLength(1);
     expect(groups[0].definitions.map((definition) => definition.key)).toEqual(["ops.diagnostics", "ops.metrics"]);

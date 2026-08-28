@@ -22,18 +22,18 @@ const (
 
 func Definitions() []permissioncatalog.Definition {
 	return []permissioncatalog.Definition{
-		{Key: SelfRead, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.self.read"},
-		{Key: SelfPasswordWrite, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.self-password.write"},
-		{Key: SelfProfileWrite, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.self-profile.write"},
-		{Key: SelfArchive, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.self-archive"},
-		{Key: AccountRead, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.account.read"},
-		{Key: AccountWrite, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.account.write"},
-		{Key: RoleRead, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.role.read"},
-		{Key: RoleWrite, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.role.write"},
-		{Key: PermissionRead, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.permission.read"},
-		{Key: SessionRead, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.session.read"},
-		{Key: SessionRevoke, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.session.revoke"},
-		{Key: ApiTokenRead, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.api-token.read"},
-		{Key: ApiTokenWrite, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.api-token.write"},
+		{Key: SelfRead, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.self.read", Risk: permissioncatalog.RiskStandard},
+		{Key: SelfPasswordWrite, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.self-password.write", Risk: permissioncatalog.RiskElevated},
+		{Key: SelfProfileWrite, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.self-profile.write", Risk: permissioncatalog.RiskStandard},
+		{Key: SelfArchive, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.self-archive", Risk: permissioncatalog.RiskElevated},
+		{Key: AccountRead, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.account.read", Risk: permissioncatalog.RiskElevated},
+		{Key: AccountWrite, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.account.write", Risk: permissioncatalog.RiskCritical},
+		{Key: RoleRead, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.role.read", Risk: permissioncatalog.RiskElevated},
+		{Key: RoleWrite, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.role.write", Risk: permissioncatalog.RiskCritical},
+		{Key: PermissionRead, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.permission.read", Risk: permissioncatalog.RiskElevated},
+		{Key: SessionRead, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.session.read", Risk: permissioncatalog.RiskElevated},
+		{Key: SessionRevoke, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.session.revoke", Risk: permissioncatalog.RiskCritical},
+		{Key: ApiTokenRead, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.api-token.read", Risk: permissioncatalog.RiskElevated},
+		{Key: ApiTokenWrite, OwnerModuleID: "iam", DescriptionMessageID: "permission.iam.api-token.write", Risk: permissioncatalog.RiskCritical},
 	}
 }

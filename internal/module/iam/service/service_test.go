@@ -124,6 +124,52 @@ func TestAccountDetailAggregatesLifecycleRolesAndSecurityImpact(t *testing.T) {
 	}
 }
 
+func TestRoleDetailAggregatesMembersPermissionOwnersAndRisk(t *testing.T) {
+	iam, resource := newService(t)
+	defer resource.Close()
+	if _, err := iam.Setup(t.Context(), "setup-secret", "owner", "Owner", "123456789012345"); err != nil {
+		t.Fatal(err)
+	}
+	account, err := iam.CreateAccount(t.Context(), "role_detail_member", "Role detail member", "abcdefghijklmno")
+	if err != nil {
+		t.Fatal(err)
+	}
+	role, err := iam.CreateRole(t.Context(), "impact-reviewer", "Impact reviewer", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := iam.ReplaceRolePermissions(t.Context(), role.ID, role.Version, []permissioncatalog.Key{iampermission.SelfRead, iampermission.AccountWrite, iampermission.SessionRead}); err != nil {
+		t.Fatal(err)
+	}
+	roleSnapshot, err := iam.RolePermissionsSnapshot(t.Context(), role.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := iam.ReplaceAccountRoles(t.Context(), account.ID, account.Version, []string{role.ID}); err != nil {
+		t.Fatal(err)
+	}
+
+	detail, err := iam.RoleDetail(t.Context(), role.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if detail.Role.ID != role.ID || detail.Role.CreatedAt.IsZero() || detail.Role.UpdatedAt.IsZero() {
+		t.Fatalf("role detail lifecycle = %#v", detail.Role)
+	}
+	if len(detail.Permissions) != 3 || detail.OwnerModuleCount != 1 || detail.AssignedAccountCount != 1 {
+		t.Fatalf("role detail scope = %#v", detail)
+	}
+	if detail.ElevatedPermissionCount != 1 || detail.CriticalPermissionCount != 1 {
+		t.Fatalf("role detail risk = %#v", detail)
+	}
+	if detail.AuthorizationRevision <= roleSnapshot.AuthorizationRevision {
+		t.Fatalf("role detail revision = %d, before assignment = %d", detail.AuthorizationRevision, roleSnapshot.AuthorizationRevision)
+	}
+	if _, err := iam.RoleDetail(t.Context(), "missing-role"); !repo.IsNotFound(err) {
+		t.Fatalf("missing role detail error = %v", err)
+	}
+}
+
 func TestLoginFailureIsPersistedUntilLockout(t *testing.T) {
 	iam, resource := newService(t)
 	defer resource.Close()
@@ -207,7 +253,7 @@ func TestOwnerCatalogExpansionIsReconciledAndInvalidatesSession(t *testing.T) {
 		t.Fatal(err)
 	}
 	definitions := iampermission.Definitions()
-	definitions = append(definitions, permissioncatalog.Definition{Key: "example:read", OwnerModuleID: "example", DescriptionMessageID: "permission.example.read"})
+	definitions = append(definitions, permissioncatalog.Definition{Key: "example:read", OwnerModuleID: "example", DescriptionMessageID: "permission.example.read", Risk: permissioncatalog.RiskStandard})
 	expanded := serviceForResource(t, resource, definitions)
 	if err := expanded.Compatible(t.Context()); !errors.Is(err, service.ErrIncompatibleState) {
 		t.Fatalf("missing owner permission compatibility error = %v", err)

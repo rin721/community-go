@@ -8,7 +8,9 @@ export type AccountDetail={account:Account;roles:Role[];authorizationRevision:nu
 export type AccountRolesView={accountId:string;accountVersion:number;authorizationRevision:number;roleIds:string[]};
 export type RolePermissionsView={roleId:string;roleVersion:number;authorizationRevision:number;permissionKeys:string[]};
 export type AssignmentResult={entityId:string;entityVersion:number;authorizationRevision:number;added:number;removed:number};
-export type PermissionDefinition={key:string;ownerModuleId:string;descriptionMessageId:string};
+export type PermissionRisk="standard"|"elevated"|"critical";
+export type PermissionDefinition={key:string;ownerModuleId:string;descriptionMessageId:string;risk:PermissionRisk};
+export type RoleDetail={role:Role;permissions:PermissionDefinition[];authorizationRevision:number;assignedAccountCount:number;ownerModuleCount:number;elevatedPermissionCount:number;criticalPermissionCount:number;createdAt:string;updatedAt:string};
 type ListResult<T>={items:T[];offset:number;limit:number;total:number};
 let csrfToken="";
 const originHeaders=()=>({Origin:window.location.origin});
@@ -34,12 +36,13 @@ export const accountRoleIDs=(id:string)=>requestJSON<AccountRolesView>(`/api/v1/
 export const accountRolesView=(id:string)=>requestJSON<AccountRolesView>(`/api/v1/iam/accounts/${id}/roles`);
 export const replaceAccountRoles=(id:string,expectedAccountVersion:number,roleIds:string[])=>requestJSON<AssignmentResult>(`/api/v1/iam/accounts/${id}/roles`,{method:"PUT",body:JSON.stringify({expectedAccountVersion,roleIds}),headers:mutationHeaders()});
 export const listRoles=(query?:string,offset=0,limit=100,sort?:string)=>requestJSON<ListResult<Role>>(`/api/v1/iam/roles?offset=${offset}&limit=${limit}${query?`&query=${encodeURIComponent(query)}`:""}${sort?`&sort=${encodeURIComponent(sort)}`:""}`);
+export const roleDetail=(id:string)=>requestJSON<RoleDetail>(`/api/v1/iam/roles/${id}`);
 export const createRole=(code:string,name:string,description:string)=>requestJSON<Role>("/api/v1/iam/roles",{method:"POST",body:JSON.stringify({code,name,description}),headers:mutationHeaders()});
 export const updateRoleInfo=(id:string,expectedRoleVersion:number,name:string,description:string)=>requestJSON<Role>(`/api/v1/iam/roles/${id}`,{method:"PATCH",body:JSON.stringify({expectedRoleVersion,name,description}),headers:mutationHeaders()});
 export const archiveRole=(id:string)=>requestJSON<void>(`/api/v1/iam/roles/${id}/archive`,{method:"POST",headers:mutationHeaders()});
 export const rolePermissionsView=(id:string)=>requestJSON<RolePermissionsView>(`/api/v1/iam/roles/${id}/permissions`);
 export const replaceRolePermissions=(id:string,expectedRoleVersion:number,permissionKeys:string[])=>requestJSON<AssignmentResult>(`/api/v1/iam/roles/${id}/permissions`,{method:"PUT",body:JSON.stringify({expectedRoleVersion,permissionKeys}),headers:mutationHeaders()});
-export const listPermissions=()=>requestJSON<Array<{key:string;ownerModuleId:string;descriptionMessageId:string}>>("/api/v1/iam/permissions");
+export const listPermissions=()=>requestJSON<PermissionDefinition[]>("/api/v1/iam/permissions");
 // 082 REQ-082-015: permissions.roles.list -> roles that grant this permission (Used-by analysis).
 export const permissionRoles=(key:string)=>requestJSON<ListResult<Role>>(`/api/v1/iam/permissions/roles?key=${encodeURIComponent(key)}&limit=100`);
 export const principalFromSession=(session:IAMSession):PrincipalView=>({id:session.identity.accountId,username:session.identity.username,scopes:[...session.identity.permissions]});

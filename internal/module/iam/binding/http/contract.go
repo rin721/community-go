@@ -35,6 +35,7 @@ const (
 	opAccountRolesRead    = "iam.accounts.roles.read"
 	opAccountRoles        = "iam.accounts.roles.replace"
 	opRoles               = "iam.roles.list"
+	opRoleRead            = "iam.roles.read"
 	opCreateRole          = "iam.roles.create"
 	opRoleUpdate          = "iam.roles.update"
 	opRoleArchive         = "iam.roles.archive"
@@ -146,9 +147,21 @@ type roleResponse struct {
 	Version     uint64 `json:"version"`
 }
 type permissionResponse struct {
-	Key                  string `json:"key"`
-	OwnerModuleID        string `json:"ownerModuleId"`
-	DescriptionMessageID string `json:"descriptionMessageId"`
+	Key                  string                 `json:"key"`
+	OwnerModuleID        string                 `json:"ownerModuleId"`
+	DescriptionMessageID string                 `json:"descriptionMessageId"`
+	Risk                 permissioncatalog.Risk `json:"risk" enum:"standard,elevated,critical"`
+}
+type roleDetailResponse struct {
+	Role                    roleResponse         `json:"role"`
+	Permissions             []permissionResponse `json:"permissions"`
+	AuthorizationRevision   uint64               `json:"authorizationRevision"`
+	AssignedAccountCount    int64                `json:"assignedAccountCount"`
+	OwnerModuleCount        int                  `json:"ownerModuleCount"`
+	ElevatedPermissionCount int                  `json:"elevatedPermissionCount"`
+	CriticalPermissionCount int                  `json:"criticalPermissionCount"`
+	CreatedAt               time.Time            `json:"createdAt"`
+	UpdatedAt               time.Time            `json:"updatedAt"`
 }
 type accountRolesResponse struct {
 	AccountID             string   `json:"accountId"`
@@ -309,6 +322,22 @@ func accountDetailOutput(v service.AccountDetailView) accountDetailResponse {
 }
 func roleOutput(v model.Role) roleResponse {
 	return roleResponse{v.ID, v.Code, v.Name, v.Description, v.Active, v.Archived, v.System, v.Version}
+}
+func permissionOutput(v permissioncatalog.Definition) permissionResponse {
+	return permissionResponse{Key: string(v.Key), OwnerModuleID: string(v.OwnerModuleID), DescriptionMessageID: v.DescriptionMessageID, Risk: v.Risk}
+}
+func roleDetailOutput(v service.RoleDetailView) roleDetailResponse {
+	permissions := make([]permissionResponse, len(v.Permissions))
+	for index, permission := range v.Permissions {
+		permissions[index] = permissionOutput(permission)
+	}
+	return roleDetailResponse{
+		Role: roleOutput(v.Role), Permissions: permissions,
+		AuthorizationRevision: v.AuthorizationRevision, AssignedAccountCount: v.AssignedAccountCount,
+		OwnerModuleCount: v.OwnerModuleCount, ElevatedPermissionCount: v.ElevatedPermissionCount,
+		CriticalPermissionCount: v.CriticalPermissionCount,
+		CreatedAt:               v.Role.CreatedAt, UpdatedAt: v.Role.UpdatedAt,
+	}
 }
 func accountRolesOutput(v service.AccountRolesView) accountRolesResponse {
 	return accountRolesResponse{AccountID: v.AccountID, AccountVersion: v.AccountVersion, AuthorizationRevision: v.AuthorizationRevision, RoleIDs: v.RoleIDs}

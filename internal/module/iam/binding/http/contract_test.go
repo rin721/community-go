@@ -158,6 +158,14 @@ func TestDynamicAssignmentContractVersion409AndSnapshot(t *testing.T) {
 	if view.Code != http.StatusOK || !bytes.Contains(view.Body.Bytes(), []byte(`"roleVersion":2`)) || !bytes.Contains(view.Body.Bytes(), []byte(`"iam:account:self:read"`)) {
 		t.Fatalf("permissions snapshot = %d, %s", view.Code, view.Body.String())
 	}
+	detail := serve(router, http.MethodGet, "http://example.test/api/v1/iam/roles/"+role.ID, nil, &resolved)
+	if detail.Code != http.StatusOK || !bytes.Contains(detail.Body.Bytes(), []byte(`"assignedAccountCount":0`)) || !bytes.Contains(detail.Body.Bytes(), []byte(`"elevatedPermissionCount":1`)) || !bytes.Contains(detail.Body.Bytes(), []byte(`"risk":"elevated"`)) {
+		t.Fatalf("role detail = %d, %s", detail.Code, detail.Body.String())
+	}
+	missing := serve(router, http.MethodGet, "http://example.test/api/v1/iam/roles/missing-role", nil, &resolved)
+	if missing.Code != http.StatusNotFound {
+		t.Fatalf("missing role detail status = %d, body = %s", missing.Code, missing.Body.String())
+	}
 }
 
 func humaRouter(handler *Handler) http.Handler {

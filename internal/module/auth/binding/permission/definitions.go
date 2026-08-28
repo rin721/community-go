@@ -9,7 +9,7 @@ import (
 // Definitions 返回当前管理面 operation 使用的精确权限定义。
 func Definitions() []permissioncatalog.Definition {
 	return []permissioncatalog.Definition{
-		{Key: permissioncatalog.Key(authmodel.ScopeManagementRead), OwnerModuleID: "auth", DescriptionMessageID: "permission.auth.management.read"},
-		{Key: permissioncatalog.Key(authmodel.ScopeAuditRead), OwnerModuleID: "auth", DescriptionMessageID: "permission.auth.audit.read"},
+		{Key: permissioncatalog.Key(authmodel.ScopeManagementRead), OwnerModuleID: "auth", DescriptionMessageID: "permission.auth.management.read", Risk: permissioncatalog.RiskElevated},
+		{Key: permissioncatalog.Key(authmodel.ScopeAuditRead), OwnerModuleID: "auth", DescriptionMessageID: "permission.auth.audit.read", Risk: permissioncatalog.RiskElevated},
 	}
 }

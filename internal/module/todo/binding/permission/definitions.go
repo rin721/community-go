@@ -6,7 +6,7 @@ import permissioncatalog "github.com/rin721/go-scaffold-template/internal/permis
 // Definitions 返回 Todo 当前真实 operation 使用的精确权限定义。
 func Definitions() []permissioncatalog.Definition {
 	return []permissioncatalog.Definition{
-		{Key: "todos:read", OwnerModuleID: "todo", DescriptionMessageID: "permission.todo.read"},
-		{Key: "todos:write", OwnerModuleID: "todo", DescriptionMessageID: "permission.todo.write"},
+		{Key: "todos:read", OwnerModuleID: "todo", DescriptionMessageID: "permission.todo.read", Risk: permissioncatalog.RiskStandard},
+		{Key: "todos:write", OwnerModuleID: "todo", DescriptionMessageID: "permission.todo.write", Risk: permissioncatalog.RiskElevated},
 	}
 }

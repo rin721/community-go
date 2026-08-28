@@ -3,11 +3,12 @@ import { Button, CodeText, DataTable, EmptyState, ErrorState, FilterBar, PageFra
 import { useListQueryParams } from "@webui/sdk/query";
 import type { ProblemError } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
-import { listPermissions, permissionRoles, type Role } from "./api";
+import { listPermissions, permissionRoles, type PermissionDefinition, type Role } from "./api";
 import { permissionDescription, preloadPermissionDescriptions } from "./permission-label";
+import { PermissionRiskBadge } from "./PermissionRiskBadge";
 import styles from "./iam.module.css";
 
-type Item = { key: string; ownerModuleId: string; descriptionMessageId: string };
+type Item = PermissionDefinition;
 
 // 082 REQ-082-015: group the permission catalog by owner module (real taxonomy).
 export const groupByModule = (items: Item[]): Array<{ ownerModuleId: string; definitions: Item[] }> => {
@@ -73,6 +74,7 @@ export default function PermissionsPage() {
               columns={[
                 { id: "key", header: t("webui.iam.permissions.key"), className: "permission-key-col", cell: (item) => <CodeText value={item.key} /> },
                 { id: "description", header: t("webui.iam.permissions.colDescription"), cell: (item) => permissionDescription(item.descriptionMessageId) },
+                { id: "risk", header: t("webui.iam.permissions.risk"), cell: (item) => <PermissionRiskBadge risk={item.risk} /> },
                 { id: "usedBy", header: t("webui.iam.permissions.usedBy"), cell: (item) => {
                   const roles = usage[item.key];
                   if (!roles) return <button type="button" className="ui-button" onClick={() => toggleUsage(item.key)}>{t("webui.iam.permissions.usedByCheck")}</button>;

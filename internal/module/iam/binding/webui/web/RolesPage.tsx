@@ -2,8 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActionTrigger, Button, Check, CodeText, ConfirmActionTrigger, DataTable, Drawer, EmptyState, EntityDetail, ErrorState, Field, FilterBar, FormField, PageFrame, PageHeader, PageSection, Pagination, ResourceIndex, SearchInput, Skeleton, StatusBadge, StickyActionBar } from "@webui/sdk/ui";
 import { useListQueryParams, type ProblemError } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
-import { archiveRole, createRole, listPermissions, listRoles, replaceRolePermissions, rolePermissionsView, updateRoleInfo, type PermissionDefinition, type Role } from "./api";
+import { archiveRole, createRole, listPermissions, listRoles, replaceRolePermissions, roleDetail, updateRoleInfo, type PermissionDefinition, type Role, type RoleDetail } from "./api";
 import { permissionDescription, preloadPermissionDescriptions } from "./permission-label";
+import { PermissionRiskBadge } from "./PermissionRiskBadge";
 import styles from "./iam.module.css";
 
 type GroupedPermissions = Array<{ ownerModuleId: string; definitions: PermissionDefinition[] }>;
@@ -66,6 +67,8 @@ export default function RolesPage() {
   const [roleDescription, setRoleDescription] = useState("");
   const [focusedRoleID, setFocusedRoleID] = useState("");
   const [permissionLoadState, setPermissionLoadState] = useState<"idle" | "loading" | "error">("idle");
+  const [detail, setDetail] = useState<RoleDetail | null>(null);
+  const [detailError, setDetailError] = useState<ProblemError | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<ProblemError | null>(null);
   const page = listQuery.page;
@@ -85,14 +88,18 @@ export default function RolesPage() {
   const reloadSelection = useCallback((id: string, preserveMessage = false): Promise<void> => {
     if (!id) return Promise.resolve();
     setPermissionLoadState("loading");
-    return rolePermissionsView(id).then((view) => {
-      setLoadedKeys(view.permissionKeys);
-      setSelectedKeys(view.permissionKeys);
-      setExpectedVersion(view.roleVersion);
+    setDetail(null);
+    setDetailError(null);
+    return roleDetail(id).then((view) => {
+      const permissionKeys = view.permissions.map((permission) => permission.key);
+      setDetail(view);
+      setLoadedKeys(permissionKeys);
+      setSelectedKeys(permissionKeys);
+      setExpectedVersion(view.role.version);
       setPermissionSaveState("clean");
       if (!preserveMessage) setMessage("");
       setPermissionLoadState("idle");
-    }).catch(() => { setPermissionLoadState("error"); });
+    }).catch((error) => { setDetailError(error as ProblemError); setPermissionLoadState("error"); });
   }, []);
   useEffect(() => { if (selectedID) void reloadSelection(selectedID); }, [selectedID, reloadSelection]);
   const selected = items.find((item) => item.id === selectedID);
@@ -118,14 +125,16 @@ export default function RolesPage() {
     }).catch(() => {
       // Server-side permissions changed (409): reload the latest set and surface
       // the diff; never silently discard unsaved selections.
-      void rolePermissionsView(selected.id).then((view) => {
-        const added = view.permissionKeys.filter((key) => !selectedKeys.includes(key)).length;
-        const removed = selectedKeys.filter((key) => !view.permissionKeys.includes(key)).length;
+      void roleDetail(selected.id).then((view) => {
+        const permissionKeys = view.permissions.map((permission) => permission.key);
+        const added = permissionKeys.filter((key) => !selectedKeys.includes(key)).length;
+        const removed = selectedKeys.filter((key) => !permissionKeys.includes(key)).length;
         setMessage(t("webui.iam.roles.conflictResolve", { added, removed }));
-        setLoadedKeys(view.permissionKeys);
-        setSelectedKeys(view.permissionKeys);
+        setDetail(view);
+        setLoadedKeys(permissionKeys);
+        setSelectedKeys(permissionKeys);
         setPermissionSaveState("conflict");
-        setExpectedVersion(view.roleVersion);
+        setExpectedVersion(view.role.version);
       });
     }).finally(() => setPermissionSaving(false));
   };
@@ -211,13 +220,24 @@ export default function RolesPage() {
       {selected && (
         <PageSection kicker={t("webui.iam.roles.manage.kicker")} title={t("webui.iam.roles.manage.title")}>
           <EntityDetail header={<div className="entity-detail-header-row"><div className="entity-detail-identity"><strong>{selected.name}</strong><CodeText value={selected.code} /></div><StatusBadge status={selected.archived ? "revoked" : selected.system ? "pending" : "active"}>{selected.archived ? t("webui.iam.roles.archived") : selected.system ? t("webui.iam.roles.system") : t("webui.iam.roles.custom")}</StatusBadge></div>}>
-            {selected.system
-              ? <p className="admin-note">{t("webui.iam.roles.systemReadonly")}</p>
-            : permissionLoadState === "loading"
+            {permissionLoadState === "loading"
               ? <Skeleton lines={6} label={hostT("webui.host.page.loading.label")} />
               : permissionLoadState === "error"
-                ? <ErrorState kind="inline" title={t("webui.iam.error")} action={<Button variant="secondary" onClick={() => reloadSelection(selected.id)}>{hostT("webui.host.retry")}</Button>} />
-                : <div className="permission-matrix">{groups.map((group) => <fieldset key={group.ownerModuleId}><legend>{group.ownerModuleId}</legend>{group.definitions.map((definition) => <Check key={definition.key} checked={selectedKeys.includes(definition.key)} disabled={selected.archived} onChange={() => toggle(definition.key)} className="permission-row">{definition.key}<span className="permission-description">{permissionDescription(definition.descriptionMessageId)}</span></Check>)}</fieldset>)}</div>}
+                ? <ErrorState kind="inline" title={t("webui.iam.roles.detailFailed")} requestId={detailError?.requestId} action={<Button variant="secondary" onClick={() => reloadSelection(selected.id)}>{hostT("webui.host.retry")}</Button>} />
+                : detail && <>
+                  <section className={styles.detailSection}>
+                    <h3>{t("webui.iam.roles.impactTitle")}</h3>
+                    <div className={styles.impactGrid}>
+                      <div className={styles.impactItem}><strong>{detail.assignedAccountCount}</strong><span>{t("webui.iam.roles.impactMembers")}</span></div>
+                      <div className={styles.impactItem}><strong>{detail.permissions.length}</strong><span>{t("webui.iam.roles.impactPermissions", { modules: detail.ownerModuleCount })}</span></div>
+                      <div className={styles.impactItem}><strong>{detail.criticalPermissionCount}</strong><span>{t("webui.iam.roles.impactCritical", { elevated: detail.elevatedPermissionCount })}</span></div>
+                    </div>
+                    <p className={styles.impactNote}>{t("webui.iam.roles.impactHint", { members: detail.assignedAccountCount })}</p>
+                  </section>
+                  {selected.system
+                    ? <p className="admin-note">{t("webui.iam.roles.systemReadonly")}</p>
+                    : <section className={styles.detailSection}><h3>{t("webui.iam.roles.permissionScope")}</h3><div className="permission-matrix">{groups.map((group) => <fieldset key={group.ownerModuleId}><legend>{group.ownerModuleId}</legend>{group.definitions.map((definition) => <Check key={definition.key} checked={selectedKeys.includes(definition.key)} disabled={selected.archived} onChange={() => toggle(definition.key)} className="permission-row">{definition.key}<span className="permission-description">{permissionDescription(definition.descriptionMessageId)}</span><PermissionRiskBadge risk={definition.risk} /></Check>)}</fieldset>)}</div></section>}
+                </>}
             {message && <p className="page-meta">{message}</p>}
             <div className="page-meta">{t("webui.iam.roles.pending")}: +{diff.added} −{diff.removed} · rev {expectedVersion}</div>
             <StickyActionBar state={permissionSaveState} status={permissionSaveState === "dirty" ? t("webui.iam.roles.pending") : permissionSaveState === "pending" ? t("webui.iam.saving") : permissionSaveState === "conflict" ? message : undefined}>

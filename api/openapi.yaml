@@ -916,10 +916,17 @@ components:
           type: string
         ownerModuleId:
           type: string
+        risk:
+          enum:
+            - standard
+            - elevated
+            - critical
+          type: string
       required:
         - key
         - ownerModuleId
         - descriptionMessageId
+        - risk
       type: object
     Position:
       additionalProperties: false
@@ -1027,6 +1034,49 @@ components:
       required:
         - catalogRevision
         - navigationRevision
+      type: object
+    RoleDetailResponse:
+      additionalProperties: false
+      properties:
+        assignedAccountCount:
+          format: int64
+          type: integer
+        authorizationRevision:
+          format: int64
+          minimum: 0
+          type: integer
+        createdAt:
+          format: date-time
+          type: string
+        criticalPermissionCount:
+          format: int64
+          type: integer
+        elevatedPermissionCount:
+          format: int64
+          type: integer
+        ownerModuleCount:
+          format: int64
+          type: integer
+        permissions:
+          items:
+            $ref: "#/components/schemas/PermissionResponse"
+          nullable: true
+          type: array
+        role:
+          $ref: "#/components/schemas/RoleResponse"
+        updatedAt:
+          format: date-time
+          type: string
+      required:
+        - role
+        - permissions
+        - authorizationRevision
+        - assignedAccountCount
+        - ownerModuleCount
+        - elevatedPermissionCount
+        - criticalPermissionCount
+        - createdAt
+        - updatedAt
       type: object
     RoleIDsInputBody:
       additionalProperties: false
@@ -2465,6 +2515,35 @@ paths:
       tags:
         - IAM
   /api/v1/iam/roles/{id}:
+    get:
+      operationId: iam.roles.read
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoleDetailResponse"
+          description: OK
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      security:
+        - webuiSession: []
+      tags:
+        - IAM
     patch:
       operationId: iam.roles.update
       parameters:

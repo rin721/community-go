@@ -178,6 +178,18 @@ type RolePermissionsView struct {
 	PermissionKeys        []permissioncatalog.Key
 }
 
+// RoleDetailView 是角色详情与变更影响的一致性读取投影。权限风险由各权限
+// owner 在 Catalog 中声明；这里仅聚合，不按权限键猜测风险。
+type RoleDetailView struct {
+	Role                    model.Role
+	Permissions             []permissioncatalog.Definition
+	AuthorizationRevision   uint64
+	AssignedAccountCount    int64
+	OwnerModuleCount        int
+	ElevatedPermissionCount int
+	CriticalPermissionCount int
+}
+
 // AssignmentResult 是关系替换的写入结果（新版本、revision 与 diff 计数）。
 type AssignmentResult struct {
 	EntityVersion         uint64
@@ -1449,6 +1461,55 @@ func (s *Service) RolePermissionsSnapshot(ctx context.Context, roleID string) (R
 			return err
 		}
 		result = RolePermissionsView{RoleID: roleID, RoleVersion: role.Version, AuthorizationRevision: revision, PermissionKeys: keys}
+		return nil
+	})
+	return result, err
+}
+
+// RoleDetail 返回角色生命周期、权限目录元数据与成员/风险影响摘要。
+func (s *Service) RoleDetail(ctx context.Context, roleID string) (RoleDetailView, error) {
+	var result RoleDetailView
+	err := s.store.Use(ctx, func(r *repo.Unit) error {
+		role, err := r.RoleByID(ctx, roleID)
+		if err != nil {
+			return err
+		}
+		relations, err := r.ListRolePermissions(ctx, roleID, true)
+		if err != nil {
+			return err
+		}
+		definitions := make([]permissioncatalog.Definition, 0, len(relations))
+		owners := make(map[string]struct{})
+		elevatedCount, criticalCount := 0, 0
+		for _, relation := range relations {
+			definition, exists := s.catalog.Lookup(permissioncatalog.Key(relation.PermissionKey))
+			if !exists {
+				return ErrUnknownPermission
+			}
+			definitions = append(definitions, definition)
+			owners[string(definition.OwnerModuleID)] = struct{}{}
+			switch definition.Risk {
+			case permissioncatalog.RiskElevated:
+				elevatedCount++
+			case permissioncatalog.RiskCritical:
+				criticalCount++
+			}
+		}
+		sort.Slice(definitions, func(left, right int) bool { return definitions[left].Key < definitions[right].Key })
+		assignedAccounts, err := r.CountAccountRolesByRole(ctx, roleID)
+		if err != nil {
+			return err
+		}
+		revision, err := r.CurrentAuthorizationRevision(ctx)
+		if err != nil {
+			return err
+		}
+		result = RoleDetailView{
+			Role: modelRole(role), Permissions: definitions,
+			AuthorizationRevision: revision, AssignedAccountCount: assignedAccounts,
+			OwnerModuleCount: len(owners), ElevatedPermissionCount: elevatedCount,
+			CriticalPermissionCount: criticalCount,
+		}
 		return nil
 	})
 	return result, err

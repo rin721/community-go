@@ -277,6 +277,72 @@ func TestSinkCursorPagination(t *testing.T) {
 	}
 }
 
+// TestSinkCursorPaginationWithFilter 验证游标分页与筛选组合（090 PAGE-090-003
+// 完整查询）：翻页过程中 filter 恒定（operation/outcome），不重不漏，
+// 且只返回满足筛选的事件。
+func TestSinkCursorPaginationWithFilter(t *testing.T) {
+	store, resource := newTestStore(t)
+	defer resource.Close()
+	fixed := clock.Fixed(time.Date(2026, 8, 24, 0, 0, 0, 0, time.UTC))
+	sink, err := New(store, fixed, 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 混合写入：4 条 iam.accounts.list 成功 + 3 条 iam.sessions.revoke 拒绝。
+	for index := uint64(1); index <= 4; index++ {
+		event := testEvent("iam.accounts.list", "list", fmt.Sprintf("subject-%d", index), index, authmodel.AuditSucceeded)
+		if err := sink.Record(t.Context(), event); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for index := uint64(5); index <= 7; index++ {
+		event := testEvent("iam.sessions.revoke", "revoke", fmt.Sprintf("subject-%d", index), index, authmodel.AuditDenied)
+		event.Decision = authmodel.Decision{Reason: authmodel.ReasonRBACDenied}
+		if err := sink.Record(t.Context(), event); err != nil {
+			t.Fatal(err)
+		}
+	}
+	filter := authservice.AuditQueryFilter{Operation: "iam.accounts.list", Outcome: string(authmodel.AuditSucceeded)}
+	var collected []authservice.AuditEventView
+	var cursor *authservice.AuditCursor
+	page := 0
+	for {
+		result, err := sink.List(t.Context(), filter, cursor, 2)
+		if err != nil {
+			t.Fatal(err)
+		}
+		collected = append(collected, result.Items...)
+		page++
+		if page > 10 {
+			t.Fatal("filtered cursor pagination did not terminate")
+		}
+		if !result.HasMore {
+			break
+		}
+		decoded, err := authservice.DecodeAuditCursor(result.NextCursor)
+		if err != nil {
+			t.Fatal(err)
+		}
+		cursor = &decoded
+	}
+	if len(collected) != 4 {
+		t.Fatalf("filtered cursor pagination returned %d items, want 4", len(collected))
+	}
+	for _, item := range collected {
+		if item.Operation != "iam.accounts.list" || item.Outcome != authmodel.AuditSucceeded {
+			t.Fatalf("filtered page leaked non-matching event: %#v", item)
+		}
+	}
+	// 与不过滤的总数对比：全量 7 条。
+	all, err := sink.List(t.Context(), authservice.AuditQueryFilter{}, nil, 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if all.Total != 7 {
+		t.Fatalf("unfiltered total = %d, want 7", all.Total)
+	}
+}
+
 // TestSinkFailClosedOnIncompleteReader 验证查询在 reader 不可用时 fail closed。
 func TestServiceQueryFailClosedWithoutReader(t *testing.T) {
 	store, resource := newTestStore(t)

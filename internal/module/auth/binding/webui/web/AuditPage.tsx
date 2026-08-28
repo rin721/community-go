@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, CodeText, CodeViewer, DataTable, DetailDrawer, EmptyState, ErrorState, FilterBar, formatDateTime, formatRelativeTime, PageFrame, PageHeader, PageSection, Pagination, ResourceIndex, StatusBadge } from "@webui/sdk/ui";
-import { useListQueryParams } from "@webui/sdk/query";
+import { useListQueryParams, type ProblemError } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { listAuditEvents, type AuditEventView, type AuditFilter, type AuditOutcome } from "./api";
 import styles from "./auth.module.css";
@@ -67,10 +67,10 @@ export default function AuditPage() {
   const [total, setTotal] = useState(0);
   const [selected, setSelected] = useState<AuditEventView | null>(null);
   const [loading, setLoading] = useState(false);
-  const [loadError, setLoadError] = useState(false);
+  const [loadError, setLoadError] = useState<ProblemError | null>(null);
   const refresh = useCallback(() => {
     setLoading(true);
-    setLoadError(false);
+    setLoadError(null);
     const filter: AuditFilter = {};
     if (listQuery.filters.operation) filter.operation = listQuery.filters.operation;
     if (listQuery.filters.action) filter.action = listQuery.filters.action;
@@ -81,7 +81,7 @@ export default function AuditPage() {
     if (listQuery.filters.since) filter.since = toRFC3339(listQuery.filters.since);
     if (listQuery.filters.until) filter.until = toRFC3339(listQuery.filters.until);
     const offset = (listQuery.page - 1) * PAGE_SIZE;
-    return listAuditEvents(filter, offset, PAGE_SIZE).then((result) => { setItems(result.items); setTotal(result.total); }).catch(() => { setItems([]); setTotal(0); setLoadError(true); }).finally(() => setLoading(false));
+    return listAuditEvents(filter, offset, PAGE_SIZE).then((result) => { setItems(result.items); setTotal(result.total); }).catch((error) => { setItems([]); setTotal(0); setLoadError(error as ProblemError); }).finally(() => setLoading(false));
   }, [listQuery.filters.operation, listQuery.filters.action, listQuery.filters.outcome, listQuery.filters.actorKind, listQuery.filters.subjectHash, listQuery.filters.resourceType, listQuery.filters.since, listQuery.filters.until, listQuery.page]);
   useEffect(() => { void refresh(); }, [refresh]);
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -112,7 +112,7 @@ export default function AuditPage() {
           resultCount={total}
           resultCountLabel={(count) => t("webui.auth.audit.total", { total: count })}
         />}>
-          {loadError && <ErrorState kind="connectivity" title={hostT("webui.host.route.error.title")} detail={hostT("webui.host.route.error.detail")} action={<Button variant="secondary" onClick={() => void refresh()}>{hostT("webui.host.retry")}</Button>} />}
+          {loadError && <ErrorState kind="connectivity" title={hostT("webui.host.route.error.title")} detail={hostT("webui.host.route.error.detail")} requestId={loadError.requestId} action={<Button variant="secondary" onClick={() => void refresh()}>{hostT("webui.host.retry")}</Button>} />}
           <DataTable<AuditEventView>
           columns={[
             { id: "eventId", header: "ID", className: "audit-event-id-col", cell: (item) => <CodeText value={String(item.eventId)} /> },

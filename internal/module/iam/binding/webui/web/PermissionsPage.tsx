@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, CodeText, DataTable, EmptyState, ErrorState, FilterBar, PageFrame, PageHeader, PageSection, ResourceIndex, Skeleton, StatusBadge } from "@webui/sdk/ui";
 import { useListQueryParams } from "@webui/sdk/query";
+import type { ProblemError } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { listPermissions, permissionRoles, type Role } from "./api";
 import { permissionDescription, preloadPermissionDescriptions } from "./permission-label";
@@ -30,11 +31,11 @@ export default function PermissionsPage() {
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const [usage, setUsage] = useState<Record<string, Role[]>>({});
   const [loading, setLoading] = useState(false);
-  const [loadError, setLoadError] = useState(false);
+  const [loadError, setLoadError] = useState<ProblemError | null>(null);
   const refresh = useCallback(() => {
     setLoading(true);
-    setLoadError(false);
-    return listPermissions().then(async (result) => { setItems(result); await preloadPermissionDescriptions(result); }).catch(() => { setItems([]); setLoadError(true); }).finally(() => setLoading(false));
+    setLoadError(null);
+    return listPermissions().then(async (result) => { setItems(result); await preloadPermissionDescriptions(result); }).catch((error) => { setItems([]); setLoadError(error as ProblemError); }).finally(() => setLoading(false));
   }, []);
   useEffect(() => { void refresh(); }, [refresh]);
   const filtered = useMemo(() => {
@@ -62,7 +63,7 @@ export default function PermissionsPage() {
           resultCount={filtered.length}
           resultCountLabel={(count) => t("webui.iam.permissions.total", { count })}
         />}>
-          {loadError && <ErrorState kind="connectivity" title={hostT("webui.host.route.error.title")} detail={hostT("webui.host.route.error.detail")} action={<Button variant="secondary" onClick={() => void refresh()}>{hostT("webui.host.retry")}</Button>} />}
+          {loadError && <ErrorState kind="connectivity" title={hostT("webui.host.route.error.title")} detail={hostT("webui.host.route.error.detail")} requestId={loadError.requestId} action={<Button variant="secondary" onClick={() => void refresh()}>{hostT("webui.host.retry")}</Button>} />}
           {loading && !loadError && <Skeleton lines={5} label={hostT("webui.host.page.loading.label")} />}
           {!loading && !loadError && groups.length === 0 && <EmptyState title={t("webui.iam.permissions.filterEmpty")} />}
           {!loading && !loadError && groups.map((group) => (

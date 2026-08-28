@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActionTrigger, Button, CodeText, ConfirmDialog, DataTable, EmptyState, ErrorState, Field, FilterBar, formatDateTime, InlineAlert, PageFrame, PageHeader, PageSection, Pagination, ResourceIndex, SelectField, StatusBadge } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
-import { useListQueryParams } from "@webui/sdk/query";
+import { useListQueryParams, type ProblemError } from "@webui/sdk/query";
 import { createApiToken, disableApiToken, enableApiToken, listApiTokens, loadSession, revokeApiToken, rotateApiToken, updateApiToken, type ApiTokenView } from "./api";
 import styles from "./iam.module.css";
 
@@ -46,7 +46,7 @@ export default function ApiTokensPage() {
   const [message, setMessage] = useState("");
   const [pendingRevokeID, setPendingRevokeID] = useState("");
   const [loading, setLoading] = useState(false);
-  const [loadError, setLoadError] = useState(false);
+  const [loadError, setLoadError] = useState<ProblemError | null>(null);
   const pageSize = Math.min(Math.max(listQuery.pageSize, 1), 100);
   const [total, setTotal] = useState(0);
   const sortKey = listQuery.sort?.key;
@@ -56,9 +56,9 @@ export default function ApiTokensPage() {
 
   const refresh = useCallback((filter = listQuery.filters.status) => {
     setLoading(true);
-    setLoadError(false);
+    setLoadError(null);
     const offset = (listQuery.page - 1) * pageSize;
-    return listApiTokens(filter, offset, pageSize, sortKey && sortDirection ? `${sortKey}:${sortDirection}` : undefined).then((value) => { setTokens(value.items); setTotal(value.total); }).catch(() => { setTokens([]); setTotal(0); setLoadError(true); }).finally(() => setLoading(false));
+    return listApiTokens(filter, offset, pageSize, sortKey && sortDirection ? `${sortKey}:${sortDirection}` : undefined).then((value) => { setTokens(value.items); setTotal(value.total); }).catch((error) => { setTokens([]); setTotal(0); setLoadError(error as ProblemError); }).finally(() => setLoading(false));
   }, [listQuery.filters.status, listQuery.page, pageSize, sortKey, sortDirection]);
 
   useEffect(() => {
@@ -196,7 +196,7 @@ export default function ApiTokensPage() {
           onClear={() => listQuery.setFilters({ status: "all" })}
           clearLabel={t("webui.iam.accounts.clear")}
         />}>
-          {loadError && <ErrorState kind="connectivity" title={hostT("webui.host.route.error.title")} detail={hostT("webui.host.route.error.detail")} action={<Button variant="secondary" onClick={() => void refresh()}>{hostT("webui.host.retry")}</Button>} />}
+          {loadError && <ErrorState kind="connectivity" title={hostT("webui.host.route.error.title")} detail={hostT("webui.host.route.error.detail")} requestId={loadError.requestId} action={<Button variant="secondary" onClick={() => void refresh()}>{hostT("webui.host.retry")}</Button>} />}
           <DataTable
           ariaLabel={t("webui.iam.apiTokens.listTitle")}
           loading={loading}

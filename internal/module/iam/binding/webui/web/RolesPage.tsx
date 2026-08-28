@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActionTrigger, Button, Check, CodeText, ConfirmActionTrigger, DataTable, Drawer, EmptyState, EntityDetail, ErrorState, Field, FilterBar, FormField, PageFrame, PageHeader, PageSection, Pagination, ResourceIndex, SearchInput, Skeleton, StatusBadge } from "@webui/sdk/ui";
-import { useListQueryParams } from "@webui/sdk/query";
+import { useListQueryParams, type ProblemError } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { archiveRole, createRole, listPermissions, listRoles, replaceRolePermissions, rolePermissionsView, updateRoleInfo, type PermissionDefinition, type Role } from "./api";
 import { permissionDescription, preloadPermissionDescriptions } from "./permission-label";
@@ -65,18 +65,18 @@ export default function RolesPage() {
   const [focusedRoleID, setFocusedRoleID] = useState("");
   const [permissionLoadState, setPermissionLoadState] = useState<"idle" | "loading" | "error">("idle");
   const [loading, setLoading] = useState(false);
-  const [loadError, setLoadError] = useState(false);
+  const [loadError, setLoadError] = useState<ProblemError | null>(null);
   const page = listQuery.page;
   const sortKey = listQuery.sort?.key;
   const sortDirection = listQuery.sort?.direction;
   const refresh = useCallback((nextPage = page) => {
     setLoading(true);
-    setLoadError(false);
+    setLoadError(null);
     return listRoles(listQuery.filters.query, (nextPage - 1) * PAGE_SIZE, PAGE_SIZE, sortKey && sortDirection ? `${sortKey}:${sortDirection}` : undefined).then((result) => {
       setTotal(result.total);
       setItems(result.items);
       setSelectedID((current) => current && result.items.some((item) => item.id === current) ? current : result.items[0]?.id || "");
-    }).catch(() => { setItems([]); setTotal(0); setLoadError(true); }).finally(() => setLoading(false));
+    }).catch((error) => { setItems([]); setTotal(0); setLoadError(error as ProblemError); }).finally(() => setLoading(false));
   }, [listQuery.filters.query, sortKey, sortDirection, page]);
   useEffect(() => { void refresh(); void listPermissions().then(async (result) => { setPermissions(result); await preloadPermissionDescriptions(result); }); }, [refresh]);
   useEffect(() => { listQuery.setPage(1); }, [listQuery.filters.query, sortKey, sortDirection]);
@@ -171,7 +171,7 @@ export default function RolesPage() {
           resultCount={total}
           resultCountLabel={(count) => t("webui.iam.roles.total", { total: count })}
         />}>
-          {loadError && <ErrorState kind="connectivity" title={hostT("webui.host.route.error.title")} detail={hostT("webui.host.route.error.detail")} action={<Button variant="secondary" onClick={() => void refresh()}>{hostT("webui.host.retry")}</Button>} />}
+          {loadError && <ErrorState kind="connectivity" title={hostT("webui.host.route.error.title")} detail={hostT("webui.host.route.error.detail")} requestId={loadError.requestId} action={<Button variant="secondary" onClick={() => void refresh()}>{hostT("webui.host.retry")}</Button>} />}
           <DataTable<Role>
           columns={[
             { id: "name", header: t("webui.iam.roles.name"), cell: (item) => item.name },

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { BulkActionBar, Button, CodeText, DataTable, EmptyState, ErrorState, FilterBar, formatDateTime, formatRelativeTime, PageFrame, PageHeader, PageSection, Pagination, ResourceIndex, StatusBadge } from "@webui/sdk/ui";
-import { useListQueryParams } from "@webui/sdk/query";
+import { useListQueryParams, type ProblemError } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { listAccounts, listSessions, revokeSessions, type Account, type SessionInfo } from "./api";
 import styles from "./iam.module.css";
@@ -30,14 +30,14 @@ export default function SessionsPage() {
   const [message, setMessage] = useState("");
   const [revoking, setRevoking] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [loadError, setLoadError] = useState(false);
+  const [loadError, setLoadError] = useState<ProblemError | null>(null);
   const pageSize = Math.min(Math.max(listQuery.pageSize, 1), 100);
   const [total, setTotal] = useState(0);
   const refresh = useCallback(() => {
     setLoading(true);
-    setLoadError(false);
+    setLoadError(null);
     const offset = (listQuery.page - 1) * pageSize;
-    return listSessions(listQuery.filters.status, listQuery.filters.accountId || undefined, listQuery.sort ? `${listQuery.sort.key}:${listQuery.sort.direction}` : undefined, offset, pageSize).then((result) => { setItems(result.items); setTotal(result.total); setSelected(new Set()); }).catch(() => { setItems([]); setTotal(0); setSelected(new Set()); setLoadError(true); }).finally(() => setLoading(false));
+    return listSessions(listQuery.filters.status, listQuery.filters.accountId || undefined, listQuery.sort ? `${listQuery.sort.key}:${listQuery.sort.direction}` : undefined, offset, pageSize).then((result) => { setItems(result.items); setTotal(result.total); setSelected(new Set()); }).catch((error) => { setItems([]); setTotal(0); setSelected(new Set()); setLoadError(error as ProblemError); }).finally(() => setLoading(false));
   }, [listQuery.filters.status, listQuery.filters.accountId, listQuery.sort, listQuery.page, pageSize]);
   useEffect(() => { void refresh(); }, [refresh]);
   useEffect(() => { void listAccounts().then((result) => setAccounts(result.items)).catch(() => undefined); }, []);
@@ -68,7 +68,7 @@ export default function SessionsPage() {
           resultCount={total}
           resultCountLabel={(count) => `${count} ${hostT("webui.host.ui.results")}`}
         />}>
-          {loadError && <ErrorState kind="connectivity" title={hostT("webui.host.route.error.title")} detail={hostT("webui.host.route.error.detail")} action={<Button variant="secondary" onClick={() => void refresh()}>{hostT("webui.host.retry")}</Button>} />}
+          {loadError && <ErrorState kind="connectivity" title={hostT("webui.host.route.error.title")} detail={hostT("webui.host.route.error.detail")} requestId={loadError.requestId} action={<Button variant="secondary" onClick={() => void refresh()}>{hostT("webui.host.retry")}</Button>} />}
           <DataTable<SessionInfo>
           columns={[
             { id: "idHash", header: t("webui.iam.sessions.idHash"), cell: (item) => <CodeText value={item.idHash} copyable /> },

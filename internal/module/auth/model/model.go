@@ -189,12 +189,14 @@ const (
 
 // AuditEvent 只携带安全判断需要的项目类型；Sink 负责标识符脱敏。
 type AuditEvent struct {
-	Operation string
-	Action    Action
-	Principal Principal
-	Resource  ResourceFacts
-	Decision  Decision
-	Outcome   AuditOutcome
+	// CorrelationID 关联同一请求内产生的多个低敏操作事件；缺失时为空。
+	CorrelationID string
+	Operation     string
+	Action        Action
+	Principal     Principal
+	Resource      ResourceFacts
+	Decision      Decision
+	Outcome       AuditOutcome
 }
 
 // OperationAuditRequest 是业务模块写操作审计的低敏字段域：只携带稳定动作、
@@ -210,6 +212,8 @@ type OperationAuditRequest struct {
 
 type principalContextKey struct{}
 
+type correlationIDContextKey struct{}
+
 // WithPrincipal 把已验证 Principal 写入单次 transport context。
 func WithPrincipal(ctx context.Context, principal Principal) context.Context {
 	return context.WithValue(ctx, principalContextKey{}, principal)
@@ -222,4 +226,18 @@ func PrincipalFromContext(ctx context.Context) (Principal, bool) {
 	}
 	principal, ok := ctx.Value(principalContextKey{}).(Principal)
 	return principal, ok && principal.Subject != "" && principal.Kind != "" && principal.AuthorizationSource != "" && !principal.AuthenticatedAt.IsZero()
+}
+
+// WithCorrelationID 把请求关联标识写入单次 transport context。
+func WithCorrelationID(ctx context.Context, value string) context.Context {
+	return context.WithValue(ctx, correlationIDContextKey{}, strings.TrimSpace(value))
+}
+
+// CorrelationIDFromContext 读取请求关联标识；空值视为未设置。
+func CorrelationIDFromContext(ctx context.Context) (string, bool) {
+	if ctx == nil {
+		return "", false
+	}
+	value, ok := ctx.Value(correlationIDContextKey{}).(string)
+	return value, ok && value != ""
 }

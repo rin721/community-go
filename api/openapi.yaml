@@ -267,6 +267,8 @@ components:
           type: string
         actorKind:
           type: string
+        correlationId:
+          type: string
         decision:
           type: string
         eventId:
@@ -1367,6 +1369,11 @@ paths:
             maximum: 100
             minimum: 1
             type: integer
+        - explode: false
+          in: query
+          name: correlationId
+          schema:
+            type: string
         - explode: false
           in: query
           name: operation

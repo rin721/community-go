@@ -17,6 +17,7 @@ describe("Auth 审计结果色调", () => {
       subjectHash: "subject-hash",
       resourceType: "account",
       resourceHash: "resource-hash",
+      correlationId: "request-42",
       decision: "allowed",
       outcome: "succeeded",
       occurredAt: "2026-08-28T10:00:00.000Z",
@@ -26,7 +27,8 @@ describe("Auth 审计结果色调", () => {
       "webui.auth.audit.operation": "操作",
     }[key] ?? key));
     expect(fields[0]).toMatchObject({ label: "编号", value: "42" });
-    expect(fields[1].label).toBe("webui.auth.audit.occurredAt");
-    expect(fields[2]).toMatchObject({ label: "操作", value: "iam.accounts.list" });
+    expect(fields[1]).toMatchObject({ label: "webui.auth.audit.correlationId", value: "request-42" });
+    expect(fields[2].label).toBe("webui.auth.audit.occurredAt");
+    expect(fields[3]).toMatchObject({ label: "操作", value: "iam.accounts.list" });
   });
 });

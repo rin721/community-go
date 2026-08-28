@@ -84,9 +84,10 @@ func testEvent(op, action string, subject string, index uint64, outcome authmode
 	}
 	return authmodel.AuditEvent{
 		Operation: op, Action: authmodel.Action(action), Principal: principal,
-		Resource: authmodel.ResourceFacts{Type: "account", ID: subject},
-		Decision: authmodel.Decision{Allowed: true, Reason: authmodel.ReasonAllowed},
-		Outcome:  outcome,
+		CorrelationID: "corr-" + subject,
+		Resource:      authmodel.ResourceFacts{Type: "account", ID: subject},
+		Decision:      authmodel.Decision{Allowed: true, Reason: authmodel.ReasonAllowed},
+		Outcome:       outcome,
 	}
 }
 
@@ -128,6 +129,12 @@ func TestSinkRecordsAndListsLowSensitivityEvents(t *testing.T) {
 		if item.Outcome == "" || item.Decision == "" {
 			t.Fatalf("audit view is incomplete: %#v", item)
 		}
+		if item.CorrelationID == "" {
+			t.Fatalf("audit view does not expose correlation id: %#v", item)
+		}
+	}
+	if result.Items[0].CorrelationID != "corr-account-2" || result.Items[1].CorrelationID != "corr-account-1" {
+		t.Fatalf("audit correlation ids mismatch: %#v", result.Items)
 	}
 
 	filtered, err := sink.List(t.Context(), authservice.AuditQueryFilter{Operation: "iam.accounts.list"}, 0, 20)
@@ -155,6 +162,14 @@ func TestSinkRecordsAndListsLowSensitivityEvents(t *testing.T) {
 	}
 	if byResource.Total != 2 {
 		t.Fatalf("resource type filter failed: %#v", byResource)
+	}
+
+	byCorrelation, err := sink.List(t.Context(), authservice.AuditQueryFilter{CorrelationID: "corr-account-1"}, 0, 20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if byCorrelation.Total != 1 || byCorrelation.Items[0].CorrelationID != "corr-account-1" {
+		t.Fatalf("correlation id filter failed: %#v", byCorrelation)
 	}
 }
 

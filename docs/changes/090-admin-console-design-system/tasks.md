@@ -35,7 +35,7 @@
 
 - [ ] BE-090-001 逐资源统一查询、排序、分页/游标和错误语义；前置：R090-003、CONFIRM-090-001；完成证据：OpenAPI、模块测试和生成 registry。
 - [ ] BE-090-002 实现账户/角色核心详情与影响摘要；前置：BE-090-001；完成证据：领域契约、权限、错误与集成测试。
-- [ ] BE-090-003 实现审计 event/correlation/time range/detail 投影；前置：BE-090-001；当前增量：已有自增键已投影为只读 `eventId`，WebUI 已支持 actor/subject digest 与时间范围筛选，并更新 OpenAPI/WebUI；客户端 `requestJSON/requestText` 已保留 Problem 的状态、稳定 code、detail 和 requestId 投影，IAM 账户/角色/权限/会话/令牌与审计列表的连接错误已把 requestId 传入 `ErrorState`；服务端审计 correlationId、游标和详情投影仍待统一契约与查询测试。
+- [ ] BE-090-003 实现审计 event/correlation/time range/detail 投影；前置：BE-090-001；当前增量：已有自增键已投影为只读 `eventId`，HTTP request-id 已贯通低敏持久化 `correlationId`，服务端按关联请求筛选，WebUI 列表/详情可查看并复制 correlation ID；actor/subject digest 与时间范围筛选及 OpenAPI/WebUI 已同步。客户端 `requestJSON/requestText` 已保留 Problem 的状态、稳定 code、detail 和 requestId 投影，IAM 账户/角色/权限/会话/令牌与审计列表的连接错误已把 requestId 传入 `ErrorState`；游标和更完整详情仍待统一契约与查询测试。
 - [ ] BE-090-004 标准化批量结果、幂等和部分失败；前置：BE-090-001；完成证据：多结果与重试测试。
 - [ ] BE-090-005 实现需要跨设备保持的用户偏好契约；前置：BE-090-001；完成证据：默认/覆盖/更新/权限测试。
 
@@ -43,7 +43,7 @@
 
 - [ ] PAGE-090-001 迁移账户列表与详情作为标杆切片，删除旧布局与状态实现；前置：PATTERN-090-001、PATTERN-090-002、BE-090-002；当前证据：账户列表/管理区已使用 `ResourceIndex`、`EntityDetail`、统一 `Pagination` 和 URL 分页状态，筛选/排序会回到第一页，批量结果反馈与详情抽屉关系加载/失败态已覆盖，角色分配已接入 clean/dirty/pending/conflict 保存条并由 dev E2E 覆盖，同时避免复用上一行快照；聚合详情契约、完整关系/活动投影、视觉矩阵与零旧引用仍待补齐。
 - [ ] PAGE-090-002 迁移角色、权限、会话和 API Token；前置：PAGE-090-001；当前证据：角色管理区已使用 `EntityDetail`、统一 `Pagination` 与 URL 分页状态，权限关系读取具备加载/失败/重试态，权限目录具备统一查询反馈，会话与 API Token 列表已接入服务端 `offset/limit/total` 分页及页码/筛选 URL 状态；权限影响、批处理、一次性 secret 与视觉测试仍待补齐。
-- [ ] PAGE-090-003 迁移审计；前置：PATTERN-090-001、BE-090-003；当前证据：筛选器已覆盖 operation/action/outcome/actor/subject/resource/time range，事件详情保留低敏字段与 JSON 视图；correlation 关联、视觉矩阵与完整查询测试仍待补齐。
+- [ ] PAGE-090-003 迁移审计；前置：PATTERN-090-001、BE-090-003；当前证据：筛选器已覆盖 operation/action/outcome/actor/subject/resource/correlation/time range，事件列表与详情均展示可复制的低敏 correlation ID，详情保留低敏字段与 JSON 视图；游标、视觉矩阵与完整查询测试仍待补齐。
 - [ ] PAGE-090-004 迁移组织 Tree、岗位和任职；前置：PATTERN-090-002；当前证据：部门 Tree、岗位目录和账号任职页均使用统一 PageFrame/分栏骨架，任职保存条已呈现 clean/dirty/pending/conflict 状态，组织管理 E2E 覆盖树、岗位与任职编辑；移动预检、成员视图、键盘与响应式矩阵仍待补齐。
 - [ ] PAGE-090-005 迁移设置；前置：PATTERN-090-002、BE-090-005；当前证据：Profile/Security/Account 子页面统一使用 `PageFrame`，Profile/Security 保存操作使用 `StickyActionBar`，Profile/Security 已呈现 dirty/pending 状态，设置组导航与内容宽度 E2E 已通过；作用域、完整保存冲突和窄屏矩阵仍待补齐。
 - [ ] PAGE-090-006 重构 Dashboard 与系统状态；前置：SHELL-090-002；当前证据：运维能力卡片已从原始 JSON 改为有限标量事实摘要，并保留加载/失败/重试状态；监控区不再将未接入的宿主磁盘/网络指标伪装成同等重要卡片，而是明确保留接入说明；真实数据来源、口径、行动路径和视觉矩阵仍待补齐。

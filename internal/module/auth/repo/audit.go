@@ -21,28 +21,30 @@ type Access interface {
 // AuditEventRecord 只保存脱敏后的低基数字段；不得包含 token、claims、
 // 完整 DSN、原始 URL 或对象内容。
 type AuditEventRecord struct {
-	ID           uint64
-	OccurredAt   time.Time
-	Operation    string
-	Action       string
-	ActorKind    string
-	SubjectHash  string
-	ResourceType string
-	ResourceHash string
-	Decision     string
-	Outcome      string
+	ID            uint64
+	OccurredAt    time.Time
+	CorrelationID string
+	Operation     string
+	Action        string
+	ActorKind     string
+	SubjectHash   string
+	ResourceType  string
+	ResourceHash  string
+	Decision      string
+	Outcome       string
 }
 
 // AuditFilter 是查询的低敏过滤条件；空字段表示不过滤。
 type AuditFilter struct {
-	Operation   string
-	Action      string
-	Outcome     string
-	ActorKind   string
-	SubjectHash string
-	ResourceType string
-	Since       *time.Time
-	Until       *time.Time
+	CorrelationID string
+	Operation     string
+	Action        string
+	Outcome       string
+	ActorKind     string
+	SubjectHash   string
+	ResourceType  string
+	Since         *time.Time
+	Until         *time.Time
 }
 
 type Store struct{ access Access }
@@ -121,6 +123,9 @@ func (unit *Unit) DeleteOldestAuditEvents(ctx context.Context, count int64) erro
 }
 
 func applyAuditFilter(query *gorm.DB, filter AuditFilter) *gorm.DB {
+	if filter.CorrelationID != "" {
+		query = query.Where("correlation_id = ?", filter.CorrelationID)
+	}
 	if filter.Operation != "" {
 		query = query.Where("operation = ?", filter.Operation)
 	}

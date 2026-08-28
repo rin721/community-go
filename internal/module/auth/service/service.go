@@ -81,28 +81,30 @@ type AuditSink interface {
 
 // AuditQueryFilter 是审计只读查询的可选低敏过滤条件；空字段表示不过滤。
 type AuditQueryFilter struct {
-	Operation    string
-	Action       string
-	Outcome      string
-	ActorKind    string
-	SubjectHash  string
-	ResourceType string
-	Since        *time.Time
-	Until        *time.Time
+	CorrelationID string
+	Operation     string
+	Action        string
+	Outcome       string
+	ActorKind     string
+	SubjectHash   string
+	ResourceType  string
+	Since         *time.Time
+	Until         *time.Time
 }
 
 // AuditEventView 是查询返回的低敏事件视图（不含原始 token/claims/对象内容）。
 type AuditEventView struct {
-	EventID      uint64
-	Operation    string
-	Action       model.Action
-	ActorKind    model.ActorKind
-	SubjectHash  string
-	ResourceType string
-	ResourceHash string
-	Decision     model.DecisionReason
-	Outcome      model.AuditOutcome
-	OccurredAt   time.Time
+	EventID       uint64
+	CorrelationID string
+	Operation     string
+	Action        model.Action
+	ActorKind     model.ActorKind
+	SubjectHash   string
+	ResourceType  string
+	ResourceHash  string
+	Decision      model.DecisionReason
+	Outcome       model.AuditOutcome
+	OccurredAt    time.Time
 }
 
 // AuditQueryResult 是分页审计查询结果。

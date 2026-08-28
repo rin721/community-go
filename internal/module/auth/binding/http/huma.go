@@ -38,7 +38,7 @@ func RegisterHuma(api huma.API, handler *Handler) {
 		items := make([]auditEventViewResponse, len(result.Items))
 		for index, item := range result.Items {
 			items[index] = auditEventViewResponse{
-				EventID:   item.EventID,
+				EventID: item.EventID, CorrelationID: item.CorrelationID,
 				Operation: item.Operation, Action: string(item.Action), ActorKind: string(item.ActorKind),
 				SubjectHash: item.SubjectHash, ResourceType: item.ResourceType, ResourceHash: item.ResourceHash,
 				Decision: item.Decision, Outcome: item.Outcome, OccurredAt: item.OccurredAt,

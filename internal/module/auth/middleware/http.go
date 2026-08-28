@@ -34,7 +34,11 @@ func (source *Source) AuthenticateRequest(request *http.Request) (*http.Request,
 		}
 		return nil, err
 	}
-	return request.WithContext(model.WithPrincipal(request.Context(), principal)), nil
+	ctx := model.WithPrincipal(request.Context(), principal)
+	if requestID, ok := httpx.RequestIDFromContext(request.Context()); ok {
+		ctx = model.WithCorrelationID(ctx, requestID)
+	}
+	return request.WithContext(ctx), nil
 }
 
 // Middleware 把相同认证来源适配到仍由 Auth 模块拥有的 middleware 边界。

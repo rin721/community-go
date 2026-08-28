@@ -43,7 +43,11 @@ func (a iamSessionAuthAdapter) AuthenticateRequest(request *http.Request) (*http
 		return nil, err
 	}
 	resolved := service.WithResolvedSession(request, cookie.Value, session)
-	return resolved.WithContext(authmodel.WithPrincipal(resolved.Context(), principal)), nil
+	ctx := authmodel.WithPrincipal(resolved.Context(), principal)
+	if requestID, ok := httpx.RequestIDFromContext(resolved.Context()); ok {
+		ctx = authmodel.WithCorrelationID(ctx, requestID)
+	}
+	return resolved.WithContext(ctx), nil
 }
 
 func adaptIAMDatabaseAccess(access repo.Access) (repo.Access, error) {

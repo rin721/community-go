@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/rin721/go-scaffold-template/internal/module/auth/model"
+	"github.com/rin721/go-scaffold-template/pkg/httpx"
 )
 
 func TestHTTPAuthenticatesBearerAndInjectsPrincipal(t *testing.T) {
@@ -30,6 +31,30 @@ func TestHTTPAuthenticatesBearerAndInjectsPrincipal(t *testing.T) {
 	handler.ServeHTTP(response, request)
 	if response.Code != http.StatusNoContent || authenticator.credential.Value != "opaque-token" {
 		t.Fatalf("response = %d, credential = %#v", response.Code, authenticator.credential)
+	}
+}
+
+func TestSourceCarriesRequestIDAsCorrelationID(t *testing.T) {
+	source, err := NewSource(&testAuthenticator{principal: testPrincipal(t)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	request := httptest.NewRequest(http.MethodGet, "/todos", nil)
+	request.Header.Set("Authorization", "Bearer opaque-token")
+	transportContext := &httpx.Context{Request: request, ResponseWriter: httptest.NewRecorder()}
+	var requestWithID *http.Request
+	if err := httpx.RequestID(fixedRequestIDGenerator{value: "request-123"})(func(ctx *httpx.Context) error {
+		requestWithID = ctx.Request
+		return nil
+	})(transportContext); err != nil {
+		t.Fatal(err)
+	}
+	authenticated, err := source.AuthenticateRequest(requestWithID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if correlationID, ok := model.CorrelationIDFromContext(authenticated.Context()); !ok || correlationID != "request-123" {
+		t.Fatalf("correlation id = %q, ok = %t", correlationID, ok)
 	}
 }
 
@@ -59,6 +84,10 @@ type testAuthenticator struct {
 	credential model.Credential
 	failures   int
 }
+
+type fixedRequestIDGenerator struct{ value string }
+
+func (g fixedRequestIDGenerator) New() (string, error) { return g.value, nil }
 
 func (a *testAuthenticator) Authenticate(_ context.Context, credential model.Credential) (model.Principal, error) {
 	a.credential = credential

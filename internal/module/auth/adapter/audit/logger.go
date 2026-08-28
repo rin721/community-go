@@ -34,7 +34,12 @@ func (s *Sink) Record(ctx context.Context, event model.AuditEvent) error {
 	if event.Operation == "" && event.Action == "" || event.Outcome == "" {
 		return fmt.Errorf("auth audit event is incomplete")
 	}
+	correlationID := event.CorrelationID
+	if correlationID == "" {
+		correlationID, _ = model.CorrelationIDFromContext(ctx)
+	}
 	s.logger.Info("security decision",
+		logger.String("correlation_id", correlationID),
 		logger.String("operation", event.Operation),
 		logger.String("action", string(event.Action)),
 		logger.String("actor_kind", string(event.Principal.Kind)),

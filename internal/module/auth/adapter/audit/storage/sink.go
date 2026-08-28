@@ -47,15 +47,16 @@ func (s *Sink) Record(ctx context.Context, event authmodel.AuditEvent) error {
 		return fmt.Errorf("auth audit event is incomplete")
 	}
 	record := repo.AuditEventRecord{
-		OccurredAt:   nowOrClock(s.clock, event),
-		Operation:    event.Operation,
-		Action:       string(event.Action),
-		ActorKind:    string(event.Principal.Kind),
-		SubjectHash:  digest(event.Principal.Subject),
-		ResourceType: event.Resource.Type,
-		ResourceHash: digest(event.Resource.ID),
-		Decision:     string(event.Decision.Reason),
-		Outcome:      string(event.Outcome),
+		OccurredAt:    nowOrClock(s.clock, event),
+		CorrelationID: correlationID(ctx, event.CorrelationID),
+		Operation:     event.Operation,
+		Action:        string(event.Action),
+		ActorKind:     string(event.Principal.Kind),
+		SubjectHash:   digest(event.Principal.Subject),
+		ResourceType:  event.Resource.Type,
+		ResourceHash:  digest(event.Resource.ID),
+		Decision:      string(event.Decision.Reason),
+		Outcome:       string(event.Outcome),
 	}
 	err := s.store.WithinTx(ctx, func(txCtx context.Context, unit *repo.Unit) error {
 		if err := unit.CreateAuditEvent(txCtx, &record); err != nil {
@@ -98,7 +99,7 @@ func (s *Sink) List(ctx context.Context, filter service.AuditQueryFilter, offset
 		return service.AuditQueryResult{}, err
 	}
 	repoFilter := repo.AuditFilter{
-		Operation: filter.Operation, Action: filter.Action, Outcome: filter.Outcome, ActorKind: filter.ActorKind,
+		CorrelationID: filter.CorrelationID, Operation: filter.Operation, Action: filter.Action, Outcome: filter.Outcome, ActorKind: filter.ActorKind,
 		SubjectHash: filter.SubjectHash, ResourceType: filter.ResourceType, Since: filter.Since, Until: filter.Until,
 	}
 	var total int64
@@ -118,7 +119,7 @@ func (s *Sink) List(ctx context.Context, filter service.AuditQueryFilter, offset
 	items := make([]service.AuditEventView, len(records))
 	for index, record := range records {
 		items[index] = service.AuditEventView{
-			EventID:   record.ID,
+			EventID: record.ID, CorrelationID: record.CorrelationID,
 			Operation: record.Operation, Action: modelAction(record.Action),
 			ActorKind: modelActorKind(record.ActorKind), SubjectHash: record.SubjectHash,
 			ResourceType: record.ResourceType, ResourceHash: record.ResourceHash,
@@ -127,6 +128,16 @@ func (s *Sink) List(ctx context.Context, filter service.AuditQueryFilter, offset
 		}
 	}
 	return service.AuditQueryResult{Items: items, Offset: offset, Limit: limit, Total: total}, nil
+}
+
+func correlationID(ctx context.Context, explicit string) string {
+	if explicit != "" {
+		return explicit
+	}
+	if value, ok := authmodel.CorrelationIDFromContext(ctx); ok {
+		return value
+	}
+	return ""
 }
 
 func nowOrClock(currentClock clock.Clock, event authmodel.AuditEvent) time.Time {

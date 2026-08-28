@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActionTrigger, Button, CodeText, ConfirmActionTrigger, Drawer, EmptyState, Field, InlineAlert, InspectorPanel, PageHeader, PageSection, SearchInput, SelectField, StatusBadge, TreeView } from "@webui/sdk/ui";
+import { ActionTrigger, Button, CodeText, ConfirmActionTrigger, Drawer, EmptyState, Field, InlineAlert, InspectorPanel, PageFrame, PageHeader, PageSection, SearchInput, SelectField, StatusBadge, TreeView } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { createDepartment, departmentTree, updateDepartment, type DepartmentNode } from "./api";
 import styles from "./organization.module.css";
@@ -83,7 +83,7 @@ export default function DepartmentsPage() {
       .catch(() => setError(t("webui.organization.error")));
   };
 
-  return <div className={`${styles.organizationModule} module-page`}>
+  return <PageFrame variant="detail" className={styles.organizationModule}>
     <PageHeader eyebrow={t("webui.organization.brand")} title={t("webui.organization.departments.title")} description={t("webui.organization.departments.description")} actions={<ActionTrigger operationId="organization.departments.create" onAction={() => setCreateOpen(true)}>{t("webui.organization.departments.new")}</ActionTrigger>} />
     <div className="page-sections">
       <PageSection title={t("webui.organization.departments.directory.title")}>
@@ -168,5 +168,5 @@ export default function DepartmentsPage() {
         </div>
       </div>
     </Drawer>
-  </div>;
+  </PageFrame>;
 }

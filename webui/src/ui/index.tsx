@@ -1,11 +1,23 @@
-import { useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type CSSProperties, type HTMLAttributes, type InputHTMLAttributes, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type CSSProperties, type ReactNode } from "react";
 import { Checkbox as RACCheckbox, Dialog as RACDialog, Modal as RACModal, Switch as RACSwitch } from "react-aria-components";
-import { Alert, Button as HeroButton, Card, Chip, Description, EmptyState as HeroEmptyState, FieldError, Input as HeroInput, Label, ListBox, Pagination as HeroPagination, Select, Skeleton as HeroSkeleton, Table, TextField, Typography } from "@heroui/react";
-import { ToastProvider, addToast, closeToast } from "@heroui/toast";
+import { Button as HeroButton, Card, Pagination as HeroPagination, ToastProvider } from "@heroui/react";
+import { Check as CheckIcon, ChevronDown, ChevronRight, Copy, Search } from "lucide-react";
 import type { CapabilityState } from "../contracts";
+import { translateMessage } from "../i18n";
 import { Reveal } from "../motion/reveal";
-import { useActionAccess, useZoneContributions, ZoneSlot } from "../sdk/zone";
+import { useActionAccess } from "../sdk/zone";
 import { Sparkline } from "./charts";
+import { Skeleton, StatusPill } from "./feedback";
+export { CapabilityBanner, EmptyState, ErrorState, InlineAlert, Skeleton, StatusBadge, StatusPill, Toast } from "./feedback";
+export type { SemanticStatus } from "./feedback";
+import type { SelectOption } from "./forms";
+export { Field, FormField, SelectField, fieldWidthClass } from "./forms";
+export type { FieldWidth, SelectOption } from "./forms";
+export { DataTable, DataTableRowMenu, getDataTableSelectionState } from "./data";
+export type { DataTableColumn, DataTableEnhancements, DataTableProps } from "./data";
+export { PageFrame } from "./layout";
+export type { PageFrameProps, PageFrameVariant } from "./layout";
+export { EntityDetail, ResourceIndex, StickyActionBar } from "./patterns";
 export { Reveal, RevealList, revealRhythms, revealStaggerStep } from "../motion/reveal";
 export type { RevealProps, RevealRhythm } from "../motion/reveal";
 export { ToastProvider };
@@ -44,78 +56,13 @@ export function formatRelativeTime(iso: string | undefined | null, t: (key: stri
   return t("webui.host.relative.days", { days: Math.floor(hours / 24) });
 }
 
-function alertStatus(state: CapabilityState): "default" | "success" | "warning" | "danger" | "accent" {
-  switch (state) {
-    case "available": return "success";
-    case "degraded": return "warning";
-    case "unavailable": return "danger";
-    default: return "accent";
-  }
-}
-
-export function PageHeader({ eyebrow, title, description, actions }: { eyebrow?: string; title: string; description?: string; actions?: ReactNode }) {
-  const zoneItems = useZoneContributions("page-header");
-  return <header className="page-header"><div>{eyebrow && <p className="page-eyebrow">{eyebrow}</p>}<Typography.Heading level={1} className="page-header-title">{title}</Typography.Heading>{description && <p className="page-description">{description}</p>}</div>{(actions || zoneItems.length > 0) && <div className="page-actions">{actions}{zoneItems.map((item) => <ZoneSlot key={item.id} contribution={item} />)}</div>}</header>;
-}
-
-// Surface 保持平台语义容器（.surface 样式 authority），后续可整体切换 HeroUI Surface。
-export function Surface({ className = "", ...props }: HTMLAttributes<HTMLElement>) {
-  return <section className={`surface ${className}`.trim()} {...props} />;
-}
+export { PageHeader, PageSection, Surface } from "./layout";
+export type { PageSectionProps } from "./layout";
 
 // Button 映射到 HeroUI Button：primary/secondary/ghost/danger。
 export function Button({ variant = "primary", className = "", type = "button", disabled, onClick, children, ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "secondary" | "ghost" | "danger" }) {
   const heroVariant = variant === "ghost" ? "ghost" : variant === "danger" ? "danger" : variant === "secondary" ? "outline" : "primary";
   return <HeroButton type={type} variant={heroVariant} size="md" isDisabled={disabled} onPress={() => onClick?.(undefined as unknown as React.MouseEvent<HTMLButtonElement>)} className={`ui-button ui-button-${variant} ${className}`.trim()} {...props as object}>{children}</HeroButton>;
-}
-
-// Field 复用 HeroUI TextField/Input 复合组件（RAC 底座）：Label/Description/FieldError
-// 语义 + 原生 input 事件透传（onChange(event) 契约不变）。
-// 082 REQ-082-003：规范化 FormField 结构（Label/Description/Control/Helper/Error），
-// 新增 description/width（240/320-480/480-640 档）与 optional 标记，placeholder 不替代 label。
-export type FieldWidth = "sm" | "md" | "lg" | "auto";
-export function fieldWidthClass(width: FieldWidth = "auto"): string {
-  return width === "sm" ? "field-width-sm" : width === "md" ? "field-width-md" : width === "lg" ? "field-width-lg" : "";
-}
-export function Field({ label, hint, error, className = "", description, width = "auto", optional, ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string; hint?: string; error?: string; description?: string; width?: FieldWidth; optional?: boolean }) {
-  return <div className={`form-field ${error ? "has-error" : ""} ${fieldWidthClass(width)}`.trim()}><TextField isInvalid={Boolean(error)}><Label>{label}{optional && <span className="form-field-optional">（可选）</span>}</Label><HeroInput className={className} {...props as object} />{hint && <Description>{hint}</Description>}{description && !hint && <Description>{description}</Description>}{error && <FieldError>{error}</FieldError>}</TextField></div>;
-}
-
-// FormField：通用字段容器（Label/Description/Control/Helper/Error 统一结构，082 REQ-082-003）。
-// 相比 Field 支持任意 control 子节点（Select/Check/Switch/自定义），供 RHF Controller 包裹。
-export function FormField({ label, control, description, helper, error, width = "auto", optional, htmlFor }: {
-  label: ReactNode;
-  control: ReactNode;
-  description?: ReactNode;
-  helper?: ReactNode;
-  error?: ReactNode;
-  width?: FieldWidth;
-  optional?: boolean;
-  htmlFor?: string;
-}) {
-  return (
-    <div className={`form-field ${error ? "has-error" : ""} ${fieldWidthClass(width)}`.trim()}>
-      <label className="form-field-label" htmlFor={htmlFor}>{label}{optional && <span className="form-field-optional">（可选）</span>}</label>
-      {control}
-      {description && <p className="form-field-description">{description}</p>}
-      {helper && <p className="form-field-helper">{helper}</p>}
-      {error && <p className="form-field-error" role="alert">{error}</p>}
-    </div>
-  );
-}
-
-export function StatusPill({ state, children }: { state: CapabilityState; children: ReactNode }) {
-  const semanticState: SemanticStatus = state === "available" ? "healthy" : state === "degraded" ? "degraded" : state === "unavailable" ? "failed" : "pending";
-  return <StatusBadge status={semanticState} className={`status-pill status-${state}`}>{children}</StatusBadge>;
-}
-
-export function CapabilityBanner({ state, statusLabel, title, detail }: { state: CapabilityState; statusLabel: string; title: string; detail?: string }) {
-  return <Alert status={alertStatus(state)} className={`capability-banner capability-${state}`} role="status" aria-live="polite"><Alert.Content><Alert.Title>{statusLabel}</Alert.Title><Alert.Description><strong>{title}</strong>{detail && <> · {detail}</>}</Alert.Description></Alert.Content></Alert>;
-}
-
-// Skeleton 复用 HeroUI Skeleton 的行几何占位。
-export function Skeleton({ lines = 3, label }: { lines?: number; label: string }) {
-  return <div className="skeleton-stack" aria-label={label}>{Array.from({ length: lines }, (_, index) => <HeroSkeleton className="h-2.5 rounded-full" key={index} />)}</div>;
 }
 
 export function DataToolbar({ filters, actions, ariaLabel }: { filters?: ReactNode; actions?: ReactNode; ariaLabel?: string }) {
@@ -126,157 +73,6 @@ export function FilterPanel({ label, open, onToggle, expandLabel, collapseLabel,
   const panelID = `webui-filter-panel-${useId().replaceAll(":", "")}`;
   const toggleID = `${panelID}-toggle`;
   return <section className={`filter-panel ${open ? "open" : ""}`}><button id={toggleID} className="filter-panel-toggle" type="button" onClick={onToggle} aria-expanded={open} aria-controls={panelID} aria-label={open ? collapseLabel : expandLabel}><span className="filter-panel-chevron" aria-hidden="true" />{label}</button>{open && <div id={panelID} className="filter-panel-content" role="region" aria-labelledby={toggleID}>{children}</div>}</section>;
-}
-
-export type DataTableColumn<Row> = { id: string; header: ReactNode; cell: (row: Row, index: number) => ReactNode; className?: string; visible?: boolean };
-
-export function getDataTableSelectionState(rowKeys: ReadonlyArray<string>, selected: ReadonlySet<string>): { allSelected: boolean; partiallySelected: boolean } {
-  const selectedVisibleCount = rowKeys.filter((key) => selected.has(key)).length;
-  const allSelected = rowKeys.length > 0 && selectedVisibleCount === rowKeys.length;
-  return { allSelected, partiallySelected: selectedVisibleCount > 0 && !allSelected };
-}
-
-type DataTableProps<Row> = {
-  columns: ReadonlyArray<DataTableColumn<Row>>;
-  rows: ReadonlyArray<Row>;
-  ariaLabel?: string;
-  getRowKey?: (row: Row, index: number) => string;
-  loading?: boolean;
-  loadingLabel?: string;
-  emptyState?: ReactNode;
-  selectable?: boolean;
-  selectionLabel?: string;
-  selectedKeys?: ReadonlySet<string>;
-  onSelectedKeysChange?: (keys: Set<string>) => void;
-  /** wrapperProps 透传给 .data-table-wrap，供声明 data-* 滚动行为（067 显式滚动劫持）。 */
-  wrapperProps?: HTMLAttributes<HTMLDivElement> & { [key: `data-${string}`]: string | undefined };
-  /** 082 REQ-082-001 DataTable 增强（全部可选，默认关闭，保持既有调用兼容）。 */
-  enhancements?: DataTableEnhancements<Row>;
-};
-
-/** 082 REQ-082-001：DataTable 增强配置——列显隐 / 密度 / Sticky 表头 / 行操作菜单。 */
-export type DataTableEnhancements<Row> = {
-  /** 列显隐：initialVisible 缺省为 columns 的 visible !== false；persistedKey 提供时存 localStorage。 */
-  columnVisibility?: { persistedKey?: string; initialVisible?: ReadonlyArray<string> };
-  /** 行密度：可选三档，落 data-density 属性。 */
-  density?: "compact" | "default" | "comfortable";
-  /** 粘性表头：需要容器 max-height 配合（配合 wrapperProps 的滚动容器）。 */
-  stickyHeader?: boolean;
-  /** 行操作菜单：renderRowMenu 返回菜单项（仅渲染真实 operation；空数组不渲染菜单列）。 */
-  renderRowMenu?: (row: Row, index: number) => ReadonlyArray<{ key: string; label: ReactNode; onSelect: () => void; danger?: boolean }>;
-  /** 行操作列的可视表头（084：操作列不再是无标题空列）。 */
-  rowMenuHeader?: ReactNode;
-  /** 列显隐菜单的 a11y 文案。 */
-  columnMenuLabel?: string;
-};
-
-export function DataTable<Row>({ columns, rows, ariaLabel, getRowKey = (_row, index) => String(index), loading = false, loadingLabel, emptyState, selectable = false, selectionLabel, selectedKeys, onSelectedKeysChange, wrapperProps, enhancements }: DataTableProps<Row>) {
-  const { density = "default", stickyHeader = false, columnVisibility, renderRowMenu, rowMenuHeader, columnMenuLabel } = enhancements ?? {};
-  // 列显隐：受控于 localStorage（persistedKey）或 initialVisible；被隐藏的列通过菜单恢复。
-  const [hiddenColumns, setHiddenColumns] = useState<ReadonlySet<string>>(() => {
-    if (!columnVisibility) return new Set<string>();
-    const initial = columnVisibility.initialVisible ?? columns.filter((column) => column.visible !== false).map((column) => column.id);
-    if (columnVisibility.persistedKey) {
-      try {
-        const raw = window.localStorage.getItem(`webui:table:${columnVisibility.persistedKey}:cols`);
-        if (raw) return new Set<string>(JSON.parse(raw) as string[]);
-      } catch { /* 解析失败回退初始值 */ }
-    }
-    return new Set(columns.map((column) => column.id).filter((id) => !initial.includes(id)));
-  });
-  const toggleColumn = (id: string) => {
-    if (!columnVisibility) return;
-    const next = new Set(hiddenColumns);
-    next.has(id) ? next.delete(id) : next.add(id);
-    setHiddenColumns(next);
-    if (columnVisibility.persistedKey) {
-      try { window.localStorage.setItem(`webui:table:${columnVisibility.persistedKey}:cols`, JSON.stringify([...next])); } catch { /* 存储不可用时静默 */ }
-    }
-  };
-  const visibleColumns = columns.filter((column) => column.visible !== false && !hiddenColumns.has(column.id));
-  const rowKeys = rows.map(getRowKey);
-  const selected = selectedKeys ?? new Set<string>();
-  const headerSelectionRef = useRef<HTMLInputElement>(null);
-  const { allSelected, partiallySelected } = getDataTableSelectionState(rowKeys, selected);
-  useEffect(() => {
-    if (headerSelectionRef.current) headerSelectionRef.current.indeterminate = partiallySelected;
-  }, [partiallySelected]);
-  const toggleKey = (key: string) => {
-    if (!onSelectedKeysChange) return;
-    const next = new Set(selected);
-    next.has(key) ? next.delete(key) : next.add(key);
-    onSelectedKeysChange(next);
-  };
-  const toggleAll = () => {
-    if (!onSelectedKeysChange) return;
-    onSelectedKeysChange(allSelected ? new Set() : new Set(rowKeys));
-  };
-  const hasColumnMenu = Boolean(columnVisibility) && columns.some((column) => column.visible !== false);
-  const hasRowMenu = Boolean(renderRowMenu);
-  return (
-    <Table.Root className="data-table-wrap" data-density={density} data-sticky={stickyHeader || undefined} {...wrapperProps}>
-      {hasColumnMenu && (
-        <div className="data-table-toolbar">
-          <details className="data-table-columns" aria-label={columnMenuLabel}>
-            <summary role="button" tabIndex={0} className="data-table-columns-toggle">{columnMenuLabel ?? "Columns"}</summary>
-            <div role="menu" className="data-table-columns-menu">
-              {columns.filter((column) => column.visible !== false).map((column) => (
-                <label key={column.id} className="data-table-columns-item" role="menuitemcheckbox" aria-checked={!hiddenColumns.has(column.id)}>
-                  <input type="checkbox" checked={!hiddenColumns.has(column.id)} onChange={() => toggleColumn(column.id)} />
-                  {column.header}
-                </label>
-              ))}
-            </div>
-          </details>
-        </div>
-      )}
-      <Table.Content className="data-table" aria-label={ariaLabel} aria-busy={loading}>
-        <Table.Header>
-          {selectable && <Table.Column id="selection"><input ref={headerSelectionRef} type="checkbox" checked={allSelected} onChange={toggleAll} aria-checked={partiallySelected ? "mixed" : allSelected} aria-label={selectionLabel} /></Table.Column>}
-          {visibleColumns.map((column, index) => <Table.Column id={column.id} className={column.className} isRowHeader={index === 0} key={column.id}>{column.header}</Table.Column>)}
-          {hasRowMenu && <Table.Column id="row-menu" aria-label={columnMenuLabel ?? ""} style={{ width: 104 }}>{rowMenuHeader}</Table.Column>}
-        </Table.Header>
-        <Table.Body>
-          {loading && <Table.Row>{selectable && <Table.Cell />}{visibleColumns.map((column) => <Table.Cell key={column.id}><Skeleton lines={3} label={loadingLabel ?? ""} /></Table.Cell>)}{hasRowMenu && <Table.Cell />}</Table.Row>}
-          {!loading && rows.length === 0 && <Table.Row>{selectable && <Table.Cell />}<Table.Cell>{emptyState}</Table.Cell>{visibleColumns.slice(1).map((column) => <Table.Cell key={column.id} />)}{hasRowMenu && <Table.Cell />}</Table.Row>}
-          {!loading && rows.map((row, index) => { const key = getRowKey(row, index); return <Table.Row key={key}>{selectable && <Table.Cell><input type="checkbox" checked={selected.has(key)} onChange={() => toggleKey(key)} aria-label={selectionLabel} /></Table.Cell>}{visibleColumns.map((column) => <Table.Cell className={column.className} key={column.id}>{column.cell(row, index)}</Table.Cell>)}{hasRowMenu && <Table.Cell><DataTableRowMenu<Row> row={row} index={index} renderRowMenu={renderRowMenu!} /></Table.Cell>}</Table.Row>; })}
-        </Table.Body>
-      </Table.Content>
-    </Table.Root>
-  );
-}
-
-/** 行操作菜单：主操作内联 1 个，其余收进「更多」弹出菜单，危险项隔离（083 视觉基线）。
- *  renderRowMenu 返回菜单项；空数组不渲染。 */
-export function DataTableRowMenu<Row>({ row, index, renderRowMenu, moreLabel = "…" }: { row: Row; index: number; renderRowMenu: (row: Row, index: number) => ReadonlyArray<{ key: string; label: ReactNode; onSelect: () => void; danger?: boolean }>; moreLabel?: string }) {
-  const items = renderRowMenu(row, index);
-  if (items.length === 0) return null;
-  // 主操作：第一个非危险项内联；其余（含全部危险项）收进「更多」菜单。
-  const primary = items.find((item) => !item.danger);
-  const rest = items.filter((item) => item !== primary);
-  const [open, setOpen] = useState(false);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const close = (event: globalThis.MouseEvent) => {
-      if (buttonRef.current && !buttonRef.current.contains(event.target as Node)) setOpen(false);
-    };
-    const closeKey = (event: KeyboardEvent) => { if (event.key === "Escape") setOpen(false); };
-    document.addEventListener("mousedown", close);
-    document.addEventListener("keydown", closeKey);
-    return () => { document.removeEventListener("mousedown", close); document.removeEventListener("keydown", closeKey); };
-  }, [open]);
-  return (
-    <div className="data-table-row-menu">
-      {primary && <button type="button" className="ui-button data-table-row-primary" onClick={primary.onSelect}>{primary.label}</button>}
-      {rest.length > 0 && <>
-        <button ref={buttonRef} type="button" className="ui-button data-table-row-more" aria-expanded={open} aria-haspopup="menu" onClick={() => setOpen((current) => !current)}>{moreLabel}</button>
-        {open && <div className="data-table-row-menu-popover" role="menu">
-          {rest.map((item, itemIndex) => <button key={item.key} type="button" role="menuitem" className={`data-table-row-menu-item ${item.danger ? "data-table-row-menu-danger" : ""} ${itemIndex === rest.length - 1 && item.danger ? "data-table-row-menu-border" : ""}`} onClick={() => { setOpen(false); item.onSelect(); }}>{item.label}</button>)}
-        </div>}
-      </>}
-    </div>
-  );
 }
 
 export type PaginationItem = number | "ellipsis-left" | "ellipsis-right";
@@ -312,10 +108,6 @@ export function Pagination({ page, pageCount, total, totalLabel, pageLabel, pagi
       {pageSizeOptions && pageSizeLabel && onPageSizeChange && <select aria-label={pageSizeLabel} value={pageSize} onChange={(event) => onPageSizeChange(Number(event.target.value))} className="pagination-size">{pageSizeOptions.map((option) => <option value={option} key={option}>{option}</option>)}</select>}
     </HeroPagination.Root>
   );
-}
-
-export function EmptyState({ title, detail, action }: { title: string; detail?: string; action?: ReactNode }) {
-  return <HeroEmptyState className="empty-state" title={title}>{detail && <p className="m-0 text-xs text-foreground-500">{detail}</p>}{action}</HeroEmptyState>;
 }
 
 // IconButton 是图标按钮原语（HeroUI Button isIconOnly）：提供可访问名称并透传渲染子节点与 data-*。
@@ -372,48 +164,6 @@ export function SectionNav({ items, activeId, onSelect, className = "", ariaLabe
       </ul>
     </nav>
   );
-}
-
-// SelectField 复用 HeroUI Select 复合组件（RAC 底座）：Label + Trigger/Value + ListBox。
-// 对外保持 value/onValueChange(options) 契约，模块页面不再使用原生 <select>。
-export type SelectOption = { value: string; label: ReactNode };
-
-export function SelectField({ label, value, options, onValueChange, className = "", placeholder, error }: { label: string; value: string; options: ReadonlyArray<SelectOption>; onValueChange: (value: string) => void; className?: string; placeholder?: string; error?: string }) {
-  return (
-    <div className={`form-field ${error ? "has-error" : ""}`.trim()}>
-      <Select selectedKey={value} onSelectionChange={(key) => onValueChange(key === null || key === undefined ? "" : String(key))} className={className} isInvalid={Boolean(error)}>
-        <Label>{label}</Label>
-        <Select.Trigger><Select.Value>{({ selectedText }) => selectedText ?? placeholder ?? ""}</Select.Value></Select.Trigger>
-        <Select.Indicator />
-        <Select.Popover>
-          <ListBox className="max-h-72 overflow-auto">
-            {options.map((option) => <ListBox.Item key={option.value} id={option.value} textValue={typeof option.label === "string" ? option.label : String(option.label)}>{option.label}</ListBox.Item>)}
-          </ListBox>
-        </Select.Popover>
-      </Select>
-    </div>
-  );
-}
-
-export function InlineAlert({ tone = "info", title, detail, action }: { tone?: "info" | "success" | "warning" | "danger"; title: string; detail?: ReactNode; action?: ReactNode }) {
-  const status = tone === "danger" ? "danger" : tone === "warning" ? "warning" : tone === "success" ? "success" : "accent";
-  return <Alert status={status} className={`inline-alert inline-alert-${tone}`} role="status"><Alert.Content><Alert.Title><strong>{title}</strong></Alert.Title><Alert.Description>{detail && <span>{detail}</span>}</Alert.Description></Alert.Content>{action && <Alert.Content><span className="inline-alert-action">{action}</span></Alert.Content>}</Alert>;
-}
-
-// Toast 通过 @heroui/toast 队列呈现：组件挂载/打开时推入队列，语义与既有 open 契约一致。
-export function Toast({ open, tone = "info", title, detail, closeLabel, onClose }: { open: boolean; tone?: "info" | "success" | "warning" | "danger"; title: string; detail?: string; closeLabel: string; onClose: () => void }) {
-  const keyRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (!open) return;
-    const color = tone === "danger" ? "danger" : tone === "warning" ? "warning" : tone === "success" ? "success" : "primary";
-    keyRef.current = addToast({ title, description: detail, variant: "solid", color, timeout: 5000, onClose });
-    return () => {
-      if (keyRef.current) closeToast(keyRef.current);
-      keyRef.current = null;
-    };
-  }, [open, tone, title, detail, onClose]);
-  void closeLabel;
-  return null;
 }
 
 export function ConfirmDialog({ open, title, description, confirmLabel, cancelLabel, closeLabel, onConfirm, onCancel }: { open: boolean; title: string; description?: string; confirmLabel: string; cancelLabel: string; closeLabel: string; onConfirm: () => void; onCancel: () => void }) {
@@ -574,40 +324,6 @@ export function FormSubmitActions({ submitLabel, resetLabel, submitPending, subm
 // 语义钩子（page-section/stat-card/data-card/data-reveal），e2e/样式选测不变。
 // ---------------------------------------------------------------------------
 
-export type PageSectionProps = {
-  as?: "section" | "div" | "article";
-  kicker?: ReactNode;
-  title?: ReactNode;
-  description?: ReactNode;
-  actions?: ReactNode;
-  footer?: ReactNode;
-  rhythm?: "calm" | "balanced" | "playful";
-  className?: string;
-  style?: CSSProperties;
-  children?: ReactNode;
-};
-
-export function PageSection({ as: As = "section", kicker, title, description, actions, footer, rhythm = "balanced", className = "", style, children }: PageSectionProps) {
-  return (
-    <Reveal as={As} rhythm={rhythm} className={`page-section w-full ${className}`.trim()} style={style}>
-      <Card className="h-full w-full shadow-sm">
-        {(kicker || title || description || actions) && (
-          <Card.Header className="flex items-start justify-between gap-4 px-5 pt-4">
-            <div className="min-w-0">
-              {kicker && <span className="section-kicker block text-[10px] font-bold uppercase tracking-[0.12em] text-primary">{kicker}</span>}
-              {title && <h2 className="section-title mt-0.5 text-[15px] font-semibold">{title}</h2>}
-              {description && <p className="section-description mt-1 max-w-[640px] text-xs leading-relaxed text-foreground-500">{description}</p>}
-            </div>
-            {actions && <div className="flex flex-wrap items-center justify-end gap-2">{actions}</div>}
-          </Card.Header>
-        )}
-        <Card.Content className="grid gap-3.5 px-5 py-4">{children}</Card.Content>
-        {footer && <Card.Footer className="flex items-center justify-end gap-2 border-t border-divider px-5 py-3">{footer}</Card.Footer>}
-      </Card>
-    </Reveal>
-  );
-}
-
 export type StatCardProps = {
   icon?: ReactNode;
   value: ReactNode;
@@ -623,13 +339,13 @@ const statToneClass = { default: "", positive: "stat-tone-positive", attention: 
 export function StatCard({ icon, value, label, trend, tone = "default", rhythm = "balanced", className = "" }: StatCardProps) {
   return (
     <Reveal as="div" rhythm={rhythm} className={`stat-card ${statToneClass[tone]} ${className}`.trim()}>
-      <Card className="flex w-full min-h-[64px] items-center gap-3 px-4 py-3 shadow-sm">
-        {icon && <span className="stat-icon grid size-9 shrink-0 place-items-center rounded-xl bg-primary-100 text-primary-700" aria-hidden="true">{icon}</span>}
-        <span className="stat-copy grid min-w-0 gap-1.5">
-          <strong className="stat-value text-[22px] font-semibold leading-none tracking-tight">{value}</strong>
-          <small className="stat-label text-[11px] text-foreground-500">{label}</small>
+      <Card className="stat-card-surface">
+        {icon && <span className="stat-icon" aria-hidden="true">{icon}</span>}
+        <span className="stat-copy">
+          <strong className="stat-value">{value}</strong>
+          <small className="stat-label">{label}</small>
         </span>
-        {trend && <span className="stat-trend ml-auto whitespace-nowrap rounded-full bg-success-100 px-2 py-0.5 text-[10px] text-success-700">{trend}</span>}
+        {trend && <span className="stat-trend">{trend}</span>}
       </Card>
     </Reveal>
   );
@@ -650,7 +366,7 @@ export function MetricCard({ title, value, unit, percent, trend = [], trendLabel
 }) {
   const clampedPercent = percent === undefined ? undefined : Math.min(100, Math.max(0, percent));
   return <Card className={`metric-card ${state ? `metric-card-${state}` : ""} ${className}`.trim()}>
-    <Card.Content className="grid gap-2 px-4 py-3.5">
+    <Card.Content className="metric-card-content">
       <div className="metric-card-heading"><h4>{title}</h4>{state && stateLabel && <StatusPill state={state}>{stateLabel}</StatusPill>}</div>
       <div className="metric-card-value"><strong>{value}</strong>{unit && <span className="metric-card-unit">{unit}</span>}</div>
       {clampedPercent !== undefined && <div className="metric-card-bar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(clampedPercent)}><span style={{ width: `${clampedPercent}%` }} /></div>}
@@ -666,14 +382,14 @@ export function StatGrid({ columns = 4, className = "", children }: { columns?: 
 
 export function DataCard({ kicker, title, description, actions, footer, className = "", children }: { kicker?: ReactNode; title?: ReactNode; description?: ReactNode; actions?: ReactNode; footer?: ReactNode; className?: string; children?: ReactNode }) {
   return (
-    <section className={`data-card w-full ${className}`.trim()}>
-      <Card className="h-full w-full shadow-sm">
-        <Reveal as="div" className="flex items-start justify-between gap-4 px-5 pt-4" rhythm="balanced">
-          {(kicker || title || description) && <div className="min-w-0">{kicker && <span className="section-kicker block text-[10px] font-bold uppercase tracking-[0.12em] text-primary">{kicker}</span>}{title && <h2 className="section-title mt-0.5 text-[15px] font-semibold">{title}</h2>}{description && <p className="section-description mt-1 max-w-[640px] text-xs leading-relaxed text-foreground-500">{description}</p>}</div>}
-          {actions && <div className="flex items-center justify-end gap-2">{actions}</div>}
+    <section className={`data-card ${className}`.trim()}>
+      <Card className="data-card-surface">
+        <Reveal as="div" className="data-card-header" rhythm="balanced">
+          {(kicker || title || description) && <div className="data-card-heading">{kicker && <span className="section-kicker">{kicker}</span>}{title && <h2 className="section-title">{title}</h2>}{description && <p className="section-description">{description}</p>}</div>}
+          {actions && <div className="data-card-actions">{actions}</div>}
         </Reveal>
-        <Card.Content className="grid gap-3.5 px-5 pb-1 pt-3">{children}</Card.Content>
-        {footer && <Card.Footer className="flex items-center justify-between gap-2 px-5 pb-4 pt-2.5">{footer}</Card.Footer>}
+        <Card.Content className="data-card-content">{children}</Card.Content>
+        {footer && <Card.Footer className="data-card-footer">{footer}</Card.Footer>}
       </Card>
     </section>
   );
@@ -696,9 +412,13 @@ export type FilterBarField = {
   options?: ReadonlyArray<SelectOption>;
   /** input 控件占位提示（control=input 时可选，084 提高筛选输入可辨识度）。 */
   placeholder?: string;
+  /** 原生输入类型；用于时间范围等后端已支持的查询能力。 */
+  inputType?: "text" | "date" | "datetime-local";
   /** 受控值：select 为字符串 value，switch 为 boolean，input 为字符串。 */
   value: string | boolean | undefined;
   onValueChange: (next: string | boolean) => void;
+  /** 是否构成「已应用筛选」；排序方向等默认值可明确标记为 false。 */
+  active?: boolean;
 };
 
 /**
@@ -714,7 +434,7 @@ function renderFilterField(field: FilterBarField) {
     case "switch":
       return <Switch key={field.key} label={field.label} checked={field.value === true} onChange={(next) => field.onValueChange(next)} />;
     case "input":
-      return <label key={field.key} className="filter-field"><span className="filter-field-label">{field.label}</span><input type="text" placeholder={field.placeholder} value={typeof field.value === "string" ? field.value : ""} onChange={(event) => field.onValueChange(event.target.value)} /></label>;
+      return <label key={field.key} className="filter-field"><span className="filter-field-label">{field.label}</span><input type={field.inputType ?? "text"} placeholder={field.placeholder} value={typeof field.value === "string" ? field.value : ""} onChange={(event) => field.onValueChange(event.target.value)} /></label>;
     case "select":
     default:
       // 084：筛选下拉改为「行内标签 + 原生 select」紧凑形态，替代带浮动
@@ -734,18 +454,23 @@ export function FilterBar({ fields, trailingFields = [], onClear, clearLabel, re
   ariaLabel?: string;
 }) {
   const hasActive = [...fields, ...trailingFields].some((field) => {
+    if (field.active !== undefined) return field.active;
     if (Array.isArray(field.value) && field.value.length > 0) return true;
     return field.value !== undefined && field.value !== "" && field.value !== false;
   });
   return (
     <div className="filter-bar" role="group" aria-label={ariaLabel}>
-      {searchInput}
+      <div className="filter-bar-main">
+        {searchInput}
+        <div className="filter-bar-summary">
+          {onClear && hasActive && <button type="button" className="filter-bar-clear ui-button" onClick={onClear}>{clearLabel ?? translateMessage("webui.host.ui.clear")}</button>}
+          {resultCount !== undefined && <span className="filter-bar-count">{resultCountLabel ? resultCountLabel(resultCount) : `${resultCount} results`}</span>}
+        </div>
+      </div>
       <div className="filter-bar-fields">
         {fields.map(renderFilterField)}
         {trailingFields.length > 0 && <div className="filter-bar-trailing">{trailingFields.map(renderFilterField)}</div>}
       </div>
-      {hasActive && onClear && <button type="button" className="filter-bar-clear ui-button" onClick={onClear}>{clearLabel ?? "Clear"}</button>}
-      {resultCount !== undefined && <span className="filter-bar-count">{resultCountLabel ? resultCountLabel(resultCount) : `${resultCount} results`}</span>}
     </div>
   );
 }
@@ -763,20 +488,23 @@ export function SearchInput({ value, onChange, placeholder, label, debounceMs = 
   className?: string;
 }) {
   const timerRef = useRef<number | null>(null);
+  const [inputValue, setInputValue] = useState(value);
+  useEffect(() => setInputValue(value), [value]);
   const handleChange = (raw: string) => {
+    setInputValue(raw);
     if (timerRef.current !== null) window.clearTimeout(timerRef.current);
     timerRef.current = window.setTimeout(() => onChange(raw), debounceMs);
   };
   useEffect(() => () => { if (timerRef.current !== null) window.clearTimeout(timerRef.current); }, []);
   return (
     <div className={`search-input-wrap ${className}`.trim()}>
-      <label className="search-input-icon" aria-hidden="true">🔍</label>
+      <Search className="search-input-icon" size={15} strokeWidth={1.8} aria-hidden="true" />
       <input
         type="search"
         className="search-input"
-        value={value}
-        aria-label={label ?? placeholder ?? "Search"}
-        placeholder={placeholder ?? "Search…"}
+        value={inputValue}
+        aria-label={label ?? placeholder ?? translateMessage("webui.host.ui.search")}
+        placeholder={placeholder ?? `${translateMessage("webui.host.ui.search")}…`}
         onChange={(event) => handleChange(event.target.value)}
       />
     </div>
@@ -790,27 +518,6 @@ export function SearchInput({ value, onChange, placeholder, label, debounceMs = 
    ErrorState 按分级呈现（Page/Section/Inline/Action/Permission/Connectivity）。
    --------------------------------------------------------------------------- */
 
-/** 语义状态集（方案「二十九」）：对应 080 Token/会话/账号与 081 监控状态机。 */
-export type SemanticStatus = "active" | "inactive" | "enabled" | "disabled" | "pending" | "healthy" | "degraded" | "failed" | "expired" | "revoked";
-
-const statusTone: Record<SemanticStatus, "success" | "warning" | "danger" | "default" | "accent"> = {
-  active: "success",
-  enabled: "success",
-  healthy: "success",
-  pending: "warning",
-  degraded: "warning",
-  inactive: "default",
-  disabled: "default",
-  expired: "warning",
-  revoked: "danger",
-  failed: "danger",
-};
-
-/** StatusBadge：统一状态呈现（Badge 只用于状态/分类；ID/权限码/元数据走 CodeText）。 */
-export function StatusBadge({ status, children, className = "" }: { status: SemanticStatus; children: ReactNode; className?: string }) {
-  return <Chip color={statusTone[status]} variant="soft" size="sm" className={`status-badge status-${status} ${className}`.trim()}>{children}</Chip>;
-}
-
 /** CodeText：技术标识符 monospace 呈现（方案「五十一」；权限 ID/Token ID/审计 hash 等）。 */
 export function CodeText({ value, copyable = false, className = "", copyLabel }: { value: string; copyable?: boolean; className?: string; copyLabel?: string }) {
   const [copied, setCopied] = useState(false);
@@ -820,7 +527,7 @@ export function CodeText({ value, copyable = false, className = "", copyLabel }:
   return (
     <span className={`code-text ${className}`.trim()}>
       <code className="code-text-value">{value}</code>
-      {copyable && <button type="button" className="code-text-copy ui-button" onClick={copy} aria-label={copyLabel ?? "Copy"}>{copied ? "✓" : "⧉"}</button>}
+      {copyable && <button type="button" className="code-text-copy ui-button" onClick={copy} aria-label={copyLabel ?? translateMessage("webui.host.ui.copy")}>{copied ? <CheckIcon size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}</button>}
     </span>
   );
 }
@@ -858,7 +565,7 @@ export function DangerZone({ title, consequence, confirmTitleText, inputConfirma
           <p>{consequence}</p>
           {requireInput && <label className="danger-zone-confirm-input">请输入 <code>{inputConfirmation}</code> 以确认<input type="text" value={typed} onChange={(event) => setTyped(event.target.value)} /></label>}
           <div className="danger-zone-confirm-actions">
-            <button type="button" className="ui-button" disabled={!canConfirm || busy} onClick={() => { setFailed(false); void run(); }}>{busy ? busyLabel ?? "处理中…" : confirmLabel}</button>
+            <button type="button" className="ui-button" disabled={!canConfirm || busy} onClick={() => { setFailed(false); void run(); }}>{busy ? busyLabel ?? translateMessage("webui.host.loading.label") : confirmLabel}</button>
             <button type="button" className="ui-button" onClick={() => setOpen(false)}>{cancelLabel}</button>
           </div>
         </div>
@@ -868,28 +575,6 @@ export function DangerZone({ title, consequence, confirmTitleText, inputConfirma
 }
 
 /** ErrorState：错误分级呈现（方案「三十三」；Page 用 SystemStatePage 由宿主承担，此处提供 Section/Inline/Action/Permission/Connectivity）。 */
-export function ErrorState({ kind = "section", title, detail, action, className = "" }: {
-  kind?: "section" | "inline" | "action" | "permission" | "connectivity";
-  title: string;
-  detail?: string;
-  action?: ReactNode;
-  className?: string;
-}) {
-  if (kind === "permission") {
-    return <div className={`error-state error-state-permission ${className}`.trim()} role="alert"><span className="error-state-title">{title}</span>{detail && <span className="error-state-detail">{detail}</span>}</div>;
-  }
-  switch (kind) {
-    case "inline":
-      return <div className={`error-state error-state-inline ${className}`.trim()} role="alert"><span className="error-state-title">{title}</span>{detail && <span className="error-state-detail">{detail}</span>}{action && <span className="error-state-action">{action}</span>}</div>;
-    case "action":
-      return <div className={`error-state error-state-action ${className}`.trim()} role="alert"><span className="error-state-title">{title}</span>{action && <span className="error-state-action">{action}</span>}</div>;
-    case "connectivity":
-      return <div className={`error-state error-state-connectivity ${className}`.trim()} role="alert"><span className="error-state-title">{title}</span>{detail && <span className="error-state-detail">{detail}</span>}{action && <span className="error-state-action">{action}</span>}</div>;
-    default:
-      return <div className={`error-state error-state-section ${className}`.trim()} role="alert"><span className="error-state-title">{title}</span>{detail && <span className="error-state-detail">{detail}</span>}{action && <span className="error-state-action">{action}</span>}</div>;
-  }
-}
-
 /* ---------------------------------------------------------------------------
    082 REQ-082-005：CodeViewer / DetailDrawer 语义组件。
    CodeViewer 用 highlight.js（仅 json）渲染结构化元数据（审计摘要/技术详情）；
@@ -912,7 +597,7 @@ export function CodeViewer({ value, language = "json", maxHeight = 320, initiall
     <div className={`code-viewer ${className}`.trim()}>
       <div className="code-viewer-head">
         <span className="code-viewer-label">{label ?? language}</span>
-        <button type="button" className="code-viewer-toggle ui-button" onClick={() => setCollapsed((current) => !current)}>{collapsed ? "▸" : "▾"}</button>
+        <button type="button" className="code-viewer-toggle ui-button" onClick={() => setCollapsed((current) => !current)} aria-label={collapsed ? translateMessage("webui.host.ui.expand") : translateMessage("webui.host.ui.collapse")}>{collapsed ? <ChevronRight size={15} aria-hidden="true" /> : <ChevronDown size={15} aria-hidden="true" />}</button>
       </div>
       {!collapsed && <pre className="code-viewer-pre" style={{ maxHeight }}><code className={`code-viewer-code ${language === "json" ? "language-json" : ""}`}>{value}</code></pre>}
     </div>
@@ -943,7 +628,7 @@ export function DetailDrawer({ open, onClose, title, identity, status, actions, 
   children?: ReactNode;
 }) {
   return (
-    <Drawer open={open} title={title} closeLabel={loadingLabel ?? "关闭"} onClose={onClose} className="detail-drawer" style={{ "--drawer-width": `${width}px` } as CSSProperties}>
+    <Drawer open={open} title={title} closeLabel={loadingLabel ?? translateMessage("webui.host.ui.close")} onClose={onClose} className="detail-drawer" style={{ "--drawer-width": `${width}px` } as CSSProperties}>
       <EntityHeader identity={identity} status={status} actions={actions} className="detail-drawer-head" />
       {loading ? <Skeleton lines={4} label={loadingLabel ?? ""} /> : children}
     </Drawer>
@@ -1010,7 +695,7 @@ function TreeNodes<T>({ nodes, getChildren, renderNode, getKey, collapsed, onTog
       <li key={key} role="treeitem" aria-expanded={children.length > 0 ? !isCollapsed : undefined} aria-selected={selected || undefined} data-tree-depth={depth}>
         <div className={`tree-node ${selected ? "tree-node-selected" : ""}`.trim()}>
           {children.length > 0
-            ? <button type="button" className="tree-node-toggle" aria-label={isCollapsed ? "expand" : "collapse"} onClick={() => onToggle(key)}>{isCollapsed ? "▸" : "▾"}</button>
+            ? <button type="button" className="tree-node-toggle" aria-label={isCollapsed ? translateMessage("webui.host.ui.expand") : translateMessage("webui.host.ui.collapse")} onClick={() => onToggle(key)}>{isCollapsed ? <ChevronRight size={14} aria-hidden="true" /> : <ChevronDown size={14} aria-hidden="true" />}</button>
             : <span className="tree-node-toggle tree-node-toggle-empty" aria-hidden="true" />}
           <button type="button" className="tree-node-label" onClick={() => onSelect?.(key)}>{renderNode(node)}</button>
         </div>

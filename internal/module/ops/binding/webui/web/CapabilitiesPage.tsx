@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useGatedQueries, useQueryClient } from "@webui/sdk/query";
-import { ActionTrigger, Button, CapabilityBanner, DataCard, DataTable, DataToolbar, Drawer, EmptyState, Field, FilterPanel, PageHeader, Pagination, SelectField, StatusPill, Toast } from "@webui/sdk/ui";
+import { ActionTrigger, Button, CapabilityBanner, DataCard, DataTable, DataToolbar, Drawer, EmptyState, Field, FilterPanel, PageFrame, PageHeader, Pagination, SelectField, StatusPill, Toast } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import type { CapabilityState } from "@webui/sdk/runtime";
 import { filterOperationNames, operationCapabilityState, opsOperations, refreshNoticeTone, type OpsOperation } from "./operations";
@@ -64,7 +64,7 @@ export default function CapabilitiesPage() {
   const refreshMessageKey = refreshNotice === "danger" ? "failed" : "success";
   const selectedRow = selectedOperation ? rows.find((row) => row.operation.name === selectedOperation) : undefined;
   const selectedResult = selectedRow?.value === undefined ? selectedRow?.result : typeof selectedRow.value === "string" ? selectedRow.value : JSON.stringify(selectedRow.value, null, 2);
-  return <div className={`${styles.opsModule} module-page`}>
+  return <PageFrame variant="index" className={styles.opsModule}>
     <PageHeader eyebrow={t("webui.ops.capabilities.eyebrow")} title={t("webui.ops.capabilities.title")} description={t("webui.ops.capabilities.description")} actions={<ActionTrigger operationId="ops.diagnostics" variant="secondary" pending={refreshing} pendingLabel={t("webui.ops.dashboard.refreshing")} onAction={() => void refresh(["ops"])}>{t("webui.ops.dashboard.refresh")}</ActionTrigger>} />
     <div className="page-sections">
       <DataCard kicker={t("webui.ops.capabilities.list.kicker")} title={t("webui.ops.capabilities.table")} actions={<DataToolbar ariaLabel={t("webui.ops.capabilities.toolbar")} actions={<Button variant="ghost" onClick={() => { setSearch(""); setScope("all"); setPage(1); }}>{t("webui.ops.capabilities.reset")}</Button>} />} footer={<Pagination page={currentPage} pageCount={pageCount} total={rows.length} totalLabel={(total) => t("webui.ops.capabilities.total", { count: total })} pageLabel={(value) => t("webui.ops.capabilities.page", { page: value })} paginationLabel={t("webui.ops.capabilities.pagination")} previousLabel={t("webui.ops.capabilities.previous")} nextLabel={t("webui.ops.capabilities.next")} onPageChange={setPage} pageSize={pageSize} pageSizeOptions={[5, 10]} pageSizeLabel={t("webui.ops.capabilities.pageSize")} onPageSizeChange={(value) => { setPageSize(value); setPage(1); }} />}>
@@ -75,5 +75,5 @@ export default function CapabilitiesPage() {
     </div>
     <Toast open={Boolean(refreshNotice)} tone={refreshNotice ?? "success"} title={t(`webui.ops.capabilities.refresh.${refreshMessageKey}.title`)} detail={t(`webui.ops.capabilities.refresh.${refreshMessageKey}.detail`)} closeLabel={t(`webui.ops.capabilities.refresh.${refreshMessageKey}.close`)} onClose={() => setRefreshNotice(undefined)} />
     <Drawer open={Boolean(selectedRow)} title={t("webui.ops.capabilities.detail.title")} description={t("webui.ops.capabilities.detail.description")} closeLabel={t("webui.ops.capabilities.detail.close")} onClose={() => setSelectedOperation(undefined)} footer={<Button variant="secondary" onClick={() => setSelectedOperation(undefined)}>{t("webui.ops.capabilities.detail.close")}</Button>}>{selectedRow && <dl className="detail-list"><dt>{t("webui.ops.capabilities.columns.operation")}</dt><dd>{t(selectedRow.operation.titleMessageID)}</dd><dt>{t("webui.ops.capabilities.columns.scope")}</dt><dd>{t(selectedRow.operation.required ? "webui.ops.capabilities.scope.core" : "webui.ops.capabilities.scope.optional")}</dd><dt>{t("webui.ops.capabilities.columns.state")}</dt><dd><StatusPill state={selectedRow.state}>{t(`webui.ops.dashboard.${selectedRow.state}`)}</StatusPill></dd><dt>{t("webui.ops.capabilities.detail.result")}</dt><dd><pre className="capability-detail-result">{selectedResult}</pre></dd></dl>}</Drawer>
-  </div>;
+  </PageFrame>;
 }

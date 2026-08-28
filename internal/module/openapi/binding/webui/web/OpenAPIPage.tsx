@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActionTrigger, InlineAlert, PageHeader } from "@webui/sdk/ui";
+import { ActionTrigger, InlineAlert, PageFrame, PageHeader } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { webuiOpenAPISpec, webuiOpenAPISpecSourceRevision } from "@webui/generated/openapi-spec";
 import { ApiTree } from "./ApiTree";
@@ -114,7 +114,7 @@ export default function OpenAPIPage() {
     openFirstOperation();
   }, [initialId, openFirstOperation, rowsById.size]);
 
-  return <div className={`${styles.openapiModule} module-page ${styles.workspaceShell}`}>
+  return <PageFrame variant="workbench" className={`${styles.openapiModule} ${styles.workspaceShell}`}>
     <PageHeader eyebrow={t("webui.openapi.docs.eyebrow")} title={t("webui.openapi.docs.title")} description={t("webui.openapi.docs.description")} actions={<button type="button" className={styles.shellSearchTrigger} onClick={() => setPaletteOpen(true)}>{t("webui.openapi.palette.title")}</button>} />
     <p className={styles.pageMeta}>{t("webui.openapi.docs.source", { revision: webuiOpenAPISpecSourceRevision })}</p>
     {!usable
@@ -136,7 +136,7 @@ export default function OpenAPIPage() {
         </div>
       </div>}
     <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} groups={groupedOperationsForPalette(roots)} models={Object.keys(document.components?.schemas ?? {})} onSelectOperation={(id) => { const row = rowsById.get(id); if (row) openOperation(row, "docs"); }} onSelectModel={() => undefined} />
-  </div>;
+  </PageFrame>;
 }
 
 // collectRows flattens the tree to operation rows (stable pre-order).

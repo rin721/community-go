@@ -1,4 +1,4 @@
-import { SectionNav, type SectionNavItem } from "@webui/sdk/ui";
+import { PageFrame, SectionNav, type SectionNavItem } from "@webui/sdk/ui";
 import { useOptionalHostRuntime } from "@webui/sdk/runtime";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import type { ReactNode } from "react";
@@ -40,10 +40,10 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
   // The module scope class must sit on an ancestor element while .settings-inner
   // stays a descendant: the css-module rule is "<hash> .settings-inner", so the
   // two classes cannot live on the same node (self is not its own descendant).
-  return <div className={`${styles.settingsModule} module-page`}>
+  return <PageFrame variant="settings" className={styles.settingsModule}>
     <div className="settings-inner" data-settings-active={active}>
       <SectionNav ariaLabel={t("webui.settings.brand")} items={items} activeId={sectionItemID(active)} onSelect={navigate ? (id) => { const section = sectionRoutes.find((candidate) => sectionItemID(candidate) === id); if (section) navigate(`/settings/${section}`); } : undefined} />
       <div className="settings-content">{children}</div>
     </div>
-  </div>;
+  </PageFrame>;
 }

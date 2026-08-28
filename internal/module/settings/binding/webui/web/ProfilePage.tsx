@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Button, Field, PageHeader, PageSection, StatusPill } from "@webui/sdk/ui";
+import { Button, Field, PageFrame, PageHeader, PageSection, StatusPill, StickyActionBar } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { loadSession, updateSelfProfile } from "./api";
 import styles from "./settings.module.css";
@@ -24,7 +24,7 @@ export default function ProfilePage() {
       setMessage(status === 409 ? t("webui.settings.profile.conflict") : t("webui.settings.error"));
     });
   };
-  return <div className={`${styles.settingsModule} module-page`}>
+  return <PageFrame variant="form" className={styles.settingsModule}>
     
       <PageHeader eyebrow={t("webui.settings.brand")} title={t("webui.settings.profile.title")} description={t("webui.settings.profile.description")} actions={identity?.mustChangePassword ? <StatusPill state="degraded">{t("webui.settings.profile.changeRequired")}</StatusPill> : undefined} />
       <div className="page-sections">
@@ -35,10 +35,10 @@ export default function ProfilePage() {
             <Field label={t("webui.settings.profile.bio")} type={undefined} maxLength={2048} value={bio} onChange={(event) => setBio(event.target.value)} placeholder={t("webui.settings.profile.bioPlaceholder")} />
             <Field label={t("webui.settings.profile.birthDate")} type="date" value={birthDate} onChange={(event) => setBirthDate(event.target.value)} />
             {message && <p className="page-meta" role="status">{message}</p>}
-            <div className="toolbar-actions"><Button type="submit">{t("webui.settings.profile.save")}</Button></div>
+            <StickyActionBar><Button type="submit">{t("webui.settings.profile.save")}</Button></StickyActionBar>
           </form>
         </PageSection>
       </div>
     
-  </div>;
+  </PageFrame>;
 }

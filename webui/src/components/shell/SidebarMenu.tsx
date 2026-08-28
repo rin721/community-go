@@ -21,10 +21,13 @@ export function buildMenuTree(entries: Array<{ item: ManifestMenu; route: Manife
   return roots;
 }
 
-// findMenuAncestors 返回当前 route 所属的祖先菜单 id 链（不含 route 自身），用于 active/展开语义。
+// findMenuAncestors 返回当前 route 所属的祖先菜单 id 链；若父级自身承载默认
+// route，也保留该父级以确保其兄弟入口可见。
 export function findMenuAncestors(entries: SidebarMenuEntry[], routeID?: string): string[] {
   for (const entry of entries) {
-    if (entry.route.id === routeID) return [];
+    // 顶级菜单可能同时承载默认 route 与子菜单（例如 IAM 组默认打开账号）。
+    // 当前 route 命中这种父级时仍需展开它，否则用户会看不到同组的后续入口。
+    if (entry.route.id === routeID) return entry.children.length > 0 ? [entry.item.id] : [];
     const childAncestors = findMenuAncestors(entry.children, routeID);
     if (childAncestors.length > 0 || entry.children.some((child) => child.route.id === routeID)) return [entry.item.id, ...childAncestors];
   }

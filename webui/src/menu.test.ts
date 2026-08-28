@@ -56,8 +56,16 @@ describe("宿主菜单树", () => {
     ]);
 
     expect(findMenuAncestors(tree, "grandchild")).toEqual(["root", "child"]);
-    expect(findMenuAncestors(tree, "root")).toEqual([]);
+    expect(findMenuAncestors(tree, "root")).toEqual(["root"]);
     expect(findMenuAncestors(tree, "missing")).toEqual([]);
+  });
+
+  it("父级同时承载默认 route 时仍自动展开同组入口", () => {
+    const tree = buildMenuTree([
+      { item: menu("root"), route: route("root") },
+      { item: menu("child", "root"), route: route("child") },
+    ]);
+    expect(findMenuAncestors(tree, "root")).toEqual(["root"]);
   });
 
   it("递归菜单子容器常驻 DOM，closed subtree 以 inert/aria-hidden 移出可访问树", async () => {

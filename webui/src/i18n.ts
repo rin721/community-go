@@ -79,7 +79,7 @@ export function namespaceForMessage(messageID: string): string {
 export function translateMessage(messageID: string): string {
   const namespace = namespaceForMessage(messageID);
   const translated = i18n.t(messageID, { ns: namespace });
-  return translated === messageID || translated.trim() === ""
+  return typeof translated !== "string" || translated === messageID || translated.trim() === ""
     ? hostMessages["webui.host.i18n.missing"]
     : translated;
 }
@@ -91,7 +91,7 @@ export function translateOptional(messageID: string): string | null {
   const namespace = namespaceForMessage(messageID);
   const missing = hostMessages["webui.host.i18n.missing"] ?? "webui_i18n_missing";
   const translated = i18n.t(messageID, { ns: namespace });
-  return translated === messageID || translated.trim() === "" || translated === missing ? null : translated;
+  return typeof translated !== "string" || translated === messageID || translated.trim() === "" || translated === missing ? null : translated;
 }
 
 export async function changeLanguage(language: string): Promise<void> {

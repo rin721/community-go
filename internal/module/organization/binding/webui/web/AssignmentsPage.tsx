@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActionTrigger, Check, EmptyState, InlineAlert, PageHeader, PageSection, SearchInput, SelectField } from "@webui/sdk/ui";
+import { ActionTrigger, Check, EmptyState, InlineAlert, PageFrame, PageHeader, PageSection, SearchInput, SelectField } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { getAssignment, replaceAssignment, listAccounts, listDepartments, listPositions, type Account, type Department, type Position } from "./api";
 import styles from "./organization.module.css";
@@ -60,7 +60,7 @@ export default function AssignmentsPage() {
     });
   };
 
-  return <div className={`${styles.organizationModule} module-page`}>
+  return <PageFrame variant="detail" className={styles.organizationModule}>
     <PageHeader eyebrow={t("webui.organization.brand")} title={t("webui.organization.assignments.title")} description={t("webui.organization.assignments.description")} />
     <div className="page-sections">
       <PageSection kicker={t("webui.organization.assignments.panel.kicker")} title={t("webui.organization.assignments.panel.title")}>
@@ -111,5 +111,5 @@ export default function AssignmentsPage() {
         </div>
       </PageSection>
     </div>
-  </div>;
+  </PageFrame>;
 }

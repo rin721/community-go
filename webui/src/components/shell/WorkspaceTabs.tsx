@@ -23,7 +23,7 @@ type WorkspaceTabsProps = {
 
 export type { WorkspaceTabsProps };
 
-// WorkspaceTabs 是 42px 紧凑文本式标签栏（REQ-085-003/004/005/010）：
+// WorkspaceTabs 是由 090 Token 驱动的 36px 紧凑文本式标签栏：
 // - tablist/tab/tabpanel 关联、aria-selected、roving focus、手动激活；
 // - Left/Right、Home/End 移动焦点，Space/Enter 激活，Delete 关闭，Shift+F10 上下文菜单；
 // - active 用底部指示线 + 文字强调，无 Card 外框；关闭按钮只在 hover/focus-within/active 显示；

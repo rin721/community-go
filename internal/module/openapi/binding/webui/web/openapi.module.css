@@ -10,10 +10,23 @@
 
 /* ---- 工作台壳 ---- */
 .workspaceShell {
+  --pane-flex: 1;
   display: flex;
   flex-direction: column;
   min-height: 0;
   height: 100%;
+}
+
+/* 090 compact workbench：移动端把桌面横向区块转换为纵向文档流，避免
+   300px 资源栏 + 主面板继续挤在同一行导致核心响应区被裁切。 */
+.requestArea,
+.responseArea {
+  display: flex;
+  flex: var(--pane-flex) 1 0%;
+  flex-direction: column;
+  min-height: 80px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .shellSearchTrigger {
@@ -607,4 +620,55 @@
   padding: var(--space-2);
   font-size: var(--font-scale-xs);
   color: var(--text-muted);
+}
+
+@media (max-width: 720px) {
+  .workspaceShell .pageMeta {
+    overflow-wrap: anywhere;
+  }
+  .workspaceRow {
+    display: flex;
+    flex-direction: column;
+    min-height: 720px;
+    border-inline: 0;
+    border-radius: 0;
+    overflow: visible;
+  }
+  .treePanel {
+    flex: 0 0 auto;
+    width: 100%;
+    max-height: 280px;
+  }
+  .treeScroller {
+    min-height: 0;
+  }
+  .workspaceMain {
+    flex: 1 1 auto;
+    min-height: 560px;
+  }
+  .workspaceInner {
+    min-height: 560px;
+    height: auto;
+    overflow: visible;
+  }
+  .requestArea,
+  .responseArea {
+    flex: 1 1 auto;
+    min-height: 260px;
+    overflow: visible;
+  }
+  .splitArea {
+    flex: 0 0 1px;
+    cursor: default;
+  }
+  .resizer {
+    display: none;
+  }
+  .requestPane,
+  .responsePane {
+    overflow: visible;
+  }
+  .workspaceTabsList {
+    max-width: 100%;
+  }
 }

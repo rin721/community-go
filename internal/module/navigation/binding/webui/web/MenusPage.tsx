@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActionTrigger, Check, CodeText, EmptyState, InlineAlert, PageHeader, PageSection, StatusBadge, TreeView } from "@webui/sdk/ui";
+import { ActionTrigger, Check, CodeText, EmptyState, InlineAlert, PageFrame, PageHeader, PageSection, StatusBadge, TreeView } from "@webui/sdk/ui";
 import { useWebUITranslation, translateMessage, ensureRouteLocale } from "@webui/sdk/i18n";
 import { useHostRuntime } from "@webui/sdk/runtime";
 import { listMenus, updateMenu, type Menu, type MenuList } from "./api";
@@ -81,7 +81,7 @@ export default function MenusPage() {
   };
 
   const flatCount = tree.reduce((count, node) => count + countNodes(node), 0);
-  return <div className={`${styles.navigationModule} module-page`}>
+  return <PageFrame variant="detail" className={styles.navigationModule}>
     <PageHeader eyebrow={t("webui.navigation.brand")} title={t("webui.navigation.menus.title")} description={t("webui.navigation.menus.description")} />
     <div className="page-sections">
       <PageSection kicker={t("webui.navigation.menus.list.kicker")} title={t("webui.navigation.menus.list.title")}>
@@ -140,7 +140,7 @@ export default function MenusPage() {
         </div>
       </PageSection>
     </div>
-  </div>;
+  </PageFrame>;
 }
 
 function countNodes(node: MenuTreeNode): number {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Button, CodeText, CodeViewer, DataTable, DetailDrawer, EmptyState, ErrorState, FilterBar, formatDateTime, formatRelativeTime, PageHeader, PageSection, Pagination, StatusBadge } from "@webui/sdk/ui";
+import { Button, CodeText, CodeViewer, DataTable, DetailDrawer, EmptyState, ErrorState, FilterBar, formatDateTime, formatRelativeTime, PageFrame, PageHeader, PageSection, Pagination, StatusBadge } from "@webui/sdk/ui";
 import { useListQueryParams } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { listAuditEvents, type AuditEventView, type AuditFilter, type AuditOutcome } from "./api";
@@ -37,17 +37,25 @@ export function auditDetailFields(item: AuditEventView): Array<{ label: string; 
   ];
 }
 
+function toRFC3339(value: string): string {
+  const timestamp = new Date(value).getTime();
+  return Number.isNaN(timestamp) ? value : new Date(timestamp).toISOString();
+}
+
 export default function AuditPage() {
   const { t } = useWebUITranslation("webui.auth");
   const { t: hostT } = useWebUITranslation("webui.host");
   const PAGE_SIZE = 50;
-  // 082 REQ-082-002/016: filters URL-ized (operation/action/outcome/resourceType).
-  const listQuery = useListQueryParams<{ operation: string; action: string; outcome: string; resourceType: string }>({
+  // Reuse the existing server-side since/until query capability; convert local
+  // datetime input to RFC3339 only at the HTTP boundary.
+  const listQuery = useListQueryParams<{ operation: string; action: string; outcome: string; resourceType: string; since: string; until: string }>({
     filters: {
       operation: { queryKey: "operation", defaultValue: "" },
       action: { queryKey: "action", defaultValue: "" },
       outcome: { queryKey: "outcome", defaultValue: "" },
       resourceType: { queryKey: "resourceType", defaultValue: "" },
+      since: { queryKey: "since", defaultValue: "" },
+      until: { queryKey: "until", defaultValue: "" },
     },
   });
   const [items, setItems] = useState<AuditEventView[]>([]);
@@ -63,13 +71,15 @@ export default function AuditPage() {
     if (listQuery.filters.action) filter.action = listQuery.filters.action;
     if (listQuery.filters.outcome) filter.outcome = listQuery.filters.outcome as AuditOutcome;
     if (listQuery.filters.resourceType) filter.resourceType = listQuery.filters.resourceType;
+    if (listQuery.filters.since) filter.since = toRFC3339(listQuery.filters.since);
+    if (listQuery.filters.until) filter.until = toRFC3339(listQuery.filters.until);
     const offset = (listQuery.page - 1) * PAGE_SIZE;
     return listAuditEvents(filter, offset, PAGE_SIZE).then((result) => { setItems(result.items); setTotal(result.total); }).catch(() => { setItems([]); setTotal(0); setLoadError(true); }).finally(() => setLoading(false));
-  }, [listQuery.filters.operation, listQuery.filters.action, listQuery.filters.outcome, listQuery.filters.resourceType, listQuery.page]);
+  }, [listQuery.filters.operation, listQuery.filters.action, listQuery.filters.outcome, listQuery.filters.resourceType, listQuery.filters.since, listQuery.filters.until, listQuery.page]);
   useEffect(() => { void refresh(); }, [refresh]);
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const selectedJSON = useMemo(() => selected ? JSON.stringify(auditDetailFields(selected), null, 2) : "", [selected]);
-  return <div className={`${styles.authModule} module-page`}>
+  return <PageFrame variant="index" className={styles.authModule}>
     <PageHeader eyebrow={t("webui.auth.audit.title")} title={t("webui.auth.audit.title")} description={t("webui.auth.audit.description")} />
     <div className="page-sections">
       <PageSection kicker={t("webui.auth.audit.list.kicker")} title={t("webui.auth.audit.list.title")}>
@@ -85,6 +95,8 @@ export default function AuditPage() {
               { value: "failed", label: t("webui.auth.audit.failed") },
             ], value: listQuery.filters.outcome, onValueChange: (next) => listQuery.setFilters({ ...listQuery.filters, outcome: String(next) }) },
             { key: "resourceType", label: t("webui.auth.audit.resourceType"), placeholder: t("webui.auth.audit.resourcePh"), control: "input", value: listQuery.filters.resourceType, onValueChange: (next) => listQuery.setFilters({ ...listQuery.filters, resourceType: String(next) }) },
+            { key: "since", label: `${t("webui.auth.audit.occurredAt")} ≥`, inputType: "datetime-local", control: "input", value: listQuery.filters.since, onValueChange: (next) => listQuery.setFilters({ ...listQuery.filters, since: String(next) }) },
+            { key: "until", label: `${t("webui.auth.audit.occurredAt")} ≤`, inputType: "datetime-local", control: "input", value: listQuery.filters.until, onValueChange: (next) => listQuery.setFilters({ ...listQuery.filters, until: String(next) }) },
           ]}
           onClear={() => listQuery.clearFilters()}
           clearLabel={t("webui.auth.audit.clear")}
@@ -150,5 +162,5 @@ export default function AuditPage() {
         </div>
       )}
     </DetailDrawer>
-  </div>;
+  </PageFrame>;
 }

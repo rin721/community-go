@@ -86,7 +86,7 @@ describe("公共管理 UI 模式", () => {
   });
 
   it("keeps toast feedback through the HeroUI toast queue", () => {
-    // 068：Toast 迁移为 @heroui/toast 队列式；组件本身不渲染 DOM，区域由 App 根 Toast.Provider 呈现。
+    // 090：Toast 使用 HeroUI v3 队列；组件本身不渲染 DOM，区域由 App 根 ToastProvider 呈现。
     const markup = renderToStaticMarkup(createElement(Toast, { open: true, tone: "success", title: "Saved", detail: "The record is ready.", closeLabel: "Dismiss", onClose: () => undefined }));
 
     expect(markup).toBe("");

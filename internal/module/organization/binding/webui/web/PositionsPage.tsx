@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActionTrigger, Button, CodeText, ConfirmDialog, DataTable, Drawer, EmptyState, Field, formatDateTime, InlineAlert, PageHeader, PageSection, SearchInput, StatusBadge } from "@webui/sdk/ui";
+import { ActionTrigger, Button, CodeText, ConfirmDialog, DataTable, Drawer, EmptyState, Field, formatDateTime, InlineAlert, PageFrame, PageHeader, PageSection, SearchInput, StatusBadge } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { createPosition, listPositions, updatePosition, type Position } from "./api";
 import styles from "./organization.module.css";
@@ -51,7 +51,7 @@ export default function PositionsPage() {
     void updatePosition(row, { archived: !row.archived }).then(() => refresh()).catch(() => setError(t("webui.organization.error")));
   };
 
-  return <div className={`${styles.organizationModule} module-page`}>
+  return <PageFrame variant="index" className={styles.organizationModule}>
     <PageHeader eyebrow={t("webui.organization.brand")} title={t("webui.organization.positions.title")} description={t("webui.organization.positions.description")} actions={<ActionTrigger operationId="organization.positions.create" onAction={() => setCreateOpen(true)}>{t("webui.organization.positions.new")}</ActionTrigger>} />
     <div className="page-sections">
       <PageSection>
@@ -116,5 +116,5 @@ export default function PositionsPage() {
       onConfirm={runArchive}
       onCancel={() => setPendingArchive(null)}
     />
-  </div>;
+  </PageFrame>;
 }

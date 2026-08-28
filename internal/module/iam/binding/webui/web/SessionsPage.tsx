@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { BulkActionBar, Button, CodeText, DataTable, EmptyState, ErrorState, FilterBar, formatDateTime, formatRelativeTime, PageHeader, PageSection, StatusBadge } from "@webui/sdk/ui";
+import { BulkActionBar, Button, CodeText, DataTable, EmptyState, ErrorState, FilterBar, formatDateTime, formatRelativeTime, PageFrame, PageHeader, PageSection, StatusBadge } from "@webui/sdk/ui";
 import { useListQueryParams } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { listAccounts, listSessions, revokeSessions, type Account, type SessionInfo } from "./api";
@@ -43,7 +43,7 @@ export default function SessionsPage() {
     setRevoking(true);
     return revokeSessions([...selected]).then(() => { setMessage(""); setRevoking(false); refresh(); }).catch(() => { setMessage(t("webui.iam.sessions.conflict")); setRevoking(false); refresh(); });
   };
-  return <div className={`${styles.iamModule} module-page`}>
+  return <PageFrame variant="index" className={styles.iamModule}>
     <PageHeader eyebrow={t("webui.iam.access.title")} title={t("webui.iam.sessions.title")} description={t("webui.iam.sessions.description")} />
     <div className="page-sections">
       <PageSection kicker={t("webui.iam.sessions.list.kicker")} title={t("webui.iam.sessions.list.title")}>
@@ -104,5 +104,5 @@ export default function SessionsPage() {
         />
       </PageSection>
     </div>
-  </div>;
+  </PageFrame>;
 }

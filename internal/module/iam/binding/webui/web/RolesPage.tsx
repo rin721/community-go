@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActionTrigger, Button, Check, CodeText, ConfirmActionTrigger, DataTable, Drawer, EmptyState, ErrorState, Field, FilterBar, FormField, PageHeader, PageSection, SearchInput, StatusBadge } from "@webui/sdk/ui";
+import { ActionTrigger, Button, Check, CodeText, ConfirmActionTrigger, DataTable, Drawer, EmptyState, ErrorState, Field, FilterBar, FormField, PageFrame, PageHeader, PageSection, SearchInput, StatusBadge } from "@webui/sdk/ui";
 import { useListQueryParams } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { archiveRole, createRole, listPermissions, listRoles, replaceRolePermissions, rolePermissionsView, updateRoleInfo, type PermissionDefinition, type Role } from "./api";
@@ -131,7 +131,7 @@ export default function RolesPage() {
     }
     return actions;
   };
-  return <div className={`${styles.iamModule} module-page`}>
+  return <PageFrame variant="index" className={styles.iamModule}>
     <PageHeader eyebrow={t("webui.iam.brand")} title={t("webui.iam.roles.title")} description={t("webui.iam.roles.description")} actions={<ActionTrigger operationId="iam.roles.create" onAction={() => setCreateOpen(true)}>{t("webui.iam.roles.create.title")}</ActionTrigger>} />
     <div className="page-sections">
       <PageSection kicker={t("webui.iam.roles.list.kicker")} title={t("webui.iam.roles.list.title")} footer={<><div className="page-meta">{t("webui.iam.accounts.pagination", { page, total })}</div><div className="toolbar-actions">{[...Array(pages).keys()].map((index) => <Button key={index} variant={index + 1 === page ? "primary" : "secondary"} onClick={() => { setPage(index + 1); void refresh(index + 1); }}>{index + 1}</Button>)}</div></>}>
@@ -139,13 +139,13 @@ export default function RolesPage() {
           ariaLabel={t("webui.iam.roles.filter")}
           fields={[]}
           trailingFields={[
-            { key: "sortBy", label: t("webui.iam.accounts.sortBy"), control: "select", options: [
+            { key: "sortBy", label: t("webui.iam.accounts.sortBy"), control: "select", active: Boolean(listQuery.sort?.key), options: [
               { value: "", label: t("webui.iam.accounts.sortNone") },
               { value: "name", label: t("webui.iam.roles.name") },
               { value: "code", label: t("webui.iam.roles.code") },
               { value: "createdAt", label: t("webui.iam.sessions.createdAt") },
             ], value: listQuery.sort?.key ?? "", onValueChange: (value) => listQuery.setSort(String(value) ? { key: String(value), direction: listQuery.sort?.direction ?? "asc" } : null) },
-            { key: "sortDir", label: t("webui.iam.accounts.sortDirection"), control: "select", options: [
+            { key: "sortDir", label: t("webui.iam.accounts.sortDirection"), control: "select", active: Boolean(listQuery.sort?.key), options: [
               { value: "asc", label: t("webui.iam.accounts.sortAsc") },
               { value: "desc", label: t("webui.iam.accounts.sortDesc") },
             ], value: listQuery.sort?.direction ?? "desc", onValueChange: (value) => { if (listQuery.sort) listQuery.setSort({ key: listQuery.sort.key, direction: value === "desc" ? "desc" : "asc" }); } },
@@ -214,5 +214,5 @@ export default function RolesPage() {
         </div>
       </div>
     </Drawer>
-  </div>;
+  </PageFrame>;
 }

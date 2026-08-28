@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActionTrigger, Button, CodeText, ConfirmDialog, DataTable, EmptyState, ErrorState, Field, FilterBar, formatDateTime, InlineAlert, PageHeader, PageSection, SelectField, StatusBadge } from "@webui/sdk/ui";
+import { ActionTrigger, Button, CodeText, ConfirmDialog, DataTable, EmptyState, ErrorState, Field, FilterBar, formatDateTime, InlineAlert, PageFrame, PageHeader, PageSection, SelectField, StatusBadge } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { useListQueryParams } from "@webui/sdk/query";
 import { createApiToken, disableApiToken, enableApiToken, listApiTokens, loadSession, revokeApiToken, rotateApiToken, updateApiToken, type ApiTokenView } from "./api";
@@ -97,7 +97,7 @@ export default function ApiTokensPage() {
     void updateApiToken(row.id, row.name, row.description || "", undefined, false).then(() => refresh());
   };
 
-  return <div className={`${styles.iamModule} module-page`}>
+  return <PageFrame variant="index" className={styles.iamModule}>
     <PageHeader eyebrow={t("webui.iam.access.title")} title={t("webui.iam.apiTokens.title")} description={t("webui.iam.apiTokens.description")} actions={restricted ? <StatusBadge status="degraded">{t("webui.iam.apiTokens.restricted")}</StatusBadge> : undefined} />
     <div className="page-sections">
       {restricted && <InlineAlert tone="warning" title={t("webui.iam.apiTokens.restricted")} detail={t("webui.iam.apiTokens.restrictedDetail")} />}
@@ -167,7 +167,7 @@ export default function ApiTokensPage() {
         <FilterBar
           ariaLabel={t("webui.iam.apiTokens.filter")}
           fields={[
-            { key: "status", label: t("webui.iam.apiTokens.filter"), control: "select", value: status, options: [
+            { key: "status", label: t("webui.iam.apiTokens.filter"), control: "select", active: status !== "all", value: status, options: [
               { value: "all", label: t("webui.iam.apiTokens.filter.all") },
               { value: "active", label: t("webui.iam.apiTokens.status.active") },
               { value: "disabled", label: t("webui.iam.apiTokens.status.disabled") },
@@ -176,14 +176,14 @@ export default function ApiTokensPage() {
             ], onValueChange: (value) => { setStatus(String(value)); refresh(String(value)); } },
           ]}
           trailingFields={[
-            { key: "sortBy", label: t("webui.iam.accounts.sortBy"), control: "select", value: listQuery.sort?.key ?? "", options: [
+            { key: "sortBy", label: t("webui.iam.accounts.sortBy"), control: "select", active: Boolean(listQuery.sort?.key), value: listQuery.sort?.key ?? "", options: [
               { value: "", label: t("webui.iam.accounts.sortNone") },
               { value: "name", label: t("webui.iam.apiTokens.name") },
               { value: "createdAt", label: t("webui.iam.sessions.createdAt") },
               { value: "expiresAt", label: t("webui.iam.apiTokens.expiresHeader") },
               { value: "lastUsedAt", label: t("webui.iam.apiTokens.lastUsed") },
             ], onValueChange: (value) => listQuery.setSort(String(value) ? { key: String(value), direction: listQuery.sort?.direction ?? "desc" } : null) },
-            { key: "sortDir", label: t("webui.iam.accounts.sortDirection"), control: "select", value: listQuery.sort?.direction ?? "desc", options: [
+            { key: "sortDir", label: t("webui.iam.accounts.sortDirection"), control: "select", active: Boolean(listQuery.sort?.key), value: listQuery.sort?.direction ?? "desc", options: [
               { value: "asc", label: t("webui.iam.accounts.sortAsc") },
               { value: "desc", label: t("webui.iam.accounts.sortDesc") },
             ], onValueChange: (value) => { if (listQuery.sort) listQuery.setSort({ key: listQuery.sort.key, direction: value === "desc" ? "desc" : "asc" }); } },
@@ -235,5 +235,5 @@ export default function ApiTokensPage() {
         />
       </PageSection>
     </div>
-  </div>;
+  </PageFrame>;
 }

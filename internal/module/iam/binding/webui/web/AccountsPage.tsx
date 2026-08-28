@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActionTrigger, Button, BulkActionBar, Check, CodeText, ConfirmActionTrigger, DataTable, DetailDrawer, Drawer, EmptyState, ErrorState, Field, FilterBar, FormField, PageHeader, PageSection, SearchInput, StatusBadge } from "@webui/sdk/ui";
+import { ActionTrigger, Button, BulkActionBar, Check, CodeText, ConfirmActionTrigger, DataTable, DetailDrawer, Drawer, EmptyState, ErrorState, Field, FilterBar, FormField, PageFrame, PageHeader, PageSection, ResourceIndex, SearchInput, StatusBadge } from "@webui/sdk/ui";
 import { useListQueryParams } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { accountRolesView, archiveAccount, batchAccountStatus, batchArchiveAccounts, createAccount, listAccounts, listRoles, replaceAccountRoles, resetAccountPassword, setAccountStatus, updateAccountInfo, type Account, type Role } from "./api";
@@ -118,10 +118,11 @@ export default function AccountsPage() {
     }
     return actions;
   };
-  return <div className={`${styles.iamModule} module-page`}>
+  return <PageFrame variant="index" className={styles.iamModule}>
     <PageHeader eyebrow={t("webui.iam.brand")} title={t("webui.iam.accounts.title")} description={t("webui.iam.accounts.description")} actions={<ActionTrigger operationId="iam.accounts.create" onAction={() => setCreateOpen(true)}>{t("webui.iam.accounts.create.title")}</ActionTrigger>} />
     <div className="page-sections">
       <PageSection kicker={t("webui.iam.accounts.list.kicker")} title={t("webui.iam.accounts.list.title")} footer={<><div className="page-meta">{t("webui.iam.accounts.pagination", { page, total })}</div><div className="toolbar-actions">{[...Array(pages).keys()].map((index) => <Button key={index} variant={index + 1 === page ? "primary" : "secondary"} onClick={() => { setPage(index + 1); void refresh(index + 1); }}>{index + 1}</Button>)}</div></>}>
+        <ResourceIndex aria-label={t("webui.iam.accounts.list.title")}>
         <FilterBar
           ariaLabel={t("webui.iam.accounts.filter")}
           fields={[
@@ -137,13 +138,13 @@ export default function AccountsPage() {
             ], value: listQuery.filters.roleId, onValueChange: (next) => listQuery.setFilters({ ...listQuery.filters, roleId: String(next) }) },
           ]}
           trailingFields={[
-            { key: "sortBy", label: t("webui.iam.accounts.sortBy"), control: "select", options: [
+            { key: "sortBy", label: t("webui.iam.accounts.sortBy"), control: "select", active: Boolean(listQuery.sort?.key), options: [
               { value: "", label: t("webui.iam.accounts.sortNone") },
               { value: "displayName", label: t("webui.iam.displayName") },
               { value: "username", label: t("webui.iam.username") },
               { value: "status", label: t("webui.iam.accounts.tableStatus") },
             ], value: listQuery.sort?.key ?? "", onValueChange: (value) => listQuery.setSort(String(value) ? { key: String(value), direction: listQuery.sort?.direction ?? "asc" } : null) },
-            { key: "sortDir", label: t("webui.iam.accounts.sortDirection"), control: "select", options: [
+            { key: "sortDir", label: t("webui.iam.accounts.sortDirection"), control: "select", active: Boolean(listQuery.sort?.key), options: [
               { value: "asc", label: t("webui.iam.accounts.sortAsc") },
               { value: "desc", label: t("webui.iam.accounts.sortDesc") },
             ], value: listQuery.sort?.direction ?? "desc", onValueChange: (value) => { if (listQuery.sort) listQuery.setSort({ key: listQuery.sort.key, direction: value === "desc" ? "desc" : "asc" }); } },
@@ -223,6 +224,7 @@ export default function AccountsPage() {
           }}
           onClear={() => setSelection(new Set())}
         />
+        </ResourceIndex>
       </PageSection>
       {selected && (
         <PageSection kicker={t("webui.iam.accounts.manage.kicker")} title={`${t("webui.iam.accounts.selected")}: ${selected.displayName}`}>
@@ -287,5 +289,5 @@ export default function AccountsPage() {
         </div>
       )}
     </DetailDrawer>
-  </div>;
+  </PageFrame>;
 }

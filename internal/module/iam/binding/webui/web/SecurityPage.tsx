@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Button, Field, PageHeader, PageSection, StatusPill } from "@webui/sdk/ui";
+import { Button, Field, PageFrame, PageHeader, PageSection, StatusPill } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { changePassword, loadSession, type IAMSession } from "./api";
 import styles from "./iam.module.css";
@@ -14,7 +14,7 @@ export default function SecurityPage() {
   useEffect(() => { void loadSession().then(setSession); }, []);
   const mismatch = next.length > 0 && confirm.length > 0 && next !== confirm;
   const canSubmit = current.length > 0 && next.length >= 15 && confirm.length > 0 && !mismatch;
-  return <div className={`${styles.iamModule} module-page`}>
+  return <PageFrame variant="form" className={styles.iamModule}>
     <PageHeader eyebrow={t("webui.iam.brand")} title={t("webui.iam.security.title")} description={t("webui.iam.security.description")} actions={session && <StatusPill state={session.identity.mustChangePassword ? "degraded" : "available"}>{session.identity.mustChangePassword ? t("webui.iam.security.changeRequired") : t("webui.iam.security.secure")}</StatusPill>} />
     <div className="page-sections">
       <PageSection kicker={t("webui.iam.security.panel.kicker")} title={t("webui.iam.security.panel.title")}>
@@ -34,5 +34,5 @@ export default function SecurityPage() {
         </div>
       </PageSection>
     </div>
-  </div>;
+  </PageFrame>;
 }

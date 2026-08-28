@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useGatedQueries, useQueryClient } from "@webui/sdk/query";
-import { Button, CapabilityBanner, PageHeader, PageSection, RevealList, Skeleton, StatCard, StatGrid, StatusPill, Surface, Toast } from "@webui/sdk/ui";
+import { Button, CapabilityBanner, PageFrame, PageHeader, PageSection, RevealList, Skeleton, StatCard, StatGrid, StatusPill, Surface, Toast } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import type { CapabilityState } from "@webui/sdk/runtime";
 import { booleanCapabilityState, healthCapabilityState, readBuildSnapshot, readRuntimeSnapshot, type RuntimeSnapshot } from "./dashboard-data";
@@ -123,7 +123,7 @@ export default function DashboardPage() {
     return <PageSection title={t(required ? "webui.ops.dashboard.group.core" : "webui.ops.dashboard.group.optional")} description={t(required ? "webui.ops.dashboard.group.coreDetail" : "webui.ops.dashboard.group.optionalDetail")}><RevealList className="ops-grid">{groupOperations.map((operation) => { const index = operations.indexOf(operation); const query = queries[index]; const state = operationCapabilityState(operation.required, query.isPending, query.isError); return <Surface className="diagnostic-card" key={operation.name}><div className="diagnostic-heading"><div className="diagnostic-title"><span className="diagnostic-icon" aria-hidden="true" /><h3>{t(operation.titleMessageID)}</h3></div><div className="diagnostic-actions"><StatusPill state={state}>{query.isPending ? t("webui.ops.dashboard.loading") : query.isError ? t(state === "unavailable" ? "webui.ops.dashboard.unavailable" : "webui.ops.dashboard.degraded") : t("webui.ops.dashboard.available")}</StatusPill>{query.isError && <Button variant="ghost" className="diagnostic-retry" onClick={() => requestRefresh(["ops", operation.name])}>{t("webui.ops.dashboard.retry")}</Button>}</div></div>{query.isPending ? <Skeleton lines={4} label={t("webui.ops.dashboard.loading")} /> : query.isError ? <p className="form-error">{t("webui.ops.dashboard.requestFailed")}</p> : <pre>{typeof query.data === "string" ? query.data : JSON.stringify(query.data, null, 2)}</pre>}</Surface>; })}</RevealList></PageSection>;
   };
 
-  return <div className={`${styles.opsModule} module-page`}>
+  return <PageFrame variant="dashboard" className={styles.opsModule}>
     <PageHeader eyebrow={t("webui.ops.dashboard.eyebrow")} title={t("webui.ops.dashboard.title")} description={t("webui.ops.dashboard.description")} actions={<Button variant="secondary" onClick={() => requestRefresh(["ops"])} disabled={refreshing} aria-busy={refreshing}><span className={refreshing ? "refresh-icon icon-spin" : "refresh-icon"} aria-hidden="true" />{t(refreshing ? "webui.ops.dashboard.refreshing" : "webui.ops.dashboard.refresh")}</Button>} />
     {/* 082 REQ-082-017: top context row (Version/Commit/Uptime/source); all data real, missing fields shown as dash */}
     <div className="ops-context-row" aria-label={t("webui.ops.dashboard.context")}>
@@ -145,5 +145,5 @@ export default function DashboardPage() {
       {renderGroup(false)}
     </div>
     <Toast open={Boolean(refreshNotice)} tone={refreshNotice ?? "success"} title={t(`webui.ops.dashboard.refresh.${refreshNotice ?? "success"}.title`)} detail={t(`webui.ops.dashboard.refresh.${refreshNotice ?? "success"}.detail`)} closeLabel={t(`webui.ops.dashboard.refresh.${refreshNotice ?? "success"}.close`)} onClose={() => setRefreshNotice(undefined)} />
-  </div>;
+  </PageFrame>;
 }

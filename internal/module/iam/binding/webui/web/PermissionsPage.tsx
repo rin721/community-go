@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CodeText, DataTable, EmptyState, PageHeader, PageSection, SearchInput, StatusBadge } from "@webui/sdk/ui";
+import { CodeText, DataTable, EmptyState, PageFrame, PageHeader, PageSection, SearchInput, StatusBadge } from "@webui/sdk/ui";
 import { useListQueryParams } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { listPermissions, permissionRoles, type Role } from "./api";
@@ -44,7 +44,7 @@ export default function PermissionsPage() {
   };
   // The catalog is a flat owner-module matrix; a single DataTable per module keeps
   // the Used-by panel close to the permission (master-detail in place).
-  return <div className={`${styles.iamModule} module-page`}>
+  return <PageFrame variant="index" className={styles.iamModule}>
     <PageHeader eyebrow={t("webui.iam.brand")} title={t("webui.iam.permissions.title")} description={t("webui.iam.permissions.description")} />
     <div className="page-sections">
       <PageSection kicker={t("webui.iam.permissions.list.kicker")} title={t("webui.iam.permissions.list.title")}>
@@ -77,5 +77,5 @@ export default function PermissionsPage() {
         ))}
       </PageSection>
     </div>
-  </div>;
+  </PageFrame>;
 }

@@ -288,8 +288,8 @@ test("086 shell geometry is pixel-stable across routes and density token driven"
     if (!topbarEl || !shellEl) return false;
     const topbarBox = topbarEl.getBoundingClientRect();
     const shellBox = shellEl.getBoundingClientRect();
-    // topbar 已锁定在 token 计算高度（density=default 时 64px）且 shell 高度进视口。
-    return topbarBox.height === 64 && shellBox.height > 0;
+    // 090 topbar 基线由 token 驱动（density=default 时 56px）且 shell 高度进视口。
+    return topbarBox.height === 56 && shellBox.height > 0;
   });
   const baseline = { frame: await boxOf(frame), topbar: await boxOf(topbar), sidebar: await boxOf(sidebar), tabs: await boxOf(tabsBar) };
   // 086 几何基线视觉证据：default density + light 的公共框架截图。
@@ -301,7 +301,7 @@ test("086 shell geometry is pixel-stable across routes and density token driven"
     await expect(page.locator(".page-viewport:visible").first()).toBeVisible();
     await page.waitForFunction(() => {
       const topbarEl = document.querySelector(".topbar");
-      return Boolean(topbarEl && Math.round(topbarEl.getBoundingClientRect().height) === 64);
+      return Boolean(topbarEl && Math.round(topbarEl.getBoundingClientRect().height) === 56);
     });
     expect(await boxOf(frame), `frame ${route}`).toEqual(baseline.frame);
     expect(await boxOf(topbar), `topbar ${route}`).toEqual(baseline.topbar);
@@ -322,10 +322,10 @@ test("086 shell geometry is pixel-stable across routes and density token driven"
   await page.evaluate(() => { document.documentElement.dataset.density = "compact"; });
   await page.waitForFunction(() => {
     const el = document.querySelector(".topbar");
-    return Boolean(el && el.getBoundingClientRect().height < 64);
+    return Boolean(el && el.getBoundingClientRect().height < 56);
   });
   const tabsCompact = Math.round((await boxOf(tabsBar)).height);
-  expect(tabsDefault).toBe(42);
+  expect(tabsDefault).toBe(36);
   expect(tabsCompact).toBeGreaterThan(0);
   expect(tabsCompact).toBeLessThan(tabsDefault);
   await page.evaluate(() => { document.documentElement.dataset.density = "default"; });
@@ -358,9 +358,9 @@ test("086 shell geometry is pixel-stable across routes and density token driven"
   await page.evaluate(() => { document.documentElement.dataset.themePreset = "blue"; });
 });
 
-// 087 显式 workspace 视觉验收（沿用标签栏的几何与可访问性契约）：1440×1000 /
+// 090 显式 workspace 视觉验收（沿用标签栏的几何与可访问性契约）：1440×1000 /
 // 1024×768 / 390×844 三档视口，
-// light/dark 各截一张；同时断言 42px 高度、底部指示线、文本不换行与 close 显隐语义。
+// light/dark 各截一张；同时断言 36px 高度、底部指示线、文本不换行与 close 显隐语义。
 test("087 workspace tabs visual: explicit singleton rail and light/dark", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   // OpenAPI 显式 singleton：进入即出现一个 host 标签 + mounted panel。
@@ -368,9 +368,9 @@ test("087 workspace tabs visual: explicit singleton rail and light/dark", async 
   await expect(page.locator('[role="tablist"][aria-label="Workspace tabs"]')).toHaveCount(1);
   await expect(page.locator('[data-testid^="workspace-panel-"]')).toHaveCount(1);
 
-  // 42px 高度（REQ-085-003：40–44px 区间内取 42px）。
+  // 36px 高度（090 目标规格；workspace rail 仅承载真实工作区）。
   const height = await page.locator('[role="tablist"][aria-label="Workspace tabs"]').evaluate((el) => Math.round(el.getBoundingClientRect().height));
-  expect(height).toBe(42);
+  expect(height).toBe(36);
   // Active 底部指示线（::after 2px；outline 断言：内容非空 + 高度 2px）。
   const indicator = await page.locator('[role="tab"][aria-selected="true"]').evaluate((el) => {
     const style = getComputedStyle(el.parentElement as HTMLElement, "::after");
@@ -390,6 +390,11 @@ test("087 workspace tabs visual: explicit singleton rail and light/dark", async 
   ];
   for (const viewport of viewports) {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    if (viewport.width === 390) {
+      // 090 compact workbench：资源栏/请求/响应改为纵向流，页面本身不得产生
+      // 横向溢出；代码块或面板内部允许拥有各自的滚动策略。
+      await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+    }
     // mock 会话初始 light；dark 点一次 toggle，回 light 再点一次。
     await page.getByRole("button", { name: "Toggle theme mode" }).click();
     await expect(page.locator("html")).toHaveAttribute("data-color-scheme", "dark");

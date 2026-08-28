@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { readWebUIDataSource } from "@webui/sdk/runtime";
 import { InlineAlert } from "@webui/sdk/ui";
@@ -124,7 +124,7 @@ export function OperationWorkspace({ row, schemas }: { row: OperationRow; schema
 
   return <div className={styles.workspaceInner} data-testid="openapi-workspace">
     {!executable && <div className={styles.workspaceAnnounce}><InlineAlert tone="info" title={t("webui.openapi.run.mockDisabled")} /></div>}
-    <div style={{ flex: String(ratio), minHeight: 80, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <div className={styles.requestArea} style={{ "--pane-flex": String(ratio) } as CSSProperties}>
       <RequestPane
         method={row.method}
         url={url}
@@ -158,7 +158,7 @@ export function OperationWorkspace({ row, schemas }: { row: OperationRow; schema
       />
     </div>
     <Resizer ratio={ratio} onRatioChange={setRatio} />
-    <div style={{ flex: String(1 - ratio), minHeight: 80, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <div className={styles.responseArea} style={{ "--pane-flex": String(1 - ratio) } as CSSProperties}>
       <ResponsePane state={runState} />
     </div>
   </div>;

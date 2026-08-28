@@ -127,8 +127,8 @@ Linux 使用 `bash scripts/verify-webui.sh`。质量链覆盖生成检查、冻�
 
 ## 全量采用 HeroUI 组件库（068）
 
-- 呈现层单轨替换为 HeroUI v3 + Tailwind v4：`@webui/sdk/ui` 导出契约不变，Button/Field/SelectField/StatusPill/CapabilityBanner/InlineAlert/Skeleton/EmptyState/Toast（`@heroui/toast` 队列）/PageSection/StatCard/StatGrid/DataCard/DataTable（RAC Table）/Pagination（复合）/ActionTrigger/IconButton 内部改用 HeroUI；平台契约层（ActionTrigger 权限呈现、zone、Reveal、滚动运行时、`experience` 配置、reduced-motion）不回归。
-- 依赖与装配：`@heroui/react/@heroui/theme/@heroui/toast/@heroui/styles` + `tailwindcss@^4`（`@tailwindcss/vite`）；`tailwind.config.js`（darkMode=class、heroui() 插件）；`main.tsx` 引入 `@heroui/styles/css` 组件静态样式；`applyTheme` 联动 `<html>`.dark。
+- 呈现层单轨使用 HeroUI v3 + Tailwind v4：`@webui/sdk/ui` 导出契约不变，Button/Field/SelectField/StatusPill/CapabilityBanner/InlineAlert/Skeleton/EmptyState/Toast（HeroUI v3 队列）/PageSection/StatCard/StatGrid/DataCard/DataTable（RAC Table）/Pagination（复合）/ActionTrigger/IconButton 内部改用 HeroUI；平台契约层（ActionTrigger 权限呈现、zone、Reveal、滚动运行时、`experience` 配置、reduced-motion）不回归。
+- 依赖与装配：`@heroui/react` + `@heroui/styles` + `tailwindcss@^4`（`@tailwindcss/vite`）；`tailwind.config.js` 仅负责源码扫描，不再加载 HeroUI v2 theme plugin；`main.tsx` 引入 `@heroui/styles/css` 组件静态样式；`applyTheme` 联动 `<html>`.dark。
 - 保留边界（如实记录）：遮罩容器（ConfirmDialog/Drawer/ThemeDrawer/RouteSearch）与 Switch/Checkbox 自绘；组件样式、e2e 语义与截图证据见 [068 变更记录](../docs/changes/068-heroui-ui-adoption/README.md)。
 
 ## 页面布局骨架与滚动/动效体验（067）

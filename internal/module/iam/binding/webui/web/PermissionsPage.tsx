@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { CodeText, DataTable, EmptyState, PageFrame, PageHeader, PageSection, ResourceIndex, SearchInput, StatusBadge } from "@webui/sdk/ui";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Button, CodeText, DataTable, EmptyState, ErrorState, FilterBar, PageFrame, PageHeader, PageSection, ResourceIndex, Skeleton, StatusBadge } from "@webui/sdk/ui";
 import { useListQueryParams } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { listPermissions, permissionRoles, type Role } from "./api";
@@ -21,6 +21,7 @@ export const groupByModule = (items: Item[]): Array<{ ownerModuleId: string; def
 
 export default function PermissionsPage() {
   const { t } = useWebUITranslation("webui.iam");
+  const { t: hostT } = useWebUITranslation("webui.host");
   // 082 REQ-082-002/015: local search over the in-memory catalog (client-side filter).
   const listQuery = useListQueryParams<{ query: string }>({
     filters: { query: { queryKey: "query", defaultValue: "" } },
@@ -28,9 +29,14 @@ export default function PermissionsPage() {
   const [items, setItems] = useState<Item[]>([]);
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const [usage, setUsage] = useState<Record<string, Role[]>>({});
-  useEffect(() => {
-    void listPermissions().then(async (result) => { setItems(result); await preloadPermissionDescriptions(result); });
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const refresh = useCallback(() => {
+    setLoading(true);
+    setLoadError(false);
+    return listPermissions().then(async (result) => { setItems(result); await preloadPermissionDescriptions(result); }).catch(() => { setItems([]); setLoadError(true); }).finally(() => setLoading(false));
   }, []);
+  useEffect(() => { void refresh(); }, [refresh]);
   const filtered = useMemo(() => {
     const q = listQuery.filters.query.trim().toLowerCase();
     if (!q) return items;
@@ -48,13 +54,18 @@ export default function PermissionsPage() {
     <PageHeader eyebrow={t("webui.iam.brand")} title={t("webui.iam.permissions.title")} description={t("webui.iam.permissions.description")} />
     <div className="page-sections">
       <PageSection kicker={t("webui.iam.permissions.list.kicker")} title={t("webui.iam.permissions.list.title")}>
-        <ResourceIndex toolbar={<div className="data-toolbar">
-          <div className="data-toolbar-filters">
-            <SearchInput value={listQuery.filters.query} onChange={(next) => listQuery.setFilters({ query: next })} placeholder={t("webui.iam.permissions.filter")} label={t("webui.iam.permissions.filter")} />
-            <span className="filter-bar-count">{t("webui.iam.permissions.total", { count: filtered.length })}</span>
-          </div>
-        </div>}>
-          {groups.map((group) => (
+        <ResourceIndex toolbar={<FilterBar
+          ariaLabel={t("webui.iam.permissions.filter")}
+          fields={[{ key: "query", label: t("webui.iam.permissions.filter"), placeholder: t("webui.iam.permissions.filter"), control: "input", value: listQuery.filters.query, onValueChange: (next) => listQuery.setFilters({ query: String(next) }) }]}
+          onClear={() => listQuery.clearFilters()}
+          clearLabel={t("webui.iam.accounts.clear")}
+          resultCount={filtered.length}
+          resultCountLabel={(count) => t("webui.iam.permissions.total", { count })}
+        />}>
+          {loadError && <ErrorState kind="connectivity" title={hostT("webui.host.route.error.title")} detail={hostT("webui.host.route.error.detail")} action={<Button variant="secondary" onClick={() => void refresh()}>{hostT("webui.host.retry")}</Button>} />}
+          {loading && !loadError && <Skeleton lines={5} label={hostT("webui.host.page.loading.label")} />}
+          {!loading && !loadError && groups.length === 0 && <EmptyState title={t("webui.iam.permissions.filterEmpty")} />}
+          {!loading && !loadError && groups.map((group) => (
           <div className="permission-group" key={group.ownerModuleId}>
             <h3 className="permission-group-title">{group.ownerModuleId}<span className="page-meta">{String(group.definitions.length)}</span></h3>
             <DataTable<Item>
@@ -68,7 +79,7 @@ export default function PermissionsPage() {
                 } },
               ]}
               rows={group.definitions}
-              ariaLabel={`${group.ownerModuleId} permissions`}
+              ariaLabel={t("webui.iam.permissions.list.title")}
               getRowKey={(item) => item.key}
               emptyState={<p className="page-meta">{t("webui.iam.permissions.filterEmpty")}</p>}
               enhancements={{ density: "compact", stickyHeader: true }}

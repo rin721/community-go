@@ -270,6 +270,9 @@ test("security page and host logout preserve the private session boundary", asyn
   state.setWebUIState({ authenticated: true });
   await page.goto("/account/security");
   await expect(page.getByRole("heading", { name: "Account security" })).toBeVisible();
+  await page.getByLabel("Current password").fill("current-password");
+  await expect(page.locator('[data-action-state="form-dirty"]')).toBeVisible();
+  await expect(page.getByRole("button", { name: "Change password" })).toBeDisabled();
   await page.getByRole("button", { name: "operator" }).click();
   await page.getByRole("menuitem", { name: "Log out" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();

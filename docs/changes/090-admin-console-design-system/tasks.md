@@ -26,7 +26,7 @@
 - [x] SHELL-090-001 实现新 Sidebar、Header、ContentViewport 和条件 WorkspaceRail；前置：FE-090-002；完成证据：`AppHeader`、`SidebarMenu`、`WorkspaceTabs`、`styles.css` 的壳层 Token，导航父路由展开单测与 390px/桌面视觉 E2E。
 - [x] SHELL-090-002 实现六种 PageFrame 与统一滚动/宽度/错误边界；前置：SHELL-090-001；完成证据：`PageFrameVariant` 六种场景、`layout-pattern.test.tsx`、4 项视觉/几何 E2E；设置组与子页面沿用已验证的双层宽度基线。
 - [x] PATTERN-090-001 实现 ResourceIndex、QueryToolbar、ActiveFilters、DataGrid/RecordList、SelectionBar；前置：FE-090-003、SHELL-090-002；完成证据：`ResourceIndex` 已在账户、角色、权限、会话、API Token、审计和岗位列表统一复用，`FilterBar`、`ActiveFilters`、`DataTable`、`BulkActionBar` 组成 toolbar/content/footer 顺序，筛选 URL 状态、逐项清除、权限目录的加载/失败/空结果反馈和数据表增强测试通过。
-- [ ] PATTERN-090-002 实现 EntityDetail、FormPage、SettingsForm 与 StickyActionBar；前置：FE-090-003、SHELL-090-002；当前证据：账户/角色管理区已使用 `EntityDetail` 的身份/状态头部，IAM/Settings Security、Profile、组织部门编辑和任职编辑表单已接入 `PageFrame`/`StickyActionBar`，并有结构单测；完整 dirty/conflict 详情流程仍由后续页面任务补齐。
+- [ ] PATTERN-090-002 实现 EntityDetail、FormPage、SettingsForm 与 StickyActionBar；前置：FE-090-003、SHELL-090-002；当前证据：账户/角色管理区已使用 `EntityDetail` 的身份/状态头部，IAM/Settings Security、Profile、组织部门编辑和任职编辑表单已接入 `PageFrame`/`StickyActionBar`，列表分页已统一复用 `Pagination`，并有结构单测；完整 dirty/conflict 详情流程仍由后续页面任务补齐。
 - [ ] PATTERN-090-003 实现 BatchOperation 与统一 Feedback matrix；前置：PATTERN-090-001；完成证据：同步、部分失败和异步 Job 适配测试。
 - [ ] PATTERN-090-004 实现 Global Search、Command registry、Action 层级和权限/availability 投影；前置：FE-090-003、SHELL-090-001；完成证据：搜索范围、键盘、权限变化和危险动作测试。
 - [ ] PATTERN-090-005 以真实指标完成 Statistic/Chart spike 并实现可解释可视化契约；前置：BE-090-001；完成证据：候选复核、数据口径、可访问数据表、响应式与 bundle 测量。
@@ -41,8 +41,8 @@
 
 ## 页面迁移
 
-- [ ] PAGE-090-001 迁移账户列表与详情作为标杆切片，删除旧布局与状态实现；前置：PATTERN-090-001、PATTERN-090-002、BE-090-002；当前证据：账户列表/管理区已使用 `ResourceIndex`、`EntityDetail` 和批量结果反馈，详情抽屉关系读取增加加载/失败态并避免复用上一行快照；聚合详情契约、完整关系/活动投影、视觉矩阵与零旧引用仍待补齐。
-- [ ] PAGE-090-002 迁移角色、权限、会话和 API Token；前置：PAGE-090-001；当前证据：角色管理区已使用 `EntityDetail`，权限关系读取具备加载/失败/重试态，权限目录具备统一查询反馈，会话列表已接入服务端 `offset/limit/total` 分页；权限影响、批处理、一次性 secret 与视觉测试仍待补齐。
+- [ ] PAGE-090-001 迁移账户列表与详情作为标杆切片，删除旧布局与状态实现；前置：PATTERN-090-001、PATTERN-090-002、BE-090-002；当前证据：账户列表/管理区已使用 `ResourceIndex`、`EntityDetail`、统一 `Pagination` 和批量结果反馈，详情抽屉关系读取增加加载/失败态并避免复用上一行快照；聚合详情契约、完整关系/活动投影、视觉矩阵与零旧引用仍待补齐。
+- [ ] PAGE-090-002 迁移角色、权限、会话和 API Token；前置：PAGE-090-001；当前证据：角色管理区已使用 `EntityDetail` 与统一 `Pagination`，权限关系读取具备加载/失败/重试态，权限目录具备统一查询反馈，会话列表已接入服务端 `offset/limit/total` 分页；权限影响、批处理、一次性 secret 与视觉测试仍待补齐。
 - [ ] PAGE-090-003 迁移审计；前置：PATTERN-090-001、BE-090-003；完成证据：筛选、事件详情、关联与视觉测试。
 - [ ] PAGE-090-004 迁移组织 Tree、岗位和任职；前置：PATTERN-090-002；完成证据：移动预检、成员视图、键盘与响应式测试。
 - [ ] PAGE-090-005 迁移设置；前置：PATTERN-090-002、BE-090-005；当前证据：Profile/Security/Account 子页面统一使用 `PageFrame`，Profile/Security 保存操作使用 `StickyActionBar`，设置组导航与内容宽度 E2E 已通过；作用域、dirty、完整保存冲突和窄屏矩阵仍待补齐。

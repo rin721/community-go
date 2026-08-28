@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActionTrigger, Button, Check, CodeText, ConfirmActionTrigger, DataTable, Drawer, EmptyState, EntityDetail, ErrorState, Field, FilterBar, FormField, PageFrame, PageHeader, PageSection, ResourceIndex, SearchInput, Skeleton, StatusBadge } from "@webui/sdk/ui";
+import { ActionTrigger, Button, Check, CodeText, ConfirmActionTrigger, DataTable, Drawer, EmptyState, EntityDetail, ErrorState, Field, FilterBar, FormField, PageFrame, PageHeader, PageSection, Pagination, ResourceIndex, SearchInput, Skeleton, StatusBadge } from "@webui/sdk/ui";
 import { useListQueryParams } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { archiveRole, createRole, listPermissions, listRoles, replaceRolePermissions, rolePermissionsView, updateRoleInfo, type PermissionDefinition, type Role } from "./api";
@@ -137,7 +137,17 @@ export default function RolesPage() {
   return <PageFrame variant="index" className={styles.iamModule}>
     <PageHeader eyebrow={t("webui.iam.brand")} title={t("webui.iam.roles.title")} description={t("webui.iam.roles.description")} actions={<ActionTrigger operationId="iam.roles.create" onAction={() => setCreateOpen(true)}>{t("webui.iam.roles.create.title")}</ActionTrigger>} />
     <div className="page-sections">
-      <PageSection kicker={t("webui.iam.roles.list.kicker")} title={t("webui.iam.roles.list.title")} footer={<><div className="page-meta">{t("webui.iam.accounts.pagination", { page, total })}</div><div className="toolbar-actions">{[...Array(pages).keys()].map((index) => <Button key={index} variant={index + 1 === page ? "primary" : "secondary"} onClick={() => { setPage(index + 1); void refresh(index + 1); }}>{index + 1}</Button>)}</div></>}>
+      <PageSection kicker={t("webui.iam.roles.list.kicker")} title={t("webui.iam.roles.list.title")} footer={<Pagination
+        page={page}
+        pageCount={pages}
+        total={total}
+        totalLabel={(count) => t("webui.iam.roles.total", { total: count })}
+        pageLabel={(current) => t("webui.iam.accounts.pagination", { page: current, total })}
+        paginationLabel={t("webui.iam.accounts.pagination", { page, total })}
+        previousLabel={t("webui.auth.audit.previous")}
+        nextLabel={t("webui.auth.audit.next")}
+        onPageChange={(nextPage) => { setPage(nextPage); void refresh(nextPage); }}
+      />}>
         <ResourceIndex toolbar={<FilterBar
           ariaLabel={t("webui.iam.roles.filter")}
           fields={[]}

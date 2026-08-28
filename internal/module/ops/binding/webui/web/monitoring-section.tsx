@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { AxisLineChart, CapabilityBanner, MetricCard, PageSection, StatusPill } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import type { CapabilityState } from "@webui/sdk/runtime";
-import { loadDiagnostics, loadMetrics } from "./api";
+import { loadDiagnostics, loadMetricsSummary } from "./api";
 import { readRuntimeSnapshot, type RuntimeSnapshot, type UnitView } from "./dashboard-data";
 import { readMetricsSnapshot, readRuntimeMetrics } from "./metrics-data";
 import { appendMonitoringPoint, seriesValues, type MonitoringPoint } from "./monitoring-data";
@@ -43,7 +43,7 @@ export function MonitoringSection() {
   useEffect(() => {
     let cancelled = false;
     const sample = () => {
-      Promise.all([loadMetrics().catch(() => undefined), loadDiagnostics().catch(() => undefined)])
+      Promise.all([loadMetricsSummary().catch(() => undefined), loadDiagnostics().catch(() => undefined)])
         .then(([metricsPayload, diagnosticsPayload]) => {
           if (cancelled) return;
           const metricsSnapshot = readMetricsSnapshot(metricsPayload);

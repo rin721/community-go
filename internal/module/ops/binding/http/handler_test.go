@@ -7,12 +7,24 @@ import (
 	"net/http/httptest"
 	"runtime"
 	"testing"
+	"time"
 
 	configbinding "github.com/rin721/go-scaffold-template/internal/module/ops/binding/config"
 	"github.com/rin721/go-scaffold-template/internal/module/ops/model"
 	"github.com/rin721/go-scaffold-template/internal/module/ops/service"
+	pkgobservability "github.com/rin721/go-scaffold-template/pkg/observability"
 	"github.com/rin721/go-scaffold-template/pkg/logger"
 )
+
+// testMetrics 实现 pkgobservability.Metrics：暴露固定文本 handler 与 typed 摘要。
+type testMetrics struct{}
+
+func (testMetrics) Handler() http.Handler {
+	return http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) { _, _ = writer.Write([]byte("metric")) })
+}
+func (testMetrics) Summary(context.Context) (pkgobservability.MetricsSummary, error) {
+	return pkgobservability.MetricsSummary{Items: []pkgobservability.MetricValue{{Key: "go_goroutines", Value: 1, Unit: "count"}}, AsOf: time.Date(2026, 8, 30, 0, 0, 0, 0, time.UTC)}, nil
+}
 
 type testSource struct{}
 
@@ -49,11 +61,11 @@ func (a testAccess) Authorize(context.Context, string) error {
 
 func TestManagementRoutePathsContractsWithRegisteredRoutes(t *testing.T) {
 	service, _ := service.New(testSource{}, model.BuildInfo{Version: "v1", Commit: "abc", BuildTime: "now", GoVersion: runtime.Version()})
-	handler, err := New(service, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte("metric")) }), testAccess{}, configbinding.AccessDisabled, logger.Noop())
+	handler, err := New(service, testMetrics{}, testAccess{}, configbinding.AccessDisabled, logger.Noop())
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
 	}
-	want := []string{"/startupz", "/livez", "/readyz", "/build", "/diagnostics", "/metrics"}
+	want := []string{"/startupz", "/livez", "/readyz", "/build", "/diagnostics", "/metrics", "/metrics-summary"}
 	paths := ManagementRoutePaths()
 	if len(paths) != len(want) {
 		t.Fatalf("ManagementRoutePaths() = %v, want %v", paths, want)
@@ -61,8 +73,8 @@ func TestManagementRoutePathsContractsWithRegisteredRoutes(t *testing.T) {
 	seen := map[string]bool{}
 	for _, path := range paths {
 		seen[path] = true
-		// diagnostics 在 AccessDisabled 之外受保护；metrics 在 Disabled 下不注册。
-		if path == "/diagnostics" || path == "/metrics" {
+		// diagnostics 在 AccessDisabled 之外受保护；metrics/metrics-summary 在 Disabled 下不注册。
+		if path == "/diagnostics" || path == "/metrics" || path == "/metrics-summary" {
 			continue
 		}
 		recorder := httptest.NewRecorder()
@@ -80,14 +92,14 @@ func TestManagementRoutePathsContractsWithRegisteredRoutes(t *testing.T) {
 
 func TestManagementRoutesExcludePprofAndProtectDiagnostics(t *testing.T) {
 	service, _ := service.New(testSource{}, model.BuildInfo{Version: "v1", Commit: "abc", BuildTime: "now", GoVersion: runtime.Version()})
-	handler, err := New(service, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte("metric")) }), testAccess{}, configbinding.AccessDisabled, logger.Noop())
+	handler, err := New(service, testMetrics{}, testAccess{}, configbinding.AccessDisabled, logger.Noop())
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
 	}
 	for _, test := range []struct {
 		path string
 		want int
-	}{{"/startupz", 200}, {"/livez", 200}, {"/readyz", 200}, {"/diagnostics", 403}, {"/metrics", 404}, {"/debug/pprof/", 404}} {
+	}{{"/startupz", 200}, {"/livez", 200}, {"/readyz", 200}, {"/diagnostics", 403}, {"/metrics", 404}, {"/metrics-summary", 404}, {"/debug/pprof/", 404}} {
 		recorder := httptest.NewRecorder()
 		handler.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, test.path, nil))
 		if recorder.Code != test.want {
@@ -99,7 +111,7 @@ func TestManagementRoutesExcludePprofAndProtectDiagnostics(t *testing.T) {
 func TestManagementLogsRejectedAndFailedBoundaries(t *testing.T) {
 	service, _ := service.New(failingSource{}, model.BuildInfo{Version: "v1", Commit: "abc", BuildTime: "now", GoVersion: runtime.Version()})
 	logs := logger.NewTestLogger()
-	handler, err := New(service, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte("metric")) }), testAccess{}, configbinding.AccessProtected, logs)
+	handler, err := New(service, testMetrics{}, testAccess{}, configbinding.AccessProtected, logs)
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
 	}
@@ -130,7 +142,7 @@ func TestManagementLogsRejectedAndFailedBoundaries(t *testing.T) {
 func TestManagementLogsUnhealthyProbeAsWarn(t *testing.T) {
 	service, _ := service.New(unhealthySource{}, model.BuildInfo{Version: "v1", Commit: "abc", BuildTime: "now", GoVersion: runtime.Version()})
 	logs := logger.NewTestLogger()
-	handler, err := New(service, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte("metric")) }), testAccess{allowed: true}, configbinding.AccessDisabled, logs)
+	handler, err := New(service, testMetrics{}, testAccess{allowed: true}, configbinding.AccessDisabled, logs)
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
 	}

@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"sort"
 	"strconv"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	dto "github.com/prometheus/client_model/go"
 	"github.com/rin721/go-scaffold-template/internal/kernel/app"
 	pkgobservability "github.com/rin721/go-scaffold-template/pkg/observability"
 )
@@ -74,6 +76,103 @@ func (a *metricsAccess) Handler() http.Handler {
 			http.Error(writer, "metrics unavailable", http.StatusServiceUnavailable)
 		}
 	})
+}
+
+// summaryMetricKeys 是 typed 投影包含的稳定指标名（Prometheus family 名）。
+// 只列入产品 UI 真正消费且语义稳定的指标；新增必须同步注册与 WebUI 消费方。
+var summaryMetricKeys = []string{
+	"app_http_requests_total",
+	"app_http_in_flight_requests",
+	"app_telemetry_exported_spans_total",
+	"app_telemetry_dropped_spans_total",
+	"go_goroutines",
+	"process_resident_memory_bytes",
+	"process_cpu_seconds_total",
+}
+
+// Summary 收集 registry 并把稳定指标投影为 typed 值（090 design §8）：
+// 按 Key 稳定排序；采样失败返回错误，不返回部分数据冒充完整状态。
+func (a *metricsAccess) Summary(ctx context.Context) (pkgobservability.MetricsSummary, error) {
+	if ctx == nil {
+		return pkgobservability.MetricsSummary{}, fmt.Errorf("observability metrics summary context is nil")
+	}
+	if err := ctx.Err(); err != nil {
+		return pkgobservability.MetricsSummary{}, err
+	}
+	var summary pkgobservability.MetricsSummary
+	err := a.delegate.Use(ctx, func(current *metricsResource) error {
+		families, err := current.registry.Gather()
+		if err != nil {
+			return fmt.Errorf("gather metrics registry: %w", err)
+		}
+		values := make(map[string]float64, len(summaryMetricKeys))
+		for _, family := range families {
+			name := family.GetName()
+			if !containsString(summaryMetricKeys, name) {
+				continue
+			}
+			for _, metric := range family.GetMetric() {
+				if value := metricValueOf(metric); value != nil {
+					values[name] += *value
+				}
+			}
+		}
+		summary.Items = make([]pkgobservability.MetricValue, 0, len(summaryMetricKeys))
+		for _, key := range summaryMetricKeys {
+			value, ok := values[key]
+			if !ok {
+				continue
+			}
+			summary.Items = append(summary.Items, pkgobservability.MetricValue{Key: key, Value: value, Unit: metricUnit(key)})
+		}
+		sort.Slice(summary.Items, func(left, right int) bool { return summary.Items[left].Key < summary.Items[right].Key })
+		summary.AsOf = time.Now().UTC()
+		return nil
+	})
+	if err != nil {
+		return pkgobservability.MetricsSummary{}, err
+	}
+	return summary, nil
+}
+
+// metricValueOf 从 protobuf metric 中提取数值；计数器/仪表取 counter/gauge
+// 值，直方图/摘要跳过（typed 投影只消费标量稳定指标）。
+func metricValueOf(metric *dto.Metric) *float64 {
+	if metric == nil {
+		return nil
+	}
+	switch {
+	case metric.GetCounter() != nil:
+		value := metric.GetCounter().GetValue()
+		return &value
+	case metric.GetGauge() != nil:
+		value := metric.GetGauge().GetValue()
+		return &value
+	default:
+		return nil
+	}
+}
+
+// metricUnit 返回稳定指标的单位（与注册命名约定一致；bytes/seconds 显式，
+// 其余为 count）。
+func metricUnit(key string) string {
+	switch {
+	case containsString([]string{"process_resident_memory_bytes"}, key):
+		return "bytes"
+	case containsString([]string{"process_cpu_seconds_total"}, key):
+		return "seconds"
+	default:
+		return "count"
+	}
+}
+
+func containsString(values []string, target string) bool {
+	for _, value := range values {
+		if value == target {
+			return true
+		}
+	}
+	return false
 }
 
 func (a *metricsAccess) ObserveHTTP(operation, method string, status int, duration time.Duration) error {

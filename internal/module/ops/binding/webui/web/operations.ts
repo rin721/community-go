@@ -1,4 +1,4 @@
-import { loadBuild, loadDiagnostics, loadLiveness, loadMetrics, loadReadiness, loadStartup } from "./api";
+import { loadBuild, loadDiagnostics, loadLiveness, loadMetricsSummary, loadReadiness, loadStartup } from "./api";
 import type { CapabilityState } from "@webui/sdk/runtime";
 
 export type OpsOperation = {
@@ -14,7 +14,9 @@ export const opsOperations: ReadonlyArray<OpsOperation> = [
   { name: "livez", titleMessageID: "webui.ops.dashboard.operation.livez", query: loadLiveness, required: true },
   { name: "readyz", titleMessageID: "webui.ops.dashboard.operation.readyz", query: loadReadiness, required: true },
   { name: "diagnostics", titleMessageID: "webui.ops.dashboard.operation.diagnostics", query: loadDiagnostics, required: false },
-  { name: "metrics", titleMessageID: "webui.ops.dashboard.operation.metrics", query: loadMetrics, required: false },
+  // 090 design §8: the metrics operation consumes the typed projection instead
+  // of parsing Prometheus text.
+  { name: "metrics", titleMessageID: "webui.ops.dashboard.operation.metrics", query: loadMetricsSummary, required: false },
 ];
 
 export function operationCapabilityState(required: boolean, pending: boolean, failed: boolean): CapabilityState {

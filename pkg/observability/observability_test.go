@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/rin721/go-scaffold-template/pkg/observability"
 )
@@ -12,6 +13,9 @@ import (
 type metricsFixture struct{ handler http.Handler }
 
 func (m metricsFixture) Handler() http.Handler { return m.handler }
+func (m metricsFixture) Summary(context.Context) (observability.MetricsSummary, error) {
+	return observability.MetricsSummary{Items: []observability.MetricValue{{Key: "go_goroutines", Value: 1, Unit: "count"}}, AsOf: time.Date(2026, 8, 30, 0, 0, 0, 0, time.UTC)}, nil
+}
 
 type telemetryFixture struct{ diagnostics observability.Diagnostics }
 
@@ -41,5 +45,12 @@ func TestCapabilitiesCanBeConsumedWithoutTechnologyTypes(t *testing.T) {
 	}
 	if !diagnostics.Enabled || !diagnostics.Ready {
 		t.Fatalf("diagnostics = %#v", diagnostics)
+	}
+	summary, err := capabilities.Metrics.Summary(t.Context())
+	if err != nil {
+		t.Fatalf("Metrics.Summary() error = %v", err)
+	}
+	if len(summary.Items) != 1 || summary.Items[0].Key != "go_goroutines" || summary.Items[0].Unit != "count" || summary.AsOf.IsZero() {
+		t.Fatalf("metrics summary = %#v", summary)
 	}
 }

@@ -38,6 +38,11 @@ describe("mock transport", () => {
     expect(readiness.status).toBe("pass");
     const metrics = await mockRequestText("/management/metrics");
     expect(metrics).toContain("app_http_requests_total");
+    // 090 PAGE-090-006: typed metrics summary is served by the ops mock.
+    const summary = await mockRequestJSON<{ items: Array<{ key: string; value: number; unit: string }>; asOf: string }>("/management/metrics-summary");
+    expect(summary.items.length).toBeGreaterThan(0);
+    expect(summary.items.some((item) => item.key === "go_goroutines" && item.unit === "count")).toBe(true);
+    expect(summary.asOf).toBeTruthy();
   });
 
   it("rejects unknown routes with the same error code a real 404 would carry", async () => {

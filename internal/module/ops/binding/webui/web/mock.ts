@@ -45,6 +45,20 @@ export const webuiMockRoutes: ReadonlyArray<WebUIMockRoute> = [
     messaging: { enabled: true, providers: [{ name: "broker", driver: "rabbitmq", state: "ready", ready: true, inFlight: 0, confirmed: 40, failed: 0, recoveries: 0 }], consumers: [{ id: "consumer-1", route: "events", active: true, inFlight: 1, redelivered: 0, acknowledged: 39, rejected: 0, deadLettered: 0 }] },
   }) },
   { method: "GET", pattern: "/management/metrics", handler: () => metricsPayload },
+  // 090 PAGE-090-006: typed metrics projection (key/value/unit/asOf), aligned
+  // with the backend contract.
+  { method: "GET", pattern: "/management/metrics-summary", handler: () => ({
+    items: [
+      { key: "app_http_requests_total", value: 42, unit: "count" },
+      { key: "app_http_in_flight_requests", value: 1, unit: "count" },
+      { key: "app_telemetry_exported_spans_total", value: 128, unit: "count" },
+      { key: "app_telemetry_dropped_spans_total", value: 0, unit: "count" },
+      { key: "go_goroutines", value: 7, unit: "count" },
+      { key: "process_resident_memory_bytes", value: 26214400, unit: "bytes" },
+      { key: "process_cpu_seconds_total", value: 12.5, unit: "seconds" },
+    ],
+    asOf: "2026-01-01T00:05:00.000Z",
+  }) },
 ];
 
 export default webuiMockRoutes;

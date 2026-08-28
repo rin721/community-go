@@ -84,8 +84,46 @@ func TestHTTPKeepsTelemetryLeaseForWholeRequestAndRecordsStableOperation(t *test
 	}
 }
 
-func TestHTTPUsesSingleOTelHTTPServerSpanWithoutSensitiveURL(t *testing.T) {
+func TestMetricsSummaryProjectsStableTypedValues(t *testing.T) {
 	metricsState, err := buildMetrics(t.Context(), struct{}{}, struct{}{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	metrics := &metricsAccess{delegate: fixedLease[*metricsResource]{current: metricsState}}
+	if err := metrics.ObserveHTTP("getTodo", http.MethodGet, http.StatusOK, 10*time.Millisecond); err != nil {
+		t.Fatal(err)
+	}
+	summary, err := metrics.Summary(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if summary.AsOf.IsZero() {
+		t.Fatal("summary asOf is zero")
+	}
+	byKey := make(map[string]pkgobservability.MetricValue, len(summary.Items))
+	for _, item := range summary.Items {
+		byKey[item.Key] = item
+	}
+	requests, ok := byKey["app_http_requests_total"]
+	if !ok || requests.Value < 1 || requests.Unit != "count" {
+		t.Fatalf("request total metric = %#v (present=%v)", requests, ok)
+	}
+	goroutines, ok := byKey["go_goroutines"]
+	if !ok || goroutines.Value < 1 || goroutines.Unit != "count" {
+		t.Fatalf("goroutines metric = %#v (present=%v)", goroutines, ok)
+	}
+	if _, ok := byKey["process_resident_memory_bytes"]; !ok {
+		t.Fatalf("resident memory metric missing: %#v", summary.Items)
+	}
+	// 稳定排序。
+	for index := 1; index < len(summary.Items); index++ {
+		if summary.Items[index-1].Key > summary.Items[index].Key {
+			t.Fatalf("summary items not sorted: %#v", summary.Items)
+		}
+	}
+}
+
+func TestHTTPUsesSingleOTelHTTPServerSpanWithoutSensitiveURL(t *testing.T) {	metricsState, err := buildMetrics(t.Context(), struct{}{}, struct{}{})
 	if err != nil {
 		t.Fatal(err)
 	}

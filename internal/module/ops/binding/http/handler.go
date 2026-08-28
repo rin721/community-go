@@ -10,6 +10,7 @@ import (
 	configbinding "github.com/rin721/go-scaffold-template/internal/module/ops/binding/config"
 	"github.com/rin721/go-scaffold-template/internal/module/ops/model"
 	"github.com/rin721/go-scaffold-template/internal/module/ops/service"
+	pkgobservability "github.com/rin721/go-scaffold-template/pkg/observability"
 	"github.com/rin721/go-scaffold-template/pkg/httpx"
 	"github.com/rin721/go-scaffold-template/pkg/logger"
 )
@@ -23,11 +24,11 @@ type Access interface {
 // ManagementRoutePaths 返回 management 面支持的相对子路径（不含 /management 前缀）。
 // 模块内部注册与 composition 的模式 B facade 挂载共用同一清单，避免路径字面量漂移。
 func ManagementRoutePaths() []string {
-	return []string{"/startupz", "/livez", "/readyz", "/build", "/diagnostics", "/metrics"}
+	return []string{"/startupz", "/livez", "/readyz", "/build", "/diagnostics", "/metrics", "/metrics-summary"}
 }
 
 // New 构造不包含 pprof 的固定 management 路由。
-func New(ops *service.Service, metrics http.Handler, access Access, mode configbinding.AccessMode, logging logger.Logger) (http.Handler, error) {
+func New(ops *service.Service, metrics pkgobservability.Metrics, access Access, mode configbinding.AccessMode, logging logger.Logger) (http.Handler, error) {
 	if ops == nil || metrics == nil || access == nil || logging == nil {
 		return nil, fmt.Errorf("management HTTP dependencies are incomplete")
 	}
@@ -48,11 +49,24 @@ func New(ops *service.Service, metrics http.Handler, access Access, mode configb
 			switch mode {
 			case configbinding.AccessDisabled:
 			case configbinding.AccessPublic:
-				mux.Handle("GET "+routePath, metrics)
+				mux.Handle("GET "+routePath, metrics.Handler())
 			case configbinding.AccessProtected:
-				mux.Handle("GET "+routePath, protect(access, model.OperationMetrics, metrics, logging))
+				mux.Handle("GET "+routePath, protect(access, model.OperationMetrics, metrics.Handler(), logging))
 			default:
 				return nil, fmt.Errorf("management metrics access %q is unsupported", mode)
+			}
+		case "/metrics-summary":
+			// 090 PAGE-090-006 / design §8：typed 指标投影，供产品 UI 消费，
+			// 不让前端解析 Prometheus 文本推断语义。受保护等级与 /metrics 一致。
+			summary := jsonHandler("ops.metrics-summary", logging, func(ctx context.Context) (any, error) { return metrics.Summary(ctx) })
+			switch mode {
+			case configbinding.AccessDisabled:
+			case configbinding.AccessPublic:
+				mux.Handle("GET "+routePath, summary)
+			case configbinding.AccessProtected:
+				mux.Handle("GET "+routePath, protect(access, model.OperationMetrics, summary, logging))
+			default:
+				return nil, fmt.Errorf("management metrics summary access %q is unsupported", mode)
 			}
 		}
 	}

@@ -51,7 +51,7 @@ func New(ctx context.Context, dependencies Dependencies) (Module, error) {
 	if dependencies.Observability.Metrics == nil || dependencies.Observability.Telemetry == nil {
 		return Module{}, fmt.Errorf("ops observability capabilities are incomplete")
 	}
-	managementHTTP, err := httpbinding.New(opsService, dependencies.Observability.Metrics.Handler(), dependencies.Access, dependencies.Config.Management.MetricsAccess, dependencies.Logger)
+	managementHTTP, err := httpbinding.New(opsService, dependencies.Observability.Metrics, dependencies.Access, dependencies.Config.Management.MetricsAccess, dependencies.Logger)
 	if err != nil {
 		return Module{}, fmt.Errorf("compose management HTTP: %w", err)
 	}

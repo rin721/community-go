@@ -114,6 +114,12 @@ test.beforeEach(async ({ page }) => {
     await route.fulfill({ json: { items: [{ id: "user-1", username: "operator", displayName: "Operator", status: "active", mustChangePassword: false, securityRevision: 1, version: 1 }], offset: 0, limit: 100, total: 1 } });
   });
   await page.route("**/api/v1/iam/accounts/user-1/roles", async (route) => { await route.fulfill({ json: { accountId: "user-1", accountVersion: 1, authorizationRevision: 1, roleIds: ["role-owner"] } }); });
+  await page.route("**/api/v1/iam/accounts/user-1", async (route) => { await route.fulfill({ json: {
+    account: { id: "user-1", username: "operator", displayName: "Operator", status: "active", archived: false, mustChangePassword: false, securityRevision: 1, version: 1 },
+    roles: [{ id: "role-owner", code: "owner", name: "System owner", description: "", active: true, archived: false, system: true, version: 1 }],
+    authorizationRevision: 7, activeSessionCount: 2, totalSessionCount: 4, activeApiTokenCount: 1,
+    createdAt: "2026-08-01T08:00:00Z", updatedAt: "2026-08-29T08:00:00Z",
+  } }); });
   await page.route("**/api/v1/iam/roles?*", async (route) => {
     await route.fulfill({ json: { items: [{ id: "role-owner", code: "owner", name: "System owner", description: "", active: true, archived: false, system: true, version: 1 }], offset: 0, limit: 100, total: 1 } });
   });
@@ -304,6 +310,13 @@ test("account role and permission management pages render module-owned evidence"
   await expect(page.locator('[data-action-state="form-dirty"]')).toBeVisible();
   await expect(page.getByRole("button", { name: "Save roles" })).toBeEnabled();
   await page.screenshot({ path: testInfo.outputPath("iam-accounts.png"), fullPage: true });
+  await page.getByRole("button", { name: "View detail" }).click();
+  const detailDrawer = page.getByRole("dialog", { name: "Operator" });
+  await expect(detailDrawer.getByRole("heading", { name: "Security impact summary" })).toBeVisible();
+  await expect(detailDrawer.getByText("Active sessions (4 total)")).toBeVisible();
+  await expect(detailDrawer.getByText("Active API tokens")).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("iam-account-detail.png"), fullPage: true });
+  await page.keyboard.press("Escape");
   await page.goto("/admin/roles");
   await expect(page.getByRole("heading", { name: "Roles" })).toBeVisible();
   await expect(page.getByRole("article").getByText("System owner", { exact: true })).toBeVisible();

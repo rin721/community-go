@@ -1,5 +1,44 @@
 components:
   schemas:
+    AccountDetailResponse:
+      additionalProperties: false
+      properties:
+        account:
+          $ref: "#/components/schemas/AccountResponse"
+        activeApiTokenCount:
+          format: int64
+          type: integer
+        activeSessionCount:
+          format: int64
+          type: integer
+        authorizationRevision:
+          format: int64
+          minimum: 0
+          type: integer
+        createdAt:
+          format: date-time
+          type: string
+        roles:
+          items:
+            $ref: "#/components/schemas/RoleResponse"
+          nullable: true
+          type: array
+        totalSessionCount:
+          format: int64
+          type: integer
+        updatedAt:
+          format: date-time
+          type: string
+      required:
+        - account
+        - roles
+        - authorizationRevision
+        - activeSessionCount
+        - totalSessionCount
+        - activeApiTokenCount
+        - createdAt
+        - updatedAt
+      type: object
     AccountResponse:
       additionalProperties: false
       properties:
@@ -1631,6 +1670,35 @@ paths:
       tags:
         - IAM
   /api/v1/iam/accounts/{id}:
+    get:
+      operationId: iam.accounts.read
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountDetailResponse"
+          description: OK
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      security:
+        - webuiSession: []
+      tags:
+        - IAM
     patch:
       operationId: iam.accounts.update
       parameters:

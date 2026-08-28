@@ -4,6 +4,7 @@ export type IAMIdentity={accountId:string;username:string;displayName:string;per
 export type IAMSession={identity:IAMIdentity;csrfToken:string;createdAt:string;idleExpiresAt:string;absoluteExpiresAt:string};
 export type Account={id:string;username:string;displayName:string;status:"active"|"disabled";archived:boolean;mustChangePassword:boolean;securityRevision:number;version:number};
 export type Role={id:string;code:string;name:string;description:string;active:boolean;archived:boolean;system:boolean;version:number};
+export type AccountDetail={account:Account;roles:Role[];authorizationRevision:number;activeSessionCount:number;totalSessionCount:number;activeApiTokenCount:number;createdAt:string;updatedAt:string};
 export type AccountRolesView={accountId:string;accountVersion:number;authorizationRevision:number;roleIds:string[]};
 export type RolePermissionsView={roleId:string;roleVersion:number;authorizationRevision:number;permissionKeys:string[]};
 export type AssignmentResult={entityId:string;entityVersion:number;authorizationRevision:number;added:number;removed:number};
@@ -18,6 +19,7 @@ export const login=(username:string,password:string)=>requestJSON<IAMSession>("/
 export const setup=(setupToken:string,username:string,displayName:string,password:string)=>requestJSON<IAMSession>("/api/v1/iam/setup",{method:"POST",body:JSON.stringify({setupToken,username,displayName,password}),headers:originHeaders()}).then(remember);
 export const changePassword=(currentPassword:string,newPassword:string)=>requestJSON<void>("/api/v1/iam/self/password",{method:"POST",body:JSON.stringify({currentPassword,newPassword}),headers:mutationHeaders()});
 export const listAccounts=(query?:string,offset=0,limit=100,extra: { status?: "active" | "disabled"; archived?: boolean; roleId?: string; sort?: string } = {})=>requestJSON<ListResult<Account>>(`/api/v1/iam/accounts?offset=${offset}&limit=${limit}${query?`&query=${encodeURIComponent(query)}`:""}${extra.status?`&status=${extra.status}`:""}${extra.archived!==undefined?`&archived=${extra.archived}`:""}${extra.roleId?`&roleId=${encodeURIComponent(extra.roleId)}`:""}${extra.sort?`&sort=${encodeURIComponent(extra.sort)}`:""}`);
+export const accountDetail=(id:string)=>requestJSON<AccountDetail>(`/api/v1/iam/accounts/${id}`);
 export const createAccount=(username:string,displayName:string,password:string)=>requestJSON<Account>("/api/v1/iam/accounts",{method:"POST",body:JSON.stringify({username,displayName,password}),headers:mutationHeaders()});
 export const setAccountStatus=(id:string,status:Account["status"])=>requestJSON<void>(`/api/v1/iam/accounts/${id}/status`,{method:"PATCH",body:JSON.stringify({status}),headers:mutationHeaders()});
 export const updateAccountInfo=(id:string,expectedAccountVersion:number,displayName:string)=>requestJSON<void>(`/api/v1/iam/accounts/${id}`,{method:"PATCH",body:JSON.stringify({expectedAccountVersion,displayName}),headers:mutationHeaders()});

@@ -93,6 +93,14 @@ func TestSessionBoundaryPaginationAndStableConflicts(t *testing.T) {
 	if list.Code != http.StatusOK || !bytes.Contains(list.Body.Bytes(), []byte(`"limit":1`)) || !bytes.Contains(list.Body.Bytes(), []byte(`"total":1`)) {
 		t.Fatalf("paginated list = %d, %s", list.Code, list.Body.String())
 	}
+	detail := serve(router, http.MethodGet, "http://example.test/api/v1/iam/accounts/"+resolved.Identity.AccountID, nil, &resolved)
+	if detail.Code != http.StatusOK || !bytes.Contains(detail.Body.Bytes(), []byte(`"activeSessionCount":1`)) || !bytes.Contains(detail.Body.Bytes(), []byte(`"authorizationRevision"`)) || !bytes.Contains(detail.Body.Bytes(), []byte(`"createdAt"`)) {
+		t.Fatalf("account detail = %d, %s", detail.Code, detail.Body.String())
+	}
+	missing := serve(router, http.MethodGet, "http://example.test/api/v1/iam/accounts/missing-account", nil, &resolved)
+	if missing.Code != http.StatusNotFound {
+		t.Fatalf("missing account detail status = %d, body = %s", missing.Code, missing.Body.String())
+	}
 	_ = session
 }
 

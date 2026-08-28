@@ -158,6 +158,18 @@ type AccountRolesView struct {
 	RoleIDs               []string
 }
 
+// AccountDetailView 是账户详情页的一致性读取投影。它在一次存储访问中返回
+// 账户生命周期、当前角色与安全影响计数，避免客户端用多个请求拼接出可能漂移
+// 的“详情”。计数只表达管理影响范围，不暴露 Session 或 API Token 凭据。
+type AccountDetailView struct {
+	Account               model.Account
+	Roles                 []model.Role
+	AuthorizationRevision uint64
+	ActiveSessionCount    int64
+	TotalSessionCount     int64
+	ActiveAPITokenCount   int64
+}
+
 // RolePermissionsView 是角色权限关系的可编辑快照（乐观并发读取侧）。
 type RolePermissionsView struct {
 	RoleID                string
@@ -1074,6 +1086,7 @@ func (s *Service) BatchArchiveAccounts(ctx context.Context, accountIDs []string)
 	}
 	return processed, failed, itemErrors
 }
+
 // ArchiveAccount 把账号置为归档终态：归档账号不可登录、不可分配、全部 Session
 // 撤销。owner 不变量保持（最后一个 active owner 不可归档）。不做物理删除与恢复。
 func (s *Service) ArchiveAccount(ctx context.Context, accountID string) error {
@@ -1357,6 +1370,57 @@ func (s *Service) AccountRolesSnapshot(ctx context.Context, accountID string) (A
 			return err
 		}
 		result = AccountRolesView{AccountID: accountID, AccountVersion: account.Version, AuthorizationRevision: revision, RoleIDs: roleIDs}
+		return nil
+	})
+	return result, err
+}
+
+// AccountDetail 返回账户核心详情及禁用、归档或授权变更会影响的安全资源摘要。
+func (s *Service) AccountDetail(ctx context.Context, accountID string) (AccountDetailView, error) {
+	var result AccountDetailView
+	now := s.clock.Now().UTC()
+	err := s.store.Use(ctx, func(r *repo.Unit) error {
+		account, err := r.AccountByID(ctx, accountID)
+		if err != nil {
+			return err
+		}
+		relations, err := r.ListAccountRolesByAccount(ctx, accountID, true)
+		if err != nil {
+			return err
+		}
+		roles := make([]model.Role, 0, len(relations))
+		for _, relation := range relations {
+			role, roleErr := r.RoleByID(ctx, relation.RoleID)
+			if roleErr != nil {
+				return roleErr
+			}
+			roles = append(roles, modelRole(role))
+		}
+		sort.Slice(roles, func(left, right int) bool { return roles[left].Code < roles[right].Code })
+		activeSessions, err := r.CountSessionsByAccount(ctx, accountID, now, true, false)
+		if err != nil {
+			return err
+		}
+		totalSessions, err := r.CountSessionsByAccount(ctx, accountID, now, false, false)
+		if err != nil {
+			return err
+		}
+		activeTokens, err := r.CountApiTokensFiltered(ctx, accountID, repo.ApiTokenFilter{Status: string(ApiTokenStatusActive), Now: now})
+		if err != nil {
+			return err
+		}
+		revision, err := r.CurrentAuthorizationRevision(ctx)
+		if err != nil {
+			return err
+		}
+		result = AccountDetailView{
+			Account:               modelAccount(account),
+			Roles:                 roles,
+			AuthorizationRevision: revision,
+			ActiveSessionCount:    activeSessions,
+			TotalSessionCount:     totalSessions,
+			ActiveAPITokenCount:   activeTokens,
+		}
 		return nil
 	})
 	return result, err

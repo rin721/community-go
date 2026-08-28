@@ -408,6 +408,13 @@ func RegisterHuma(api huma.API, handler *Handler) {
 		}
 		return jsonEnvelope(listResponse[accountResponse]{items, result.Offset, result.Limit, result.Total}), nil
 	})
+	huma.Register(api, protected(opAccountRead, http.MethodGet, "/api/v1/iam/accounts/{id}", string(iampermission.AccountRead), "read"), func(ctx context.Context, in *idInput) (*jsonOutput[accountDetailResponse], error) {
+		result, err := handler.service.AccountDetail(ctx, in.ID)
+		if err != nil {
+			return nil, problem(ctx, err)
+		}
+		return jsonEnvelope(accountDetailOutput(result)), nil
+	})
 	createAccount := protected(opCreateAccount, http.MethodPost, "/api/v1/iam/accounts", string(iampermission.AccountWrite), "create")
 	createAccount.DefaultStatus = http.StatusCreated
 	createAccount.Middlewares = huma.Middlewares{handler.requireMutation}

@@ -151,6 +151,51 @@
   color: var(--text-muted);
   font-weight: var(--font-weight-regular);
 }
+
+/* 090：账户详情以概览、影响、访问三段表达，而非把字段平铺成一张长表。 */
+.accountDetailSection {
+  display: grid;
+  gap: var(--space-2);
+}
+.accountDetailSection + .accountDetailSection {
+  margin-top: var(--space-5);
+}
+.accountDetailSection h3 {
+  margin: 0 0 var(--space-1);
+  font-size: var(--font-scale-sm);
+}
+.accountImpactGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+.accountImpactItem {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+}
+.accountImpactItem strong {
+  font-size: var(--font-scale-xl);
+  line-height: 1;
+}
+.accountImpactItem span,
+.accountImpactNote {
+  color: var(--text-secondary);
+  font-size: var(--font-scale-xs);
+}
+.accountImpactNote {
+  margin: var(--space-1) 0 0;
+  line-height: var(--font-lineheight-normal);
+}
+@media (max-width: 640px) {
+  .accountImpactGrid {
+    grid-template-columns: 1fr;
+  }
+}
 .iamModule :global(.scope-select-all) {
   display: inline-flex;
   align-items: center;

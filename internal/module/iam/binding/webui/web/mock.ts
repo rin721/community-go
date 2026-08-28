@@ -63,6 +63,11 @@ export const webuiMockRoutes: ReadonlyArray<WebUIMockRoute> = [
   { method: "POST", pattern: "/api/v1/iam/setup", handler: () => mockSession },
   { method: "POST", pattern: "/api/v1/iam/self/password", handler: () => undefined },
   { method: "GET", pattern: "/api/v1/iam/accounts", handler: () => ({ items: accounts, offset: 0, limit: 100, total: accounts.length }) },
+  { method: "GET", pattern: "/api/v1/iam/accounts/{id}", handler: (request) => {
+    const accountID = request.path.split("/").at(-1);
+    const account = accounts.find((item) => item.id === accountID) ?? accounts[0];
+    return { account, roles, authorizationRevision: 2, activeSessionCount: 1, totalSessionCount: 2, activeApiTokenCount: 1, createdAt: "2026-08-01T08:00:00Z", updatedAt: "2026-08-29T08:00:00Z" };
+  } },
   { method: "POST", pattern: "/api/v1/iam/accounts", handler: (request) => {
     const body = (request.body ?? {}) as { username?: string; displayName?: string };
     return { id: `acct-${accounts.length + 1}`, username: body.username ?? "new.account", displayName: body.displayName ?? "New Account", status: "active" as const, archived: false, mustChangePassword: false, securityRevision: 1, version: 1 };

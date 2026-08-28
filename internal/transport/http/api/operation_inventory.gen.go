@@ -19,6 +19,7 @@ const (
 	OperationIamAccountsCreate              OperationID = "iam.accounts.create"
 	OperationIamAccountsList                OperationID = "iam.accounts.list"
 	OperationIamAccountsPasswordReset       OperationID = "iam.accounts.password.reset"
+	OperationIamAccountsRead                OperationID = "iam.accounts.read"
 	OperationIamAccountsRolesRead           OperationID = "iam.accounts.roles.read"
 	OperationIamAccountsRolesReplace        OperationID = "iam.accounts.roles.replace"
 	OperationIamAccountsStatus              OperationID = "iam.accounts.status"
@@ -79,6 +80,7 @@ var operationInventory = [...]Operation{
 	{ID: OperationIamAccountsCreate, Method: "POST", Path: "/api/v1/iam/accounts", Policy: "protected", Scope: "iam:account:write", Action: "iam.accounts.create"},
 	{ID: OperationIamAccountsList, Method: "GET", Path: "/api/v1/iam/accounts", Policy: "protected", Scope: "iam:account:read", Action: "iam.accounts.list"},
 	{ID: OperationIamAccountsPasswordReset, Method: "POST", Path: "/api/v1/iam/accounts/{id}/password-reset", Policy: "protected", Scope: "iam:account:write", Action: "iam.accounts.password.reset"},
+	{ID: OperationIamAccountsRead, Method: "GET", Path: "/api/v1/iam/accounts/{id}", Policy: "protected", Scope: "iam:account:read", Action: "iam.accounts.read"},
 	{ID: OperationIamAccountsRolesRead, Method: "GET", Path: "/api/v1/iam/accounts/{id}/roles", Policy: "protected", Scope: "iam:account:read", Action: "iam.accounts.roles.read"},
 	{ID: OperationIamAccountsRolesReplace, Method: "PUT", Path: "/api/v1/iam/accounts/{id}/roles", Policy: "protected", Scope: "iam:account:write", Action: "iam.accounts.roles.replace"},
 	{ID: OperationIamAccountsStatus, Method: "PATCH", Path: "/api/v1/iam/accounts/{id}/status", Policy: "protected", Scope: "iam:account:write", Action: "iam.accounts.status"},

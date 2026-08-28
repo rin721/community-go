@@ -82,6 +82,48 @@ func TestSetupLoginRBACAndRevisionInvalidation(t *testing.T) {
 	}
 }
 
+func TestAccountDetailAggregatesLifecycleRolesAndSecurityImpact(t *testing.T) {
+	iam, resource := newService(t)
+	defer resource.Close()
+	if _, err := iam.Setup(t.Context(), "setup-secret", "owner", "Owner", "123456789012345"); err != nil {
+		t.Fatal(err)
+	}
+	account, err := iam.CreateAccount(t.Context(), "detail_member", "Detail member", "abcdefghijklmno")
+	if err != nil {
+		t.Fatal(err)
+	}
+	role, err := iam.CreateRole(t.Context(), "detail-reader", "Detail reader", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := iam.ReplaceAccountRoles(t.Context(), account.ID, account.Version, []string{role.ID}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := iam.Login(t.Context(), account.Username, "abcdefghijklmno"); err != nil {
+		t.Fatal(err)
+	}
+
+	detail, err := iam.AccountDetail(t.Context(), account.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if detail.Account.ID != account.ID || detail.Account.CreatedAt.IsZero() || detail.Account.UpdatedAt.IsZero() {
+		t.Fatalf("account detail lifecycle = %#v", detail.Account)
+	}
+	if len(detail.Roles) != 1 || detail.Roles[0].ID != role.ID {
+		t.Fatalf("account detail roles = %#v", detail.Roles)
+	}
+	if detail.ActiveSessionCount != 1 || detail.TotalSessionCount != 1 || detail.ActiveAPITokenCount != 0 {
+		t.Fatalf("account detail impact = %#v", detail)
+	}
+	if detail.AuthorizationRevision == 0 {
+		t.Fatal("account detail authorization revision must be projected")
+	}
+	if _, err := iam.AccountDetail(t.Context(), "missing-account"); !repo.IsNotFound(err) {
+		t.Fatalf("missing account detail error = %v", err)
+	}
+}
+
 func TestLoginFailureIsPersistedUntilLockout(t *testing.T) {
 	iam, resource := newService(t)
 	defer resource.Close()

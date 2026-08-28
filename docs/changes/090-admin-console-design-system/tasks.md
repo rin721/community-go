@@ -34,14 +34,14 @@
 ## 后端 P0
 
 - [ ] BE-090-001 逐资源统一查询、排序、分页/游标和错误语义；前置：R090-003、CONFIRM-090-001；完成证据：OpenAPI、模块测试和生成 registry。
-- [ ] BE-090-002 实现账户/角色核心详情与影响摘要；前置：BE-090-001；完成证据：领域契约、权限、错误与集成测试。
+- [ ] BE-090-002 实现账户/角色核心详情与影响摘要；前置：BE-090-001；当前增量：账户侧已新增 `iam.accounts.read` 聚合详情契约，在一次存储访问中返回账户生命周期、角色快照、授权 revision、活跃/全部会话计数与有效 API Token 计数；复用 `iam:account:read` 权限，not-found 保持稳定 Problem 语义，service 与 HTTP 集成测试已覆盖。角色核心详情与权限风险影响仍待补齐。
 - [ ] BE-090-003 实现审计 event/correlation/time range/detail 投影；前置：BE-090-001；当前增量：已有自增键已投影为只读 `eventId`，HTTP request-id 已贯通低敏持久化 `correlationId`，服务端按关联请求筛选，WebUI 列表/详情可查看并复制 correlation ID；actor/subject digest 与时间范围筛选及 OpenAPI/WebUI 已同步。客户端 `requestJSON/requestText` 已保留 Problem 的状态、稳定 code、detail 和 requestId 投影，IAM 账户/角色/权限/会话/令牌与审计列表的连接错误已把 requestId 传入 `ErrorState`；游标和更完整详情仍待统一契约与查询测试。
 - [ ] BE-090-004 标准化批量结果、幂等和部分失败；前置：BE-090-001；完成证据：多结果与重试测试。
 - [ ] BE-090-005 实现需要跨设备保持的用户偏好契约；前置：BE-090-001；完成证据：默认/覆盖/更新/权限测试。
 
 ## 页面迁移
 
-- [ ] PAGE-090-001 迁移账户列表与详情作为标杆切片，删除旧布局与状态实现；前置：PATTERN-090-001、PATTERN-090-002、BE-090-002；当前证据：账户列表/管理区已使用 `ResourceIndex`、`EntityDetail`、统一 `Pagination` 和 URL 分页状态，筛选/排序会回到第一页，批量结果反馈与详情抽屉关系加载/失败态已覆盖，角色分配已接入 clean/dirty/pending/conflict 保存条并由 dev E2E 覆盖，同时避免复用上一行快照；聚合详情契约、完整关系/活动投影、视觉矩阵与零旧引用仍待补齐。
+- [ ] PAGE-090-001 迁移账户列表与详情作为标杆切片，删除旧布局与状态实现；前置：PATTERN-090-001、PATTERN-090-002、BE-090-002；当前证据：账户列表/管理区已使用 `ResourceIndex`、`EntityDetail`、统一 `Pagination` 和 URL 分页状态，筛选/排序会回到第一页，批量结果反馈已覆盖，角色分配已接入 clean/dirty/pending/conflict 保存条并由 dev E2E 覆盖；详情抽屉已删除“列表行快照 + 角色请求”拼接，改由 `iam.accounts.read` 原子聚合投影驱动，并按账户概览、安全影响摘要、访问关系分段展示，含 loading/Problem 重试态和 E2E 视觉证据。组织关系、受控活动投影、完整视觉矩阵与零旧引用仍待补齐。
 - [ ] PAGE-090-002 迁移角色、权限、会话和 API Token；前置：PAGE-090-001；当前证据：角色管理区已使用 `EntityDetail`、统一 `Pagination` 与 URL 分页状态，权限关系读取具备加载/失败/重试态，权限目录具备统一查询反馈，会话与 API Token 列表已接入服务端 `offset/limit/total` 分页及页码/筛选 URL 状态；权限影响、批处理、一次性 secret 与视觉测试仍待补齐。
 - [ ] PAGE-090-003 迁移审计；前置：PATTERN-090-001、BE-090-003；当前证据：筛选器已覆盖 operation/action/outcome/actor/subject/resource/correlation/time range，事件列表与详情均展示可复制的低敏 correlation ID，详情保留低敏字段与 JSON 视图；游标、视觉矩阵与完整查询测试仍待补齐。
 - [ ] PAGE-090-004 迁移组织 Tree、岗位和任职；前置：PATTERN-090-002；当前证据：部门 Tree、岗位目录和账号任职页均使用统一 PageFrame/分栏骨架，任职保存条已呈现 clean/dirty/pending/conflict 状态，组织管理 E2E 覆盖树、岗位与任职编辑；移动预检、成员视图、键盘与响应式矩阵仍待补齐。

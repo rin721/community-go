@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActionTrigger, BatchResultSummary, Button, BulkActionBar, Check, CodeText, ConfirmActionTrigger, DataTable, DetailDrawer, Drawer, EmptyState, EntityDetail, ErrorState, Field, FilterBar, FormField, PageFrame, PageHeader, PageSection, Pagination, ResourceIndex, SearchInput, StatusBadge, StickyActionBar } from "@webui/sdk/ui";
+import { ActionTrigger, BatchResultSummary, Button, BulkActionBar, Check, CodeText, ConfirmActionTrigger, DataTable, DetailDrawer, Drawer, EmptyState, EntityDetail, ErrorState, Field, FilterBar, FormField, PageFrame, PageHeader, PageSection, Pagination, ResourceIndex, SearchInput, Skeleton, StatusBadge, StickyActionBar } from "@webui/sdk/ui";
 import { useListQueryParams, type ProblemError } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
-import { accountRolesView, archiveAccount, batchAccountStatus, batchArchiveAccounts, createAccount, listAccounts, listRoles, replaceAccountRoles, resetAccountPassword, setAccountStatus, updateAccountInfo, type Account, type Role } from "./api";
+import { accountDetail, accountRolesView, archiveAccount, batchAccountStatus, batchArchiveAccounts, createAccount, listAccounts, listRoles, replaceAccountRoles, resetAccountPassword, setAccountStatus, updateAccountInfo, type Account, type AccountDetail, type Role } from "./api";
 import styles from "./iam.module.css";
 
 // checklistCandidates only exposes active, non-archived roles for assignment.
@@ -63,9 +63,9 @@ export default function AccountsPage() {
   const [renameValue, setRenameValue] = useState("");
   const [archiveError, setArchiveError] = useState(false);
   const [detailAccount, setDetailAccount] = useState<Account | null>(null);
-  const [detailAccountID, setDetailAccountID] = useState("");
-  const [detailRoleIDs, setDetailRoleIDs] = useState<string[] | null>(null);
-  const [detailRoleError, setDetailRoleError] = useState(false);
+  const [detail, setDetail] = useState<AccountDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<ProblemError | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<ProblemError | null>(null);
   const page = listQuery.page;
@@ -88,23 +88,18 @@ export default function AccountsPage() {
   useEffect(() => { listQuery.setPage(1); }, [listQuery.filters.query, listQuery.filters.status, listQuery.filters.archived, listQuery.filters.roleId, sortKey, sortDirection]);
   const reloadSelection = useCallback((id: string, preserveMessage = false): Promise<void> => {
     if (!id) return Promise.resolve();
-    if (id === detailAccountID) { setDetailRoleIDs(null); setDetailRoleError(false); }
     return accountRolesView(id).then((view) => {
       setRoleIDs(view.roleIds);
       setSavedRoleIDs(view.roleIds);
       setExpectedVersion(view.accountVersion);
       setRoleSaveState("clean");
-      if (id === detailAccountID) setDetailRoleIDs(view.roleIds);
       if (!preserveMessage) {
         setRenameValue("");
         setMessage("");
         setArchiveError(false);
       }
-    }).catch(() => {
-      if (id === detailAccountID) setDetailRoleError(true);
-      return undefined;
-    });
-  }, [detailAccountID]);
+    }).catch(() => undefined);
+  }, []);
   useEffect(() => { if (selectedID) void reloadSelection(selectedID); }, [selectedID, reloadSelection]);
   const selected = items.find((item) => item.id === selectedID);
   const candidates = checklistCandidates(roles);
@@ -144,10 +139,17 @@ export default function AccountsPage() {
     }).catch(() => { void refresh(); });
   };
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const loadDetail = useCallback((account: Account) => {
+    setDetailAccount(account);
+    setDetail(null);
+    setDetailError(null);
+    setDetailLoading(true);
+    return accountDetail(account.id).then(setDetail).catch((error) => setDetailError(error as ProblemError)).finally(() => setDetailLoading(false));
+  }, []);
   // 082 REQ-082-012: DataTable row menu (real operations only, disabled by state).
   const rowActions = (account: Account) => {
     const actions: Array<{ key: string; label: string; onSelect: () => void; danger?: boolean }> = [];
-    actions.push({ key: "detail", label: t("webui.iam.accounts.detail"), onSelect: () => { setDetailAccountID(account.id); setDetailRoleIDs(null); setDetailRoleError(false); setSelectedID(account.id); setDetailAccount(account); } });
+    actions.push({ key: "detail", label: t("webui.iam.accounts.detail"), onSelect: () => { setSelectedID(account.id); void loadDetail(account); } });
     actions.push({ key: "select", label: t("webui.iam.accounts.select"), onSelect: () => setSelectedID(account.id) });
     if (!account.archived) {
       actions.push({ key: "status", label: account.status === "active" ? t("webui.iam.accounts.disable") : t("webui.iam.accounts.enable"), onSelect: () => void setAccountStatus(account.id, account.status === "active" ? "disabled" : "active").then(() => refresh()) });
@@ -319,23 +321,41 @@ export default function AccountsPage() {
         </div>
       </div>
     </Drawer>
-    {/* 082 REQ-082-013: User Detail Drawer (Overview/Roles; sessions/security via existing pages; no fake activity) */}
+    {/* 090 PAGE-090-001: 详情由服务端聚合投影驱动，不再拼接列表行与关系请求。 */}
     <DetailDrawer
       open={Boolean(detailAccount)}
-      onClose={() => setDetailAccount(null)}
-      title={detailAccount ? detailAccount.displayName : ""}
-      identity={detailAccount ? t("webui.iam.accounts.detailIdentity", { username: `@${detailAccount.username}` }) : undefined}
-      status={detailAccount ? (detailAccount.archived ? <StatusBadge status="revoked">{t("webui.iam.accounts.archived")}</StatusBadge> : <StatusBadge status={detailAccount.status === "active" ? "active" : "disabled"}>{t(detailAccount.status === "active" ? "webui.iam.accounts.statusActive" : "webui.iam.accounts.statusDisabled")}</StatusBadge>) : undefined}
+      onClose={() => { setDetailAccount(null); setDetail(null); setDetailError(null); }}
+      title={(detail?.account ?? detailAccount)?.displayName ?? ""}
+      identity={detailAccount ? t("webui.iam.accounts.detailIdentity", { username: `@${(detail?.account ?? detailAccount).username}` }) : undefined}
+      status={detailAccount ? ((detail?.account ?? detailAccount).archived ? <StatusBadge status="revoked">{t("webui.iam.accounts.archived")}</StatusBadge> : <StatusBadge status={(detail?.account ?? detailAccount).status === "active" ? "active" : "disabled"}>{t((detail?.account ?? detailAccount).status === "active" ? "webui.iam.accounts.statusActive" : "webui.iam.accounts.statusDisabled")}</StatusBadge>) : undefined}
       width={560}
     >
-      {detailAccount && (
+      {detailLoading && <Skeleton lines={6} label={t("webui.iam.accounts.detailLoading")} />}
+      {detailError && detailAccount && <ErrorState kind="inline" title={t("webui.iam.accounts.detailFailed")} requestId={detailError.requestId} action={<Button variant="secondary" onClick={() => void loadDetail(detailAccount)}>{t("webui.iam.accounts.detailRetry")}</Button>} />}
+      {detail && (
         <div className="user-detail">
-          <div className="detail-field"><span className="detail-field-label">{t("webui.iam.username")}</span><CodeText value={detailAccount.username} /></div>
-          <div className="detail-field"><span className="detail-field-label">{t("webui.iam.displayName")}</span><span className="detail-field-value">{detailAccount.displayName}</span></div>
-          <div className="detail-field"><span className="detail-field-label">{t("webui.iam.accounts.revision")}</span><CodeText value={String(detailAccount.securityRevision)} /></div>
-          <div className="detail-field"><span className="detail-field-label">{t("webui.iam.accounts.rolesAssigned")}</span><span className="detail-field-value">{detailRoleError ? t("webui.iam.error") : detailRoleIDs === null ? hostT("webui.host.page.loading.label") : roles.filter((role) => detailRoleIDs.includes(role.id)).map((role) => role.name).join(", ") || "—"}</span></div>
-          {detailAccount.mustChangePassword && <div className="detail-field"><span className="detail-field-label">{t("webui.iam.security.changeRequired")}</span><StatusBadge status="pending">{t("webui.iam.security.changeRequired")}</StatusBadge></div>}
-          <div className="detail-field"><span className="detail-field-label">{t("webui.iam.accounts.detailSessions")}</span><span className="detail-field-value">{t("webui.iam.accounts.detailSessionsHint")}</span></div>
+          <section className={styles.accountDetailSection}>
+            <h3>{t("webui.iam.accounts.detailOverview")}</h3>
+            <div className="detail-field"><span className="detail-field-label">{t("webui.iam.username")}</span><CodeText value={detail.account.username} /></div>
+            <div className="detail-field"><span className="detail-field-label">{t("webui.iam.displayName")}</span><span className="detail-field-value">{detail.account.displayName}</span></div>
+            <div className="detail-field"><span className="detail-field-label">{t("webui.iam.accounts.createdAt")}</span><span className="detail-field-value">{new Date(detail.createdAt).toLocaleString()}</span></div>
+            <div className="detail-field"><span className="detail-field-label">{t("webui.iam.accounts.updatedAt")}</span><span className="detail-field-value">{new Date(detail.updatedAt).toLocaleString()}</span></div>
+            <div className="detail-field"><span className="detail-field-label">{t("webui.iam.accounts.revision")}</span><CodeText value={String(detail.authorizationRevision)} /></div>
+            {detail.account.mustChangePassword && <div className="detail-field"><span className="detail-field-label">{t("webui.iam.security.changeRequired")}</span><StatusBadge status="pending">{t("webui.iam.security.changeRequired")}</StatusBadge></div>}
+          </section>
+          <section className={styles.accountDetailSection}>
+            <h3>{t("webui.iam.accounts.detailImpact")}</h3>
+            <div className={styles.accountImpactGrid}>
+              <div className={styles.accountImpactItem}><strong>{detail.roles.length}</strong><span>{t("webui.iam.accounts.impactRoles")}</span></div>
+              <div className={styles.accountImpactItem}><strong>{detail.activeSessionCount}</strong><span>{t("webui.iam.accounts.impactActiveSessions", { total: detail.totalSessionCount })}</span></div>
+              <div className={styles.accountImpactItem}><strong>{detail.activeApiTokenCount}</strong><span>{t("webui.iam.accounts.impactActiveTokens")}</span></div>
+            </div>
+            <p className={styles.accountImpactNote}>{t("webui.iam.accounts.impactHint")}</p>
+          </section>
+          <section className={styles.accountDetailSection}>
+            <h3>{t("webui.iam.accounts.detailAccess")}</h3>
+            <div className="detail-field"><span className="detail-field-label">{t("webui.iam.accounts.rolesAssigned")}</span><span className="detail-field-value">{detail.roles.map((role) => role.name).join(", ") || "—"}</span></div>
+          </section>
         </div>
       )}
     </DetailDrawer>

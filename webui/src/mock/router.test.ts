@@ -21,6 +21,9 @@ describe("mock transport", () => {
   it("dispatches module routes by method and parameterized path", async () => {
     const accounts = await mockRequestJSON<{ items: unknown[] }>("/api/v1/iam/accounts?offset=0&limit=100");
     expect(accounts.items.length).toBeGreaterThan(0);
+    const detail = await mockRequestJSON<{ activeSessionCount: number; roles: unknown[] }>("/api/v1/iam/accounts/acct-1");
+    expect(detail.activeSessionCount).toBeGreaterThan(0);
+    expect(detail.roles.length).toBeGreaterThan(0);
     const rolesView = await mockRequestJSON<{ roleIds: string[] }>("/api/v1/iam/accounts/acct-1/roles");
     expect(rolesView.roleIds.length).toBeGreaterThan(0);
     const patched = await mockRequestJSON<void>("/api/v1/iam/accounts/acct-1/status", { method: "PATCH", body: "{}" });

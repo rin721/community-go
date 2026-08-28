@@ -24,6 +24,7 @@ const (
 	opSelfArchive         = "iam.self.archive"
 	opSelfArchiveConfirm  = "iam.self.archive.confirm"
 	opAccounts            = "iam.accounts.list"
+	opAccountRead         = "iam.accounts.read"
 	opCreateAccount       = "iam.accounts.create"
 	opAccountStatus       = "iam.accounts.status"
 	opAccountUpdate       = "iam.accounts.update"
@@ -116,6 +117,16 @@ type accountResponse struct {
 	MustChangePassword bool                `json:"mustChangePassword"`
 	SecurityRevision   uint64              `json:"securityRevision"`
 	Version            uint64              `json:"version"`
+}
+type accountDetailResponse struct {
+	Account               accountResponse `json:"account"`
+	Roles                 []roleResponse  `json:"roles"`
+	AuthorizationRevision uint64          `json:"authorizationRevision"`
+	ActiveSessionCount    int64           `json:"activeSessionCount"`
+	TotalSessionCount     int64           `json:"totalSessionCount"`
+	ActiveAPITokenCount   int64           `json:"activeApiTokenCount"`
+	CreatedAt             time.Time       `json:"createdAt"`
+	UpdatedAt             time.Time       `json:"updatedAt"`
 }
 type profileResponse struct {
 	Username  string `json:"username"`
@@ -282,6 +293,19 @@ type sessionRevokeInput struct {
 
 func accountOutput(v model.Account) accountResponse {
 	return accountResponse{v.ID, v.Username, v.DisplayName, v.Nickname, v.Bio, v.BirthDate, v.Status, v.Archived, v.MustChangePassword, v.SecurityRevision, v.Version}
+}
+func accountDetailOutput(v service.AccountDetailView) accountDetailResponse {
+	roles := make([]roleResponse, len(v.Roles))
+	for index, role := range v.Roles {
+		roles[index] = roleOutput(role)
+	}
+	return accountDetailResponse{
+		Account: accountOutput(v.Account), Roles: roles,
+		AuthorizationRevision: v.AuthorizationRevision,
+		ActiveSessionCount:    v.ActiveSessionCount, TotalSessionCount: v.TotalSessionCount,
+		ActiveAPITokenCount: v.ActiveAPITokenCount,
+		CreatedAt:           v.Account.CreatedAt, UpdatedAt: v.Account.UpdatedAt,
+	}
 }
 func roleOutput(v model.Role) roleResponse {
 	return roleResponse{v.ID, v.Code, v.Name, v.Description, v.Active, v.Archived, v.System, v.Version}

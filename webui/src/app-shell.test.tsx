@@ -40,6 +40,7 @@ describe("宿主 AppShell", () => {
 
     // 069：确认弹窗为 RAC 受控 Modal，关闭态不渲染 DOM；宿主 i18n 契约在翻译层验证。
     expect(markup).not.toContain('role="dialog"');
+    expect(markup).toContain("operator");
     expect(translateMessage("webui.host.logout.confirm.title")).toBe("确认退出登录？");
     expect(translateMessage("webui.host.logout.confirm.confirm")).toBe("退出登录");
     expect(translateMessage("webui.host.logout.failed.title")).toBe("退出登录失败");

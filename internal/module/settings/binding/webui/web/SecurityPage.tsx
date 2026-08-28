@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Button, Field, formatDateTime, InlineAlert, PageHeader, PageSection, StatusPill, StickyActionBar } from "@webui/sdk/ui";
+import { Button, Field, formatDateTime, InlineAlert, PageFrame, PageHeader, PageSection, StatusPill, StickyActionBar } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { beginMFAEnroll, changePassword, confirmMFAEnroll, disableMFA, listApiTokens, loadSession, mfaStatus } from "./api";
 import styles from "./settings.module.css";
@@ -68,7 +68,7 @@ export default function SecurityPage() {
     window.location.href = "/admin/api-tokens";
   };
 
-  return <>
+  return <PageFrame variant="form" className={styles.settingsModule}>
     <PageHeader eyebrow={t("webui.settings.brand")} title={t("webui.settings.security.title")} description={t("webui.settings.security.description")} actions={mustChange && <StatusPill state="degraded">{t("webui.settings.security.changeRequired")}</StatusPill>} />
     <div className="page-sections">
       <PageSection kicker={t("webui.settings.security.kicker")} title={t("webui.settings.security.passwordTitle")}>
@@ -113,5 +113,5 @@ export default function SecurityPage() {
         <div className="toolbar-actions"><Button onClick={createToken}>{t("webui.settings.security.tokensManage")}</Button></div>
       </PageSection>
     </div>
-  </>;
+  </PageFrame>;
 }

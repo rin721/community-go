@@ -166,7 +166,7 @@ test("login loads a module-owned dashboard and captures desktop/mobile visual ev
   await page.setViewportSize({ width: 1440, height: 1000 });
 
   await page.getByLabel("Username").fill("operator");
-  await page.getByLabel("Password").fill("safe-test-password");
+  await page.getByRole("textbox", { name: "Password", exact: true }).fill("safe-test-password");
   await page.getByRole("button", { name: "Sign in" }).click();
   await page.waitForURL("**/dashboard");
   await expect(page.getByRole("heading", { name: "Runtime status" })).toBeVisible();
@@ -212,13 +212,15 @@ test("059 shell interactions keep sidebar, search, theme and reduced-motion cons
   await page.keyboard.press("Escape");
 
   // theme drawer 可打开并记录外观面板。
-  await page.getByRole("button", { name: "Theme settings" }).click();
+  await page.getByRole("button", { name: "operator" }).click();
+  await page.getByRole("menuitem", { name: "Theme settings" }).click();
   await expect(page.getByRole("dialog", { name: "Theme settings" })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("shell-theme-drawer.png"), fullPage: true });
   await page.keyboard.press("Escape");
 
   // 显式减少动效：data-motion 切换到 reduce，CSS 层统一降级。
-  await page.getByRole("button", { name: "Theme settings" }).click();
+  await page.getByRole("button", { name: "operator" }).click();
+  await page.getByRole("menuitem", { name: "Theme settings" }).click();
   const themeDialog = page.getByRole("dialog", { name: "Theme settings" });
   await themeDialog.getByRole("tab", { name: "General" }).click();
   await themeDialog.getByRole("switch", { name: "Reduce page motion" }).press("Space");
@@ -251,7 +253,8 @@ test("setup creates the session and reaches the default module route", async ({ 
   await page.getByLabel("Setup token").fill("setup-token");
   await page.getByLabel("Username").fill("operator");
   await page.getByLabel("Display name").fill("Operator");
-  await page.getByLabel("Password").fill("safe-test-password");
+  await page.getByRole("textbox", { name: "Password", exact: true }).fill("safe-test-password");
+  await page.getByRole("textbox", { name: "Confirm new password", exact: true }).fill("safe-test-password");
   await page.getByRole("button", { name: "Initialize" }).click();
   await page.waitForURL("**/dashboard");
   await expect(page.getByRole("heading", { name: "Runtime status" })).toBeVisible();
@@ -320,7 +323,7 @@ test("accounts connectivity error can recover through Retry", async ({ page }) =
   await expect(page.getByRole("button", { name: "Retry" })).toBeVisible();
   state.setAccountsFailures(0);
   await page.getByRole("button", { name: "Retry" }).click();
-  await expect(page.getByText("Operator", { exact: true })).toBeVisible();
+  await expect(page.getByRole("rowheader", { name: "Operator", exact: true })).toBeVisible();
   await expect(page.getByText("Page failed to load", { exact: true })).toHaveCount(0);
 });
 
@@ -389,14 +392,15 @@ test("navigation policy refreshes the manifest while keeping the registered rout
   (page as unknown as { setWebUIState: (state: { authenticated: boolean }) => void }).setWebUIState({ authenticated: true });
   await page.goto("/admin/menus");
   await expect(page.getByRole("heading", { name: "Menus", exact: true, level: 1 })).toBeVisible();
-  const card = page.locator(".policy-card").filter({ hasText: "navigation.menus" });
-  await expect(card.getByText("navigation.menus", { exact: true })).toBeVisible();
+  await page.getByRole("treeitem", { name: "Menus", exact: true }).getByRole("button", { name: "Menus", exact: true }).click();
+  const card = page.locator(".split-workspace-pane").nth(1);
+  await expect(card.getByText("navigation.menus", { exact: true }).first()).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("navigation-menus.png"), fullPage: true });
   await card.getByRole("checkbox").press("Space");
   await card.getByRole("button", { name: "Save" }).click();
   await expect(page.getByRole("heading", { name: "Menus", exact: true, level: 1 })).toBeVisible();
   await expect(page.locator(".app-sidebar").getByText("Menus", { exact: true })).toHaveCount(0);
-  await expect(page.locator(".revision code")).toContainText("e2e-navigat");
+  await expect(page.locator(".page-meta code")).toContainText("e2e-navigat");
 });
 
 test("067 experience defaults reserve a stable scrollbar slot and reveal content", async ({ page }, testInfo) => {
@@ -413,8 +417,9 @@ test("067 experience defaults reserve a stable scrollbar slot and reveal content
   // 新布局骨架：首屏区块卡片本身可见且弹入完成；列表项随滚动进入视口再断言
   await expect(page.locator(".page-section").first()).toHaveAttribute("data-reveal", "shown");
   await page.screenshot({ path: testInfo.outputPath("067-accounts-layout.png"), fullPage: true });
-  await page.locator(".page-section").nth(2).scrollIntoViewIfNeeded();
-  await expect(page.locator(".card-grid [data-reveal]").first()).toHaveAttribute("data-reveal", "shown");
+  const secondarySection = page.locator(".page-section").nth(1);
+  await secondarySection.scrollIntoViewIfNeeded();
+  await expect(secondarySection).toHaveAttribute("data-reveal", "shown");
   await page.goto("/dashboard");
   await expect(page.getByRole("heading", { name: "Runtime status" })).toBeVisible();
   await expect(page.locator(".stat-card").first()).toBeVisible();
@@ -425,7 +430,8 @@ test("067 theme drawer experience panel drives derived configuration", async ({ 
   (page as unknown as { setWebUIState: (state: { authenticated: boolean }) => void }).setWebUIState({ authenticated: true });
   await page.goto("/dashboard");
   await expect(page.getByRole("heading", { name: "Runtime status" })).toBeVisible();
-  await page.getByRole("button", { name: "Theme settings" }).click();
+  await page.getByRole("button", { name: "operator" }).click();
+  await page.getByRole("menuitem", { name: "Theme settings" }).click();
   const dialog = page.getByRole("dialog", { name: "Theme settings" });
   await dialog.getByRole("tab", { name: "Experience" }).click();
   await dialog.getByRole("switch", { name: "Damped smooth scroll" }).press("Space");
@@ -448,7 +454,7 @@ test("067 organization pages never render missing translation placeholders", asy
   await expect(page.getByText("assignment version")).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("067-organization-assignment.png"), fullPage: true });
   await page.goto("/admin/departments");
-  await expect(page.getByRole("heading", { name: "Platform" })).toBeVisible();
+  await expect(page.getByRole("treeitem", { name: /Platform platform/ })).toBeVisible();
   await expect(page.getByText("Translation resource missing")).toHaveCount(0);
   await page.screenshot({ path: testInfo.outputPath("067-organization-departments.png"), fullPage: true });
   await page.goto("/admin/positions");
@@ -496,7 +502,8 @@ test("069 theme preset drives heroui semantic colors and persists", async ({ pag
   (page as unknown as { setWebUIState: (state: { authenticated: boolean }) => void }).setWebUIState({ authenticated: true });
   await page.goto("/admin/accounts");
   await expect(page.getByRole("heading", { name: "Users" })).toBeVisible();
-  await page.getByRole("button", { name: "Theme settings" }).click();
+  await page.getByRole("button", { name: "operator" }).click();
+  await page.getByRole("menuitem", { name: "Theme settings" }).click();
   const dialog = page.getByRole("dialog", { name: "Theme settings" });
   await dialog.getByRole("tab", { name: "Presets" }).click();
   await dialog.getByRole("button", { name: "Cyan" }).click();
@@ -587,7 +594,7 @@ test("072 settings section switches stay SPA with profile save, closure, languag
     const nickname = activePage.getByLabel("Nickname");
     await nickname.fill("Community");
     await activePage.getByRole("button", { name: "Save profile" }).click();
-    await expect(activePage.getByText("Profile saved.", { exact: false })).toBeVisible();
+    await expect(activePage.getByRole("status").filter({ hasText: "Profile saved." })).toBeVisible();
     // 注销两步入口（对话框出现，取消保持会话）
     await page.locator('nav.section-nav').filter({ visible: true }).getByText("Account", { exact: true }).first().click();
     await expect(page).toHaveURL(/\/settings\/account/);
@@ -662,7 +669,8 @@ test("087 workspace policy isolates ordinary routes and keeps OpenAPI singleton"
   await page.locator(".settings-content").click({ position: { x: 10, y: 10 } });
   await expect(page).toHaveURL(/\/settings\/profile$/);
   await page.evaluate(() => { const state = (window as unknown as { __workspaceAudit?: { transitions: Array<{ url: string; activeWorkspace: string | null; visiblePanels: string[] }> } }).__workspaceAudit; state?.transitions.push({ url: `${location.pathname}${location.search}`, activeWorkspace: document.querySelector('.workspace-panel[data-active="true"]')?.getAttribute("data-workspace-id") ?? null, visiblePanels: Array.from(document.querySelectorAll<HTMLElement>(".workspace-panel")).filter((panel) => !panel.hidden).map((panel) => panel.dataset.workspaceId ?? "") }); });
-  await page.getByRole("button", { name: "Theme settings" }).click();
+  await page.getByRole("button", { name: "operator" }).click();
+  await page.getByRole("menuitem", { name: "Theme settings" }).click();
   await page.keyboard.press("Escape");
   await expect(page).toHaveURL(/\/settings\/profile$/);
   await page.evaluate(() => { const state = (window as unknown as { __workspaceAudit?: { transitions: Array<{ url: string; activeWorkspace: string | null; visiblePanels: string[] }> } }).__workspaceAudit; state?.transitions.push({ url: `${location.pathname}${location.search}`, activeWorkspace: document.querySelector('.workspace-panel[data-active="true"]')?.getAttribute("data-workspace-id") ?? null, visiblePanels: Array.from(document.querySelectorAll<HTMLElement>(".workspace-panel")).filter((panel) => !panel.hidden).map((panel) => panel.dataset.workspaceId ?? "") }); });

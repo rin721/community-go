@@ -32,7 +32,7 @@ test("mock mode boots the whole WebUI without a backend and marks every page", a
   // 模块页面数据来自本地 mock（IAM 账号 fixture）。
   await page.goto("/admin/accounts");
   await expect(page.getByRole("heading", { name: "Users" })).toBeVisible();
-  await expect(page.getByText("Mock Administrator", { exact: true })).toBeVisible();
+  await expect(page.getByRole("rowheader", { name: "Mock Administrator", exact: true })).toBeVisible();
 
   // Ops 页面在 mock 下收到 fixture 数据并正常渲染。
   await page.goto("/dashboard");

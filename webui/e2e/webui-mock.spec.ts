@@ -129,6 +129,53 @@ test("083 visual snapshots for design baseline review", async ({ page }, testInf
   testInfo.attach("083-visual-snapshots", { path: "test-results/083-visual-dashboard.png" });
 });
 
+test("090 page family viewport matrix keeps content inside the viewport", async ({ page }, testInfo) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const viewports = [
+    { width: 1440, height: 900, name: "desktop" },
+    { width: 1280, height: 800, name: "wide" },
+    { width: 1024, height: 768, name: "laptop" },
+    { width: 768, height: 1024, name: "tablet" },
+    { width: 390, height: 844, name: "mobile" },
+  ];
+  const targets = ["/dashboard", "/admin/accounts", "/admin/roles", "/admin/departments", "/settings/profile", "/admin/audit", "/openapi"];
+  for (const viewport of viewports) {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    for (const target of targets) {
+      await page.goto(target);
+      await expect(page.locator(".page-viewport:visible").first()).toBeVisible();
+      const geometry = await page.evaluate(() => ({
+        viewport: document.documentElement.clientWidth,
+        documentWidth: document.documentElement.scrollWidth,
+        shellWidth: document.querySelector(".app-shell")?.getBoundingClientRect().width ?? 0,
+      }));
+      expect(geometry.documentWidth, `${target} at ${viewport.name}`).toBeLessThanOrEqual(geometry.viewport + 1);
+      expect(geometry.shellWidth, `${target} shell at ${viewport.name}`).toBeGreaterThan(0);
+    }
+  }
+
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/dashboard");
+  await expect(page.getByRole("heading", { name: "Runtime status", exact: true })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("090-dashboard-light-1280.png"), fullPage: true });
+  await page.evaluate(() => {
+    document.documentElement.dataset.density = "compact";
+    document.documentElement.dataset.colorScheme = "dark";
+    document.documentElement.classList.add("dark");
+  });
+  await page.waitForTimeout(50);
+  const darkCompactGeometry = await page.evaluate(() => ({
+    viewport: document.documentElement.clientWidth,
+    documentWidth: document.documentElement.scrollWidth,
+    scheme: document.documentElement.dataset.colorScheme,
+    density: document.documentElement.dataset.density,
+  }));
+  expect(darkCompactGeometry.scheme).toBe("dark");
+  expect(darkCompactGeometry.density).toBe("compact");
+  expect(darkCompactGeometry.documentWidth).toBeLessThanOrEqual(darkCompactGeometry.viewport + 1);
+  await page.screenshot({ path: testInfo.outputPath("090-dashboard-dark-compact-1280.png"), fullPage: true });
+});
+
 // 084：组织三页/菜单页/权限页/OpenAPI 的重构工作台在 mock 下可浏览且无已知
 // 缺陷（无原始 i18n key、权限描述非缺失占位、OpenAPI 首访默认打开第一个接口）。
 test("084 redesigned workspaces render without known P0/P1 defects", async ({ page }) => {

@@ -13,16 +13,22 @@ export default function AssignmentsPage() {
   const [accountId, setAccountId] = useState("");
   const [departmentId, setDepartmentId] = useState("");
   const [positionIds, setPositionIds] = useState<string[]>([]);
+  const [savedDepartmentId, setSavedDepartmentId] = useState("");
+  const [savedPositionIds, setSavedPositionIds] = useState<string[]>([]);
   const [expectedVersion, setExpectedVersion] = useState(0);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saveConflict, setSaveConflict] = useState(false);
 
-  const reloadAssignment = useCallback((id: string) => {
+  const reloadAssignment = useCallback((id: string, preserveMessage = false) => {
     void getAssignment(id).then((value) => {
       setDepartmentId(value.departmentId || "");
       setPositionIds(value.positionIds);
+      setSavedDepartmentId(value.departmentId || "");
+      setSavedPositionIds(value.positionIds);
       setExpectedVersion(value.version);
-      setMessage("");
+      if (!preserveMessage) setMessage("");
       setError("");
     }).catch(() => setError(t("webui.organization.error")));
   }, [t]);
@@ -36,7 +42,7 @@ export default function AssignmentsPage() {
     }).catch(() => setError(t("webui.organization.error")));
   }, [t]);
 
-  useEffect(() => { if (accountId) reloadAssignment(accountId); }, [accountId, reloadAssignment]);
+  useEffect(() => { if (accountId) { setSaveConflict(false); void reloadAssignment(accountId); } }, [accountId, reloadAssignment]);
 
   const filteredAccounts = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -49,15 +55,24 @@ export default function AssignmentsPage() {
 
   const toggle = (id: string) => setPositionIds((current) => (current.includes(id) ? current.filter((value) => value !== id) : [...current, id]));
 
+  const positionsChanged = positionIds.length !== savedPositionIds.length || positionIds.some((id) => !savedPositionIds.includes(id));
+  const dirty = departmentId !== savedDepartmentId || positionsChanged;
+  const saveState = saveConflict ? "conflict" : saving ? "pending" : dirty ? "dirty" : "clean";
+
   const save = () => {
-    if (!accountId) return;
-    void replaceAssignment(accountId, expectedVersion, departmentId, positionIds).then((value) => {
+    if (!accountId || !dirty || saving) return Promise.resolve();
+    setSaving(true);
+    setSaveConflict(false);
+    return replaceAssignment(accountId, expectedVersion, departmentId, positionIds).then((value) => {
       setExpectedVersion(value.version);
+      setSavedDepartmentId(departmentId);
+      setSavedPositionIds(positionIds);
       setMessage(t("webui.organization.assignments.saved"));
     }).catch(() => {
-      reloadAssignment(accountId);
+      setSaveConflict(true);
+      void reloadAssignment(accountId, true);
       setMessage(t("webui.organization.assignments.conflict"));
-    });
+    }).finally(() => setSaving(false));
   };
 
   return <PageFrame variant="detail" className={styles.organizationModule}>
@@ -103,8 +118,8 @@ export default function AssignmentsPage() {
                 </div>
               </div>
               <div className="page-meta">{t("webui.organization.assignments.revision")}: {expectedVersion}</div>
-              <StickyActionBar>
-                <ActionTrigger operationId="organization.assignments.replace" pendingLabel={t("webui.organization.saving")} disabled={!accountId} onAction={save}>{t("webui.organization.assignments.save")}</ActionTrigger>
+              <StickyActionBar state={saveState} status={saving ? t("webui.organization.saving") : undefined}>
+                <ActionTrigger operationId="organization.assignments.replace" pendingLabel={t("webui.organization.saving")} disabled={!accountId || !dirty || saving} onAction={save}>{t("webui.organization.assignments.save")}</ActionTrigger>
               </StickyActionBar>
             </form>
           </section>

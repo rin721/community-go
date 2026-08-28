@@ -323,7 +323,7 @@ test("organization management pages render tree, position and assignment evidenc
   (page as unknown as { setWebUIState: (state: { authenticated: boolean }) => void }).setWebUIState({ authenticated: true });
   await page.goto("/admin/departments");
   await expect(page.getByRole("heading", { name: "Departments" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Platform" })).toBeVisible();
+  await expect(page.getByRole("treeitem", { name: /Platform platform/ })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("organization-departments.png"), fullPage: true });
   await page.goto("/admin/positions");
   await expect(page.getByRole("heading", { name: "Positions" })).toBeVisible();
@@ -333,6 +333,10 @@ test("organization management pages render tree, position and assignment evidenc
   await expect(page.getByRole("heading", { name: "Account organization", exact: true })).toBeVisible();
   // 068：主部门选择为 HeroUI Select（触发按钮 + option 列表），断言触发值。
   await expect(page.getByRole("button", { name: "Primary department" })).toContainText("Engineering");
+  await page.getByRole("button", { name: "Primary department" }).click();
+  await page.getByRole("option", { name: "—" }).click();
+  await expect(page.locator('[data-action-state="form-dirty"]')).toBeVisible();
+  await expect(page.getByRole("button", { name: "Save assignment" })).toBeEnabled();
   await page.screenshot({ path: testInfo.outputPath("organization-assignment.png"), fullPage: true });
 });
 

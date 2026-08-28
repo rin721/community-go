@@ -174,6 +174,17 @@ export default function AuditPage() {
               {field.mono ? <CodeText value={field.value} copyable /> : <span className="detail-field-value">{field.value}</span>}
             </div>
           ))}
+          {selected.correlationId && (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                listQuery.setFilters({ ...listQuery.filters, correlationId: selected.correlationId ?? "" });
+                setSelected(null);
+              }}
+            >
+              {t("webui.auth.audit.related")}
+            </Button>
+          )}
           <CodeViewer value={selectedJSON} language="json" />
         </div>
       )}

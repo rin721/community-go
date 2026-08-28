@@ -108,6 +108,19 @@ components:
         - authorizationRevision
         - roleIds
       type: object
+    ApiTokenBatchRevokeInputBody:
+      additionalProperties: false
+      properties:
+        tokenIds:
+          items:
+            maxLength: 100
+            minLength: 1
+            type: string
+          nullable: true
+          type: array
+      required:
+        - tokenIds
+      type: object
     ApiTokenCreateInputBody:
       additionalProperties: false
       properties:
@@ -2222,6 +2235,54 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiTokenIssuedResponse"
+          description: OK
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      security:
+        - webuiSession: []
+      tags:
+        - IAM
+  /api/v1/iam/api-tokens/batch-revoke:
+    post:
+      operationId: iam.api-tokens.revoke.batch
+      parameters:
+        - in: header
+          name: Origin
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema:
+            maxLength: 128
+            minLength: 1
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApiTokenBatchRevokeInputBody"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchResultOutput"
           description: OK
           headers:
             Cache-Control:

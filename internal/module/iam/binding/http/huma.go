@@ -720,6 +720,21 @@ func RegisterHuma(api huma.API, handler *Handler) {
 		}
 		return &emptyOutput{}, nil
 	})
+	// 批量吊销令牌（090 PAGE-090-002）：Idempotency-Key 稳定重放，逐项失败不中止。
+	revokeBatch := protected(opApiTokenRevokeBatch, http.MethodPost, "/api/v1/iam/api-tokens/batch-revoke", string(iampermission.ApiTokenWrite), "revoke")
+	revokeBatch.Middlewares = huma.Middlewares{handler.requireMutation}
+	huma.Register(api, revokeBatch, func(ctx context.Context, in *apiTokenBatchRevokeInput) (*jsonOutput[batchResultOutput], error) {
+		_, current, ok := service.SessionFromContext(ctx)
+		if !ok {
+			return nil, httpx.NewProtocolProblemError(ctx, statusError(http.StatusUnauthorized, "unauthenticated", nil))
+		}
+		correlationID, _ := httpx.RequestIDFromContext(ctx)
+		result, err := handler.service.BatchRevokeApiTokensIdempotent(ctx, in.IdempotencyKey, correlationID, current.Identity.AccountID, in.Body.TokenIDs)
+		if err != nil {
+			return nil, problem(ctx, err)
+		}
+		return jsonEnvelope(batchResultOutputFrom(result)), nil
+	})
 
 	// MFA/TOTP（078，R078-002）：自助绑定/确认/解绑 + 登录第二步验证。
 	mfaBegin := protected(opMFABegin, http.MethodPost, "/api/v1/iam/self/mfa", string(iampermission.SelfPasswordWrite), "enroll")

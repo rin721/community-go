@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -153,6 +154,71 @@ func TestBatchAccountMutationRequiresAndReplaysIdempotencyKey(t *testing.T) {
 	conflict := serve(router, http.MethodPost, "http://example.test/api/v1/iam/accounts/batch-status", conflictingBody, &resolved, withMutationHeaders)
 	if conflict.Code != http.StatusConflict || !bytes.Contains(conflict.Body.Bytes(), []byte(`"idempotency_conflict"`)) {
 		t.Fatalf("idempotency conflict = %d, %s", conflict.Code, conflict.Body.String())
+	}
+}
+
+// TestApiTokenBatchRevokeContract 验证批量吊销令牌 HTTP 契约（090 PAGE-090-002）：
+// Idempotency-Key 稳定重放、逐项成功/失败集合、缺失 CSRF 拒绝。
+func TestApiTokenBatchRevokeContract(t *testing.T) {
+	iam, resource := testService(t)
+	defer resource.Close()
+	handler, err := NewHandler(iam, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	router := humaRouter(handler)
+	setupResponse := serve(router, http.MethodPost, "http://example.test/api/v1/iam/setup", []byte(`{"setupToken":"setup-secret","username":"owner","displayName":"Owner","password":"123456789012345"}`), nil)
+	if setupResponse.Code != http.StatusCreated {
+		t.Fatalf("setup status = %d, body = %s", setupResponse.Code, setupResponse.Body.String())
+	}
+	var setupSession sessionResponse
+	if err := json.Unmarshal(setupResponse.Body.Bytes(), &setupSession); err != nil {
+		t.Fatal(err)
+	}
+	resolved, err := iam.Resolve(t.Context(), setupResponse.Result().Cookies()[0].Value)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 创建两个令牌用于批量吊销。
+	createBody := []byte(`{"name":"batch-a","description":"","scopes":["iam:account:self:read"],"expiresAt":"2027-01-01T00:00:00Z"}`)
+	created := serve(router, http.MethodPost, "http://example.test/api/v1/iam/api-tokens", createBody, &resolved, func(request *http.Request) { request.Header.Set("X-CSRF-Token", setupSession.CSRFToken) })
+	if created.Code != http.StatusOK {
+		t.Fatalf("create token status = %d, body = %s", created.Code, created.Body.String())
+	}
+	var issued apiTokenIssuedResponse
+	if err := json.Unmarshal(created.Body.Bytes(), &issued); err != nil {
+		t.Fatal(err)
+	}
+	secondBody := []byte(`{"name":"batch-b","description":"","scopes":["iam:account:self:read"],"expiresAt":"2027-01-01T00:00:00Z"}`)
+	secondCreated := serve(router, http.MethodPost, "http://example.test/api/v1/iam/api-tokens", secondBody, &resolved, func(request *http.Request) { request.Header.Set("X-CSRF-Token", setupSession.CSRFToken) })
+	var secondIssued apiTokenIssuedResponse
+	if err := json.Unmarshal(secondCreated.Body.Bytes(), &secondIssued); err != nil {
+		t.Fatal(err)
+	}
+	withBatchHeaders := func(request *http.Request) {
+		request.Header.Set("X-CSRF-Token", setupSession.CSRFToken)
+		request.Header.Set("Idempotency-Key", "token-batch-http-1")
+	}
+	revokeBody, err := json.Marshal(map[string]any{"tokenIds": []string{issued.ID, secondIssued.ID, "missing-token"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 缺失 CSRF 拒绝。
+	noCSRF := serve(router, http.MethodPost, "http://example.test/api/v1/iam/api-tokens/batch-revoke", revokeBody, &resolved)
+	if noCSRF.Code != http.StatusForbidden {
+		t.Fatalf("batch revoke without csrf status = %d, body = %s", noCSRF.Code, noCSRF.Body.String())
+	}
+	first := serve(router, http.MethodPost, "http://example.test/api/v1/iam/api-tokens/batch-revoke", revokeBody, &resolved, withBatchHeaders)
+	if first.Code != http.StatusOK || !bytes.Contains(first.Body.Bytes(), []byte(`"requestedCount":3`)) || !bytes.Contains(first.Body.Bytes(), []byte(`"processedCount":3`)) || !bytes.Contains(first.Body.Bytes(), []byte(`"succeeded":[`)) || !bytes.Contains(first.Body.Bytes(), []byte(`"failed":[`)) {
+		t.Fatalf("first batch revoke response = %d, %s", first.Code, first.Body.String())
+	}
+	replayed := serve(router, http.MethodPost, "http://example.test/api/v1/iam/api-tokens/batch-revoke", revokeBody, &resolved, withBatchHeaders)
+	if replayed.Code != http.StatusOK || replayed.Body.String() != first.Body.String() {
+		t.Fatalf("replayed batch revoke = %d, %s", replayed.Code, replayed.Body.String())
+	}
+	// 已吊销令牌认证失败。
+	if _, err := iam.ResolveApiToken(t.Context(), issued.Secret); !errors.Is(err, service.ErrSessionInvalid) {
+		t.Fatalf("revoked secret resolve error = %v", err)
 	}
 }
 

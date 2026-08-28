@@ -1804,6 +1804,60 @@ func TestApiTokenLifecycleStates(t *testing.T) {
 	}
 }
 
+// TestBatchRevokeApiTokensIdempotent 验证批量吊销令牌（090 PAGE-090-002）：
+// 逐项吊销、已吊销幂等、Idempotency-Key 稳定重放、缺失项不报错。
+func TestBatchRevokeApiTokensIdempotent(t *testing.T) {
+	iam, resource := newService(t)
+	defer resource.Close()
+	owner, err := iam.Setup(t.Context(), "setup-secret", "owner", "Owner", "123456789012345")
+	if err != nil {
+		t.Fatal(err)
+	}
+	accountID := owner.Identity.AccountID
+	first, err := iam.CreateApiToken(t.Context(), accountID, "a", "", []permissioncatalog.Key{iampermission.SelfRead}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := iam.CreateApiToken(t.Context(), accountID, "b", "", []permissioncatalog.Key{iampermission.SelfRead}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	third, err := iam.CreateApiToken(t.Context(), accountID, "c", "", []permissioncatalog.Key{iampermission.SelfRead}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := iam.BatchRevokeApiTokensIdempotent(t.Context(), "batch-revoke-1", "corr-1", accountID, []string{first.ID, second.ID, "missing-token"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.RequestedCount != 3 || result.ProcessedCount != 3 || len(result.Succeeded) != 3 || len(result.Failed) != 0 {
+		t.Fatalf("batch revoke result = %#v", result)
+	}
+	// 已吊销的令牌认证失败。
+	if _, err := iam.ResolveApiToken(t.Context(), first.Secret); !errors.Is(err, service.ErrSessionInvalid) {
+		t.Fatalf("revoked secret resolve error = %v", err)
+	}
+	if _, err := iam.ResolveApiToken(t.Context(), second.Secret); !errors.Is(err, service.ErrSessionInvalid) {
+		t.Fatalf("revoked secret resolve error = %v", err)
+	}
+	// 未在批次中的第三个令牌仍可用。
+	if _, err := iam.ResolveApiToken(t.Context(), third.Secret); err != nil {
+		t.Fatalf("unrevoked secret resolve error = %v", err)
+	}
+	// 相同 key 重放返回原结果且不报错（幂等）。
+	replayed, err := iam.BatchRevokeApiTokensIdempotent(t.Context(), "batch-revoke-1", "corr-1", accountID, []string{first.ID, second.ID, "missing-token"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if replayed.RequestedCount != result.RequestedCount || len(replayed.Succeeded) != len(result.Succeeded) {
+		t.Fatalf("replayed batch result = %#v, want %#v", replayed, result)
+	}
+	// 同一 key 复用于不同请求 payload 返回冲突。
+	if _, err := iam.BatchRevokeApiTokensIdempotent(t.Context(), "batch-revoke-1", "corr-1", accountID, []string{first.ID}); !errors.Is(err, service.ErrIdempotencyConflict) {
+		t.Fatalf("conflicting payload error = %v", err)
+	}
+}
+
 // TestApiTokenExpiryViaLaterClock 用共享数据库 + 更晚固定时钟验证过期：
 // 创建（expiresAt=01:30）后，在 01:31 的实例上认证被拒绝且 status=expired。
 func TestApiTokenExpiryViaLaterClock(t *testing.T) {

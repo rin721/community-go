@@ -62,6 +62,8 @@ export const rotateApiToken=(id:string)=>requestJSON<ApiTokenIssued>(`/api/v1/ia
 export const disableApiToken=(id:string)=>requestJSON<void>(`/api/v1/iam/api-tokens/${id}/disable`,{method:"POST",headers:mutationHeaders(),body:JSON.stringify({})});
 export const enableApiToken=(id:string)=>requestJSON<void>(`/api/v1/iam/api-tokens/${id}/enable`,{method:"POST",headers:mutationHeaders(),body:JSON.stringify({})});
 export const revokeApiToken=(id:string)=>requestJSON<void>(`/api/v1/iam/api-tokens/${id}/revoke`,{method:"POST",headers:mutationHeaders(),body:JSON.stringify({})});
+// 090 PAGE-090-002: batch revoke with Idempotency-Key (stable replay, partial failures).
+export const batchRevokeApiTokens=(tokenIds:string[],idempotencyKey=newIdempotencyKey())=>requestJSON<BatchResult>("/api/v1/iam/api-tokens/batch-revoke",{method:"POST",headers:mutationHeadersWithIdempotency(idempotencyKey),body:JSON.stringify({tokenIds})});
 
 // 090 BE-090-005: cross-device user preferences (self-service). GET returns the
 // effective value (defaults merged with stored overrides); PATCH merges partial

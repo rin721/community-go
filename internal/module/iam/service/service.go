@@ -2553,6 +2553,37 @@ func (s *Service) RevokeApiToken(ctx context.Context, accountID, id string) erro
 	return err
 }
 
+// BatchRevokeApiTokensIdempotent 批量吊销当前账号的令牌：逐令牌复用既有
+// 吊销语义，单项失败不中止（已吊销视为成功幂等），并按 Idempotency-Key
+// 稳定重放完整结果（090 PAGE-090-002 会话/Token 批处理）。
+func (s *Service) BatchRevokeApiTokensIdempotent(ctx context.Context, key, correlationID, accountID string, tokenIDs []string) (BatchResult, error) {
+	if strings.TrimSpace(accountID) == "" {
+		return BatchResult{}, model.ErrInvalidID
+	}
+	return s.runBatchIdempotent(ctx, "iam.api-tokens.revoke.batch", key, struct {
+		TokenIDs []string `json:"tokenIds"`
+	}{TokenIDs: tokenIDs}, func() BatchResult {
+		result := BatchResult{RequestedCount: len(tokenIDs), Succeeded: []BatchItemSuccess{}, Failed: []BatchItemFailure{}, CorrelationID: correlationID}
+		for _, id := range tokenIDs {
+			if strings.TrimSpace(id) == "" {
+				result.ProcessedCount++
+				result.Failed = append(result.Failed, batchItemFailure(id, model.ErrInvalidID))
+				continue
+			}
+			err := s.RevokeApiToken(ctx, accountID, id)
+			if err != nil && !repo.IsNotFound(err) {
+				result.ProcessedCount++
+				result.Failed = append(result.Failed, batchItemFailure(id, err))
+				continue
+			}
+			// 已吊销/不存在视为成功（幂等吊销语义），不重复报错。
+			result.ProcessedCount++
+			result.Succeeded = append(result.Succeeded, BatchItemSuccess{ResourceID: id})
+		}
+		return result
+	})
+}
+
 // ResolveApiToken 供 Auth api-token verifier 适配：按明文 secret 哈希解析
 // 未吊销、未禁用、未过期的令牌并刷新最后使用时间；任何失败返回
 // ErrSessionInvalid（认证层映射为 401）。

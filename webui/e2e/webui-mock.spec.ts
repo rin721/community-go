@@ -547,6 +547,10 @@ test("090 api token one-time secret flow renders in mock mode", async ({ page })
   // 轮换：API Token 行菜单的主操作即 Rotate（首个非危险项），点击后展示新 secret。
   await activePage.locator(".data-table-row-menu .data-table-row-primary").first().click();
   await expect(activePage.getByText("iam_mock-rotated-secret")).toBeVisible();
+  // 批量吊销（090 PAGE-090-002）：勾选行出现批量操作条并显示选择数。
+  const rowCheckbox = activePage.locator(".data-table tbody input[type='checkbox']").first();
+  await rowCheckbox.check();
+  await expect(activePage.getByText(/tokens selected/)).toBeVisible();
 });
 
 // 090 VERIFY-090-003：迁移页面的键盘/读屏语义基线（aria-label、role、焦点可达）。

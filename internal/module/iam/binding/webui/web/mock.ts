@@ -142,6 +142,12 @@ export const webuiMockRoutes: ReadonlyArray<WebUIMockRoute> = [
   { method: "POST", pattern: "/api/v1/iam/api-tokens/{id}/disable", handler: () => undefined },
   { method: "POST", pattern: "/api/v1/iam/api-tokens/{id}/enable", handler: () => undefined },
   { method: "POST", pattern: "/api/v1/iam/api-tokens/{id}/revoke", handler: () => undefined },
+  // 090 PAGE-090-002: batch revoke returns per-item success/failure like the server.
+  { method: "POST", pattern: "/api/v1/iam/api-tokens/batch-revoke", handler: (request) => {
+    const body = (request.body ?? {}) as { tokenIds?: string[] };
+    const tokenIds = body.tokenIds ?? [];
+    return { requestedCount: tokenIds.length, processedCount: tokenIds.length, succeeded: tokenIds.map((tokenId) => ({ resourceId: tokenId })), failed: [], correlationId: "mock-corr-batch-revoke" };
+  } },
 ];
 
 export default webuiMockRoutes;

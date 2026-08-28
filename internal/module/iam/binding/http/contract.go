@@ -55,6 +55,7 @@ const (
 	opApiTokenDisable     = "iam.api-tokens.disable"
 	opApiTokenEnable      = "iam.api-tokens.enable"
 	opApiTokenRevoke      = "iam.api-tokens.revoke"
+	opApiTokenRevokeBatch = "iam.api-tokens.revoke.batch"
 	opMFABegin            = "iam.self.mfa.begin"
 	opMFAStatus           = "iam.self.mfa.status"
 	opMFAConfirm          = "iam.self.mfa.confirm"
@@ -290,6 +291,17 @@ type apiTokenPathInput struct {
 	ID        string `path:"id"`
 	Origin    string `header:"Origin" required:"true"`
 	CSRFToken string `header:"X-CSRF-Token" required:"true"`
+}
+
+// apiTokenBatchRevokeInput 是批量吊销令牌的请求：Idempotency-Key 复用既有
+// 批量语义（稳定重放、冲突/进行中稳定错误码）。
+type apiTokenBatchRevokeInput struct {
+	Origin         string `header:"Origin" required:"true"`
+	CSRFToken      string `header:"X-CSRF-Token" required:"true"`
+	IdempotencyKey string `header:"Idempotency-Key" required:"true" minLength:"1" maxLength:"128"`
+	Body           struct {
+		TokenIDs []string `json:"tokenIds" minLength:"1" maxLength:"100"`
+	}
 }
 
 // MFA/TOTP（078）：绑定预览/确认/解绑与登录第二步验证输入输出。

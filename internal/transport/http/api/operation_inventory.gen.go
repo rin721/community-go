@@ -31,6 +31,7 @@ const (
 	OperationIamApiTokensEnable             OperationID = "iam.api-tokens.enable"
 	OperationIamApiTokensList               OperationID = "iam.api-tokens.list"
 	OperationIamApiTokensRevoke             OperationID = "iam.api-tokens.revoke"
+	OperationIamApiTokensRevokeBatch        OperationID = "iam.api-tokens.revoke.batch"
 	OperationIamApiTokensRotate             OperationID = "iam.api-tokens.rotate"
 	OperationIamApiTokensUpdate             OperationID = "iam.api-tokens.update"
 	OperationIamLogin                       OperationID = "iam.login"
@@ -96,6 +97,7 @@ var operationInventory = [...]Operation{
 	{ID: OperationIamApiTokensEnable, Method: "POST", Path: "/api/v1/iam/api-tokens/{id}/enable", Policy: "protected", Scope: "iam:api-token:write", Action: "iam.api-tokens.enable"},
 	{ID: OperationIamApiTokensList, Method: "GET", Path: "/api/v1/iam/api-tokens", Policy: "protected", Scope: "iam:api-token:read", Action: "iam.api-tokens.list"},
 	{ID: OperationIamApiTokensRevoke, Method: "POST", Path: "/api/v1/iam/api-tokens/{id}/revoke", Policy: "protected", Scope: "iam:api-token:write", Action: "iam.api-tokens.revoke"},
+	{ID: OperationIamApiTokensRevokeBatch, Method: "POST", Path: "/api/v1/iam/api-tokens/batch-revoke", Policy: "protected", Scope: "iam:api-token:write", Action: "iam.api-tokens.revoke.batch"},
 	{ID: OperationIamApiTokensRotate, Method: "POST", Path: "/api/v1/iam/api-tokens/{id}/rotate", Policy: "protected", Scope: "iam:api-token:write", Action: "iam.api-tokens.rotate"},
 	{ID: OperationIamApiTokensUpdate, Method: "PATCH", Path: "/api/v1/iam/api-tokens/{id}", Policy: "protected", Scope: "iam:api-token:write", Action: "iam.api-tokens.update"},
 	{ID: OperationIamLogin, Method: "POST", Path: "/api/v1/iam/login", Policy: "public", Scope: "", Action: ""},

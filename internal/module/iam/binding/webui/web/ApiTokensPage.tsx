@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActionTrigger, Button, CodeText, ConfirmDialog, DataTable, EmptyState, ErrorState, Field, FilterBar, formatDateTime, InlineAlert, PageFrame, PageHeader, PageSection, Pagination, ResourceIndex, SelectField, StatusBadge } from "@webui/sdk/ui";
+import { ActionTrigger, BulkActionBar, Button, CodeText, ConfirmDialog, DataTable, EmptyState, ErrorState, Field, FilterBar, formatDateTime, InlineAlert, PageFrame, PageHeader, PageSection, Pagination, ResourceIndex, SelectField, StatusBadge } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { useListQueryParams, type ProblemError } from "@webui/sdk/query";
-import { createApiToken, disableApiToken, enableApiToken, listApiTokens, loadSession, revokeApiToken, rotateApiToken, updateApiToken, type ApiTokenView } from "./api";
+import { batchRevokeApiTokens, createApiToken, disableApiToken, enableApiToken, listApiTokens, loadSession, revokeApiToken, rotateApiToken, updateApiToken, type ApiTokenView } from "./api";
 import styles from "./iam.module.css";
 
 // groupScopesByModule groups available scopes by their owner prefix
@@ -45,6 +45,11 @@ export default function ApiTokensPage() {
   const [secret, setSecret] = useState("");
   const [message, setMessage] = useState("");
   const [pendingRevokeID, setPendingRevokeID] = useState("");
+  // 090 PAGE-090-002: bulk selection + batch revoke with per-item result feedback.
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkMessage, setBulkMessage] = useState("");
+  const [bulkErrors, setBulkErrors] = useState<Array<{ resourceId: string; code: string }>>([]);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<ProblemError | null>(null);
   const pageSize = Math.min(Math.max(listQuery.pageSize, 1), 100);
@@ -202,6 +207,10 @@ export default function ApiTokensPage() {
           loading={loading}
           loadingLabel={t("webui.host.page.loading.label")}
           emptyState={loadError ? null : <EmptyState title={t("webui.iam.apiTokens.empty")} />}
+          selectable
+          selectionLabel={t("webui.iam.apiTokens.selectAll")}
+          selectedKeys={selected}
+          onSelectedKeysChange={setSelected}
           columns={[
             { id: "name", header: t("webui.iam.apiTokens.name"), cell: (row) => <><strong>{row.name}</strong>{row.description ? <p className="page-meta">{row.description}</p> : null}</> },
             { id: "scopes", header: t("webui.iam.apiTokens.scopes"), cell: (row) => row.scopes.join(", ") || "—" },
@@ -242,6 +251,36 @@ export default function ApiTokensPage() {
             pageSizeLabel={t("webui.auth.audit.pageSize")}
             onPageChange={listQuery.setPage}
             onPageSizeChange={listQuery.setPageSize}
+          />
+          {bulkMessage && <p className="page-meta" role="status">{bulkMessage}</p>}
+          {bulkErrors.length > 0 && <InlineAlert tone="warning" title={t("webui.iam.apiTokens.bulkPartial")} detail={bulkErrors.map((item) => `${item.resourceId} (${item.code})`).join(", ")} />}
+          <BulkActionBar
+          open={tokens.length > 0}
+          selectionLabel={t("webui.iam.apiTokens.selection", { count: selected.size })}
+          actionLabel={t("webui.iam.apiTokens.revoke")}
+          clearLabel={t("webui.iam.sessions.clearSelection")}
+          confirmTitle={t("webui.iam.apiTokens.revoke")}
+          confirmDescription={t("webui.iam.apiTokens.bulkRevokeDetail")}
+          confirmLabel={t("webui.iam.apiTokens.revoke")}
+          cancelLabel={t("webui.iam.cancel")}
+          closeLabel={t("webui.iam.cancel")}
+          pending={bulkBusy}
+          pendingLabel={t("webui.iam.saving")}
+          disabled={selected.size === 0}
+          disabledReason="invalid"
+          onConfirm={() => {
+            setBulkBusy(true);
+            setBulkMessage("");
+            setBulkErrors([]);
+            return batchRevokeApiTokens([...selected]).then((result) => {
+              setBulkBusy(false);
+              setBulkMessage(t("webui.iam.apiTokens.bulkResult", { processed: result.succeeded.length, failed: result.failed.length }));
+              setBulkErrors(result.failed);
+              setSelected(new Set());
+              return refresh();
+            }).catch(() => { setBulkBusy(false); setBulkMessage(t("webui.iam.error")); return Promise.resolve(); });
+          }}
+          onClear={() => setSelected(new Set())}
           />
         </ResourceIndex>
         <ConfirmDialog

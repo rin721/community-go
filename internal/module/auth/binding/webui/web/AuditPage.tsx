@@ -23,18 +23,20 @@ export function outcomeCell(item: AuditEventView, t: Translate) {
 }
 
 // 082 REQ-082-016: detail fields presented in the drawer (low-sensitivity only).
-export function auditDetailFields(item: AuditEventView): Array<{ label: string; value: string; mono?: boolean }> {
+// Optional translation keeps JSON output stable while localizing drawer labels.
+export function auditDetailFields(item: AuditEventView, t?: Translate): Array<{ label: string; value: string; mono?: boolean }> {
+  const label = (key: string, fallback: string) => t?.(`webui.auth.audit.${key}`) || fallback;
   return [
-    { label: "ID", value: String(item.eventId), mono: true },
-    { label: "occurredAt", value: formatDateTime(item.occurredAt), mono: true },
-    { label: "operation", value: item.operation ?? "", mono: true },
-    { label: "action", value: item.action ?? "", mono: true },
-    { label: "actorKind", value: item.actorKind ?? "", mono: true },
-    { label: "subjectHash", value: item.subjectHash ?? "", mono: true },
-    { label: "resourceType", value: item.resourceType ?? "", mono: true },
-    { label: "resourceHash", value: item.resourceHash ?? "", mono: true },
-    { label: "decision", value: item.decision, mono: true },
-    { label: "outcome", value: item.outcome, mono: true },
+    { label: label("id", "ID"), value: String(item.eventId), mono: true },
+    { label: label("occurredAt", "occurredAt"), value: formatDateTime(item.occurredAt), mono: true },
+    { label: label("operation", "operation"), value: item.operation ?? "", mono: true },
+    { label: label("action", "action"), value: item.action ?? "", mono: true },
+    { label: label("actorKind", "actorKind"), value: item.actorKind ?? "", mono: true },
+    { label: label("subjectHash", "subjectHash"), value: item.subjectHash ?? "", mono: true },
+    { label: label("resourceType", "resourceType"), value: item.resourceType ?? "", mono: true },
+    { label: label("resourceHash", "resourceHash"), value: item.resourceHash ?? "", mono: true },
+    { label: label("decision", "decision"), value: item.decision, mono: true },
+    { label: label("outcome", "outcome"), value: item.outcome, mono: true },
   ];
 }
 
@@ -155,7 +157,7 @@ export default function AuditPage() {
     >
       {selected && (
         <div className="audit-detail">
-          {auditDetailFields(selected).map((field) => (
+          {auditDetailFields(selected, t).map((field) => (
             <div className="detail-field" key={field.label}>
               <span className="detail-field-label">{field.label}</span>
               {field.mono ? <CodeText value={field.value} copyable /> : <span className="detail-field-value">{field.value}</span>}

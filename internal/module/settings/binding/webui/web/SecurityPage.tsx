@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Button, Field, formatDateTime, InlineAlert, PageHeader, PageSection, StatusPill } from "@webui/sdk/ui";
+import { Button, Field, formatDateTime, InlineAlert, PageFrame, PageHeader, PageSection, StatusPill, StickyActionBar } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { beginMFAEnroll, changePassword, confirmMFAEnroll, disableMFA, listApiTokens, loadSession, mfaStatus } from "./api";
 import styles from "./settings.module.css";
@@ -68,7 +68,7 @@ export default function SecurityPage() {
     window.location.href = "/admin/api-tokens";
   };
 
-  return <div className={`${styles.settingsModule} module-page`}>
+  return <PageFrame variant="form" className={styles.settingsModule}>
     <PageHeader eyebrow={t("webui.settings.brand")} title={t("webui.settings.security.title")} description={t("webui.settings.security.description")} actions={mustChange && <StatusPill state="degraded">{t("webui.settings.security.changeRequired")}</StatusPill>} />
     <div className="page-sections">
       <PageSection kicker={t("webui.settings.security.kicker")} title={t("webui.settings.security.passwordTitle")}>
@@ -77,7 +77,7 @@ export default function SecurityPage() {
           <Field label={t("webui.settings.security.next")} type="password" minLength={15} required value={next} onChange={(event) => setNext(event.target.value)} hint={t("webui.settings.security.helper")} />
           <Field label={t("webui.settings.security.confirm")} type="password" required value={confirm} onChange={(event) => setConfirm(event.target.value)} error={mismatch ? t("webui.settings.security.confirmMismatch") : undefined} />
           {message && <p className="page-meta" role="status">{message}</p>}
-          <div className="row-actions"><Button type="submit" disabled={!canSubmit}>{t("webui.settings.security.submit")}</Button></div>
+          <StickyActionBar><Button type="submit" disabled={!canSubmit}>{t("webui.settings.security.submit")}</Button></StickyActionBar>
         </form>
       </PageSection>
 
@@ -113,5 +113,5 @@ export default function SecurityPage() {
         <div className="toolbar-actions"><Button onClick={createToken}>{t("webui.settings.security.tokensManage")}</Button></div>
       </PageSection>
     </div>
-  </div>;
+  </PageFrame>;
 }

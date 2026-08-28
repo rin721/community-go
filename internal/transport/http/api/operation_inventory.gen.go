@@ -11,6 +11,7 @@ type Operation struct {
 
 const (
 	OperationAuthAuditList                  OperationID = "auth.audit.list"
+	OperationAuthAuditRead                  OperationID = "auth.audit.read"
 	OperationCompleteTodo                   OperationID = "completeTodo"
 	OperationCreateTodo                     OperationID = "createTodo"
 	OperationGetTodo                        OperationID = "getTodo"
@@ -73,6 +74,7 @@ const (
 
 var operationInventory = [...]Operation{
 	{ID: OperationAuthAuditList, Method: "GET", Path: "/api/v1/auth/audit", Policy: "protected", Scope: "auth:audit:read", Action: "list"},
+	{ID: OperationAuthAuditRead, Method: "GET", Path: "/api/v1/auth/audit/{eventId}", Policy: "protected", Scope: "auth:audit:read", Action: "read"},
 	{ID: OperationCompleteTodo, Method: "PATCH", Path: "/api/v1/todos/{id}/complete", Policy: "protected", Scope: "todos:write", Action: "todo.complete"},
 	{ID: OperationCreateTodo, Method: "POST", Path: "/api/v1/todos", Policy: "protected", Scope: "todos:write", Action: "todo.create"},
 	{ID: OperationGetTodo, Method: "GET", Path: "/api/v1/todos/{id}", Policy: "protected", Scope: "todos:read", Action: "todo.read"},

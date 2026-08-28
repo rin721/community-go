@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Button, CodeText, CodeViewer, DataTable, DetailDrawer, EmptyState, ErrorState, FilterBar, formatDateTime, formatRelativeTime, PageFrame, PageHeader, PageSection, Pagination, ResourceIndex, StatusBadge } from "@webui/sdk/ui";
+import { Button, CodeText, CodeViewer, DataTable, DetailDrawer, EmptyState, ErrorState, FilterBar, formatDateTime, formatRelativeTime, PageFrame, PageHeader, PageSection, Pagination, ResourceIndex, Skeleton, StatusBadge } from "@webui/sdk/ui";
 import { useListQueryParams, type ProblemError } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
-import { listAuditEvents, type AuditEventView, type AuditFilter, type AuditOutcome } from "./api";
+import { auditEvent, listAuditEvents, type AuditEventView, type AuditFilter, type AuditOutcome } from "./api";
 import styles from "./auth.module.css";
 
 // outcomeTone maps audit outcomes to platform status tones: succeeded ->
@@ -68,6 +68,8 @@ export default function AuditPage() {
   const [items, setItems] = useState<AuditEventView[]>([]);
   const [total, setTotal] = useState(0);
   const [selected, setSelected] = useState<AuditEventView | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<ProblemError | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<ProblemError | null>(null);
   const refresh = useCallback(() => {
@@ -87,6 +89,12 @@ export default function AuditPage() {
     return listAuditEvents(filter, offset, PAGE_SIZE).then((result) => { setItems(result.items); setTotal(result.total); }).catch((error) => { setItems([]); setTotal(0); setLoadError(error as ProblemError); }).finally(() => setLoading(false));
   }, [listQuery.filters.operation, listQuery.filters.action, listQuery.filters.outcome, listQuery.filters.actorKind, listQuery.filters.subjectHash, listQuery.filters.resourceType, listQuery.filters.correlationId, listQuery.filters.since, listQuery.filters.until, listQuery.page]);
   useEffect(() => { void refresh(); }, [refresh]);
+  const openDetail = useCallback((item: AuditEventView) => {
+    setSelected(item);
+    setDetailLoading(true);
+    setDetailError(null);
+    void auditEvent(item.eventId).then(setSelected).catch((error) => setDetailError(error as ProblemError)).finally(() => setDetailLoading(false));
+  }, []);
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const selectedJSON = useMemo(() => selected ? JSON.stringify(auditDetailFields(selected), null, 2) : "", [selected]);
   return <PageFrame variant="index" className={styles.authModule}>
@@ -138,7 +146,7 @@ export default function AuditPage() {
             density: "compact",
             stickyHeader: true,
             rowMenuHeader: t("webui.auth.audit.actions"),
-            renderRowMenu: (item, _index) => [{ key: "detail", label: t("webui.auth.audit.detail"), onSelect: () => setSelected(item) }],
+            renderRowMenu: (item, _index) => [{ key: "detail", label: t("webui.auth.audit.detail"), onSelect: () => openDetail(item) }],
           }}
           />
           <Pagination
@@ -161,12 +169,14 @@ export default function AuditPage() {
     </div>
     <DetailDrawer
       open={Boolean(selected)}
-      onClose={() => setSelected(null)}
+      onClose={() => { setSelected(null); setDetailError(null); }}
       title={t("webui.auth.audit.detailTitle")}
       status={selected ? outcomeCell(selected, t) : undefined}
       width={640}
     >
-      {selected && (
+      {detailLoading && <Skeleton lines={6} label={hostT("webui.host.page.loading.label")} />}
+      {selected && detailError && <ErrorState kind="connectivity" title={hostT("webui.host.route.error.title")} detail={hostT("webui.host.route.error.detail")} requestId={detailError.requestId} action={<Button variant="secondary" onClick={() => openDetail(selected)}>{hostT("webui.host.retry")}</Button>} />}
+      {selected && !detailLoading && !detailError && (
         <div className="audit-detail">
           {auditDetailFields(selected, t).map((field) => (
             <div className="detail-field" key={field.label}>

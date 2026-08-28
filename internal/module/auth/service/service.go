@@ -118,7 +118,11 @@ type AuditQueryResult struct {
 // 注入 adapter/audit/storage Sink 实现。查询不提供删除/篡改入口。
 type AuditReader interface {
 	List(context.Context, AuditQueryFilter, int, int) (AuditQueryResult, error)
+	Get(context.Context, uint64) (AuditEventView, error)
 }
+
+// ErrAuditEventNotFound 表示请求的低敏审计事件不存在或已超出保留窗口。
+var ErrAuditEventNotFound = errors.New("auth audit event not found")
 
 // OperationAuditWriter 是业务模块写操作审计的窄 port：业务模块在写操作
 // 成功/失败边界调用，携带低敏字段域；实现方负责从当前 Principal 推导
@@ -432,6 +436,17 @@ func (s *Service) ListAuditEvents(ctx context.Context, filter AuditQueryFilter, 
 		return AuditQueryResult{}, err
 	}
 	return s.auditReader.List(ctx, filter, offset, limit)
+}
+
+// AuditEvent 返回单个低敏审计详情投影；reader 未注入时 fail closed。
+func (s *Service) AuditEvent(ctx context.Context, eventID uint64) (AuditEventView, error) {
+	if s == nil || s.auditReader == nil {
+		return AuditEventView{}, fmt.Errorf("auth audit reader is unavailable")
+	}
+	if eventID == 0 {
+		return AuditEventView{}, ErrAuditEventNotFound
+	}
+	return s.auditReader.Get(ctx, eventID)
 }
 
 // RecordOperation 把业务写操作审计事件写入低敏审计面（操作审计）。

@@ -3,6 +3,7 @@ package repo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -11,6 +12,8 @@ import (
 )
 
 const auditEventTable = "auth_audit_events"
+
+func IsNotFound(err error) bool { return errors.Is(err, database.ErrNotFound) }
 
 // Access 是 Auth repo 使用的项目数据库契约窄面。
 type Access interface {
@@ -82,6 +85,14 @@ func (unit *Unit) useDB(ctx context.Context, use func(*gorm.DB) error) error {
 
 func (unit *Unit) CreateAuditEvent(ctx context.Context, value *AuditEventRecord) error {
 	return unit.useDB(ctx, func(db *gorm.DB) error { return db.Table(auditEventTable).Create(value).Error })
+}
+
+func (unit *Unit) AuditEventByID(ctx context.Context, eventID uint64) (AuditEventRecord, error) {
+	var record AuditEventRecord
+	err := unit.useDB(ctx, func(db *gorm.DB) error {
+		return db.Table(auditEventTable).Where("id = ?", eventID).First(&record).Error
+	})
+	return record, err
 }
 
 func (unit *Unit) CountAuditEvents(ctx context.Context, filter AuditFilter) (int64, error) {

@@ -118,16 +118,40 @@ func (s *Sink) List(ctx context.Context, filter service.AuditQueryFilter, offset
 	}
 	items := make([]service.AuditEventView, len(records))
 	for index, record := range records {
-		items[index] = service.AuditEventView{
-			EventID: record.ID, CorrelationID: record.CorrelationID,
-			Operation: record.Operation, Action: modelAction(record.Action),
-			ActorKind: modelActorKind(record.ActorKind), SubjectHash: record.SubjectHash,
-			ResourceType: record.ResourceType, ResourceHash: record.ResourceHash,
-			Decision: modelDecisionReason(record.Decision), Outcome: modelAuditOutcome(record.Outcome),
-			OccurredAt: record.OccurredAt,
-		}
+		items[index] = auditEventView(record)
 	}
 	return service.AuditQueryResult{Items: items, Offset: offset, Limit: limit, Total: total}, nil
+}
+
+// Get 返回单个低敏审计详情；保留窗口外的 ID 使用稳定 not-found 语义。
+func (s *Sink) Get(ctx context.Context, eventID uint64) (service.AuditEventView, error) {
+	if ctx == nil {
+		return service.AuditEventView{}, fmt.Errorf("auth audit query context is nil")
+	}
+	var record repo.AuditEventRecord
+	err := s.store.Use(ctx, func(unit *repo.Unit) error {
+		var getErr error
+		record, getErr = unit.AuditEventByID(ctx, eventID)
+		return getErr
+	})
+	if repo.IsNotFound(err) {
+		return service.AuditEventView{}, service.ErrAuditEventNotFound
+	}
+	if err != nil {
+		return service.AuditEventView{}, err
+	}
+	return auditEventView(record), nil
+}
+
+func auditEventView(record repo.AuditEventRecord) service.AuditEventView {
+	return service.AuditEventView{
+		EventID: record.ID, CorrelationID: record.CorrelationID,
+		Operation: record.Operation, Action: modelAction(record.Action),
+		ActorKind: modelActorKind(record.ActorKind), SubjectHash: record.SubjectHash,
+		ResourceType: record.ResourceType, ResourceHash: record.ResourceHash,
+		Decision: modelDecisionReason(record.Decision), Outcome: modelAuditOutcome(record.Outcome),
+		OccurredAt: record.OccurredAt,
+	}
 }
 
 func correlationID(ctx context.Context, explicit string) string {

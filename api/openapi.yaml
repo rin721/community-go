@@ -1547,6 +1547,38 @@ paths:
         - webuiSession: []
       tags:
         - Auth
+  /api/v1/auth/audit/{eventId}:
+    get:
+      operationId: auth.audit.read
+      parameters:
+        - in: path
+          name: eventId
+          required: true
+          schema:
+            format: int64
+            minimum: 1
+            type: integer
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditEventViewResponse"
+          description: OK
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      security:
+        - webuiSession: []
+      tags:
+        - Auth
   /api/v1/iam/accounts:
     get:
       operationId: iam.accounts.list

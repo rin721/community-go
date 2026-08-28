@@ -136,6 +136,13 @@ func TestSinkRecordsAndListsLowSensitivityEvents(t *testing.T) {
 	if result.Items[0].CorrelationID != "corr-account-2" || result.Items[1].CorrelationID != "corr-account-1" {
 		t.Fatalf("audit correlation ids mismatch: %#v", result.Items)
 	}
+	detail, err := sink.Get(t.Context(), result.Items[0].EventID)
+	if err != nil || detail != result.Items[0] {
+		t.Fatalf("audit detail = %#v, %v", detail, err)
+	}
+	if _, err := sink.Get(t.Context(), result.Items[0].EventID+1000); !errors.Is(err, authservice.ErrAuditEventNotFound) {
+		t.Fatalf("missing audit detail error = %v", err)
+	}
 
 	filtered, err := sink.List(t.Context(), authservice.AuditQueryFilter{Operation: "iam.accounts.list"}, 0, 20)
 	if err != nil {

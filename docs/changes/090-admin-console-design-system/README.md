@@ -40,7 +40,7 @@
 - `webui/src/styles.css` 建立中性色后台 Token、壳层尺寸、内容宽度、卡片/表格/筛选器/状态反馈语义，并保留亮暗与密度扩展点；侧栏补齐真实 principal 账号锚点，折叠态保留头像。
 - `webui/src/ui/layout.tsx`、`patterns.tsx`、`feedback.tsx`、`forms.tsx`、`data.tsx` 将原巨型 UI 文件拆为页面骨架、业务模式、反馈、表单和数据职责；`layout-pattern.test.tsx` 覆盖骨架结构，账号角色与角色权限编辑均使用带状态的 `StickyActionBar`。
 - IAM、Ops、组织、设置、审计、OpenAPI 与导航页面已接入 `PageFrame`；设置组沿用宿主的组级 frame 与子页面 form frame，保证内容宽度和视觉基线一致。账户、角色、权限、会话、API Token、审计和岗位列表统一使用 `ResourceIndex` 的 toolbar/content 顺序，筛选器会以 `ActiveFilters` 展示已应用条件并支持逐项清除，账户/角色管理区使用 `EntityDetail` 身份状态头，设置与组织关键编辑使用 `StickyActionBar`，审计筛选支持 RFC3339 时间范围，审计详情字段按当前语言显示可读标签并保留稳定 JSON 字段名。
-- 审计现将已有持久化自增键只读投影为 `eventId`，并把 HTTP request-id 贯通到低敏持久化 `correlationId`，支持服务端筛选、OpenAPI/WebUI 投影、列表列与详情复制；游标和更完整详情仍待后端 P0 契约演进。
+- 审计现将已有持久化自增键只读投影为 `eventId`，并把 HTTP request-id 贯通到低敏持久化 `correlationId`，支持服务端筛选、OpenAPI/WebUI 投影、列表列与详情复制；独立 `auth.audit.read` 详情投影已替代列表行快照，保留窗口外事件返回稳定 404，详情抽屉具备加载、失败与重试状态；稳定游标仍待后端 P0 契约演进。
 - 账户批量启停/归档现在要求 `Idempotency-Key`，持久化请求摘要与完整结果并支持安全重放；响应统一返回请求数、处理数、成功资源、逐项稳定失败、可重试标记和 correlation ID，部分成功不再只显示汇总数字。异步 Job 属于 P1/P2，仍按真实规模需求独立研究。
 - HeroUI v3 依赖与 Toast API 已单轨收敛；最新验证中 `pnpm typecheck`、`pnpm lint`、`pnpm test`（51 files / 248 tests）、`pnpm build`、mock 视觉快照以及组织/安全页面 dev E2E 均通过（lint 保留 4 条既有测试文件 warning；build 仅提示大 bundle）。
 

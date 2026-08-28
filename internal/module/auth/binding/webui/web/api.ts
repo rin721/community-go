@@ -34,3 +34,5 @@ export const listAuditEvents = (filter: AuditFilter, offset: number, limit: numb
   if (filter.until) params.set("until", filter.until);
   return requestJSON<AuditListResult>(`/api/v1/auth/audit?${params.toString()}`);
 };
+
+export const auditEvent = (eventId: number) => requestJSON<AuditEventView>(`/api/v1/auth/audit/${eventId}`);

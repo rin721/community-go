@@ -15,6 +15,7 @@ const events = [
 
 export const webuiMockRoutes: ReadonlyArray<WebUIMockRoute> = [
   { method: "GET", pattern: "/api/v1/auth/audit", handler: () => ({ items: events, offset: 0, limit: 20, total: events.length }) },
+  { method: "GET", pattern: "/api/v1/auth/audit/{eventId}", handler: (request) => events.find((item) => String(item.eventId) === request.path.split("/").at(-1)) ?? events[0] },
 ];
 
 export default webuiMockRoutes;

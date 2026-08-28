@@ -14,6 +14,8 @@ import (
 const (
 	// opAuditList 是审计只读查询的 operation ID。
 	opAuditList = "auth.audit.list"
+	// opAuditRead 是单个低敏审计详情的 operation ID。
+	opAuditRead = "auth.audit.read"
 )
 
 // Handler 是 Auth 审计查询的 typed HTTP handler。
@@ -64,7 +66,14 @@ type auditListInput struct {
 	Until         string `query:"until"`
 }
 
+type auditReadInput struct {
+	EventID uint64 `path:"eventId" minimum:"1"`
+}
+
 func serviceError(err error) error {
+	if errors.Is(err, authservice.ErrAuditEventNotFound) {
+		return &httpx.StatusError{StatusCode: http.StatusNotFound, Code: "not_found", Message: "not_found", Err: err}
+	}
 	return &httpx.StatusError{StatusCode: http.StatusInternalServerError, Code: "internal_server_error", Message: "internal_server_error", Err: err}
 }
 

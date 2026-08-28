@@ -36,14 +36,19 @@ export const webuiMockRoutes: ReadonlyArray<WebUIMockRoute> = [
     const raw = new URLSearchParams(request.path.split("?")[1] ?? "");
     const limit = Number.parseInt(raw.get("limit") ?? "50", 10) || 50;
     const cursor = raw.get("cursor");
-    const start = cursor ? events.findIndex((item) => String(item.eventId) === cursor) : -1;
+    const operation = raw.get("operation");
+    const outcome = raw.get("outcome");
+    // Apply the low-sensitivity filters the server supports so the mock drives
+    // the same empty/partial states the page renders.
+    const filtered = events.filter((item) => (!operation || item.operation === operation) && (!outcome || item.outcome === outcome));
+    const start = cursor ? filtered.findIndex((item) => String(item.eventId) === cursor) : -1;
     const from = start >= 0 ? start + 1 : 0;
-    const page = events.slice(from, from + limit);
-    const hasMore = from + page.length < events.length;
+    const page = filtered.slice(from, from + limit);
+    const hasMore = from + page.length < filtered.length;
     const nextCursor = hasMore ? String(page[page.length - 1]?.eventId ?? "") : undefined;
-    return { items: page, limit, total: events.length, nextCursor, hasMore };
+    return { items: page, limit, total: filtered.length, nextCursor, hasMore };
   } },
-  { method: "GET", pattern: "/api/v1/auth/audit/{eventId}", handler: (request) => events.find((item) => String(item.eventId) === request.path.split("/").at(-1)) ?? events[0] },
+  { method: "GET", pattern: "/api/v1/auth/audit/{eventId}", handler: (request) => events.find((item) => String(item.eventId) === (request.path.split("/").at(-1) ?? "").split("?")[0]) ?? events[0] },
 ];
 
 export default webuiMockRoutes;

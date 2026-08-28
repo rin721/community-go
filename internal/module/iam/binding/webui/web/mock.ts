@@ -65,7 +65,7 @@ export const webuiMockRoutes: ReadonlyArray<WebUIMockRoute> = [
   { method: "POST", pattern: "/api/v1/iam/self/password", handler: () => undefined },
   { method: "GET", pattern: "/api/v1/iam/accounts", handler: () => ({ items: accounts, offset: 0, limit: 100, total: accounts.length }) },
   { method: "GET", pattern: "/api/v1/iam/accounts/{id}", handler: (request) => {
-    const accountID = request.path.split("/").at(-1);
+    const accountID = (request.path.split("/").at(-1) ?? "").split("?")[0];
     const account = accounts.find((item) => item.id === accountID) ?? accounts[0];
     return { account, roles, authorizationRevision: 2, activeSessionCount: 1, totalSessionCount: 2, activeApiTokenCount: 1, createdAt: "2026-08-01T08:00:00Z", updatedAt: "2026-08-29T08:00:00Z" };
   } },
@@ -94,7 +94,7 @@ export const webuiMockRoutes: ReadonlyArray<WebUIMockRoute> = [
   } },
   { method: "GET", pattern: "/api/v1/iam/roles", handler: () => ({ items: roles, offset: 0, limit: 100, total: roles.length }) },
   { method: "GET", pattern: "/api/v1/iam/roles/{id}", handler: (request) => {
-    const roleID = request.path.split("/").at(-1);
+    const roleID = (request.path.split("/").at(-1) ?? "").split("?")[0];
     const role = roles.find((item) => item.id === roleID) ?? roles[0];
     return { role, permissions, authorizationRevision: 2, assignedAccountCount: 3, ownerModuleCount: new Set(permissions.map((permission) => permission.ownerModuleId)).size, elevatedPermissionCount: permissions.filter((permission) => permission.risk === "elevated").length, criticalPermissionCount: permissions.filter((permission) => permission.risk === "critical").length, createdAt: "2026-08-01T08:00:00Z", updatedAt: "2026-08-29T08:00:00Z" };
   } },

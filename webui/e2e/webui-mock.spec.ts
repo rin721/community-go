@@ -603,3 +603,22 @@ test("090 migrated pages expose keyboard and screen-reader semantics", async ({ 
   await expect(activePage.locator('[data-testid="openapi-workspace"]')).toBeVisible();
   await expect(activePage.locator('[role="tablist"]').first()).toBeVisible();
 });
+
+// 090 VERIFY-090-002：完整状态（empty/loading）多模态验证——审计筛选无匹配
+// 显示空态，恢复筛选回到数据。
+test("090 audit page shows empty state when filters match nothing", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const activePage = page.locator('.page-viewport:visible').first();
+  await page.goto("/admin/audit");
+  await expect(activePage.getByRole("heading", { name: "Audit log" })).toBeVisible();
+  // 默认有数据。
+  await expect(activePage.locator(".data-table tbody tr").first()).toBeVisible();
+  // 操作筛选无匹配 → 空态（mock 按 operation 过滤，EmptyState 渲染为表格空行）。
+  const operationInput = activePage.getByLabel("Operation").first();
+  await operationInput.fill("no.such.operation");
+  await expect.poll(() => new URL(page.url()).searchParams.get("operation"), { timeout: 8000 }).toBe("no.such.operation");
+  await expect(activePage.getByRole("rowheader", { name: "No audit records" })).toBeVisible({ timeout: 8000 });
+  // 清空筛选 → 数据恢复。
+  await operationInput.fill("");
+  await expect(activePage.locator(".data-table tbody tr").first()).toBeVisible();
+});

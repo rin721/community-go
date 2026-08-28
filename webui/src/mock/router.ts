@@ -57,7 +57,10 @@ async function dispatch(input: RequestInfo | URL, init?: RequestInit): Promise<u
   const routes = await loadRoutes();
   for (const route of routes) {
     if (route.method !== method || !matchesPattern(route.pattern, path)) continue;
-    const request: WebUIMockRequest = { method, path, body };
+    // Handler 需要完整 URL（含 query）以便实现服务端筛选语义；pattern 匹配
+    // 仍用去 query 的 path。
+    const fullPath = typeof input === "string" ? input : String(input);
+    const request: WebUIMockRequest = { method, path: fullPath, body };
     return await route.handler(request);
   }
   throw new Error("route_not_found");

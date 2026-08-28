@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActionTrigger, Button, CodeText, ConfirmDialog, DataTable, EmptyState, ErrorState, Field, FilterBar, formatDateTime, InlineAlert, PageFrame, PageHeader, PageSection, ResourceIndex, SelectField, StatusBadge } from "@webui/sdk/ui";
+import { ActionTrigger, Button, CodeText, ConfirmDialog, DataTable, EmptyState, ErrorState, Field, FilterBar, formatDateTime, InlineAlert, PageFrame, PageHeader, PageSection, Pagination, ResourceIndex, SelectField, StatusBadge } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { useListQueryParams } from "@webui/sdk/query";
 import { createApiToken, disableApiToken, enableApiToken, listApiTokens, loadSession, revokeApiToken, rotateApiToken, updateApiToken, type ApiTokenView } from "./api";
@@ -32,9 +32,8 @@ export const groupScopesByModule = (scopes: string[]): Array<{ ownerModuleId: st
 export default function ApiTokensPage() {
   const { t } = useWebUITranslation("webui.iam");
   const { t: hostT } = useWebUITranslation("webui.host");
-  const listQuery = useListQueryParams<{}>({ filters: {} });
+  const listQuery = useListQueryParams<{ status: string }>({ filters: { status: { queryKey: "status", defaultValue: "all" } } });
   const [tokens, setTokens] = useState<ApiTokenView[]>([]);
-  const [status, setStatus] = useState("all");
   const [availableScopes, setAvailableScopes] = useState<string[]>([]);
   const [restricted, setRestricted] = useState(false);
 
@@ -48,14 +47,19 @@ export default function ApiTokensPage() {
   const [pendingRevokeID, setPendingRevokeID] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const pageSize = Math.min(Math.max(listQuery.pageSize, 1), 100);
+  const [total, setTotal] = useState(0);
+  const sortKey = listQuery.sort?.key;
+  const sortDirection = listQuery.sort?.direction;
 
   const scopeGroups = useMemo(() => groupScopesByModule(availableScopes), [availableScopes]);
 
-  const refresh = useCallback((filter = status) => {
+  const refresh = useCallback((filter = listQuery.filters.status) => {
     setLoading(true);
     setLoadError(false);
-    return listApiTokens(filter, 0, 50, listQuery.sort ? `${listQuery.sort.key}:${listQuery.sort.direction}` : undefined).then((value) => setTokens(value.items)).catch(() => { setTokens([]); setLoadError(true); }).finally(() => setLoading(false));
-  }, [listQuery.sort, status]);
+    const offset = (listQuery.page - 1) * pageSize;
+    return listApiTokens(filter, offset, pageSize, sortKey && sortDirection ? `${sortKey}:${sortDirection}` : undefined).then((value) => { setTokens(value.items); setTotal(value.total); }).catch(() => { setTokens([]); setTotal(0); setLoadError(true); }).finally(() => setLoading(false));
+  }, [listQuery.filters.status, listQuery.page, pageSize, sortKey, sortDirection]);
 
   useEffect(() => {
     void loadSession().then((value) => {
@@ -64,6 +68,7 @@ export default function ApiTokensPage() {
     }).catch(() => undefined);
     void refresh();
   }, [refresh]);
+  useEffect(() => { listQuery.setPage(1); }, [listQuery.filters.status, sortKey, sortDirection]);
 
   const toggleScope = (scope: string) => {
     setSelectedScopes((current) => (current.includes(scope) ? current.filter((item) => item !== scope) : [...current, scope]));
@@ -167,13 +172,13 @@ export default function ApiTokensPage() {
         <ResourceIndex toolbar={<FilterBar
           ariaLabel={t("webui.iam.apiTokens.filter")}
           fields={[
-            { key: "status", label: t("webui.iam.apiTokens.filter"), control: "select", active: status !== "all", value: status, options: [
+            { key: "status", label: t("webui.iam.apiTokens.filter"), control: "select", active: listQuery.filters.status !== "all", value: listQuery.filters.status, options: [
               { value: "all", label: t("webui.iam.apiTokens.filter.all") },
               { value: "active", label: t("webui.iam.apiTokens.status.active") },
               { value: "disabled", label: t("webui.iam.apiTokens.status.disabled") },
               { value: "expired", label: t("webui.iam.apiTokens.status.expired") },
               { value: "revoked", label: t("webui.iam.apiTokens.status.revoked") },
-            ], onValueChange: (value) => { setStatus(String(value)); refresh(String(value)); } },
+            ], onValueChange: (value) => listQuery.setFilters({ status: String(value) }) },
           ]}
           trailingFields={[
             { key: "sortBy", label: t("webui.iam.accounts.sortBy"), control: "select", active: Boolean(listQuery.sort?.key), value: listQuery.sort?.key ?? "", options: [
@@ -188,7 +193,7 @@ export default function ApiTokensPage() {
               { value: "desc", label: t("webui.iam.accounts.sortDesc") },
             ], onValueChange: (value) => { if (listQuery.sort) listQuery.setSort({ key: listQuery.sort.key, direction: value === "desc" ? "desc" : "asc" }); } },
           ]}
-          onClear={() => { setStatus("all"); refresh("all"); listQuery.clearFilters(); }}
+          onClear={() => listQuery.setFilters({ status: "all" })}
           clearLabel={t("webui.iam.accounts.clear")}
         />}>
           {loadError && <ErrorState kind="connectivity" title={hostT("webui.host.route.error.title")} detail={hostT("webui.host.route.error.detail")} action={<Button variant="secondary" onClick={() => void refresh()}>{hostT("webui.host.retry")}</Button>} />}
@@ -222,6 +227,21 @@ export default function ApiTokensPage() {
             },
             columnMenuLabel: t("webui.iam.apiTokens.more"),
           }}
+          />
+          <Pagination
+            page={listQuery.page}
+            pageCount={Math.max(1, Math.ceil(total / pageSize))}
+            total={total}
+            totalLabel={(count) => `${count} ${hostT("webui.host.ui.results")}`}
+            pageLabel={(current) => `Page ${current}`}
+            previousLabel={t("webui.auth.audit.previous")}
+            nextLabel={t("webui.auth.audit.next")}
+            paginationLabel={t("webui.auth.audit.pagination")}
+            pageSize={pageSize}
+            pageSizeOptions={[20, 50, 100]}
+            pageSizeLabel={t("webui.auth.audit.pageSize")}
+            onPageChange={listQuery.setPage}
+            onPageSizeChange={listQuery.setPageSize}
           />
         </ResourceIndex>
         <ConfirmDialog

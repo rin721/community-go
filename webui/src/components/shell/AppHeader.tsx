@@ -1,4 +1,4 @@
-import { ChevronRight, Expand, Languages, Menu, Moon, PanelLeftClose, PanelLeftOpen, Palette, Search, Sun } from "lucide-react";
+import { ChevronRight, Languages, Menu, Moon, PanelLeftClose, PanelLeftOpen, Search, Sun } from "lucide-react";
 import type { RefObject } from "react";
 import type { ManifestRoute, PrincipalView } from "@webui/sdk/runtime";
 import { Button, IconButton } from "@webui/sdk/ui";
@@ -41,11 +41,9 @@ export function AppHeader({ collapsed, onToggleSidebar, mobileMenuButtonRef, onO
         <MockBadge />
         <ZoneItems zone="header-actions" />
         <Button type="button" variant="secondary" className="search-trigger" onClick={onOpenSearch}><Search size={17} /><span>{translateMessage("webui.host.search")}</span><kbd>{translateMessage("webui.host.search.shortcut")}</kbd></Button>
-        <IconButton label={translateMessage("webui.host.fullscreen")} title={translateMessage("webui.host.fullscreen")} onClick={() => void onToggleFullscreen()}><Expand size={18} /></IconButton>
         <label className="language-button" title={translateMessage("webui.host.language")}><Languages size={18} /><select aria-label={translateMessage("webui.host.language")} value={hostLanguage} onChange={(event) => onLanguageChange(event.target.value)}>{availableLanguages.map((language) => <option value={language} key={language}>{translateMessage(languageLabelMessageID(language))}</option>)}</select></label>
         <IconButton label={translateMessage("webui.host.theme.toggle")} title={translateMessage("webui.host.theme.toggle")} onClick={onToggleColorScheme}>{theme.mode === "dark" ? <Sun size={18} /> : <Moon size={18} />}</IconButton>
-        <IconButton label={translateMessage("webui.host.theme")} title={translateMessage("webui.host.theme")} onClick={onOpenTheme}><Palette size={18} /></IconButton>
-        <AccountMenu principal={principal} onRequestLogout={onRequestLogout} onOpenTheme={onOpenTheme} />
+        <AccountMenu principal={principal} onRequestLogout={onRequestLogout} onOpenTheme={onOpenTheme} onToggleFullscreen={onToggleFullscreen} />
       </div>
     </header>
   );

@@ -42,7 +42,7 @@
 - IAM、Ops、组织、设置、审计、OpenAPI 与导航页面已接入 `PageFrame`；设置组沿用宿主的组级 frame 与子页面 form frame，保证内容宽度和视觉基线一致。账户、角色、权限、会话、API Token、审计和岗位列表统一使用 `ResourceIndex` 的 toolbar/content 顺序，筛选器会以 `ActiveFilters` 展示已应用条件并支持逐项清除，账户/角色管理区使用 `EntityDetail` 身份状态头，设置与组织关键编辑使用 `StickyActionBar`，审计筛选支持 RFC3339 时间范围，审计详情字段按当前语言显示可读标签并保留稳定 JSON 字段名。
 - 审计现将已有持久化自增键只读投影为 `eventId`，贯通 Go service/storage/HTTP、OpenAPI 快照与 WebUI 行键/详情；correlationId、游标和更完整详情仍待后端 P0 契约演进。
 - 账户批量启停/归档现在会保留并展示服务端逐项失败码，部分成功不再只显示汇总数字；幂等键与异步 Job 语义仍待后端 P0。
-- HeroUI v3 依赖与 Toast API 已单轨收敛；`pnpm typecheck`、`pnpm lint`、`pnpm test`（50 files / 237 tests）、`pnpm build` 和 4 项 mock 视觉/几何 E2E 均通过。
+- HeroUI v3 依赖与 Toast API 已单轨收敛；`pnpm typecheck`、`pnpm lint`、`pnpm test`（50 files / 239 tests）、`pnpm build` 和 4 项 mock 视觉/几何 E2E 均通过。
 
 ## 阅读顺序
 

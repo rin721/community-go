@@ -42,6 +42,7 @@
 - IAM、Ops、组织、设置、审计、OpenAPI 与导航页面已接入 `PageFrame`；设置组沿用宿主的组级 frame 与子页面 form frame，保证内容宽度和视觉基线一致。账户、角色、权限、会话、API Token、审计和岗位列表统一使用 `ResourceIndex` 的 toolbar/content 顺序，筛选器会以 `ActiveFilters` 展示已应用条件并支持逐项清除，账户/角色管理区使用 `EntityDetail` 身份状态头，设置与组织关键编辑使用 `StickyActionBar`，审计筛选支持 RFC3339 时间范围，审计详情字段按当前语言显示可读标签并保留稳定 JSON 字段名。
 - 审计现将已有持久化自增键只读投影为 `eventId`，并把 HTTP request-id 贯通到低敏持久化 `correlationId`，支持服务端筛选、OpenAPI/WebUI 投影、列表列与详情复制；独立 `auth.audit.read` 详情投影已替代列表行快照，保留窗口外事件返回稳定 404，详情抽屉具备加载、失败与重试状态。分页已迁移到服务端稳定游标：按 `(occurredAt,eventId)` 倒序 keyset 翻页（limit+1 探测 `hasMore`），游标为低敏不透明字符串，非法游标返回稳定 `invalid_cursor` 400；HTTP 契约与 OpenAPI 用 `cursor` 替换 `offset`，WebUI 审计页提供会话内上一页/下一页导航。
 - 账户批量启停/归档现在要求 `Idempotency-Key`，持久化请求摘要与完整结果并支持安全重放；响应统一返回请求数、处理数、成功资源、逐项稳定失败、可重试标记和 correlation ID，部分成功不再只显示汇总数字。异步 Job 属于 P1/P2，仍按真实规模需求独立研究。
+- 跨设备用户偏好已落地（BE-090-005）：新增 `iam_user_preferences` 表与 `iam:account:self:preferences:read/write` 权限，`GET/PATCH /api/v1/iam/self/preferences` 自服务契约按「默认 < 用户覆盖」返回有效偏好（语言/时区/主题/密度/动效/通知），PATCH 部分字段合并且显式区分「未提交」与「关闭」；设置中心 Appearance/Language 页改由服务端持久化，本地投影同步并保留离线降级提示。
 - HeroUI v3 依赖与 Toast API 已单轨收敛；最新验证中 `pnpm typecheck`、`pnpm lint`、`pnpm test`（51 files / 248 tests）、`pnpm build`、mock 视觉快照以及组织/安全页面 dev E2E 均通过（lint 保留 4 条既有测试文件 warning；build 仅提示大 bundle）。
 
 ## 阅读顺序

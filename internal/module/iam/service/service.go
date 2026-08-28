@@ -1285,6 +1285,93 @@ func (s *Service) UpdateSelfProfile(ctx context.Context, accountID string, expec
 	return updated, err
 }
 
+// SelfPreferences 返回当前账号的有效偏好：持久化覆盖与系统默认值合并，
+// 缺失键回退默认（优先级：默认 < 用户覆盖；组织策略覆盖是后续扩展点，
+// 契约在响应中保留 source 语义）。读取不产生副作用。
+func (s *Service) SelfPreferences(ctx context.Context, accountID string) (model.UserPreferences, error) {
+	if strings.TrimSpace(accountID) == "" {
+		return model.UserPreferences{}, model.ErrInvalidID
+	}
+	defaults := model.DefaultUserPreferences()
+	var record repo.UserPreferenceRecord
+	err := s.store.Use(ctx, func(r *repo.Unit) error {
+		if _, err := accountByID(ctx, r, accountID); err != nil {
+			return err
+		}
+		// 账号存在但尚无偏好记录 → 返回默认（不视为错误）。
+		found, findErr := r.UserPreferencesByAccount(ctx, accountID)
+		if findErr != nil {
+			if repo.IsNotFound(findErr) {
+				return nil
+			}
+			return findErr
+		}
+		record = found
+		return nil
+	})
+	if err != nil {
+		return model.UserPreferences{}, err
+	}
+	if record.AccountID == "" {
+		return defaults, nil
+	}
+	overrides, decodeErr := decodePreferenceOverrides(record.PreferencesJSON)
+	if decodeErr != nil {
+		return model.UserPreferences{}, fmt.Errorf("decode user preferences: %w", decodeErr)
+	}
+	return mergePreferenceDefaults(defaults, overrides), nil
+}
+
+// UpdateSelfPreferences 合并并持久化当前账号的偏好覆盖：只接受白名单键，
+// 未知键或非法值返回 model.ErrInvalidPreferences；调用方（HTTP binding）
+// 负责以完整或部分对象调用，service 把存储覆盖与默认值合并后返回有效值。
+// notifications 为显式指针集合：nil 表示该字段未提交（保持现值），显式
+// 布尔值表示用户开启/关闭。
+func (s *Service) UpdateSelfPreferences(ctx context.Context, accountID string, updates model.UserPreferences, notifications *NotificationUpdate) (model.UserPreferences, error) {
+	if strings.TrimSpace(accountID) == "" {
+		return model.UserPreferences{}, model.ErrInvalidID
+	}
+	if err := updates.ValidatePartial(); err != nil {
+		return model.UserPreferences{}, err
+	}
+	var effective model.UserPreferences
+	err := s.store.WithinTx(ctx, func(txCtx context.Context, r *repo.Unit) error {
+		if _, err := accountByID(txCtx, r, accountID); err != nil {
+			return err
+		}
+		defaults := model.DefaultUserPreferences()
+		var stored model.UserPreferences
+		record, findErr := r.UserPreferencesByAccount(txCtx, accountID)
+		switch {
+		case findErr == nil:
+			decoded, decodeErr := decodePreferenceOverrides(record.PreferencesJSON)
+			if decodeErr != nil {
+				return decodeErr
+			}
+			stored = mergePreferenceDefaults(defaults, decoded)
+		case repo.IsNotFound(findErr):
+			stored = defaults
+		default:
+			return findErr
+		}
+		merged := mergePreferenceUpdates(stored, updates, notifications)
+		if err := merged.Validate(); err != nil {
+			return err
+		}
+		encoded, err := encodePreferenceOverrides(merged)
+		if err != nil {
+			return err
+		}
+		if err := r.UpsertUserPreferences(txCtx, accountID, encoded, s.clock.Now().UTC()); err != nil {
+			return err
+		}
+		effective = merged
+		return nil
+	})
+	s.auditOperation(ctx, "iam.self.preferences", "update", "account", accountID, err)
+	return effective, err
+}
+
 // BeginSelfArchive 为软注销生成两步确认凭据（072）。此调用只创建进程内
 // confirmationId（TTL 后失效），不产生任何业务副作用。
 func (s *Service) BeginSelfArchive(ctx context.Context, accountID string) (string, error) {

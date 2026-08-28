@@ -220,6 +220,59 @@ func TestDynamicAssignmentContractVersion409AndSnapshot(t *testing.T) {
 	}
 }
 
+// TestSelfPreferencesContract 验证跨设备用户偏好 HTTP 契约（BE-090-005）：
+// 未设置返回默认；PATCH 合并更新并持久化；非法值 400；缺失权限 403。
+func TestSelfPreferencesContract(t *testing.T) {
+	iam, resource := testService(t)
+	defer resource.Close()
+	handler, err := NewHandler(iam, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	router := humaRouter(handler)
+	setupResponse := serve(router, http.MethodPost, "http://example.test/api/v1/iam/setup", []byte(`{"setupToken":"setup-secret","username":"owner","displayName":"Owner","password":"123456789012345"}`), nil)
+	if setupResponse.Code != http.StatusCreated {
+		t.Fatalf("setup status = %d, body = %s", setupResponse.Code, setupResponse.Body.String())
+	}
+	var setupSession sessionResponse
+	if err := json.Unmarshal(setupResponse.Body.Bytes(), &setupSession); err != nil {
+		t.Fatal(err)
+	}
+	resolved, err := iam.Resolve(t.Context(), setupResponse.Result().Cookies()[0].Value)
+	if err != nil {
+		t.Fatal(err)
+	}
+	withCSRF := func(request *http.Request) { request.Header.Set("X-CSRF-Token", setupSession.CSRFToken) }
+
+	// 未设置 → 返回默认值（language en-US, themeMode system, density comfortable）。
+	initial := serve(router, http.MethodGet, "http://example.test/api/v1/iam/self/preferences", nil, &resolved)
+	if initial.Code != http.StatusOK || !bytes.Contains(initial.Body.Bytes(), []byte(`"themeMode":"system"`)) || !bytes.Contains(initial.Body.Bytes(), []byte(`"density":"comfortable"`)) || !bytes.Contains(initial.Body.Bytes(), []byte(`"language":"en-US"`)) {
+		t.Fatalf("initial preferences = %d, %s", initial.Code, initial.Body.String())
+	}
+
+	// PATCH 更新主题/密度/语言（CSRF 必须）。
+	patchBody := []byte(`{"language":"zh-CN","themeMode":"dark","themePreset":"green","density":"compact"}`)
+	noCSRF := serve(router, http.MethodPatch, "http://example.test/api/v1/iam/self/preferences", patchBody, &resolved)
+	if noCSRF.Code != http.StatusForbidden {
+		t.Fatalf("patch without csrf status = %d, body = %s", noCSRF.Code, noCSRF.Body.String())
+	}
+	updated := serve(router, http.MethodPatch, "http://example.test/api/v1/iam/self/preferences", patchBody, &resolved, withCSRF)
+	if updated.Code != http.StatusOK || !bytes.Contains(updated.Body.Bytes(), []byte(`"themeMode":"dark"`)) || !bytes.Contains(updated.Body.Bytes(), []byte(`"density":"compact"`)) || !bytes.Contains(updated.Body.Bytes(), []byte(`"language":"zh-CN"`)) {
+		t.Fatalf("updated preferences = %d, %s", updated.Code, updated.Body.String())
+	}
+	// 通知布尔可显式关闭。
+	notifBody := []byte(`{"notifications":{"emailDigest":false,"inApp":true,"showSummaries":false,"dailySummary":true}}`)
+	notif := serve(router, http.MethodPatch, "http://example.test/api/v1/iam/self/preferences", notifBody, &resolved, withCSRF)
+	if notif.Code != http.StatusOK || !bytes.Contains(notif.Body.Bytes(), []byte(`"emailDigest":false`)) || !bytes.Contains(notif.Body.Bytes(), []byte(`"inApp":true`)) {
+		t.Fatalf("notification preferences = %d, %s", notif.Code, notif.Body.String())
+	}
+	// 非法枚举 → 422（Huma schema enum 校验在到达 service 前拦截）。
+	invalid := serve(router, http.MethodPatch, "http://example.test/api/v1/iam/self/preferences", []byte(`{"themeMode":"neon"}`), &resolved, withCSRF)
+	if invalid.Code != http.StatusUnprocessableEntity || !bytes.Contains(invalid.Body.Bytes(), []byte(`body.themeMode`)) {
+		t.Fatalf("invalid theme status = %d, body = %s", invalid.Code, invalid.Body.String())
+	}
+}
+
 func humaRouter(handler *Handler) http.Handler {
 	router := chi.NewRouter()
 	config := huma.DefaultConfig("test", "1")

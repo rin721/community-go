@@ -905,6 +905,18 @@ components:
         - challengeId
         - code
       type: object
+    NotificationsStruct:
+      additionalProperties: false
+      properties:
+        dailySummary:
+          type: boolean
+        emailDigest:
+          type: boolean
+        inApp:
+          type: boolean
+        showSummaries:
+          type: boolean
+      type: object
     PasswordInputBody:
       additionalProperties: false
       properties:
@@ -1007,6 +1019,61 @@ components:
         - offset
         - limit
         - total
+      type: object
+    PreferencesNotificationsResponse:
+      additionalProperties: false
+      properties:
+        dailySummary:
+          type: boolean
+        emailDigest:
+          type: boolean
+        inApp:
+          type: boolean
+        showSummaries:
+          type: boolean
+      required:
+        - emailDigest
+        - inApp
+        - showSummaries
+        - dailySummary
+      type: object
+    PreferencesResponse:
+      additionalProperties: false
+      properties:
+        density:
+          enum:
+            - comfortable
+            - compact
+          type: string
+        language:
+          type: string
+        notifications:
+          $ref: "#/components/schemas/PreferencesNotificationsResponse"
+        reduceMotion:
+          type: boolean
+        themeMode:
+          enum:
+            - system
+            - light
+            - dark
+          type: string
+        themePreset:
+          enum:
+            - blue
+            - cyan
+            - green
+            - violet
+            - orange
+          type: string
+        timeZone:
+          type: string
+      required:
+        - language
+        - themeMode
+        - themePreset
+        - density
+        - reduceMotion
+        - notifications
       type: object
     ProfileResponse:
       additionalProperties: false
@@ -1393,6 +1460,41 @@ components:
           type: integer
       required:
         - version
+      type: object
+    UpdatePreferencesInputBody:
+      additionalProperties: false
+      properties:
+        density:
+          enum:
+            - comfortable
+            - compact
+          type: string
+        language:
+          enum:
+            - zh-CN
+            - en-US
+          type: string
+        notifications:
+          $ref: "#/components/schemas/NotificationsStruct"
+        reduceMotion:
+          type: boolean
+        themeMode:
+          enum:
+            - system
+            - light
+            - dark
+          type: string
+        themePreset:
+          enum:
+            - blue
+            - cyan
+            - green
+            - violet
+            - orange
+          type: string
+        timeZone:
+          maxLength: 64
+          type: string
       type: object
     UpdateRoleInputBody:
       additionalProperties: false
@@ -3024,6 +3126,70 @@ paths:
       responses:
         "204":
           description: No Content
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      security:
+        - webuiSession: []
+      tags:
+        - IAM
+  /api/v1/iam/self/preferences:
+    get:
+      operationId: iam.self.preferences.read
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PreferencesResponse"
+          description: OK
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      security:
+        - webuiSession: []
+      tags:
+        - IAM
+    patch:
+      operationId: iam.self.preferences.write
+      parameters:
+        - in: header
+          name: Origin
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePreferencesInputBody"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PreferencesResponse"
+          description: OK
+          headers:
+            Cache-Control:
+              schema:
+                type: string
         default:
           content:
             application/problem+json:

@@ -39,6 +39,11 @@ export const beginMFAEnroll = () => requestJSON<{ secret: string; uri: string }>
 export const confirmMFAEnroll = (code: string) => requestJSON<{ recoveryCodes: string[] }>("/api/v1/iam/self/mfa/confirm", { method: "POST", headers: mutationHeaders(), body: JSON.stringify({ code }) });
 export const disableMFA = (code: string) => requestJSON<void>("/api/v1/iam/self/mfa/disable", { method: "POST", headers: mutationHeaders(), body: JSON.stringify({ code }) });
 
+// 090 BE-090-005: cross-device user preferences (self-service) persisted server-side.
+export type UserPreferences = { language: string; timeZone?: string; themeMode: "system" | "light" | "dark"; themePreset: "blue" | "cyan" | "green" | "violet" | "orange"; density: "comfortable" | "compact"; reduceMotion: boolean; notifications: { emailDigest: boolean; inApp: boolean; showSummaries: boolean; dailySummary: boolean } };
+export const selfPreferences = () => requestJSON<UserPreferences>("/api/v1/iam/self/preferences");
+export const updateSelfPreferences = (patch: Partial<Pick<UserPreferences, "language" | "timeZone" | "themeMode" | "themePreset" | "density">> & { reduceMotion?: boolean; notifications?: Partial<UserPreferences["notifications"]> }) => requestJSON<UserPreferences>("/api/v1/iam/self/preferences", { method: "PATCH", headers: mutationHeaders(), body: JSON.stringify(patch) });
+
 
 
 export const listApiTokens = (offset = 0, limit = 50) => requestJSON<{ items: ApiTokenView[]; offset: number; limit: number; total: number }>(`/api/v1/iam/api-tokens?offset=${offset}&limit=${limit}`);

@@ -1080,6 +1080,91 @@ func TestUpdateSelfProfilePersistsProfileWithOptimisticLock(t *testing.T) {
 	}
 }
 
+// TestSelfPreferencesMergeDefaultsAndPersist 验证跨设备偏好（BE-090-005）：
+// 未设置时返回默认；PATCH 合并覆盖并持久化；跨会话读取一致；非法值拒绝。
+func TestSelfPreferencesMergeDefaultsAndPersist(t *testing.T) {
+	iam, resource := newService(t)
+	defer resource.Close()
+	session, err := iam.Setup(t.Context(), "setup-secret", "owner", "Owner", "123456789012345")
+	if err != nil {
+		t.Fatal(err)
+	}
+	accountID := session.Identity.AccountID
+	// 未设置时返回系统默认。
+	initial, err := iam.SelfPreferences(t.Context(), accountID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defaults := model.DefaultUserPreferences()
+	if initial.Language != defaults.Language || initial.ThemeMode != defaults.ThemeMode || initial.Density != defaults.Density || initial.ReduceMotion != defaults.ReduceMotion {
+		t.Fatalf("initial preferences = %#v, want defaults %#v", initial, defaults)
+	}
+	// PATCH 合并更新：只改主题与密度，语言/通知保持默认。
+	updated, err := iam.UpdateSelfPreferences(t.Context(), accountID, model.UserPreferences{
+		ThemeMode: model.PreferenceThemeModeDark, ThemePreset: model.PreferenceThemePresetGreen, Density: model.PreferenceDensityCompact,
+	}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.ThemeMode != model.PreferenceThemeModeDark || updated.ThemePreset != model.PreferenceThemePresetGreen || updated.Density != model.PreferenceDensityCompact {
+		t.Fatalf("updated preferences = %#v", updated)
+	}
+	if updated.Language != defaults.Language || updated.ReduceMotion != defaults.ReduceMotion {
+		t.Fatalf("updated preferences must keep untouched defaults: %#v", updated)
+	}
+	if updated.Notifications != defaults.Notifications {
+		t.Fatalf("notifications must remain default: %#v", updated.Notifications)
+	}
+	// 跨会话读取（新 service 仍读同一 store）返回持久化值。
+	again, err := iam.SelfPreferences(t.Context(), accountID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if again.ThemeMode != model.PreferenceThemeModeDark || again.Density != model.PreferenceDensityCompact {
+		t.Fatalf("persisted preferences = %#v", again)
+	}
+	// 非法主题拒绝。
+	if _, err := iam.UpdateSelfPreferences(t.Context(), accountID, model.UserPreferences{ThemeMode: "neon"}, nil); !errors.Is(err, model.ErrInvalidPreferences) {
+		t.Fatalf("invalid theme mode error = %v", err)
+	}
+	// 非法时区拒绝。
+	if _, err := iam.UpdateSelfPreferences(t.Context(), accountID, model.UserPreferences{TimeZone: "not a zone"}, nil); !errors.Is(err, model.ErrInvalidPreferences) {
+		t.Fatalf("invalid time zone error = %v", err)
+	}
+	// 缺失账号返回 not-found。
+	if _, err := iam.SelfPreferences(t.Context(), "missing-account"); !repo.IsNotFound(err) {
+		t.Fatalf("missing account error = %v", err)
+	}
+}
+
+// TestSelfPreferencesSupportsNotificationToggles 验证通知布尔偏好可显式关闭：
+// 关闭后读取返回 false（不再回退默认 true）。
+func TestSelfPreferencesSupportsNotificationToggles(t *testing.T) {
+	iam, resource := newService(t)
+	defer resource.Close()
+	session, err := iam.Setup(t.Context(), "setup-secret", "owner", "Owner", "123456789012345")
+	if err != nil {
+		t.Fatal(err)
+	}
+	accountID := session.Identity.AccountID
+	updated, err := iam.UpdateSelfPreferences(t.Context(), accountID, model.UserPreferences{}, &service.NotificationUpdate{
+		EmailDigest: testBoolPointer(false), InApp: testBoolPointer(true), ShowSummaries: testBoolPointer(false), DailySummary: testBoolPointer(true),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.Notifications.EmailDigest || !updated.Notifications.InApp || updated.Notifications.ShowSummaries || !updated.Notifications.DailySummary {
+		t.Fatalf("notification toggles not honored: %#v", updated.Notifications)
+	}
+	again, err := iam.SelfPreferences(t.Context(), accountID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if again.Notifications != updated.Notifications {
+		t.Fatalf("notification prefs not persisted: %#v", again.Notifications)
+	}
+}
+
 // TestSelfArchiveRequiresTwoStepConfirmation 验证软注销两步确认：
 // 未确认时账号保持可用；错误确认被拒；确认后归档生效（登录拒绝、会话吊销）。
 func TestSelfArchiveRequiresTwoStepConfirmation(t *testing.T) {
@@ -2082,3 +2167,6 @@ func TestAlertOnRepeatedMFAFailure(t *testing.T) {
 		t.Fatalf("alert types = %v, want mfa_failed", reporter.types())
 	}
 }
+
+// testBoolPointer 返回指向给定布尔值的指针（偏好通知更新测试用）。
+func testBoolPointer(value bool) *bool { return &value }

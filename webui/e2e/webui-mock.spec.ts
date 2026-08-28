@@ -474,3 +474,26 @@ test("090 audit page paginates with server cursor in mock mode", async ({ page }
   await activePage.getByLabel("Operation").fill("iam.accounts.list");
   await expect(activePage.getByText("Page 1", { exact: false })).toBeVisible();
 });
+
+// 090 BE-090-005: appearance preferences persist via the server (mock in-memory
+// state) - after switching the theme mode the control reflects the server
+// response within the session (mock state resets on full page reload by design).
+test("090 appearance preferences persist via server in mock mode", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const activePage = page.locator('.page-viewport:visible').first();
+  await page.goto("/settings/appearance");
+  await expect(activePage.getByRole("heading", { name: "Appearance", exact: true })).toBeVisible();
+  // Server default theme mode is system; switch to dark and assert the control
+  // reflects the server response.
+  const modeSelect = activePage.getByRole("button", { name: /Theme mode/ });
+  await expect(modeSelect).toHaveText("System");
+  await modeSelect.click();
+  await page.getByRole("option", { name: "Dark", exact: true }).click();
+  await expect(modeSelect).toHaveText("Dark");
+  // Switch density too and verify the server-backed control updated.
+  const densitySelect = activePage.getByRole("button", { name: /Content density/ });
+  await expect(densitySelect).toHaveText("Comfortable");
+  await densitySelect.click();
+  await page.getByRole("option", { name: "Compact", exact: true }).click();
+  await expect(densitySelect).toHaveText("Compact");
+});

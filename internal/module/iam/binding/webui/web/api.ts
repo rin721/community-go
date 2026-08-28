@@ -62,3 +62,10 @@ export const rotateApiToken=(id:string)=>requestJSON<ApiTokenIssued>(`/api/v1/ia
 export const disableApiToken=(id:string)=>requestJSON<void>(`/api/v1/iam/api-tokens/${id}/disable`,{method:"POST",headers:mutationHeaders(),body:JSON.stringify({})});
 export const enableApiToken=(id:string)=>requestJSON<void>(`/api/v1/iam/api-tokens/${id}/enable`,{method:"POST",headers:mutationHeaders(),body:JSON.stringify({})});
 export const revokeApiToken=(id:string)=>requestJSON<void>(`/api/v1/iam/api-tokens/${id}/revoke`,{method:"POST",headers:mutationHeaders(),body:JSON.stringify({})});
+
+// 090 BE-090-005: cross-device user preferences (self-service). GET returns the
+// effective value (defaults merged with stored overrides); PATCH merges partial
+// fields (omitted fields keep their current value).
+export type UserPreferences={language:string;timeZone?:string;themeMode:"system"|"light"|"dark";themePreset:"blue"|"cyan"|"green"|"violet"|"orange";density:"comfortable"|"compact";reduceMotion:boolean;notifications:{emailDigest:boolean;inApp:boolean;showSummaries:boolean;dailySummary:boolean}};
+export const selfPreferences=()=>requestJSON<UserPreferences>("/api/v1/iam/self/preferences");
+export const updateSelfPreferences=(patch:Partial<Pick<UserPreferences,"language"|"timeZone"|"themeMode"|"themePreset"|"density">>&{reduceMotion?:boolean;notifications?:Partial<UserPreferences["notifications"]>})=>requestJSON<UserPreferences>("/api/v1/iam/self/preferences",{method:"PATCH",headers:mutationHeaders(),body:JSON.stringify(patch)});

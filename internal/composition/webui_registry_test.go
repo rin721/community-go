@@ -334,7 +334,7 @@ func TestApplicationPermissionCatalogCoversCurrentOperationAndWebUIReferences(t 
 	}
 	catalog := blueprint.permissions
 	definitions := catalog.Definitions()
-	if len(definitions) != 23 {
+	if len(definitions) != 25 {
 		t.Fatalf("unexpected permission definitions: %#v", definitions)
 	}
 	if len(blueprint.webuiCatalog.Bindings) == 0 {

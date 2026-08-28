@@ -724,6 +724,28 @@ func (unit *Unit) update(ctx context.Context, table, condition string, arguments
 	})
 }
 
+// UserPreferencesByAccount 返回账号的偏好覆盖记录；未写入过返回 ErrNotFound。
+func (unit *Unit) UserPreferencesByAccount(ctx context.Context, accountID string) (UserPreferenceRecord, error) {
+	var record UserPreferenceRecord
+	err := unit.useDB(ctx, func(db *gorm.DB) error {
+		return db.Table(userPreferencesTable).Where("account_id = ?", accountID).First(&record).Error
+	})
+	return record, err
+}
+
+// UpsertUserPreferences 插入或覆盖账号的偏好 JSON（单行 upsert 语义）。
+func (unit *Unit) UpsertUserPreferences(ctx context.Context, accountID, preferencesJSON string, now time.Time) error {
+	value := UserPreferenceRecord{AccountID: accountID, PreferencesJSON: preferencesJSON, UpdatedAt: now}
+	return unit.useDB(ctx, func(db *gorm.DB) error {
+		return db.Table(userPreferencesTable).Clauses(clause.OnConflict{
+			Columns: []clause.Column{{Name: "account_id"}},
+			DoUpdates: clause.Assignments(map[string]any{
+				"preferences_json": value.PreferencesJSON, "updated_at": value.UpdatedAt,
+			}),
+		}).Create(&value).Error
+	})
+}
+
 func (unit *Unit) updateVersioned(ctx context.Context, table, condition string, arguments []any, values map[string]any) error {
 	return unit.useDB(ctx, func(db *gorm.DB) error {
 		result := db.Table(table).Where(condition, arguments...).Updates(values)

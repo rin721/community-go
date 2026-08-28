@@ -44,4 +44,15 @@ describe("mock transport", () => {
     await expect(mockRequestJSON("/api/v1/does/not/exist")).rejects.toThrow("route_not_found");
     await expect(mockRequestText("/management/does/not/exist")).rejects.toThrow("route_not_found");
   });
+
+  it("persists self preferences through the settings mock route (090 BE-090-005)", async () => {
+    const initial = await mockRequestJSON<{ themeMode: string; density: string }>("/api/v1/iam/self/preferences");
+    expect(initial.themeMode).toBe("system");
+    const patched = await mockRequestJSON<{ themeMode: string; density: string }>("/api/v1/iam/self/preferences", { method: "PATCH", body: JSON.stringify({ themeMode: "dark", density: "compact" }) });
+    expect(patched.themeMode).toBe("dark");
+    expect(patched.density).toBe("compact");
+    const again = await mockRequestJSON<{ themeMode: string; density: string }>("/api/v1/iam/self/preferences");
+    expect(again.themeMode).toBe("dark");
+    expect(again.density).toBe("compact");
+  });
 });

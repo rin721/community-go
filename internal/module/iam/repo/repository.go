@@ -22,6 +22,7 @@ const (
 	mfaSecretTable       = "iam_totp_secrets"
 	mfaRecoveryCodeTable = "iam_mfa_recovery_codes"
 	idempotencyTable     = "iam_idempotency_records"
+	userPreferencesTable = "iam_user_preferences"
 )
 
 type Access interface {
@@ -111,6 +112,14 @@ type IdempotencyRecord struct {
 	ResultJSON                             string
 	Completed                              bool
 	CreatedAt                              time.Time
+}
+
+// UserPreferenceRecord 是账号的跨设备偏好覆盖（BE-090-005）：只存用户显式
+// 修改的键值对（JSON 文本），缺失键由 service 层用默认值补齐后返回。
+type UserPreferenceRecord struct {
+	AccountID      string
+	PreferencesJSON string
+	UpdatedAt      time.Time
 }
 type SessionRecord struct {
 	IDHash                                                  []byte

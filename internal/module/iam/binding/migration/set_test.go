@@ -111,7 +111,7 @@ func assertIAMTablesPreserved(t *testing.T, config database.Config) error {
 	defer resource.Close()
 	return database.Borrow(t.Context(), resource.Client(), func(client database.Client) error {
 		return database.UseGORM(t.Context(), client, func(db *gorm.DB) error {
-			for _, table := range []string{"iam_accounts", "iam_local_credentials", "iam_roles", "iam_account_roles", "iam_role_permissions", "iam_sessions"} {
+			for _, table := range []string{"iam_accounts", "iam_local_credentials", "iam_roles", "iam_account_roles", "iam_role_permissions", "iam_sessions", "iam_user_preferences"} {
 				if err := assertTableExists(config.Driver, table, db); err != nil {
 					return err
 				}

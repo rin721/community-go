@@ -175,6 +175,27 @@ type updateSelfProfileInput struct {
 		BirthDate       string `json:"birthDate" maxLength:"16"`
 	}
 }
+
+// updatePreferencesInput 是偏好更新的 HTTP 输入：字段省略表示保持现值
+// （PATCH 语义）；显式枚举/布尔字段必须合法，非法值返回 400。
+type updatePreferencesInput struct {
+	Origin    string `header:"Origin" required:"true"`
+	CSRFToken string `header:"X-CSRF-Token" required:"true"`
+	Body      struct {
+		Language     string `json:"language,omitempty" enum:"zh-CN,en-US"`
+		TimeZone     string `json:"timeZone,omitempty" maxLength:"64"`
+		ThemeMode    string `json:"themeMode,omitempty" enum:"system,light,dark"`
+		ThemePreset  string `json:"themePreset,omitempty" enum:"blue,cyan,green,violet,orange"`
+		Density      string `json:"density,omitempty" enum:"comfortable,compact"`
+		ReduceMotion *bool  `json:"reduceMotion,omitempty"`
+		Notifications *struct {
+			EmailDigest   *bool `json:"emailDigest,omitempty"`
+			InApp         *bool `json:"inApp,omitempty"`
+			ShowSummaries *bool `json:"showSummaries,omitempty"`
+			DailySummary  *bool `json:"dailySummary,omitempty"`
+		} `json:"notifications,omitempty"`
+	}
+}
 type selfArchiveInput struct {
 	Origin    string `header:"Origin" required:"true"`
 	CSRFToken string `header:"X-CSRF-Token" required:"true"`
@@ -336,6 +357,42 @@ func RegisterHuma(api huma.API, handler *Handler) {
 			return nil, problem(ctx, err)
 		}
 		return jsonEnvelope(profileResponse{Username: updated.Username, Nickname: updated.Nickname, Bio: updated.Bio, BirthDate: updated.BirthDate, Version: updated.Version}), nil
+	})
+
+	// 090 BE-090-005：跨设备用户偏好（自服务）：读取有效偏好（默认+覆盖）与
+	// PATCH 合并更新；写操作要求 CSRF。偏好不撤销会话、不触发安全告警。
+	selfPreferences := protected(opSelfPreferences, http.MethodGet, "/api/v1/iam/self/preferences", string(iampermission.SelfPreferencesRead), "read")
+	huma.Register(api, selfPreferences, func(ctx context.Context, _ *struct{}) (*jsonOutput[preferencesResponse], error) {
+		_, current, _ := service.SessionFromContext(ctx)
+		value, err := handler.service.SelfPreferences(ctx, current.Identity.AccountID)
+		if err != nil {
+			return nil, problem(ctx, err)
+		}
+		return jsonEnvelope(preferencesFromModel(value)), nil
+	})
+	selfPreferencesWrite := protected(opSelfPreferencesWrite, http.MethodPatch, "/api/v1/iam/self/preferences", string(iampermission.SelfPreferencesWrite), "update")
+	selfPreferencesWrite.Middlewares = huma.Middlewares{handler.requireMutation}
+	huma.Register(api, selfPreferencesWrite, func(ctx context.Context, in *updatePreferencesInput) (*jsonOutput[preferencesResponse], error) {
+		_, current, _ := service.SessionFromContext(ctx)
+		updates := model.UserPreferences{
+			Language: model.PreferenceLanguage(in.Body.Language), TimeZone: model.PreferenceTimeZone(in.Body.TimeZone),
+			ThemeMode: model.PreferenceThemeMode(in.Body.ThemeMode), ThemePreset: model.PreferenceThemePreset(in.Body.ThemePreset),
+			Density: model.PreferenceDensity(in.Body.Density), ReduceMotion: in.Body.ReduceMotion != nil && *in.Body.ReduceMotion,
+		}
+		var notifications *service.NotificationUpdate
+		if in.Body.Notifications != nil {
+			notifications = &service.NotificationUpdate{
+				EmailDigest:   in.Body.Notifications.EmailDigest,
+				InApp:         in.Body.Notifications.InApp,
+				ShowSummaries: in.Body.Notifications.ShowSummaries,
+				DailySummary:  in.Body.Notifications.DailySummary,
+			}
+		}
+		value, err := handler.service.UpdateSelfPreferences(ctx, current.Identity.AccountID, updates, notifications)
+		if err != nil {
+			return nil, problem(ctx, err)
+		}
+		return jsonEnvelope(preferencesFromModel(value)), nil
 	})
 
 	// 072：自服务软注销（两步确认）：首调生成 confirmationId，二次确认归档并吊销会话。

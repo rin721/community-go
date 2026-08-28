@@ -1,13 +1,17 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { PageHeader, PageSection, SelectField, Switch } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
+import { selfPreferences, updateSelfPreferences, type UserPreferences } from "./api";
 import styles from "./settings.module.css";
 
-// AppearancePage exposes theme and experience preferences. The host theme
-// contract (theme.ts + ThemeDrawer) uses the localStorage key
-// "community-go-webui-theme" and <html data-*> attributes; this page reads and
-// writes the same contract without importing host internals, so the settings
-// center and the drawer stay in sync.
+// AppearancePage exposes theme and experience preferences. Since 090
+// (BE-090-005) the server is the cross-device source of truth: the page loads
+// the effective preferences (defaults merged with stored overrides) from
+// /api/v1/iam/self/preferences and persists changes there. The host theme
+// contract (theme.ts + ThemeDrawer) still reads/writes the localStorage key
+// "community-go-webui-theme" and <html data-*> attributes for first paint;
+// this page keeps that local projection in sync with the server value so the
+// settings center and the drawer stay consistent.
 type Experience = {
   smoothScroll: boolean;
   damping: "subtle" | "standard" | "relaxed";
@@ -36,7 +40,7 @@ const defaultValue: ThemeValue = {
   experience: { smoothScroll: true, damping: "standard", edgeDamping: true, magneticSnap: true, scrollHijack: true, reveal: true, revealRhythm: "balanced", scrollbar: "stable" },
 };
 
-function readValue(): ThemeValue {
+function readLocal(): ThemeValue {
   try {
     const value: unknown = JSON.parse(localStorage.getItem(storageKey) ?? "null");
     if (value && typeof value === "object" && "mode" in (value as Record<string, unknown>) && "experience" in (value as Record<string, unknown>)) {
@@ -48,7 +52,7 @@ function readValue(): ThemeValue {
   return defaultValue;
 }
 
-function applyValue(next: ThemeValue) {
+function applyLocal(next: ThemeValue) {
   localStorage.setItem(storageKey, JSON.stringify(next));
   const root = document.documentElement;
   const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -82,19 +86,43 @@ function settingRow(title: string, control: ReactNode, hint?: string) {
 
 export default function AppearancePage() {
   const { t } = useWebUITranslation("webui.settings");
-  const value = readValue();
+  const [value, setValue] = useState<ThemeValue>(readLocal);
+  // syncState records the server-confirmed preference state (server is the
+  // authority); on load failure (backend down / permission missing) the page
+  // keeps working locally and shows an offline notice.
+  const [syncState, setSyncState] = useState<"loading" | "synced" | "offline">("loading");
+  useEffect(() => {
+    let cancelled = false;
+    selfPreferences().then((server: UserPreferences) => {
+      if (cancelled) return;
+      setValue((current) => ({ ...current, mode: server.themeMode, preset: server.themePreset, density: server.density, reduceMotion: server.reduceMotion }));
+      setSyncState("synced");
+    }).catch(() => { if (!cancelled) setSyncState("offline"); });
+    return () => { cancelled = true; };
+  }, []);
   const { experience } = value;
-  const write = (next: ThemeValue) => applyValue(next);
-  const withExperience = (patch: Partial<Experience>) => write({ ...value, experience: { ...experience, ...patch } });
+  const persist = (next: ThemeValue) => {
+    setValue(next);
+    applyLocal(next);
+    updateSelfPreferences({ themeMode: next.mode, themePreset: next.preset, density: next.density, reduceMotion: next.reduceMotion })
+      .then((server: UserPreferences) => setValue((current) => ({ ...current, mode: server.themeMode, preset: server.themePreset, density: server.density, reduceMotion: server.reduceMotion })))
+      .catch(() => setSyncState("offline"));
+  };
+  const withExperience = (patch: Partial<Experience>) => {
+    const next = { ...value, experience: { ...experience, ...patch } };
+    setValue(next);
+    applyLocal(next);
+  };
   return <div className={`${styles.settingsModule} module-page`}>
     <PageHeader eyebrow={t("webui.settings.brand")} title={t("webui.settings.appearance.title")} description={t("webui.settings.appearance.description")} />
+    {syncState === "offline" && <p className="page-meta" role="status">{t("webui.settings.appearance.syncOffline")}</p>}
     <div className="page-sections">
       <PageSection kicker={t("webui.settings.appearance.theme.kicker")} title={t("webui.settings.appearance.theme.title")}>
         <div className="settings-stack">
-          {settingRow(t("webui.settings.appearance.mode"), <SelectField label={t("webui.settings.appearance.mode")} value={value.mode} onValueChange={(mode) => write({ ...value, mode: mode as ThemeValue["mode"] })} options={modes.map((option) => ({ value: option.value, label: t(option.label) }))} />)}
-          {settingRow(t("webui.settings.appearance.preset"), <SelectField label={t("webui.settings.appearance.preset")} value={value.preset} onValueChange={(preset) => write({ ...value, preset: preset as ThemeValue["preset"] })} options={presets.map((preset) => ({ value: preset, label: t(`webui.settings.appearance.preset.${preset}`) }))} />)}
-          {settingRow(t("webui.settings.appearance.density"), <SelectField label={t("webui.settings.appearance.density")} value={value.density} onValueChange={(density) => write({ ...value, density: density as ThemeValue["density"] })} options={densities.map((density) => ({ value: density, label: t(`webui.settings.appearance.density.${density}`) }))} />)}
-          {settingRow(t("webui.settings.appearance.reduceMotion"), <Switch ariaLabel={t("webui.settings.appearance.reduceMotion")} checked={value.reduceMotion} onChange={(reduceMotion) => write({ ...value, reduceMotion })} />)}
+          {settingRow(t("webui.settings.appearance.mode"), <SelectField label={t("webui.settings.appearance.mode")} value={value.mode} onValueChange={(mode) => persist({ ...value, mode: mode as ThemeValue["mode"] })} options={modes.map((option) => ({ value: option.value, label: t(option.label) }))} />)}
+          {settingRow(t("webui.settings.appearance.preset"), <SelectField label={t("webui.settings.appearance.preset")} value={value.preset} onValueChange={(preset) => persist({ ...value, preset: preset as ThemeValue["preset"] })} options={presets.map((preset) => ({ value: preset, label: t(`webui.settings.appearance.preset.${preset}`) }))} />)}
+          {settingRow(t("webui.settings.appearance.density"), <SelectField label={t("webui.settings.appearance.density")} value={value.density} onValueChange={(density) => persist({ ...value, density: density as ThemeValue["density"] })} options={densities.map((density) => ({ value: density, label: t(`webui.settings.appearance.density.${density}`) }))} />)}
+          {settingRow(t("webui.settings.appearance.reduceMotion"), <Switch ariaLabel={t("webui.settings.appearance.reduceMotion")} checked={value.reduceMotion} onChange={(reduceMotion) => persist({ ...value, reduceMotion })} />)}
         </div>
       </PageSection>
       <PageSection kicker={t("webui.settings.appearance.experience.kicker")} title={t("webui.settings.appearance.experience.title")}>

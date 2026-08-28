@@ -21,6 +21,8 @@ const (
 	opLogout              = "iam.logout"
 	opChangePassword      = "iam.self.password.change"
 	opSelfProfileUpdate   = "iam.self.profile.update"
+	opSelfPreferences     = "iam.self.preferences.read"
+	opSelfPreferencesWrite = "iam.self.preferences.write"
 	opSelfArchive         = "iam.self.archive"
 	opSelfArchiveConfirm  = "iam.self.archive.confirm"
 	opAccounts            = "iam.accounts.list"
@@ -105,6 +107,36 @@ type sessionResponse struct {
 	CreatedAt         time.Time        `json:"createdAt,omitempty"`
 	IdleExpiresAt     time.Time        `json:"idleExpiresAt,omitempty"`
 	AbsoluteExpiresAt time.Time        `json:"absoluteExpiresAt,omitempty"`
+}
+
+// preferencesResponse 是跨设备用户偏好的 HTTP 投影（BE-090-005）：返回
+// 默认值合并用户覆盖后的有效值；source 保留字段供后续组织策略覆盖扩展。
+type preferencesResponse struct {
+	Language     string `json:"language"`
+	TimeZone     string `json:"timeZone,omitempty"`
+	ThemeMode    string `json:"themeMode" enum:"system,light,dark"`
+	ThemePreset  string `json:"themePreset" enum:"blue,cyan,green,violet,orange"`
+	Density      string `json:"density" enum:"comfortable,compact"`
+	ReduceMotion bool   `json:"reduceMotion"`
+	Notifications preferencesNotificationsResponse `json:"notifications"`
+}
+type preferencesNotificationsResponse struct {
+	EmailDigest   bool `json:"emailDigest"`
+	InApp         bool `json:"inApp"`
+	ShowSummaries bool `json:"showSummaries"`
+	DailySummary  bool `json:"dailySummary"`
+}
+
+func preferencesFromModel(value model.UserPreferences) preferencesResponse {
+	return preferencesResponse{
+		Language: string(value.Language), TimeZone: string(value.TimeZone),
+		ThemeMode: string(value.ThemeMode), ThemePreset: string(value.ThemePreset),
+		Density: string(value.Density), ReduceMotion: value.ReduceMotion,
+		Notifications: preferencesNotificationsResponse{
+			EmailDigest: value.Notifications.EmailDigest, InApp: value.Notifications.InApp,
+			ShowSummaries: value.Notifications.ShowSummaries, DailySummary: value.Notifications.DailySummary,
+		},
+	}
 }
 type accountResponse struct {
 	ID                 string              `json:"id"`
@@ -360,7 +392,7 @@ func serviceError(err error) error {
 	switch {
 	case errors.As(err, &mfaRequired):
 		return statusError(http.StatusConflict, "mfa_required", err)
-	case errors.Is(err, model.ErrInvalidUsername), errors.Is(err, model.ErrInvalidName), errors.Is(err, model.ErrInvalidPassword), errors.Is(err, model.ErrInvalidProfile), errors.Is(err, model.ErrInvalidConfirmation), errors.Is(err, model.ErrInvalidTime):
+	case errors.Is(err, model.ErrInvalidUsername), errors.Is(err, model.ErrInvalidName), errors.Is(err, model.ErrInvalidPassword), errors.Is(err, model.ErrInvalidProfile), errors.Is(err, model.ErrInvalidConfirmation), errors.Is(err, model.ErrInvalidTime), errors.Is(err, model.ErrInvalidPreferences):
 		return statusError(http.StatusBadRequest, "invalid_request", err)
 	case errors.Is(err, service.ErrInvalidCredentials), errors.Is(err, service.ErrMFAInvalidCode), errors.Is(err, service.ErrMFAChallengeInvalid):
 		return statusError(http.StatusUnauthorized, "invalid_credentials", err)

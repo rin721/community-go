@@ -179,6 +179,23 @@ test("090 page family viewport matrix keeps content inside the viewport", async 
   await page.screenshot({ path: testInfo.outputPath("090-dashboard-dark-compact-1280.png"), fullPage: true });
 });
 
+// 090 VERIFY-090-002：设置组与账户列表暗色/compact 截图，扩展现有多模态视觉证据。
+test("090 dark compact snapshots for settings and accounts", async ({ page }, testInfo) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.evaluate(() => {
+    document.documentElement.dataset.density = "compact";
+    document.documentElement.dataset.colorScheme = "dark";
+    document.documentElement.classList.add("dark");
+  });
+  await page.goto("/settings/appearance");
+  await expect(page.getByRole("heading", { name: "Appearance", exact: true })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("090-settings-appearance-dark-compact-1280.png"), fullPage: true });
+  await page.goto("/admin/accounts");
+  await expect(page.getByRole("heading", { name: "Users", exact: true })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("090-accounts-dark-compact-1280.png"), fullPage: true });
+});
+
 // 084：组织三页/菜单页/权限页/OpenAPI 的重构工作台在 mock 下可浏览且无已知
 // 缺陷（无原始 i18n key、权限描述非缺失占位、OpenAPI 首访默认打开第一个接口）。
 test("084 redesigned workspaces render without known P0/P1 defects", async ({ page }) => {

@@ -13,7 +13,7 @@
 | Typography/Control/Density | 任意值、表格和页面密度不一 | typography scale、normal/compact/touch | FE-090-002、PATTERN-090-001 | 基线已实施，持续验收 |
 | Card | 默认套 Card、嵌套层级 | 四类 Card、Section 优先 | FE-090-003、页面迁移 | 已覆盖，待实施 |
 | Table/Pagination | 工具分散、列/行密度与响应式不足 | ResourceIndex/DataGrid/RecordList | PATTERN-090-001 | 高频列表已实施，持续验收 |
-| Form/Settings | 手工状态、局部导航过宽 | FormPage/SettingsForm/StickyActionBar | PATTERN-090-002、PAGE-090-005 | StickyActionBar 已实施，完整表单流待实施 |
+| Form/Settings | 手工状态、局部导航过宽 | FormPage/SettingsForm/StickyActionBar | PATTERN-090-002、PAGE-090-005 | IAM/Settings/组织关键编辑表单已接入 StickyActionBar，完整 dirty/conflict 表单流待实施 |
 | Search/Filter | 全局与局部范围、debounce 耦合 | 三层 Search、QueryToolbar、ActiveFilters | PATTERN-090-001/004 | 已覆盖，待实施 |
 | Detail/Related/Danger | Drawer 字段列表，关系与影响弱 | EntityDetail、Relations、Activity、DangerZone | PATTERN-090-002、BE-090-002 | 账户/角色 EntityDetail 头已实施，关系投影待实施 |
 | Dashboard/Statistic/Chart | 装饰性彩色指标、统计契约不足 | attention-first、Statistic anatomy、Chart rules | PAGE-090-006、PATTERN-090-005 | 已覆盖，待实施 |

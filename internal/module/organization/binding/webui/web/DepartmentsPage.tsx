@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActionTrigger, Button, CodeText, ConfirmActionTrigger, Drawer, EmptyState, Field, InlineAlert, InspectorPanel, PageFrame, PageHeader, PageSection, SearchInput, SelectField, StatusBadge, TreeView } from "@webui/sdk/ui";
+import { ActionTrigger, Button, CodeText, ConfirmActionTrigger, Drawer, EmptyState, Field, InlineAlert, InspectorPanel, PageFrame, PageHeader, PageSection, SearchInput, SelectField, StatusBadge, StickyActionBar, TreeView } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { createDepartment, departmentTree, updateDepartment, type DepartmentNode } from "./api";
 import styles from "./organization.module.css";
@@ -131,7 +131,7 @@ export default function DepartmentsPage() {
                     <Field label={t("webui.organization.name")} value={editName} onChange={(event) => setEditName(event.target.value)} disabled={selected.archived} />
                     <SelectField label={t("webui.organization.parent")} value={editParent} onValueChange={setEditParent} options={[{ value: "", label: t("webui.organization.departments.root") }, ...flat.filter(({ item }) => item.id !== selected.id).map(({ item }) => ({ value: item.id, label: item.name }))]} />
                   </div>
-                  <div className="row-actions">
+                  <StickyActionBar>
                     <ActionTrigger operationId="organization.departments.update" disabled={!canSaveEdit} onAction={saveEdit}>{t("webui.organization.saveChanges")}</ActionTrigger>
                     <ConfirmActionTrigger
                       operationId="organization.departments.update"
@@ -145,7 +145,7 @@ export default function DepartmentsPage() {
                       closeLabel={t("webui.organization.cancel")}
                       onConfirm={() => updateDepartment(selected, { archived: !selected.archived }).then(refresh)}
                     />
-                  </div>
+                  </StickyActionBar>
                 </div>
               </div>
             ) : (

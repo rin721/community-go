@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActionTrigger, Check, EmptyState, InlineAlert, PageFrame, PageHeader, PageSection, SearchInput, SelectField } from "@webui/sdk/ui";
+import { ActionTrigger, Check, EmptyState, InlineAlert, PageFrame, PageHeader, PageSection, SearchInput, SelectField, StickyActionBar } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { getAssignment, replaceAssignment, listAccounts, listDepartments, listPositions, type Account, type Department, type Position } from "./api";
 import styles from "./organization.module.css";
@@ -103,9 +103,9 @@ export default function AssignmentsPage() {
                 </div>
               </div>
               <div className="page-meta">{t("webui.organization.assignments.revision")}: {expectedVersion}</div>
-              <div className="row-actions">
+              <StickyActionBar>
                 <ActionTrigger operationId="organization.assignments.replace" pendingLabel={t("webui.organization.saving")} disabled={!accountId} onAction={save}>{t("webui.organization.assignments.save")}</ActionTrigger>
-              </div>
+              </StickyActionBar>
             </form>
           </section>
         </div>

@@ -35,12 +35,12 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
   const { t } = useWebUITranslation("webui.settings");
   const runtime = useOptionalHostRuntime();
   const navigate = runtime?.navigate;
-  const active = currentSettingsSection(window.location.pathname);
+  const active = currentSettingsSection(runtime?.location?.pathname ?? window.location.pathname);
   const items = settingsNavItems(t);
   // The module scope class must sit on an ancestor element while .settings-inner
   // stays a descendant: the css-module rule is "<hash> .settings-inner", so the
   // two classes cannot live on the same node (self is not its own descendant).
-  return <div className={`${styles.settingsModule} module-page`} data-page-width="settings">
+  return <div className={`${styles.settingsModule} module-page`}>
     <div className="settings-inner" data-settings-active={active}>
       <SectionNav ariaLabel={t("webui.settings.brand")} items={items} activeId={sectionItemID(active)} onSelect={navigate ? (id) => { const section = sectionRoutes.find((candidate) => sectionItemID(candidate) === id); if (section) navigate(`/settings/${section}`); } : undefined} />
       <div className="settings-content">{children}</div>

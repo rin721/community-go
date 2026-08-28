@@ -56,9 +56,8 @@ test("mock mode boots the whole WebUI without a backend and marks every page", a
 // Tree、分组权限目录等语义组件正常装配（Interaction QA 的可见性层）。
 test("082 migrated pages render with semantic components in mock mode", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  // Rev.2：所有正式路由都是独立标签/面板；断言限定在活动面板内（隐藏面板保留
-  // mounted 状态，属预期行为，不能全页面计数）。
-  const activePage = page.locator('.workspace-panel[data-active="true"]');
+  // 087：普通 route 走唯一普通 Outlet；断言限定在唯一可见 viewport。
+  const activePage = page.locator('.page-viewport:visible').first();
   // Interaction QA 基线：账号目录 DataTable + 行操作 + 详情 Drawer 可用。
   await page.goto("/admin/accounts");
   await expect(activePage.getByRole("heading", { name: "Users" })).toBeVisible();
@@ -134,8 +133,8 @@ test("083 visual snapshots for design baseline review", async ({ page }, testInf
 // 缺陷（无原始 i18n key、权限描述非缺失占位、OpenAPI 首访默认打开第一个接口）。
 test("084 redesigned workspaces render without known P0/P1 defects", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  // Rev.2：所有正式路由是独立标签/面板；断言限定在活动面板内。
-  const activePage = page.locator('.workspace-panel[data-active="true"]');
+  // 087：普通页面只走唯一普通 Outlet；OpenAPI 才显式挂载 workspace panel。
+  const activePage = page.locator('.page-viewport:visible').first();
   // Departments：master-detail 工作台（搜索树 + InspectorPanel 详情区），创建入口在页头。
   await page.goto("/admin/departments");
   await expect(activePage.locator(".split-workspace")).toBeVisible();
@@ -162,7 +161,7 @@ test("084 redesigned workspaces render without known P0/P1 defects", async ({ pa
   await expect(activePage.locator(".permission-group").first().locator("td").nth(1)).not.toBeEmpty();
   await expect(activePage.locator(".permission-group").first().locator("td").nth(1)).not.toContainText("翻译资源缺失");
 
-  // OpenAPI：首访自动打开第一个接口（工作台不再是空白面板）。
+  // OpenAPI：显式 singleton workspace 打开第一个接口。
   await page.goto("/openapi");
   await expect(activePage.locator('[data-testid="openapi-workspace"]')).toBeVisible();
   await expect(activePage.getByText(/Execution is unavailable in mock demo builds/)).toBeVisible();
@@ -213,49 +212,54 @@ test("084c account bulk archive flow renders feedback", async ({ page }) => {
   await expect(page.locator("[role='status']").last()).toContainText("2");
 });
 
-// 085 Rev.2 自动页面标签（mock 环境）：所有正式路由自动创建并保留标签；
-// Dashboard 是固定首页标签；重复访问只激活不重复；切换页面标签保留；reload 恢复；
-// 关闭非首页标签后首页仍在。视觉证据同帧截图。
-test("085 workspace tabs: automatic page tabs for all formal routes in mock mode", async ({ page }) => {
+// 087：mock 环境验证显式 workspace 资格与普通页面隔离；OpenAPI singleton 保留，
+// Settings/Accounts 不生成标签，旧普通 route 快照不恢复。
+test("087 workspace policy isolates ordinary routes in mock mode", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  // 宿主标签栏按可访问名称定位（面板内模块级 Tabs 也可能带 tablist 语义）。
   const hostTabs = page.locator('[role="tablist"][aria-label="Workspace tabs"]');
 
-  // Dashboard 是默认路由 → 固定首页标签（打开即出现且 pinned）。
+  // Dashboard 与 Accounts 都是普通 route，不创建标签，也不挂载隐藏 panel。
   await page.goto("/dashboard");
   await expect(page.getByRole("heading", { name: "Runtime status", exact: true })).toBeVisible();
-  await expect(hostTabs).toHaveCount(1);
-  await expect(page.getByRole("tab", { name: /Runtime status/ })).toHaveAttribute("aria-selected", "true");
+  await expect(hostTabs).toHaveCount(0);
 
-  // 访问普通列表页 → 自动新增标签；Dashboard 首页保留。
-  await page.goto("/admin/accounts");
+  await page.goto("/admin/accounts?query=xiaolin%40iqwq.com&archived=false");
   await expect(page.getByRole("heading", { name: "Users", exact: true })).toBeVisible();
-  await expect(hostTabs.getByRole("tab")).toHaveCount(2);
-  await expect(page.getByRole("tab", { name: /Users/ })).toHaveAttribute("aria-selected", "true");
+  await expect(hostTabs).toHaveCount(0);
+  await expect(page.locator('[data-testid^="workspace-panel-"]')).toHaveCount(0);
 
-  // 设置页 → 第三个标签；重复访问只激活原标签不重复创建。
+  // Settings 八分区共享一个普通 group layout，点击分区只切换 child Outlet。
   await page.goto("/settings/profile");
   await expect(page.getByRole("heading", { name: "Profile", exact: true })).toBeVisible();
-  await expect(hostTabs.getByRole("tab")).toHaveCount(3);
-  await page.goto("/admin/accounts");
-  await expect(hostTabs.getByRole("tab")).toHaveCount(3);
+  await expect(hostTabs).toHaveCount(0);
+  await page.evaluate(() => { (window as unknown as { __settingsLayout?: Element }).__settingsLayout = document.querySelector(".settings-inner") ?? undefined; });
+  await page.locator(".settings-inner").getByText("Account", { exact: true }).click();
+  await expect(page).toHaveURL(/\/settings\/account$/);
+  await expect(page.getByRole("heading", { name: "Account", exact: true })).toBeVisible();
+  expect(await page.evaluate(() => (window as unknown as { __settingsLayout?: Element }).__settingsLayout === document.querySelector(".settings-inner"))).toBe(true);
+  await expect(hostTabs).toHaveCount(0);
 
-  // mounted panel 保留：返回 Dashboard 时仍有面板；隐藏面板 inert（不可交互）。
-  await page.goto("/dashboard");
-  await expect(page.locator('[data-testid^="workspace-panel-"][data-active="true"]')).toHaveCount(1);
+  // OpenAPI 是唯一显式 singleton workspace，重复访问不增加标签或 panel。
+  await page.goto("/openapi");
+  await expect(page.getByRole("heading", { name: "API Docs", exact: true })).toBeVisible();
+  await expect(hostTabs.getByRole("tab")).toHaveCount(1);
+  await expect(page.locator('[data-testid^="workspace-panel-"]')).toHaveCount(1);
+  await page.goto("/openapi");
+  await expect(hostTabs.getByRole("tab")).toHaveCount(1);
 
-  // reload：版本化 localStorage 恢复低敏元数据（不存 dirty）。
+  // 离开到普通 Settings 后，OpenAPI 标签保留但没有活动 panel。
+  await page.goto("/settings/profile");
+  await expect(page.getByRole("heading", { name: "Profile", exact: true })).toBeVisible();
+  await expect(hostTabs.getByRole("tab")).toHaveCount(1);
+  await expect(page.locator('[data-testid^="workspace-panel-"][data-active="true"]')).toHaveCount(0);
+
+  // reload：只恢复显式 workspace 元数据，普通 route 不进入快照。
   await page.reload();
-  await expect(hostTabs.getByRole("tab")).toHaveCount(3);
+  await expect(hostTabs.getByRole("tab")).toHaveCount(1);
   const persisted = await page.evaluate(() => localStorage.getItem("community-go-webui-workspace"));
-  expect(persisted).toContain('"routeID":"ops.dashboard"');
+  expect(persisted).toContain('"routeID":"openapi.workspace"');
+  expect(persisted).not.toContain('"routeID":"iam.accounts"');
   expect(persisted).not.toContain('"dirty"');
-
-  // 关闭一个普通标签：Dashboard 固定首页仍然保留。
-  await page.goto("/admin/accounts");
-  await page.locator('.workspace-tab-close').first().click();
-  await expect(hostTabs.getByRole("tab")).toHaveCount(2);
-  await expect(page.getByRole("tab", { name: /Runtime status/ })).toBeVisible();
 });
 
 // 086 几何稳定化 QA（REQ-086-001..007）：跨路由切换时公共 Shell 逐像素稳定；
@@ -263,7 +267,7 @@ test("085 workspace tabs: automatic page tabs for all formal routes in mock mode
 // 滚动/宽度容器（data-page-width 有生产端），业务内容不复制公共组件尺寸。
 test("086 shell geometry is pixel-stable across routes and density token driven", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  const routes = ["/dashboard", "/admin/accounts", "/admin/roles", "/settings/profile", "/openapi"];
+  const routes = ["/openapi", "/dashboard", "/admin/accounts", "/admin/roles", "/settings/profile"];
   const frame = page.locator(".app-shell");
   const topbar = page.locator(".topbar");
   const sidebar = page.locator(".app-sidebar");
@@ -273,10 +277,10 @@ test("086 shell geometry is pixel-stable across routes and density token driven"
     return { x: box.x, y: box.y, width: box.width, height: box.height };
   });
 
-  // 基准：Dashboard（固定首页标签）下采集公共框架几何。先等 shell 完全稳定
+  // 基准：OpenAPI 显式 workspace 标签下采集公共框架几何。先等 shell 完全稳定
   // （首帧模块编译 + grid 过渡完成后），避免采集到过渡中间状态。
-  await page.goto("/dashboard");
-  await expect(page.getByRole("heading", { name: "Runtime status", exact: true })).toBeVisible();
+  await page.goto("/openapi");
+  await expect(page.getByRole("heading", { name: "API Docs", exact: true })).toBeVisible();
   await expect(tabsBar).toHaveCount(1);
   await page.waitForFunction(() => {
     const topbarEl = document.querySelector(".topbar");
@@ -294,7 +298,7 @@ test("086 shell geometry is pixel-stable across routes and density token driven"
   // 跨路由切换：公共框架几何逐像素不变（面板内容变化不影响 Shell）。
   for (const route of routes) {
     await page.goto(route);
-    await expect(page.locator('[data-testid^="workspace-panel-"][data-active="true"]').first()).toBeVisible();
+    await expect(page.locator(".page-viewport:visible").first()).toBeVisible();
     await page.waitForFunction(() => {
       const topbarEl = document.querySelector(".topbar");
       return Boolean(topbarEl && Math.round(topbarEl.getBoundingClientRect().height) === 64);
@@ -305,11 +309,11 @@ test("086 shell geometry is pixel-stable across routes and density token driven"
     expect(await boxOf(tabsBar), `tabs ${route}`).toEqual(baseline.tabs);
   }
 
-  // 固定首页（Dashboard）标签不可关闭：其 tab 容器内无关闭按钮（其余标签有）。
-  await page.goto("/dashboard");
+  // OpenAPI singleton 标签可关闭，普通页面不会增加第二个宿主标签。
+  await page.goto("/openapi");
   await expect(page.locator('[data-workspace-tab].workspace-tab').first()).toBeVisible();
   const firstTab = page.locator('[data-workspace-tab].workspace-tab').first();
-  await expect(firstTab.locator(".workspace-tab-close")).toHaveCount(0);
+  await expect(firstTab.locator(".workspace-tab-close")).toHaveCount(1);
   await expect(page.locator(".workspace-tab-close").first()).toBeVisible();
 
   // compact density：公共框架随 --density-factor 缩放，而不是页面临时覆盖。
@@ -328,9 +332,9 @@ test("086 shell geometry is pixel-stable across routes and density token driven"
 
   // ContentViewport 唯一滚动容器：业务内容有 data-page-width 生产端，无双滚动副本。
   await page.goto("/settings/profile");
-  await expect(page.locator('[data-active="true"] .page-viewport[data-page-width="settings"]')).toHaveCount(1);
+  await expect(page.locator('.page-viewport:visible[data-page-width="settings"]')).toHaveCount(1);
   await page.goto("/admin/accounts");
-  await expect(page.locator('[data-active="true"] .page-viewport[data-page-width="wide"]')).toHaveCount(1);
+  await expect(page.locator('.page-viewport:visible[data-page-width="wide"]')).toHaveCount(1);
   await expect(page.locator(".workspace-panel-scroll")).toHaveCount(0);
 
   // light/dark 与 preset 切换：Shell 几何不变（颜色走 token，不打乱布局）。
@@ -354,12 +358,13 @@ test("086 shell geometry is pixel-stable across routes and density token driven"
   await page.evaluate(() => { document.documentElement.dataset.themePreset = "blue"; });
 });
 
-// 085 视觉验收（REQ-085-003/004/005）：1440×1000 / 1024×768 / 390×844 三档视口，
+// 087 显式 workspace 视觉验收（沿用标签栏的几何与可访问性契约）：1440×1000 /
+// 1024×768 / 390×844 三档视口，
 // light/dark 各截一张；同时断言 42px 高度、底部指示线、文本不换行与 close 显隐语义。
-test("085 workspace tabs visual: 42px rail, indicator, no wrap and light/dark", async ({ page }) => {
+test("087 workspace tabs visual: explicit singleton rail and light/dark", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  // Dashboard 固定首页标签：进入即出现一个 host 标签 + mounted panel。
-  await page.goto("/dashboard");
+  // OpenAPI 显式 singleton：进入即出现一个 host 标签 + mounted panel。
+  await page.goto("/openapi");
   await expect(page.locator('[role="tablist"][aria-label="Workspace tabs"]')).toHaveCount(1);
   await expect(page.locator('[data-testid^="workspace-panel-"]')).toHaveCount(1);
 

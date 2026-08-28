@@ -16,7 +16,9 @@ func Binding() webuicontract.Binding {
 		{ID: "openapi.workspace", SourcePath: "OpenAPIPage.tsx"},
 	}, Routes: []webuicontract.Route{
 		// 契约是公开仓库产物，页面不发起后端 operation；访问门槛复用 iam.session.read。
-		{ID: "openapi.workspace", Path: "/openapi", EntryID: "openapi.workspace", TitleMessageID: "webui.openapi.docs.title", ViewOperationID: "iam.session.read", Layout: webuicontract.RouteLayoutApp, DeliveryState: webuicontract.DeliveryImplemented},
+		// 087 DEC-087-001：openapi.workspace 是首批 singleton workspace 工作区——
+		// 同一 principal 只保留一个实例，重复打开只激活（普通页面不生成标签）。
+		{ID: "openapi.workspace", Path: "/openapi", EntryID: "openapi.workspace", TitleMessageID: "webui.openapi.docs.title", ViewOperationID: "iam.session.read", Layout: webuicontract.RouteLayoutApp, DeliveryState: webuicontract.DeliveryImplemented, WorkspaceTab: webuicontract.WorkspaceTabPolicy{Mode: webuicontract.WorkspaceTabSingleton, Restorable: true}},
 	}, Navigation: []webuicontract.Navigation{
 		{ID: "openapi.developer", RouteID: "openapi.workspace", TitleMessageID: "webui.openapi.developer.title", IconID: "sliders", Order: 60},
 		{ID: "openapi.docs", ParentID: "openapi.developer", RouteID: "openapi.workspace", TitleMessageID: "webui.openapi.docs.title", IconID: "book", Order: 120},

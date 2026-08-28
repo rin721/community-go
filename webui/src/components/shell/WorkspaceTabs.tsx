@@ -154,17 +154,15 @@ export function WorkspaceTabs({ tabs, activeID, canRestore, resolveTitle, onActi
                 {tab.pinned && <Pin size={12} className="workspace-tab-pin" aria-hidden="true" />}
                 {tab.dirty && <span className="workspace-tab-dot" role="img" aria-label={translateMessage("webui.host.workspace.dirtyLabel")} />}
               </button>
-              {!tab.fixedHome && (
-                <button
-                  type="button"
-                  className="workspace-tab-close"
-                  aria-label={`${translateMessage("webui.host.workspace.close")} ${title}`}
-                  tabIndex={-1}
-                  onClick={() => onClose(tab.id)}
-                >
-                  <X size={13} />
-                </button>
-              )}
+              <button
+                type="button"
+                className="workspace-tab-close"
+                aria-label={`${translateMessage("webui.host.workspace.close")} ${title}`}
+                tabIndex={-1}
+                onClick={() => onClose(tab.id)}
+              >
+                <X size={13} />
+              </button>
             </div>
           );
         })}
@@ -213,8 +211,7 @@ function WorkspaceContextMenu({ tab, canRestore, onClose, onCloseOthers, onClose
   onRestore: () => void;
 }) {
   const actions: Array<{ id: string; label: string; icon: ReactNode; disabled?: boolean; run: () => void }> = [
-    // fixedHome（Dashboard 首页）不可取消固定、不可关闭。
-    { id: "pin", label: translateMessage(tab.fixedHome || tab.pinned ? "webui.host.workspace.unpin" : "webui.host.workspace.pin"), icon: tab.pinned ? <PinOff size={15} /> : <Pin size={15} />, disabled: tab.fixedHome, run: () => (tab.pinned ? onUnpin(tab.id) : onPin(tab.id)) },
+    { id: "pin", label: translateMessage(tab.pinned ? "webui.host.workspace.unpin" : "webui.host.workspace.pin"), icon: tab.pinned ? <PinOff size={15} /> : <Pin size={15} />, run: () => (tab.pinned ? onUnpin(tab.id) : onPin(tab.id)) },
     { id: "closeOthers", label: translateMessage("webui.host.workspace.closeOthers"), icon: <History size={15} />, run: () => onCloseOthers(tab.id) },
     { id: "closeRight", label: translateMessage("webui.host.workspace.closeRight"), icon: <History size={15} />, run: () => onCloseRight(tab.id) },
     { id: "restore", label: translateMessage("webui.host.workspace.restore"), icon: <History size={15} />, disabled: !canRestore, run: onRestore },

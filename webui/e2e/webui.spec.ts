@@ -40,7 +40,7 @@ function manifest(authenticated: boolean, availability: "available" | "degraded"
       { moduleId: "settings", id: "settings.language", path: "/settings/language", entryId: "settings.language", titleMessageId: "webui.settings.language.title", layout: "app", groupLayoutId: "settings.layout", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
       { moduleId: "settings", id: "settings.about", path: "/settings/about", entryId: "settings.about", titleMessageId: "webui.settings.about.title", layout: "app", groupLayoutId: "settings.layout", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
       { moduleId: "settings", id: "settings.acknowledgement", path: "/settings/acknowledgement", entryId: "settings.acknowledgement", titleMessageId: "webui.settings.acknowledgement.title", layout: "app", groupLayoutId: "settings.layout", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
-      { moduleId: "openapi", id: "openapi.workspace", path: "/openapi", entryId: "openapi.workspace", titleMessageId: "webui.openapi.docs.title", layout: "app", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
+      { moduleId: "openapi", id: "openapi.workspace", path: "/openapi", entryId: "openapi.workspace", titleMessageId: "webui.openapi.docs.title", layout: "app", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [], workspaceTab: { mode: "singleton", restorable: true } },
     ],
     menu: authenticated && access !== "denied" ? [
       { moduleId: "ops", id: "ops.dashboard", routeId: "ops.dashboard", titleMessageId: "webui.ops.dashboard.title", iconId: "activity", order: 10 },
@@ -522,15 +522,15 @@ test("070 settings center renders with bidirectional menu hierarchy", async ({ p
 
 test("071 settings in-page section navigation switches sections with active highlight", async ({ page }, testInfo) => {
   (page as unknown as { setWebUIState: (state: { authenticated: boolean }) => void }).setWebUIState({ authenticated: true });
-  // Rev.2 每个正式设置分区是独立标签/面板：断言限定在活动面板内。
-  const activePage = page.locator('.workspace-panel[data-active="true"]');
+  // 087：Settings 八分区共享一个固定 group layout，内容断言限定在唯一可见 viewport。
+  const activePage = page.locator('.page-viewport:visible').first();
   await page.goto("/settings/profile");
   await expect(activePage.getByRole("heading", { name: "Profile", exact: true })).toBeVisible();
   // 071 页内侧边栏：分区导航存在、当前分区高亮（aria-current）
   await expect(activePage.locator("nav.section-nav")).toBeVisible();
   await expect(activePage.locator("nav.section-nav [aria-current=page]")).toHaveText("Profile");
   await page.screenshot({ path: testInfo.outputPath("071-settings-profile.png"), fullPage: true });
-  // 点击分区 → 打开对应设置的独立标签并激活（URL 驱动标签创建）。
+  // 点击分区 → 只切换共享布局的 child Outlet（URL 驱动 SPA 导航）。
   await page.locator('nav.section-nav').filter({ visible: true }).getByText("Account", { exact: true }).first().click();
   await expect(page).toHaveURL(/\/settings\/account/);
   await expect(activePage.getByRole("heading", { name: "Account", exact: true })).toBeVisible();
@@ -550,8 +550,8 @@ test("071 settings in-page section navigation switches sections with active high
 test("072 settings section switches stay SPA with profile save, closure, language and about pages", async ({ page }, testInfo) => {
   (page as unknown as { setWebUIState: (state: { authenticated: boolean }) => void }).setWebUIState({ authenticated: true });
   await page.setViewportSize({ width: 1280, height: 800 });
-  // Rev.2 每个设置分区是独立标签/面板：断言限定在活动面板内。
-  const activePage = page.locator('.workspace-panel[data-active="true"]');
+  // 087：Settings 分区不创建 workspace，断言限定在唯一可见 viewport。
+  const activePage = page.locator('.page-viewport:visible').first();
   await page.goto("/settings/profile");
   await expect(activePage.getByRole("heading", { name: "Profile", exact: true })).toBeVisible();
   // 071 页内侧边栏：分区导航存在、当前分区高亮（aria-current）
@@ -601,44 +601,92 @@ test("072 settings section switches stay SPA with profile save, closure, languag
   }
 });
 
-// 085 Rev.2 自动页面标签：所有正式路由自动创建并保留标签（不要求显式声明）；
-// Dashboard 固定首页；重复访问只激活不重复；切换保留 mounted 面板；关闭非首页标签
-// 后首页仍在。
-test("085 workspace tabs: automatic page tabs, dedup, mounted state and fixed home", async ({ page }) => {
+// 087：普通页面不创建 workspace；OpenAPI 作为显式 singleton workspace 保留 mounted
+// 状态、重复访问去重与低敏 query 恢复。
+test("087 workspace policy isolates ordinary routes and keeps OpenAPI singleton", async ({ page }, testInfo) => {
   (page as unknown as { setWebUIState: (state: { authenticated: boolean }) => void }).setWebUIState({ authenticated: true });
-  // 宿主标签栏按可访问名称定位（面板内模块级 Tabs 也可能带 tablist 语义，不能全属性计数）。
   const hostTabs = page.locator('[role="tablist"][aria-label="Workspace tabs"]');
   const hostTab = (name: RegExp) => page.locator('[role="tab"]').filter({ hasText: name });
 
-  // Dashboard（default route）→ 固定首页标签。
+  // Dashboard 是普通 app route，不产生宿主标签。
   await page.goto("/dashboard");
   await expect(page.getByRole("heading", { name: "Runtime status", exact: true })).toBeVisible();
-  await expect(hostTabs).toHaveCount(1);
-  await expect(hostTab(/Runtime status/)).toHaveAttribute("aria-selected", "true");
+  await expect(hostTabs).toHaveCount(0);
 
-  // 访问普通列表页 → 自动新增标签。
-  await page.goto("/admin/accounts");
+  // Accounts 筛选仍由当前普通 route 的 URL 承载，离开后不留下隐藏列表 panel。
+  await page.goto("/admin/accounts?query=xiaolin%40iqwq.com&archived=false");
   await expect(page.getByRole("heading", { name: "Users", exact: true })).toBeVisible();
-  await expect(hostTabs.getByRole("tab")).toHaveCount(2);
+  await expect(hostTabs).toHaveCount(0);
 
-  // 打开 openapi → 第三个标签，且页面内容来自 mounted panel。
+  // REQ-087-008：从带筛选的 Accounts 通过真实侧栏进入 Settings，并记录点击命中目标、
+  // URL、活动 workspace 和可见 panel；不在无证据时添加事件拦截补丁。
+  await page.evaluate(() => {
+    const state = { phase: "accounts", clicks: [] as Array<{ phase: string; target: { tag: string; role: string | null; className: string; closestSettingsClass: string | null; testID: string | null }; url: string; activeWorkspace: string | null; visiblePanels: string[] }>, transitions: [] as Array<{ url: string; activeWorkspace: string | null; visiblePanels: string[] }> };
+    const snapshot = () => ({
+      url: `${location.pathname}${location.search}`,
+      activeWorkspace: document.querySelector('.workspace-panel[data-active="true"]')?.getAttribute("data-workspace-id") ?? null,
+      visiblePanels: Array.from(document.querySelectorAll<HTMLElement>(".workspace-panel")).filter((panel) => !panel.hidden).map((panel) => panel.dataset.workspaceId ?? ""),
+    });
+    document.addEventListener("click", (event) => {
+      const element = event.target instanceof Element ? event.target : document.documentElement;
+      const current = snapshot();
+      state.clicks.push({ phase: state.phase, target: { tag: element.tagName, role: element.getAttribute("role"), className: String(element.className), closestSettingsClass: element.closest(".settings-content")?.className ? String(element.closest(".settings-content")?.className) : null, testID: element.getAttribute("data-testid") }, ...current });
+    }, true);
+    (window as unknown as { __workspaceAudit?: typeof state }).__workspaceAudit = state;
+  });
+  await page.getByRole("link", { name: "Settings", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Profile", exact: true })).toBeVisible();
+  await expect(hostTabs).toHaveCount(0);
+  const settingsLayout = page.locator(".settings-inner");
+  await page.evaluate(() => {
+    const state = (window as unknown as { __workspaceAudit?: { phase: string; transitions: Array<{ url: string; activeWorkspace: string | null; visiblePanels: string[] }> } }).__workspaceAudit;
+    if (!state) return;
+    state.phase = "settings";
+    state.transitions.push({ url: `${location.pathname}${location.search}`, activeWorkspace: document.querySelector('.workspace-panel[data-active="true"]')?.getAttribute("data-workspace-id") ?? null, visiblePanels: Array.from(document.querySelectorAll<HTMLElement>(".workspace-panel")).filter((panel) => !panel.hidden).map((panel) => panel.dataset.workspaceId ?? "") });
+    (window as unknown as { __settingsLayout?: Element }).__settingsLayout = document.querySelector(".settings-inner") ?? undefined;
+  });
+
+  // Settings 中性内容、控件和页内导航都不会把 URL 带回 Accounts。
+  await page.locator(".settings-content").click({ position: { x: 10, y: 10 } });
+  await expect(page).toHaveURL(/\/settings\/profile$/);
+  await page.evaluate(() => { const state = (window as unknown as { __workspaceAudit?: { transitions: Array<{ url: string; activeWorkspace: string | null; visiblePanels: string[] }> } }).__workspaceAudit; state?.transitions.push({ url: `${location.pathname}${location.search}`, activeWorkspace: document.querySelector('.workspace-panel[data-active="true"]')?.getAttribute("data-workspace-id") ?? null, visiblePanels: Array.from(document.querySelectorAll<HTMLElement>(".workspace-panel")).filter((panel) => !panel.hidden).map((panel) => panel.dataset.workspaceId ?? "") }); });
+  await page.getByRole("button", { name: "Theme settings" }).click();
+  await page.keyboard.press("Escape");
+  await expect(page).toHaveURL(/\/settings\/profile$/);
+  await page.evaluate(() => { const state = (window as unknown as { __workspaceAudit?: { transitions: Array<{ url: string; activeWorkspace: string | null; visiblePanels: string[] }> } }).__workspaceAudit; state?.transitions.push({ url: `${location.pathname}${location.search}`, activeWorkspace: document.querySelector('.workspace-panel[data-active="true"]')?.getAttribute("data-workspace-id") ?? null, visiblePanels: Array.from(document.querySelectorAll<HTMLElement>(".workspace-panel")).filter((panel) => !panel.hidden).map((panel) => panel.dataset.workspaceId ?? "") }); });
+  await settingsLayout.getByText("Account", { exact: true }).click();
+  await expect(page).toHaveURL(/\/settings\/account$/);
+  await page.evaluate(() => { const state = (window as unknown as { __workspaceAudit?: { transitions: Array<{ url: string; activeWorkspace: string | null; visiblePanels: string[] }> } }).__workspaceAudit; state?.transitions.push({ url: `${location.pathname}${location.search}`, activeWorkspace: document.querySelector('.workspace-panel[data-active="true"]')?.getAttribute("data-workspace-id") ?? null, visiblePanels: Array.from(document.querySelectorAll<HTMLElement>(".workspace-panel")).filter((panel) => !panel.hidden).map((panel) => panel.dataset.workspaceId ?? "") }); });
+  expect(await page.evaluate(() => (window as unknown as { __settingsLayout?: Element }).__settingsLayout === document.querySelector(".settings-inner"))).toBe(true);
+  await expect(hostTabs).toHaveCount(0);
+  await expect(page.locator('[data-testid^="workspace-panel-"]')).toHaveCount(0);
+  const audit = await page.evaluate(() => (window as unknown as { __workspaceAudit?: { clicks: Array<{ phase: string; target: { tag: string; role: string | null; className: string; closestSettingsClass: string | null; testID: string | null }; url: string; activeWorkspace: string | null; visiblePanels: string[] }>; transitions: Array<{ url: string; activeWorkspace: string | null; visiblePanels: string[] }> } }).__workspaceAudit);
+  const settingsClicks = audit?.clicks.filter((entry) => entry.phase === "settings") ?? [];
+  expect(settingsClicks.length).toBeGreaterThanOrEqual(3);
+  expect(settingsClicks.some((entry) => entry.target.className.includes("settings-content") || entry.target.closestSettingsClass?.includes("settings-content"))).toBe(true);
+  expect(settingsClicks.every((entry) => entry.url.startsWith("/settings/"))).toBe(true);
+  expect(audit?.transitions.every((entry) => entry.url.startsWith("/settings/") && entry.activeWorkspace === null && entry.visiblePanels.length === 0)).toBe(true);
+  await testInfo.attach("087-workspace-audit", { body: JSON.stringify(audit ?? {}, null, 2), contentType: "application/json" });
+
+  // OpenAPI 是显式 singleton workspace：第一次访问生成一个标签，重复访问只激活它。
   await page.goto("/openapi");
   await expect(page.getByRole("heading", { name: "API Docs", exact: true })).toBeVisible();
-  await expect(page.locator('[data-testid^="workspace-panel-"]')).toHaveCount(3);
-
-  // 重复访问同一页面只激活原标签不重复创建。
+  await expect(hostTabs.getByRole("tab")).toHaveCount(1);
+  await expect(page.locator('[data-testid^="workspace-panel-"]')).toHaveCount(1);
   await page.goto("/openapi");
-  await expect(hostTabs.getByRole("tab")).toHaveCount(3);
+  await expect(hostTabs.getByRole("tab")).toHaveCount(1);
   await expect(hostTab(/API Docs/)).toHaveAttribute("aria-selected", "true");
 
-  // 切换页面：mounted 面板保留（隐藏面板仍在 DOM）。
-  await page.goto("/dashboard");
-  await expect(page.locator('[data-testid^="workspace-panel-"][data-active="true"]')).toHaveCount(1);
+  // 离开到普通页面时 workspace 标签保留但没有活动 panel，普通 Outlet 接管内容。
+  await page.goto("/settings/appearance");
+  await expect(page.getByRole("heading", { name: "Appearance", exact: true })).toBeVisible();
+  await expect(hostTabs.getByRole("tab")).toHaveCount(1);
+  await expect(page.locator('[data-testid^="workspace-panel-"][data-active="true"]')).toHaveCount(0);
 
-  // 关闭一个普通标签：Dashboard 固定首页仍然保留；关闭首页被拒绝（无关闭按钮）。
-  await page.goto("/admin/accounts");
-  await expect(page.getByRole("heading", { name: "Users", exact: true })).toBeVisible();
-  await page.locator('.workspace-tab-close').first().click();
-  await expect(hostTabs.getByRole("tab")).toHaveCount(2);
-  await expect(hostTab(/Runtime status/)).toHaveCount(1);
+  // 刷新恢复显式 workspace 元数据；普通 Accounts route 不会写入快照。
+  await page.reload();
+  await expect(hostTabs.getByRole("tab")).toHaveCount(1);
+  const persisted = await page.evaluate(() => localStorage.getItem("community-go-webui-workspace"));
+  expect(persisted).toContain('"routeID":"openapi.workspace"');
+  expect(persisted).not.toContain('"routeID":"iam.accounts"');
 });

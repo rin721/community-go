@@ -7,8 +7,7 @@ import { ConfirmDialog, IconButton, Toast } from "@webui/sdk/ui";
 import { changeLanguage, ensureRouteLocale, getAvailableLanguages, languageLabelMessageID, translateMessage } from "../i18n";
 import { effectiveReduceMotion, useThemePreferences, type ThemePreferences } from "../theme";
 import { ScrollExperience } from "../scroll/ScrollExperience";
-import { ContentViewport } from "./ContentViewport";
-import { routeIsLoadable } from "../routes";
+import { ContentViewport, type ContentWidth } from "./ContentViewport";
 import { RouteSearch } from "./RouteSearch";
 import { ThemeDrawer } from "./ThemeDrawer";
 import { AppSidebar, shouldIsolateMobileSidebar } from "./shell/AppSidebar";
@@ -16,7 +15,7 @@ import { AppHeader } from "./shell/AppHeader";
 import { buildMenuTree, findMenuAncestors, type SidebarMenuEntry } from "./shell/SidebarMenu";
 import { WorkspaceTabs } from "./shell/WorkspaceTabs";
 import { WorkspaceOutlet } from "../workspace/WorkspaceOutlet";
-import { deriveContextKey, routeIsFormal, useWorkspaceHost, workspaceLocationOf } from "../workspace/WorkspaceProvider";
+import { useWorkspaceHost, workspaceLocationOf } from "../workspace/WorkspaceProvider";
 import type { WorkspaceTabView } from "../workspace/registry";
 
 export { buildMenuTree, findMenuAncestors, shouldIsolateMobileSidebar };
@@ -52,27 +51,31 @@ export function AppShell({ manifest, principal, onLogout }: { manifest: Manifest
   const localeEligibleRoutes = useMemo(() => accessibleRoutes.filter((route) => route.availability === "available" || (route.availability === "degraded" && (route.availableCapabilities?.length ?? 0) > 0)), [accessibleRoutes]);
   const menu = useMemo(() => buildMenuTree(manifest.menu.map((item) => ({ item, route: accessibleRoutes.find((route) => route.id === item.routeId) })).filter((value): value is { item: NonNullable<typeof manifest.menu>[number]; route: ManifestRoute } => Boolean(value.route))), [accessibleRoutes, manifest.menu]);
   const currentRoute: ManifestRoute | undefined = manifest.routes.find((route) => route.path === location.pathname);
-  // 085 Rev.2：所有正式路由在导航时自动打开/激活标签（不要求路由显式声明）；
-  // Dashboard（default route）作为固定首页标签；动态详情按 pathname 差异生成独立
-  // 标签。效果只依赖路由与位置（不依赖 registry 对象），避免关闭标签后被同一渲染
-  // 循环重新创建；blank 布局（登录/初始化）在 AppShell 之外，不生成标签。
+  // 普通 Outlet 也必须沿用 Settings 的宽度语义；此前该页面在 mounted workspace
+  // 中由 WorkspaceOutlet 选择 settings，087 收回普通 Outlet 后由宿主补齐同一档位。
+  const pageWidth: ContentWidth = currentRoute?.path.startsWith("/settings/") ? "settings" : "wide";
+  // 087：只有 route 显式声明 singleton workspace 才由宿主导航打开/激活标签；
+  // 普通页面（包括 Settings 分区与 Accounts 列表）始终走普通 Router Outlet。
+  // contextual workspace 必须由模块以稳定 contextID 显式打开，不能由 pathname 猜测。
   const hostRef = useRef(host);
   hostRef.current = host;
   useEffect(() => {
     if (!currentRoute) return;
-    if (routeIsFormal(currentRoute)) {
-      const contextKey = deriveContextKey(currentRoute, location.pathname);
+    if (currentRoute.workspaceTab?.mode === "singleton") {
       hostRef.current.openWorkspace({
         routeID: currentRoute.id,
-        path: currentRoute.path,
+        policy: currentRoute.workspaceTab,
         location: workspaceLocationOf(location.pathname, location.search),
-        contextKey,
-        restoreKey: contextKey,
-        isDefaultHome: currentRoute.default === true,
       });
       return;
     }
-    // 非正式路由（如被 access 门禁拒绝的页面）不生成标签，清空活动标签。
+    // contextual workspace 只能由显式 openContextual 建立；通过已有标签导航时保留
+    // 活动面板，手动进入没有对应 workspace 的 contextual route 则回到普通 Outlet。
+    const active = hostRef.current.activeTab;
+    if (currentRoute.workspaceTab?.mode === "contextual"
+      && active?.routeID === currentRoute.id
+      && active.location.pathname === location.pathname) return;
+    // disabled、未加载或被门禁拒绝的路由不生成标签，清空活动标签。
     hostRef.current.deactivateWorkspace();
   }, [currentRoute, location.pathname, location.search]);
   useEffect(() => setCollapsed(theme.layout.sidebarCollapsed), [theme.layout.sidebarCollapsed]);
@@ -148,7 +151,7 @@ export function AppShell({ manifest, principal, onLogout }: { manifest: Manifest
     <AppSidebar sidebarRef={mobileSidebarRef} mobileOpen={mobileOpen} isMobileViewport={isMobileViewport} collapsed={collapsed} menu={menu} currentRouteID={currentRoute?.id} expandedMenuIDs={expandedMenuIDs} onToggleMenu={(menuID) => setExpandedMenuIDs((current) => { const next = new Set(current); next.has(menuID) ? next.delete(menuID) : next.add(menuID); return next; })} onClose={() => setMobileOpen(false)} onKeyDown={handleMobileSidebarKeyDown} revision={manifest.catalogRevision} />
     <div className="app-workspace">
       <AppHeader collapsed={collapsed} onToggleSidebar={toggleSidebar} mobileMenuButtonRef={mobileMenuButtonRef} onOpenMobileMenu={() => setMobileOpen(true)} showBreadcrumb={theme.layout.showBreadcrumb} currentRoute={currentRoute} pathname={location.pathname} hostLanguage={hostI18n.language} availableLanguages={availableLanguages} onLanguageChange={(language) => void changeLanguage(language)} theme={theme} onToggleColorScheme={toggleColorScheme} onOpenTheme={() => setThemeOpen(true)} onOpenSearch={() => setSearchOpen(true)} onToggleFullscreen={toggleFullscreen} principal={principal} onRequestLogout={() => setLogoutOpen(true)} />
-      <WorkspaceArea manifest={manifest} navigate={navigate} theme={theme} reducedMotion={effectiveReduceMotion(theme.reduceMotion)} />
+      <WorkspaceArea manifest={manifest} navigate={navigate} theme={theme} reducedMotion={effectiveReduceMotion(theme.reduceMotion)} pageWidth={pageWidth} />
     </div>
     <RouteSearch open={searchOpen} routes={accessibleRoutes} onClose={() => setSearchOpen(false)} />
     <ThemeDrawer open={themeOpen} theme={theme} onChange={setTheme} onReset={resetTheme} onClose={() => setThemeOpen(false)} />
@@ -157,11 +160,10 @@ export function AppShell({ manifest, principal, onLogout }: { manifest: Manifest
   </div>;
 }
 
-// WorkspaceArea 是 085 主内容区分流：标签栏 + mounted panels 常驻渲染（隐藏面板
-// 不卸载，保存真实工作状态，REQ-085-007）；普通 route 激活时标签保留但无活动
-// 工作区，此时显示常规 Outlet 而非面板（不把菜单访问历史变成标签）。
-// 面板切换不复制业务 route 声明（ROUTER-085-001 分流语义）。
-function WorkspaceArea({ manifest, navigate, theme, reducedMotion }: { manifest: Manifest; navigate: (path: string) => void; theme: ThemePreferences; reducedMotion: boolean }) {
+// WorkspaceArea 是 087 主内容区分流：显式 workspace 使用标签栏与 mounted panels；
+// 普通 route 不激活 workspace 时只渲染唯一的 Router Outlet。隐藏 workspace panel
+// 保留真实工作状态，但普通页面不会因为访问历史进入标签栏。
+function WorkspaceArea({ manifest, navigate, theme, reducedMotion, pageWidth }: { manifest: Manifest; navigate: (path: string) => void; theme: ThemePreferences; reducedMotion: boolean; pageWidth: ContentWidth }) {
   const host = useWorkspaceHost();
   const activeWorkspace = host.activeTab;
   const resolveTitle = useCallback((tab: WorkspaceTabView) => host.resolveTabTitle(tab), [host]);
@@ -189,7 +191,7 @@ function WorkspaceArea({ manifest, navigate, theme, reducedMotion }: { manifest:
       />}
       <div className="workspace-content-stage">
         <WorkspaceOutlet manifest={manifest} theme={theme.experience} reducedMotion={reducedMotion} />
-        {!activeWorkspace && <ContentViewport experience={theme.experience} reducedMotion={reducedMotion} panelProps={{ id: "webui-workspace-panel" }}><Outlet /></ContentViewport>}
+        {!activeWorkspace && <ContentViewport pageWidth={pageWidth} experience={theme.experience} reducedMotion={reducedMotion} panelProps={{ id: "webui-workspace-panel" }}><Outlet /></ContentViewport>}
       </div>
     </div>
   );

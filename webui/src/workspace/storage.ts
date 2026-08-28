@@ -1,8 +1,9 @@
 import type { WorkspaceState } from "./registry";
 
-// 085 Rev.2 STORAGE：版本化、按 principal 隔离的低敏标签元数据持久化。
-// 所有正式路由都可恢复（不再有 restorable 门禁）；仍只保存允许进入 localStorage
-// 的 allowlist 投影，不保存草稿、凭据、响应 body、任意 query、错误文本或 dirty。
+// 087 STORAGE：版本化、按 principal 隔离的低敏标签元数据持久化。
+// 只有显式声明 restorable 的 workspace 才可恢复（对应 policy.restorable）；
+// 仍只保存允许进入 localStorage 的 allowlist 投影，不保存草稿、凭据、响应 body、
+// 任意 query、错误文本或 dirty。
 
 export const WORKSPACE_STORAGE_KEY = "community-go-webui-workspace";
 export const WORKSPACE_STORAGE_VERSION = 1;
@@ -28,13 +29,14 @@ export type PersistedWorkspaceStateV1 = {
   closed: PersistedWorkspaceTab[];
 };
 
-// Rev.2：不再按路由声明决定是否可恢复——任何正式路由的标签元数据都可持久化，
-// 由宿主在 hydrate 时按当前 manifest（route 仍存在/可加载/access 放行）过滤。
-export type RestoreEligible = (routeID: string) => boolean;
+// RestorableRoute 决定某 route 是否允许持久化标签元数据（对应 policy.restorable）。
+// 087：只有显式 opt-in 且 restorable 的 workspace 才可持久化；普通 route 一律不写。
+export type RestorableRoute = (routeID: string) => boolean;
 
 // SearchAllowlist 是按 routeID 明确 allowlist 的可持久化 search key；未列出的 key
-// 一律不进 JSON（"任意 query 不进入 JSON"）。Rev.2 保留 allowlist 语义，但不再
-// 依赖 route 显式声明；列表页 query（筛选/分页）仍不进入标签持久化。
+// 一律不进 JSON（"任意 query 不进入 JSON"）。087 保留 allowlist 语义：列表页 query
+// （筛选/分页）仍不进入标签持久化；只有显式 workspace 的深链（如 OpenAPI ?op=&mode=）
+// 允许恢复。
 export const WORKSPACE_SEARCH_ALLOWLIST: Record<string, string[]> = {
   // OpenAPI 深链 ?op=&mode= 来自公开契约快照（低敏），允许恢复。
   "openapi.workspace": ["op", "mode"],
@@ -90,46 +92,48 @@ function projectSearch(search: string, allowlist: string[]): string {
   return serialized ? `?${serialized}` : "";
 }
 
-// projectPersistedTabs 把当前打开的标签投影为持久化元数据：所有标签都可持久化
-// （Rev.2 移除 restorable 门禁）；动态详情标签必须有宿主派生的低敏 restoreKey，
-// 否则跳过（不伪造恢复上下文）。
-export function projectPersistedTabs(state: WorkspaceState, restoreKeyOf: (id: string) => string | undefined = () => undefined): PersistedWorkspaceTab[] {
-  const byID = new Map(state.open.map((tab) => [tab.id, tab]));
+// projectPersistedTab 把单个 restorable workspace 投影为低敏元数据；contextual 标签
+// 必须携带低敏 restoreKey 才能进入存储（没有 restoreKey 一律跳过，不伪造恢复上下文）。
+function projectPersistedTab(tab: WorkspaceState["open"][number], isRestorable: RestorableRoute, restoreKeyOf: (id: string) => string | undefined): PersistedWorkspaceTab | undefined {
+  if (!isRestorable(tab.routeID)) return undefined;
+  const restoreKey = restoreKeyOf(tab.id);
+  if (tab.id.startsWith("ws:ctx:") && !restoreKey) return undefined;
+  return {
+    routeID: tab.routeID,
+    ...(restoreKey ? { restoreKey } : {}),
+    pathname: tab.location.pathname,
+    search: projectSearch(tab.location.search, WORKSPACE_SEARCH_ALLOWLIST[tab.routeID] ?? []),
+    pinned: tab.pinned,
+  };
+}
+
+// projectPersistedTabs 把打开的 restorable 标签投影为持久化元数据。
+export function projectPersistedTabs(state: WorkspaceState, isRestorable: RestorableRoute, restoreKeyOf: (id: string) => string | undefined = () => undefined): PersistedWorkspaceTab[] {
   const result: PersistedWorkspaceTab[] = [];
-  for (const id of state.open.map((tab) => tab.id)) {
-    const tab = byID.get(id);
-    if (!tab) continue;
-    const restoreKey = restoreKeyOf(id);
-    // 动态详情（d: 前缀编码）没有低敏 restoreKey 时不持久化。
-    if (id.startsWith("ws:d:") && !restoreKey) continue;
-    result.push({
-      routeID: tab.routeID,
-      ...(restoreKey ? { restoreKey } : {}),
-      pathname: tab.location.pathname,
-      search: projectSearch(tab.location.search, WORKSPACE_SEARCH_ALLOWLIST[tab.routeID] ?? []),
-      pinned: tab.pinned,
-    });
+  for (const tab of state.open) {
+    const projected = projectPersistedTab(tab, isRestorable, restoreKeyOf);
+    if (projected) result.push(projected);
   }
   return result;
 }
 
 // projectPersistedState 生成当前窗口的快照；写入失败语义由 writePersistedState 处理。
-// eligible 只用于宿主在 hydrate 时按 manifest 过滤，投影本身不再有 restorable 门禁。
-export function projectPersistedState(state: WorkspaceState, principalID: string, restoreKeyOf: (id: string) => string | undefined = () => undefined): PersistedWorkspaceStateV1 {
+// isRestorable 决定哪些 route 的标签元数据可进入存储（087：policy.restorable 门禁）。
+export function projectPersistedState(state: WorkspaceState, principalID: string, isRestorable: RestorableRoute, restoreKeyOf: (id: string) => string | undefined = () => undefined): PersistedWorkspaceStateV1 {
+  const active = state.open.find((tab) => tab.id === state.activeWorkspaceID);
+  const activeRestoreKey = active ? restoreKeyOf(active.id) : undefined;
+  const activeID = active && isRestorable(active.routeID)
+    && (!active.id.startsWith("ws:ctx:") || Boolean(activeRestoreKey))
+    ? active.id
+    : undefined;
   return {
     version: WORKSPACE_STORAGE_VERSION,
     principalID,
-    tabs: projectPersistedTabs(state, restoreKeyOf),
-    activeID: state.activeWorkspaceID,
-    closed: state.closed.map((tab) => {
-      const restoreKey = restoreKeyOf(tab.id);
-      return {
-        routeID: tab.routeID,
-        ...(tab.id.startsWith("ws:d:") && restoreKey ? { restoreKey } : {}),
-        pathname: tab.location.pathname,
-        search: projectSearch(tab.location.search, WORKSPACE_SEARCH_ALLOWLIST[tab.routeID] ?? []),
-        pinned: tab.pinned,
-      };
+    tabs: projectPersistedTabs(state, isRestorable, restoreKeyOf),
+    ...(activeID ? { activeID } : {}),
+    closed: state.closed.flatMap((tab) => {
+      const projected = projectPersistedTab(tab, isRestorable, restoreKeyOf);
+      return projected ? [projected] : [];
     }),
   };
 }

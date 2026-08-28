@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
 import { ConfirmDialog } from "@webui/sdk/ui";
-import type { Manifest, ManifestRoute, WorkspaceSession, WorkspaceSessionLookup } from "@webui/sdk/runtime";
+import type { Manifest, ManifestRoute, WorkspaceSession, WorkspaceSessionLookup, WorkspaceTabPolicy } from "@webui/sdk/runtime";
 import { translateMessage } from "../i18n";
 import {
   createWorkspaceID,
@@ -28,8 +28,10 @@ export type WorkspaceHost = {
   tabs: WorkspaceTabView[];
   activeTab?: WorkspaceTabView;
   hasDirty: boolean;
-  /** openWorkspace 对任何正式路由打开/激活标签（Rev.2 自动标签模型）。 */
+  /** openWorkspace 只对显式 opt-in 的 singleton/contextual route 打开/激活标签（087）。 */
   openWorkspace: (input: OpenWorkspaceInput) => void;
+  /** openContextual 供 contextual route 按稳定 contextID 打开独立实例。 */
+  openContextual: (input: { routeID: string; contextID: string; location: WorkspaceLocation; restoreKey?: string }) => void;
   activateWorkspace: (id: WorkspaceID) => void;
   deactivateWorkspace: () => void;
   pinWorkspace: (id: WorkspaceID) => void;
@@ -55,42 +57,35 @@ type WorkspaceProviderProps = {
   children: ReactNode;
 };
 
-// routeIsFormal 判断 route 是否为正式页面（Rev.2）：app 布局 + 已实现 + 可加载 +
-// access 放行。满足者自动生成并保留标签；blank 布局（登录/初始化）与 denied/
-// unavailable 路由不生成标签。Drawer/Modal/Popover 不是路由，天然不进入此判定。
-export function routeIsFormal(route: ManifestRoute | undefined): boolean {
-  if (!route) return false;
-  if (route.layout !== "app") return false;
-  if (route.deliveryState !== "implemented") return false;
-  if (route.access !== "allowed") return false;
-  const available = route.availability === "available"
-    || (route.availability === "degraded" && (route.availableCapabilities?.length ?? 0) > 0);
-  return available;
+// workspacePolicyOf 返回 route 的显式 workspace 资格；未声明/disabled 返回 undefined
+// 或 disabled policy（087：普通正式路由不生成标签）。
+export function workspacePolicyOf(route: ManifestRoute | undefined): WorkspaceTabPolicy | undefined {
+  return route?.workspaceTab;
+}
+
+// isWorkspaceEligible 判断 route 是否被显式声明为 workspace 资格（singleton/contextual）。
+export function isWorkspaceEligible(route: ManifestRoute | undefined): boolean {
+  const policy = workspacePolicyOf(route);
+  return policy?.mode === "singleton" || policy?.mode === "contextual";
 }
 
 export function workspaceLocationOf(pathname: string, search: string): WorkspaceLocation {
   return { pathname, search: search.startsWith("?") ? search : search ? `?${search}` : "" };
 }
 
-// deriveContextKey 从“当前 pathname vs route.path”派生动态详情实体键：
-// 静态导航（pathname === route.path）返回 undefined（按 routeID 去重）；
-// 动态详情（子路径）返回 pathname 差异段，供按实体生成独立标签。
-// 该键只用于相等性去重与低敏 restoreKey，不直接展示。
-export function deriveContextKey(route: ManifestRoute | undefined, pathname: string): string | undefined {
-  if (!route) return undefined;
-  if (pathname === route.path) return undefined;
-  const prefix = route.path.endsWith("/") ? route.path : `${route.path}/`;
-  if (pathname.startsWith(prefix)) {
-    const rest = pathname.slice(prefix.length);
-    return rest.length > 0 ? rest : undefined;
-  }
-  // 非子路径（理论上不匹配当前 route）仍按 pathname 隔离，避免跨实体误合并。
-  return pathname;
+// routeIsRestorable 判断 route 是否允许持久化（policy 显式声明 restorable 且 access 放行）。
+function routeIsRestorable(manifest: Manifest | undefined, routeID: string): boolean {
+  const route = manifest?.routes.find((candidate) => candidate.id === routeID);
+  const policy = workspacePolicyOf(route);
+  if (!routeIsWorkspaceEnabled(manifest, routeID) || !policy || policy.mode === "disabled") return false;
+  return policy.restorable;
 }
 
-// routeIsFormalByID 供 hydrate/reconcile 按 routeID 判断（manifest 路由表）。
-function formalRoute(manifest: Manifest | undefined, routeID: string): ManifestRoute | undefined {
-  return manifest?.routes.find((candidate) => candidate.id === routeID && routeIsFormal(candidate));
+// routeIsWorkspaceEnabled 判断当前会话是否仍可保留显式 workspace；它不检查
+// restorable，因为“不恢复”与“当前已打开后继续存在”是两个独立语义。
+function routeIsWorkspaceEnabled(manifest: Manifest | undefined, routeID: string): boolean {
+  const route = manifest?.routes.find((candidate) => candidate.id === routeID);
+  return Boolean(route && route.layout === "app" && route.access === "allowed" && isWorkspaceEligible(route));
 }
 
 type PendingClose =
@@ -100,9 +95,9 @@ type PendingClose =
   | { kind: "unpin-then-close"; anchorID: WorkspaceID }
   | { kind: "logout" };
 
-// WorkspaceProvider 是宿主标签状态的 composition root：registry（唯一状态 owner）+
-// principal 隔离持久化 + manifest reconcile + dirty/beforeClose 关闭管线 + 会话窄
-// 契约注入。Rev.2：所有正式路由自动生成标签（不再要求 route 显式声明）。
+// WorkspaceProvider 是宿主 workspace 状态的 composition root：registry（唯一状态
+// owner）+ principal 隔离持久化 + manifest reconcile + dirty/beforeClose 关闭管线 +
+// 会话窄契约注入。普通 route 导航不创建标签（087：显式资格单轨）。
 export function WorkspaceProvider({ manifest, principalID, navigateToDefault, children }: WorkspaceProviderProps) {
   // registryTransitionReducer 把 WorkspaceTransition 折叠为纯状态。
   const transitionReducer = useCallback((current: WorkspaceState, action: WorkspaceAction): WorkspaceState => {
@@ -118,12 +113,16 @@ export function WorkspaceProvider({ manifest, principalID, navigateToDefault, ch
   // 首次挂载时 principalID 可能尚未就绪（session 异步加载）：此时只清空内存状态，
   // 绝不清理持久化快照，否则刷新页面就会丢失可恢复标签。
   const previousPrincipalRef = useRef<string | undefined>(undefined);
+  // hydratedRef 记录已完成恢复的 principal；持久化只在恢复完成后生效，避免
+  // session 尚未加载时把空状态写回存储（清掉本可恢复的标签）。
   const hydratedRef = useRef<string | undefined>(undefined);
   useEffect(() => {
     const previousPrincipal = previousPrincipalRef.current;
     previousPrincipalRef.current = principalID;
     const principalChanged = previousPrincipal !== undefined && previousPrincipal !== principalID;
     if (!principalID) {
+      // 首次挂载时 session 尚未加载：绝不重置内存状态；只有从有 principal 变为无
+      // （登出/切换）才清理持久化快照与内存。
       hydratedRef.current = undefined;
       if (principalChanged) {
         clearPersistedWorkspaceState();
@@ -140,15 +139,21 @@ export function WorkspaceProvider({ manifest, principalID, navigateToDefault, ch
       const hydrate = (persisted: Array<{ routeID: string; restoreKey?: string; pathname: string; search: string; pinned: boolean }>): WorkspaceDescriptor[] => {
         const result: WorkspaceDescriptor[] = [];
         for (const tab of persisted) {
-          const route = formalRoute(manifestRef.current, tab.routeID);
-          if (!route) continue;
+          // 旧 Rev.2 快照中的普通 route descriptor（iam.accounts/settings.* 等）因
+          // 不再 restorable 而被丢弃；只有显式 restorable workspace 才恢复（087）。
+          const route = manifestRef.current?.routes.find((candidate) => candidate.id === tab.routeID);
+          if (!route || !routeIsRestorable(manifestRef.current, tab.routeID)) continue;
+          // contextual 恢复只使用模块提供的低敏 restoreKey 作为恢复上下文；没有该键
+          // 时无法安全重建实体上下文，直接丢弃，不把 pathname 猜成业务身份。
+          const contextID = route.workspaceTab?.mode === "contextual" ? tab.restoreKey : undefined;
+          if (route.workspaceTab?.mode === "contextual" && !contextID) continue;
           result.push({
-            id: createWorkspaceID(tab.routeID, undefined),
+            id: createWorkspaceID(tab.routeID, contextID),
             routeID: tab.routeID,
+            contextID,
             restoreKey: tab.restoreKey,
             location: { pathname: tab.pathname, search: tab.search },
-            pinned: tab.pinned || route.default,
-            fixedHome: route.default,
+            pinned: tab.pinned,
             dirty: false,
             openedAt: now,
           });
@@ -158,7 +163,8 @@ export function WorkspaceProvider({ manifest, principalID, navigateToDefault, ch
       open.push(...hydrate(snapshot.tabs));
       closed.push(...hydrate(snapshot.closed));
     }
-    // 恢复用并入（hydrate）而非整体替换；是否激活由【当前路由】的导航效果决定。
+    // 恢复用并入（hydrate）而非整体替换：避免与导航效果刚打开的工作区冲突；
+    // 是否激活由【当前路由】的导航效果决定（普通 route 激活时标签保留但无活动工作区）。
     hydratedRef.current = principalID;
     dispatch({ type: "hydrate", open, closed });
   }, [principalID]);
@@ -166,20 +172,20 @@ export function WorkspaceProvider({ manifest, principalID, navigateToDefault, ch
   // ---- manifest 变化 → reconcile：已撤权/已删除 route 的打开与关闭元数据丢弃 ----
   useEffect(() => {
     if (!manifest) return;
-    dispatch({ type: "reconcile", valid: (routeID) => routeIsFormal(formalRoute(manifest, routeID)) });
+    dispatch({ type: "reconcile", valid: (routeID) => routeIsWorkspaceEnabled(manifest, routeID) });
   }, [manifest]);
 
   // ---- 状态变化 → allowlist 持久化（只写低敏元数据，storage 失败降级不阻断） ----
   useEffect(() => {
     if (!principalID || hydratedRef.current !== principalID) return;
     const restoreKeyOf = (id: WorkspaceID) => state.open.find((descriptor) => descriptor.id === id)?.restoreKey ?? state.closed.find((descriptor) => descriptor.id === id)?.restoreKey;
-    const snapshot = projectPersistedState(state, principalID, restoreKeyOf);
+    const snapshot = projectPersistedState(state, principalID, (routeID) => routeIsRestorable(manifestRef.current, routeID), restoreKeyOf);
     if (writePersistedWorkspaceState(snapshot) === "workspace_storage_write_failed") {
       console.error("workspace_storage_write_failed");
     }
   }, [state, principalID]);
 
-  // ---- beforeunload：只在存在 dirty 标签时注册浏览器标准保护 ----
+  // ---- beforeunload：只在存在 dirty workspace 时注册浏览器标准保护 ----
   useEffect(() => {
     if (!hasDirtyWorkspace(state)) return;
     const handler = (event: BeforeUnloadEvent) => {
@@ -205,7 +211,8 @@ export function WorkspaceProvider({ manifest, principalID, navigateToDefault, ch
     };
   }, []);
 
-  // runBeforeClose 收集目标标签的全部 beforeClose 决策：任一 deny/error 即拒绝且不部分关闭。
+  // runBeforeClose 收集目标 workspace 的全部 beforeClose 决策：任一 deny/error 即拒绝
+  // 且不部分关闭；低敏原因统一由宿主弹窗呈现，不逐层打印。
   const runBeforeClose = useCallback(async (ids: WorkspaceID[]): Promise<"allow" | "deny"> => {
     const results = await Promise.allSettled(ids.map(async (id) => {
       const handlers = beforeCloseRef.current.get(id);
@@ -216,24 +223,25 @@ export function WorkspaceProvider({ manifest, principalID, navigateToDefault, ch
     return results.every((result) => result.status === "fulfilled" && result.value === true) ? "allow" : "deny";
   }, []);
 
-  // collectBatchTargets 计算 others/right 的目标（pinned/fixedHome 默认排除）。
+  // collectBatchTargets 计算 others/right 的目标（pinned 默认排除）。
   const collectBatchTargets = useCallback((stateNow: WorkspaceState, kind: "others" | "right", anchorID: WorkspaceID): WorkspaceID[] => {
     const anchorIndex = stateNow.open.findIndex((descriptor) => descriptor.id === anchorID);
     if (anchorIndex < 0) return [];
     const candidates = kind === "others"
       ? stateNow.open.filter((descriptor) => descriptor.id !== anchorID)
       : stateNow.open.slice(anchorIndex + 1);
-    return candidates.filter((descriptor) => !descriptor.pinned && !descriptor.fixedHome).map((descriptor) => descriptor.id);
+    return candidates.filter((descriptor) => !descriptor.pinned).map((descriptor) => descriptor.id);
   }, []);
 
   // closePipeline 统一关闭管线：目标收集 → dirty/beforeClose 检查 → 一次受控确认 →
-  // registry 提交。最后一个标签关闭（且无固定首页）时回到主导航。
+  // registry 提交。deny 的 handler 不部分关闭，直接中止。最后一个工作区关闭时
+  // 回到主导航。
   const closePipeline = useCallback(async (kind: "single" | "others" | "right", anchorID: WorkspaceID | undefined) => {
     if (kind === "single" && anchorID) {
       const anchor = state.open.find((descriptor) => descriptor.id === anchorID);
       if (!anchor) return;
-      if (anchor.pinned || anchor.fixedHome) {
-        // 用户显式单个关闭 pinned 时先要求 unpin；fixedHome 首页不可关闭。
+      if (anchor.pinned) {
+        // 用户显式单个关闭 pinned 时先要求 unpin。
         setPendingClose({ kind: "unpin-then-close", anchorID });
         return;
       }
@@ -243,9 +251,9 @@ export function WorkspaceProvider({ manifest, principalID, navigateToDefault, ch
         setPendingClose({ kind: "single", anchorID, dirtyCount: 1 });
         return;
       }
-      const closingAll = state.open.every((tab) => tab.fixedHome || tab.id === anchorID);
+      const closingLast = state.open.length === 1;
       dispatch({ type: "close", ids: [anchorID], confirmed: true });
-      if (closingAll) navigateToDefault();
+      if (closingLast) navigateToDefault();
       return;
     }
     if ((kind === "others" || kind === "right") && anchorID) {
@@ -258,9 +266,9 @@ export function WorkspaceProvider({ manifest, principalID, navigateToDefault, ch
         setPendingClose({ kind, anchorID, dirtyCount });
         return;
       }
-      const closingAll = state.open.every((tab) => tab.fixedHome || targets.includes(tab.id));
+      const closingLast = targets.length === state.open.length;
       dispatch(kind === "others" ? { type: "closeOthers", anchorID, confirmed: true } : { type: "closeRight", anchorID, confirmed: true });
-      if (closingAll) navigateToDefault();
+      if (closingLast) navigateToDefault();
     }
   }, [state, collectBatchTargets, runBeforeClose, navigateToDefault]);
 
@@ -269,7 +277,19 @@ export function WorkspaceProvider({ manifest, principalID, navigateToDefault, ch
   const activeTab = useMemo(() => (state.activeWorkspaceID ? tabs.find((tab) => tab.id === state.activeWorkspaceID) : undefined), [tabs, state.activeWorkspaceID]);
 
   const openWorkspace = useCallback((input: OpenWorkspaceInput) => {
-    dispatch({ type: "open", input });
+    const route = manifestRef.current?.routes.find((candidate) => candidate.id === input.routeID);
+    const policy = workspacePolicyOf(route);
+    // 资格只信任当前 manifest 的 route policy；调用方传入的 policy 仅是动作快照，
+    // 不能借此把 disabled route 或错误 mode 伪装成 workspace。
+    if (!routeIsWorkspaceEnabled(manifestRef.current, input.routeID) || !policy || policy.mode !== input.policy.mode) return;
+    dispatch({ type: "open", input: { ...input, policy } });
+  }, []);
+
+  const openContextual = useCallback((input: { routeID: string; contextID: string; location: WorkspaceLocation; restoreKey?: string }) => {
+    const route = manifestRef.current?.routes.find((candidate) => candidate.id === input.routeID);
+    const policy = workspacePolicyOf(route);
+    if (!routeIsWorkspaceEnabled(manifestRef.current, input.routeID) || !policy || policy.mode !== "contextual") return;
+    dispatch({ type: "open", input: { routeID: input.routeID, policy, contextID: input.contextID, location: input.location, restoreKey: input.restoreKey } });
   }, []);
 
   const activateWorkspace = useCallback((id: WorkspaceID) => {
@@ -291,7 +311,7 @@ export function WorkspaceProvider({ manifest, principalID, navigateToDefault, ch
   const requestRestoreClosed = useCallback(() => {
     const nearest = state.closed[0];
     if (!nearest) return;
-    if (!formalRoute(manifestRef.current, nearest.routeID)) return;
+    if (!routeIsWorkspaceEnabled(manifestRef.current, nearest.routeID)) return;
     dispatch({ type: "restore" });
   }, [state.closed]);
 
@@ -321,11 +341,11 @@ export function WorkspaceProvider({ manifest, principalID, navigateToDefault, ch
 
   const resolveTabTitle = useCallback((tab: WorkspaceTabView) => {
     const route = manifestRef.current?.routes.find((candidate) => candidate.id === tab.routeID);
-    if (!route) return tab.contextKey ?? tab.routeID;
+    if (!route) return tab.contextID ?? tab.routeID;
     const title = translateMessage(route.titleMessageId);
     const base = title === "webui_i18n_missing" ? route.titleMessageId : title;
-    // 动态详情按实体生成独立标签：标题追加低敏 contextKey，避免同名实体混淆。
-    if (tab.contextKey) return `${base} · ${tab.contextKey}`;
+    // contextual 按实体生成独立标签：标题追加低敏 contextID 区分实体。
+    if (tab.contextID) return `${base} · ${tab.contextID}`;
     return base;
   }, []);
 
@@ -335,26 +355,26 @@ export function WorkspaceProvider({ manifest, principalID, navigateToDefault, ch
     switch (pendingClose.kind) {
       case "single":
         dispatch({ type: "close", ids: [pendingClose.anchorID], confirmed: true });
-        if (state.open.every((tab) => tab.fixedHome || tab.id === pendingClose.anchorID)) navigateToDefault();
+        if (state.open.length === 1) navigateToDefault();
         break;
       case "others": {
         const anchor = state.open.find((descriptor) => descriptor.id === pendingClose.anchorID);
         const targets = anchor ? collectBatchTargets(state, "others", anchor.id) : [];
         dispatch({ type: "closeOthers", anchorID: pendingClose.anchorID, confirmed: true });
-        if (state.open.every((tab) => tab.fixedHome || targets.includes(tab.id))) navigateToDefault();
+        if (targets.length === state.open.length) navigateToDefault();
         break;
       }
       case "right": {
         const anchor = state.open.find((descriptor) => descriptor.id === pendingClose.anchorID);
         const targets = anchor ? collectBatchTargets(state, "right", anchor.id) : [];
         dispatch({ type: "closeRight", anchorID: pendingClose.anchorID, confirmed: true });
-        if (state.open.every((tab) => tab.fixedHome || targets.includes(tab.id))) navigateToDefault();
+        if (targets.length === state.open.length) navigateToDefault();
         break;
       }
       case "unpin-then-close":
         dispatch({ type: "unpin", id: pendingClose.anchorID });
         dispatch({ type: "close", ids: [pendingClose.anchorID], confirmed: true });
-        if (state.open.every((tab) => tab.fixedHome || tab.id === pendingClose.anchorID)) navigateToDefault();
+        if (state.open.length === 1) navigateToDefault();
         break;
       case "logout":
         clearPersistedWorkspaceState();
@@ -371,6 +391,7 @@ export function WorkspaceProvider({ manifest, principalID, navigateToDefault, ch
     activeTab,
     hasDirty: hasDirtyWorkspace(state),
     openWorkspace,
+    openContextual,
     activateWorkspace,
     deactivateWorkspace,
     pinWorkspace,
@@ -384,7 +405,7 @@ export function WorkspaceProvider({ manifest, principalID, navigateToDefault, ch
     sessionLookup,
     resolveTabTitle,
     requestPrepareLogout,
-  }), [state, tabs, activeTab, openWorkspace, activateWorkspace, deactivateWorkspace, pinWorkspace, unpinWorkspace, closePipeline, requestRestoreClosed, setDirty, registerBeforeClose, sessionLookup, resolveTabTitle, requestPrepareLogout]);
+  }), [state, tabs, activeTab, openWorkspace, openContextual, activateWorkspace, deactivateWorkspace, pinWorkspace, unpinWorkspace, closePipeline, requestRestoreClosed, setDirty, registerBeforeClose, sessionLookup, resolveTabTitle, requestPrepareLogout]);
 
   return (
     <WorkspaceHostContext.Provider value={host}>

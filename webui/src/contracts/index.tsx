@@ -18,10 +18,16 @@ export type DeliveryState = "implemented" | "not-implemented";
 export type RouteLayout = "app" | "blank";
 export type CapabilityState = "available" | "degraded" | "unavailable" | "not-implemented";
 
-// 085 Rev.2：标签资格不再由 route 显式声明（WorkspaceTabPolicy 已从契约移除）。
-// 宿主对【所有正式路由】自动判定：layout=app + implemented + loadable + access
-// allowed 的页面均生成并保留标签；Drawer/Modal/Popover 等临时交互不生成标签，
-// 因为它们不是路由。Dashboard（default route）作为固定首页标签。
+// WorkspaceTabPolicy 是 route 的显式工作上下文资格（087，Go 侧
+// internal/webui.WorkspaceTabPolicy 的 discriminated union 镜像）：
+// - disabled（默认）：普通菜单访问、列表、设置分区、详情/编辑 Drawer 不生成标签；
+// - singleton：该 route 本身是一个独立工作区，同一 principal 只有一个实例；
+// - contextual：同一路由可按模块提供的稳定 contextID 打开多个实例；
+//   contextID 缺失时拒绝创建，不得回退为访问历史。
+export type WorkspaceTabPolicy =
+  | { mode: "disabled" }
+  | { mode: "singleton"; restorable: boolean }
+  | { mode: "contextual"; restorable: boolean };
 
 // ZoneID 是宿主骨架分区的稳定枚举（与 Go 侧 internal/webui.ZoneID 一致）。
 // 085 起移除 workspace-tabs 分区：当前无真实贡献方，host Workspace Tabs 由宿主
@@ -53,6 +59,9 @@ export type ManifestRoute = {
   layout: RouteLayout;
   // groupLayoutId 是共享分组布局入口（073）：同组路由由模块布局承载（固定导航 + 内容区）。
   groupLayoutId?: string;
+  // workspaceTab 是 workspace 资格投影（087）：disabled/未声明时字段省略，
+  // 宿主一律按 disabled 处理；只有显式 opt-in 的 route 才可能生成标签。
+  workspaceTab?: WorkspaceTabPolicy;
   deliveryState: DeliveryState;
   default: boolean;
   unauthenticatedDefault: boolean;
@@ -77,6 +86,8 @@ export type PrincipalView = { id: string; username: string; scopes: string[] };
 export type HostRuntime = {
   manifest: Manifest;
   principal?: PrincipalView;
+  // location 是宿主当前浏览器路由的只读快照；模块布局据此更新页内高亮，不能直接依赖宿主 Router。
+  location?: { pathname: string; search: string };
   completeAuthentication: (principal: PrincipalView) => Promise<void>;
   refreshManifest: () => Promise<void>;
   navigateToDefault: () => void;

@@ -1,7 +1,10 @@
-// 085 Rev.2：WorkspaceRegistry 函数式状态机（自动页面标签模型）。
+import type { WorkspaceTabPolicy } from "../contracts";
+
+// 087 WorkspaceRegistry 函数式状态机（显式 workspace 资格模型）。
 // 本模块是标签状态的唯一 owner：所有打开/激活/固定/关闭/恢复/对账/持久化
 // 必须经过这里的纯函数，宿主与 UI 只消费状态视图和窄会话，不自行维护标签集合。
-// 标签资格不再由 route 显式声明：宿主对每个正式路由自动 open/activate。
+// 标签资格由 route 的 typed WorkspaceTabPolicy 显式声明（默认 disabled），宿主
+// 不对普通正式路由自动 open/activate。
 
 export const MAX_OPEN_WORKSPACES = 12;
 export const MAX_CLOSED_HISTORY = 10;
@@ -9,47 +12,39 @@ export const MAX_CLOSED_HISTORY = 10;
 // WorkspaceID 只由工厂 createWorkspaceID 创建，不接受页面拼接。
 export type WorkspaceID = string;
 
-// WorkspaceLocation 是打开标签页时固定的挂载位置（panel 渲染依据，不再跟随导航）。
+// WorkspaceLocation 是打开工作区时固定的挂载位置（panel 渲染依据，不再跟随导航）。
 export type WorkspaceLocation = { pathname: string; search: string };
 
 // WorkspaceDescriptor 是标签页的宿主元数据：不含表单值、凭据、响应 body 或任意 query。
 export type WorkspaceDescriptor = {
   id: WorkspaceID;
   routeID: string;
-  // contextKey 是动态详情按实体隔离的相等性键（只用于去重，不直接显示）；
-  // 静态路由（pathname === route.path）不携带。
-  contextKey?: string;
-  // restoreKey 是低敏持久化键；由宿主从 location 派生（允许恢复的实体路径/allowlist search）。
+  // contextID 只用于 contextual 去重与相等性，不直接显示；低敏持久化键为 restoreKey。
+  contextID?: string;
+  // restoreKey 是模块在 open 时提供的低敏持久化键（contextual 可选；singleton 不用）。
   restoreKey?: string;
   location: WorkspaceLocation;
   pinned: boolean;
-  // fixedHome 表示这是 Dashboard 固定首页标签：pinned 且不可关闭、不可取消固定。
-  fixedHome: boolean;
   dirty: boolean;
   openedAt: number;
 };
 
 export type WorkspaceState = {
-  // open 保持 pinned（fixedHome 优先）在前、unpinned 在后的有序数组；分组内相对顺序稳定。
+  // open 保持 pinned 在前、unpinned 在后的有序数组；分组内相对顺序稳定。
   open: WorkspaceDescriptor[];
   // closed 是最近关闭栈（最近在前），上限 MAX_CLOSED_HISTORY。
   closed: WorkspaceDescriptor[];
-  // activeWorkspaceID 为空表示暂无可展示面板（如 blank 布局/首次渲染）。
+  // activeWorkspaceID 为空表示普通 route 激活（标签保留但无活动工作区）。
   activeWorkspaceID?: WorkspaceID;
 };
 
-// OpenWorkspaceInput 是宿主 open 动作的完整参数。任何正式路由都可打开
-// （Rev.2：不再要求 policy 声明）；contextKey 供动态详情按实体生成独立标签。
+// OpenWorkspaceInput 是宿主 open 动作的完整参数；policy 必须非 disabled。
 export type OpenWorkspaceInput = {
   routeID: string;
-  path: string;
+  policy: WorkspaceTabPolicy;
   location: WorkspaceLocation;
-  // contextKey 是动态详情实体键：同 route 不同 contextKey 生成独立标签；
-  // 静态导航不传，同 route 按 routeID 去重激活。
-  contextKey?: string;
-  // isDefaultHome 表示该 route 是 Dashboard 固定首页：打开即 fixedHome。
-  isDefaultHome?: boolean;
-  // restoreKey 是低敏持久化键（host 从 location 派生）。
+  // contextual 必须有稳定 contextID（087），缺失时拒绝创建。
+  contextID?: string;
   restoreKey?: string;
   openedAt?: number;
 };
@@ -63,10 +58,12 @@ export type WorkspaceOutcome =
 
 export type WorkspaceRejectedCode =
   | "workspace_cap_exceeded"
+  | "workspace_context_missing"
   | "workspace_not_found"
   | "workspace_pinned_requires_unpin"
   | "workspace_dirty_requires_confirmation"
-  | "workspace_closed_empty";
+  | "workspace_closed_empty"
+  | "workspace_invalid_policy";
 
 export type WorkspaceTransition = { state: WorkspaceState; outcome: WorkspaceOutcome };
 
@@ -84,17 +81,17 @@ export type WorkspaceAction =
   | { type: "reconcile"; valid: (routeID: string) => boolean }
   | { type: "replace"; state: WorkspaceState }
   // hydrate 把持久化快照的已打开标签并入当前状态：与导航效果可能已打开的标签按
-  // ID 去重合并，绝不整体替换（否则恢复完成前打开的标签会被清掉）。
+  // ID 去重合并，绝不整体替换（否则恢复完成前打开的工作区会被清掉）。
   | { type: "hydrate"; open: WorkspaceDescriptor[]; closed: WorkspaceDescriptor[] };
 
 export function emptyWorkspaceState(): WorkspaceState {
   return { open: [], closed: [], activeWorkspaceID: undefined };
 }
 
-// createWorkspaceID 是 ID 唯一工厂：静态路由按 routeID 编码（去重/激活），
-// 动态详情按 routeID + contextKey 编码（按实体独立）。返回值只用于相等性。
-export function createWorkspaceID(routeID: string, contextKey?: string): WorkspaceID {
-  return contextKey ? `ws:d:${routeID}:${contextKey}` : `ws:r:${routeID}`;
+// createWorkspaceID 是 ID 唯一工厂：singleton 以 route ID 编码，contextual 追加
+// 模块提供的 contextID。返回结果只用于相等性，不用于展示或持久化凭据。
+export function createWorkspaceID(routeID: string, contextID?: string): WorkspaceID {
+  return contextID ? `ws:ctx:${routeID}:${contextID}` : `ws:single:${routeID}`;
 }
 
 function outcomeRejected(code: WorkspaceRejectedCode): WorkspaceOutcome {
@@ -105,10 +102,16 @@ function outcomeRejected(code: WorkspaceRejectedCode): WorkspaceOutcome {
 export function workspaceReducer(state: WorkspaceState, action: WorkspaceAction): WorkspaceTransition {
   switch (action.type) {
     case "open": {
-      const id = createWorkspaceID(action.input.routeID, action.input.contextKey);
-      const existing = state.open.find((tab) => tab.id === id);
-      if (existing) {
-        // 同一页面已打开：只激活，不重复创建（静态路由去重/动态详情同实体去重）。
+      const mode = action.input.policy.mode;
+      if (mode !== "singleton" && mode !== "contextual") {
+        return { state, outcome: outcomeRejected("workspace_invalid_policy") };
+      }
+      if (mode === "contextual" && !action.input.contextID) {
+        return { state, outcome: outcomeRejected("workspace_context_missing") };
+      }
+      const id = createWorkspaceID(action.input.routeID, action.input.contextID);
+      if (state.open.some((tab) => tab.id === id)) {
+        // 同一上下文已打开：只激活，不创建重复项（singleton 去重 / contextual 同 context 去重）。
         return { state: withActive(state, id), outcome: { kind: "opened", id, activated: true } };
       }
       if (state.open.length >= MAX_OPEN_WORKSPACES) {
@@ -117,12 +120,10 @@ export function workspaceReducer(state: WorkspaceState, action: WorkspaceAction)
       const descriptor: WorkspaceDescriptor = {
         id,
         routeID: action.input.routeID,
-        contextKey: action.input.contextKey,
+        contextID: action.input.contextID,
         restoreKey: action.input.restoreKey,
         location: action.input.location,
-        // Dashboard 固定首页：打开即 fixedHome + pinned。
-        pinned: action.input.isDefaultHome === true,
-        fixedHome: action.input.isDefaultHome === true,
+        pinned: false,
         dirty: false,
         openedAt: action.input.openedAt ?? Date.now(),
       };
@@ -144,21 +145,14 @@ export function workspaceReducer(state: WorkspaceState, action: WorkspaceAction)
       return next ? { state: next, outcome: { kind: "ok" } } : { state, outcome: outcomeRejected("workspace_not_found") };
     }
     case "unpin": {
-      // fixedHome（Dashboard 首页）不可取消固定。
-      const target = state.open.find((tab) => tab.id === action.id);
-      if (!target) return { state, outcome: outcomeRejected("workspace_not_found") };
-      if (target.fixedHome) return { state, outcome: { kind: "ok" } };
       const next = reorderByPin(state, action.id, false);
-      return next ? { state: next, outcome: { kind: "ok" } } : { state, outcome: { kind: "ok" } };
+      return next ? { state: next, outcome: { kind: "ok" } } : { state, outcome: outcomeRejected("workspace_not_found") };
     }
     case "close": {
       const targets = action.ids;
       if (targets.length === 0) return { state, outcome: { kind: "ok" } };
       const missing = targets.filter((id) => !state.open.some((tab) => tab.id === id));
       if (missing.length > 0) return { state, outcome: outcomeRejected("workspace_not_found") };
-      // fixedHome（Dashboard 首页）不可关闭。
-      const fixed = targets.filter((id) => state.open.find((tab) => tab.id === id)?.fixedHome);
-      if (fixed.length > 0) return { state, outcome: outcomeRejected("workspace_pinned_requires_unpin") };
       const pinned = targets.filter((id) => state.open.find((tab) => tab.id === id)?.pinned);
       if (pinned.length > 0) return { state, outcome: outcomeRejected("workspace_pinned_requires_unpin") };
       const dirty = targets.filter((id) => state.open.find((tab) => tab.id === id)?.dirty);
@@ -170,7 +164,7 @@ export function workspaceReducer(state: WorkspaceState, action: WorkspaceAction)
     case "closeOthers": {
       const anchor = state.open.find((tab) => tab.id === action.anchorID);
       if (!anchor) return { state, outcome: outcomeRejected("workspace_not_found") };
-      const targets = state.open.filter((tab) => tab.id !== action.anchorID && !tab.pinned && !tab.fixedHome).map((tab) => tab.id);
+      const targets = state.open.filter((tab) => tab.id !== action.anchorID && !tab.pinned).map((tab) => tab.id);
       if (targets.length === 0) return { state, outcome: { kind: "ok" } };
       const dirty = targets.filter((id) => state.open.find((tab) => tab.id === id)?.dirty);
       if (dirty.length > 0 && !action.confirmed) {
@@ -181,7 +175,7 @@ export function workspaceReducer(state: WorkspaceState, action: WorkspaceAction)
     case "closeRight": {
       const anchorIndex = state.open.findIndex((tab) => tab.id === action.anchorID);
       if (anchorIndex < 0) return { state, outcome: outcomeRejected("workspace_not_found") };
-      const targets = state.open.slice(anchorIndex + 1).filter((tab) => !tab.pinned && !tab.fixedHome).map((tab) => tab.id);
+      const targets = state.open.slice(anchorIndex + 1).filter((tab) => !tab.pinned).map((tab) => tab.id);
       if (targets.length === 0) return { state, outcome: { kind: "ok" } };
       const dirty = targets.filter((id) => state.open.find((tab) => tab.id === id)?.dirty);
       if (dirty.length > 0 && !action.confirmed) {
@@ -210,7 +204,6 @@ export function workspaceReducer(state: WorkspaceState, action: WorkspaceAction)
     case "reconcile": {
       const keepOpen = state.open.filter((tab) => action.valid(tab.routeID));
       const keepClosed = state.closed.filter((tab) => action.valid(tab.routeID));
-      // Dashboard 首页在 manifest 仍被取消（撤权/删除默认路由）时，从固定保护中移除。
       const dropped = state.open.filter((tab) => !action.valid(tab.routeID)).map((tab) => tab.id);
       let next: WorkspaceState = { ...state, open: keepOpen, closed: keepClosed };
       if (state.activeWorkspaceID && !keepOpen.some((tab) => tab.id === state.activeWorkspaceID)) {

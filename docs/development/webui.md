@@ -89,18 +89,17 @@ IAM 用户密码可通过 `go run ./cmd/app iam reset-password --username <用�
 
 宿主 Shell 按 `webui/src/components/shell/*` 拆分：`AppSidebar`（品牌、递归菜单、移动抽屉语义）、`AppHeader`（topbar 与工具优先级）、`AccountMenu`（账号 popover，统一 dismiss/focus）、`SidebarMenu`（递归菜单树与子菜单常驻 DOM）、`WorkspaceTabs`（42px 宿主标签栏，085）、`ShellSkeleton`/`PageSkeleton`（几何占位）。083 已移除宿主**访问历史** Tab Bar、visited-tabs 状态和固定 Footer；085 以显式 opt-in 的 Workspace Tabs 单轨重建（见下节），不恢复菜单历史标签。`AppShell` 保留现有公开 props，只负责 manifest/principal/logout 转宿主 view model 并协调 overlay、workspace 分流与 route content。平台样式 token（`--shell-*` 布局、`--z-*` 层级、`--motion-*` 时长与 easing、surface/border/radius/shadow/spacing）集中在 `styles.css` token 分区；前端侧同一个动效常量维护在 `webui/src/motion.ts`，overlay 四态状态机在 `webui/src/components/shell/overlay.ts`。reduced-motion 决策由 `webui/src/theme.ts` 合并显式偏好与系统 `prefers-reduced-motion`，最终落到 `data-motion` 供样式统一降级。
 
-## 085 宿主页面标签栏（Rev.2：自动页面标签）
+## 085 宿主页面标签栏（087 修订：显式 workspace 资格）
 
-**职责边界**：顶部标签栏代表后台当前「已打开的页面」。**所有正式路由自动创建并保留标签**，不再要求 route 显式声明（Rev.2 移除 `WorkspaceTabPolicy` 契约）：app 布局 + `deliveryState=implemented` + 可加载（routeIsFormal）+ `access=allowed` 即生成标签。Drawer/Modal/Popover 等临时交互不是路由，不生成标签。模块拥有业务工作状态，宿主只拥有标签元数据、挂载生命周期与关闭/持久化决策，不读取表单字段。
+**职责边界**：顶部标签栏只代表需要保留独立工作状态的 workspace。route 的 typed `WorkspaceTabPolicy` 显式声明资格：默认 `disabled`，只有 `singleton` 或 `contextual` route 才能创建标签；不能从 app 布局、菜单、访问历史或 `default` 属性自动推断。Drawer/Modal/Popover 等临时交互不是路由，不生成标签。模块拥有业务工作状态，宿主只拥有标签元数据、挂载生命周期与关闭/持久化决策，不读取表单字段。
 
-- **固定首页**：`default` 路由（Dashboard）作为固定首页标签——打开即 `fixedHome`（pinned、不可关闭、不可取消固定、不被「关闭其他/关闭右侧」批量影响）。
-- **动态详情**：动态详情页按具体实体生成独立标签。宿主用 `deriveContextKey(route, pathname)` 从 pathname 相对 route.path 的差异派生低敏 contextKey：静态导航（pathname === route.path）按 routeID 去重激活；子路径产生独立标签；title 追加低敏 contextKey 区分实体。contextKey 只用于相等性与标题，不持久化敏感原文（只有低敏 `restoreKey` 进 JSON）。
-- **状态机**：`webui/src/workspace/registry.ts` 是唯一状态 owner——`MAX_OPEN_WORKSPACES=12`、`MAX_CLOSED_HISTORY=10`，pinned/fixedHome 左置且不被批量动作影响，dirty 标签未经确认不得关闭（批量原子），关闭后焦点落到右/左邻居；`reconcile` 在 manifest 变化时丢弃已撤权/已删除 route 的打开与关闭元数据。
-- **持久化**：`webui/src/workspace/storage.ts` 只保存版本化（`version:1`）低敏元数据并按 `principalID` 隔离：routeID/pinned/顺序/允许的 pathname + 明确 allowlist 的 search key + 宿主派生的低敏 `restoreKey`；**不保存** dirty、草稿、凭据、响应 body、错误文本或任意 query。坏 JSON、存储抛错、版本不支持、principal 不匹配一律 fail closed 到内存空状态；`setItem` 失败只记录稳定错误码 `workspace_storage_write_failed`。刷新后恢复打开的标签元数据（不恢复 dirty/草稿）。
-- **mounted panel 与会话**：`WorkspaceOutlet` 为每个打开的正式页面建立以打开时固定 location 挂载的 panel（inactive `hidden`+`inert`，不卸载、不聚焦、不交互），active 面板 `role=tabpanel` 并与 tab `aria-labelledby` 关联；普通 Router Outlet 仅作为 fallback（blank 布局/首次渲染兜底），面板复用 `ManifestRouteView`/`renderAppRoutes` 不复制业务 route 声明（`renderPanelRoutes`）。`@webui/sdk/runtime` 提供窄会话 `useWorkspaceSession()`：`{workspaceID, active, setDirty, requestClose, registerBeforeClose}`；模块不可读全 registry。
-- **标签栏**：42px（`--shell-tabs-height`）文本式；Active 用 2px 底部指示线；关闭按钮仅在 hover/focus-within/active 显示（fixedHome 首页无关闭按钮）；pinned/dirty 同时有图标与可访问名称；文本单行省略，空间不足进入横向滚动与尾部 RAC 溢出菜单；APG 手动激活（方向键移动焦点，Space/Enter 激活，Delete 关闭，Shift+F10 上下文菜单提供 pin/unpin/close others/close right/restore，fixedHome 禁用相关动作）。
-- **统一关闭管线**：单个/关闭其他/关闭右侧先收集目标（pinned/fixedHome 排除），经 dirty 标记与 `beforeClose` handler 决策，一次受控确认后 registry 原子提交；`beforeunload` 只在存在 dirty 标签时注册；logout 有 dirty 时先走同一确认并在成功前保留状态；非首页标签全部关闭后回到已打开的固定首页或主导航。
-- **接入约定**：新增正式路由时**无需任何声明**即自动获得标签；`pnpm generate:check` 只保证 manifest/registry 一致。宿主按 `routeIsFormal` 判定，模块无需感知标签语义；测试用 `data-testid^="workspace-panel-"`/`[data-active="true"]` 区分活动面板。当前 `workspace-tabs` zone 已因零贡献方删除，不在此提供万能注入面。
+- **资格模型**：普通列表、配置页和 Settings 八个分区保持 `disabled`，统一走唯一的普通 Router Outlet；OpenAPI 工作台显式声明 `singleton`。`contextual` 必须由模块动作提供稳定 `contextID`，缺失时拒绝创建；未知 policy 值在 Go catalog 校验阶段失败。
+- **状态机**：`webui/src/workspace/registry.ts` 是唯一状态 owner——`MAX_OPEN_WORKSPACES=12`、`MAX_CLOSED_HISTORY=10`，pinned 标签左置，dirty 标签未经确认不得关闭（批量原子），关闭后焦点落到右/左邻居；`reconcile` 在 manifest 变化时丢弃已撤权、已删除或不再具备显式 workspace 资格的元数据。
+- **持久化**：`webui/src/workspace/storage.ts` 只保存版本化（`version:1`）低敏元数据并按 `principalID` 隔离：显式 `restorable` workspace 的 routeID/pinned/顺序/允许的 pathname + 明确 allowlist 的 search key + 模块提供的低敏 `restoreKey`；**不保存** disabled route、dirty、草稿、凭据、响应 body、错误文本或任意 query。坏 JSON、存储抛错、版本不支持、principal 不匹配一律 fail closed 到内存空状态；`setItem` 失败只记录稳定错误码 `workspace_storage_write_failed`。刷新后恢复打开的 workspace 标签元数据（不恢复 dirty/草稿）。
+- **mounted panel 与会话**：`WorkspaceOutlet` 只为显式 workspace 建立以打开时固定 location 挂载的 panel（inactive `hidden`+`inert`，不卸载、不聚焦、不交互），active 面板 `role=tabpanel` 并与 tab `aria-labelledby` 关联；普通 Router Outlet 是普通 route 的唯一活动内容路径。面板复用 `ManifestRouteView`/`renderPanelRoutes`，不复制业务 route 声明。`@webui/sdk/runtime` 提供窄会话 `useWorkspaceSession()`：`{workspaceID, active, setDirty, requestClose, registerBeforeClose}`；模块不可读全 registry。
+- **标签栏**：42px（`--shell-tabs-height`）文本式；Active 用 2px 底部指示线；关闭按钮仅在 hover/focus-within/active 显示；pinned/dirty 同时有图标与可访问名称；文本单行省略，空间不足进入横向滚动与尾部 RAC 溢出菜单；APG 手动激活（方向键移动焦点，Space/Enter 激活，Delete 关闭，Shift+F10 上下文菜单提供 pin/unpin/close others/close right/restore）。
+- **统一关闭管线**：单个/关闭其他/关闭右侧先收集目标（pinned 排除），经 dirty 标记与 `beforeClose` handler 决策，一次受控确认后 registry 原子提交；`beforeunload` 只在存在 dirty workspace 时注册；logout 有 dirty 时先走同一确认并在成功前保留状态；所有 workspace 关闭后回到主导航。
+- **接入约定**：新增需要独立工作状态的 route 必须在模块 Binding 中显式声明 `WorkspaceTabPolicy`，普通 route 不声明即保持 `disabled`；运行 `pnpm generate:check` 保证 manifest/registry 一致。测试用 `data-testid^="workspace-panel-"`/`[data-active="true"]` 区分活动 workspace panel。当前 `workspace-tabs` zone 已因零贡献方删除，不在此提供万能注入面。
 
 ## 唯一 Design Token 系统与内容分流（086）
 

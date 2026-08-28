@@ -10,17 +10,21 @@ import {
   type OpenWorkspaceInput,
   type WorkspaceState,
 } from "./registry";
+import type { WorkspaceTabPolicy } from "../contracts";
+
+const singletonPolicy: WorkspaceTabPolicy = { mode: "singleton", restorable: false };
+const contextualPolicy: WorkspaceTabPolicy = { mode: "contextual", restorable: false };
 
 function openInput(routeID: string, path = `/${routeID}`, overrides: Partial<OpenWorkspaceInput> = {}): OpenWorkspaceInput {
-  return { routeID, path, location: { pathname: path, search: "" }, ...overrides };
+  return { routeID, policy: singletonPolicy, location: { pathname: path, search: "" }, ...overrides };
 }
 
 function runOpen(state: WorkspaceState, input: OpenWorkspaceInput) {
   return workspaceReducer(state, { type: "open", input });
 }
 
-describe("WorkspaceRegistry 打开与身份（Rev.2：全路由自动标签）", () => {
-  it("任意正式路由都可打开：静态路由按 routeID 去重，重复访问只激活", () => {
+describe("WorkspaceRegistry 打开与身份（087：显式 workspace 资格）", () => {
+  it("singleton route 按 routeID 去重，重复访问只激活", () => {
     const first = runOpen(emptyWorkspaceState(), openInput("ops.dashboard", "/dashboard"));
     if (first.outcome.kind !== "opened" || first.outcome.activated) throw new Error("首次打开应创建");
     expect(first.state.open).toHaveLength(1);
@@ -30,7 +34,7 @@ describe("WorkspaceRegistry 打开与身份（Rev.2：全路由自动标签）",
     expect(second.state.open).toHaveLength(1);
   });
 
-  it("不同路由创建独立标签", () => {
+  it("不同显式 workspace route 创建独立标签", () => {
     const a = runOpen(emptyWorkspaceState(), openInput("iam.accounts", "/admin/accounts"));
     const b = runOpen(a.state, openInput("settings.profile", "/settings/profile"));
     expect(b.state.open.map((tab) => tab.id)).toEqual([
@@ -39,17 +43,24 @@ describe("WorkspaceRegistry 打开与身份（Rev.2：全路由自动标签）",
     ]);
   });
 
-  it("动态详情按 contextKey 生成独立标签；同实体去重（Rev.2 动态详情）", () => {
-    const first = runOpen(emptyWorkspaceState(), openInput("accounts.detail", "/accounts/detail/a", { contextKey: "entity-a" }));
-    const same = runOpen(first.state, openInput("accounts.detail", "/accounts/detail/a", { contextKey: "entity-a" }));
+  it("contextual route 按 contextID 生成独立标签；同实体去重", () => {
+    const first = runOpen(emptyWorkspaceState(), openInput("accounts.detail", "/accounts/detail/a", { policy: contextualPolicy, contextID: "entity-a" }));
+    const same = runOpen(first.state, openInput("accounts.detail", "/accounts/detail/a", { policy: contextualPolicy, contextID: "entity-a" }));
     if (same.outcome.kind !== "opened" || !same.outcome.activated) throw new Error("同实体应去重激活");
     expect(same.state.open).toHaveLength(1);
-    const other = runOpen(first.state, openInput("accounts.detail", "/accounts/detail/b", { contextKey: "entity-b" }));
+    const other = runOpen(first.state, openInput("accounts.detail", "/accounts/detail/b", { policy: contextualPolicy, contextID: "entity-b" }));
     expect(other.state.open).toHaveLength(2);
     expect(other.state.open.map((tab) => tab.id)).toEqual([
       createWorkspaceID("accounts.detail", "entity-a"),
       createWorkspaceID("accounts.detail", "entity-b"),
     ]);
+  });
+
+  it("disabled policy 不创建 workspace，contextual 缺少 contextID 时拒绝", () => {
+    const disabled = runOpen(emptyWorkspaceState(), openInput("settings.profile", "/settings/profile", { policy: { mode: "disabled" } }));
+    expect(disabled.outcome).toMatchObject({ kind: "rejected", code: "workspace_invalid_policy" });
+    const missingContext = runOpen(emptyWorkspaceState(), openInput("accounts.detail", "/accounts/detail/a", { policy: contextualPolicy }));
+    expect(missingContext.outcome).toMatchObject({ kind: "rejected", code: "workspace_context_missing" });
   });
 
   it("达到 12 上限后拒绝第 13 个且不静默淘汰", () => {
@@ -61,35 +72,6 @@ describe("WorkspaceRegistry 打开与身份（Rev.2：全路由自动标签）",
     const rejected = runOpen(state, openInput("route.overflow", "/route/overflow"));
     expect(rejected.outcome).toMatchObject({ kind: "rejected", code: "workspace_cap_exceeded" });
     expect(rejected.state.open).toHaveLength(MAX_OPEN_WORKSPACES);
-  });
-});
-
-describe("WorkspaceRegistry Dashboard 固定首页", () => {
-  it("default route 打开即 fixedHome + pinned；不可关闭、不可取消固定", () => {
-    let state = runOpen(emptyWorkspaceState(), openInput("ops.dashboard", "/dashboard", { isDefaultHome: true })).state;
-    expect(state.open[0].fixedHome).toBe(true);
-    expect(state.open[0].pinned).toBe(true);
-
-    const unpinned = workspaceReducer(state, { type: "unpin", id: createWorkspaceID("ops.dashboard") });
-    expect(unpinned.state.open[0].pinned).toBe(true);
-
-    const closed = workspaceReducer(state, { type: "close", ids: [createWorkspaceID("ops.dashboard")] });
-    expect(closed.outcome).toMatchObject({ kind: "rejected", code: "workspace_pinned_requires_unpin" });
-    expect(closed.state.open).toHaveLength(1);
-
-    // closeOthers/closeRight 不波及 fixedHome 首页。
-    state = runOpen(state, openInput("iam.accounts", "/admin/accounts")).state;
-    const others = workspaceReducer(state, { type: "closeOthers", anchorID: createWorkspaceID("iam.accounts") });
-    // closeOthers 保留 anchor（iam.accounts），dashboard 为 fixedHome 亦保留。
-    expect(others.state.open.map((tab) => tab.id)).toEqual([createWorkspaceID("ops.dashboard"), createWorkspaceID("iam.accounts")]);
-    const right = workspaceReducer(state, { type: "closeRight", anchorID: createWorkspaceID("ops.dashboard") });
-    expect(right.state.open.map((tab) => tab.id)).toEqual([createWorkspaceID("ops.dashboard")]);
-  });
-
-  it("非 default 路由不是 fixedHome", () => {
-    const state = runOpen(emptyWorkspaceState(), openInput("iam.accounts", "/admin/accounts")).state;
-    expect(state.open[0].fixedHome).toBe(false);
-    expect(state.open[0].pinned).toBe(false);
   });
 });
 
@@ -218,6 +200,14 @@ describe("WorkspaceRegistry 对账与派生视图", () => {
     const result = workspaceReducer(state, { type: "reconcile", valid: (routeID) => routeID === "route.a" });
     expect(result.state.open.map((tab) => tab.id)).toEqual([createWorkspaceID("route.a")]);
     expect(result.state.closed).toHaveLength(0);
+  });
+
+  it("reconcile 保留当前已打开但不可恢复的显式 workspace", () => {
+    const state = runOpen(emptyWorkspaceState(), openInput("route.session-only", "/session-only", {
+      policy: { mode: "singleton", restorable: false },
+    })).state;
+    const result = workspaceReducer(state, { type: "reconcile", valid: (routeID) => routeID === "route.session-only" });
+    expect(result.state.open.map((tab) => tab.routeID)).toEqual(["route.session-only"]);
   });
 
   it("setDirty 未打开标签返回 not_found", () => {

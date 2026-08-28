@@ -10,6 +10,8 @@ import {
   type PersistedWorkspaceStateV1,
 } from "./storage";
 
+const isRestorable = (routeID: string) => routeID === "openapi.workspace" || routeID === "accounts.detail";
+
 class ThrowingStorage {
   getItem(): string | null {
     throw new Error("storage unavailable");
@@ -22,11 +24,16 @@ class ThrowingStorage {
   }
 }
 
-function openState(routeID: string, path = `/${routeID}`, search = "", pinned = false, contextKey?: string): WorkspaceState {
+function openState(routeID: string, path = `/${routeID}`, search = "", pinned = false, contextID?: string): WorkspaceState {
   let state = emptyWorkspaceState();
   state = workspaceReducer(state, {
     type: "open",
-    input: { routeID, path, location: { pathname: path, search }, contextKey },
+    input: {
+      routeID,
+      policy: contextID ? { mode: "contextual", restorable: true } : { mode: "singleton", restorable: routeID === "openapi.workspace" },
+      location: { pathname: path, search },
+      ...(contextID ? { contextID } : {}),
+    },
   }).state;
   if (pinned) {
     state = workspaceReducer(state, { type: "pin", id: state.open[0].id }).state;
@@ -34,30 +41,31 @@ function openState(routeID: string, path = `/${routeID}`, search = "", pinned = 
   return state;
 }
 
-describe("WorkspaceStorage 投影 allowlist（Rev.2 全路由可持久化）", () => {
-  it("所有正式路由都可投影（不再有 restorable 门禁）", () => {
-    const state = openState("iam.accounts", "/admin/accounts");
-    const projected = projectPersistedState(state, "user-1");
-    expect(projected.tabs).toHaveLength(1);
-    expect(projected.tabs[0]).toMatchObject({ routeID: "iam.accounts", pinned: false });
+describe("WorkspaceStorage 投影 allowlist（087 显式 workspace 门禁）", () => {
+  it("普通 route 不进入持久化，显式 restorable workspace 才可投影", () => {
+    const ordinary = projectPersistedState(openState("iam.accounts", "/admin/accounts"), "user-1", isRestorable);
+    expect(ordinary.tabs).toHaveLength(0);
+    const workspace = projectPersistedState(openState("openapi.workspace", "/openapi"), "user-1", isRestorable);
+    expect(workspace.tabs).toHaveLength(1);
+    expect(workspace.tabs[0]).toMatchObject({ routeID: "openapi.workspace", pinned: false });
   });
 
   it("search 只保留明确 allowlist 的 key（任意 query 不进 JSON）", () => {
     expect(WORKSPACE_SEARCH_ALLOWLIST["openapi.workspace"]).toEqual(["op", "mode"]);
     const state = openState("openapi.workspace", "/openapi", "?op=account.list&mode=debug&secret=cookie");
-    const projected = projectPersistedState(state, "user-1");
+    const projected = projectPersistedState(state, "user-1", isRestorable);
     expect(projected.tabs[0].search).toBe("?op=account.list&mode=debug");
 
     const noAllowlist = openState("iam.accounts", "/admin/accounts", "?page=2&q=admin");
-    const projectedOther = projectPersistedState(noAllowlist, "user-1");
-    expect(projectedOther.tabs[0].search).toBe("");
+    const projectedOther = projectPersistedState(noAllowlist, "user-1", isRestorable);
+    expect(projectedOther.tabs).toHaveLength(0);
   });
 
   it("不保存 dirty 与业务数据：投影只含元数据字段", () => {
-    let state = openState("iam.accounts", "/admin/accounts");
+    let state = openState("openapi.workspace", "/openapi");
     const id = state.open[0].id;
     state = workspaceReducer(state, { type: "setDirty", id, dirty: true }).state;
-    const projected = projectPersistedState(state, "user-1");
+    const projected = projectPersistedState(state, "user-1", isRestorable);
     expect(projected.tabs[0]).not.toHaveProperty("dirty");
     expect(Object.keys(projected.tabs[0]).sort()).toEqual(["pathname", "pinned", "routeID", "search"]);
     expect(projected.activeID).toBe(id);
@@ -67,15 +75,15 @@ describe("WorkspaceStorage 投影 allowlist（Rev.2 全路由可持久化）", (
     let state = emptyWorkspaceState();
     state = workspaceReducer(state, {
       type: "open",
-      input: { routeID: "accounts.detail", path: "/accounts/detail/a", contextKey: "entity-a", location: { pathname: "/accounts/detail/a", search: "" } },
+      input: { routeID: "accounts.detail", policy: { mode: "contextual", restorable: true }, contextID: "entity-a", location: { pathname: "/accounts/detail/a", search: "" } },
     }).state;
-    const projected = projectPersistedState(state, "user-1");
+    const projected = projectPersistedState(state, "user-1", isRestorable);
     expect(projected.tabs).toHaveLength(0);
 
-    const projectedKeyed = projectPersistedState(state, "user-1", (id) => (id === state.open[0].id ? "entity-a" : undefined));
+    const projectedKeyed = projectPersistedState(state, "user-1", isRestorable, (id) => (id === state.open[0].id ? "entity-a" : undefined));
     expect(projectedKeyed.tabs).toHaveLength(1);
     expect(projectedKeyed.tabs[0].restoreKey).toBe("entity-a");
-    expect(projectedKeyed.tabs[0]).not.toHaveProperty("contextKey");
+    expect(projectedKeyed.tabs[0]).not.toHaveProperty("contextID");
   });
 });
 
@@ -92,19 +100,19 @@ describe("WorkspaceStorage 读写与 fail closed", () => {
 
   it("round-trip：写入后可读出同一 principal 的快照", () => {
     const storage = memoryStorage();
-    const state = openState("iam.accounts", "/admin/accounts");
-    const snapshot = projectPersistedState(state, "user-1");
+    const state = openState("openapi.workspace", "/openapi");
+    const snapshot = projectPersistedState(state, "user-1", isRestorable);
     expect(writePersistedWorkspaceState(snapshot, storage)).toBe("ok");
     const read = readPersistedWorkspaceState("user-1", storage);
     expect(read).not.toBeNull();
     expect(read?.tabs).toHaveLength(1);
-    expect(read?.tabs[0].routeID).toBe("iam.accounts");
+    expect(read?.tabs[0].routeID).toBe("openapi.workspace");
     expect(read?.activeID).toBe(state.activeWorkspaceID);
   });
 
   it("principal 不匹配返回 null，不把 A 账号标签恢复给 B", () => {
     const storage = memoryStorage();
-    const snapshot = projectPersistedState(openState("iam.accounts", "/admin/accounts"), "user-a");
+    const snapshot = projectPersistedState(openState("openapi.workspace", "/openapi"), "user-a", isRestorable);
     writePersistedWorkspaceState(snapshot, storage);
     expect(readPersistedWorkspaceState("user-b", storage)).toBeNull();
     expect(readPersistedWorkspaceState("user-a", storage)).not.toBeNull();
@@ -127,14 +135,14 @@ describe("WorkspaceStorage 读写与 fail closed", () => {
 
   it("storage getItem/setItem 抛错时安全降级，导航不被拖垮", () => {
     expect(readPersistedWorkspaceState("user-1", new ThrowingStorage() as unknown as Storage)).toBeNull();
-    const snapshot = projectPersistedState(openState("iam.accounts", "/admin/accounts"), "user-1");
+    const snapshot = projectPersistedState(openState("openapi.workspace", "/openapi"), "user-1", isRestorable);
     expect(writePersistedWorkspaceState(snapshot, new ThrowingStorage() as unknown as Storage)).toBe("workspace_storage_write_failed");
   });
 });
 
 describe("WorkspaceStorage 快照形状", () => {
   it("快照使用单一 host key 与版本化 schema", () => {
-    const snapshot = projectPersistedState(emptyWorkspaceState(), "user-1");
+    const snapshot = projectPersistedState(emptyWorkspaceState(), "user-1", isRestorable);
     expect((snapshot as PersistedWorkspaceStateV1).version).toBe(1);
     expect(JSON.stringify(snapshot)).toContain("principalID");
     expect(WORKSPACE_STORAGE_KEY).toBe("community-go-webui-workspace");

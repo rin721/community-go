@@ -8,12 +8,12 @@ import { MemoryRouter } from "react-router-dom";
 import { renderClient } from "../../test-utils";
 import { WorkspaceTabs, type WorkspaceTabsProps } from "./WorkspaceTabs";
 import { initializeI18n } from "../../i18n";
-import { createWorkspaceID, emptyWorkspaceState, workspaceReducer, type WorkspaceState } from "../../workspace/registry";
+import { createWorkspaceID, workspaceReducer, type WorkspaceState } from "../../workspace/registry";
 
 function tabState(routeIDs: string[], activeIndex = 0): WorkspaceState {
   let state: WorkspaceState = { open: [], closed: [], activeWorkspaceID: undefined };
   for (const routeID of routeIDs) {
-    state = workspaceReducer(state, { type: "open", input: { routeID, path: `/${routeID}`, location: { pathname: `/${routeID}`, search: "" } } }).state;
+    state = workspaceReducer(state, { type: "open", input: { routeID, policy: { mode: "singleton", restorable: false }, location: { pathname: `/${routeID}`, search: "" } } }).state;
   }
   const activeID = createWorkspaceID(routeIDs[activeIndex]);
   return workspaceReducer(state, { type: "activate", id: activeID }).state;
@@ -117,15 +117,4 @@ describe("WorkspaceTabs 呈现与键盘（REQ-085-003/010）", () => {
     expect(closeButton?.getAttribute("aria-label")).toBeTruthy();
   });
 
-  it("fixedHome（Dashboard 首页）不渲染关闭按钮且上下文菜单禁用关闭/取消固定", () => {
-    let state = emptyWorkspaceState();
-    state = workspaceReducer(state, { type: "open", input: { routeID: "ops.dashboard", path: "/dashboard", isDefaultHome: true, location: { pathname: "/dashboard", search: "" } } }).state;
-    const { host } = renderTabs(state);
-    expect(host.querySelector(".workspace-tab-close")).toBeNull();
-    const [tab] = Array.from(host.querySelectorAll('[role="tab"]')) as HTMLButtonElement[];
-    act(() => { tab.dispatchEvent(new KeyboardEvent("keydown", { key: "F10", shiftKey: true, bubbles: true })); });
-    const items = Array.from(host.querySelectorAll('[role="menuitem"]'));
-    const pinItem = items.find((item) => item.getAttribute("data-action") === "pin");
-    expect(pinItem?.hasAttribute("disabled")).toBe(true);
-  });
 });

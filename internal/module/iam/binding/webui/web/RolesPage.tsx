@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActionTrigger, Button, Check, CodeText, ConfirmActionTrigger, DataTable, Drawer, EmptyState, EntityDetail, ErrorState, Field, FilterBar, FormField, PageFrame, PageHeader, PageSection, Pagination, ResourceIndex, SearchInput, Skeleton, StatusBadge } from "@webui/sdk/ui";
+import { ActionTrigger, Button, Check, CodeText, ConfirmActionTrigger, DataTable, Drawer, EmptyState, EntityDetail, ErrorState, Field, FilterBar, FormField, PageFrame, PageHeader, PageSection, Pagination, ResourceIndex, SearchInput, Skeleton, StatusBadge, StickyActionBar } from "@webui/sdk/ui";
 import { useListQueryParams, type ProblemError } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { archiveRole, createRole, listPermissions, listRoles, replaceRolePermissions, rolePermissionsView, updateRoleInfo, type PermissionDefinition, type Role } from "./api";
@@ -57,6 +57,8 @@ export default function RolesPage() {
   const [loadedKeys, setLoadedKeys] = useState<string[]>([]);
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   const [expectedVersion, setExpectedVersion] = useState(0);
+  const [permissionSaveState, setPermissionSaveState] = useState<"clean" | "dirty" | "pending" | "conflict">("clean");
+  const [permissionSaving, setPermissionSaving] = useState(false);
   const [permissions, setPermissions] = useState<PermissionDefinition[]>([]);
   const [message, setMessage] = useState("");
   const [total, setTotal] = useState(0);
@@ -80,27 +82,39 @@ export default function RolesPage() {
   }, [listQuery.filters.query, sortKey, sortDirection, page]);
   useEffect(() => { void refresh(); void listPermissions().then(async (result) => { setPermissions(result); await preloadPermissionDescriptions(result); }); }, [refresh]);
   useEffect(() => { listQuery.setPage(1); }, [listQuery.filters.query, sortKey, sortDirection]);
-  const reloadSelection = useCallback((id: string) => {
-    if (!id) return;
+  const reloadSelection = useCallback((id: string, preserveMessage = false): Promise<void> => {
+    if (!id) return Promise.resolve();
     setPermissionLoadState("loading");
-    void rolePermissionsView(id).then((view) => {
+    return rolePermissionsView(id).then((view) => {
       setLoadedKeys(view.permissionKeys);
       setSelectedKeys(view.permissionKeys);
       setExpectedVersion(view.roleVersion);
-      setMessage("");
+      setPermissionSaveState("clean");
+      if (!preserveMessage) setMessage("");
       setPermissionLoadState("idle");
-    }).catch(() => setPermissionLoadState("error"));
+    }).catch(() => { setPermissionLoadState("error"); });
   }, []);
-  useEffect(() => { if (selectedID) reloadSelection(selectedID); }, [selectedID, reloadSelection]);
+  useEffect(() => { if (selectedID) void reloadSelection(selectedID); }, [selectedID, reloadSelection]);
   const selected = items.find((item) => item.id === selectedID);
   const groups = useMemo(() => groupByOwnerModule(permissions), [permissions]);
-  const toggle = (key: string) => setSelectedKeys((current) => current.includes(key) ? current.filter((item) => item !== key) : [...current, key]);
+  const toggle = (key: string) => {
+    setMessage("");
+    setSelectedKeys((current) => {
+      const next = current.includes(key) ? current.filter((item) => item !== key) : [...current, key];
+      const nextDiff = diffKeys(loadedKeys, next);
+      setPermissionSaveState(nextDiff.added === 0 && nextDiff.removed === 0 ? "clean" : "dirty");
+      return next;
+    });
+  };
   const diff = diffKeys(loadedKeys, selectedKeys);
-  const save = () => {
-    if (!selected || selected.system) return;
-    void replaceRolePermissions(selected.id, expectedVersion, selectedKeys).then((result) => {
+  const permissionDirty = diff.added > 0 || diff.removed > 0;
+  const save = (): Promise<void> => {
+    if (!selected || selected.system || permissionSaving || !permissionDirty) return Promise.resolve();
+    setPermissionSaving(true);
+    setPermissionSaveState("pending");
+    return replaceRolePermissions(selected.id, expectedVersion, selectedKeys).then((result) => {
       setMessage(`${t("webui.iam.roles.saved")} +${result.added} −${result.removed}`);
-      return reloadSelection(selected.id);
+      return reloadSelection(selected.id, true);
     }).catch(() => {
       // Server-side permissions changed (409): reload the latest set and surface
       // the diff; never silently discard unsaved selections.
@@ -110,9 +124,10 @@ export default function RolesPage() {
         setMessage(t("webui.iam.roles.conflictResolve", { added, removed }));
         setLoadedKeys(view.permissionKeys);
         setSelectedKeys(view.permissionKeys);
+        setPermissionSaveState("conflict");
         setExpectedVersion(view.roleVersion);
       });
-    });
+    }).finally(() => setPermissionSaving(false));
   };
   const edit = () => {
     if (!selected || selected.system || !roleName.trim()) return;
@@ -205,8 +220,8 @@ export default function RolesPage() {
                 : <div className="permission-matrix">{groups.map((group) => <fieldset key={group.ownerModuleId}><legend>{group.ownerModuleId}</legend>{group.definitions.map((definition) => <Check key={definition.key} checked={selectedKeys.includes(definition.key)} disabled={selected.archived} onChange={() => toggle(definition.key)} className="permission-row">{definition.key}<span className="permission-description">{permissionDescription(definition.descriptionMessageId)}</span></Check>)}</fieldset>)}</div>}
             {message && <p className="page-meta">{message}</p>}
             <div className="page-meta">{t("webui.iam.roles.pending")}: +{diff.added} −{diff.removed} · rev {expectedVersion}</div>
-            <div className="toolbar-actions">
-              <ActionTrigger operationId="iam.roles.permissions.replace" disabled={!selected || selected.system || selected.archived || (diff.added === 0 && diff.removed === 0)} onAction={save}>{t("webui.iam.roles.savePermissions")}</ActionTrigger>
+            <StickyActionBar state={permissionSaveState} status={permissionSaveState === "dirty" ? t("webui.iam.roles.pending") : permissionSaveState === "pending" ? t("webui.iam.saving") : permissionSaveState === "conflict" ? message : undefined}>
+              <ActionTrigger operationId="iam.roles.permissions.replace" pending={permissionSaving} pendingLabel={t("webui.iam.saving")} disabled={!selected || selected.system || selected.archived || !permissionDirty} disabledReason={permissionSaving ? "busy" : !permissionDirty ? "invalid" : undefined} onAction={save}>{t("webui.iam.roles.savePermissions")}</ActionTrigger>
               {selected && !selected.system && !selected.archived && focusedRoleID !== selected.id && <Button variant="secondary" onClick={() => { setFocusedRoleID(selected.id); setRoleName(selected.name); setRoleDescription(selected.description); }}>{t("webui.iam.roles.edit")}</Button>}
               {selected && !selected.system && !selected.archived && <ConfirmActionTrigger
                 operationId="iam.roles.archive"
@@ -220,7 +235,7 @@ export default function RolesPage() {
                 closeLabel={t("webui.iam.cancel")}
                 onConfirm={() => selected ? archiveRole(selected.id).then(() => { setFocusedRoleID(""); return refresh(); }) : Promise.resolve()}
               />}
-            </div>
+            </StickyActionBar>
             {focusedRoleID === selected?.id && <><Field label={t("webui.iam.roles.name")} value={roleName} onChange={(event) => setRoleName(event.target.value)} /><Field label={t("webui.iam.roles.description")} value={roleDescription} onChange={(event) => setRoleDescription(event.target.value)} /><ActionTrigger operationId="iam.roles.update" disabled={!roleName.trim()} onAction={edit}>{t("webui.iam.roles.edit")}</ActionTrigger></>}
           </EntityDetail>
         </PageSection>

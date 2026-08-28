@@ -102,6 +102,13 @@ export function useListQueryParams<TFilters extends Record<string, FilterValue>>
     return out;
   };
   const [filters, setFiltersState] = useState<TFilters>(parse);
+  const searchString = searchParams.toString();
+  const filterKeys = Object.keys(schema.filters).join("|");
+  // 浏览器前进/后退或外部 deep-link 改变 query 时，重新投影到页面状态；
+  // 不能只依赖 setFilters，否则地址栏和筛选器会出现漂移。
+  useEffect(() => {
+    setFiltersState(parse());
+  }, [searchString, filterKeys]);
   const page = Math.max(1, Number.parseInt(searchParams.get("page") ?? "1", 10) || 1);
   const pageSize = Math.max(1, Number.parseInt(searchParams.get("pageSize") ?? "20", 10) || 20);
   const sortRaw = searchParams.get("sort");

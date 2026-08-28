@@ -39,7 +39,7 @@
 
 - `webui/src/styles.css` 建立中性色后台 Token、壳层尺寸、内容宽度、卡片/表格/筛选器/状态反馈语义，并保留亮暗与密度扩展点；侧栏补齐真实 principal 账号锚点，折叠态保留头像。
 - `webui/src/ui/layout.tsx`、`patterns.tsx`、`feedback.tsx`、`forms.tsx`、`data.tsx` 将原巨型 UI 文件拆为页面骨架、业务模式、反馈、表单和数据职责；`layout-pattern.test.tsx` 覆盖骨架结构。
-- IAM、Ops、组织、设置、审计、OpenAPI 与导航页面已接入 `PageFrame`；账户、角色、权限、会话、API Token、审计和岗位列表统一使用 `ResourceIndex` 的 toolbar/content 顺序，设置保存使用 `StickyActionBar`，审计筛选支持 RFC3339 时间范围。
+- IAM、Ops、组织、设置、审计、OpenAPI 与导航页面已接入 `PageFrame`；账户、角色、权限、会话、API Token、审计和岗位列表统一使用 `ResourceIndex` 的 toolbar/content 顺序，账户/角色管理区使用 `EntityDetail` 身份状态头，设置保存使用 `StickyActionBar`，审计筛选支持 RFC3339 时间范围。
 - 审计现将已有持久化自增键只读投影为 `eventId`，贯通 Go service/storage/HTTP、OpenAPI 快照与 WebUI 行键/详情；correlationId、游标和更完整详情仍待后端 P0 契约演进。
 - HeroUI v3 依赖与 Toast API 已单轨收敛；`pnpm typecheck`、`pnpm lint`、`pnpm test`（50 files / 237 tests）、`pnpm build` 和 4 项 mock 视觉/几何 E2E 均通过。
 

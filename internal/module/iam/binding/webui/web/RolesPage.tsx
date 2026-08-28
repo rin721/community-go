@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActionTrigger, Button, Check, CodeText, ConfirmActionTrigger, DataTable, Drawer, EmptyState, ErrorState, Field, FilterBar, FormField, PageFrame, PageHeader, PageSection, ResourceIndex, SearchInput, StatusBadge } from "@webui/sdk/ui";
+import { ActionTrigger, Button, Check, CodeText, ConfirmActionTrigger, DataTable, Drawer, EmptyState, EntityDetail, ErrorState, Field, FilterBar, FormField, PageFrame, PageHeader, PageSection, ResourceIndex, SearchInput, StatusBadge } from "@webui/sdk/ui";
 import { useListQueryParams } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { archiveRole, createRole, listPermissions, listRoles, replaceRolePermissions, rolePermissionsView, updateRoleInfo, type PermissionDefinition, type Role } from "./api";
@@ -179,29 +179,31 @@ export default function RolesPage() {
         </ResourceIndex>
       </PageSection>
       {selected && (
-        <PageSection kicker={t("webui.iam.roles.manage.kicker")} title={`${t("webui.iam.roles.selected")}: ${selected.name} (${selected.code})`}>
-          {selected.system
-            ? <p className="admin-note">{t("webui.iam.roles.systemReadonly")}</p>
-            : <div className="permission-matrix">{groups.map((group) => <fieldset key={group.ownerModuleId}><legend>{group.ownerModuleId}</legend>{group.definitions.map((definition) => <Check key={definition.key} checked={selectedKeys.includes(definition.key)} disabled={selected.archived} onChange={() => toggle(definition.key)} className="permission-row">{definition.key}<span className="permission-description">{permissionDescription(definition.descriptionMessageId)}</span></Check>)}</fieldset>)}</div>}
-          {message && <p className="page-meta">{message}</p>}
-          <div className="page-meta">{t("webui.iam.roles.pending")}: +{diff.added} −{diff.removed} · rev {expectedVersion}</div>
-          <div className="toolbar-actions">
-            <ActionTrigger operationId="iam.roles.permissions.replace" disabled={!selected || selected.system || selected.archived || (diff.added === 0 && diff.removed === 0)} onAction={save}>{t("webui.iam.roles.savePermissions")}</ActionTrigger>
-            {selected && !selected.system && !selected.archived && focusedRoleID !== selected.id && <Button variant="secondary" onClick={() => { setFocusedRoleID(selected.id); setRoleName(selected.name); setRoleDescription(selected.description); }}>{t("webui.iam.roles.edit")}</Button>}
-            {selected && !selected.system && !selected.archived && <ConfirmActionTrigger
-              operationId="iam.roles.archive"
-              variant="danger"
-              label={t("webui.iam.roles.archive")}
-              pendingLabel={t("webui.iam.saving")}
-              confirmTitle={t("webui.iam.roles.confirmArchive")}
-              confirmDescription={t("webui.iam.roles.archiving")}
-              confirmLabel={t("webui.iam.roles.archive")}
-              cancelLabel={t("webui.iam.cancel")}
-              closeLabel={t("webui.iam.cancel")}
-              onConfirm={() => selected ? archiveRole(selected.id).then(() => { setFocusedRoleID(""); return refresh(); }) : Promise.resolve()}
-            />}
-          </div>
-          {focusedRoleID === selected?.id && <><Field label={t("webui.iam.roles.name")} value={roleName} onChange={(event) => setRoleName(event.target.value)} /><Field label={t("webui.iam.roles.description")} value={roleDescription} onChange={(event) => setRoleDescription(event.target.value)} /><ActionTrigger operationId="iam.roles.update" disabled={!roleName.trim()} onAction={edit}>{t("webui.iam.roles.edit")}</ActionTrigger></>}
+        <PageSection kicker={t("webui.iam.roles.manage.kicker")} title={t("webui.iam.roles.manage.title")}>
+          <EntityDetail header={<div className="entity-detail-header-row"><div className="entity-detail-identity"><strong>{selected.name}</strong><CodeText value={selected.code} /></div><StatusBadge status={selected.archived ? "revoked" : selected.system ? "pending" : "active"}>{selected.archived ? t("webui.iam.roles.archived") : selected.system ? t("webui.iam.roles.system") : t("webui.iam.roles.custom")}</StatusBadge></div>}>
+            {selected.system
+              ? <p className="admin-note">{t("webui.iam.roles.systemReadonly")}</p>
+              : <div className="permission-matrix">{groups.map((group) => <fieldset key={group.ownerModuleId}><legend>{group.ownerModuleId}</legend>{group.definitions.map((definition) => <Check key={definition.key} checked={selectedKeys.includes(definition.key)} disabled={selected.archived} onChange={() => toggle(definition.key)} className="permission-row">{definition.key}<span className="permission-description">{permissionDescription(definition.descriptionMessageId)}</span></Check>)}</fieldset>)}</div>}
+            {message && <p className="page-meta">{message}</p>}
+            <div className="page-meta">{t("webui.iam.roles.pending")}: +{diff.added} −{diff.removed} · rev {expectedVersion}</div>
+            <div className="toolbar-actions">
+              <ActionTrigger operationId="iam.roles.permissions.replace" disabled={!selected || selected.system || selected.archived || (diff.added === 0 && diff.removed === 0)} onAction={save}>{t("webui.iam.roles.savePermissions")}</ActionTrigger>
+              {selected && !selected.system && !selected.archived && focusedRoleID !== selected.id && <Button variant="secondary" onClick={() => { setFocusedRoleID(selected.id); setRoleName(selected.name); setRoleDescription(selected.description); }}>{t("webui.iam.roles.edit")}</Button>}
+              {selected && !selected.system && !selected.archived && <ConfirmActionTrigger
+                operationId="iam.roles.archive"
+                variant="danger"
+                label={t("webui.iam.roles.archive")}
+                pendingLabel={t("webui.iam.saving")}
+                confirmTitle={t("webui.iam.roles.confirmArchive")}
+                confirmDescription={t("webui.iam.roles.archiving")}
+                confirmLabel={t("webui.iam.roles.archive")}
+                cancelLabel={t("webui.iam.cancel")}
+                closeLabel={t("webui.iam.cancel")}
+                onConfirm={() => selected ? archiveRole(selected.id).then(() => { setFocusedRoleID(""); return refresh(); }) : Promise.resolve()}
+              />}
+            </div>
+            {focusedRoleID === selected?.id && <><Field label={t("webui.iam.roles.name")} value={roleName} onChange={(event) => setRoleName(event.target.value)} /><Field label={t("webui.iam.roles.description")} value={roleDescription} onChange={(event) => setRoleDescription(event.target.value)} /><ActionTrigger operationId="iam.roles.update" disabled={!roleName.trim()} onAction={edit}>{t("webui.iam.roles.edit")}</ActionTrigger></>}
+          </EntityDetail>
         </PageSection>
       )}
     </div>

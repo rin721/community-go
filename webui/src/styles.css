@@ -3765,6 +3765,32 @@ textarea.field-input {
   display: grid;
   gap: var(--section-gap);
 }
+.entity-detail-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-bottom: var(--space-4);
+  border-bottom: var(--border-width) solid var(--border);
+}
+.entity-detail-identity {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-1);
+}
+.entity-detail-identity strong {
+  overflow: hidden;
+  color: var(--text);
+  font-size: var(--font-scale-lg);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 720px) {
+  .entity-detail-header-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
 .sticky-action-bar {
   position: sticky;
   bottom: 0;

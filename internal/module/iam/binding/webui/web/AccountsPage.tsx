@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActionTrigger, Button, BulkActionBar, Check, CodeText, ConfirmActionTrigger, DataTable, DetailDrawer, Drawer, EmptyState, ErrorState, Field, FilterBar, FormField, PageFrame, PageHeader, PageSection, ResourceIndex, SearchInput, StatusBadge } from "@webui/sdk/ui";
+import { ActionTrigger, Button, BulkActionBar, Check, CodeText, ConfirmActionTrigger, DataTable, DetailDrawer, Drawer, EmptyState, EntityDetail, ErrorState, Field, FilterBar, FormField, PageFrame, PageHeader, PageSection, ResourceIndex, SearchInput, StatusBadge } from "@webui/sdk/ui";
 import { useListQueryParams } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { accountRolesView, archiveAccount, batchAccountStatus, batchArchiveAccounts, createAccount, listAccounts, listRoles, replaceAccountRoles, resetAccountPassword, setAccountStatus, updateAccountInfo, type Account, type Role } from "./api";
@@ -226,34 +226,36 @@ export default function AccountsPage() {
         </ResourceIndex>
       </PageSection>
       {selected && (
-        <PageSection kicker={t("webui.iam.accounts.manage.kicker")} title={`${t("webui.iam.accounts.selected")}: ${selected.displayName}`}>
-          <div className="page-meta">{t("webui.iam.accounts.revision")} rev {expectedVersion}</div>
-          <div className="role-checklist">{candidates.map((role) => <Check key={role.id} checked={roleIDs.includes(role.id)} disabled={selected.archived} onChange={() => toggle(role.id)} className="permission-row">{role.name} ({role.code})</Check>)}</div>
-          {message && <p className="page-meta">{message}</p>}
-          <div className="toolbar-actions">
-            <ActionTrigger operationId="iam.accounts.roles.replace" disabled={selected.archived} onAction={save}>{t("webui.iam.accounts.saveRoles")}</ActionTrigger>
-            <ActionTrigger operationId="iam.accounts.status" variant="secondary" disabled={selected.archived} onAction={() => selected ? setAccountStatus(selected.id, selected.status === "active" ? "disabled" : "active").then(() => refresh()) : undefined}>{selected.status === "active" ? t("webui.iam.accounts.disable") : t("webui.iam.accounts.enable")}</ActionTrigger>
-          </div>
-          <div className="toolbar">
-            <Field label={t("webui.iam.accounts.resetPassword")} type="password" value={resetPassword} onChange={(event) => setResetPassword(event.target.value)} />
-            <ActionTrigger operationId="iam.accounts.password.reset" disabled={selected.archived || resetPassword.length < 15} onAction={() => selected ? resetAccountPassword(selected.id, resetPassword).then(() => setResetPassword("")) : undefined}>{t("webui.iam.accounts.reset")}</ActionTrigger>
-            <Field label={t("webui.iam.displayName")} value={renameValue} onChange={(event) => setRenameValue(event.target.value)} />
-            <ActionTrigger operationId="iam.accounts.update" disabled={selected.archived || !renameValue.trim()} onAction={rename}>{t("webui.iam.accounts.editName")}</ActionTrigger>
-            <ConfirmActionTrigger
-              operationId="iam.accounts.archive"
-              variant="danger"
-              disabled={selected.archived}
-              label={t("webui.iam.accounts.archive")}
-              pendingLabel={t("webui.iam.saving")}
-              confirmTitle={t("webui.iam.accounts.confirmArchive")}
-              confirmDescription={t("webui.iam.accounts.archiving")}
-              confirmLabel={t("webui.iam.accounts.archive")}
-              cancelLabel={t("webui.iam.cancel")}
-              closeLabel={t("webui.iam.cancel")}
-              onConfirm={() => selected ? archiveAccount(selected.id).then(() => refresh()) : Promise.resolve()}
-            />
-            {archiveError && <p className="page-meta">{t("webui.iam.error")}</p>}
-          </div>
+        <PageSection kicker={t("webui.iam.accounts.manage.kicker")} title={t("webui.iam.accounts.manage.title")}>
+          <EntityDetail header={<div className="entity-detail-header-row"><div className="entity-detail-identity"><strong>{selected.displayName}</strong><CodeText value={`@${selected.username}`} /></div><StatusBadge status={selected.archived ? "revoked" : selected.status === "active" ? "active" : "disabled"}>{selected.archived ? t("webui.iam.accounts.archived") : selected.status === "active" ? t("webui.iam.accounts.statusActive") : t("webui.iam.accounts.statusDisabled")}</StatusBadge></div>}>
+            <div className="page-meta">{t("webui.iam.accounts.revision")} rev {expectedVersion}</div>
+            <div className="role-checklist">{candidates.map((role) => <Check key={role.id} checked={roleIDs.includes(role.id)} disabled={selected.archived} onChange={() => toggle(role.id)} className="permission-row">{role.name} ({role.code})</Check>)}</div>
+            {message && <p className="page-meta">{message}</p>}
+            <div className="toolbar-actions">
+              <ActionTrigger operationId="iam.accounts.roles.replace" disabled={selected.archived} onAction={save}>{t("webui.iam.accounts.saveRoles")}</ActionTrigger>
+              <ActionTrigger operationId="iam.accounts.status" variant="secondary" disabled={selected.archived} onAction={() => selected ? setAccountStatus(selected.id, selected.status === "active" ? "disabled" : "active").then(() => refresh()) : undefined}>{selected.status === "active" ? t("webui.iam.accounts.disable") : t("webui.iam.accounts.enable")}</ActionTrigger>
+            </div>
+            <div className="toolbar">
+              <Field label={t("webui.iam.accounts.resetPassword")} type="password" value={resetPassword} onChange={(event) => setResetPassword(event.target.value)} />
+              <ActionTrigger operationId="iam.accounts.password.reset" disabled={selected.archived || resetPassword.length < 15} onAction={() => selected ? resetAccountPassword(selected.id, resetPassword).then(() => setResetPassword("")) : undefined}>{t("webui.iam.accounts.reset")}</ActionTrigger>
+              <Field label={t("webui.iam.displayName")} value={renameValue} onChange={(event) => setRenameValue(event.target.value)} />
+              <ActionTrigger operationId="iam.accounts.update" disabled={selected.archived || !renameValue.trim()} onAction={rename}>{t("webui.iam.accounts.editName")}</ActionTrigger>
+              <ConfirmActionTrigger
+                operationId="iam.accounts.archive"
+                variant="danger"
+                disabled={selected.archived}
+                label={t("webui.iam.accounts.archive")}
+                pendingLabel={t("webui.iam.saving")}
+                confirmTitle={t("webui.iam.accounts.confirmArchive")}
+                confirmDescription={t("webui.iam.accounts.archiving")}
+                confirmLabel={t("webui.iam.accounts.archive")}
+                cancelLabel={t("webui.iam.cancel")}
+                closeLabel={t("webui.iam.cancel")}
+                onConfirm={() => selected ? archiveAccount(selected.id).then(() => refresh()) : Promise.resolve()}
+              />
+              {archiveError && <p className="page-meta">{t("webui.iam.error")}</p>}
+            </div>
+          </EntityDetail>
         </PageSection>
       )}
     </div>

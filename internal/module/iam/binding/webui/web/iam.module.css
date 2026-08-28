@@ -36,13 +36,13 @@
 }
 .iamModule :global(.auth-section-title) {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--font-scale-xs);
   font-weight: var(--font-weight-semibold);
   color: var(--text-secondary);
 }
 .iamModule :global(.auth-section-hint) {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--font-scale-xs);
   line-height: 1.6;
   color: var(--text-muted);
 }
@@ -53,11 +53,11 @@
   position: absolute;
   top: 26px;
   right: 6px;
-  z-index: 1;
+  z-index: 1; /* 086：局部定位层级，非全局层级 token */
   min-width: 0;
   height: 28px;
   padding: 0 8px;
-  font-size: 12px;
+  font-size: var(--font-scale-xs);
   width: auto;
 }
 .iamModule :global(.auth-footnote) {
@@ -67,7 +67,7 @@
   gap: 12px;
   margin-top: 2px;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--font-scale-xs);
 }
 
 @media (max-width: 720px) {
@@ -99,7 +99,7 @@
 }
 .iamModule :global(.security-aside h4) {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--font-scale-xs);
   font-weight: var(--font-weight-semibold);
   color: var(--text);
 }
@@ -126,7 +126,7 @@
 }
 .iamModule :global(.form-section-title) {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--font-scale-xs);
   font-weight: var(--font-weight-semibold);
   color: var(--text-secondary);
 }
@@ -138,32 +138,16 @@
 }
 .iamModule :global(.scope-fieldset-legend) {
   padding: 0 6px;
-  font-size: 12px;
+  font-size: var(--font-scale-xs);
   color: var(--text-secondary);
 }
-.iamModule :global(.api-token-scope-group) {
-  display: grid;
-  gap: 6px;
-}
-.iamModule :global(.api-token-scope-head) {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-.iamModule :global(.api-token-scope-owner) {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin: 6px 0 2px;
-  font-size: 12px;
-  font-weight: var(--font-weight-semibold);
-  color: var(--text-secondary);
-}
+/* 086：.api-token-scope-group/.api-token-scope-owner 造型已收敛到宿主 styles.css
+   组件 token（082 REQ-082-022），IAM 模块只消费，不再重复声明；.scopeOwnerCount
+   保留为模块内容区布局。 */
 .scopeOwnerCount {
   display: inline-flex;
   margin: 0;
-  font-size: 12px;
+  font-size: var(--font-scale-xs);
   color: var(--text-muted);
   font-weight: var(--font-weight-regular);
 }
@@ -171,7 +155,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: var(--font-scale-xs);
   color: var(--text-secondary);
   cursor: pointer;
 }

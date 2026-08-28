@@ -51,7 +51,7 @@ Linux 使用 `bash scripts/verify-webui.sh`。质量链覆盖生成检查、冻�
 
 ## 骨架分区注入点与交互规范（062）
 
-- 分区注入点（zone）是骨架各区域的类型化扩展：`header-actions`（顶栏）/ `sidebar-panels`（侧边栏）/ `page-header`（页头）/ `workspace-tabs`（页签栏）/ `footer-status`（底部）；
+- 分区注入点（zone）是骨架各区域的类型化扩展：`header-actions`（顶栏）/ `sidebar-panels`（侧边栏）/ `page-header`（页头）/ `footer-status`（底部）；
   Binding 声明 → 生成 `webuiZoneRegistry`（`webui/src/generated/webui-registry.ts`）→ Manifest `zones`/`actionPermissions` 投影 → 宿主 `webui/src/zone/*` 懒加载渲染。
 - SDK capability `zone`（major 1）：`@webui/sdk/zone` 提供 `useZoneContributions`、`useActionAccess`、`ZoneSlot`；模块 zone 组件只接收 `{ contribution, navigate }`。
 - 交互状态链原语：`ActionTrigger`（pending/防重复/禁用原因/权限呈现）、`BulkActionBar`、`FormSubmitActions`；图标目录 authority 在 `webui/src/icon-catalog.ts`（Go `internal/webui/icons.go` 校验，测试守护一致）。
@@ -158,6 +158,15 @@ Linux 使用 `bash scripts/verify-webui.sh`。质量链覆盖生成检查、冻�
 - **动态详情**：动态详情页按具体实体生成独立标签（宿主从 pathname 相对 route.path 的差异派生低敏 contextKey，只用于相等性去重与标题区分，不持久化敏感原文）。
 - **宿主状态机**：`webui/src/workspace/`——`registry.ts` 是唯一状态 owner（12 打开/10 关闭历史上限、pinned/fixedHome 分组、dirty 确认、批量关闭原子性、reconcile），`storage.ts` 是版本化低敏 localStorage adapter（principal 隔离、allowlist 投影、坏数据/抛错 fail closed），`WorkspaceProvider.tsx` 是 composition root（关闭管线 + beforeunload 保护 + logout 决策）。
 - **渲染与生命周期**：`WorkspaceOutlet` 为每个打开的正式页面挂载固定 location 的 mounted panel（inactive `hidden`+`inert` 不卸载，真实保存未提交工作状态）；普通 Router Outlet 仅作为 fallback；`@webui/sdk/runtime` 提供 `useWorkspaceSession()` 窄契约（dirty/active/requestClose/registerBeforeClose，页面不可读全 registry）。
-- **标签栏**：42px 文本式（`--shell-tabs-height`）、Active 底部指示线、hover/focus-within/active 显隐关闭按钮（fixedHome 首页无关闭按钮）、pinned/dirty 图标+可访问名称、空间不足进溢出菜单；APG 键盘（roving focus、Space/Enter、Delete、Shift+F10 上下文菜单）。
+- **标签栏**：高度来自组件 token `--workspace-tabs-height`（086：由 `--size-tabs` × `--density-factor` 推导，default 42px）；Active 底部指示线、hover/focus-within/active 显隐关闭按钮（fixedHome 首页无关闭按钮）、pinned/dirty 图标+可访问名称、空间不足进溢出菜单；APG 键盘（roving focus、Space/Enter、Delete、Shift+F10 上下文菜单）。
 - **恢复**：标签元数据按 principal 隔离持久化，刷新后恢复；关闭的标签可「恢复最近关闭」（只恢复低敏元数据，不恢复 dirty/草稿）。
 - **单轨清理**：`WorkspaceTabPolicy`（显式 opt-in 契约）与旧 `.workspace-tab*` 样式、`workspace-tabs` zone 已全部移除；`ScrollExperience` 注释同步。
+- **Content 分流**：业务路由只渲染 `ContentViewport`（`webui/src/components/ContentViewport.tsx`，086）——唯一滚动/宽度容器（融合 ScrollExperience + `data-page-width` 语义），fallback 普通路由与 mounted panel 共用；`.workspace-panel-scroll` 双 padding 已删除。
+
+## 唯一 Design Token 系统（086）
+
+- **三级 token**：`webui/src/styles.css` 是唯一 token authority——`:root` 定义 **primitive**（scale/spacing 1–8、typography 10/11/12/13/14/15/16/18/24px、line-height、radius 4/5/6/7/8/10/12/16/999/50%、border-width、control/shell/entity size primitives、色板、motion/z）、**semantic**（page/surface/text/border/accents/status/danger-text/on-accent，引用 primitive）、**component**（header/sidebar/workspace-tabs/menu/form/switch/checkbox 命名空间）。
+- **density 单一管道**：`[data-density]` 只覆写 `--density-factor`（compact=0.86）；`--workspace-tabs-height`/`--shell-header-height`/`--control-height-*`/`--table-row-height-*` 均由 primitive × factor 推导，删除散点密度覆盖选择器。
+- **preset 单源**：`[data-theme-preset]` 只覆写 `--prim-primary*` palette primitive；`--color-preset.*` 引用 `--prim-accent-*`；semantic `--primary*` 自动跟随。
+- **AppShell 唯一布局**：AppShell 由根布局唯一渲染（Sidebar/Header/Tabs/ContentViewport）；业务路由/模块页面只渲染 ContentViewport。固定框架（topbar 等）`flex: 0 0 auto`，flex 收缩不再造成跨路由几何漂移。
+- **守卫**：`webui/scripts/style-rules.mjs` 扩展 L2（模块 CSS 裸 token 等价色/mono 栈违规）、L4（模块不得以宿主组件类为主体重定）、L5（!important / 未知 token）；`lint-architecture.mjs` 全仓库通过；模块只消费 token，不建立平行样式规格。

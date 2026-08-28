@@ -1,40 +1,56 @@
-.opsModule :global(.ops-grid) { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
-.opsModule :global(.diagnostic-card) { min-height: 200px; padding: 16px; overflow: hidden; }
-.opsModule :global(.diagnostic-heading) { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
-.opsModule :global(.diagnostic-heading h2), .opsModule :global(.diagnostic-card h3) { margin: 0; font-size: 14px; font-weight: 600; }
+/* ops 模块样式（086：数值/颜色收敛到宿主 token；metric 状态色为模块数据可视化
+   语义，单处声明为模块局部变量，不复制宿主组件 token） */
+.opsModule {
+  /* 模块数据可视化状态色（仅本模块 metric/health 使用；宿主 token 不承担该语义） */
+  --ops-tile-requests: #db2777;
+  --ops-tile-inflight: #7c3aed;
+  --ops-tile-exported: #0e7490;
+  --ops-tile-dropped: #d97706;
+  --ops-bar-from: #60a5fa;
+  --ops-bar-to: #22d3ee;
+  --ops-warn-soft: rgba(245, 158, 11, 0.45);
+  --ops-danger-soft: rgba(239, 68, 68, 0.5);
+  --ops-danger-bg: rgba(239, 68, 68, 0.04);
+  --ops-danger-row: rgba(239, 68, 68, 0.05);
+  --ops-track: rgba(127, 127, 127, 0.16);
+}
+.opsModule :global(.ops-grid) { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); }
+.opsModule :global(.diagnostic-card) { min-height: 200px; padding: var(--space-4); overflow: hidden; }
+.opsModule :global(.diagnostic-heading) { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); margin-bottom: var(--space-3); }
+.opsModule :global(.diagnostic-heading h2), .opsModule :global(.diagnostic-card h3) { margin: 0; font-size: var(--font-scale-md); font-weight: var(--font-weight-semibold); }
 .opsModule :global(.diagnostic-heading h2) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.opsModule :global(.diagnostic-card pre) { max-height: 230px; margin: 0; padding: 10px 11px; overflow: auto; color: var(--text-secondary); border: 1px solid var(--border); border-radius: 6px; background: var(--surface-muted); font: 11px/1.65 ui-monospace, monospace; white-space: pre-wrap; word-break: break-word; }
-.opsModule :global(.diagnostic-title) { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.opsModule :global(.diagnostic-icon) { position: relative; display: grid; place-items: center; width: 27px; height: 27px; border-radius: 8px; color: var(--primary); background: var(--primary-soft); }
-.opsModule :global(.diagnostic-icon)::before { width: 9px; height: 9px; content: ""; border: 2px solid currentColor; border-radius: 50%; }
+.opsModule :global(.diagnostic-card pre) { max-height: 230px; margin: 0; padding: 10px 11px; overflow: auto; color: var(--text-secondary); border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-muted); font: var(--font-scale-11)/1.65 var(--font-mono); white-space: pre-wrap; word-break: break-word; }
+.opsModule :global(.diagnostic-title) { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
+.opsModule :global(.diagnostic-icon) { position: relative; display: grid; place-items: center; width: 27px; height: 27px; border-radius: var(--radius-md); color: var(--primary); background: var(--primary-soft); }
+.opsModule :global(.diagnostic-icon)::before { width: 9px; height: 9px; content: ""; border: 2px solid currentColor; border-radius: var(--radius-round); }
 .opsModule :global(.diagnostic-icon)::after { position: absolute; bottom: 6px; width: 13px; height: 2px; content: ""; background: currentColor; }
 .opsModule :global(.diagnostic-actions) { display: flex; align-items: center; justify-content: flex-end; gap: 5px; flex-wrap: wrap; }
-.opsModule :global(.diagnostic-actions .diagnostic-retry) { min-height: 24px; padding: 0 6px; font-size: 11px; }
-.opsModule :global(.refresh-icon) { display: inline-block; width: 13px; height: 13px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; }
+.opsModule :global(.diagnostic-actions .diagnostic-retry) { min-height: 24px; padding: 0 6px; font-size: var(--font-scale-11); }
+.opsModule :global(.refresh-icon) { display: inline-block; width: 13px; height: 13px; border: 2px solid currentColor; border-top-color: transparent; border-radius: var(--radius-round); }
 .opsModule :global(.icon-spin) { animation: opsSpin .9s linear infinite; }
-.opsModule :global(.capability-preview) { display: block; max-width: 280px; overflow: hidden; color: var(--text-secondary); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.opsModule :global(.capability-preview) { display: block; max-width: 280px; overflow: hidden; color: var(--text-secondary); font-size: var(--font-scale-11); text-overflow: ellipsis; white-space: nowrap; }
 .opsModule :global(.capability-row-actions) { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
-.opsModule :global(.capability-row-actions .ui-button) { min-height: 27px; padding-inline: 7px; font-size: 11px; }
-.opsModule :global(.capability-detail-result) { max-height: 420px; margin: 0; overflow: auto; color: var(--text-secondary); font: 11px/1.65 ui-monospace, monospace; white-space: pre-wrap; word-break: break-word; }
+.opsModule :global(.capability-row-actions .ui-button) { min-height: 27px; padding-inline: 7px; font-size: var(--font-scale-11); }
+.opsModule :global(.capability-detail-result) { max-height: 420px; margin: 0; overflow: auto; color: var(--text-secondary); font: var(--font-scale-11)/1.65 var(--font-mono); white-space: pre-wrap; word-break: break-word; }
 .opsModule :global(.ops-overview-grid) { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
-.opsModule :global(.ops-overview-card) { min-height: 238px; padding: 16px; }
-.opsModule :global(.ops-overview-heading) { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 17px; }
-.opsModule :global(.ops-overview-heading h3) { margin: 3px 0 0; font-size: 15px; }
-.opsModule :global(.ops-overview-kicker) { color: var(--text-muted); font-size: 10px; letter-spacing: .08em; }
-.opsModule :global(.ops-runtime-grid) { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.opsModule :global(.ops-runtime-grid div) { display: grid; gap: 4px; padding: 10px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface-muted); }
-.opsModule :global(.ops-runtime-grid small) { color: var(--text-secondary); font-size: 10px; }
-.opsModule :global(.ops-runtime-grid strong) { overflow: hidden; font-size: 15px; text-overflow: ellipsis; white-space: nowrap; }
-.opsModule :global(.ops-overview-detail) { margin: 16px 0 0; color: var(--text-secondary); font-size: 11px; line-height: 1.6; }
+.opsModule :global(.ops-overview-card) { min-height: 238px; padding: var(--space-4); }
+.opsModule :global(.ops-overview-heading) { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); margin-bottom: 17px; }
+.opsModule :global(.ops-overview-heading h3) { margin: 3px 0 0; font-size: var(--font-scale-15); }
+.opsModule :global(.ops-overview-kicker) { color: var(--text-muted); font-size: var(--font-scale-10); letter-spacing: .08em; }
+.opsModule :global(.ops-runtime-grid) { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+.opsModule :global(.ops-runtime-grid div) { display: grid; gap: var(--space-1); padding: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-7); background: var(--surface-muted); }
+.opsModule :global(.ops-runtime-grid small) { color: var(--text-secondary); font-size: var(--font-scale-10); }
+.opsModule :global(.ops-runtime-grid strong) { overflow: hidden; font-size: var(--font-scale-15); text-overflow: ellipsis; white-space: nowrap; }
+.opsModule :global(.ops-overview-detail) { margin: var(--space-4) 0 0; color: var(--text-secondary); font-size: var(--font-scale-11); line-height: 1.6; }
 .opsModule :global(.ops-build-list) { display: grid; gap: 0; margin: 0; }
-.opsModule :global(.ops-build-list div) { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+.opsModule :global(.ops-build-list div) { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: 9px 0; border-bottom: 1px solid var(--border); }
 .opsModule :global(.ops-build-list div:last-child) { border-bottom: 0; }
-.opsModule :global(.ops-build-list dt) { color: var(--text-secondary); font-size: 11px; }
-.opsModule :global(.ops-build-list dd) { max-width: 62%; margin: 0; overflow: hidden; color: var(--text); font: 11px ui-monospace, monospace; text-overflow: ellipsis; white-space: nowrap; }
+.opsModule :global(.ops-build-list dt) { color: var(--text-secondary); font-size: var(--font-scale-11); }
+.opsModule :global(.ops-build-list dd) { max-width: 62%; margin: 0; overflow: hidden; color: var(--text); font: var(--font-scale-11) var(--font-mono); text-overflow: ellipsis; white-space: nowrap; }
 .opsModule :global(.ops-health-list) { display: grid; gap: 0; }
-.opsModule :global(.ops-health-row) { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.opsModule :global(.ops-health-row) { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) 0; border-bottom: 1px solid var(--border); font-size: var(--font-scale-xs); }
 .opsModule :global(.ops-health-row:last-child) { border-bottom: 0; }
-.opsModule :global(.ops-health-row .status-pill) { font-size: 10px; }
+.opsModule :global(.ops-health-row .status-pill) { font-size: var(--font-scale-10); }
 /* 084：健康行可用态以点 + 低噪文字组成一个状态单元，代替重复状态药丸 */
 .opsModule :global(.ops-health-ok-wrap) {
   display: inline-flex;
@@ -42,38 +58,39 @@
   gap: 6px;
 }
 .opsModule :global(.ops-health-ok) {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-round);
   background: var(--success);
   flex: 0 0 auto;
 }
 .opsModule :global(.ops-health-ok-label) {
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: var(--font-scale-11);
 }
-.opsModule :global(.ops-metric-card) { margin-top: 14px; padding: 16px; }
-.opsModule :global(.ops-metric-grid) { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
-.opsModule :global(.ops-metric-tile) { display: grid; gap: 6px; min-height: 66px; padding: 12px 14px; border-radius: 8px; color: #fff; box-shadow: var(--shadow); }
+/* 086：合并重复声明（原 .ops-metric-card 两处定义，padding 16 vs 14 冲突，
+   保留后者为唯一规格：metric 卡 = 网格布局 + 状态边框/阴影） */
+.opsModule :global(.ops-metric-card) { display: grid; gap: var(--space-3); min-height: 158px; padding: 14px; border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow); margin-top: 14px; }
+.opsModule :global(.ops-metric-grid) { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-3); margin-top: 14px; }
+.opsModule :global(.ops-metric-tile) { display: grid; gap: 6px; min-height: 66px; padding: var(--space-3) 14px; border-radius: var(--radius-md); color: var(--on-accent); box-shadow: var(--shadow); }
 .opsModule :global(.ops-metric-tile strong) { font-size: 21px; line-height: 1; letter-spacing: -.04em; }
-.opsModule :global(.ops-metric-tile span) { font-size: 11px; opacity: .86; }
-.opsModule :global(.ops-metric-requests) { background: linear-gradient(135deg, #db2777, #be185d); }
-.opsModule :global(.ops-metric-inFlight) { background: linear-gradient(135deg, #7c3aed, #5b21b6); }
-.opsModule :global(.ops-metric-exported) { background: linear-gradient(135deg, #0891b2, #0e7490); }
-.opsModule :global(.ops-metric-dropped) { background: linear-gradient(135deg, #f59e0b, #d97706); }
-.opsModule :global(.ops-metric-card) { display: grid; gap: 10px; min-height: 158px; padding: 14px; border-radius: 10px; background: var(--surface, #fff); border: 1px solid var(--stroke, rgba(0,0,0,.08)); box-shadow: var(--shadow); }
-.opsModule :global(.ops-metric-heading) { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.opsModule :global(.ops-metric-heading h4) { margin: 0; font-size: 13px; font-weight: 600; opacity: .8; }
+.opsModule :global(.ops-metric-tile span) { font-size: var(--font-scale-11); opacity: .86; }
+.opsModule :global(.ops-metric-requests) { background: linear-gradient(135deg, var(--ops-tile-requests), #be185d); }
+.opsModule :global(.ops-metric-inFlight) { background: linear-gradient(135deg, var(--ops-tile-inflight), #5b21b6); }
+.opsModule :global(.ops-metric-exported) { background: linear-gradient(135deg, var(--ops-tile-exported), #0e7490); }
+.opsModule :global(.ops-metric-dropped) { background: linear-gradient(135deg, #f59e0b, var(--ops-tile-dropped)); }
+.opsModule :global(.ops-metric-heading) { display: flex; justify-content: space-between; align-items: center; gap: var(--space-2); }
+.opsModule :global(.ops-metric-heading h4) { margin: 0; font-size: var(--font-scale-sm); font-weight: var(--font-weight-semibold); opacity: .8; }
 .opsModule :global(.ops-metric-value) { display: flex; align-items: baseline; gap: 6px; }
 .opsModule :global(.ops-metric-value strong) { font-size: 30px; line-height: 1; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
-.opsModule :global(.ops-metric-unit) { font-size: 13px; opacity: .7; }
-.opsModule :global(.ops-metric-bar) { height: 6px; border-radius: 999px; overflow: hidden; background: rgba(127,127,127,.16); }
-.opsModule :global(.ops-metric-bar-fill) { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #60a5fa, #22d3ee); transition: width .25s ease; }
-.opsModule :global(.ops-metric-degraded) { border-color: rgba(245,158,11,.45); }
-.opsModule :global(.ops-metric-unavailable) { border-color: rgba(239,68,68,.5); background: rgba(239,68,68,.04); }
-.opsModule :global(.ops-monitoring-lower) { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
-.opsModule :global(.ops-health-row-attention) { background: rgba(239,68,68,.05); border-radius: 8px; }
-.opsModule :global(.ops-component-name) { font-weight: 600; }
+.opsModule :global(.ops-metric-unit) { font-size: var(--font-scale-sm); opacity: .7; }
+.opsModule :global(.ops-metric-bar) { height: 6px; border-radius: var(--radius-pill); overflow: hidden; background: var(--ops-track); }
+.opsModule :global(.ops-metric-bar-fill) { display: block; height: 100%; border-radius: var(--radius-pill); background: linear-gradient(90deg, var(--ops-bar-from), var(--ops-bar-to)); transition: width .25s ease; }
+.opsModule :global(.ops-metric-degraded) { border-color: var(--ops-warn-soft); }
+.opsModule :global(.ops-metric-unavailable) { border-color: var(--ops-danger-soft); background: var(--ops-danger-bg); }
+.opsModule :global(.ops-monitoring-lower) { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); margin-top: 14px; }
+.opsModule :global(.ops-health-row-attention) { background: var(--ops-danger-row); border-radius: var(--radius-md); }
+.opsModule :global(.ops-component-name) { font-weight: var(--font-weight-semibold); }
 
 @keyframes opsSpin { to { transform: rotate(360deg); } }
 
@@ -86,15 +103,15 @@
 @media (max-width: 1000px) { .opsModule :global(.ops-grid) { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
 @media (max-width: 720px) {
-  .opsModule :global(.ops-grid) { grid-template-columns: 1fr; gap: 12px; }
+  .opsModule :global(.ops-grid) { grid-template-columns: 1fr; gap: var(--space-3); }
   .opsModule :global(.ops-overview-grid) { grid-template-columns: 1fr; }
   .opsModule :global(.ops-overview-card:last-child) { grid-column: auto; }
   .opsModule :global(.ops-overview-card) { min-height: 0; }
-  .opsModule :global(.ops-runtime-grid) { gap: 8px; }
+  .opsModule :global(.ops-runtime-grid) { gap: var(--space-2); }
   .opsModule :global(.ops-metric-grid) { grid-template-columns: 1fr 1fr; }
-  .opsModule :global(.ops-metric-tile) { min-height: 82px; padding: 12px; }
+  .opsModule :global(.ops-metric-tile) { min-height: 82px; padding: var(--space-3); }
   .opsModule :global(.ops-metric-tile strong) { font-size: 20px; }
-  .opsModule :global(.diagnostic-actions) { gap: 2px; }
+  .opsModule :global(.diagnostic-actions) { gap: var(--space-1); }
 }
 
 /* 062 footer-status zone: status pill + region label */

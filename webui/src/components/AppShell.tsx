@@ -7,6 +7,7 @@ import { ConfirmDialog, IconButton, Toast } from "@webui/sdk/ui";
 import { changeLanguage, ensureRouteLocale, getAvailableLanguages, languageLabelMessageID, translateMessage } from "../i18n";
 import { effectiveReduceMotion, useThemePreferences, type ThemePreferences } from "../theme";
 import { ScrollExperience } from "../scroll/ScrollExperience";
+import { ContentViewport } from "./ContentViewport";
 import { routeIsLoadable } from "../routes";
 import { RouteSearch } from "./RouteSearch";
 import { ThemeDrawer } from "./ThemeDrawer";
@@ -187,8 +188,8 @@ function WorkspaceArea({ manifest, navigate, theme, reducedMotion }: { manifest:
         onRestore={host.requestRestoreClosed}
       />}
       <div className="workspace-content-stage">
-        <WorkspaceOutlet manifest={manifest} />
-        {!activeWorkspace && <ScrollExperience target="panel" experience={theme.experience} reducedMotion={reducedMotion} panelProps={{ id: "webui-workspace-panel" }}><Outlet /></ScrollExperience>}
+        <WorkspaceOutlet manifest={manifest} theme={theme.experience} reducedMotion={reducedMotion} />
+        {!activeWorkspace && <ContentViewport experience={theme.experience} reducedMotion={reducedMotion} panelProps={{ id: "webui-workspace-panel" }}><Outlet /></ContentViewport>}
       </div>
     </div>
   );

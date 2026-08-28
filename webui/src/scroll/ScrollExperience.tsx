@@ -15,6 +15,8 @@ export type ScrollExperienceProps = {
   reducedMotion: boolean;
   /** panel 模式容器透传属性（id/role/aria-labelledby 等，保持既有 a11y 语义） */
   panelProps?: { id?: string; role?: string; ariaLabelledby?: string };
+  /** 内容宽度档（086）：wide/detail/settings/form，写 data-page-width；缺省 wide */
+  pageWidth?: "wide" | "detail" | "settings" | "form";
   children: ReactNode;
 };
 
@@ -25,7 +27,7 @@ export type ScrollExperienceProps = {
 // - 显式滚动场景劫持（[data-scroll-hijack="x|y"]，MutationObserver 跟随路由内容变化）。
 // 085：宿主 Workspace Tabs 标签轨自己管理横向滚动与溢出，不在此处挂磁吸。
 // reduced-motion 或对应派生配置关闭时相应能力不挂载（回退原生滚动）。
-export function ScrollExperience({ target, experience, reducedMotion, panelProps, children }: ScrollExperienceProps) {
+export function ScrollExperience({ target, experience, reducedMotion, panelProps, pageWidth, children }: ScrollExperienceProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -74,8 +76,12 @@ export function ScrollExperience({ target, experience, reducedMotion, panelProps
 
   if (target === "window") return <>{children}</>;
   return (
-    <div ref={containerRef} className="page-viewport" id={panelProps?.id} role={panelProps?.role} aria-labelledby={panelProps?.ariaLabelledby}>
-      <div className="page-flow">{children}</div>
+    <div ref={containerRef} className="page-viewport" data-page-width={pageWidth ?? "wide"} id={panelProps?.id} role={panelProps?.role} aria-labelledby={panelProps?.ariaLabelledby}>
+      <div className="page-flow">
+        {/* module-page 是业务内容宽度语义的唯一挂载点（086）：data-page-width 由
+            本容器写出，宽度档 CSS 只作用于此；业务页面不再自行设置 max-width。 */}
+        <div className="module-page">{children}</div>
+      </div>
     </div>
   );
 }

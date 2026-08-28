@@ -102,7 +102,14 @@ IAM 用户密码可通过 `go run ./cmd/app iam reset-password --username <用�
 - **统一关闭管线**：单个/关闭其他/关闭右侧先收集目标（pinned/fixedHome 排除），经 dirty 标记与 `beforeClose` handler 决策，一次受控确认后 registry 原子提交；`beforeunload` 只在存在 dirty 标签时注册；logout 有 dirty 时先走同一确认并在成功前保留状态；非首页标签全部关闭后回到已打开的固定首页或主导航。
 - **接入约定**：新增正式路由时**无需任何声明**即自动获得标签；`pnpm generate:check` 只保证 manifest/registry 一致。宿主按 `routeIsFormal` 判定，模块无需感知标签语义；测试用 `data-testid^="workspace-panel-"`/`[data-active="true"]` 区分活动面板。当前 `workspace-tabs` zone 已因零贡献方删除，不在此提供万能注入面。
 
-## 083 页面骨架与宽度档
+## 唯一 Design Token 系统与内容分流（086）
+
+**唯一 token authority**：`webui/src/styles.css` 定义三级 token——`:root` **primitive**（scale/spacing、typography、line-height、radius、border、control/shell/entity size、色板、motion/z）→ **semantic**（页面语义色，引用 primitive）→ **component**（header/sidebar/workspace-tabs/menu/form/switch/checkbox 命名空间）。业务页面/模块 CSS 不得定义、覆盖或复制公共组件的尺寸、颜色、间距、typography，不得出现裸 px/hex/!important。
+
+- **density 单一管道**：`[data-density]` 只覆写 `--density-factor`（compact=0.86）；`--workspace-tabs-height = calc(var(--size-tabs) * var(--density-factor))`、`--shell-header-height`、`--control-height-*`、`--table-row-height-*` 同理由 primitive × factor 推导。新增/调整密度只改该因子与 primitive，禁止散点覆盖选择器。
+- **preset 单源**：`[data-theme-preset]` 只覆写 `--prim-primary*` palette primitive；`--color-preset.*` swatch 引用 `--prim-accent-*`；semantic `--primary*` 自动跟随；HeroUI `--heroui-*` 与宿主语义色不再双份维护。
+- **ContentViewport**：`webui/src/components/ContentViewport.tsx` 是业务内容唯一滚动/宽度容器（融合 ScrollExperience + `data-page-width`）。AppShell（Sidebar/Header/WorkspaceTabs）由根布局唯一渲染；业务路由只渲染 ContentViewport；fallback 普通路由与 mounted panel 共用它，`.workspace-panel-scroll` 双 padding 已删除。固定框架（topbar 等）`flex: 0 0 auto` 防 flex 收缩导致跨路由几何漂移。
+- **守卫**：`webui/scripts/style-rules.mjs` 提供 L2（模块 CSS 裸 token 等价色/mono 栈违规）、L4（模块不得以宿主组件类为主体重定）、L5（!important / 未知 token；模块自有局部变量豁免）；`lint-architecture.mjs` 全仓库调用并通过。新增页面/组件必须复用 token，模块如需数据可视化专属色，单处声明为模块局部变量（`--ops-*`）并遵守 L5 豁免。
 
 083 的 Shell 使用 `100dvh`：`.app-shell`、`.app-sidebar`、`.app-workspace` 共同锁定视口高度，Sidebar 自己使用 `overflow-y: auto`，主工作区隐藏外层溢出并把页面滚动收敛到 `.page-viewport`。页面内容置于 `.page-flow`，不要为业务页额外建立固定 Tab Bar、Footer 或第二个全局滚动容器；移动视口仍需在真实设备或移动仿真环境补充验收。
 

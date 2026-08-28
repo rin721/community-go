@@ -258,6 +258,80 @@ test("085 workspace tabs: automatic page tabs for all formal routes in mock mode
   await expect(page.getByRole("tab", { name: /Runtime status/ })).toBeVisible();
 });
 
+// 086 几何稳定化 QA（REQ-086-001..007）：跨路由切换时公共 Shell 逐像素稳定；
+// compact/default density 只经 token（--density-factor）缩放；ContentViewport 是唯一
+// 滚动/宽度容器（data-page-width 有生产端），业务内容不复制公共组件尺寸。
+test("086 shell geometry is pixel-stable across routes and density token driven", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const routes = ["/dashboard", "/admin/accounts", "/admin/roles", "/settings/profile", "/openapi"];
+  const frame = page.locator(".app-shell");
+  const topbar = page.locator(".topbar");
+  const sidebar = page.locator(".app-sidebar");
+  const tabsBar = page.locator('[role="tablist"][aria-label="Workspace tabs"]');
+  const boxOf = (locator: ReturnType<typeof page.locator>) => locator.evaluate((el) => {
+    const box = el.getBoundingClientRect();
+    return { x: box.x, y: box.y, width: box.width, height: box.height };
+  });
+
+  // 基准：Dashboard（固定首页标签）下采集公共框架几何。先等 shell 完全稳定
+  // （首帧模块编译 + grid 过渡完成后），避免采集到过渡中间状态。
+  await page.goto("/dashboard");
+  await expect(page.getByRole("heading", { name: "Runtime status", exact: true })).toBeVisible();
+  await expect(tabsBar).toHaveCount(1);
+  await page.waitForFunction(() => {
+    const topbarEl = document.querySelector(".topbar");
+    const shellEl = document.querySelector(".app-shell");
+    if (!topbarEl || !shellEl) return false;
+    const topbarBox = topbarEl.getBoundingClientRect();
+    const shellBox = shellEl.getBoundingClientRect();
+    // topbar 已锁定在 token 计算高度（density=default 时 64px）且 shell 高度进视口。
+    return topbarBox.height === 64 && shellBox.height > 0;
+  });
+  const baseline = { frame: await boxOf(frame), topbar: await boxOf(topbar), sidebar: await boxOf(sidebar), tabs: await boxOf(tabsBar) };
+
+  // 跨路由切换：公共框架几何逐像素不变（面板内容变化不影响 Shell）。
+  for (const route of routes) {
+    await page.goto(route);
+    await expect(page.locator('[data-testid^="workspace-panel-"][data-active="true"]').first()).toBeVisible();
+    await page.waitForFunction(() => {
+      const topbarEl = document.querySelector(".topbar");
+      return Boolean(topbarEl && Math.round(topbarEl.getBoundingClientRect().height) === 64);
+    });
+    expect(await boxOf(frame), `frame ${route}`).toEqual(baseline.frame);
+    expect(await boxOf(topbar), `topbar ${route}`).toEqual(baseline.topbar);
+    expect(await boxOf(sidebar), `sidebar ${route}`).toEqual(baseline.sidebar);
+    expect(await boxOf(tabsBar), `tabs ${route}`).toEqual(baseline.tabs);
+  }
+
+  // 固定首页（Dashboard）标签不可关闭：其 tab 容器内无关闭按钮（其余标签有）。
+  await page.goto("/dashboard");
+  await expect(page.locator('[data-workspace-tab].workspace-tab').first()).toBeVisible();
+  const firstTab = page.locator('[data-workspace-tab].workspace-tab').first();
+  await expect(firstTab.locator(".workspace-tab-close")).toHaveCount(0);
+  await expect(page.locator(".workspace-tab-close").first()).toBeVisible();
+
+  // compact density：公共框架随 --density-factor 缩放，而不是页面临时覆盖。
+  // 先等浏览器对纯自定义属性变化完成样式重算（同一同步 tick 内测量会读到旧值）。
+  const tabsDefault = Math.round((await boxOf(tabsBar)).height);
+  await page.evaluate(() => { document.documentElement.dataset.density = "compact"; });
+  await page.waitForFunction(() => {
+    const el = document.querySelector(".topbar");
+    return Boolean(el && el.getBoundingClientRect().height < 64);
+  });
+  const tabsCompact = Math.round((await boxOf(tabsBar)).height);
+  expect(tabsDefault).toBe(42);
+  expect(tabsCompact).toBeGreaterThan(0);
+  expect(tabsCompact).toBeLessThan(tabsDefault);
+  await page.evaluate(() => { document.documentElement.dataset.density = "default"; });
+
+  // ContentViewport 唯一滚动容器：业务内容有 data-page-width 生产端，无双滚动副本。
+  await page.goto("/settings/profile");
+  await expect(page.locator('[data-active="true"] .page-viewport[data-page-width="settings"]')).toHaveCount(1);
+  await page.goto("/admin/accounts");
+  await expect(page.locator('[data-active="true"] .page-viewport[data-page-width="wide"]')).toHaveCount(1);
+  await expect(page.locator(".workspace-panel-scroll")).toHaveCount(0);
+});
+
 // 085 视觉验收（REQ-085-003/004/005）：1440×1000 / 1024×768 / 390×844 三档视口，
 // light/dark 各截一张；同时断言 42px 高度、底部指示线、文本不换行与 close 显隐语义。
 test("085 workspace tabs visual: 42px rail, indicator, no wrap and light/dark", async ({ page }) => {

@@ -2,6 +2,12 @@
 
 引用研究：[R086-001](research/R086-001-current-style-audit/report.md)；需求见 [requirements.md](requirements.md)。
 
+> 实施状态：已确认并全部落地（round 2–3）。关键收敛：`styles.css` 建立 primitive→semantic→
+> component 三级 token；density 由 `--density-factor` 单一推导 `--workspace-tabs-height` 等组件
+> token；AppShell 根布局唯一渲染、业务路由只渲染 ContentViewport（data-page-width 有生产端）；
+> fixed bars `flex:0 0 auto` 修复跨路由几何漂移；7 个模块 CSS token 化并通过 L2/L4/L5 style lint；
+> 新增 mock e2e 几何稳定断言。实现细节以代码与 [tasks.md](tasks.md) 实施证据为准。
+
 ## 1. 总体结构与数据流
 
 ```text

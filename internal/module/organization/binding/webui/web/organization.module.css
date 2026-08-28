@@ -8,20 +8,20 @@
   gap: 14px;
   margin: 0;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 14px;
 }
 .organizationModule :global(fieldset legend) {
   padding: 0 6px;
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: var(--font-scale-xs);
 }
 .organizationModule :global(fieldset label) {
   display: flex;
   align-items: center;
   gap: 6px;
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: var(--font-scale-xs);
 }
 
 /* 左栏取景区：搜索 + 列表/树，独立滚动（split-workspace 左栏） */
@@ -44,12 +44,12 @@
   background: var(--surface);
 }
 .selectPaneTitle {
-  font-size: 13px;
+  font-size: var(--font-scale-sm);
   font-weight: var(--font-weight-semibold);
   color: var(--text);
 }
 .selectPaneCount {
-  font-size: 12px;
+  font-size: var(--font-scale-xs);
   color: var(--text-muted);
 }
 .selectPaneSearch {
@@ -91,11 +91,11 @@
   color: var(--primary-strong);
 }
 .selectRow strong {
-  font-size: 13px;
+  font-size: var(--font-scale-sm);
   font-weight: 550;
 }
 .selectRow small {
-  font-size: 11px;
+  font-size: var(--font-scale-11);
   color: var(--text-muted);
 }
 .selectRowActive small,
@@ -124,7 +124,7 @@
 }
 .detailPaneHead h3 {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--font-scale-15);
   font-weight: var(--font-weight-semibold);
 }
 .editorPaneHead {
@@ -147,7 +147,7 @@
 }
 .detailSectionTitle {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--font-scale-xs);
   font-weight: var(--font-weight-semibold);
   color: var(--text-secondary);
 }

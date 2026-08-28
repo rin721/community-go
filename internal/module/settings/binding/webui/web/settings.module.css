@@ -13,12 +13,12 @@
 }
 .settingsModule :global(.settings-summary dt) {
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: var(--font-scale-xs);
 }
 .settingsModule :global(.settings-summary dd) {
   margin: 0;
   color: var(--text);
-  font-size: 13px;
+  font-size: var(--font-scale-sm);
 }
 .settingsModule :global(.settings-stack) {
   display: grid;
@@ -46,11 +46,11 @@
   background: var(--surface-muted);
 }
 .settingsModule :global(.stack-chip code) {
-  font: 11px ui-monospace, monospace;
+  font: var(--font-scale-11) var(--font-mono);
   color: var(--text-secondary);
 }
 .settingsModule :global(.stack-chip span) {
-  font-size: 12px;
+  font-size: var(--font-scale-xs);
   color: var(--text);
 }
 .settingsModule :global(.about-repo-link) {
@@ -96,12 +96,12 @@
   min-width: 0;
 }
 .settingsModule :global(.setting-row-title) {
-  font-size: 13px;
+  font-size: var(--font-scale-sm);
   color: var(--text);
 }
 .settingsModule :global(.setting-row-hint) {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--font-scale-xs);
   color: var(--text-muted);
   line-height: 1.6;
 }
@@ -154,7 +154,7 @@
   width: 16px;
   height: 16px;
   border: 1.5px solid var(--border-strong);
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   flex: 0 0 auto;
 }
 .settingsModule :global(.setting-option[aria-checked="true"] .setting-option-radio) {
@@ -164,6 +164,6 @@
   content: "";
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   background: var(--primary);
 }

@@ -4,7 +4,7 @@
 
 .navigationModule :global(.revision) {
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: var(--font-scale-xs);
 }
 
 /* 左栏取景区：注册菜单树，独立滚动 */
@@ -27,12 +27,12 @@
   background: var(--surface);
 }
 .navPaneTitle {
-  font-size: 13px;
+  font-size: var(--font-scale-sm);
   font-weight: var(--font-weight-semibold);
   color: var(--text);
 }
 .navPaneCount {
-  font-size: 12px;
+  font-size: var(--font-scale-xs);
   color: var(--text-muted);
 }
 .navPaneBody {
@@ -75,5 +75,5 @@
   display: grid;
   gap: 6px;
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: var(--font-scale-xs);
 }

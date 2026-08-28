@@ -38,6 +38,7 @@ export function routeIsLoadable(route: ManifestRoute): boolean {
 // 渲染循环重新创建）；页面内容在 WorkspaceOutlet 的 mounted panel 中呈现。access
 // 门禁与 ManifestRouteView 完全一致（未登录仍跳转登录页）。Drawer/Modal/Popover 等
 // 临时交互不是路由，不经过此槽位，因此不生成标签。
+// 086：槽位只渲染内容本身，滚动/宽度容器由外层 ContentViewport 唯一提供。
 export function RouteSlot({ route, manifest }: { route: ManifestRoute; manifest: Manifest }) {
   const host = useWorkspaceHost();
   if (route.access === "authentication-required") {
@@ -50,12 +51,12 @@ export function RouteSlot({ route, manifest }: { route: ManifestRoute; manifest:
   // 已打开（含恢复/导航打开成功）时由 AppShell 决定渲染 panels；槽位只作为
   // 打开动作前的骨架/上限引导兜底，不让槽位重新创建标签。
   if (host.tabs.some((tab) => tab.routeID === route.id)) {
-    return <div className="page-viewport"><div className="page-flow"><PageSkeleton /></div></div>;
+    return <PageSkeleton />;
   }
   if (host.tabs.length >= 12) {
-    return <div className="page-viewport"><div className="page-flow"><WorkspaceCapAlert /></div></div>;
+    return <WorkspaceCapAlert />;
   }
-  return <div className="page-viewport"><div className="page-flow"><PageSkeleton /></div></div>;
+  return <PageSkeleton />;
 }
 
 function WorkspaceCapAlert() {

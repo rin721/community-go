@@ -17,12 +17,12 @@
 }
 
 .shellSearchTrigger {
-  padding: 6px 12px;
+  padding: 6px var(--space-3);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: var(--surface);
   color: var(--text);
-  font-size: 12px;
+  font-size: var(--font-scale-xs);
   cursor: pointer;
 }
 
@@ -37,7 +37,7 @@
   min-height: 0;
   gap: 0;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-12);
   overflow: hidden;
   background: var(--surface);
 }
@@ -55,9 +55,9 @@
   place-items: center;
   flex: 1 1 auto;
   height: 100%;
-  padding: 32px;
+  padding: var(--space-8);
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: var(--font-scale-sm);
 }
 
 /* 084：可操作空态（图标 + 标题 + 说明 + 动作），不再是一行灰字 */
@@ -81,13 +81,13 @@
 }
 .workspaceEmptyTitle {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--font-scale-md);
   font-weight: var(--font-weight-semibold);
   color: var(--text);
 }
 .workspaceEmptyDetail {
   margin: 0 0 4px;
-  font-size: 12px;
+  font-size: var(--font-scale-xs);
   line-height: 1.7;
   color: var(--text-secondary);
 }
@@ -102,7 +102,7 @@
 
 .workspace-announce {
   flex: 0 0 auto;
-  padding: 8px 12px;
+  padding: var(--space-2) var(--space-3);
 }
 
 /* ---- 左资源树 ---- */
@@ -119,9 +119,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   flex: 0 0 40px;
-  padding: 8px 0;
+  padding: var(--space-2) 0;
   border-right: 1px solid var(--border);
   background: var(--surface-muted);
 }
@@ -132,7 +132,7 @@
   width: 28px;
   height: 28px;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
@@ -163,8 +163,8 @@
 
 .treeEmpty {
   margin: 0;
-  padding: 12px;
-  font-size: 12px;
+  padding: var(--space-3);
+  font-size: var(--font-scale-xs);
   color: var(--text-muted);
   text-align: center;
 }
@@ -179,12 +179,12 @@
   align-items: center;
   gap: 6px;
   width: 100%;
-  padding: 6px 8px;
+  padding: 6px var(--space-2);
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text);
-  font-size: 13px;
+  font-size: var(--font-scale-sm);
   font-weight: 600;
   text-align: left;
   cursor: pointer;
@@ -202,7 +202,7 @@
 
 .treeGroupCount {
   margin-left: auto;
-  font-size: 11px;
+  font-size: var(--font-scale-11);
   color: var(--text-muted);
 }
 
@@ -212,7 +212,7 @@
 }
 
 .treeLeafActive {
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: var(--primary-soft);
 }
 
@@ -221,9 +221,9 @@
   align-items: center;
   gap: 6px;
   min-width: 0;
-  padding: 4px 6px;
+  padding: var(--space-1) 6px;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text);
   cursor: pointer;
@@ -237,7 +237,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12px;
+  font-size: var(--font-scale-xs);
 }
 
 /* ---- 模块内多标签 ---- */
@@ -264,7 +264,7 @@
   align-items: center;
   gap: 6px;
   flex: 0 0 auto;
-  padding: 8px 10px;
+  padding: var(--space-2) 10px;
   border-right: 1px solid var(--border);
   color: var(--text-secondary);
   cursor: pointer;
@@ -277,8 +277,8 @@
 }
 
 .workspaceTabLabel {
-  font-size: 12px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--font-scale-xs);
+  font-family: var(--font-mono);
 }
 
 .workspaceTabClose {
@@ -287,7 +287,7 @@
   width: 18px;
   height: 18px;
   border: 0;
-  border-radius: 4px;
+  border-radius: var(--radius-4);
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
@@ -303,15 +303,15 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
-  padding: 12px;
-  gap: 12px;
+  padding: var(--space-3);
+  gap: var(--space-3);
   overflow: auto;
 }
 
 .requestUrlRow {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   flex-wrap: wrap;
 }
 
@@ -322,8 +322,8 @@
 .requestUrlInput {
   flex: 1 1 auto;
   min-width: 0;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: var(--font-scale-xs);
 }
 
 .requestTabs {
@@ -335,7 +335,7 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
-  padding: 12px;
+  padding: var(--space-3);
   gap: 10px;
   overflow: auto;
   background: var(--surface-muted);
@@ -344,8 +344,8 @@
 
 .responseIdle {
   margin: 0;
-  padding: 24px 8px;
-  font-size: 12px;
+  padding: var(--space-6) var(--space-2);
+  font-size: var(--font-scale-xs);
   color: var(--text-muted);
   text-align: center;
 }
@@ -354,9 +354,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 24px 8px;
-  font-size: 12px;
+  gap: var(--space-2);
+  padding: var(--space-6) var(--space-2);
+  font-size: var(--font-scale-xs);
   color: var(--text-secondary);
 }
 
@@ -368,7 +368,7 @@
 }
 
 .responseStat {
-  font-size: 12px;
+  font-size: var(--font-scale-xs);
   color: var(--text-secondary);
 }
 
@@ -376,34 +376,34 @@
   margin: 0;
   max-height: 320px;
   overflow: auto;
-  padding: 10px 12px;
+  padding: 10px var(--space-3);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: var(--surface);
   color: var(--text);
-  font: 11px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font: var(--font-scale-11)/1.6 var(--font-mono);
   white-space: pre-wrap;
   word-break: break-word;
 }
 
 .responseHeaders {
-  font-size: 12px;
+  font-size: var(--font-scale-xs);
   color: var(--text-secondary);
 }
 
 .statusOk {
-  background: #16a34a;
-  color: #fff;
+  background: var(--success);
+  color: var(--on-accent);
 }
 
 .statusWarn {
-  background: #d97706;
-  color: #fff;
+  background: var(--warning);
+  color: var(--on-accent);
 }
 
 .statusError {
-  background: #dc2626;
-  color: #fff;
+  background: var(--danger);
+  color: var(--on-accent);
 }
 
 /* ---- 上下分割线 ---- */
@@ -429,26 +429,26 @@
 /* ---- 编辑区（共享） ---- */
 .formSection {
   display: grid;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .formSectionHead {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .formSectionTitle {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--font-scale-xs);
   font-weight: 600;
   color: var(--text-secondary);
 }
 
 .formHint {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--font-scale-xs);
   line-height: 1.6;
   color: var(--text-secondary);
 }
@@ -459,21 +459,21 @@
 
 .editorRows {
   display: grid;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .editorRow {
   display: flex;
   align-items: end;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .editorCell {
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: var(--space-2);
   min-width: 0;
-  padding: 4px 2px;
+  padding: var(--space-1) 2px;
 }
 
 .editorCellInput {
@@ -482,12 +482,12 @@
 }
 
 .bodyEditor {
-  font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font: var(--font-scale-xs)/1.6 var(--font-mono);
 }
 
 .fileInput {
   max-width: 280px;
-  font-size: 12px;
+  font-size: var(--font-scale-xs);
 }
 
 .authField {
@@ -499,11 +499,11 @@
   display: inline-block;
   min-width: 48px;
   padding: 0 8px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   text-align: center;
-  font: 600 11px/1.8 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font: 600 var(--font-scale-11)/1.8 var(--font-mono);
   letter-spacing: 0.04em;
-  color: #fff;
+  color: var(--on-accent);
   flex-shrink: 0;
 }
 
@@ -511,46 +511,46 @@
   display: inline-block;
   min-width: 40px;
   padding: 0 6px;
-  border-radius: 5px;
+  border-radius: var(--radius-5);
   text-align: center;
-  font: 600 10px/1.7 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  color: #fff;
+  font: 600 var(--font-scale-10)/1.7 var(--font-mono);
+  color: var(--on-accent);
   flex-shrink: 0;
 }
 
 .methodBadge[data-method="get"],
 .methodBadgeCompact[data-method="get"] {
-  background: #16a34a;
+  background: var(--success);
 }
 
 .methodBadge[data-method="post"],
 .methodBadgeCompact[data-method="post"] {
-  background: #2563eb;
+  background: var(--primary-strong);
 }
 
 .methodBadge[data-method="put"],
 .methodBadgeCompact[data-method="put"] {
-  background: #d97706;
+  background: var(--warning);
 }
 
 .methodBadge[data-method="patch"],
 .methodBadgeCompact[data-method="patch"] {
-  background: #7c3aed;
+  background: var(--primary-strong);
 }
 
 .methodBadge[data-method="delete"],
 .methodBadgeCompact[data-method="delete"] {
-  background: #dc2626;
+  background: var(--danger);
 }
 
 .monoCell {
-  font: 11px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font: var(--font-scale-11)/1.6 var(--font-mono);
 }
 
 .monoBlock {
   margin: 0;
   overflow: auto;
-  font: 11px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font: var(--font-scale-11)/1.6 var(--font-mono);
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -581,10 +581,10 @@
 .paletteItem {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
+  gap: var(--space-2);
+  padding: 6px var(--space-2);
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: transparent;
   text-align: left;
   cursor: pointer;
@@ -597,14 +597,14 @@
 
 .paletteItemLabel {
   overflow: hidden;
-  font-size: 12px;
+  font-size: var(--font-scale-xs);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .paletteEmpty {
   margin: 0;
-  padding: 8px;
-  font-size: 12px;
+  padding: var(--space-2);
+  font-size: var(--font-scale-xs);
   color: var(--text-muted);
 }

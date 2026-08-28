@@ -39,6 +39,7 @@ export default function AccountsPage() {
   const [selection, setSelection] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkMessage, setBulkMessage] = useState("");
+  const [bulkErrors, setBulkErrors] = useState<Array<{ accountId: string; code: string }>>([]);
   const [createOpen, setCreateOpen] = useState(false);
   const [username, setUsername] = useState("");
   const [name, setName] = useState("");
@@ -180,6 +181,7 @@ export default function AccountsPage() {
           }}
         />
         {bulkMessage && <p className="page-meta" role="status">{bulkMessage}</p>}
+        {bulkErrors.length > 0 && <ul className="bulk-error-list" aria-label={t("webui.iam.error")}>{bulkErrors.map((item) => <li key={`${item.accountId}-${item.code}`}><CodeText value={`${item.accountId}: ${item.code}`} /></li>)}</ul>}
         <BulkActionBar
           open={items.length > 0}
           selectionLabel={t("webui.iam.accounts.selection", { count: selection.size })}
@@ -206,6 +208,7 @@ export default function AccountsPage() {
               return batchArchiveAccounts([...selection]).then((result) => {
                 setBulkBusy(false);
                 setBulkMessage(t("webui.iam.accounts.bulkArchived", { count: result.processed }));
+                setBulkErrors(result.errors ?? []);
                 setSelection(new Set());
                 return refresh();
               }).catch(() => { setBulkBusy(false); setBulkMessage(t("webui.iam.error")); return Promise.resolve(); });
@@ -217,6 +220,7 @@ export default function AccountsPage() {
             return batchAccountStatus([...selection], targetStatus).then((result) => {
               setBulkBusy(false);
               setBulkMessage(t("webui.iam.accounts.bulkResult", { processed: result.processed, failed: result.failed }));
+              setBulkErrors(result.errors ?? []);
               setSelection(new Set());
               return refresh();
             }).catch(() => { setBulkBusy(false); setBulkMessage(t("webui.iam.error")); return Promise.resolve(); });

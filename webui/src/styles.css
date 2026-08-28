@@ -3806,6 +3806,17 @@ textarea.field-input {
   background: color-mix(in srgb, var(--surface) 94%, transparent);
   backdrop-filter: blur(8px);
 }
+.bulk-error-list {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid color-mix(in srgb, var(--danger) 30%, var(--border));
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--danger) 6%, var(--surface));
+  color: var(--text-secondary);
+  font-size: var(--font-scale-xs);
+}
 .page-section-header,
 .data-card-header {
   display: flex;

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActionTrigger, Button, Check, CodeText, ConfirmActionTrigger, DataTable, Drawer, EmptyState, ErrorState, Field, FilterBar, FormField, PageFrame, PageHeader, PageSection, SearchInput, StatusBadge } from "@webui/sdk/ui";
+import { ActionTrigger, Button, Check, CodeText, ConfirmActionTrigger, DataTable, Drawer, EmptyState, ErrorState, Field, FilterBar, FormField, PageFrame, PageHeader, PageSection, ResourceIndex, SearchInput, StatusBadge } from "@webui/sdk/ui";
 import { useListQueryParams } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { archiveRole, createRole, listPermissions, listRoles, replaceRolePermissions, rolePermissionsView, updateRoleInfo, type PermissionDefinition, type Role } from "./api";
@@ -135,7 +135,7 @@ export default function RolesPage() {
     <PageHeader eyebrow={t("webui.iam.brand")} title={t("webui.iam.roles.title")} description={t("webui.iam.roles.description")} actions={<ActionTrigger operationId="iam.roles.create" onAction={() => setCreateOpen(true)}>{t("webui.iam.roles.create.title")}</ActionTrigger>} />
     <div className="page-sections">
       <PageSection kicker={t("webui.iam.roles.list.kicker")} title={t("webui.iam.roles.list.title")} footer={<><div className="page-meta">{t("webui.iam.accounts.pagination", { page, total })}</div><div className="toolbar-actions">{[...Array(pages).keys()].map((index) => <Button key={index} variant={index + 1 === page ? "primary" : "secondary"} onClick={() => { setPage(index + 1); void refresh(index + 1); }}>{index + 1}</Button>)}</div></>}>
-        <FilterBar
+        <ResourceIndex toolbar={<FilterBar
           ariaLabel={t("webui.iam.roles.filter")}
           fields={[]}
           trailingFields={[
@@ -155,9 +155,9 @@ export default function RolesPage() {
           clearLabel={t("webui.iam.accounts.clear")}
           resultCount={total}
           resultCountLabel={(count) => t("webui.iam.roles.total", { total: count })}
-        />
-        {loadError && <ErrorState kind="connectivity" title={hostT("webui.host.route.error.title")} detail={hostT("webui.host.route.error.detail")} action={<Button variant="secondary" onClick={() => void refresh()}>{hostT("webui.host.retry")}</Button>} />}
-        <DataTable<Role>
+        />}>
+          {loadError && <ErrorState kind="connectivity" title={hostT("webui.host.route.error.title")} detail={hostT("webui.host.route.error.detail")} action={<Button variant="secondary" onClick={() => void refresh()}>{hostT("webui.host.retry")}</Button>} />}
+          <DataTable<Role>
           columns={[
             { id: "name", header: t("webui.iam.roles.name"), cell: (item) => item.name },
             { id: "code", header: t("webui.iam.roles.code"), cell: (item) => <CodeText value={item.code} /> },
@@ -175,7 +175,8 @@ export default function RolesPage() {
             rowMenuHeader: t("webui.iam.roles.actions"),
             renderRowMenu: rowActions,
           }}
-        />
+          />
+        </ResourceIndex>
       </PageSection>
       {selected && (
         <PageSection kicker={t("webui.iam.roles.manage.kicker")} title={`${t("webui.iam.roles.selected")}: ${selected.name} (${selected.code})`}>

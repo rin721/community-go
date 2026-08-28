@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Button, CodeText, CodeViewer, DataTable, DetailDrawer, EmptyState, ErrorState, FilterBar, formatDateTime, formatRelativeTime, PageFrame, PageHeader, PageSection, Pagination, StatusBadge } from "@webui/sdk/ui";
+import { Button, CodeText, CodeViewer, DataTable, DetailDrawer, EmptyState, ErrorState, FilterBar, formatDateTime, formatRelativeTime, PageFrame, PageHeader, PageSection, Pagination, ResourceIndex, StatusBadge } from "@webui/sdk/ui";
 import { useListQueryParams } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { listAuditEvents, type AuditEventView, type AuditFilter, type AuditOutcome } from "./api";
@@ -83,7 +83,7 @@ export default function AuditPage() {
     <PageHeader eyebrow={t("webui.auth.audit.title")} title={t("webui.auth.audit.title")} description={t("webui.auth.audit.description")} />
     <div className="page-sections">
       <PageSection kicker={t("webui.auth.audit.list.kicker")} title={t("webui.auth.audit.list.title")}>
-        <FilterBar
+        <ResourceIndex toolbar={<FilterBar
           ariaLabel={t("webui.auth.audit.filter.kicker")}
           fields={[
             { key: "operation", label: t("webui.auth.audit.operation"), placeholder: t("webui.auth.audit.operationPh"), control: "input", value: listQuery.filters.operation, onValueChange: (next) => listQuery.setFilters({ ...listQuery.filters, operation: String(next) }) },
@@ -102,9 +102,9 @@ export default function AuditPage() {
           clearLabel={t("webui.auth.audit.clear")}
           resultCount={total}
           resultCountLabel={(count) => t("webui.auth.audit.total", { total: count })}
-        />
-        {loadError && <ErrorState kind="connectivity" title={hostT("webui.host.route.error.title")} detail={hostT("webui.host.route.error.detail")} action={<Button variant="secondary" onClick={() => void refresh()}>{hostT("webui.host.retry")}</Button>} />}
-        <DataTable<AuditEventView>
+        />}>
+          {loadError && <ErrorState kind="connectivity" title={hostT("webui.host.route.error.title")} detail={hostT("webui.host.route.error.detail")} action={<Button variant="secondary" onClick={() => void refresh()}>{hostT("webui.host.retry")}</Button>} />}
+          <DataTable<AuditEventView>
           columns={[
             { id: "occurredAt", header: t("webui.auth.audit.occurredAt"), cell: (item) => <span title={formatDateTime(item.occurredAt)}>{formatRelativeTime(item.occurredAt, hostT)}</span> },
             { id: "operation", header: t("webui.auth.audit.operation"), className: "audit-operation-col", cell: (item) => <CodeText value={item.operation ?? ""} /> },
@@ -125,8 +125,8 @@ export default function AuditPage() {
             rowMenuHeader: t("webui.auth.audit.actions"),
             renderRowMenu: (item, _index) => [{ key: "detail", label: t("webui.auth.audit.detail"), onSelect: () => setSelected(item) }],
           }}
-        />
-        <Pagination
+          />
+          <Pagination
           page={listQuery.page}
           pageCount={pages}
           total={total}
@@ -139,8 +139,9 @@ export default function AuditPage() {
           pageSizeOptions={[20, 50, 100]}
           pageSizeLabel={t("webui.auth.audit.pageSize")}
           onPageChange={listQuery.setPage}
-          onPageSizeChange={(size) => listQuery.setPageSize(size)}
-        />
+            onPageSizeChange={(size) => listQuery.setPageSize(size)}
+          />
+        </ResourceIndex>
       </PageSection>
     </div>
     <DetailDrawer

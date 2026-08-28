@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CodeText, DataTable, EmptyState, PageFrame, PageHeader, PageSection, SearchInput, StatusBadge } from "@webui/sdk/ui";
+import { CodeText, DataTable, EmptyState, PageFrame, PageHeader, PageSection, ResourceIndex, SearchInput, StatusBadge } from "@webui/sdk/ui";
 import { useListQueryParams } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { listPermissions, permissionRoles, type Role } from "./api";
@@ -48,13 +48,13 @@ export default function PermissionsPage() {
     <PageHeader eyebrow={t("webui.iam.brand")} title={t("webui.iam.permissions.title")} description={t("webui.iam.permissions.description")} />
     <div className="page-sections">
       <PageSection kicker={t("webui.iam.permissions.list.kicker")} title={t("webui.iam.permissions.list.title")}>
-        <div className="data-toolbar">
+        <ResourceIndex toolbar={<div className="data-toolbar">
           <div className="data-toolbar-filters">
             <SearchInput value={listQuery.filters.query} onChange={(next) => listQuery.setFilters({ query: next })} placeholder={t("webui.iam.permissions.filter")} label={t("webui.iam.permissions.filter")} />
             <span className="filter-bar-count">{t("webui.iam.permissions.total", { count: filtered.length })}</span>
           </div>
-        </div>
-        {groups.map((group) => (
+        </div>}>
+          {groups.map((group) => (
           <div className="permission-group" key={group.ownerModuleId}>
             <h3 className="permission-group-title">{group.ownerModuleId}<span className="page-meta">{String(group.definitions.length)}</span></h3>
             <DataTable<Item>
@@ -74,7 +74,8 @@ export default function PermissionsPage() {
               enhancements={{ density: "compact", stickyHeader: true }}
             />
           </div>
-        ))}
+          ))}
+        </ResourceIndex>
       </PageSection>
     </div>
   </PageFrame>;

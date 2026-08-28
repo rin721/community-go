@@ -413,11 +413,16 @@ select:focus-visible {
 }
 .sidebar-collapsed .brand-copy,
 .sidebar-collapsed .sidebar-link span:not(.menu-icon-fallback),
-.sidebar-collapsed .sidebar-meta {
+.sidebar-collapsed .sidebar-meta,
+.sidebar-collapsed .sidebar-account-copy {
   display: none;
 }
 .sidebar-collapsed .brand-row {
   justify-content: center;
+}
+.sidebar-collapsed .sidebar-account {
+  justify-content: center;
+  padding-inline: var(--space-1);
 }
 /* sidebar 内联尺寸变化时，brand 标签与菜单标签的隐藏/显示由同一布局 token 驱动 */
 
@@ -520,6 +525,40 @@ select:focus-visible {
   font-size: var(--font-scale-11);
 }
 .sidebar-meta code {
+  font-size: var(--font-scale-10);
+}
+.sidebar-account {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  margin-top: auto;
+  padding: var(--space-2) var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+.sidebar-account-avatar {
+  flex: 0 0 auto;
+}
+.sidebar-account-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+.sidebar-account-copy strong,
+.sidebar-account-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sidebar-account-copy strong {
+  color: var(--text);
+  font-size: var(--font-scale-xs);
+  font-weight: var(--font-weight-semibold);
+}
+.sidebar-account-copy small {
+  color: var(--text-muted);
   font-size: var(--font-scale-10);
 }
 
@@ -3254,7 +3293,8 @@ textarea.field-input {
   }
   .app-shell.sidebar-collapsed .brand-copy,
   .app-shell.sidebar-collapsed .sidebar-link span:not(.menu-icon-fallback),
-  .app-shell.sidebar-collapsed .sidebar-meta {
+  .app-shell.sidebar-collapsed .sidebar-meta,
+  .app-shell.sidebar-collapsed .sidebar-account-copy {
     display: initial;
   }
   .topbar {

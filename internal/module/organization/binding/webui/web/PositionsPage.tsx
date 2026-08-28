@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActionTrigger, Button, CodeText, ConfirmDialog, DataTable, Drawer, EmptyState, Field, formatDateTime, InlineAlert, PageFrame, PageHeader, PageSection, SearchInput, StatusBadge } from "@webui/sdk/ui";
+import { ActionTrigger, Button, CodeText, ConfirmDialog, DataTable, Drawer, EmptyState, Field, formatDateTime, InlineAlert, PageFrame, PageHeader, PageSection, ResourceIndex, SearchInput, StatusBadge } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { createPosition, listPositions, updatePosition, type Position } from "./api";
 import styles from "./organization.module.css";
@@ -57,13 +57,13 @@ export default function PositionsPage() {
       <PageSection>
         {error && <InlineAlert tone="danger" title={error} />}
         {message && <p className="page-meta">{message}</p>}
-        <div className="data-toolbar">
+        <ResourceIndex toolbar={<div className="data-toolbar">
           <div className="data-toolbar-filters">
             <SearchInput value={query} onChange={setQuery} placeholder={t("webui.organization.positions.search")} label={t("webui.organization.positions.search")} />
             <span className="filter-bar-count">{t("webui.organization.positions.count", { count: filtered.length })}</span>
           </div>
-        </div>
-        <DataTable<Position>
+        </div>}>
+          <DataTable<Position>
           columns={[
             { id: "code", header: t("webui.organization.code"), cell: (item) => <CodeText value={item.code} /> },
             { id: "name", header: t("webui.organization.name"), cell: (item) => item.name },
@@ -84,7 +84,8 @@ export default function PositionsPage() {
               { key: "archive", label: item.archived ? t("webui.organization.restore") : t("webui.organization.archive"), danger: true, onSelect: () => setPendingArchive(item) },
             ],
           }}
-        />
+          />
+        </ResourceIndex>
       </PageSection>
     </div>
     <Drawer open={createOpen} title={t("webui.organization.positions.create.title")} description={t("webui.organization.positions.create.helper")} closeLabel={t("webui.organization.cancel")} onClose={() => setCreateOpen(false)}>

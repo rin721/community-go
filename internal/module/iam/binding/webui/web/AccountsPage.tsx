@@ -122,8 +122,7 @@ export default function AccountsPage() {
     <PageHeader eyebrow={t("webui.iam.brand")} title={t("webui.iam.accounts.title")} description={t("webui.iam.accounts.description")} actions={<ActionTrigger operationId="iam.accounts.create" onAction={() => setCreateOpen(true)}>{t("webui.iam.accounts.create.title")}</ActionTrigger>} />
     <div className="page-sections">
       <PageSection kicker={t("webui.iam.accounts.list.kicker")} title={t("webui.iam.accounts.list.title")} footer={<><div className="page-meta">{t("webui.iam.accounts.pagination", { page, total })}</div><div className="toolbar-actions">{[...Array(pages).keys()].map((index) => <Button key={index} variant={index + 1 === page ? "primary" : "secondary"} onClick={() => { setPage(index + 1); void refresh(index + 1); }}>{index + 1}</Button>)}</div></>}>
-        <ResourceIndex aria-label={t("webui.iam.accounts.list.title")}>
-        <FilterBar
+        <ResourceIndex aria-label={t("webui.iam.accounts.list.title")} toolbar={<FilterBar
           ariaLabel={t("webui.iam.accounts.filter")}
           fields={[
             { key: "status", label: t("webui.iam.accounts.statusFilter"), control: "select", options: [
@@ -154,7 +153,7 @@ export default function AccountsPage() {
           clearLabel={t("webui.iam.accounts.clear")}
           resultCount={total}
           resultCountLabel={(count) => t("webui.iam.accounts.total", { total: count })}
-        />
+        />}>
         {loadError && <ErrorState kind="connectivity" title={hostT("webui.host.route.error.title")} detail={hostT("webui.host.route.error.detail")} action={<Button variant="secondary" onClick={() => void refresh()}>{hostT("webui.host.retry")}</Button>} />}
         <DataTable<Account>
           columns={[

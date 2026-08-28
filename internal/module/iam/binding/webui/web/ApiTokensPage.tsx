@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActionTrigger, Button, CodeText, ConfirmDialog, DataTable, EmptyState, ErrorState, Field, FilterBar, formatDateTime, InlineAlert, PageFrame, PageHeader, PageSection, SelectField, StatusBadge } from "@webui/sdk/ui";
+import { ActionTrigger, Button, CodeText, ConfirmDialog, DataTable, EmptyState, ErrorState, Field, FilterBar, formatDateTime, InlineAlert, PageFrame, PageHeader, PageSection, ResourceIndex, SelectField, StatusBadge } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { useListQueryParams } from "@webui/sdk/query";
 import { createApiToken, disableApiToken, enableApiToken, listApiTokens, loadSession, revokeApiToken, rotateApiToken, updateApiToken, type ApiTokenView } from "./api";
@@ -164,7 +164,7 @@ export default function ApiTokensPage() {
       </PageSection>
 
       <PageSection kicker={t("webui.iam.apiTokens.listKicker")} title={t("webui.iam.apiTokens.listTitle")}>
-        <FilterBar
+        <ResourceIndex toolbar={<FilterBar
           ariaLabel={t("webui.iam.apiTokens.filter")}
           fields={[
             { key: "status", label: t("webui.iam.apiTokens.filter"), control: "select", active: status !== "all", value: status, options: [
@@ -190,9 +190,9 @@ export default function ApiTokensPage() {
           ]}
           onClear={() => { setStatus("all"); refresh("all"); listQuery.clearFilters(); }}
           clearLabel={t("webui.iam.accounts.clear")}
-        />
-        {loadError && <ErrorState kind="connectivity" title={hostT("webui.host.route.error.title")} detail={hostT("webui.host.route.error.detail")} action={<Button variant="secondary" onClick={() => void refresh()}>{hostT("webui.host.retry")}</Button>} />}
-        <DataTable
+        />}>
+          {loadError && <ErrorState kind="connectivity" title={hostT("webui.host.route.error.title")} detail={hostT("webui.host.route.error.detail")} action={<Button variant="secondary" onClick={() => void refresh()}>{hostT("webui.host.retry")}</Button>} />}
+          <DataTable
           ariaLabel={t("webui.iam.apiTokens.listTitle")}
           loading={loading}
           loadingLabel={t("webui.host.page.loading.label")}
@@ -222,7 +222,8 @@ export default function ApiTokensPage() {
             },
             columnMenuLabel: t("webui.iam.apiTokens.more"),
           }}
-        />
+          />
+        </ResourceIndex>
         <ConfirmDialog
           open={Boolean(pendingRevokeID)}
           title={t("webui.iam.apiTokens.revoke")}

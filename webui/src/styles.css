@@ -3815,6 +3815,21 @@ textarea.field-input {
   background: color-mix(in srgb, var(--surface) 94%, transparent);
   backdrop-filter: blur(8px);
 }
+.sticky-action-status {
+  min-width: 0;
+  margin-right: auto;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: var(--font-scale-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sticky-action-bar[data-action-state="form-dirty"] .sticky-action-status {
+  color: var(--warning);
+}
+.sticky-action-bar[data-action-state="form-conflict"] .sticky-action-status {
+  color: var(--danger);
+}
 .bulk-error-list {
   display: grid;
   gap: var(--space-1);

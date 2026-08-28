@@ -31,7 +31,15 @@ export function EntityDetail({ header, children, className = "", ...props }: {
   </article>;
 }
 
-/** StickyActionBar 将表单提交/取消固定在内容末端，并在窄屏保持可见。 */
-export function StickyActionBar({ children, className = "", ...props }: { children: ReactNode; className?: string } & HTMLAttributes<HTMLDivElement>) {
-  return <div className={`sticky-action-bar ${className}`.trim()} {...props}>{children}</div>;
+/** StickyActionBar 将表单提交/取消固定在内容末端，并显式表达 dirty/conflict/pending 状态。 */
+export function StickyActionBar({ children, state = "clean", status, className = "", ...props }: {
+  children: ReactNode;
+  state?: "clean" | "dirty" | "pending" | "conflict";
+  status?: ReactNode;
+  className?: string;
+} & HTMLAttributes<HTMLDivElement>) {
+  return <div className={`sticky-action-bar ${className}`.trim()} data-action-state={`form-${state}`} {...props}>
+    {status && <span className="sticky-action-status" aria-live={state === "conflict" ? "assertive" : "polite"}>{status}</span>}
+    {children}
+  </div>;
 }

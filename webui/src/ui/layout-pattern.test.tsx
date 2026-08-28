@@ -27,7 +27,9 @@ describe("090 页面骨架与后台模式", () => {
     expect(detail).toContain("entity-detail-header");
     expect(detail).toContain("entity-detail-content");
 
-    const actions = renderToStaticMarkup(<StickyActionBar>Save</StickyActionBar>);
+    const actions = renderToStaticMarkup(<StickyActionBar state="dirty" status="Unsaved changes">Save</StickyActionBar>);
     expect(actions).toContain("sticky-action-bar");
+    expect(actions).toContain('data-action-state="form-dirty"');
+    expect(actions).toContain('aria-live="polite"');
   });
 });

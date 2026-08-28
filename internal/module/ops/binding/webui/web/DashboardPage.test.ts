@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatUptime, operationCapabilityState, refreshNoticeTone } from "./DashboardPage";
+import { formatUptime, operationCapabilityState, projectDiagnosticEntries, refreshNoticeTone } from "./DashboardPage";
 
 describe("Ops capability state", () => {
   it("keeps core failures unavailable", () => {
@@ -15,6 +15,16 @@ describe("Ops capability state", () => {
   it("keeps refresh feedback truthful when any real query fails", () => {
     expect(refreshNoticeTone(0)).toBe("success");
     expect(refreshNoticeTone(1)).toBe("danger");
+  });
+});
+
+describe("诊断摘要投影", () => {
+  it("只保留有限标量字段，避免主界面倾倒原始 JSON", () => {
+    expect(projectDiagnosticEntries({ status: "ok", active: 2, nested: { secret: "x" }, list: [1], enabled: true }, 3)).toEqual([
+      { key: "status", value: "ok" },
+      { key: "active", value: "2" },
+      { key: "enabled", value: "true" },
+    ]);
   });
 });
 

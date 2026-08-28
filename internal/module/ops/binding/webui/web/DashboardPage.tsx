@@ -69,6 +69,22 @@ function MetricsSummaryCard({ metrics, state, t }: { metrics?: MetricsSnapshot; 
   return <Surface className="ops-metrics-card"><div className="ops-overview-heading"><div><span className="ops-overview-kicker">{t("webui.ops.dashboard.metrics.eyebrow")}</span><h3>{t("webui.ops.dashboard.metrics.title")}</h3></div><StatusPill state={state}>{statusLabel(t, state)}</StatusPill></div><p className="ops-overview-detail">{t("webui.ops.dashboard.metrics.detail")}</p><div className="ops-metric-grid">{values.map(([key, value]) => <div className={`ops-metric-tile ops-metric-${key}`} key={key}><strong>{metricValue(value, missing)}</strong><span>{t(`webui.ops.dashboard.metrics.${key}`)}</span></div>)}</div></Surface>;
 }
 
+type DiagnosticEntry = { key: string; value: string };
+
+export function projectDiagnosticEntries(value: unknown, limit = 8): DiagnosticEntry[] {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return [];
+  return Object.entries(value as Record<string, unknown>)
+    .filter(([, entry]) => ["string", "number", "boolean"].includes(typeof entry))
+    .slice(0, limit)
+    .map(([key, entry]) => ({ key, value: String(entry) }));
+}
+
+function DiagnosticSummary({ value, t }: { value: unknown; t: (key: string) => string }) {
+  const entries = projectDiagnosticEntries(value);
+  if (entries.length === 0) return <p className="diagnostic-empty">{t("webui.ops.dashboard.snapshot.missing")}</p>;
+  return <dl className="diagnostic-facts">{entries.map((entry) => <div key={entry.key}><dt>{entry.key}</dt><dd>{entry.value}</dd></div>)}</dl>;
+}
+
 export default function DashboardPage() {
   const { t } = useWebUITranslation("webui.ops");
   const queryClient = useQueryClient();
@@ -120,7 +136,7 @@ export default function DashboardPage() {
 
   const renderGroup = (required: boolean) => {
     const groupOperations = operations.filter((operation) => operation.required === required);
-    return <PageSection title={t(required ? "webui.ops.dashboard.group.core" : "webui.ops.dashboard.group.optional")} description={t(required ? "webui.ops.dashboard.group.coreDetail" : "webui.ops.dashboard.group.optionalDetail")}><RevealList className="ops-grid">{groupOperations.map((operation) => { const index = operations.indexOf(operation); const query = queries[index]; const state = operationCapabilityState(operation.required, query.isPending, query.isError); return <Surface className="diagnostic-card" key={operation.name}><div className="diagnostic-heading"><div className="diagnostic-title"><span className="diagnostic-icon" aria-hidden="true" /><h3>{t(operation.titleMessageID)}</h3></div><div className="diagnostic-actions"><StatusPill state={state}>{query.isPending ? t("webui.ops.dashboard.loading") : query.isError ? t(state === "unavailable" ? "webui.ops.dashboard.unavailable" : "webui.ops.dashboard.degraded") : t("webui.ops.dashboard.available")}</StatusPill>{query.isError && <Button variant="ghost" className="diagnostic-retry" onClick={() => requestRefresh(["ops", operation.name])}>{t("webui.ops.dashboard.retry")}</Button>}</div></div>{query.isPending ? <Skeleton lines={4} label={t("webui.ops.dashboard.loading")} /> : query.isError ? <p className="form-error">{t("webui.ops.dashboard.requestFailed")}</p> : <pre>{typeof query.data === "string" ? query.data : JSON.stringify(query.data, null, 2)}</pre>}</Surface>; })}</RevealList></PageSection>;
+    return <PageSection title={t(required ? "webui.ops.dashboard.group.core" : "webui.ops.dashboard.group.optional")} description={t(required ? "webui.ops.dashboard.group.coreDetail" : "webui.ops.dashboard.group.optionalDetail")}><RevealList className="ops-grid">{groupOperations.map((operation) => { const index = operations.indexOf(operation); const query = queries[index]; const state = operationCapabilityState(operation.required, query.isPending, query.isError); return <Surface className="diagnostic-card" key={operation.name}><div className="diagnostic-heading"><div className="diagnostic-title"><span className="diagnostic-icon" aria-hidden="true" /><h3>{t(operation.titleMessageID)}</h3></div><div className="diagnostic-actions"><StatusPill state={state}>{query.isPending ? t("webui.ops.dashboard.loading") : query.isError ? t(state === "unavailable" ? "webui.ops.dashboard.unavailable" : "webui.ops.dashboard.degraded") : t("webui.ops.dashboard.available")}</StatusPill>{query.isError && <Button variant="ghost" className="diagnostic-retry" onClick={() => requestRefresh(["ops", operation.name])}>{t("webui.ops.dashboard.retry")}</Button>}</div></div>{query.isPending ? <Skeleton lines={4} label={t("webui.ops.dashboard.loading")} /> : query.isError ? <p className="form-error">{t("webui.ops.dashboard.requestFailed")}</p> : <DiagnosticSummary value={query.data} t={t} />}</Surface>; })}</RevealList></PageSection>;
   };
 
   return <PageFrame variant="dashboard" className={styles.opsModule}>

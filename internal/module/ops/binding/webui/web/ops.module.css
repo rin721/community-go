@@ -12,7 +12,12 @@
 .opsModule :global(.diagnostic-heading) { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); margin-bottom: var(--space-3); }
 .opsModule :global(.diagnostic-heading h2), .opsModule :global(.diagnostic-card h3) { margin: 0; font-size: var(--font-scale-md); font-weight: var(--font-weight-semibold); }
 .opsModule :global(.diagnostic-heading h2) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.opsModule :global(.diagnostic-card pre) { max-height: 230px; margin: 0; padding: 10px 11px; overflow: auto; color: var(--text-secondary); border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-muted); font: var(--font-scale-11)/1.65 var(--font-mono); white-space: pre-wrap; word-break: break-word; }
+.opsModule :global(.diagnostic-facts) { display: grid; gap: var(--space-2); margin: 0; }
+.opsModule :global(.diagnostic-facts > div) { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); min-width: 0; padding-block: var(--space-1); border-bottom: 1px solid var(--border); }
+.opsModule :global(.diagnostic-facts > div:last-child) { border-bottom: 0; }
+.opsModule :global(.diagnostic-facts dt) { overflow: hidden; color: var(--text-secondary); font-size: var(--font-scale-xs); text-overflow: ellipsis; white-space: nowrap; }
+.opsModule :global(.diagnostic-facts dd) { margin: 0; overflow: hidden; color: var(--text); font: var(--font-scale-xs)/var(--font-lineheight-normal) var(--font-mono); text-align: right; text-overflow: ellipsis; white-space: nowrap; }
+.opsModule :global(.diagnostic-empty) { margin: 0; color: var(--text-muted); font-size: var(--font-scale-xs); }
 .opsModule :global(.diagnostic-title) { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
 .opsModule :global(.diagnostic-icon) { position: relative; display: grid; place-items: center; width: 27px; height: 27px; border-radius: var(--radius-md); color: var(--primary); background: var(--primary-soft); }
 .opsModule :global(.diagnostic-icon)::before { width: 9px; height: 9px; content: ""; border: 2px solid currentColor; border-radius: var(--radius-round); }

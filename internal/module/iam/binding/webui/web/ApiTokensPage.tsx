@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActionTrigger, BulkActionBar, Button, CodeText, ConfirmDialog, DataTable, EmptyState, ErrorState, Field, FilterBar, formatDateTime, InlineAlert, PageFrame, PageHeader, PageSection, Pagination, ResourceIndex, SelectField, StatusBadge } from "@webui/sdk/ui";
+import { ActionTrigger, BatchResultSummary, BulkActionBar, Button, CodeText, ConfirmDialog, DataTable, EmptyState, ErrorState, Field, FilterBar, formatDateTime, InlineAlert, PageFrame, PageHeader, PageSection, Pagination, ResourceIndex, SelectField, StatusBadge } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { useListQueryParams, type ProblemError } from "@webui/sdk/query";
 import { batchRevokeApiTokens, createApiToken, disableApiToken, enableApiToken, listApiTokens, loadSession, revokeApiToken, rotateApiToken, updateApiToken, type ApiTokenView } from "./api";
@@ -253,7 +253,7 @@ export default function ApiTokensPage() {
             onPageSizeChange={listQuery.setPageSize}
           />
           {bulkMessage && <p className="page-meta" role="status">{bulkMessage}</p>}
-          {bulkErrors.length > 0 && <InlineAlert tone="warning" title={t("webui.iam.apiTokens.bulkPartial")} detail={bulkErrors.map((item) => `${item.resourceId} (${item.code})`).join(", ")} />}
+          <BatchResultSummary summary={bulkMessage || undefined} errors={bulkErrors.map((item) => ({ key: item.resourceId, code: item.code }))} errorsLabel={t("webui.iam.apiTokens.bulkPartial")} />
           <BulkActionBar
           open={tokens.length > 0}
           selectionLabel={t("webui.iam.apiTokens.selection", { count: selected.size })}

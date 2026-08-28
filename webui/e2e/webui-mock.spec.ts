@@ -288,6 +288,8 @@ test("086 shell geometry is pixel-stable across routes and density token driven"
     return topbarBox.height === 64 && shellBox.height > 0;
   });
   const baseline = { frame: await boxOf(frame), topbar: await boxOf(topbar), sidebar: await boxOf(sidebar), tabs: await boxOf(tabsBar) };
+  // 086 几何基线视觉证据：default density + light 的公共框架截图。
+  await page.screenshot({ path: "test-results/086-shell-geometry-dashboard.png", fullPage: true });
 
   // 跨路由切换：公共框架几何逐像素不变（面板内容变化不影响 Shell）。
   for (const route of routes) {
@@ -330,6 +332,26 @@ test("086 shell geometry is pixel-stable across routes and density token driven"
   await page.goto("/admin/accounts");
   await expect(page.locator('[data-active="true"] .page-viewport[data-page-width="wide"]')).toHaveCount(1);
   await expect(page.locator(".workspace-panel-scroll")).toHaveCount(0);
+
+  // light/dark 与 preset 切换：Shell 几何不变（颜色走 token，不打乱布局）。
+  const lightFrame = await boxOf(frame);
+  await page.getByRole("button", { name: "Toggle theme mode" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-color-scheme", "dark");
+  await page.waitForFunction(() => document.querySelector(".app-shell")?.getBoundingClientRect().height === 720);
+  expect(await boxOf(frame), "frame dark").toEqual(lightFrame);
+  expect(await boxOf(topbar), "topbar dark").toEqual(baseline.topbar);
+  expect(await boxOf(sidebar), "sidebar dark").toEqual(baseline.sidebar);
+  await page.getByRole("button", { name: "Toggle theme mode" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-color-scheme", "light");
+  // preset 单源：--heroui-primary 与 semantic --primary 同源（086 不再双份维护）。
+  await page.evaluate(() => { document.documentElement.dataset.themePreset = "cyan"; });
+  const preset = await page.evaluate(() => {
+    const cs = getComputedStyle(document.documentElement);
+    return { hero: cs.getPropertyValue("--heroui-primary").trim(), semantic: cs.getPropertyValue("--prim-primary").trim() };
+  });
+  expect(preset.hero).toBeTruthy();
+  expect(preset.semantic).toBe("#06b6d4");
+  await page.evaluate(() => { document.documentElement.dataset.themePreset = "blue"; });
 });
 
 // 085 视觉验收（REQ-085-003/004/005）：1440×1000 / 1024×768 / 390×844 三档视口，

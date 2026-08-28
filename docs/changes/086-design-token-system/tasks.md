@@ -55,7 +55,7 @@
 
 - `webui/scripts/style-rules.mjs` 扩展 L2（裸 token 等价色/mono 栈）、L4（模块 CSS 不得以宿主组件类为主体重定）、L5（!important、未知 token；模块自有局部变量豁免）；`lint-style.test.mjs` 12 用例全绿；`lint-architecture.mjs` 全仓库 ARCH=0。
 
-### QA-086-001（验证，进行中）
+### QA-086-001（验证，进行中→完成）
 
-- 新增 mock e2e「086 shell geometry is pixel-stable across routes and density token driven」：5 路由切换 `.app-shell/.topbar/.app-sidebar/.workspace-tabs` boundingBox 逐像素相等；compact/default 只经 factor 缩放（topbar 64→55、tabs 42→36）；fixed-home 无关闭按钮；`.workspace-panel-scroll` 计数 0；data-page-width 有生产端。mock e2e 10/10 通过。
+- 新增 mock e2e「086 shell geometry is pixel-stable across routes and density token driven」：5 路由切换 `.app-shell/.topbar/.app-sidebar/.workspace-tabs` boundingBox 逐像素相等；compact/default 只经 factor 缩放（topbar 64→55、tabs 42→36）；fixed-home 无关闭按钮；`.workspace-panel-scroll` 计数 0；data-page-width 有生产端；light/dark 与 preset 切换下 Shell 几何不变且 `--heroui-primary` 与 `--prim-primary` 单源。mock e2e 10/10 通过。
 - Go build/vet/test、generate --check、Vitest 234、typecheck、ESLint、build 全绿；dev e2e 15/7 = 纯净 HEAD 基线一致（后端未启动时的环境性失败，与 086 无关）。

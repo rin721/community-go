@@ -17,6 +17,7 @@ import { WorkspaceTabs } from "./shell/WorkspaceTabs";
 import { WorkspaceOutlet } from "../workspace/WorkspaceOutlet";
 import { useWorkspaceHost, workspaceLocationOf } from "../workspace/WorkspaceProvider";
 import type { WorkspaceTabView } from "../workspace/registry";
+import { buildRouteCommands, projectActionCommands, type CommandDefinition } from "../commands/registry";
 
 export { buildMenuTree, findMenuAncestors, shouldIsolateMobileSidebar };
 export type { SidebarMenuEntry };
@@ -127,6 +128,11 @@ export function AppShell({ manifest, principal, onLogout }: { manifest: Manifest
     setLogoutOpen(false);
     void onLogout().catch(() => setLogoutFailed(true));
   };
+  const commandRegistry = useMemo<CommandDefinition[]>(() => projectActionCommands([
+    { id: "action:theme", kind: "action", titleMessageId: "webui.host.theme", keywords: ["theme", "主题"], execute: () => setThemeOpen(true) },
+    { id: "action:theme-mode", kind: "action", titleMessageId: "webui.host.theme.toggle", keywords: ["theme", "dark", "light", "主题", "深色", "浅色"], execute: toggleColorScheme },
+    { id: "action:logout", kind: "action", titleMessageId: "webui.host.logout", keywords: ["logout", "sign out", "退出", "注销"], dangerous: true, execute: () => setLogoutOpen(true) },
+  ], manifest.actionPermissions), [manifest.actionPermissions, theme]);
   const availableLanguages = getAvailableLanguages();
   const handleMobileSidebarKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
     if (!isMobileViewport) return;
@@ -153,7 +159,7 @@ export function AppShell({ manifest, principal, onLogout }: { manifest: Manifest
       <AppHeader collapsed={collapsed} onToggleSidebar={toggleSidebar} mobileMenuButtonRef={mobileMenuButtonRef} onOpenMobileMenu={() => setMobileOpen(true)} showBreadcrumb={theme.layout.showBreadcrumb} currentRoute={currentRoute} pathname={location.pathname} hostLanguage={hostI18n.language} availableLanguages={availableLanguages} onLanguageChange={(language) => void changeLanguage(language)} theme={theme} onToggleColorScheme={toggleColorScheme} onOpenTheme={() => setThemeOpen(true)} onOpenSearch={() => setSearchOpen(true)} onToggleFullscreen={toggleFullscreen} principal={principal} onRequestLogout={() => setLogoutOpen(true)} />
       <WorkspaceArea manifest={manifest} navigate={navigate} theme={theme} reducedMotion={effectiveReduceMotion(theme.reduceMotion)} pageWidth={pageWidth} />
     </div>
-    <RouteSearch open={searchOpen} routes={accessibleRoutes} onClose={() => setSearchOpen(false)} />
+    <RouteSearch open={searchOpen} routes={accessibleRoutes} commands={[...commandRegistry, ...buildRouteCommands(accessibleRoutes)]} onClose={() => setSearchOpen(false)} />
     <ThemeDrawer open={themeOpen} theme={theme} onChange={setTheme} onReset={resetTheme} onClose={() => setThemeOpen(false)} />
     <ConfirmDialog open={logoutOpen} title={translateMessage("webui.host.logout.confirm.title")} description={translateMessage("webui.host.logout.confirm.detail")} confirmLabel={translateMessage("webui.host.logout.confirm.confirm")} cancelLabel={translateMessage("webui.host.logout.confirm.cancel")} closeLabel={translateMessage("webui.host.logout.confirm.close")} onConfirm={confirmLogout} onCancel={() => setLogoutOpen(false)} />
     <Toast open={logoutFailed} tone="danger" title={translateMessage("webui.host.logout.failed.title")} detail={translateMessage("webui.host.logout.failed.detail")} closeLabel={translateMessage("webui.host.logout.failed.close")} onClose={() => setLogoutFailed(false)} />

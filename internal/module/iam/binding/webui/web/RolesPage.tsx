@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActionTrigger, Button, Check, CodeText, ConfirmActionTrigger, DataTable, Drawer, EmptyState, EntityDetail, ErrorState, Field, FilterBar, FormField, PageFrame, PageHeader, PageSection, ResourceIndex, SearchInput, StatusBadge } from "@webui/sdk/ui";
+import { ActionTrigger, Button, Check, CodeText, ConfirmActionTrigger, DataTable, Drawer, EmptyState, EntityDetail, ErrorState, Field, FilterBar, FormField, PageFrame, PageHeader, PageSection, ResourceIndex, SearchInput, Skeleton, StatusBadge } from "@webui/sdk/ui";
 import { useListQueryParams } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { archiveRole, createRole, listPermissions, listRoles, replaceRolePermissions, rolePermissionsView, updateRoleInfo, type PermissionDefinition, type Role } from "./api";
@@ -64,6 +64,7 @@ export default function RolesPage() {
   const [roleName, setRoleName] = useState("");
   const [roleDescription, setRoleDescription] = useState("");
   const [focusedRoleID, setFocusedRoleID] = useState("");
+  const [permissionLoadState, setPermissionLoadState] = useState<"idle" | "loading" | "error">("idle");
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const refresh = useCallback((nextPage = page) => {
@@ -79,12 +80,14 @@ export default function RolesPage() {
   useEffect(() => { void refresh(); }, [listQuery.filters.query]); // 082: query URL change reloads from page 1.
   const reloadSelection = useCallback((id: string) => {
     if (!id) return;
+    setPermissionLoadState("loading");
     void rolePermissionsView(id).then((view) => {
       setLoadedKeys(view.permissionKeys);
       setSelectedKeys(view.permissionKeys);
       setExpectedVersion(view.roleVersion);
       setMessage("");
-    });
+      setPermissionLoadState("idle");
+    }).catch(() => setPermissionLoadState("error"));
   }, []);
   useEffect(() => { if (selectedID) reloadSelection(selectedID); }, [selectedID, reloadSelection]);
   const selected = items.find((item) => item.id === selectedID);
@@ -183,7 +186,11 @@ export default function RolesPage() {
           <EntityDetail header={<div className="entity-detail-header-row"><div className="entity-detail-identity"><strong>{selected.name}</strong><CodeText value={selected.code} /></div><StatusBadge status={selected.archived ? "revoked" : selected.system ? "pending" : "active"}>{selected.archived ? t("webui.iam.roles.archived") : selected.system ? t("webui.iam.roles.system") : t("webui.iam.roles.custom")}</StatusBadge></div>}>
             {selected.system
               ? <p className="admin-note">{t("webui.iam.roles.systemReadonly")}</p>
-              : <div className="permission-matrix">{groups.map((group) => <fieldset key={group.ownerModuleId}><legend>{group.ownerModuleId}</legend>{group.definitions.map((definition) => <Check key={definition.key} checked={selectedKeys.includes(definition.key)} disabled={selected.archived} onChange={() => toggle(definition.key)} className="permission-row">{definition.key}<span className="permission-description">{permissionDescription(definition.descriptionMessageId)}</span></Check>)}</fieldset>)}</div>}
+            : permissionLoadState === "loading"
+              ? <Skeleton lines={6} label={hostT("webui.host.page.loading.label")} />
+              : permissionLoadState === "error"
+                ? <ErrorState kind="inline" title={t("webui.iam.error")} action={<Button variant="secondary" onClick={() => reloadSelection(selected.id)}>{hostT("webui.host.retry")}</Button>} />
+                : <div className="permission-matrix">{groups.map((group) => <fieldset key={group.ownerModuleId}><legend>{group.ownerModuleId}</legend>{group.definitions.map((definition) => <Check key={definition.key} checked={selectedKeys.includes(definition.key)} disabled={selected.archived} onChange={() => toggle(definition.key)} className="permission-row">{definition.key}<span className="permission-description">{permissionDescription(definition.descriptionMessageId)}</span></Check>)}</fieldset>)}</div>}
             {message && <p className="page-meta">{message}</p>}
             <div className="page-meta">{t("webui.iam.roles.pending")}: +{diff.added} −{diff.removed} · rev {expectedVersion}</div>
             <div className="toolbar-actions">

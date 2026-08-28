@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Button, Field, PageFrame, PageHeader, PageSection, StatusPill, StickyActionBar } from "@webui/sdk/ui";
+import { Button, Field, PageHeader, PageSection, StatusPill, StickyActionBar } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { loadSession, updateSelfProfile } from "./api";
 import styles from "./settings.module.css";
@@ -24,7 +24,7 @@ export default function ProfilePage() {
       setMessage(status === 409 ? t("webui.settings.profile.conflict") : t("webui.settings.error"));
     });
   };
-  return <PageFrame variant="form" className={styles.settingsModule}>
+  return <>
     
       <PageHeader eyebrow={t("webui.settings.brand")} title={t("webui.settings.profile.title")} description={t("webui.settings.profile.description")} actions={identity?.mustChangePassword ? <StatusPill state="degraded">{t("webui.settings.profile.changeRequired")}</StatusPill> : undefined} />
       <div className="page-sections">
@@ -40,5 +40,5 @@ export default function ProfilePage() {
         </PageSection>
       </div>
     
-  </PageFrame>;
+  </>;
 }

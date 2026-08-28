@@ -527,6 +527,31 @@ test("090 openapi workspace switches segments on compact viewport", async ({ pag
   expect(geometry.documentWidth).toBeLessThanOrEqual(geometry.viewport + 1);
 });
 
+// 090 PAGE-090-004：组织页面移动预检——390px 下 split-workspace 折叠为单栏，
+// 部门树与详情仍可交互，无横向溢出。
+test("090 organization pages remain usable on compact viewport", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 390, height: 844 });
+  const activePage = page.locator('.page-viewport:visible').first();
+  // Departments：split-workspace 折叠为单栏（树与详情纵向排列）。
+  await page.goto("/admin/departments");
+  await expect(activePage.locator(".tree-view").first()).toBeVisible();
+  await activePage.locator(".tree-node-label").first().click();
+  await expect(activePage.locator(".inspector-panel").first()).toBeVisible();
+  // Positions：表格可交互。
+  await page.goto("/admin/positions");
+  await expect(activePage.locator(".data-table")).toBeVisible();
+  // Assignments：账号选择 + 部门/岗位编辑区可交互。
+  await page.goto("/admin/account-organization");
+  await expect(activePage.locator('[aria-pressed="true"], .selectRow, [class*="selectRow"]').first()).toBeVisible();
+  // 三页均无横向页面溢出。
+  for (const target of ["/admin/departments", "/admin/positions", "/admin/account-organization"]) {
+    await page.goto(target);
+    const geometry = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, documentWidth: document.documentElement.scrollWidth }));
+    expect(geometry.documentWidth, `${target} at 390px`).toBeLessThanOrEqual(geometry.viewport + 1);
+  }
+});
+
 // 090 PAGE-090-002：API Token 一次性 secret 完整流程（mock）——创建后展示
 // secret，轮换后展示新 secret，旧 secret 不再出现。
 test("090 api token one-time secret flow renders in mock mode", async ({ page }) => {

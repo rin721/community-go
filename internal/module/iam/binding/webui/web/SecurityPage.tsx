@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Button, Field, PageFrame, PageHeader, PageSection, StatusPill } from "@webui/sdk/ui";
+import { Button, Field, PageFrame, PageHeader, PageSection, StatusPill, StickyActionBar } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { changePassword, loadSession, type IAMSession } from "./api";
 import styles from "./iam.module.css";
@@ -24,7 +24,7 @@ export default function SecurityPage() {
             <Field label={t("webui.iam.security.next")} type="password" minLength={15} required value={next} onChange={(event) => setNext(event.target.value)} hint={t("webui.iam.security.helper")} />
             <Field label={t("webui.iam.security.confirm")} type="password" required value={confirm} onChange={(event) => setConfirm(event.target.value)} error={mismatch ? t("webui.iam.security.confirmMismatch") : undefined} />
             {message && <p className="page-meta" role="status">{message}</p>}
-            <div className="row-actions"><Button type="submit" disabled={!canSubmit}>{t("webui.iam.security.submit")}</Button></div>
+            <StickyActionBar><Button type="submit" disabled={!canSubmit}>{t("webui.iam.security.submit")}</Button></StickyActionBar>
           </form>
           <aside className="security-aside">
             <h4>{t("webui.iam.security.requirements")}</h4>

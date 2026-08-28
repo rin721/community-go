@@ -1,0 +1,32 @@
+schema_version: 1
+change: 085-workspace-tabs
+areas:
+  - id: webui
+    decision: updated
+    documents:
+      - webui/README.md
+      - docs/development/webui.md
+    reason: 新增宿主 Workspace Tabs 子系统：Go/TS contract 增加 WorkspaceTabPolicy（默认 disabled，singleton/contextual opt-in）与运行时窄会话契约（useWorkspaceSession：dirty/active/requestClose/registerBeforeClose）；宿主新增 webui/src/workspace/*（registry 纯函数状态机、版本化低敏 localStorage adapter、WorkspaceProvider composition root、mounted WorkspaceOutlet）；新增 42px 文本式 WorkspaceTabs（底部指示线、hover 显隐关闭、溢出菜单、APG 键盘）；首批 production opt-in 为 openapi.workspace singleton；单轨清理旧 .workspace-tab* 样式与 workspace-tabs zone（零贡献方删除）。改动文件：internal/webui/contract.go、internal/module/openapi/binding/webui/binding.go、webui/src/contracts/index.tsx、webui/src/sdk/runtime/index.tsx、webui/src/App.tsx、webui/src/routes.tsx、webui/src/components/AppShell.tsx、webui/src/components/shell/WorkspaceTabs.tsx、webui/src/workspace/*、webui/src/styles.css、webui/src/scroll/ScrollExperience.tsx、webui/src/i18n/locale/{zh-CN,en-US}.json、webui/e2e/*.ts、webui/src/generated/webui-registry.ts。
+  - id: module
+    decision: updated
+    documents:
+      - docs/development/application-module-development.md
+    reason: 模块若声明 WorkspaceTabPolicy 需遵守契约（app 布局、非 default/unauth-default、restorable 仅低敏元数据、contextual 需稳定 contextID 且持久化只存低敏 restoreKey）；普通页面继续不生成标签。openapi 模块示范 singleton 接入。
+  - id: api
+    decision: reviewed-no-change
+    reason: 无后端 API/契约变化；workspaceTab 只存在于 WebUI manifest 投影。
+  - id: configuration
+    decision: reviewed-no-change
+    reason: 无新配置节；持久化仅宿主 localStorage（principal 隔离，不写入服务端）。
+  - id: operations
+    decision: reviewed-no-change
+    reason: workspace 生命周期全部在浏览器端，无运行组件/进程/外部写入变化。
+  - id: docs
+    decision: updated
+    documents:
+      - docs/changes/README.md
+      - docs/changes/085-workspace-tabs/README.md
+      - docs/changes/085-workspace-tabs/requirements.md
+      - docs/changes/085-workspace-tabs/design.md
+      - docs/changes/085-workspace-tabs/tasks.md
+    reason: 085 变更记录状态从「计划待确认」更新为「已确认并实施完成」，记录确认证据、逐任务证据与剩余风险。

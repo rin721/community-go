@@ -141,8 +141,8 @@ Linux 使用 `bash scripts/verify-webui.sh`。质量链覆盖生成检查、冻�
 ## 逐页产品化工作台（084）
 
 - 平台新增受限表单与工作台原语（`webui/src/styles.css`）：`.field-grid`（自动列、上限 640px，字段不再被 `.toolbar` flex 撑宽）、`.split-workspace`（取景区/详情区两栏，替代固定 320px 右栏，修复 Menus/Org 溢出与比例失衡）、`.row-actions`（行内动作对齐）、`.form-panel-bounded`（密码等短表单 480px 上限）。
-- 跨 namespace 文案解析：`@webui/sdk/i18n` 导出 `translateMessage`/`translateOptional`/`ensureRouteLocale`（`webui/src/i18n.ts` 宿主实现）。Menus 页树标题按需加载并翻译其它模块的 `titleMessageId`；权限目录描述 `permission.<module>.<rest>` 映射到模块自有 `webui.<module>.permission.<rest>` 键，缺失时回落目录键，杜绝「翻译资源缺失」占位。
 - 页面模板落地：目录工作台（搜索树 + InspectorPanel 详情/编辑，如部门）、名录表格（DataTable + 行菜单重命名/归档确认，如岗位）、选择器 + 编辑器两栏（如账号组织分配）、设置行（label 左/控件右 + 单选组）。新页面优先采用这些组合，禁止退化为基础组件铺开。
+- 跨 namespace 文案解析：`@webui/sdk/i18n` 导出 `translateMessage`/`translateOptional`/`ensureRouteLocale`（`webui/src/i18n.ts` 宿主实现）。Menus 页树标题按需加载并翻译其它模块的 `titleMessageId`；权限目录描述 `permission.<module>.<rest>` 映射到模块自有 `webui.<module>.permission.<rest>` 键，缺失时回落目录键，杜绝「翻译资源缺失」占位。
 - 084b：FilterBar 筛选下拉改为「行内标签 + 原生 select」紧凑形态（多筛选项不再散开/孤立箭头），排序并入同一查询条；`BulkActionBar` 支持常驻禁用态（未选择时可见不可点，会话页批量吊销可发现）；登录/初始化页面居中化（`.blank-content` 容器）、密码显隐、字段分组与确认；OpenAPI 执行用例以 `vi.stubEnv` 固定数据源环境（本地 `webui/.env` 声明 mock 不影响测试）。
 - 084c：列表 mock 数据量提升到接近真实规模（账号/角色/会话/令牌/审计 6-11 条），密度复核以此为基线；`DataTable` 新增 `rowMenuHeader`（操作列可见表头），移除默认空置的列显隐工具栏；角色「类型」列头、审计操作列截断、表单输入边界/圆角收敛（6px）、`page-sections` 按内容高度驱动；API 令牌创建表单收窄单列分组、提交按钮/触达后必填提示、权限范围分组「全选」。
 - 084d：会话页新增「按账号过滤」（后端 listSessions 的 accountId 契约对齐）；仪表盘健康行改用点 + 低噪文字状态单元；技术栈两列 chip、设置卡按内容高度、关于页仓库地址可点击链接。
@@ -150,3 +150,11 @@ Linux 使用 `bash scripts/verify-webui.sh`。质量链覆盖生成检查、冻�
 - 084f：`FilterBar` 新增 `trailingFields` 右侧排序/次要控件簇（筛选左、排序/计数/清除右）；行操作列可见表头 + 固定宽度，行主操作与「更多」按钮带边界 chip；批量条在未选择时降为次级视觉、常规流式布局不遮挡表格。
 - 084g：审计筛选并入列表卡（移除独立筛选卡）；仪表盘指标快照前置并压缩统计/指标块高度，首屏同时呈现 KPI 与信息卡；`CodeText` 复制按钮改带边界 chip。
 - 084h：严格可用性终审（24 路由）后修复两处真实缺陷——API 令牌「过期策略」HeroUI Select 指示器错位锚定（行尾孤立箭头改为 trigger 内 chevron）、语言单选组无本地选择时的默认选中（与宿主语言解析一致）。终审 24/24 页无真实 P0/P1 交互缺陷。
+
+## 宿主 Workspace Tabs：有界独立工作上下文（085）
+
+- **契约**：Go `internal/webui.WorkspaceTabPolicy`（默认 `disabled`，`singleton`/`contextual` + `Restorable`）+ TS discriminated union `WorkspaceTabPolicy`；只有模块显式 opt-in 的 route 才可能生成标签，普通菜单访问、列表、设置分区、详情/编辑 Drawer 一律不生成（REQ-085-001/002）。首批 production 实例为 `openapi.workspace` singleton（DEC-085-002）。
+- **宿主状态机**：`webui/src/workspace/`——`registry.ts` 是唯一状态 owner（12 打开/10 关闭历史上限、pinned 分组、dirty 确认、批量关闭原子性、reconcile），`storage.ts` 是版本化低敏 localStorage adapter（principal 隔离、allowlist 投影、坏数据/抛错 fail closed），`WorkspaceProvider.tsx` 是 composition root（关闭管线 + beforeunload 保护 + logout 决策）。
+- **渲染与生命周期**：`WorkspaceOutlet` 为每个打开 workspace 挂载固定 location 的 panel（inactive `hidden`+`inert` 不卸载，真实保存未提交工作状态，REQ-085-007）；普通 route 走现有 Router outlet，不复制业务 route 声明；`@webui/sdk/runtime` 提供 `useWorkspaceSession()` 窄契约（dirty/active/requestClose/registerBeforeClose，页面不可读全 registry）。
+- **标签栏**：42px 文本式（`--shell-tabs-height`）、Active 底部指示线、hover/focus-within/active 显隐关闭按钮、pinned/dirty 图标+可访问名称、空间不足进溢出菜单；APG 键盘（roving focus、Space/Enter、Delete、Shift+F10 上下文菜单）。
+- **单轨清理**：旧 `.workspace-tab*` 样式与 `workspace-tabs` zone（零真实贡献方）已从 Go/TS contract、生成链与样式删除（REQ-085-012）；`ScrollExperience` 注释同步。

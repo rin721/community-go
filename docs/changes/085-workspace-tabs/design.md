@@ -2,6 +2,8 @@
 
 引用研究：[R085-001](research/R085-001-current-workspace-tab-boundary/report.md)；需求见 [requirements.md](requirements.md)。
 
+> 实施状态：本方案已获确认并全部落地，实现细节以代码为准；变更记录与逐任务证据见 [tasks.md](tasks.md)。关键收敛：mounted panels 通过共享 `ManifestRouteView`/`renderAppRoutes` + 面板内固定 `<Routes location>` 实现；singleton 打开由 AppShell 导航效果驱动（避免关闭后被同一渲染循环重开）；恢复使用 `hydrate` 并入而非整体替换；`workspace-tabs` zone 因零真实贡献方从 Go/TS contract 与生成链删除。
+
 ## 1. 总体边界
 
 ```text

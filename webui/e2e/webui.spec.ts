@@ -40,7 +40,7 @@ function manifest(authenticated: boolean, availability: "available" | "degraded"
       { moduleId: "settings", id: "settings.language", path: "/settings/language", entryId: "settings.language", titleMessageId: "webui.settings.language.title", layout: "app", groupLayoutId: "settings.layout", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
       { moduleId: "settings", id: "settings.about", path: "/settings/about", entryId: "settings.about", titleMessageId: "webui.settings.about.title", layout: "app", groupLayoutId: "settings.layout", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
       { moduleId: "settings", id: "settings.acknowledgement", path: "/settings/acknowledgement", entryId: "settings.acknowledgement", titleMessageId: "webui.settings.acknowledgement.title", layout: "app", groupLayoutId: "settings.layout", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
-      { moduleId: "openapi", id: "openapi.workspace", path: "/openapi", entryId: "openapi.workspace", titleMessageId: "webui.openapi.docs.title", layout: "app", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [] },
+      { moduleId: "openapi", id: "openapi.workspace", path: "/openapi", entryId: "openapi.workspace", titleMessageId: "webui.openapi.docs.title", layout: "app", deliveryState: "implemented", default: false, unauthenticatedDefault: false, access, availability: "available", availableCapabilities: [], workspaceTab: { mode: "singleton", restorable: true } },
     ],
     menu: authenticated && access !== "denied" ? [
       { moduleId: "ops", id: "ops.dashboard", routeId: "ops.dashboard", titleMessageId: "webui.ops.dashboard.title", iconId: "activity", order: 10 },
@@ -598,4 +598,42 @@ test("072 settings section switches stay SPA with profile save, closure, languag
   } finally {
     page.off("load", onLoad);
   }
+});
+
+// 085 Workspace Tabs：只有显式 opt-in 的 singleton 才生成标签；普通路由不生成；
+// 标签切换保留 mounted 面板状态；关闭/上限/溢出/键盘语义可访问。
+test("085 workspace tabs: singleton opt-in, dedup, mounted state and a11y", async ({ page }) => {
+  (page as unknown as { setWebUIState: (state: { authenticated: boolean }) => void }).setWebUIState({ authenticated: true });
+  // 宿主标签栏按可访问名称定位（面板内模块级 Tabs 也可能带 tablist 语义，不能全属性计数）。
+  const hostTabs = page.locator('[role="tablist"][aria-label="Workspace tabs"]');
+  const hostTab = (id: string) => page.locator(`[role="tab"][id^="workspace-tab-"]`).filter({ hasText: id });
+
+  // REQ-085-001：普通列表/设置路由访问不生成标签。
+  await page.goto("/admin/accounts");
+  await expect(page.getByRole("heading", { name: "Users", exact: true })).toBeVisible();
+  await expect(hostTabs).toHaveCount(0);
+
+  // 打开 openapi singleton：生成一个标签，且页面内容来自 mounted panel。
+  await page.goto("/openapi");
+  await expect(hostTabs).toHaveCount(1);
+  await expect(page.getByRole("heading", { name: "API Docs", exact: true })).toBeVisible();
+  await expect(page.locator('[data-testid^="workspace-panel-"]')).toHaveCount(1);
+
+  // 重复打开同一个 singleton 不重复创建标签（去重）。
+  await page.goto("/openapi");
+  await expect(hostTab("API Docs")).toHaveCount(1);
+
+  // 切换到普通路由：标签保留、活动工作区清空、常规页面显示。
+  await page.goto("/admin/roles");
+  await expect(page.getByRole("heading", { name: "Roles", exact: true })).toBeVisible();
+  await expect(hostTabs).toHaveCount(1);
+
+  // 回到工作区面板：mounted 状态保留（面板重新可见）。
+  await page.goto("/openapi");
+  await expect(page.locator('[data-testid^="workspace-panel-"]')).toHaveCount(1);
+
+  // 关闭标签：回到默认路由，标签栏消失。
+  await page.goto("/openapi");
+  await page.locator('.workspace-tab-close').first().click();
+  await expect(hostTabs).toHaveCount(0);
 });

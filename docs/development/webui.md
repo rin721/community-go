@@ -87,7 +87,19 @@ IAM 用户密码可通过 `go run ./cmd/app iam reset-password --username <用�
 
 样式 authority 是宿主 `webui/src/styles.css`：这里只维护 reset、design token、Shell、布局、overlay、公共 SDK UI、loading、responsive 和 reduced-motion 规则；业务 selector 必须留在模块自己的 `binding/webui/web/*.module.css`，页面根节点使用 CSS Module scope。模块 CSS 不得使用平台级 `:global`，也不得用裸 `:global` 绕过 scope；`pnpm lint:architecture` 通过 CSS 扫描和反向 fixture 守护这条边界。平台公共类统一使用 kebab-case 语义命名，新增页面优先复用平台原语和类，不复制模块级布局覆盖。
 
-宿主 Shell 按 `webui/src/components/shell/*` 拆分：`AppSidebar`（品牌、递归菜单、移动抽屉语义）、`AppHeader`（topbar 与工具优先级）、`AccountMenu`（账号 popover，统一 dismiss/focus）、`SidebarMenu`（递归菜单树与子菜单常驻 DOM）、`ShellSkeleton`/`PageSkeleton`（几何占位）。083 已移除宿主 Tab Bar、visited-tabs 状态和固定 Footer；`AppShell` 保留现有公开 props，只负责 manifest/principal/logout 转宿主 view model 并协调 overlay 与 route content。平台样式 token（`--shell-*` 布局、`--z-*` 层级、`--motion-*` 时长与 easing、surface/border/radius/shadow/spacing）集中在 `styles.css` token 分区；前端侧同一个动效常量维护在 `webui/src/motion.ts`，overlay 四态状态机在 `webui/src/components/shell/overlay.ts`。reduced-motion 决策由 `webui/src/theme.ts` 合并显式偏好与系统 `prefers-reduced-motion`，最终落到 `data-motion` 供样式统一降级。
+宿主 Shell 按 `webui/src/components/shell/*` 拆分：`AppSidebar`（品牌、递归菜单、移动抽屉语义）、`AppHeader`（topbar 与工具优先级）、`AccountMenu`（账号 popover，统一 dismiss/focus）、`SidebarMenu`（递归菜单树与子菜单常驻 DOM）、`WorkspaceTabs`（42px 宿主标签栏，085）、`ShellSkeleton`/`PageSkeleton`（几何占位）。083 已移除宿主**访问历史** Tab Bar、visited-tabs 状态和固定 Footer；085 以显式 opt-in 的 Workspace Tabs 单轨重建（见下节），不恢复菜单历史标签。`AppShell` 保留现有公开 props，只负责 manifest/principal/logout 转宿主 view model 并协调 overlay、workspace 分流与 route content。平台样式 token（`--shell-*` 布局、`--z-*` 层级、`--motion-*` 时长与 easing、surface/border/radius/shadow/spacing）集中在 `styles.css` token 分区；前端侧同一个动效常量维护在 `webui/src/motion.ts`，overlay 四态状态机在 `webui/src/components/shell/overlay.ts`。reduced-motion 决策由 `webui/src/theme.ts` 合并显式偏好与系统 `prefers-reduced-motion`，最终落到 `data-motion` 供样式统一降级。
+
+## 085 宿主 Workspace Tabs（有界独立工作上下文）
+
+**职责边界**：菜单只负责导航；route 通过 `WorkspaceTabPolicy`（默认 `disabled`）显式声明能否成为工作区。模块拥有业务工作状态，宿主只拥有标签元数据、挂载生命周期与关闭/持久化决策，不读取表单字段。普通列表、设置分区、详情/编辑 Drawer 与菜单访问历史一律不生成标签（REQ-085-001/002）。
+
+- **契约**：Go `internal/webui.WorkspaceTabPolicy{Mode, Restorable}` + TS discriminated union `WorkspaceTabPolicy`；`singleton` 以 route ID 去重，`contextual` 必须有稳定 `contextID`（缺失拒绝创建），零值归一化 `disabled`；catalog 校验拒绝未知 mode 与 blank/default/unauth-default route opt-in。manifest 只投影非 disabled（`workspaceTab,omitempty`）。首批实例：`openapi.workspace` singleton（DEC-085-002）。
+- **状态机**：`webui/src/workspace/registry.ts` 是唯一状态 owner——`MAX_OPEN_WORKSPACES=12`、`MAX_CLOSED_HISTORY=10`，pinned 左置且不被「关闭其他/右侧」批量影响，dirty 标签未经确认不得关闭（批量原子），关闭后焦点落到右/左邻居；`reconcile` 在 manifest 变化时丢弃已撤权/已删除 route 的打开与关闭元数据。
+- **持久化**：`webui/src/workspace/storage.ts` 只保存版本化（`version:1`）低敏元数据并按 `principalID` 隔离：routeID/pinned/顺序/允许的 pathname + 明确 allowlist 的 search key + 模块低敏 `restoreKey`；**不保存** dirty、草稿、凭据、响应 body、错误文本或任意 query。坏 JSON、存储抛错、版本不支持、principal 不匹配一律 fail closed 到内存空状态；`setItem` 失败只记录稳定错误码 `workspace_storage_write_failed`。
+- **mounted panel 与会话**：`WorkspaceOutlet` 为每个打开 workspace 建立以打开时固定 location 挂载的 panel（inactive `hidden`+`inert`，不卸载、不聚焦、不交互），active 面板 `role=tabpanel` 并与 tab `aria-labelledby` 关联；普通 route 走现有 Router outlet，面板复用 `ManifestRouteView`/`renderAppRoutes` 不复制业务 route 声明（`renderPanelRoutes`）。`@webui/sdk/runtime` 提供窄会话 `useWorkspaceSession()`：`{workspaceID, active, setDirty, requestClose, registerBeforeClose}`；模块不可读全 registry。
+- **标签栏**：42px（`--shell-tabs-height`）文本式；Active 用 2px 底部指示线；关闭按钮仅在 hover/focus-within/active 显示；pinned/dirty 同时有图标与可访问名称；文本单行省略，空间不足进入横向滚动与尾部 RAC 溢出菜单；APG 手动激活（方向键移动焦点，Space/Enter 激活，Delete 关闭，Shift+F10 上下文菜单提供 pin/unpin/close others/close right/restore）。
+- **统一关闭管线**：单个/关闭其他/关闭右侧先收集目标（pinned 排除），经 dirty 标记与 `beforeClose` handler 决策，一次受控确认后 registry 原子提交；`beforeunload` 只在存在 dirty workspace 时注册；logout 有 dirty 时先走同一确认并在成功前保留状态；最后一个工作区关闭时回到主导航。
+- **接入约定**：新增 workspace 路由时在 `binding.Routes[].WorkspaceTab` 声明 `singleton/contextual` + `Restorable`，再 `pnpm generate:check`；contextual 的持久化只接受低敏 `restoreKey`，真实实体工作台需独立验收其 context/restore/dirty owner。当前 `workspace-tabs` zone 已因零贡献方删除，不在此提供万能注入面。
 
 ## 083 页面骨架与宽度档
 
@@ -113,8 +125,9 @@ WebUI 以「骨架 + 注入点」承载业务模块的 UI 扩展（062）：骨�
 | `header-actions` | 顶栏操作区（全局快捷入口） | `HeaderActions` |
 | `sidebar-panels` | 侧边栏辅助面板区 | `SidebarPanels` |
 | `page-header` | 页面页头区（全局页头注入） | `PageHeaderItems` |
-| `workspace-tabs` | 标签页栏操作区 | `WorkspaceTabActions` |
 | `footer-status` | 底部状态栏 | `FooterStatusItems` |
+
+> 085 起 `workspace-tabs` zone 已移除：它曾作为标签栏的万能操作注入点，但当前没有任何真实贡献方；宿主 Workspace Tabs 改由宿主 registry/outlet/标签栏单轨承载（REQ-085-012 单轨清理）。未来若出现真实的工作区全局动作用例，应按窄 zone 契约重新定义并单独进入 go/ts contract。
 
 zone 贡献的公共字段：`ID`（全局唯一）、`EntryID`（复用 `Binding.Entries` 的懒加载组件）、`TitleMessageID`（强制 locale 覆盖）、`OperationID`（可选动作权限钩子）、`Order`；有图标的 zone 同时声明 `IconID`（必须属于受控图标目录）。`Binding.ActionPermissions` 声明页面内动作的权限钩子（OperationID 集合）。所有 ZoneID、entry 归属、图标、kind、order 与数量上限都由 `validateBindings` 校验，未知状态 fail closed。
 
@@ -164,7 +177,7 @@ zone 贡献的公共字段：`ID`（全局唯一）、`EntryID`（复用 `Bindin
 - **阻尼平滑滚动**：`SmoothScrollController`（`webui/src/scroll/smooth-scroll.ts`）是 `lenis` 的项目自有窄契约封装（唯一第三方依赖，R067-002 结论）：`wrapper=.page-viewport`、`content=.page-flow`、`syncTouch=false` 保留触控原生惯性；reduced-motion 或派生配置关闭时销毁回退原生滚动。`ScrollExperience`（`webui/src/scroll/ScrollExperience.tsx`）在 AppShell 挂载 panel 模式、BlankLayout 挂载 window 模式。
 - **页面滚动条插槽**：默认 `scrollbar-gutter: stable`（稳定插槽、预留右侧），避免 Windows 实体滚动条出现时挤压布局；派生配置 `scrollbar=overlay` 时切换 `scrollbar-gutter: auto`。
 - **边缘阻尼/橡皮筋**：`EdgeBand` 在滚动容器边界越界时对 `.page-flow` 施加瞬态 `--edge-band-offset` 位移并弹性回弹；纯函数 `computeEdgeBand` 有单测。
-- **磁吸吸附**：声明 `data-snap-x` 的横向滚动区（含 Shell 页签轨 `.workspace-tab-scroll`）启用 CSS `scroll-snap`。
+- **磁吸吸附**：声明 `data-snap-x` 的横向滚动区（含模块内横向标签轨）启用 CSS `scroll-snap`。085 起宿主 Workspace Tabs 标签轨自行管理横向滚动与溢出菜单，不在此挂磁吸。
 - **显式滚动场景劫持**：声明 `data-scroll-hijack="x|y"` 的区域把纵向（横向）滚轮输入转换为容器内横向（纵向）滚动；`DataTable.wrapperProps` 可透传该属性（如能力清单/审计表）。`MutationObserver` 跟随路由内容变化重复应用。
 - **弹入响应**：`Reveal`（`webui/src/motion/reveal.tsx`）用 IntersectionObserver + CSS transition 实现 spring 弹入，节奏档位 `calm/balanced/playful` 派生 `--reveal-duration/--reveal-ease/--reveal-offset`，`RevealList` 按 index 派生 `--reveal-delay` stagger；reduced-motion、`experience.reveal=false` 或缺省属性时元素直接可见。
 
@@ -261,7 +274,7 @@ PageHeader（eyebrow/title/description/actions；标题用 HeroUI Typography.Hea
 ## OpenAPI：API 文档与在线调试（075/009）
 
 - **模块形态**：`openapi` 是 WebUI-only 模块（无 module.go 业务层）：单路由 `/openapi` 工作台 + `openapi.docs` 顶级菜单项（访问门槛绑定 `iam.session.read`，未登录跳 /login、菜单隐藏，mock 恒 allowed）。
-- **工作台式骨架（R075-009，对齐 Apifox 核心骨架、系统组件呈现）**：项目组件基座是 HeroUI v3（RAC）非 Element Plus/AntD；左资源树 `ApiTree`（Disclosure 递归接口树：分组/叶子 + MethodBadge + 搜索 Field + 可折叠）；顶部多标签 `WorkspaceTabs`（HeroUI Tabs 受控 selectedKey + 关闭按钮 + 横滑 + 激活高亮，复用 `.workspace-tab` 语义类）；主工作台上下分割 `RequestPane`（URL 拼接行 + 发送 + Params/Body/Headers/Cookies/Auth 动态表单行）+ `Resizer`（模块内窄可拖动分割线：pointer events + flex-basis + 键盘）+ `ResponsePane`（状态/耗时/大小/高亮 JSON/响应头）。
+- **工作台式骨架（R075-009，对齐 Apifox 核心骨架、系统组件呈现）**：项目组件基座是 HeroUI v3（RAC）非 Element Plus/AntD；左资源树 `ApiTree`（Disclosure 递归接口树：分组/叶子 + MethodBadge + 搜索 Field + 可折叠）；顶部多标签 `WorkspaceTabs`（**模块内部接口标签**，HeroUI Tabs 受控 selectedKey + 关闭按钮 + 横滑 + 激活高亮，走模块自己的 `openapi.module.css`，与 085 宿主 Workspace Tabs 是不同层级）；主工作台上下分割 `RequestPane`（URL 拼接行 + 发送 + Params/Body/Headers/Cookies/Auth 动态表单行）+ `Resizer`（模块内窄可拖动分割线：pointer events + flex-basis + 键盘）+ `ResponsePane`（状态/耗时/大小/高亮 JSON/响应头）。
 - **在线调试（Try it out）**：`openapi-data.ts` 纯函数解析/请求构建/树构建（`buildApiTree`/`filterApiTree`，点分 tag 无限层级）；执行同源 fetch（bearer 内存 token、webuiSession Cookie + CSRF、form-data 文件上传、mock 禁用）；`run-store.ts` 状态机 + `highlight.ts`（highlight.js 仅 json）高亮 JSON body。深链 `?op=<id>&mode=<docs|debug>`；Cmd/Ctrl+K 平台 Modal 快速跳转（CommandPalette）。
 - **契约数据源（单权威）**：`webui generate` 从 `api/openapi.yaml` 渲染 `webui/src/generated/openapi-spec.ts`；`webui.specOutput` 路径、`--check` 严格比对（R075-002）；mock 浏览零请求、`mock.ts` 空表。
 

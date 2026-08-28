@@ -681,3 +681,85 @@ func TestManifestZoneOrderingIsStable(t *testing.T) {
 		t.Fatalf("zones are not ordered by id within the same order: %#v", manifest.Zones)
 	}
 }
+
+// workspaceTestBinding 在 testBinding 基础上声明 workspace 资格，便于测试
+// 校验与 manifest 投影的契约边界（085 CONTRACT-085-001）。
+func workspaceTestBinding(moduleID string, policy WorkspaceTabPolicy) Binding {
+	binding := testBinding(moduleID, false)
+	binding.Routes[0].WorkspaceTab = policy
+	return binding
+}
+
+func TestWorkspaceTabPolicyProjectionOmitsDisabledAndProjectsOptin(t *testing.T) {
+	disabled := workspaceTestBinding("plain", WorkspaceTabPolicy{})
+	disabled.Routes[0].Default = true
+	singleton := workspaceTestBinding("workspace", WorkspaceTabPolicy{Mode: WorkspaceTabSingleton, Restorable: true})
+	contextual := workspaceTestBinding("docs", WorkspaceTabPolicy{Mode: WorkspaceTabContextual, Restorable: false})
+	catalog, err := BuildCatalog(disabled, singleton, contextual)
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifest := catalog.ManifestFor(func(string) Access { return AccessAllowed })
+	if len(manifest.Routes) != 3 {
+		t.Fatalf("unexpected route count: %#v", manifest.Routes)
+	}
+	for _, route := range manifest.Routes {
+		switch route.ID {
+		case "plain.page":
+			if route.WorkspaceTab != nil {
+				t.Fatalf("disabled/zero policy leaked into manifest: %#v", route.WorkspaceTab)
+			}
+		case "workspace.page":
+			if route.WorkspaceTab == nil || route.WorkspaceTab.Mode != WorkspaceTabSingleton || !route.WorkspaceTab.Restorable {
+				t.Fatalf("singleton policy projected incorrectly: %#v", route.WorkspaceTab)
+			}
+		case "docs.page":
+			if route.WorkspaceTab == nil || route.WorkspaceTab.Mode != WorkspaceTabContextual || route.WorkspaceTab.Restorable {
+				t.Fatalf("contextual policy projected incorrectly: %#v", route.WorkspaceTab)
+			}
+		}
+	}
+	encoded, err := json.Marshal(manifest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(encoded), `"workspaceTab":{"mode":"singleton","restorable":true}`) {
+		t.Fatalf("manifest JSON misses singleton workspace tab projection: %s", encoded)
+	}
+	if strings.Contains(string(encoded), `"mode":"disabled"`) {
+		t.Fatalf("manifest JSON should omit disabled workspace tab policies: %s", encoded)
+	}
+}
+
+func TestWorkspaceTabPolicyValidationFailsClosed(t *testing.T) {
+	unknown := workspaceTestBinding("bad", WorkspaceTabPolicy{Mode: WorkspaceTabMode("tabs")})
+	if _, err := BuildCatalog(unknown); err == nil {
+		t.Fatal("unknown workspace tab mode was accepted")
+	}
+	blank := workspaceTestBinding("bad", WorkspaceTabPolicy{Mode: WorkspaceTabSingleton})
+	blank.Routes[0].Layout = RouteLayoutBlank
+	if _, err := BuildCatalog(blank); err == nil {
+		t.Fatal("blank layout route opted into workspace tab was accepted")
+	}
+	defaultRoute := workspaceTestBinding("bad", WorkspaceTabPolicy{Mode: WorkspaceTabSingleton})
+	defaultRoute.Routes[0].Default = true
+	if _, err := BuildCatalog(defaultRoute); err == nil {
+		t.Fatal("default route opted into workspace tab was accepted")
+	}
+	unauthDefault := workspaceTestBinding("bad", WorkspaceTabPolicy{Mode: WorkspaceTabContextual})
+	unauthDefault.Routes[0].UnauthenticatedDefault = true
+	unauthDefault.Routes[0].Layout = RouteLayoutBlank
+	unauthDefault.Routes[0].ViewOperationID = ""
+	if _, err := BuildCatalog(unauthDefault); err == nil {
+		t.Fatal("unauthenticated default route opted into workspace tab was accepted")
+	}
+	// 零值 mode 必须仍被接受（显式 disabled 同语义）。
+	zero := workspaceTestBinding("ok", WorkspaceTabPolicy{})
+	if _, err := BuildCatalog(zero); err != nil {
+		t.Fatalf("zero workspace tab policy should normalize to disabled: %v", err)
+	}
+	explicitDisabled := workspaceTestBinding("ok", WorkspaceTabPolicy{Mode: WorkspaceTabDisabled, Restorable: true})
+	if _, err := BuildCatalog(explicitDisabled); err != nil {
+		t.Fatalf("explicit disabled workspace tab policy was rejected: %v", err)
+	}
+}

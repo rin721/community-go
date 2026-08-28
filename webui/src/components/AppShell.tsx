@@ -1,17 +1,22 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
-import { Link, Outlet, useLocation } from "react-router-dom";
+import { useEffect, useCallback, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Languages, Moon, Palette, Sun } from "lucide-react";
 import type { Manifest, ManifestRoute, PrincipalView } from "@webui/sdk/runtime";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { ConfirmDialog, IconButton, Toast } from "@webui/sdk/ui";
 import { changeLanguage, ensureRouteLocale, getAvailableLanguages, languageLabelMessageID, translateMessage } from "../i18n";
-import { effectiveReduceMotion, useThemePreferences } from "../theme";
+import { effectiveReduceMotion, useThemePreferences, type ThemePreferences } from "../theme";
 import { ScrollExperience } from "../scroll/ScrollExperience";
+import { routeIsLoadable } from "../routes";
 import { RouteSearch } from "./RouteSearch";
 import { ThemeDrawer } from "./ThemeDrawer";
 import { AppSidebar, shouldIsolateMobileSidebar } from "./shell/AppSidebar";
 import { AppHeader } from "./shell/AppHeader";
 import { buildMenuTree, findMenuAncestors, type SidebarMenuEntry } from "./shell/SidebarMenu";
+import { WorkspaceTabs } from "./shell/WorkspaceTabs";
+import { WorkspaceOutlet } from "../workspace/WorkspaceOutlet";
+import { useWorkspaceHost, workspaceLocationOf, workspacePolicyOf } from "../workspace/WorkspaceProvider";
+import type { WorkspaceTabView } from "../workspace/registry";
 
 export { buildMenuTree, findMenuAncestors, shouldIsolateMobileSidebar };
 export type { SidebarMenuEntry };
@@ -29,6 +34,8 @@ export function AppShell({ manifest, principal, onLogout }: { manifest: Manifest
   // 订阅公开 i18n 契约，确保语言切换会刷新宿主壳层及其下的公共 overlay。
   const { i18n: hostI18n } = useWebUITranslation("webui.host");
   const location = useLocation();
+  const navigate = useNavigate();
+  const host = useWorkspaceHost();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
@@ -43,7 +50,23 @@ export function AppShell({ manifest, principal, onLogout }: { manifest: Manifest
   const accessibleRoutes = useMemo(() => manifest.routes.filter((route) => route.layout === "app" && route.access === "allowed" && route.deliveryState === "implemented"), [manifest]);
   const localeEligibleRoutes = useMemo(() => accessibleRoutes.filter((route) => route.availability === "available" || (route.availability === "degraded" && (route.availableCapabilities?.length ?? 0) > 0)), [accessibleRoutes]);
   const menu = useMemo(() => buildMenuTree(manifest.menu.map((item) => ({ item, route: accessibleRoutes.find((route) => route.id === item.routeId) })).filter((value): value is { item: NonNullable<typeof manifest.menu>[number]; route: ManifestRoute } => Boolean(value.route))), [accessibleRoutes, manifest.menu]);
-  const currentRoute = manifest.routes.find((route) => route.path === location.pathname);
+  const currentRoute: ManifestRoute | undefined = manifest.routes.find((route) => route.path === location.pathname);
+  // 085：普通 route 激活时保留已打开标签但清空活动工作区（REQ-085-003/007）；
+  // singleton workspace 路由在导航时打开/激活。效果只依赖路由与位置（不依赖
+  // registry 对象），避免关闭标签后被同一渲染循环重新创建。
+  const hostRef = useRef(host);
+  hostRef.current = host;
+  useEffect(() => {
+    if (!currentRoute) return;
+    const policy = workspacePolicyOf(currentRoute);
+    if (!policy || policy.mode === "disabled") {
+      hostRef.current.deactivateWorkspace();
+      return;
+    }
+    if (policy.mode === "singleton" && currentRoute.access === "allowed" && routeIsLoadable(currentRoute)) {
+      hostRef.current.openWorkspace({ routeID: currentRoute.id, policy, location: workspaceLocationOf(location.pathname, location.search) });
+    }
+  }, [currentRoute, location.pathname, location.search]);
   useEffect(() => setCollapsed(theme.layout.sidebarCollapsed), [theme.layout.sidebarCollapsed]);
   useEffect(() => { void Promise.allSettled(localeEligibleRoutes.map(ensureRouteLocale)); }, [localeEligibleRoutes]);
   useEffect(() => {
@@ -117,11 +140,49 @@ export function AppShell({ manifest, principal, onLogout }: { manifest: Manifest
     <AppSidebar sidebarRef={mobileSidebarRef} mobileOpen={mobileOpen} isMobileViewport={isMobileViewport} collapsed={collapsed} menu={menu} currentRouteID={currentRoute?.id} expandedMenuIDs={expandedMenuIDs} onToggleMenu={(menuID) => setExpandedMenuIDs((current) => { const next = new Set(current); next.has(menuID) ? next.delete(menuID) : next.add(menuID); return next; })} onClose={() => setMobileOpen(false)} onKeyDown={handleMobileSidebarKeyDown} revision={manifest.catalogRevision} />
     <div className="app-workspace">
       <AppHeader collapsed={collapsed} onToggleSidebar={toggleSidebar} mobileMenuButtonRef={mobileMenuButtonRef} onOpenMobileMenu={() => setMobileOpen(true)} showBreadcrumb={theme.layout.showBreadcrumb} currentRoute={currentRoute} pathname={location.pathname} hostLanguage={hostI18n.language} availableLanguages={availableLanguages} onLanguageChange={(language) => void changeLanguage(language)} theme={theme} onToggleColorScheme={toggleColorScheme} onOpenTheme={() => setThemeOpen(true)} onOpenSearch={() => setSearchOpen(true)} onToggleFullscreen={toggleFullscreen} principal={principal} onRequestLogout={() => setLogoutOpen(true)} />
-      <ScrollExperience target="panel" experience={theme.experience} reducedMotion={effectiveReduceMotion(theme.reduceMotion)} panelProps={{ id: "webui-workspace-panel" }}><Outlet /></ScrollExperience>
+      <WorkspaceArea manifest={manifest} navigate={navigate} theme={theme} reducedMotion={effectiveReduceMotion(theme.reduceMotion)} />
     </div>
     <RouteSearch open={searchOpen} routes={accessibleRoutes} onClose={() => setSearchOpen(false)} />
     <ThemeDrawer open={themeOpen} theme={theme} onChange={setTheme} onReset={resetTheme} onClose={() => setThemeOpen(false)} />
     <ConfirmDialog open={logoutOpen} title={translateMessage("webui.host.logout.confirm.title")} description={translateMessage("webui.host.logout.confirm.detail")} confirmLabel={translateMessage("webui.host.logout.confirm.confirm")} cancelLabel={translateMessage("webui.host.logout.confirm.cancel")} closeLabel={translateMessage("webui.host.logout.confirm.close")} onConfirm={confirmLogout} onCancel={() => setLogoutOpen(false)} />
     <Toast open={logoutFailed} tone="danger" title={translateMessage("webui.host.logout.failed.title")} detail={translateMessage("webui.host.logout.failed.detail")} closeLabel={translateMessage("webui.host.logout.failed.close")} onClose={() => setLogoutFailed(false)} />
   </div>;
+}
+
+// WorkspaceArea 是 085 主内容区分流：标签栏 + mounted panels 常驻渲染（隐藏面板
+// 不卸载，保存真实工作状态，REQ-085-007）；普通 route 激活时标签保留但无活动
+// 工作区，此时显示常规 Outlet 而非面板（不把菜单访问历史变成标签）。
+// 面板切换不复制业务 route 声明（ROUTER-085-001 分流语义）。
+function WorkspaceArea({ manifest, navigate, theme, reducedMotion }: { manifest: Manifest; navigate: (path: string) => void; theme: ThemePreferences; reducedMotion: boolean }) {
+  const host = useWorkspaceHost();
+  const activeWorkspace = host.activeTab;
+  const resolveTitle = useCallback((tab: WorkspaceTabView) => host.resolveTabTitle(tab), [host]);
+
+  const activateAndNavigate = useCallback((tab: WorkspaceTabView) => {
+    host.activateWorkspace(tab.id);
+    const search = tab.location?.search ?? "";
+    navigate(`${tab.location?.pathname ?? ""}${search}`);
+  }, [host, navigate]);
+
+  return (
+    <div className="workspace-content">
+      {host.tabs.length > 0 && <WorkspaceTabs
+        tabs={host.tabs}
+        activeID={host.state.activeWorkspaceID}
+        canRestore={host.state.closed.length > 0}
+        resolveTitle={resolveTitle}
+        onActivateAndNavigate={activateAndNavigate}
+        onClose={host.requestCloseWorkspace}
+        onCloseOthers={host.requestCloseOthers}
+        onCloseRight={host.requestCloseRight}
+        onPin={host.pinWorkspace}
+        onUnpin={host.unpinWorkspace}
+        onRestore={host.requestRestoreClosed}
+      />}
+      <div className="workspace-content-stage">
+        <WorkspaceOutlet manifest={manifest} />
+        {!activeWorkspace && <ScrollExperience target="panel" experience={theme.experience} reducedMotion={reducedMotion} panelProps={{ id: "webui-workspace-panel" }}><Outlet /></ScrollExperience>}
+      </div>
+    </div>
+  );
 }

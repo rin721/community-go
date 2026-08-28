@@ -18,8 +18,21 @@ export type DeliveryState = "implemented" | "not-implemented";
 export type RouteLayout = "app" | "blank";
 export type CapabilityState = "available" | "degraded" | "unavailable" | "not-implemented";
 
+// WorkspaceTabPolicy 是 route 的显式工作上下文资格（085，Go 侧
+// internal/webui.WorkspaceTabPolicy 的 discriminated union 镜像）：
+// - disabled（默认）：普通菜单访问、列表、设置分区、详情/编辑 Drawer 不生成标签；
+// - singleton：该 route 本身是一个独立工作区，同一 principal 只有一个实例；
+// - contextual：同一路由可按模块提供的稳定 contextID 打开多个实例；
+//   contextID 缺失时拒绝创建，不得回退为访问历史。
+export type WorkspaceTabPolicy =
+  | { mode: "disabled" }
+  | { mode: "singleton"; restorable: boolean }
+  | { mode: "contextual"; restorable: boolean };
+
 // ZoneID 是宿主骨架分区的稳定枚举（与 Go 侧 internal/webui.ZoneID 一致）。
-export type ZoneID = "header-actions" | "sidebar-panels" | "page-header" | "workspace-tabs" | "footer-status";
+// 085 起移除 workspace-tabs 分区：当前无真实贡献方，host Workspace Tabs 由宿主
+// registry/outlet 单轨承载，不再提供万能 zone 注入面（REQ-085-012）。
+export type ZoneID = "header-actions" | "sidebar-panels" | "page-header" | "footer-status";
 
 export type ManifestZone = {
   moduleId: string;
@@ -52,6 +65,9 @@ export type ManifestRoute = {
   access: Access;
   availability?: CapabilityState;
   availableCapabilities?: string[];
+  // workspaceTab 是 workspace 资格投影（085）：disabled/未声明时字段省略，
+  // 宿主一律按 disabled 处理；只有显式 opt-in 的 route 才可能生成标签。
+  workspaceTab?: WorkspaceTabPolicy;
 };
 
 export type ManifestMenu = {
@@ -101,6 +117,47 @@ export function useWebUITranslation(namespace: `webui.${string}`) {
   if (!namespace.startsWith("webui.")) throw new Error("webui_i18n_namespace_invalid");
   return useTranslation(namespace);
 }
+
+// WorkspaceSession 是宿主暴露给 workspace 页面模块的窄生命周期契约（085 REQ-085-006）：
+// 页面只能报告 dirty/active 状态并请求关闭，宿主统一处理关闭、批量关闭、logout 与
+// browser unload；模块不得读取全 registry，也不得访问其他 workspace 的会话。
+export type WorkspaceSession = {
+  workspaceID: string;
+  /** active=false 是资源边界：非活动面板不可聚焦/交互，模块应暂停轮询、订阅与高成本绘制。 */
+  active: boolean;
+  /** setDirty 报告该工作区是否仍保留未保存的真实工作状态（不是只画视觉标记）。 */
+  setDirty: (dirty: boolean) => void;
+  /** requestClose 向宿主请求关闭本工作区；宿主执行 dirty/beforeClose 决策后决定是否卸载。 */
+  requestClose: () => void;
+  /**
+   * registerBeforeClose 注册关闭前决策：返回 true 表示允许关闭，false/抛错表示拒绝
+   * （原因由宿主低敏展示）。返回解绑函数。页面不得先自行卸载再通知宿主。
+   */
+  registerBeforeClose: (handler: () => boolean | Promise<boolean>) => () => void;
+};
+
+// WorkspaceSessionLookup 由宿主 WorkspaceOutlet 注入：按 workspaceID 返回窄会话。
+// 页面组件通过 useWorkspaceSession() 消费，不接触宿主 registry 内部。
+export type WorkspaceSessionLookup = (workspaceID: string) => WorkspaceSession | undefined;
+
+const WorkspaceSessionLookupContext = createContext<WorkspaceSessionLookup | undefined>(undefined);
+
+export function WorkspaceSessionLookupProvider({ value, children }: { value: WorkspaceSessionLookup; children: ReactNode }) {
+  return <WorkspaceSessionLookupContext.Provider value={value}>{children}</WorkspaceSessionLookupContext.Provider>;
+}
+
+// useWorkspaceSession 返回当前 mounted workspace 的窄会话；非 workspace 页面返回
+// undefined，页面据此优雅降级（例如普通 route 不注册 dirty）。
+export function useWorkspaceSession(): WorkspaceSession | undefined {
+  const lookup = useContext(WorkspaceSessionLookupContext);
+  if (!lookup) return undefined;
+  const workspaceID = useContext(WorkspaceScopeContext);
+  if (!workspaceID) return undefined;
+  return lookup(workspaceID);
+}
+
+// WorkspaceScopeContext 标记当前组件树属于哪个 workspace（WorkspaceOutlet 注入）。
+export const WorkspaceScopeContext = createContext<string | undefined>(undefined);
 
 export async function requestJSON<T>(input: RequestInfo | URL, init?: RequestInit): Promise<T> {
   if (readWebUIDataSource() === "mock") {

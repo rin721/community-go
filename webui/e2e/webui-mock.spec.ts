@@ -206,3 +206,83 @@ test("084c account bulk archive flow renders feedback", async ({ page }) => {
   // 批量结果反馈（mock 返回 processed=2）。
   await expect(page.locator("[role='status']").last()).toContainText("2");
 });
+
+// 085 Workspace Tabs（mock 环境使用生成 manifest，openapi.workspace 为 singleton）：
+// 打开 openapi 生成一个 host 标签；往返普通路由标签保留；reload 后低敏元数据可恢复；
+// 关闭后回到默认路由。视觉证据同帧截图。
+test("085 workspace tab bar: singleton open/restore/close flow in mock mode", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  // 宿主标签栏按可访问名称定位（面板内模块级 Tabs 也可能带 tablist 语义）。
+  const hostTabs = page.locator('[role="tablist"][aria-label="Workspace tabs"]');
+  // 普通路由不生成标签。
+  await page.goto("/dashboard");
+  await expect(page.getByRole("heading", { name: "Runtime status", exact: true })).toBeVisible();
+  await expect(hostTabs).toHaveCount(0);
+
+  // 打开 openapi singleton → 一个 host 标签 + mounted panel（页面来自面板而非普通 Outlet）。
+  await page.goto("/openapi");
+  await expect(hostTabs).toHaveCount(1);
+  await expect(page.locator('[role="tab"][aria-selected="true"]')).toHaveCount(1);
+  await expect(page.locator('[data-testid^="workspace-panel-"]')).toHaveCount(1);
+  await expect(page.getByRole("heading", { name: "API Docs", exact: true })).toBeVisible();
+  await page.screenshot({ path: "test-results/085-workspace-tabs-mock.png", fullPage: true });
+
+  // 往返普通路由：标签保留、隐藏面板仍在 DOM（mounted 状态不丢；hidden+inert 不可交互）。
+  await page.goto("/dashboard");
+  await expect(hostTabs).toHaveCount(1);
+  await expect(page.locator('[data-testid^="workspace-panel-"][data-active="false"]')).toHaveCount(1);
+  await expect(page.locator('[data-testid^="workspace-panel-"][data-active="false"]')).toHaveAttribute("inert", "");
+
+  // reload：版本化 localStorage 恢复低敏元数据（routeID/pinned/order，无 dirty）。
+  await page.reload();
+  await expect(hostTabs).toHaveCount(1);
+  const persisted = await page.evaluate(() => localStorage.getItem("community-go-webui-workspace"));
+  expect(persisted).toContain('"routeID":"openapi.workspace"');
+  expect(persisted).not.toContain('"dirty"');
+
+  // 关闭 → 默认路由，标签栏消失。
+  await page.goto("/openapi");
+  await page.locator(".workspace-tab-close").first().click();
+  await expect(hostTabs).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Runtime status", exact: true })).toBeVisible();
+});
+
+// 085 视觉验收（REQ-085-003/004/005）：1440×1000 / 1024×768 / 390×844 三档视口，
+// light/dark 各截一张；同时断言 42px 高度、底部指示线、文本不换行与 close 显隐语义。
+test("085 workspace tabs visual: 42px rail, indicator, no wrap and light/dark", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/openapi");
+  await expect(page.locator('[role="tablist"][aria-label="Workspace tabs"]')).toHaveCount(1);
+  await expect(page.locator('[data-testid^="workspace-panel-"]')).toHaveCount(1);
+
+  // 42px 高度（REQ-085-003：40–44px 区间内取 42px）。
+  const height = await page.locator('[role="tablist"][aria-label="Workspace tabs"]').evaluate((el) => Math.round(el.getBoundingClientRect().height));
+  expect(height).toBe(42);
+  // Active 底部指示线（::after 2px；outline 断言：内容非空 + 高度 2px）。
+  const indicator = await page.locator('[role="tab"][aria-selected="true"]').evaluate((el) => {
+    const style = getComputedStyle(el.parentElement as HTMLElement, "::after");
+    return { height: style.height, content: style.content, background: style.backgroundColor };
+  });
+  expect(indicator.content).toBe('""');
+  expect(indicator.height).toBe("2px");
+  expect(indicator.background).not.toBe("rgba(0, 0, 0, 0)");
+  // 文本不换行（REQ-085-003/005）。
+  const noWrap = await page.locator(".workspace-tab-label").first().evaluate((el) => getComputedStyle(el).whiteSpace);
+  expect(noWrap).toBe("nowrap");
+
+  const viewports = [
+    { width: 1440, height: 1000, name: "desktop" },
+    { width: 1024, height: 768, name: "laptop" },
+    { width: 390, height: 844, name: "mobile" },
+  ];
+  for (const viewport of viewports) {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    // mock 会话初始 light；dark 点一次 toggle，回 light 再点一次。
+    await page.getByRole("button", { name: "Toggle theme mode" }).click();
+    await expect(page.locator("html")).toHaveAttribute("data-color-scheme", "dark");
+    await page.screenshot({ path: `test-results/085-workspace-tabs-${viewport.name}-dark.png`, fullPage: true });
+    await page.getByRole("button", { name: "Toggle theme mode" }).click();
+    await expect(page.locator("html")).toHaveAttribute("data-color-scheme", "light");
+    await page.screenshot({ path: `test-results/085-workspace-tabs-${viewport.name}-light.png`, fullPage: true });
+  }
+});

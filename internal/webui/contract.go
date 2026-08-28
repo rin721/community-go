@@ -32,6 +32,42 @@ const (
 	RouteLayoutBlank RouteLayout = "blank"
 )
 
+// WorkspaceTabMode 表示 route 是否可以作为宿主 Workspace Tab 的显式独立工作上下文。
+// 默认 disabled：普通菜单访问、列表、设置分区、详情/编辑 Drawer 与普通子路由
+// 一律不生成标签（085 REQ-085-001/002），宿主不得从访问历史推断资格。
+type WorkspaceTabMode string
+
+const (
+	WorkspaceTabDisabled   WorkspaceTabMode = "disabled"
+	WorkspaceTabSingleton  WorkspaceTabMode = "singleton"
+	WorkspaceTabContextual WorkspaceTabMode = "contextual"
+)
+
+// WorkspaceTabPolicy 是 route 的显式工作上下文资格声明；零值归一化为 disabled。
+// Restorable 表示该工作区只允许持久化低敏标签元数据（routeID/pinned/顺序/allowlist
+// 后的 pathname 与 search），绝不保存草稿、凭据、响应 body、任意 query 或 dirty（085
+// REQ-085-008）。contextual 的实例 ID 不在静态 manifest 中，由运行时打开动作提供。
+type WorkspaceTabPolicy struct {
+	Mode       WorkspaceTabMode
+	Restorable bool
+}
+
+// NormalizedWorkspaceTabMode 把空值与未知值收敛为 disabled（fail closed）：
+// 判定语义单一，避免调用方把空字符串当成可 opt-in 的合法值。
+func NormalizedWorkspaceTabMode(mode WorkspaceTabMode) WorkspaceTabMode {
+	if mode != WorkspaceTabSingleton && mode != WorkspaceTabContextual {
+		return WorkspaceTabDisabled
+	}
+	return mode
+}
+
+// ManifestWorkspaceTabPolicy 是 WorkspaceTabPolicy 的安全运行时投影（仅非 disabled
+// 时出现；disabled 省略字段，前端按 disabled 处理）。不含任何实例 ID 或业务数据。
+type ManifestWorkspaceTabPolicy struct {
+	Mode       WorkspaceTabMode `json:"mode"`
+	Restorable bool             `json:"restorable"`
+}
+
 // ZoneID 标识宿主骨架分区；zone 是分区注入点的稳定枚举（Go 与前端共享契约）。
 type ZoneID string
 
@@ -42,8 +78,6 @@ const (
 	ZoneSidebarPanels ZoneID = "sidebar-panels"
 	// ZonePageHeader 是页面页头区域注入点（页头动作、状态摘要）。
 	ZonePageHeader ZoneID = "page-header"
-	// ZoneWorkspaceTabActions 是标签页栏操作区注入点（页签级操作控件）。
-	ZoneWorkspaceTabActions ZoneID = "workspace-tabs"
 	// ZoneFooterStatus 是底部状态栏注入点（版本/revision/模块状态项）。
 	ZoneFooterStatus ZoneID = "footer-status"
 )
@@ -125,8 +159,6 @@ type Binding struct {
 	SidebarPanels []SidebarPanel
 	// PageHeaderItems 是页头区域注入点。
 	PageHeaderItems []PageHeaderItem
-	// WorkspaceTabActions 是标签页栏操作区注入点。
-	WorkspaceTabActions []WorkspaceTabAction
 	// FooterStatusItems 是底部状态栏注入点。
 	FooterStatusItems []FooterStatusItem
 	// ActionPermissions 是模块页面内动作的权限钩子声明（OperationID 集合）。
@@ -159,6 +191,8 @@ type Route struct {
 	GroupLayoutID          string
 	DeliveryState          DeliveryState
 	DegradedCapabilities   []string
+	// WorkspaceTab 是 route 的显式工作上下文资格（085）；零值归一化为 disabled。
+	WorkspaceTab           WorkspaceTabPolicy
 	Default                bool
 	UnauthenticatedDefault bool
 }
@@ -201,12 +235,6 @@ type SidebarPanel struct {
 type PageHeaderItem struct {
 	ZoneContributionBase
 	Kind PageHeaderItemKind
-}
-
-// WorkspaceTabAction 是标签页栏操作区注入点。
-type WorkspaceTabAction struct {
-	ZoneContributionBase
-	IconID string
 }
 
 // FooterStatusItem 是底部状态栏注入点。
@@ -303,20 +331,22 @@ type ManifestActionPermission struct {
 
 // ManifestRoute 是剥离构建期字段后的路由。
 type ManifestRoute struct {
-	ModuleID               string            `json:"moduleId"`
-	ID                     string            `json:"id"`
-	Path                   string            `json:"path"`
-	EntryID                string            `json:"entryId"`
-	TitleMessageID         string            `json:"titleMessageId"`
-	ViewOperationID        string            `json:"viewOperationId,omitempty"`
-	Layout                 RouteLayout       `json:"layout"`
-	GroupLayoutID          string            `json:"groupLayoutId,omitempty"`
-	DeliveryState          DeliveryState     `json:"deliveryState"`
-	Default                bool              `json:"default"`
-	UnauthenticatedDefault bool              `json:"unauthenticatedDefault"`
-	Access                 Access            `json:"access"`
-	Availability           AvailabilityState `json:"availability"`
-	AvailableCapabilities  []string          `json:"availableCapabilities,omitempty"`
+	ModuleID               string                     `json:"moduleId"`
+	ID                     string                     `json:"id"`
+	Path                   string                     `json:"path"`
+	EntryID                string                     `json:"entryId"`
+	TitleMessageID         string                     `json:"titleMessageId"`
+	ViewOperationID        string                     `json:"viewOperationId,omitempty"`
+	Layout                 RouteLayout                `json:"layout"`
+	GroupLayoutID          string                     `json:"groupLayoutId,omitempty"`
+	DeliveryState          DeliveryState              `json:"deliveryState"`
+	// WorkspaceTab 是 workspace 资格的非 disabled 投影；disabled 省略，前端按 disabled 处理。
+	WorkspaceTab           *ManifestWorkspaceTabPolicy `json:"workspaceTab,omitempty"`
+	Default                bool                       `json:"default"`
+	UnauthenticatedDefault bool                       `json:"unauthenticatedDefault"`
+	Access                 Access                     `json:"access"`
+	Availability           AvailabilityState          `json:"availability"`
+	AvailableCapabilities  []string                   `json:"availableCapabilities,omitempty"`
 }
 
 // ManifestMenu 是剥离构建期字段后的菜单节点。
@@ -449,6 +479,7 @@ func (c Catalog) ManifestForWithNavigation(policy NavigationPolicySnapshot, acce
 				Layout: route.Layout, GroupLayoutID: route.GroupLayoutID, DeliveryState: route.DeliveryState, Default: route.Default,
 				UnauthenticatedDefault: route.UnauthenticatedDefault, Access: access,
 				Availability: availability.State, AvailableCapabilities: availability.Capabilities,
+				WorkspaceTab: manifestWorkspaceTabPolicy(route.WorkspaceTab),
 			})
 		}
 		for _, item := range binding.Navigation {
@@ -515,7 +546,7 @@ func (c Catalog) ManifestForWithNavigation(policy NavigationPolicySnapshot, acce
 	return manifest, nil
 }
 
-// zoneSortRank 按骨架布局顺序（顶栏→侧边栏→页头→页签→底部）稳定排序，
+// zoneSortRank 按骨架布局顺序（顶栏→侧边栏→页头→底部）稳定排序，
 // 避免 zone 标识的字母序与用户视觉顺序不一致。
 func zoneSortRank(zone ZoneID) int {
 	switch zone {
@@ -525,10 +556,8 @@ func zoneSortRank(zone ZoneID) int {
 		return 1
 	case ZonePageHeader:
 		return 2
-	case ZoneWorkspaceTabActions:
-		return 3
 	case ZoneFooterStatus:
-		return 4
+		return 3
 	}
 	return 99
 }
@@ -539,6 +568,16 @@ func normalizeAccess(access Access) Access {
 		return AccessDenied
 	}
 	return access
+}
+
+// manifestWorkspaceTabPolicy 投影非 disabled 的 workspace 资格到运行时视图；
+// disabled/零值返回 nil（omitempty 省略，前端仍按 disabled 处理）。
+func manifestWorkspaceTabPolicy(policy WorkspaceTabPolicy) *ManifestWorkspaceTabPolicy {
+	mode := NormalizedWorkspaceTabMode(policy.Mode)
+	if mode == WorkspaceTabDisabled {
+		return nil
+	}
+	return &ManifestWorkspaceTabPolicy{Mode: mode, Restorable: policy.Restorable}
 }
 
 // accessRank 定义动作权限的从严排序：denied > authentication-required > allowed。
@@ -596,7 +635,7 @@ type ZoneContribution struct {
 	Order          int
 }
 
-// ZoneContributions 展开 Binding 的五类分区注入点为统一视图；纯声明投影，不做门禁。
+// ZoneContributions 展开 Bindings 的分区注入点为统一视图；纯声明投影，不做门禁。
 func (b Binding) ZoneContributions() []ZoneContribution {
 	refs := bindingZoneContributions(b)
 	contributions := make([]ZoneContribution, len(refs))
@@ -606,11 +645,11 @@ func (b Binding) ZoneContributions() []ZoneContribution {
 	return contributions
 }
 
-// bindingZoneContributions 把 Binding 的五类分区注入点展开为统一引用列表。
+// bindingZoneContributions 把 Binding 的分区注入点展开为统一引用列表。
 // 纯声明投影，不在此处做门禁；门禁在 ManifestForWithNavigation 内按 access/availability 判定。
 func bindingZoneContributions(binding Binding) []zoneContributionRef {
 	refs := make([]zoneContributionRef, 0,
-		len(binding.HeaderActions)+len(binding.SidebarPanels)+len(binding.PageHeaderItems)+len(binding.WorkspaceTabActions)+len(binding.FooterStatusItems))
+		len(binding.HeaderActions)+len(binding.SidebarPanels)+len(binding.PageHeaderItems)+len(binding.FooterStatusItems))
 	for _, item := range binding.HeaderActions {
 		refs = append(refs, zoneContributionRef{Zone: ZoneHeaderActions, ID: item.ID, EntryID: item.EntryID, TitleMessageID: item.TitleMessageID, IconID: item.IconID, OperationID: item.OperationID, Order: item.Order})
 	}
@@ -619,9 +658,6 @@ func bindingZoneContributions(binding Binding) []zoneContributionRef {
 	}
 	for _, item := range binding.PageHeaderItems {
 		refs = append(refs, zoneContributionRef{Zone: ZonePageHeader, ID: item.ID, EntryID: item.EntryID, TitleMessageID: item.TitleMessageID, Kind: string(item.Kind), OperationID: item.OperationID, Order: item.Order})
-	}
-	for _, item := range binding.WorkspaceTabActions {
-		refs = append(refs, zoneContributionRef{Zone: ZoneWorkspaceTabActions, ID: item.ID, EntryID: item.EntryID, TitleMessageID: item.TitleMessageID, IconID: item.IconID, OperationID: item.OperationID, Order: item.Order})
 	}
 	for _, item := range binding.FooterStatusItems {
 		refs = append(refs, zoneContributionRef{Zone: ZoneFooterStatus, ID: item.ID, EntryID: item.EntryID, TitleMessageID: item.TitleMessageID, Kind: string(item.Kind), OperationID: item.OperationID, Order: item.Order})
@@ -793,7 +829,6 @@ func projectImplementedRoutes(binding Binding) (Binding, error) {
 	projected.HeaderActions = retainZonesByEntry(projected.HeaderActions, implementedEntries, func(item HeaderAction) string { return item.EntryID })
 	projected.SidebarPanels = retainZonesByEntry(projected.SidebarPanels, implementedEntries, func(item SidebarPanel) string { return item.EntryID })
 	projected.PageHeaderItems = retainZonesByEntry(projected.PageHeaderItems, implementedEntries, func(item PageHeaderItem) string { return item.EntryID })
-	projected.WorkspaceTabActions = retainZonesByEntry(projected.WorkspaceTabActions, implementedEntries, func(item WorkspaceTabAction) string { return item.EntryID })
 	projected.FooterStatusItems = retainZonesByEntry(projected.FooterStatusItems, implementedEntries, func(item FooterStatusItem) string { return item.EntryID })
 	return projected, nil
 }
@@ -997,6 +1032,9 @@ func validateBindings(bindings []Binding, hosts []HostNavigation, deferParentChe
 			if route.DeliveryState != DeliveryImplemented && route.DeliveryState != DeliveryNotImplemented {
 				return fmt.Errorf("webui route %q has unsupported delivery state %q", route.ID, route.DeliveryState)
 			}
+			if err := validateRouteWorkspaceTabPolicy(binding, route); err != nil {
+				return err
+			}
 			if route.DeliveryState == DeliveryNotImplemented && (route.Default || route.UnauthenticatedDefault) {
 				return fmt.Errorf("webui route %q marked not-implemented cannot be a default route", route.ID)
 			}
@@ -1176,7 +1214,7 @@ func validateZoneContribution(binding Binding, contribution zoneContributionRef,
 		if contribution.Kind != string(FooterStatusKindStatus) && contribution.Kind != string(FooterStatusKindMeta) {
 			return fmt.Errorf("webui zone %q has unsupported footer status kind %q", contribution.ID, contribution.Kind)
 		}
-	case ZoneHeaderActions, ZoneSidebarPanels, ZoneWorkspaceTabActions:
+	case ZoneHeaderActions, ZoneSidebarPanels:
 		// 有图标字段的 zone 必须声明图标（页面呈现需要一致的图标语义）。
 		if contribution.IconID == "" {
 			return fmt.Errorf("webui zone %q must declare an icon for zone %s", contribution.ID, contribution.Zone)
@@ -1250,7 +1288,6 @@ func cloneBindings(values []Binding) []Binding {
 		result[i].HeaderActions = append([]HeaderAction(nil), values[i].HeaderActions...)
 		result[i].SidebarPanels = append([]SidebarPanel(nil), values[i].SidebarPanels...)
 		result[i].PageHeaderItems = append([]PageHeaderItem(nil), values[i].PageHeaderItems...)
-		result[i].WorkspaceTabActions = append([]WorkspaceTabAction(nil), values[i].WorkspaceTabActions...)
 		result[i].FooterStatusItems = append([]FooterStatusItem(nil), values[i].FooterStatusItems...)
 		result[i].ActionPermissions = append([]ActionPermission(nil), values[i].ActionPermissions...)
 		result[i].Locales = append([]Locale(nil), values[i].Locales...)
@@ -1260,4 +1297,25 @@ func cloneBindings(values []Binding) []Binding {
 		}
 	}
 	return result
+}
+
+// validateRouteWorkspaceTabPolicy 校验 route 的 workspace 资格声明：未知 mode 直接
+// 拒绝（fail fast）；blank 布局、default/unauthenticated default 路由不得 opt-in
+// （workspace 是 app 布局内的独立工作上下文，非入口/认证页语义）。零值 mode 允许，
+// 按 disabled 处理，不在校验阶段强制要求显式声明。
+func validateRouteWorkspaceTabPolicy(binding Binding, route Route) error {
+	mode := NormalizedWorkspaceTabMode(route.WorkspaceTab.Mode)
+	if route.WorkspaceTab.Mode != "" && route.WorkspaceTab.Mode != WorkspaceTabDisabled && mode == WorkspaceTabDisabled {
+		return fmt.Errorf("webui route %q has unsupported workspace tab mode %q", route.ID, route.WorkspaceTab.Mode)
+	}
+	if mode == WorkspaceTabDisabled {
+		return nil
+	}
+	if route.Layout != RouteLayoutApp {
+		return fmt.Errorf("webui route %q workspace tab requires app layout", route.ID)
+	}
+	if route.Default || route.UnauthenticatedDefault {
+		return fmt.Errorf("webui route %q cannot opt into workspace tab as a default or unauthenticated default route", route.ID)
+	}
+	return nil
 }

@@ -1,8 +1,8 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
 import { AppShell } from "./components/AppShell";
+import { WorkspaceProvider } from "./workspace/WorkspaceProvider";
 import { ensureRouteLocale, initializeI18n, translateMessage } from "./i18n";
 import type { Manifest } from "./contracts";
 
@@ -24,8 +24,19 @@ describe("宿主 AppShell", () => {
     await initializeI18n();
   });
 
+  // renderShell 以宿主装配顺序包裹 WorkspaceProvider（App.tsx 同源装配）。
+  function renderShell(principal: { id: string; username: string; scopes: string[] } | undefined, entry = "/ops") {
+    return renderToStaticMarkup(
+      <MemoryRouter initialEntries={[entry]}>
+        <WorkspaceProvider manifest={manifest} principalID={principal?.id} navigateToDefault={() => undefined}>
+          <AppShell manifest={manifest} principal={principal} onLogout={async () => undefined} />
+        </WorkspaceProvider>
+      </MemoryRouter>,
+    );
+  }
+
   it("keeps logout confirmation and failure feedback in the host i18n shell", () => {
-    const markup = renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: ["/ops"] }, createElement(AppShell, { manifest, principal: { id: "user-1", username: "operator", scopes: [] }, onLogout: async () => undefined })));
+    const markup = renderShell({ id: "user-1", username: "operator", scopes: [] });
 
     // 069：确认弹窗为 RAC 受控 Modal，关闭态不渲染 DOM；宿主 i18n 契约在翻译层验证。
     expect(markup).not.toContain('role="dialog"');
@@ -37,7 +48,7 @@ describe("宿主 AppShell", () => {
   it("从 manifest 渲染模块提供的会话导航入口", async () => {
     await ensureRouteLocale(manifest.routes[0]);
     await ensureRouteLocale(manifest.routes[1]);
-    const markup = renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: ["/ops"] }, createElement(AppShell, { manifest, principal: undefined, onLogout: async () => undefined })));
+    const markup = renderShell(undefined);
 
     expect(markup).toContain('href="/account/security"');
     expect(markup).toContain("账号安全");

@@ -162,7 +162,7 @@ HTTP 的固定构造顺序是 `模块顶层 typed Handler + binding Huma registr
 | permission binding | `binding/permission` 的精确 Key/owner/description message ID | composition 显式聚合 Permission Catalog，并校验 operation/WebUI 引用 | `internal/module/<name>/binding/permission` |
 | i18n binding | `binding/i18n`（模块自有语言资源 + 窄契约，如 `MessageFiles()`/`fs.FS`/catalog） | composition 显式聚合进 Non-Essential I18n 装配，再按模块注入 `pkg/i18n.Translator` | `internal/module/<name>/binding/i18n` 与模块内语言资源 |
 | middleware | `middleware/`（横切策略） | composition 挂载 | `internal/module/<name>/middleware` |
-| WebUI binding | `binding/webui`（Route/Navigation/Locale/MockSource + 分区注入点 HeaderActions/SidebarPanels/PageHeaderItems/WorkspaceTabActions/FooterStatusItems 与 ActionPermissions） | `internal/composition` 唯一 WebUI 模块列表选中；生成 `webuiRegistry` 与 `webuiZoneRegistry`，Manifest 按 access/availability 投影 | `internal/module/<name>/binding/webui/web`（页面、zone 组件、locale、mock、CSS Module） |
+| WebUI binding | `binding/webui`（Route/Navigation/Locale/MockSource + 分区注入点 HeaderActions/SidebarPanels/PageHeaderItems/FooterStatusItems 与 ActionPermissions；Route 可声明 WorkspaceTabPolicy 成独立工作区，085） | `internal/composition` 唯一 WebUI 模块列表选中；生成 `webuiRegistry` 与 `webuiZoneRegistry`，Manifest 按 access/availability 投影 | `internal/module/<name>/binding/webui/web`（页面、zone 组件、locale、mock、CSS Module） |
 | schedule binding | `module.go` 构造 `pkg/schedule.Binding` | `module.Contribution.Schedules`，由 application composition 统一聚合 | 模块 Service 与 `module.go` |
 | message binding | 模块 `binding/message` 或 `module.go` 构造 `pkg/messaging` Contract/Producer/Consumer Binding | `module.Contribution.Messages`，由 application composition 聚合 Catalog、解析 Route 并注入窄 Publisher | 模块 wire contract、payload Adapter、Service Handler 与 `module.go` |
 

@@ -21,8 +21,9 @@ export type ScrollExperienceProps = {
 // ScrollExperience 装配 067 滚动/动效运行时：
 // - 阻尼平滑滚动（Lenis 窄封装 SmoothScrollController，w: .page-viewport / w: window）；
 // - 边缘阻尼/橡皮筋（panel 模式，作用于 .page-flow）；
-// - 磁吸吸附（声明 data-snap-x 的滚动区 + Shell 页签轨 .workspace-tab-scroll）；
+// - 磁吸吸附（声明 data-snap-x 的滚动区，如模块内横向标签轨）；
 // - 显式滚动场景劫持（[data-scroll-hijack="x|y"]，MutationObserver 跟随路由内容变化）。
+// 085：宿主 Workspace Tabs 标签轨自己管理横向滚动与溢出，不在此处挂磁吸。
 // reduced-motion 或对应派生配置关闭时相应能力不挂载（回退原生滚动）。
 export function ScrollExperience({ target, experience, reducedMotion, panelProps, children }: ScrollExperienceProps) {
   const containerRef = useRef<HTMLDivElement>(null);

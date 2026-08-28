@@ -41,7 +41,7 @@
 
 ## 页面迁移
 
-- [ ] PAGE-090-001 迁移账户列表与详情作为标杆切片，删除旧布局与状态实现；前置：PATTERN-090-001、PATTERN-090-002、BE-090-002；当前证据：账户列表/管理区已使用 `ResourceIndex`、`EntityDetail`、统一 `Pagination` 和 URL 分页状态，筛选/排序会回到第一页，批量结果反馈与详情抽屉关系加载/失败态已覆盖并避免复用上一行快照；聚合详情契约、完整关系/活动投影、视觉矩阵与零旧引用仍待补齐。
+- [ ] PAGE-090-001 迁移账户列表与详情作为标杆切片，删除旧布局与状态实现；前置：PATTERN-090-001、PATTERN-090-002、BE-090-002；当前证据：账户列表/管理区已使用 `ResourceIndex`、`EntityDetail`、统一 `Pagination` 和 URL 分页状态，筛选/排序会回到第一页，批量结果反馈与详情抽屉关系加载/失败态已覆盖，角色分配已接入 clean/dirty/pending/conflict 保存条并由 dev E2E 覆盖，同时避免复用上一行快照；聚合详情契约、完整关系/活动投影、视觉矩阵与零旧引用仍待补齐。
 - [ ] PAGE-090-002 迁移角色、权限、会话和 API Token；前置：PAGE-090-001；当前证据：角色管理区已使用 `EntityDetail`、统一 `Pagination` 与 URL 分页状态，权限关系读取具备加载/失败/重试态，权限目录具备统一查询反馈，会话与 API Token 列表已接入服务端 `offset/limit/total` 分页及页码/筛选 URL 状态；权限影响、批处理、一次性 secret 与视觉测试仍待补齐。
 - [ ] PAGE-090-003 迁移审计；前置：PATTERN-090-001、BE-090-003；当前证据：筛选器已覆盖 operation/action/outcome/actor/subject/resource/time range，事件详情保留低敏字段与 JSON 视图；correlation 关联、视觉矩阵与完整查询测试仍待补齐。
 - [ ] PAGE-090-004 迁移组织 Tree、岗位和任职；前置：PATTERN-090-002；当前证据：部门 Tree、岗位目录和账号任职页均使用统一 PageFrame/分栏骨架，任职保存条已呈现 clean/dirty/pending/conflict 状态，组织管理 E2E 覆盖树、岗位与任职编辑；移动预检、成员视图、键盘与响应式矩阵仍待补齐。

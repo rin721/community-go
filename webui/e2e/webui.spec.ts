@@ -295,6 +295,11 @@ test("account role and permission management pages render module-owned evidence"
   await expect(page.getByRole("heading", { name: "Users" })).toBeVisible();
   await expect(page.getByRole("article").getByText("Operator", { exact: true })).toBeVisible();
   await expect(page.getByText("Runtime status", { exact: true })).toBeVisible();
+  const assignedRole = page.locator(".role-checklist label.permission-row").first();
+  await expect(assignedRole).toHaveAttribute("data-selected", "true");
+  await assignedRole.click();
+  await expect(page.locator('[data-action-state="form-dirty"]')).toBeVisible();
+  await expect(page.getByRole("button", { name: "Save roles" })).toBeEnabled();
   await page.screenshot({ path: testInfo.outputPath("iam-accounts.png"), fullPage: true });
   await page.goto("/admin/roles");
   await expect(page.getByRole("heading", { name: "Roles" })).toBeVisible();

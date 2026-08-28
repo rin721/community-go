@@ -43,7 +43,7 @@ export const permissionRoles=(key:string)=>requestJSON<ListResult<Role>>(`/api/v
 export const principalFromSession=(session:IAMSession):PrincipalView=>({id:session.identity.accountId,username:session.identity.username,scopes:[...session.identity.permissions]});
 export type SessionInfo={idHash:string;accountId:string;createdAt:string;lastSeenAt:string;idleExpiresAt:string;absoluteExpiresAt:string;revokedAt?:string};
 export type SessionListResult={items:SessionInfo[];offset:number;limit:number;total:number};
-export const listSessions=(status="all",accountId?:string,sort?:string)=>requestJSON<SessionListResult>(`/api/v1/iam/sessions?limit=100&status=${status}${accountId?`&accountId=${encodeURIComponent(accountId)}`:""}${sort?`&sort=${encodeURIComponent(sort)}`:""}`);
+export const listSessions=(status="all",accountId?:string,sort?:string,offset=0,limit=20)=>requestJSON<SessionListResult>(`/api/v1/iam/sessions?offset=${offset}&limit=${limit}&status=${status}${accountId?`&accountId=${encodeURIComponent(accountId)}`:""}${sort?`&sort=${encodeURIComponent(sort)}`:""}`);
 export const revokeSessions=(idHashes:string[],accountId?:string)=>requestJSON<void>(`/api/v1/iam/sessions/revoke${accountId?`?accountId=${encodeURIComponent(accountId)}`:""}`,{method:"POST",body:JSON.stringify({idHashes}),headers:mutationHeaders()});
 
 export type ApiTokenView={id:string;name:string;description?:string;scopes:string[];expiresAt?:string;revokedAt?:string;disabledAt?:string;createdAt:string;lastUsedAt?:string;status:"active"|"disabled"|"expired"|"revoked"};

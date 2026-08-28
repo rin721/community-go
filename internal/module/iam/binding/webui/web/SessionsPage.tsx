@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { BulkActionBar, Button, CodeText, DataTable, EmptyState, ErrorState, FilterBar, formatDateTime, formatRelativeTime, PageFrame, PageHeader, PageSection, ResourceIndex, StatusBadge } from "@webui/sdk/ui";
+import { BulkActionBar, Button, CodeText, DataTable, EmptyState, ErrorState, FilterBar, formatDateTime, formatRelativeTime, PageFrame, PageHeader, PageSection, Pagination, ResourceIndex, StatusBadge } from "@webui/sdk/ui";
 import { useListQueryParams } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { listAccounts, listSessions, revokeSessions, type Account, type SessionInfo } from "./api";
@@ -31,11 +31,14 @@ export default function SessionsPage() {
   const [revoking, setRevoking] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const pageSize = Math.min(Math.max(listQuery.pageSize, 1), 100);
+  const [total, setTotal] = useState(0);
   const refresh = useCallback(() => {
     setLoading(true);
     setLoadError(false);
-    return listSessions(listQuery.filters.status, listQuery.filters.accountId || undefined, listQuery.sort ? `${listQuery.sort.key}:${listQuery.sort.direction}` : undefined).then((result) => { setItems(result.items); setSelected(new Set()); }).catch(() => { setItems([]); setSelected(new Set()); setLoadError(true); }).finally(() => setLoading(false));
-  }, [listQuery.filters.status, listQuery.filters.accountId, listQuery.sort]);
+    const offset = (listQuery.page - 1) * pageSize;
+    return listSessions(listQuery.filters.status, listQuery.filters.accountId || undefined, listQuery.sort ? `${listQuery.sort.key}:${listQuery.sort.direction}` : undefined, offset, pageSize).then((result) => { setItems(result.items); setTotal(result.total); setSelected(new Set()); }).catch(() => { setItems([]); setTotal(0); setSelected(new Set()); setLoadError(true); }).finally(() => setLoading(false));
+  }, [listQuery.filters.status, listQuery.filters.accountId, listQuery.sort, listQuery.page, pageSize]);
   useEffect(() => { void refresh(); }, [refresh]);
   useEffect(() => { void listAccounts().then((result) => setAccounts(result.items)).catch(() => undefined); }, []);
   const revoke = (): Promise<void> => {
@@ -62,6 +65,8 @@ export default function SessionsPage() {
           ]}
           onClear={() => listQuery.clearFilters()}
           clearLabel={t("webui.iam.accounts.clear")}
+          resultCount={total}
+          resultCountLabel={(count) => `${count} ${hostT("webui.host.ui.results")}`}
         />}>
           {loadError && <ErrorState kind="connectivity" title={hostT("webui.host.route.error.title")} detail={hostT("webui.host.route.error.detail")} action={<Button variant="secondary" onClick={() => void refresh()}>{hostT("webui.host.retry")}</Button>} />}
           <DataTable<SessionInfo>
@@ -84,6 +89,21 @@ export default function SessionsPage() {
           onSelectedKeysChange={setSelected}
           emptyState={loadError ? null : <EmptyState title={t("webui.iam.sessions.empty")} />}
           enhancements={{ density: "default", stickyHeader: true }}
+          />
+          <Pagination
+            page={listQuery.page}
+            pageCount={Math.max(1, Math.ceil(total / pageSize))}
+            total={total}
+            totalLabel={(count) => `${count} ${hostT("webui.host.ui.results")}`}
+            pageLabel={(current) => `Page ${current}`}
+            previousLabel={t("webui.auth.audit.previous")}
+            nextLabel={t("webui.auth.audit.next")}
+            paginationLabel={t("webui.auth.audit.pagination")}
+            pageSize={pageSize}
+            pageSizeOptions={[20, 50, 100]}
+            pageSizeLabel={t("webui.auth.audit.pageSize")}
+            onPageChange={listQuery.setPage}
+            onPageSizeChange={listQuery.setPageSize}
           />
           <BulkActionBar
           open={items.length > 0}

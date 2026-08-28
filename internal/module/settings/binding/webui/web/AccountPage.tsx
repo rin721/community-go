@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Button, ConfirmDialog, PageHeader, PageSection } from "@webui/sdk/ui";
+import { Button, ConfirmDialog, PageFrame, PageHeader, PageSection } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { beginSelfArchive, confirmSelfArchive, loadSession } from "./api";
 import styles from "./settings.module.css";
@@ -22,7 +22,7 @@ export default function AccountPage() {
   const performClosure = () => {
     void confirmSelfArchive(confirmationId).then(() => { window.location.href = "/login"; }).catch(() => setMessage(t("webui.settings.error")));
   };
-  return <div className={`${styles.settingsModule} module-page`}>
+  return <PageFrame variant="form" className={styles.settingsModule}>
     
       <PageHeader eyebrow={t("webui.settings.brand")} title={t("webui.settings.account.title")} description={t("webui.settings.account.description")} />
       <div className="page-sections">
@@ -38,5 +38,5 @@ export default function AccountPage() {
       </div>
     
     <ConfirmDialog open={confirmOpen} title={t("webui.settings.account.closure.confirmTitle")} description={t("webui.settings.account.closure.confirmDetail")} confirmLabel={t("webui.settings.account.closure.confirm")} cancelLabel={t("webui.settings.account.closure.cancel")} closeLabel={t("webui.settings.account.closure.close")} onConfirm={performClosure} onCancel={() => setConfirmOpen(false)} />
-  </div>;
+  </PageFrame>;
 }

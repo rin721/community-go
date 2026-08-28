@@ -2,6 +2,11 @@
 
 引用研究：[R086-001](research/R086-001-current-style-audit/report.md)。
 
+> 实施状态：已确认并全部实现（round 2–5），验收标准 1–6 已验证满足（逐项证据见
+> [tasks.md](tasks.md) 的 QA-086-001）。mock e2e 10/10（含跨 5 路由逐像素几何断言、
+> density/theme/preset 只经 token）、Go/TS/lint/build/docs-guard 全绿；dev e2e 15 项
+> 失败经 stash 对比确认为既有基线（与 086 无关）。
+
 ## 1. 目标
 
 建立仓库唯一的 Design Token 系统，使后台公共框架（AppShell/Header/Sidebar/WorkspaceTabs/

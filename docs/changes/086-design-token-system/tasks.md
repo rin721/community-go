@@ -64,4 +64,8 @@
 ### QA-086-001（验证，进行中→完成）
 
 - 新增 mock e2e「086 shell geometry is pixel-stable across routes and density token driven」：5 路由切换 `.app-shell/.topbar/.app-sidebar/.workspace-tabs` boundingBox 逐像素相等；compact/default 只经 factor 缩放（topbar 64→55、tabs 42→36）；fixed-home 无关闭按钮；`.workspace-panel-scroll` 计数 0；data-page-width 有生产端；light/dark 与 preset 切换下 Shell 几何不变且 `--heroui-primary` 与 `--prim-primary` 单源。mock e2e 10/10 通过。
-- Go build/vet/test、generate --check、Vitest 234、typecheck、ESLint、build 全绿；dev e2e 15/7 = 纯净 HEAD 基线一致（后端未启动时的环境性失败，与 086 无关）。
+- Go build/vet/test、generate --check、Vitest 234、typecheck、ESLint、build 全绿。
+- dev e2e（round 5 复核）：手动拉起 5173 dev server 后 dev suite = 15 failed / 7 passed；
+  第 3 轮已用 stash 对比证明 mine == pristine HEAD（同为 15/7）——15 项失败为既有基线
+  （含后端依赖与历史断言），与 086 无关；dev server 未启动时 dev suite 全部
+  `ERR_CONNECTION_REFUSED`（环境性，非代码回归）。

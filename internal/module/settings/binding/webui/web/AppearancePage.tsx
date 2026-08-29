@@ -95,7 +95,11 @@ export default function AppearancePage() {
     let cancelled = false;
     selfPreferences().then((server: UserPreferences) => {
       if (cancelled) return;
-      setValue((current) => ({ ...current, mode: server.themeMode, preset: server.themePreset, density: server.density, reduceMotion: server.reduceMotion }));
+      setValue((current) => {
+        const next = { ...current, mode: server.themeMode, preset: server.themePreset, density: server.density, reduceMotion: server.reduceMotion };
+        applyLocal(next);
+        return next;
+      });
       setSyncState("synced");
     }).catch(() => { if (!cancelled) setSyncState("offline"); });
     return () => { cancelled = true; };

@@ -185,16 +185,20 @@ test("090 page family viewport matrix keeps content inside the viewport", async 
 test("090 dark compact snapshots for settings and accounts", async ({ page }, testInfo) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.setViewportSize({ width: 1280, height: 800 });
-  await page.evaluate(() => {
-    document.documentElement.dataset.density = "compact";
-    document.documentElement.dataset.colorScheme = "dark";
-    document.documentElement.classList.add("dark");
-  });
   await page.goto("/settings/appearance");
   await expect(page.getByRole("heading", { name: "Appearance", exact: true })).toBeVisible();
+  await page.getByLabel("Theme mode", { exact: true }).click();
+  await page.getByRole("option", { name: "Dark", exact: true }).click();
+  await page.getByLabel("Content density", { exact: true }).click();
+  await page.getByRole("option", { name: "Compact", exact: true }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-color-scheme", "dark");
+  await expect(page.locator("html")).toHaveAttribute("data-density", "compact");
   await page.screenshot({ path: testInfo.outputPath("090-settings-appearance-dark-compact-1280.png"), fullPage: true });
   await page.goto("/admin/accounts");
   await expect(page.getByRole("heading", { name: "Users", exact: true })).toBeVisible();
+  await expect(page.locator("html")).toHaveAttribute("data-color-scheme", "dark");
+  await expect(page.locator("html")).toHaveAttribute("data-density", "compact");
+  await expect(page.getByText("Governance & Audit", { exact: true })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("090-accounts-dark-compact-1280.png"), fullPage: true });
 });
 

@@ -10,6 +10,7 @@ export type DesktopRuntimePort = Readonly<{
   }>;
   files: Readonly<{
     select: (options: Readonly<{ multiple: boolean }>) => Promise<readonly string[]>;
+    saveText: (options: Readonly<{ suggestedName: string; content: string }>) => Promise<void>;
   }>;
 }>;
 
@@ -17,6 +18,7 @@ export type DesktopHost = Readonly<{
   platformLabel: string;
   close: () => Promise<void>;
   selectFiles: (multiple?: boolean) => Promise<readonly string[]>;
+  exportTextFile: (fileName: string, content: string) => Promise<void>;
 }>;
 
 const platformLabel = {
@@ -31,5 +33,7 @@ export function createDesktopHost(runtime: DesktopRuntimePort): DesktopHost {
     platformLabel: platformLabel[runtime.platform],
     close: () => runtime.window.execute('close'),
     selectFiles: (multiple = false) => runtime.files.select({ multiple }),
+    exportTextFile: (fileName, content) =>
+      runtime.files.saveText({ suggestedName: fileName, content }),
   };
 }

@@ -44,6 +44,11 @@
   .shell-grid {
     display: grid;
     grid-template-columns: 16.5rem minmax(0, 1fr);
+    transition: grid-template-columns 180ms var(--ease-product);
+  }
+
+  .shell-grid[data-sidebar='collapsed'] {
+    grid-template-columns: 5.5rem minmax(0, 1fr);
   }
 
   .metric-grid {

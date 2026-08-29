@@ -7,6 +7,7 @@ export type ActionProps = Readonly<{
   variant?: 'primary' | 'secondary' | 'quiet' | 'danger';
   size?: 'sm' | 'md';
   disabled?: boolean;
+  loading?: boolean;
   fullWidth?: boolean;
   type?: 'button' | 'submit' | 'reset';
   onPress?: () => void;
@@ -30,18 +31,27 @@ export function Action({
   variant = 'primary',
   size = 'md',
   disabled = false,
+  loading = false,
   fullWidth = false,
   type = 'button',
   onPress,
 }: ActionProps) {
   return (
     <HeroButton
+      aria-busy={loading}
       className={`gap-2 rounded-control font-semibold transition-all ${variantClass[variant]} ${sizeClass[size]} ${fullWidth ? 'w-full' : ''}`}
-      isDisabled={disabled}
+      isDisabled={disabled || loading}
       type={type}
       {...(onPress ? { onPress } : {})}
     >
-      {leadingIcon}
+      {loading ? (
+        <span
+          aria-hidden="true"
+          className="size-4 animate-spin rounded-full border-2 border-current border-r-transparent"
+        />
+      ) : (
+        leadingIcon
+      )}
       {children}
     </HeroButton>
   );

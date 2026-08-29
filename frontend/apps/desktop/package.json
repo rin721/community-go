@@ -11,6 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@community-go/reference": "workspace:*",
     "@community-go/types": "workspace:*"
   },
   "devDependencies": {

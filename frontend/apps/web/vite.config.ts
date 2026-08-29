@@ -7,11 +7,13 @@ export default defineConfig({
   server: { port: 4173, strictPort: true },
   preview: { port: 4174, strictPort: true },
   build: {
+    manifest: true,
     target: 'es2022',
     sourcemap: true,
   },
   test: {
     environment: 'jsdom',
+    exclude: ['e2e/**', 'node_modules/**', 'dist/**'],
     setupFiles: './src/test/setup.ts',
   },
 });

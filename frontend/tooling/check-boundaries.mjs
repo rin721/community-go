@@ -36,8 +36,14 @@ for (const filePath of files) {
   const localPath = relative(frontendRoot, filePath).split(sep).join('/');
   const workspace = workspaceOf(filePath);
 
-  if (extname(filePath) === '.tsx' && /(?:[a-z-]+)-\[[^\]]+\]/.test(content)) {
+  if (
+    extname(filePath) === '.tsx' &&
+    /(?:^|[\s'"`])(?!(?:data|aria|group-data|peer-data)-)[a-z][a-z-]*-\[[^\]]+\]/m.test(content)
+  ) {
     report(violations, filePath, 'Token governance', '禁止 Tailwind arbitrary value');
+  }
+  if (extname(filePath) === '.tsx' && /<(?:select|option)\b/.test(content)) {
+    report(violations, filePath, 'UI contract', '产品交互禁止退化为原生 select/option');
   }
   if (content.includes('!important')) {
     report(violations, filePath, 'Style governance', '禁止 !important');
@@ -74,6 +80,13 @@ for (const filePath of files) {
         specifier === '@community-go/types' || specifier === 'vitest' || specifier.startsWith('.');
       if (!allowed) report(violations, filePath, 'Core purity', `Core 不得依赖 ${specifier}`);
     }
+  }
+
+  if (
+    workspace?.startsWith('packages/') &&
+    /\b(?:window|document|navigator|localStorage|sessionStorage)\b/.test(content)
+  ) {
+    report(violations, filePath, 'Host leakage', '公共包不得直接访问浏览器 Host API');
   }
 }
 

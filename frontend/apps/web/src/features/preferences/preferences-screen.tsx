@@ -72,7 +72,9 @@ export function PreferencesScreen() {
                     { value: 'zh-CN', label: '简体中文' },
                     { value: 'en', label: 'English' },
                   ]}
-                  {...field}
+                  name={field.name}
+                  value={field.value}
+                  onValueChange={field.onChange}
                 />
               )}
             />
@@ -87,7 +89,9 @@ export function PreferencesScreen() {
                     { value: 'comfortable', label: t('preferences.comfortable') },
                     { value: 'compact', label: t('preferences.compact') },
                   ]}
-                  {...field}
+                  name={field.name}
+                  value={field.value}
+                  onValueChange={field.onChange}
                 />
               )}
             />

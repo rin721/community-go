@@ -38,6 +38,8 @@ packages/design-system 语义 Design Token 与主题变量
 - 禁止 arbitrary value、深层选择器、样式穿透、`!important` 和针对 HeroUI 内部 DOM 的修正。
 - 合理差异先通过 Variant、size、density、state、slot、composition 或 context 表达；不得为一个页面修改全局默认 Token 或公共组件默认行为。
 - 复杂组合避免成形组件套成形组件。已有外壳进入 Panel、Dialog、Sidebar 或 Form 时，优先使用 primitive、embedded、inset 或 slot composition。
+- TailAdmin React Demo 左侧 `UI Elements` 是长期外部视觉校准基准；新增或修改公共基础组件前，必须进入对应具体页面检查完整状态，不得只浏览首页，也不得复制其源码、DOM、CSS、图片或具体尺寸。
+- HeroUI 负责 Accessibility、Keyboard、Focus、Overlay 与 Portal，TailAdmin 用于校准后台产品视觉，项目最终规范由 Semantic Token、UI Adapter 和 `/showcase` 决定。具体矩阵与复核触发器见 [UI 视觉校准基线](docs/ui-visual-calibration.md)。
 
 ## 5. UI Contract 与组件职责
 
@@ -59,10 +61,13 @@ packages/design-system 语义 Design Token 与主题变量
 - 所有用户可见文本、日期、时间、数字、相对时间、复数和单位都通过 i18n 基础设施，不在页面硬编码。
 - 新功能至少判断 Loading、Empty、Error、Success、Warning、Disabled、Pending、Offline 与 Permission Denied 中适用的状态。
 - Skeleton 必须保留目标内容的大致结构；错误状态提供恢复路径；禁用状态说明原因；Pending 与 Loading 不得混用。
+- 共享 UI 或 Layout 改动必须先在 Reference/Showcase 中验证正常、长文本、Locale 扩张、窄屏和嵌套组合；状态与组合缺陷优先修复 Token、Variant、Slot 或 Layout Contract，不在页面增加特例 CSS。
+- `/showcase` 是 Button、Alert、Badge、Card、Dropdown、Modal、Form Control、Notification 与全部 Overlay 的项目级当前权威。业务页面优先复用内部规范，只有缺少合理能力时才回到外部参考扩展基础体系。
 
 ## 8. 明确禁止的架构污染
 
 - 在 UI Adapter 外导入 HeroUI，或在业务页穿透第三方 DOM。
+- 使用原生 `<select>`/`<option>` 绕过 UI Adapter，或让 Menu、Popover、Tooltip、DatePicker、Command、Dialog、Drawer 等浮层脱离 HeroUI 的 Overlay/Focus 管理。
 - 公共包导入 Host，Core 导入 React/网络/浏览器/Desktop API。
 - 为单页新增全局 Token、修改公共组件默认样式或增加全局 CSS hack。
 - 跨层深相对路径、万能 `utils`/`common`、共享可变全局状态、万能 Provider 或 Service Locator。
@@ -77,6 +82,8 @@ packages/design-system 语义 Design Token 与主题变量
 pnpm check
 ```
 
-`architecture:check` 强制 HeroUI 隔离、依赖方向、跨 Workspace 深相对引用、arbitrary value、`!important` 与样式硬编码规则。TypeScript、ESLint、Vitest、Vite build 与 Prettier 分别验证类型、可访问性基础、纯规则、Host 构建和格式。
+`architecture:check` 强制 HeroUI 隔离、原生选择控件禁用、Host API 隔离、依赖方向、跨 Workspace 深相对引用、arbitrary value、`!important` 与样式硬编码规则。`dependency:check` 校验每个运行时依赖的职责和允许 Workspace；`performance:check` 校验 gzip 产物预算。TypeScript、ESLint、Vitest、Vite build 与 Prettier 分别验证类型、静态规则、纯规则、Host 构建和格式。
+
+Playwright 必须覆盖关键 Reference 流程、键盘/焦点、Axe WCAG AA 扫描，以及桌面、超宽屏、移动端、Dark Mode、英文扩张和全部 Floating Layer 打开态。视觉基线只能在人工确认变化合理后更新，不得用提高 diff 阈值掩盖回归。
 
 门禁失败必须修复根因，不得降低规则、增加无条件排除或使用断言掩盖。修改共享基础设施、Token、UI Adapter、Core 或公共组件前，先评估全部调用方；局部差异可由 Feature Composition 解决时不得改全局契约。

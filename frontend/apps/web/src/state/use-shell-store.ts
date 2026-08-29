@@ -8,9 +8,11 @@ type ShellState = {
   theme: ThemeMode;
   locale: AppLocale;
   mobileNavigationOpen: boolean;
+  sidebarCollapsed: boolean;
   setTheme: (theme: ThemeMode) => void;
   setLocale: (locale: AppLocale) => void;
   setMobileNavigationOpen: (open: boolean) => void;
+  setSidebarCollapsed: (collapsed: boolean) => void;
 };
 
 export const useShellStore = create<ShellState>()(
@@ -19,13 +21,15 @@ export const useShellStore = create<ShellState>()(
       theme: 'light',
       locale: 'zh-CN',
       mobileNavigationOpen: false,
+      sidebarCollapsed: false,
       setTheme: (theme) => set({ theme }),
       setLocale: (locale) => set({ locale }),
       setMobileNavigationOpen: (mobileNavigationOpen) => set({ mobileNavigationOpen }),
+      setSidebarCollapsed: (sidebarCollapsed) => set({ sidebarCollapsed }),
     }),
     {
       name: 'community-go.shell',
-      partialize: ({ theme, locale }) => ({ theme, locale }),
+      partialize: ({ theme, locale, sidebarCollapsed }) => ({ theme, locale, sidebarCollapsed }),
     },
   ),
 );

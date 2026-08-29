@@ -7,9 +7,15 @@ settings:
 importers:
   .:
     devDependencies:
+      '@axe-core/playwright':
+        specifier: ^4.13.0
+        version: 4.13.0(playwright-core@1.62.1)
       '@eslint/js':
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.9.1(jiti@2.7.0))
+      '@playwright/test':
+        specifier: ^1.62.1
+        version: 1.62.1
       '@types/node':
         specifier: ^24.10.1
         version: 24.13.3
@@ -46,6 +52,9 @@ importers:
 
   apps/desktop:
     dependencies:
+      '@community-go/reference':
+        specifier: workspace:*
+        version: link:../../packages/reference
       '@community-go/types':
         specifier: workspace:*
         version: link:../../packages/types
@@ -62,6 +71,9 @@ importers:
       '@community-go/design-system':
         specifier: workspace:*
         version: link:../../packages/design-system
+      '@community-go/reference':
+        specifier: workspace:*
+        version: link:../../packages/reference
       '@community-go/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas
@@ -147,6 +159,16 @@ importers:
         version: 4.1.11(@types/node@24.13.3)(jsdom@30.0.1)(msw@2.15.0(@types/node@24.13.3)(typescript@5.9.3))(vite@8.2.2(@types/node@24.13.3)(jiti@2.7.0))
 
   packages/design-system: {}
+
+  packages/reference:
+    dependencies:
+      '@community-go/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+    devDependencies:
+      vitest:
+        specifier: ^4.1.11
+        version: 4.1.11(@types/node@24.13.3)(jsdom@30.0.1)(msw@2.15.0(@types/node@24.13.3)(typescript@5.9.3))(vite@8.2.2(@types/node@24.13.3)(jiti@2.7.0))
 
   packages/schemas:
     dependencies:
@@ -235,6 +257,15 @@ packages:
         tarball: https://registry.npmjs.org/@asamuzakjp/dom-selector/-/dom-selector-8.3.2.tgz,
       }
     engines: { node: ^22.13.0 || >=24.0.0 }
+
+  '@axe-core/playwright@4.13.0':
+    resolution:
+      {
+        integrity: sha512-6YLx+kxXu5GJceG4ozFg+33a2EMTdjYwWGloJ3sb9Kta5pp+ZNS53uxGVog5JetIY8s++P5UrtX+cri+u0VAVg==,
+        tarball: https://registry.npmjs.org/@axe-core/playwright/-/playwright-4.13.0.tgz,
+      }
+    peerDependencies:
+      playwright-core: '>= 1.0.0'
 
   '@babel/code-frame@7.29.7':
     resolution:
@@ -870,6 +901,15 @@ packages:
         integrity: sha512-IJ3s6ltHLp45S0bh7phkX+gJO7A1Wuz2EaqpAhb8WjqDwbzMiWKHhyyT42tskaWjEYXtHtVCPpnBJVT9+dcRLg==,
         tarball: https://registry.npmjs.org/@oxc-project/types/-/types-0.147.0.tgz,
       }
+
+  '@playwright/test@1.62.1':
+    resolution:
+      {
+        integrity: sha512-DTcUc8qii+cpHvtOwggMtBRMjKZHXYWdw8syRYu2vtzuq4Wxphqq4NfCs5Zt44L6mA8rfDfj+PHnxFc/FeK6mQ==,
+        tarball: https://registry.npmjs.org/@playwright/test/-/test-1.62.1.tgz,
+      }
+    engines: { node: '>=20' }
+    hasBin: true
 
   '@radix-ui/react-avatar@1.1.11':
     resolution:
@@ -2351,6 +2391,15 @@ packages:
       react-dom:
         optional: true
 
+  fsevents@2.3.2:
+    resolution:
+      {
+        integrity: sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==,
+        tarball: https://registry.npmjs.org/fsevents/-/fsevents-2.3.2.tgz,
+      }
+    engines: { node: ^8.16.0 || ^10.6.0 || >=11.0.0 }
+    os: [darwin]
+
   fsevents@2.3.3:
     resolution:
       {
@@ -3148,6 +3197,24 @@ packages:
         tarball: https://registry.npmjs.org/picomatch/-/picomatch-4.0.7.tgz,
       }
     engines: { node: '>=12' }
+
+  playwright-core@1.62.1:
+    resolution:
+      {
+        integrity: sha512-wPYSwEBJY9GHraISXqyqtx0na0LpO3XEX7jNDhntbex7tzUS7kLnZsOlFruFJB4Hi/rhDMjXGqHewDZ68nYZVw==,
+        tarball: https://registry.npmjs.org/playwright-core/-/playwright-core-1.62.1.tgz,
+      }
+    engines: { node: '>=20' }
+    hasBin: true
+
+  playwright@1.62.1:
+    resolution:
+      {
+        integrity: sha512-0M+L3LAD8/nm554LOla9Ayx0j0tmFZ0FBcoQ7F1VuVHpM/XpiC8RcDzBQB8W5+hA8L22THxELzeF+2WcUzvcLg==,
+        tarball: https://registry.npmjs.org/playwright/-/playwright-1.62.1.tgz,
+      }
+    engines: { node: '>=20' }
+    hasBin: true
 
   postcss@8.5.26:
     resolution:
@@ -4009,6 +4076,11 @@ snapshots:
       is-potential-custom-element-name: 1.0.1
       lru-cache: 11.5.2
 
+  '@axe-core/playwright@4.13.0(playwright-core@1.62.1)':
+    dependencies:
+      axe-core: 4.13.0
+      playwright-core: 1.62.1
+
   '@babel/code-frame@7.29.7':
     dependencies:
       '@babel/helper-validator-identifier': 7.29.7
@@ -4340,6 +4412,10 @@ snapshots:
   '@open-draft/until@2.1.0': {}
 
   '@oxc-project/types@0.147.0': {}
+
+  '@playwright/test@1.62.1':
+    dependencies:
+      playwright: 1.62.1
 
   '@radix-ui/react-avatar@1.1.11(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
     dependencies:
@@ -5116,6 +5192,9 @@ snapshots:
       react: 19.2.8
       react-dom: 19.2.8(react@19.2.8)
 
+  fsevents@2.3.2:
+    optional: true
+
   fsevents@2.3.3:
     optional: true
 
@@ -5464,6 +5543,14 @@ snapshots:
   picocolors@1.1.1: {}
 
   picomatch@4.0.7: {}
+
+  playwright-core@1.62.1: {}
+
+  playwright@1.62.1:
+    dependencies:
+      playwright-core: 1.62.1
+    optionalDependencies:
+      fsevents: 2.3.2
 
   postcss@8.5.26:
     dependencies:

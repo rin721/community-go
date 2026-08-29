@@ -11,14 +11,20 @@
     "build": "pnpm -r --if-present build",
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present test",
+    "test:browser": "playwright test",
+    "test:visual:update": "playwright test --update-snapshots",
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "architecture:check": "node tooling/check-boundaries.mjs",
-    "check": "pnpm architecture:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm format:check"
+    "dependency:check": "node tooling/check-dependencies.mjs",
+    "performance:check": "node tooling/check-performance-budget.mjs",
+    "check": "pnpm architecture:check && pnpm dependency:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm performance:check && pnpm test:browser && pnpm format:check"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.62.1",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",

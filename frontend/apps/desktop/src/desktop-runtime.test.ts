@@ -7,7 +7,10 @@ function createRuntime(): DesktopRuntimePort {
     platform: 'windows',
     window: { execute: vi.fn().mockResolvedValue(undefined) },
     shortcuts: { register: vi.fn() },
-    files: { select: vi.fn().mockResolvedValue(['D:/workspace/example.txt']) },
+    files: {
+      select: vi.fn().mockResolvedValue(['D:/workspace/example.txt']),
+      saveText: vi.fn().mockResolvedValue(undefined),
+    },
   };
 }
 
@@ -18,5 +21,17 @@ describe('createDesktopHost', () => {
 
     await expect(host.selectFiles(true)).resolves.toEqual(['D:/workspace/example.txt']);
     expect(runtime.files.select).toHaveBeenCalledWith({ multiple: true });
+  });
+
+  it('用同一个 Reference Port 契约组合 Desktop 文件能力', async () => {
+    const runtime = createRuntime();
+    const host = createDesktopHost(runtime);
+
+    await host.exportTextFile('snapshot.json', '{"ok":true}');
+
+    expect(runtime.files.saveText).toHaveBeenCalledWith({
+      suggestedName: 'snapshot.json',
+      content: '{"ok":true}',
+    });
   });
 });

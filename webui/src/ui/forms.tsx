@@ -33,3 +33,27 @@ export type SelectOption = { value: string; label: ReactNode };
 export function SelectField({ label, value, options, onValueChange, className = "", placeholder, error }: { label: string; value: string; options: ReadonlyArray<SelectOption>; onValueChange: (value: string) => void; className?: string; placeholder?: string; error?: string }) {
   return <div className={`form-field ${error ? "has-error" : ""}`.trim()}><Select selectedKey={value} onSelectionChange={(key) => onValueChange(key === null || key === undefined ? "" : String(key))} className={className} isInvalid={Boolean(error)}><Label>{label}</Label><Select.Trigger><Select.Value>{({ selectedText }) => selectedText ?? placeholder ?? ""}</Select.Value></Select.Trigger><Select.Indicator /><Select.Popover><ListBox className="max-h-72 overflow-auto">{options.map((option) => <ListBox.Item key={option.value} id={option.value} textValue={typeof option.label === "string" ? option.label : String(option.label)}>{option.label}</ListBox.Item>)}</ListBox></Select.Popover></Select></div>;
 }
+
+/** FilterSelect 是筛选/分页等紧凑场景的选择控件（091：替代原生 `<select>`）。
+ * 行内标签 + HeroUI Select Trigger，与表单 SelectField 同源（同一成熟实现），
+ * 仅形态为紧凑行内；不承载 Label 浮动，保持筛选区控件高度/圆角一致。
+ */
+export function FilterSelect({ label, value, options, onValueChange, className = "", ariaLabel }: {
+  label?: ReactNode;
+  value: string;
+  options: ReadonlyArray<SelectOption>;
+  onValueChange: (value: string) => void;
+  className?: string;
+  ariaLabel?: string;
+}) {
+  return (
+    <label className={`filter-select ${className}`.trim()}>
+      {label && <span className="filter-select-label">{label}</span>}
+      <Select selectedKey={value || null} onSelectionChange={(key) => onValueChange(key === null || key === undefined ? "" : String(key))} className="filter-select-control" aria-label={ariaLabel}>
+        <Select.Trigger><Select.Value>{({ selectedText }) => selectedText ?? ""}</Select.Value></Select.Trigger>
+        <Select.Indicator />
+        <Select.Popover><ListBox className="max-h-72 overflow-auto">{options.map((option) => <ListBox.Item key={option.value} id={option.value} textValue={typeof option.label === "string" ? option.label : String(option.label)}>{option.label}</ListBox.Item>)}</ListBox></Select.Popover>
+      </Select>
+    </label>
+  );
+}

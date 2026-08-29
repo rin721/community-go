@@ -46,8 +46,9 @@ test("mock mode boots the whole WebUI without a backend and marks every page", a
   // 062 视觉证据：骨架分区注入点（顶栏快捷入口）桌面视口截图。
   await page.screenshot({ path: "test-results/zone-injection-mock.png", fullPage: true });
 
-  // 双语：切换语言后徽标使用中文文案（语言下拉按宿主壳设计隐藏可见性，用 force 交互）。
-  await page.locator("select[aria-label='Language']").selectOption("zh-CN", { force: true });
+  // 双语：切换语言后徽标使用中文文案（091：语言下拉为统一 HeroUI Select）。
+  await page.locator(".language-button .filter-select-control").click();
+  await page.getByRole("option", { name: "简体中文" }).click();
   await expect(page.locator(".mock-badge")).toHaveText("模拟环境");
 });
 
@@ -251,13 +252,17 @@ test("084b auth screens and account role filter render", async ({ page }) => {
   await expect(page.locator(".auth-section")).toHaveCount(2);
   await expect(page.locator(".auth-panel input[type='password']")).toHaveCount(3);
 
-  // Accounts：FilterBar 集成了搜索/状态/归档/角色/排序等字段（原生 select ≥3，
-// 避免应用壳层首帧计数抖动）。
+  // Accounts：FilterBar 集成了搜索/状态/归档/角色/排序等字段（统一 Select ≥3，
+// 避免应用壳层首帧计数抖动；091 后筛选下拉为 HeroUI Select 而非原生 select）。
   await page.goto("/admin/accounts");
   await expect(page.locator(".data-table").first()).toBeVisible();
   await page.waitForTimeout(600);
-  const accountSelectCount = await page.locator(".filter-bar select").count();
+  const accountSelectCount = await page.locator(".filter-bar .filter-select-control").count();
   expect(accountSelectCount).toBeGreaterThanOrEqual(3);
+  // 091：筛选下拉为统一 HeroUI Select（.filter-select-control 触发器）。
+  // （HeroUI Select 内部会为表单/读屏渲染隐藏原生 select，DOM 中可见的
+  // `.filter-select-control` 触发器才是用户交互目标；源码级零原生 select
+  // 由 VERIFY-091-002 的 grep 二次扫描保证。）
 });
 
 // 084c：账号批量操作流程（勾选 → 常驻批量条 → 归档确认 → 结果反馈）。

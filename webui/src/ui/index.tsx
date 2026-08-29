@@ -10,8 +10,8 @@ import { Sparkline } from "./charts";
 import { Skeleton, StatusPill } from "./feedback";
 export { BatchResultSummary, CapabilityBanner, EmptyState, ErrorState, InlineAlert, Skeleton, StatusBadge, StatusPill, Toast } from "./feedback";
 export type { SemanticStatus } from "./feedback";
-import type { SelectOption } from "./forms";
-export { Field, FormField, SelectField, fieldWidthClass } from "./forms";
+import { FilterSelect, type SelectOption } from "./forms";
+export { Field, FilterSelect, FormField, SelectField, fieldWidthClass } from "./forms";
 export type { FieldWidth, SelectOption } from "./forms";
 export { DataTable, DataTableRowMenu, getDataTableSelectionState } from "./data";
 export type { DataTableColumn, DataTableEnhancements, DataTableProps } from "./data";
@@ -105,7 +105,7 @@ export function Pagination({ page, pageCount, total, totalLabel, pageLabel, pagi
           <HeroPagination.Next isDisabled={current >= pageCount} aria-label={nextLabel} onPress={() => onPageChange(current + 1)}>›</HeroPagination.Next>
         </HeroPagination.Item>
       </HeroPagination.Content>
-      {pageSizeOptions && pageSizeLabel && onPageSizeChange && <select aria-label={pageSizeLabel} value={pageSize} onChange={(event) => onPageSizeChange(Number(event.target.value))} className="pagination-size">{pageSizeOptions.map((option) => <option value={option} key={option}>{option}</option>)}</select>}
+      {pageSizeOptions && pageSizeLabel && onPageSizeChange && <FilterSelect ariaLabel={pageSizeLabel} value={String(pageSize ?? "")} options={pageSizeOptions.map((option) => ({ value: String(option), label: String(option) }))} onValueChange={(next) => onPageSizeChange(Number(next))} className="pagination-size" />}
     </HeroPagination.Root>
   );
 }
@@ -437,9 +437,10 @@ function renderFilterField(field: FilterBarField) {
       return <label key={field.key} className="filter-field"><span className="filter-field-label">{field.label}</span><input type={field.inputType ?? "text"} placeholder={field.placeholder} value={typeof field.value === "string" ? field.value : ""} onChange={(event) => field.onValueChange(event.target.value)} /></label>;
     case "select":
     default:
-      // 084：筛选下拉改为「行内标签 + 原生 select」紧凑形态，替代带浮动
-      // 标签的 SelectField（多筛选项时不再横向散开、不再出现孤立箭头）。
-      return <label key={field.key} className="filter-select"><span className="filter-select-label">{field.label}</span><select className="field-input" value={typeof field.value === "string" ? field.value : ""} onChange={(event) => field.onValueChange(event.target.value)}>{field.options?.map((option) => <option key={String(option.value)} value={option.value}>{option.label}</option>)}</select></label>;
+      // 091：筛选下拉统一为 HeroUI Select（FilterSelect），替代 084 回退的原生
+      // `<select>`——下拉外观（圆角/阴影/Hover/Focus/Selected/Dark Mode）与表单
+      // SelectField 同源，不再暴露浏览器原生 UI。
+      return <FilterSelect key={field.key} label={field.label} ariaLabel={typeof field.label === "string" ? field.label : undefined} value={typeof field.value === "string" ? field.value : ""} options={field.options ?? []} onValueChange={(next) => field.onValueChange(next)} />;
   }
 }
 

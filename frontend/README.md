@@ -1,16 +1,29 @@
-# frontend 子项目状态
+# Community Go Frontend
 
-`frontend/` 是受版本管理的 Nuxt 4/Vue 前端目录，但当前不属于根 Go 工程的集成构建和交付链。
+`/frontend` 是与旧 `webui/` 和 `old-frontend/` 完全隔离的新一代统一前端根目录。当前阶段只建设产品基座，不读取后端接口，也不迁移旧页面、DOM、CSS 或组件。
 
-## 当前事实
+## 快速开始
 
-- 根 `.github/workflows`、Dockerfile、`.goreleaser.yaml` 和 `scripts/Verify-Quality.*` 不构建或发布本目录。
-- 当前根工程没有 `backend/` 路径；因此旧文档中指向 `backend/internal/modules/community` 的集成说明不再是可验证入口。
-- 旧文档曾引用 `scripts/check-frontend-community-boundary.ps1`、`scripts/check-frontend-community-api-smoke.ps1` 和 `scripts/check-frontend-community-page-smoke.ps1`，这些脚本当前不存在，不能作为验证命令。
-- 本目录的 Nuxt 运行和社区 API 依赖没有形成当前 root Go backend 的可验证闭环。
+```powershell
+pnpm install
+pnpm dev
+```
 
-## 使用边界
+浏览器访问 Vite 输出的本地地址。完整质量门禁：
 
-本目录可作为独立前端代码和历史产品资料保留，但当前项目不能把它描述为已接入的社区产品前端。若要重新集成，必须单独完成后端契约、启动方式、配置、CI、Docker/release、E2E 和文档影响评估；若要退役，也必须单独确认并保留可追溯的迁移证据。
+```powershell
+pnpm check
+```
 
-`old-backend/` 不属于本状态页的审计范围，也不因本目录存在而获得当前 authority。
+## 架构地图
+
+- `apps/web`：Web Host，拥有浏览器入口、路由、App Shell 和 Web 专属集成。
+- `apps/desktop`：Desktop Host 契约边界；在选定 Desktop Runtime 前不伪造可运行壳。
+- `packages/core`：与 UI Library、Host 和数据源无关的纯规则。
+- `packages/types`：跨模块稳定共享的 TypeScript 类型。
+- `packages/schemas`：运行时数据与表单模型校验。
+- `packages/design-system`：语义 Design Token 与主题变量。
+- `packages/ui-adapter`：业务可依赖的 UI Contract；HeroUI 只允许从这里直接导入。
+- `tooling`：可执行的依赖、样式和第三方边界门禁。
+
+开发规则与禁止项见 [AGENTS.md](AGENTS.md)。

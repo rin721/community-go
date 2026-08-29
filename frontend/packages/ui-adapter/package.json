@@ -1,0 +1,22 @@
+{
+  "name": "@community-go/ui-adapter",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./vendor.css": "./src/vendor.css"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@community-go/types": "workspace:*",
+    "@heroui/react": "^3.2.4",
+    "@heroui/styles": "^3.2.4",
+    "react": "^19.2.8"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.7"
+  }
+}

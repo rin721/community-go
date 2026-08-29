@@ -1,0 +1,71 @@
+@import 'tailwindcss';
+@import '@community-go/ui-adapter/vendor.css';
+@import '@community-go/design-system/tokens.css';
+@source '../../../packages';
+
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+@layer base {
+  * {
+    border-color: var(--ds-border);
+  }
+
+  html {
+    background: var(--ds-canvas);
+    font-family: var(--font-sans);
+  }
+
+  body {
+    min-width: 20rem;
+    min-height: 100vh;
+    margin: 0;
+    background: var(--ds-canvas);
+    color: var(--ds-ink);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button,
+  input,
+  select {
+    font: inherit;
+  }
+
+  :focus-visible {
+    outline: 0.125rem solid var(--ds-brand);
+    outline-offset: 0.125rem;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .shell-grid {
+    display: grid;
+    grid-template-columns: 16.5rem minmax(0, 1fr);
+  }
+
+  .metric-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  @media (max-width: 75rem) {
+    .metric-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 64rem) {
+    .shell-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  @media (max-width: 40rem) {
+    .metric-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+}

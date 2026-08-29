@@ -30,30 +30,30 @@ TailAdmin 的 `UI Elements` 用于校准后台产品的视觉秩序和组件完�
 
 ## 3. UI Elements 校准矩阵
 
-| TailAdmin 页面                                                  | 本轮观察重点                                                  | 项目内部落点                                 | 当前结论                                              |
-| --------------------------------------------------------------- | ------------------------------------------------------------- | -------------------------------------------- | ----------------------------------------------------- |
-| [Alerts](https://react-demo.tailadmin.com/alerts)               | 四类语义、Icon/标题/说明/动作层级、轻底色与边框协作           | `AlertBanner`、Showcase `Alert` 区           | 已采用项目语义 Token 重新实现                         |
-| [Avatar](https://react-demo.tailadmin.com/avatars)              | 尺寸序列、圆形裁切、Online/Offline/Busy 指示                  | 未来身份与协作场景                           | 已复核；无真实产品用例前不新增公共契约                |
-| [Badge](https://react-demo.tailadmin.com/badge)                 | Soft/Solid、语义色、左右 Icon、短文本密度                     | `Badge`、`StatusPill`、Showcase `Badge` 区   | 已采用 Soft/Solid 与语义 Tone                         |
-| [Breadcrumb](https://react-demo.tailadmin.com/breadcrumb)       | 层级、分隔符、当前位置、Icon 可选性                           | `PageHeader` / `Breadcrumbs`                 | 已有内部权威；不增加页面级变体                        |
-| [Buttons](https://react-demo.tailadmin.com/buttons)             | Primary/Secondary、左右 Icon、统一高度与字重                  | `Action`、Showcase `Action Variants`         | 已有内部权威；补齐 Loading/Disabled/Focus 验证        |
-| [Button Groups](https://react-demo.tailadmin.com/buttons-group) | 连续边框、首尾圆角、Active 与邻项层级                         | 未来工具栏分段操作                           | 已复核；出现真实选择语义时再基于 HeroUI 能力扩展      |
-| [Cards](https://react-demo.tailadmin.com/cards)                 | 图片/文字/动作节奏、横向与纵向层级、链接语义                  | `Panel`、Showcase `Card 与 Surface` 区       | 确认 Elevated/Outlined/Embedded 三轨                  |
-| [Carousel](https://react-demo.tailadmin.com/carousel)           | Controls、Indicators、Controls+Indicators、媒体比例           | 未来媒体浏览场景                             | 已复核；无真实产品用例前不引入轮播依赖                |
-| [Dropdowns](https://react-demo.tailadmin.com/dropdowns)         | Trigger Active、浮层 Shadow、Item 密度、Divider、Icon         | `MenuButton`、Showcase 与打开态快照          | 已采用 HeroUI Menu/Overlay；禁止业务页自写菜单        |
-| [Images](https://react-demo.tailadmin.com/images)               | Responsive、2/3 Grid、裁切和容器比例                          | Feature Composition                          | 属于内容布局，不新增无语义 Adapter                    |
-| [Links](https://react-demo.tailadmin.com/links)                 | 语义色、Underline、Hover、Opacity 的辨识度                    | Typography / Feature Composition             | 保持链接语义与 Focus 可见；不提供任意透明度 API       |
-| [List](https://react-demo.tailadmin.com/list)                   | Ordered/Unordered、Icon、Action、Disabled、Checkbox/Radio     | Feature Composition 与 Form Control          | 按语义组合；不建立万能 List Wrapper                   |
-| [Modals](https://react-demo.tailadmin.com/modals)               | Default/Centered/Form/Fullscreen、Scrim、Close、Footer Action | `DialogSurface`、Showcase 打开态快照         | 已采用 HeroUI Dialog/Focus 管理并治理完整 Surface     |
-| [Notification](https://react-demo.tailadmin.com/notifications)  | Announcement、Toast、语义通知、Dismiss 与操作层级             | `NotificationCard`、`AlertBanner`、Showcase  | 已建立静态通知权威；全局 Toast 等真实需求出现后再扩展 |
-| [Pagination](https://react-demo.tailadmin.com/pagination)       | Text/Icon、Current、Disabled、Ellipsis                        | 未来分页数据场景                             | 已复核；与真实数据契约一起引入，禁止静态假分页        |
-| [Popovers](https://react-demo.tailadmin.com/popovers)           | 四方向、带 Button/Link、打开层级和内容宽度                    | `PopoverCard`、Showcase 打开态快照           | 已采用 HeroUI Popover；位置由 Overlay 决策            |
-| [Progressbar](https://react-demo.tailadmin.com/progress-bar)    | Size、Inside/Outside Label、确定进度                          | `ProgressMeter`、状态页面                    | 已有内部契约；进度值和文本必须保持同义                |
-| [Ribbons](https://react-demo.tailadmin.com/ribbons)             | 角标与容器关系、Hover、Filled                                 | Feature Composition                          | 已复核；Badge 能表达时不新增 Ribbon                   |
-| [Spinners](https://react-demo.tailadmin.com/spinners)           | 多种 Loading 表达、按钮内 Spinner                             | `Action loading`、`Skeleton`、`StateSurface` | Loading 按作用域选择，不堆叠多个指示器                |
-| [Tabs](https://react-demo.tailadmin.com/tabs)                   | Filled/Underline/Icon/Badge/Vertical、Selected                | `TabsView`、Showcase 状态组合                | 当前采用 Filled 等分横向 Tabs；文本单行且容器全宽     |
-| [Tooltips](https://react-demo.tailadmin.com/tooltips)           | Light/Dark、方向、Arrow、Hover/Focus                          | `TooltipAction`、Showcase 打开态快照         | 已采用 HeroUI Tooltip；同时支持键盘 Focus 与悬停      |
-| [Videos](https://react-demo.tailadmin.com/videos)               | 16:9、4:3、21:9、1:1 比例                                     | Feature Composition                          | 以内容比例契约实现，不新增播放器 Wrapper              |
+| TailAdmin 页面                                                  | 本轮观察重点                                                  | 项目内部落点                                 | 当前结论                                                                 |
+| --------------------------------------------------------------- | ------------------------------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------ |
+| [Alerts](https://react-demo.tailadmin.com/alerts)               | 四类语义、Icon/标题/说明/动作层级、轻底色与边框协作           | `AlertBanner`、Showcase `Alert` 区           | 已采用项目语义 Token 重新实现                                            |
+| [Avatar](https://react-demo.tailadmin.com/avatars)              | 尺寸序列、圆形裁切、Online/Offline/Busy 指示                  | 未来身份与协作场景                           | 已复核；无真实产品用例前不新增公共契约                                   |
+| [Badge](https://react-demo.tailadmin.com/badge)                 | Soft/Solid、语义色、左右 Icon、短文本密度                     | `Badge`、`StatusPill`、Showcase `Badge` 区   | 已采用 Soft/Solid 与语义 Tone                                            |
+| [Breadcrumb](https://react-demo.tailadmin.com/breadcrumb)       | 层级、分隔符、当前位置、Icon 可选性                           | `PageHeader` / `Breadcrumbs`                 | 已有内部权威；不增加页面级变体                                           |
+| [Buttons](https://react-demo.tailadmin.com/buttons)             | Primary/Secondary、左右 Icon、统一高度与字重                  | `Action`、Showcase `Action Variants`         | 已有内部权威；补齐 Loading/Disabled/Focus 验证                           |
+| [Button Groups](https://react-demo.tailadmin.com/buttons-group) | 连续边框、首尾圆角、Active 与邻项层级                         | 未来工具栏分段操作                           | 已复核；出现真实选择语义时再基于 HeroUI 能力扩展                         |
+| [Cards](https://react-demo.tailadmin.com/cards)                 | 图片/文字/动作节奏、横向与纵向层级、链接语义                  | `Panel`、Showcase `Card 与 Surface` 区       | 确认 Elevated/Outlined/Embedded 三轨                                     |
+| [Carousel](https://react-demo.tailadmin.com/carousel)           | Controls、Indicators、Controls+Indicators、媒体比例           | 未来媒体浏览场景                             | 已复核；无真实产品用例前不引入轮播依赖                                   |
+| [Dropdowns](https://react-demo.tailadmin.com/dropdowns)         | Trigger Active、浮层 Shadow、Item 密度、Divider、Icon         | `MenuButton`、Showcase 与打开态快照          | 已采用 HeroUI Menu/Overlay；禁止业务页自写菜单                           |
+| [Images](https://react-demo.tailadmin.com/images)               | Responsive、2/3 Grid、裁切和容器比例                          | Feature Composition                          | 属于内容布局，不新增无语义 Adapter                                       |
+| [Links](https://react-demo.tailadmin.com/links)                 | 语义色、Underline、Hover、Opacity 的辨识度                    | Typography / Feature Composition             | 保持链接语义与 Focus 可见；不提供任意透明度 API                          |
+| [List](https://react-demo.tailadmin.com/list)                   | Ordered/Unordered、Icon、Action、Disabled、Checkbox/Radio     | Feature Composition 与 Form Control          | 按语义组合；不建立万能 List Wrapper                                      |
+| [Modals](https://react-demo.tailadmin.com/modals)               | Default/Centered/Form/Fullscreen、Scrim、Close、Footer Action | `DialogSurface`、Showcase 打开态快照         | 已采用 HeroUI Dialog/Focus 管理并治理完整 Surface                        |
+| [Notification](https://react-demo.tailadmin.com/notifications)  | Announcement、Toast、语义通知、Dismiss 与操作层级             | `NotificationCard`、`AlertBanner`、Showcase  | 已建立静态通知权威；全局 Toast 等真实需求出现后再扩展                    |
+| [Pagination](https://react-demo.tailadmin.com/pagination)       | Text/Icon、Current、Disabled、Ellipsis                        | 未来分页数据场景                             | 已复核；与真实数据契约一起引入，禁止静态假分页                           |
+| [Popovers](https://react-demo.tailadmin.com/popovers)           | 四方向、带 Button/Link、打开层级和内容宽度                    | `PopoverCard`、Showcase 打开态快照           | 已采用 HeroUI Popover；位置由 Overlay 决策                               |
+| [Progressbar](https://react-demo.tailadmin.com/progress-bar)    | Size、Inside/Outside Label、确定进度                          | `ProgressMeter`、状态页面                    | 已有内部契约；进度值和文本必须保持同义                                   |
+| [Ribbons](https://react-demo.tailadmin.com/ribbons)             | 角标与容器关系、Hover、Filled                                 | Feature Composition                          | 已复核；Badge 能表达时不新增 Ribbon                                      |
+| [Spinners](https://react-demo.tailadmin.com/spinners)           | 多种 Loading 表达、按钮内 Spinner                             | `Action loading`、`Skeleton`、`StateSurface` | Loading 按作用域选择，不堆叠多个指示器                                   |
+| [Tabs](https://react-demo.tailadmin.com/tabs)                   | Filled/Underline/Icon/Badge/Vertical、Selected                | `TabsView`、Showcase 状态组合                | 保持 HeroUI Primary Tabs 原有结构与内部留隙；由父 Surface 提供外部内边距 |
+| [Tooltips](https://react-demo.tailadmin.com/tooltips)           | Light/Dark、方向、Arrow、Hover/Focus                          | `TooltipAction`、Showcase 打开态快照         | 已采用 HeroUI Tooltip；同时支持键盘 Focus 与悬停                         |
+| [Videos](https://react-demo.tailadmin.com/videos)               | 16:9、4:3、21:9、1:1 比例                                     | Feature Composition                          | 以内容比例契约实现，不新增播放器 Wrapper                                 |
 
 ## 4. 内部 Showcase 权威范围
 

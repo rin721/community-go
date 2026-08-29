@@ -92,16 +92,16 @@ export function TabsView({ label, items, selectedId, onSelectionChange }: TabsVi
       onSelectionChange={(key) => onSelectionChange?.(String(key))}
       {...(selectedId ? { selectedKey: selectedId } : {})}
     >
-      <Tabs.ListContainer className="overflow-x-auto border-b border-border">
-        <Tabs.List aria-label={label} className="flex min-w-full gap-1">
+      <Tabs.ListContainer>
+        <Tabs.List aria-label={label}>
           {items.map((item) => (
             <Tabs.Tab
-              className="relative min-h-11 min-w-max flex-1 whitespace-nowrap px-3 text-sm font-semibold text-ink-muted outline-none data-[hovered]:text-ink data-[selected]:text-brand"
+              className="text-sm font-semibold text-ink-muted data-[selected]:text-brand"
               id={item.id}
               key={item.id}
             >
               {item.label}
-              <Tabs.Indicator className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-brand" />
+              <Tabs.Indicator />
             </Tabs.Tab>
           ))}
         </Tabs.List>

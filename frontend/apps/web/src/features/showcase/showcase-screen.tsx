@@ -371,7 +371,7 @@ export function ShowcaseScreen() {
               <p className="mt-3 text-sm leading-6 text-ink-muted">{description}</p>
             </Panel>
           </Panel>
-          <Panel appearance="outlined" className="overflow-hidden">
+          <Panel appearance="outlined" className="p-4">
             <TabsView
               label={t('showcase.tabsLabel')}
               items={[

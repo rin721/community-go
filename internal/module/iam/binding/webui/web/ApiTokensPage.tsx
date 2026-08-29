@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActionTrigger, BatchResultSummary, BulkActionBar, Button, Check, CodeText, ConfirmDialog, DataTable, EmptyState, ErrorState, Field, FilterBar, formatDateTime, InlineAlert, PageFrame, PageHeader, PageSection, Pagination, ResourceIndex, SelectField, StatusBadge } from "@webui/sdk/ui";
+import { ActionTrigger, BatchResultSummary, BulkActionBar, Button, Check, CodeText, ConfirmDialog, DataTable, DateTimeField, EmptyState, ErrorState, Field, FilterBar, formatDateTime, InlineAlert, PageFrame, PageHeader, PageSection, Pagination, ResourceIndex, SelectField, StatusBadge } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { useListQueryParams, type ProblemError } from "@webui/sdk/query";
 import { batchRevokeApiTokens, createApiToken, disableApiToken, enableApiToken, listApiTokens, loadSession, revokeApiToken, rotateApiToken, updateApiToken, type ApiTokenView } from "./api";
@@ -128,7 +128,7 @@ export default function ApiTokensPage() {
                 { value: "custom", label: t("webui.iam.apiTokens.customExpiry") },
                 { value: "never", label: t("webui.iam.apiTokens.neverExpire") },
               ]} onValueChange={(value) => setNeverExpires(value === "never")} />
-              {!neverExpires && <Field label={t("webui.iam.apiTokens.expiryValue")} type="datetime-local" required value={expiresAt} onChange={(event) => { setTouched(true); setExpiresAt(event.target.value); }} />}
+              {!neverExpires && <DateTimeField label={t("webui.iam.apiTokens.expiryValue")} required value={expiresAt} onValueChange={(value) => { setTouched(true); setExpiresAt(value); }} />}
             </div>
             {!neverExpires && message && <p className="page-meta" role="status">{message}</p>}
           </div>
@@ -190,10 +190,11 @@ export default function ApiTokensPage() {
               { value: "expiresAt", label: t("webui.iam.apiTokens.expiresHeader") },
               { value: "lastUsedAt", label: t("webui.iam.apiTokens.lastUsed") },
             ], onValueChange: (value) => listQuery.setSort(String(value) ? { key: String(value), direction: listQuery.sort?.direction ?? "desc" } : null) },
-            { key: "sortDir", label: t("webui.iam.accounts.sortDirection"), control: "select", active: Boolean(listQuery.sort?.key), value: listQuery.sort?.direction ?? "desc", options: [
+            ...(listQuery.sort?.key ? [{ key: "sortDir", label: t("webui.iam.accounts.sortDirection"), control: "select" as const, active: true, value: listQuery.sort?.direction ?? "desc", options: [
               { value: "asc", label: t("webui.iam.accounts.sortAsc") },
               { value: "desc", label: t("webui.iam.accounts.sortDesc") },
-            ], onValueChange: (value) => { if (listQuery.sort) listQuery.setSort({ key: listQuery.sort.key, direction: value === "desc" ? "desc" : "asc" }); } },
+            ], onValueChange: (value: string | boolean) => { if (listQuery.sort) listQuery.setSort({ key: listQuery.sort.key, direction: value === "desc" ? "desc" : "asc" }); } },
+            ] : []),
           ]}
           onClear={() => listQuery.setFilters({ status: "all" })}
           clearLabel={t("webui.iam.accounts.clear")}

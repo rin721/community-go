@@ -3,6 +3,7 @@ import { join, relative } from "node:path";
 import { discoverWebUIModuleRoots } from "./module-roots.mjs";
 import { loadProjectLayout, resolveLayoutPaths } from "./project-layout.mjs";
 import { checkStyleAuthority } from "./style-rules.mjs";
+import { checkInteractionSource } from "./interaction-rules.mjs";
 
 const project = loadProjectLayout();
 const { repositoryRoot, webuiRoot, platformStyles, webuiSourceRoot } = resolveLayoutPaths(project);
@@ -40,6 +41,7 @@ for (const { moduleID, root } of await discoverWebUIModuleRoots(repositoryRoot))
     }
     if (source.includes("@webui/contracts") || source.includes("@webui/ui")) errors.push(`${relativeFile}: old WebUI alias is forbidden`);
     if (source.includes("@tanstack/react-query")) errors.push(`${relativeFile}: query client must enter through @webui/sdk/query`);
+    if (!relativeFile.includes("/ui/") && !relativeFile.includes("/sdk/") && !relativeFile.includes(".test.")) errors.push(...checkInteractionSource(source, relativeFile));
     if (/from\s+["'][^"']*webui\/src\/(?:platform|components|pages)[^"']*["']/.test(source)) errors.push(`${relativeFile}: module imports WebUI platform internals`);
     for (const importedModule of source.matchAll(/internal\/module\/([a-z0-9_-]+)/g)) {
       if (importedModule[1] !== moduleID) errors.push(`${relativeFile}: module import crosses into ${importedModule[1]}`);
@@ -53,6 +55,7 @@ for (const file of await sourceFiles(webuiSourceRoot)) {
   const source = await readFile(file, "utf8");
   if (/internal\/module\//.test(source)) errors.push(`${relativeFile}: WebUI platform source must not import business modules`);
   if (/\.moduleId\b/.test(source)) errors.push(`${relativeFile}: WebUI platform source must not branch by ModuleID`);
+  if (!relativeFile.endsWith(".css") && !relativeFile.includes("/ui/") && !relativeFile.includes("/sdk/") && !relativeFile.includes("/generated/") && !relativeFile.includes(".test.")) errors.push(...checkInteractionSource(source, relativeFile));
 }
 
 if (errors.length > 0) {

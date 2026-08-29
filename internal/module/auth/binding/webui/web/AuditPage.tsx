@@ -142,20 +142,20 @@ export default function AuditPage() {
         <ResourceIndex toolbar={<FilterBar
           ariaLabel={t("webui.auth.audit.filter.kicker")}
           fields={[
-            { key: "operation", label: t("webui.auth.audit.operation"), placeholder: t("webui.auth.audit.operationPh"), control: "input", value: listQuery.filters.operation, onValueChange: (next) => listQuery.setFilters({ ...listQuery.filters, operation: String(next) }) },
-            { key: "action", label: t("webui.auth.audit.action"), placeholder: t("webui.auth.audit.actionPh"), control: "input", value: listQuery.filters.action, onValueChange: (next) => listQuery.setFilters({ ...listQuery.filters, action: String(next) }) },
+            { key: "operation", label: t("webui.auth.audit.operation"), placeholder: t("webui.auth.audit.operationPh"), control: "text", value: listQuery.filters.operation, onValueChange: (next) => listQuery.setFilters({ ...listQuery.filters, operation: String(next) }) },
+            { key: "action", label: t("webui.auth.audit.action"), placeholder: t("webui.auth.audit.actionPh"), control: "text", value: listQuery.filters.action, onValueChange: (next) => listQuery.setFilters({ ...listQuery.filters, action: String(next) }) },
             { key: "outcome", label: t("webui.auth.audit.outcome"), control: "select", options: [
               { value: "", label: t("webui.auth.audit.outcomeAll") },
               { value: "succeeded", label: t("webui.auth.audit.succeeded") },
               { value: "denied", label: t("webui.auth.audit.denied") },
               { value: "failed", label: t("webui.auth.audit.failed") },
             ], value: listQuery.filters.outcome, onValueChange: (next) => listQuery.setFilters({ ...listQuery.filters, outcome: String(next) }) },
-            { key: "actorKind", label: t("webui.auth.audit.actorKind"), placeholder: t("webui.auth.audit.actorKind"), control: "input", value: listQuery.filters.actorKind, onValueChange: (next) => listQuery.setFilters({ ...listQuery.filters, actorKind: String(next) }) },
-            { key: "subjectHash", label: t("webui.auth.audit.subjectHash"), placeholder: t("webui.auth.audit.subjectHash"), control: "input", value: listQuery.filters.subjectHash, onValueChange: (next) => listQuery.setFilters({ ...listQuery.filters, subjectHash: String(next) }) },
-            { key: "resourceType", label: t("webui.auth.audit.resourceType"), placeholder: t("webui.auth.audit.resourcePh"), control: "input", value: listQuery.filters.resourceType, onValueChange: (next) => listQuery.setFilters({ ...listQuery.filters, resourceType: String(next) }) },
-            { key: "correlationId", label: t("webui.auth.audit.correlationId"), placeholder: t("webui.auth.audit.correlationPh"), control: "input", value: listQuery.filters.correlationId, onValueChange: (next) => listQuery.setFilters({ ...listQuery.filters, correlationId: String(next) }) },
-            { key: "since", label: `${t("webui.auth.audit.occurredAt")} ≥`, inputType: "datetime-local", control: "input", value: listQuery.filters.since, onValueChange: (next) => listQuery.setFilters({ ...listQuery.filters, since: String(next) }) },
-            { key: "until", label: `${t("webui.auth.audit.occurredAt")} ≤`, inputType: "datetime-local", control: "input", value: listQuery.filters.until, onValueChange: (next) => listQuery.setFilters({ ...listQuery.filters, until: String(next) }) },
+            { key: "actorKind", label: t("webui.auth.audit.actorKind"), placeholder: t("webui.auth.audit.actorKind"), control: "text", value: listQuery.filters.actorKind, onValueChange: (next) => listQuery.setFilters({ ...listQuery.filters, actorKind: String(next) }) },
+            { key: "subjectHash", label: t("webui.auth.audit.subjectHash"), placeholder: t("webui.auth.audit.subjectHash"), control: "text", value: listQuery.filters.subjectHash, onValueChange: (next) => listQuery.setFilters({ ...listQuery.filters, subjectHash: String(next) }) },
+            { key: "resourceType", label: t("webui.auth.audit.resourceType"), placeholder: t("webui.auth.audit.resourcePh"), control: "text", value: listQuery.filters.resourceType, onValueChange: (next) => listQuery.setFilters({ ...listQuery.filters, resourceType: String(next) }) },
+            { key: "correlationId", label: t("webui.auth.audit.correlationId"), placeholder: t("webui.auth.audit.correlationPh"), control: "text", value: listQuery.filters.correlationId, onValueChange: (next) => listQuery.setFilters({ ...listQuery.filters, correlationId: String(next) }) },
+            { key: "since", label: `${t("webui.auth.audit.occurredAt")} ≥`, control: "datetime", value: listQuery.filters.since, onValueChange: (next) => listQuery.setFilters({ ...listQuery.filters, since: String(next) }) },
+            { key: "until", label: `${t("webui.auth.audit.occurredAt")} ≤`, control: "datetime", value: listQuery.filters.until, onValueChange: (next) => listQuery.setFilters({ ...listQuery.filters, until: String(next) }) },
           ]}
           onClear={() => listQuery.clearFilters()}
           clearLabel={t("webui.auth.audit.clear")}

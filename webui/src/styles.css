@@ -944,7 +944,7 @@ kbd {
   scroll-snap-align: start;
 }
 /* 文本按钮：透明、单行省略、无外框；Active 用底部指示线强调，不使用整块填充 */
-.workspace-tab > button[role="tab"] {
+.workspace-tab[role="tab"] {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -965,7 +965,7 @@ kbd {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.workspace-tab.active > button[role="tab"] {
+.workspace-tab.active[role="tab"] {
   color: var(--text);
   font-weight: var(--font-weight-semibold);
 }
@@ -4033,6 +4033,10 @@ textarea.field-input {
   .filter-bar-main {
     align-items: stretch;
     flex-direction: column;
+  }
+  .filter-bar-main .search-input-wrap {
+    width: 100%;
+    flex: 0 0 auto;
   }
   .filter-bar-summary {
     justify-content: space-between;

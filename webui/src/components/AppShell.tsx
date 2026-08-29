@@ -3,7 +3,7 @@ import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Languages, Moon, Palette, Sun } from "lucide-react";
 import type { Manifest, ManifestRoute, PrincipalView } from "@webui/sdk/runtime";
 import { useWebUITranslation } from "@webui/sdk/i18n";
-import { ConfirmDialog, FilterSelect, IconButton, Toast } from "@webui/sdk/ui";
+import { Button, ConfirmDialog, FilterSelect, IconButton, Toast } from "@webui/sdk/ui";
 import { changeLanguage, ensureRouteLocale, getAvailableLanguages, languageLabelMessageID, translateMessage } from "../i18n";
 import { effectiveReduceMotion, useThemePreferences, type ThemePreferences } from "../theme";
 import { ScrollExperience } from "../scroll/ScrollExperience";
@@ -153,7 +153,7 @@ export function AppShell({ manifest, principal, onLogout }: { manifest: Manifest
   };
 
   return <div className={`app-shell ${collapsed ? "sidebar-collapsed" : ""}`}>
-    <button type="button" className={`mobile-backdrop ${mobileOpen ? "visible" : ""}`} onClick={() => setMobileOpen(false)} aria-label={translateMessage("webui.host.menu.close")} disabled={!mobileOpen} tabIndex={mobileOpen ? 0 : -1} />
+    <Button type="button" variant="ghost" className={`mobile-backdrop ${mobileOpen ? "visible" : ""}`} onClick={() => setMobileOpen(false)} aria-label={translateMessage("webui.host.menu.close")} disabled={!mobileOpen} tabIndex={mobileOpen ? 0 : -1} />
     <AppSidebar sidebarRef={mobileSidebarRef} mobileOpen={mobileOpen} isMobileViewport={isMobileViewport} collapsed={collapsed} menu={menu} currentRouteID={currentRoute?.id} expandedMenuIDs={expandedMenuIDs} onToggleMenu={(menuID) => setExpandedMenuIDs((current) => { const next = new Set(current); next.has(menuID) ? next.delete(menuID) : next.add(menuID); return next; })} onClose={() => setMobileOpen(false)} onKeyDown={handleMobileSidebarKeyDown} revision={manifest.catalogRevision} principal={principal} />
     <div className="app-workspace">
       <AppHeader collapsed={collapsed} onToggleSidebar={toggleSidebar} mobileMenuButtonRef={mobileMenuButtonRef} onOpenMobileMenu={() => setMobileOpen(true)} showBreadcrumb={theme.layout.showBreadcrumb} currentRoute={currentRoute} pathname={location.pathname} hostLanguage={hostI18n.language} availableLanguages={availableLanguages} onLanguageChange={(language) => void changeLanguage(language)} theme={theme} onToggleColorScheme={toggleColorScheme} onOpenTheme={() => setThemeOpen(true)} onOpenSearch={() => setSearchOpen(true)} onToggleFullscreen={toggleFullscreen} principal={principal} onRequestLogout={() => setLogoutOpen(true)} />

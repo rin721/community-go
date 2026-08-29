@@ -184,10 +184,11 @@ export default function RolesPage() {
               { value: "code", label: t("webui.iam.roles.code") },
               { value: "createdAt", label: t("webui.iam.sessions.createdAt") },
             ], value: listQuery.sort?.key ?? "", onValueChange: (value) => listQuery.setSort(String(value) ? { key: String(value), direction: listQuery.sort?.direction ?? "asc" } : null) },
-            { key: "sortDir", label: t("webui.iam.accounts.sortDirection"), control: "select", active: Boolean(listQuery.sort?.key), options: [
+            ...(listQuery.sort?.key ? [{ key: "sortDir", label: t("webui.iam.accounts.sortDirection"), control: "select" as const, active: true, options: [
               { value: "asc", label: t("webui.iam.accounts.sortAsc") },
               { value: "desc", label: t("webui.iam.accounts.sortDesc") },
-            ], value: listQuery.sort?.direction ?? "desc", onValueChange: (value) => { if (listQuery.sort) listQuery.setSort({ key: listQuery.sort.key, direction: value === "desc" ? "desc" : "asc" }); } },
+            ], value: listQuery.sort?.direction ?? "desc", onValueChange: (value: string | boolean) => { if (listQuery.sort) listQuery.setSort({ key: listQuery.sort.key, direction: value === "desc" ? "desc" : "asc" }); } },
+            ] : []),
           ]}
           searchInput={<SearchInput value={listQuery.filters.query} onChange={(next) => listQuery.setFilters({ query: next })} placeholder={t("webui.iam.search")} label={t("webui.iam.roles.filter")} />}
           onClear={() => listQuery.clearFilters()}

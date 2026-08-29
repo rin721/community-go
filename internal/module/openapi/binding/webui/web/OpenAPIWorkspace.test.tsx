@@ -39,11 +39,12 @@ function render(ui: React.ReactElement): { unmount: () => void; host: HTMLDivEle
   };
 }
 
-function treeLeafButton(host: HTMLElement, operationId: string): HTMLButtonElement {
-  const buttons = [...host.querySelectorAll<HTMLButtonElement>('button[data-testid="openapi-tree-leaf"]')];
-  const button = buttons.find((candidate) => candidate.textContent?.includes(operationId));
+function treeLeafButton(host: HTMLElement, operationId: string): HTMLElement {
+  const leaves = [...host.querySelectorAll<HTMLElement>('[data-testid="openapi-tree-leaf"]')];
+  const leaf = leaves.find((candidate) => candidate.textContent?.includes(operationId));
+  const button = leaf?.closest("button") ?? leaf?.parentElement;
   if (!button) throw new Error(`tree leaf for ${operationId} not found`);
-  return button;
+  return button as HTMLElement;
 }
 
 function button(host: HTMLElement, text: string): HTMLButtonElement {
@@ -154,7 +155,7 @@ describe("OpenAPIPage workspace shell (R075-009)", () => {
     expect(nav!.textContent).toContain("Response");
     expect(host.querySelector('[data-testid="openapi-tree"]')).not.toBeNull();
     // 点击请求段：资源树隐藏，请求区出现。
-    const requestButton = [...host.querySelectorAll("button")].find((candidate) => candidate.textContent?.trim() === "Request");
+    const requestButton = [...host.querySelectorAll<HTMLElement>("[role=\"radiogroup\"] label")].find((candidate) => candidate.textContent?.trim() === "Request");
     expect(requestButton).toBeDefined();
     act(() => { requestButton!.click(); });
     expect(host.querySelector('[data-testid="openapi-tree"]')).toBeNull();

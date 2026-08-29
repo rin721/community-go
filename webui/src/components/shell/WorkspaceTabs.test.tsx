@@ -56,7 +56,7 @@ describe("WorkspaceTabs 呈现与键盘（REQ-085-003/010）", () => {
     expect(tabs).toHaveLength(3);
     expect(tabs[0].getAttribute("aria-selected")).toBe("false");
     expect(tabs[1].getAttribute("aria-selected")).toBe("true");
-    expect(tabs[0].getAttribute("aria-controls")).toBe(`workspace-panel-${createWorkspaceID("route.a")}`);
+    expect(tabs[0].getAttribute("data-workspace-id")).toBe(createWorkspaceID("route.a"));
   });
 
   it("Space/Enter 手动激活并导航；Delete 请求关闭", () => {

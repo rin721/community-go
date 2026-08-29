@@ -35,9 +35,9 @@ describe("宿主路由搜索", () => {
       const html = bodyHTML();
       // RAC Modal 经 portal 挂载到 body 附近 fragment（069：overlay 客户端渲染）
       expect(html).toContain('role="dialog"');
-      expect(html).toContain('role="combobox"');
-      expect(html).toContain('aria-controls="webui-route-search-results"');
-      expect(html).toContain('aria-activedescendant="webui-route-search-dashboard"');
+      expect(html).toContain('type="search"');
+      expect(html).toContain('role="listbox"');
+      expect(html).toContain('data-command-kind="route"');
       expect(html).toContain('role="option"');
       expect(html).toContain('aria-selected="true"');
     } finally {

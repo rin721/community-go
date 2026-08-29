@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type HTMLAttributes, type ReactNode } from "react";
-import { DropdownItem, DropdownMenu, DropdownPopover, DropdownRoot, DropdownTrigger, Table } from "@heroui/react";
+import { useState, type HTMLAttributes, type ReactNode } from "react";
+import { Button, DropdownItem, DropdownMenu, DropdownPopover, DropdownRoot, DropdownTrigger, Table } from "@heroui/react";
 import { MoreHorizontal } from "lucide-react";
 import { translateMessage } from "../i18n";
 import { Skeleton } from "./feedback";
@@ -64,11 +64,7 @@ export function DataTable<Row>({ columns, rows, ariaLabel, getRowKey = (_row, in
   const visibleColumns = columns.filter((column) => column.visible !== false && !hiddenColumns.has(column.id));
   const rowKeys = rows.map(getRowKey);
   const selected = selectedKeys ?? new Set<string>();
-  const headerSelectionRef = useRef<HTMLInputElement>(null);
   const { allSelected, partiallySelected } = getDataTableSelectionState(rowKeys, selected);
-  useEffect(() => {
-    if (headerSelectionRef.current) headerSelectionRef.current.indeterminate = partiallySelected;
-  }, [partiallySelected]);
   const toggleKey = (key: string) => {
     if (!onSelectedKeysChange) return;
     const next = new Set(selected);
@@ -84,7 +80,7 @@ export function DataTable<Row>({ columns, rows, ariaLabel, getRowKey = (_row, in
   return <Table.Root className="data-table-wrap" data-density={density} data-sticky={stickyHeader || undefined} {...wrapperProps}>
     {hasColumnMenu && <div className="data-table-toolbar"><DropdownRoot>
       <DropdownTrigger>
-        <button type="button" className="ui-button data-table-columns-toggle" aria-label={columnMenuLabel ?? translateMessage("webui.host.ui.columns")}>{columnMenuLabel ?? translateMessage("webui.host.ui.columns")}</button>
+        <Button type="button" variant="ghost" className="ui-button data-table-columns-toggle" aria-label={columnMenuLabel ?? translateMessage("webui.host.ui.columns")}>{columnMenuLabel ?? translateMessage("webui.host.ui.columns")}</Button>
       </DropdownTrigger>
       <DropdownPopover className="data-table-columns-menu">
         <DropdownMenu className="data-table-columns-list">
@@ -93,11 +89,11 @@ export function DataTable<Row>({ columns, rows, ariaLabel, getRowKey = (_row, in
       </DropdownPopover>
     </DropdownRoot></div>}
     <Table.Content className="data-table" aria-label={ariaLabel} aria-busy={loading}>
-      <Table.Header>{selectable && <Table.Column id="__select" aria-label={selectionLabel}><input ref={headerSelectionRef} type="checkbox" checked={allSelected} onChange={toggleAll} aria-checked={partiallySelected ? "mixed" : allSelected} aria-label={selectionLabel} /></Table.Column>}{visibleColumns.map((column, index) => <Table.Column id={column.id} className={column.className} isRowHeader={index === 0} key={column.id}>{column.header}</Table.Column>)}{hasRowMenu && <Table.Column id="row-menu" aria-label={columnMenuLabel ?? ""} style={{ width: 104 }}>{rowMenuHeader}</Table.Column>}</Table.Header>
+      <Table.Header>{selectable && <Table.Column id="__select" aria-label={selectionLabel}><Check checked={allSelected} indeterminate={partiallySelected} onChange={toggleAll} ariaLabel={selectionLabel} /></Table.Column>}{visibleColumns.map((column, index) => <Table.Column id={column.id} className={column.className} isRowHeader={index === 0} key={column.id}>{column.header}</Table.Column>)}{hasRowMenu && <Table.Column id="row-menu" aria-label={columnMenuLabel ?? ""} style={{ width: 104 }}>{rowMenuHeader}</Table.Column>}</Table.Header>
       <Table.Body>
         {loading && <Table.Row>{selectable && <Table.Cell />}{visibleColumns.map((column) => <Table.Cell key={column.id}><Skeleton lines={3} label={loadingLabel ?? ""} /></Table.Cell>)}{hasRowMenu && <Table.Cell />}</Table.Row>}
         {!loading && rows.length === 0 && <Table.Row>{selectable && <Table.Cell />}<Table.Cell>{emptyState}</Table.Cell>{visibleColumns.slice(1).map((column) => <Table.Cell key={column.id} />)}{hasRowMenu && <Table.Cell />}</Table.Row>}
-        {!loading && rows.map((row, index) => { const key = getRowKey(row, index); return <Table.Row key={key}>{selectable && <Table.Cell><input type="checkbox" checked={selected.has(key)} onChange={() => toggleKey(key)} aria-label={selectionLabel} /></Table.Cell>}{visibleColumns.map((column) => <Table.Cell className={column.className} key={column.id}>{column.cell(row, index)}</Table.Cell>)}{hasRowMenu && <Table.Cell><DataTableRowMenu row={row} index={index} renderRowMenu={renderRowMenu!} /></Table.Cell>}</Table.Row>; })}
+        {!loading && rows.map((row, index) => { const key = getRowKey(row, index); return <Table.Row key={key}>{selectable && <Table.Cell><Check checked={selected.has(key)} onChange={() => toggleKey(key)} ariaLabel={selectionLabel} /></Table.Cell>}{visibleColumns.map((column) => <Table.Cell className={column.className} key={column.id}>{column.cell(row, index)}</Table.Cell>)}{hasRowMenu && <Table.Cell><DataTableRowMenu row={row} index={index} renderRowMenu={renderRowMenu!} /></Table.Cell>}</Table.Row>; })}
       </Table.Body>
     </Table.Content>
   </Table.Root>;
@@ -111,9 +107,9 @@ export function DataTableRowMenu<Row>({ row, index, renderRowMenu, moreLabel = "
   if (items.length === 0) return null;
   const primary = items.find((item) => !item.danger);
   const rest = items.filter((item) => item !== primary);
-  return <div className="data-table-row-menu">{primary && <button type="button" className="ui-button data-table-row-primary" onClick={primary.onSelect}>{primary.label}</button>}{rest.length > 0 && <DropdownRoot>
+  return <div className="data-table-row-menu">{primary && <Button type="button" variant="ghost" className="ui-button data-table-row-primary" onPress={primary.onSelect}>{primary.label}</Button>}{rest.length > 0 && <DropdownRoot>
     <DropdownTrigger>
-      <button type="button" className="ui-button data-table-row-more" aria-label={moreLabel}><MoreHorizontal size={15} aria-hidden="true" /></button>
+      <Button type="button" variant="ghost" className="ui-button data-table-row-more" aria-label={moreLabel}><MoreHorizontal size={15} aria-hidden="true" /></Button>
     </DropdownTrigger>
     <DropdownPopover className="data-table-row-menu-popover">
       <DropdownMenu className="data-table-row-menu-list">

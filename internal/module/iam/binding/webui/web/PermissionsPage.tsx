@@ -58,7 +58,7 @@ export default function PermissionsPage() {
       <PageSection kicker={t("webui.iam.permissions.list.kicker")} title={t("webui.iam.permissions.list.title")}>
         <ResourceIndex toolbar={<FilterBar
           ariaLabel={t("webui.iam.permissions.filter")}
-          fields={[{ key: "query", label: t("webui.iam.permissions.filter"), placeholder: t("webui.iam.permissions.filter"), control: "input", value: listQuery.filters.query, onValueChange: (next) => listQuery.setFilters({ query: String(next) }) }]}
+          fields={[{ key: "query", label: t("webui.iam.permissions.filter"), placeholder: t("webui.iam.permissions.filter"), control: "text", value: listQuery.filters.query, onValueChange: (next) => listQuery.setFilters({ query: String(next) }) }]}
           onClear={() => listQuery.clearFilters()}
           clearLabel={t("webui.iam.accounts.clear")}
           resultCount={filtered.length}
@@ -77,7 +77,7 @@ export default function PermissionsPage() {
                 { id: "risk", header: t("webui.iam.permissions.risk"), cell: (item) => <PermissionRiskBadge risk={item.risk} /> },
                 { id: "usedBy", header: t("webui.iam.permissions.usedBy"), cell: (item) => {
                   const roles = usage[item.key];
-                  if (!roles) return <button type="button" className="ui-button" onClick={() => toggleUsage(item.key)}>{t("webui.iam.permissions.usedByCheck")}</button>;
+                  if (!roles) return <Button type="button" variant="secondary" onClick={() => toggleUsage(item.key)}>{t("webui.iam.permissions.usedByCheck")}</Button>;
                   return roles.length === 0 ? <EmptyState title={t("webui.iam.permissions.unused")} /> : <span className="permission-roles">{roles.map((role) => <StatusBadge key={role.id} status="enabled">{role.name}</StatusBadge>)}</span>;
                 } },
               ]}

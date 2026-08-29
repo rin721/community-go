@@ -1,6 +1,6 @@
 import { ChevronDown } from "lucide-react";
 import { Link } from "react-router-dom";
-import { Tooltip as RACTooltip, TooltipTrigger } from "react-aria-components";
+import { IconButton, Tooltip } from "@webui/sdk/ui";
 import type { ManifestMenu, ManifestRoute } from "@webui/sdk/runtime";
 import { translateMessage } from "../../i18n";
 import { iconComponent } from "../../icon-catalog";
@@ -57,6 +57,6 @@ export function SidebarMenu({ entries, currentRouteID, expandedMenuIDs, collapse
     const active = menuContainsRoute(entry, currentRouteID);
     const label = translateMessage(entry.item.titleMessageId);
     const link = <Link to={entry.route.path} title={label} aria-label={label} className={entry.route.id === currentRouteID ? "sidebar-link active" : "sidebar-link"} style={{ paddingLeft: `calc(var(--menu-indent-base) + ${level} * var(--menu-indent-step))` }}><MenuIcon iconID={entry.item.iconId} /><span aria-hidden="true">{label}</span></Link>;
-    return <div className="sidebar-menu-group" key={entry.item.id}><div className={active ? "sidebar-entry active" : "sidebar-entry"}>{collapsed ? <TooltipTrigger>{link}<RACTooltip className="rac-tooltip">{label}</RACTooltip></TooltipTrigger> : link}{hasChildren && <button className="sidebar-group-toggle" onClick={() => onToggle(entry.item.id)} aria-expanded={expanded} aria-label={translateMessage(expanded ? "webui.host.menu.collapse" : "webui.host.menu.expand")}><ChevronDown size={14} /></button>}</div>{hasChildren && <div className={`sidebar-submenu${expanded ? " open" : ""}`} aria-hidden={!expanded} inert={!expanded}><div className="sidebar-submenu-inner"><SidebarMenu entries={entry.children} currentRouteID={currentRouteID} expandedMenuIDs={expandedMenuIDs} collapsed={collapsed} onToggle={onToggle} level={level + 1} /></div></div>}</div>;
+    return <div className="sidebar-menu-group" key={entry.item.id}><div className={active ? "sidebar-entry active" : "sidebar-entry"}>{collapsed ? <Tooltip label={label}>{link}</Tooltip> : link}{hasChildren && <IconButton className="sidebar-group-toggle" onClick={() => onToggle(entry.item.id)} label={translateMessage(expanded ? "webui.host.menu.collapse" : "webui.host.menu.expand")}><ChevronDown size={14} /></IconButton>}</div>{hasChildren && <div className={`sidebar-submenu${expanded ? " open" : ""}`} aria-hidden={!expanded} inert={!expanded}><div className="sidebar-submenu-inner"><SidebarMenu entries={entry.children} currentRouteID={currentRouteID} expandedMenuIDs={expandedMenuIDs} collapsed={collapsed} onToggle={onToggle} level={level + 1} /></div></div>}</div>;
   })}</>;
 }

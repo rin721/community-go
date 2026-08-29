@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Button, Field, PageFrame, PageHeader, PageSection, StatusPill, StickyActionBar } from "@webui/sdk/ui";
+import { Button, DateField, Field, PageFrame, PageHeader, PageSection, StatusPill, StickyActionBar } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { loadSession, updateSelfProfile } from "./api";
 import styles from "./settings.module.css";
@@ -37,7 +37,7 @@ export default function ProfilePage() {
             <Field label={t("webui.settings.profile.username")} value={identity?.username ?? ""} disabled />
             <Field label={t("webui.settings.profile.nickname")} maxLength={64} value={nickname} onChange={(event) => setNickname(event.target.value)} />
             <Field label={t("webui.settings.profile.bio")} type={undefined} maxLength={2048} value={bio} onChange={(event) => setBio(event.target.value)} placeholder={t("webui.settings.profile.bioPlaceholder")} />
-            <Field label={t("webui.settings.profile.birthDate")} type="date" value={birthDate} onChange={(event) => setBirthDate(event.target.value)} />
+            <DateField label={t("webui.settings.profile.birthDate")} value={birthDate} onValueChange={setBirthDate} />
             {message && <p className="page-meta" role="status">{message}</p>}
             <StickyActionBar state={conflict ? "conflict" : dirty ? "dirty" : "clean"} status={message || undefined}><Button type="submit" disabled={!dirty}>{t("webui.settings.profile.save")}</Button></StickyActionBar>
           </form>

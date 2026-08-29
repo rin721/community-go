@@ -32,7 +32,9 @@ for (const root of moduleRoots) {
     if (/setupErrorMessages\b/.test(source)) {
       errors.push(`${relative}: 禁止使用直接返回展示文本的 setupErrorMessages 映射`);
     }
-    if (/[\u3400-\u9fff]/u.test(source)) {
+    // 中文注释是仓库协作规范的一部分；只检查代码与用户文案，不把注释误报为界面文本。
+    const sourceWithoutComments = source.replace(/\/\*[\s\S]*?\*\/|\/\/[^\r\n]*/g, "");
+    if (/[\u3400-\u9fff]/u.test(sourceWithoutComments)) {
       errors.push(`${relative}: 生产模块 Web 源码包含用户可见中文或未审查中文文本`);
     }
     if (isComponent) {

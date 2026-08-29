@@ -1,12 +1,10 @@
-import { Moon, RotateCcw, Sun, X } from "lucide-react";
-import { useEffect, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
-import { Dialog as RACDialog, Modal as RACModal } from "react-aria-components";
-import { Button, IconButton, SelectField, Switch } from "@webui/sdk/ui";
+import { Moon, RotateCcw, Sun } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import { Button, Drawer, SegmentedControl, SelectField, Switch, ToggleButton } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { dampingTiers, revealRhythmOptions, scrollbarStrategies, type ContentDensity, type ThemeMode, type ThemePreferences, type ThemePreset } from "../theme";
 
 export type ThemePanel = "appearance" | "layout" | "general" | "preset" | "experience";
-
 const panels: ThemePanel[] = ["appearance", "layout", "general", "experience", "preset"];
 const modes: Array<{ value: ThemeMode; icon: typeof Sun; label: string }> = [
   { value: "light", icon: Sun, label: "webui.host.theme.light" },
@@ -19,46 +17,22 @@ const densities: ContentDensity[] = ["comfortable", "compact"];
 export function ThemeDrawer({ open, theme, onChange, onReset, onClose }: { open: boolean; theme: ThemePreferences; onChange: (value: ThemePreferences) => void; onReset: () => void; onClose: () => void }) {
   const { t } = useWebUITranslation("webui.host");
   const [panel, setPanel] = useState<ThemePanel>("appearance");
-
-  useEffect(() => {
-    if (open) setPanel("appearance");
-  }, [open]);
-
+  useEffect(() => { if (open) setPanel("appearance"); }, [open]);
   const panelLabel = (value: ThemePanel) => t(`webui.host.theme.tab.${value}`);
-  const handlePanelKeyDown = (event: ReactKeyboardEvent<HTMLButtonElement>, current: ThemePanel) => {
-    const currentIndex = panels.indexOf(current);
-    const targetIndex = getThemePanelTargetIndex(event.key, currentIndex, panels.length);
-    if (targetIndex === undefined) return;
-    event.preventDefault();
-    const target = panels[targetIndex];
-    setPanel(target);
-    requestAnimationFrame(() => document.getElementById(themePanelTabID(target))?.focus());
-  };
 
-  return (
-    <RACModal isOpen={open} onOpenChange={(next) => { if (!next) onClose(); }} isDismissable className="rac-modal-backdrop rac-modal-backdrop-drawer">
-      <RACDialog aria-label={t("webui.host.theme")} className="rac-drawer-panel">
-      <div className="drawer-header"><div><span className="drawer-kicker">{t("webui.host.theme.appearance")}</span><h2 id="webui-theme-drawer-title">{t("webui.host.theme")}</h2></div><IconButton label={t("webui.host.theme.close")} onClick={onClose} data={{ "data-drawer-initial-focus": "true" }}><X size={18} /></IconButton></div>
-      <nav className="theme-tabs" role="tablist" aria-label={t("webui.host.theme.tabs")}>
-        {panels.map((value) => <button id={themePanelTabID(value)} type="button" role="tab" tabIndex={panel === value ? 0 : -1} aria-selected={panel === value} aria-controls={`theme-panel-${value}`} className={panel === value ? "active" : ""} key={value} onClick={() => setPanel(value)} onKeyDown={(event) => handlePanelKeyDown(event, value)}>{panelLabel(value)}</button>)}
-      </nav>
-      <div className="drawer-content">
-        {panel === "appearance" && <div id="theme-panel-appearance" role="tabpanel" aria-labelledby={themePanelTabID("appearance")}><ThemeSection title={t("webui.host.theme.mode")}><div className="theme-choice-grid">{modes.map(({ value, icon: Icon, label }) => <button type="button" key={value} aria-pressed={theme.mode === value} className={theme.mode === value ? "theme-choice selected" : "theme-choice"} onClick={() => onChange({ ...theme, mode: value })}><Icon size={18} /><span>{t(label)}</span></button>)}</div></ThemeSection><ThemeSection title={t("webui.host.theme.density")}><div className="segmented-control">{densities.map((density) => <button type="button" key={density} aria-pressed={theme.density === density} className={theme.density === density ? "active" : ""} onClick={() => onChange({ ...theme, density })}>{t(`webui.host.theme.${density}`)}</button>)}</div></ThemeSection></div>}
-        {panel === "layout" && <div id="theme-panel-layout" role="tabpanel" aria-labelledby={themePanelTabID("layout")}><ThemeSection title={t("webui.host.theme.layout.title")}><p className="theme-section-description">{t("webui.host.theme.layout.detail")}</p><ThemeSwitch label={t("webui.host.theme.layout.breadcrumb")} checked={theme.layout.showBreadcrumb} onChange={(checked) => onChange({ ...theme, layout: { ...theme.layout, showBreadcrumb: checked } })} /><ThemeSwitch label={t("webui.host.theme.layout.sidebarCollapsed")} checked={theme.layout.sidebarCollapsed} onChange={(checked) => onChange({ ...theme, layout: { ...theme.layout, sidebarCollapsed: checked } })} /></ThemeSection></div>}
-        {panel === "general" && <div id="theme-panel-general" role="tabpanel" aria-labelledby={themePanelTabID("general")}><ThemeSection title={t("webui.host.theme.general.title")}><p className="theme-section-description">{t("webui.host.theme.general.detail")}</p><ThemeSwitch label={t("webui.host.theme.general.reduceMotion")} checked={theme.reduceMotion} onChange={(checked) => onChange({ ...theme, reduceMotion: checked })} /></ThemeSection></div>}
-        {panel === "experience" && <div id="theme-panel-experience" role="tabpanel" aria-labelledby={themePanelTabID("experience")}><ThemeSection title={t("webui.host.experience.title")}><p className="theme-section-description">{t("webui.host.experience.detail")}</p><ThemeSwitch label={t("webui.host.experience.smoothScroll")} checked={theme.experience.smoothScroll} onChange={(checked) => onChange({ ...theme, experience: { ...theme.experience, smoothScroll: checked } })} /><ThemeSwitch label={t("webui.host.experience.edgeDamping")} checked={theme.experience.edgeDamping} onChange={(checked) => onChange({ ...theme, experience: { ...theme.experience, edgeDamping: checked } })} /><ThemeSwitch label={t("webui.host.experience.magneticSnap")} checked={theme.experience.magneticSnap} onChange={(checked) => onChange({ ...theme, experience: { ...theme.experience, magneticSnap: checked } })} /><ThemeSwitch label={t("webui.host.experience.scrollHijack")} checked={theme.experience.scrollHijack} onChange={(checked) => onChange({ ...theme, experience: { ...theme.experience, scrollHijack: checked } })} /><ThemeSwitch label={t("webui.host.experience.reveal")} checked={theme.experience.reveal} onChange={(checked) => onChange({ ...theme, experience: { ...theme.experience, reveal: checked } })} /><ThemeSelect label={t("webui.host.experience.damping")} value={theme.experience.damping} options={dampingTiers} labelOf={(value) => t(`webui.host.experience.damping.${value}`)} onChange={(value) => onChange({ ...theme, experience: { ...theme.experience, damping: value } })} /><ThemeSelect label={t("webui.host.experience.revealRhythm")} value={theme.experience.revealRhythm} options={revealRhythmOptions} labelOf={(value) => t(`webui.host.experience.revealRhythm.${value}`)} onChange={(value) => onChange({ ...theme, experience: { ...theme.experience, revealRhythm: value } })} /><ThemeSelect label={t("webui.host.experience.scrollbar")} value={theme.experience.scrollbar} options={scrollbarStrategies} labelOf={(value) => t(`webui.host.experience.scrollbar.${value}`)} onChange={(value) => onChange({ ...theme, experience: { ...theme.experience, scrollbar: value } })} /></ThemeSection></div>}
-        {panel === "preset" && <div id="theme-panel-preset" role="tabpanel" aria-labelledby={themePanelTabID("preset")}><ThemeSection title={t("webui.host.theme.primary")}><p className="theme-section-description">{t("webui.host.theme.preset.detail")}</p><div className="color-preset-grid">{presets.map((preset) => <button type="button" key={preset} className={theme.preset === preset ? `color-preset ${preset} selected` : `color-preset ${preset}`} aria-label={t(`webui.host.theme.preset.${preset}`)} aria-pressed={theme.preset === preset} onClick={() => onChange({ ...theme, preset })}><span /></button>)}</div></ThemeSection></div>}
-      </div>
-      <div className="drawer-footer"><Button type="button" variant="secondary" onClick={onReset}><RotateCcw size={16} />{t("webui.host.theme.reset")}</Button></div>
-    </RACDialog>
-    </RACModal>
-  );
+  return <Drawer open={open} onClose={onClose} title={t("webui.host.theme")} closeLabel={t("webui.host.theme.close")} className="theme-drawer" footer={<Button type="button" variant="secondary" onClick={onReset}><RotateCcw size={16} />{t("webui.host.theme.reset")}</Button>}>
+    <SegmentedControl label={t("webui.host.theme.tabs")} value={panel} options={panels.map((value) => ({ value, label: panelLabel(value) }))} onValueChange={(value) => setPanel(value as ThemePanel)} className="theme-tabs" />
+    <div className="drawer-content">
+      {panel === "appearance" && <div id="theme-panel-appearance"><ThemeSection title={t("webui.host.theme.mode")}><div className="theme-choice-grid">{modes.map(({ value, icon: Icon, label }) => <ToggleButton key={value} selected={theme.mode === value} className="theme-choice" onChange={() => onChange({ ...theme, mode: value })}><Icon size={18} /><span>{t(label)}</span></ToggleButton>)}</div></ThemeSection><ThemeSection title={t("webui.host.theme.density")}><SegmentedControl label={t("webui.host.theme.density")} value={theme.density} options={densities.map((density) => ({ value: density, label: t(`webui.host.theme.${density}`) }))} onValueChange={(value) => onChange({ ...theme, density: value as ContentDensity })} /></ThemeSection></div>}
+      {panel === "layout" && <div id="theme-panel-layout"><ThemeSection title={t("webui.host.theme.layout.title")}><p className="theme-section-description">{t("webui.host.theme.layout.detail")}</p><ThemeSwitch label={t("webui.host.theme.layout.breadcrumb")} checked={theme.layout.showBreadcrumb} onChange={(checked) => onChange({ ...theme, layout: { ...theme.layout, showBreadcrumb: checked } })} /><ThemeSwitch label={t("webui.host.theme.layout.sidebarCollapsed")} checked={theme.layout.sidebarCollapsed} onChange={(checked) => onChange({ ...theme, layout: { ...theme.layout, sidebarCollapsed: checked } })} /></ThemeSection></div>}
+      {panel === "general" && <div id="theme-panel-general"><ThemeSection title={t("webui.host.theme.general.title")}><p className="theme-section-description">{t("webui.host.theme.general.detail")}</p><ThemeSwitch label={t("webui.host.theme.general.reduceMotion")} checked={theme.reduceMotion} onChange={(checked) => onChange({ ...theme, reduceMotion: checked })} /></ThemeSection></div>}
+      {panel === "experience" && <div id="theme-panel-experience"><ThemeSection title={t("webui.host.experience.title")}><p className="theme-section-description">{t("webui.host.experience.detail")}</p><ThemeSwitch label={t("webui.host.experience.smoothScroll")} checked={theme.experience.smoothScroll} onChange={(checked) => onChange({ ...theme, experience: { ...theme.experience, smoothScroll: checked } })} /><ThemeSwitch label={t("webui.host.experience.edgeDamping")} checked={theme.experience.edgeDamping} onChange={(checked) => onChange({ ...theme, experience: { ...theme.experience, edgeDamping: checked } })} /><ThemeSwitch label={t("webui.host.experience.magneticSnap")} checked={theme.experience.magneticSnap} onChange={(checked) => onChange({ ...theme, experience: { ...theme.experience, magneticSnap: checked } })} /><ThemeSwitch label={t("webui.host.experience.scrollHijack")} checked={theme.experience.scrollHijack} onChange={(checked) => onChange({ ...theme, experience: { ...theme.experience, scrollHijack: checked } })} /><ThemeSwitch label={t("webui.host.experience.reveal")} checked={theme.experience.reveal} onChange={(checked) => onChange({ ...theme, experience: { ...theme.experience, reveal: checked } })} /><ThemeSelect label={t("webui.host.experience.damping")} value={theme.experience.damping} options={dampingTiers} labelOf={(value) => t(`webui.host.experience.damping.${value}`)} onChange={(value) => onChange({ ...theme, experience: { ...theme.experience, damping: value } })} /><ThemeSelect label={t("webui.host.experience.revealRhythm")} value={theme.experience.revealRhythm} options={revealRhythmOptions} labelOf={(value) => t(`webui.host.experience.revealRhythm.${value}`)} onChange={(value) => onChange({ ...theme, experience: { ...theme.experience, revealRhythm: value } })} /><ThemeSelect label={t("webui.host.experience.scrollbar")} value={theme.experience.scrollbar} options={scrollbarStrategies} labelOf={(value) => t(`webui.host.experience.scrollbar.${value}`)} onChange={(value) => onChange({ ...theme, experience: { ...theme.experience, scrollbar: value } })} /></ThemeSection></div>}
+      {panel === "preset" && <div id="theme-panel-preset"><ThemeSection title={t("webui.host.theme.primary")}><p className="theme-section-description">{t("webui.host.theme.preset.detail")}</p><div className="color-preset-grid">{presets.map((preset) => <ToggleButton key={preset} selected={theme.preset === preset} className={`color-preset ${preset}`} ariaLabel={t(`webui.host.theme.preset.${preset}`)} onChange={() => onChange({ ...theme, preset })}><span /></ToggleButton>)}</div></ThemeSection></div>}
+    </div>
+  </Drawer>;
 }
 
-export function themePanelTabID(panel: ThemePanel): string {
-  return `webui-theme-tab-${panel}`;
-}
-
+export function themePanelTabID(panel: ThemePanel): string { return `webui-theme-tab-${panel}`; }
 export function getThemePanelTargetIndex(key: string, currentIndex: number, count: number): number | undefined {
   if (count <= 0) return undefined;
   if (key === "Home") return 0;
@@ -67,17 +41,6 @@ export function getThemePanelTargetIndex(key: string, currentIndex: number, coun
   if (key === "ArrowLeft" || key === "ArrowUp") return (currentIndex - 1 + count) % count;
   return undefined;
 }
-
-function ThemeSection({ title, children }: { title: string; children: ReactNode }) {
-  return <section className="theme-section"><h3>{title}</h3>{children}</section>;
-}
-
-function ThemeSwitch({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {
-  // 069：开关控件由 SDK Switch（react-aria-components 底座）承担，视觉对齐 HeroUI pill。
-  return <div className="theme-switch-row"><span>{label}</span><Switch ariaLabel={label} checked={checked} onChange={onChange} /></div>;
-}
-
-function ThemeSelect<T extends string>({ label, value, options, labelOf, onChange }: { label: string; value: T; options: ReadonlyArray<T>; labelOf: (value: T) => string; onChange: (value: T) => void }) {
-  // 068：分段选择使用 SelectField（HeroUI Select 复合）。
-  return <div className="theme-switch-row"><SelectField label={label} value={value} onValueChange={(next) => onChange(next as T)} options={options.map((option) => ({ value: option, label: labelOf(option) }))} className="w-44" /></div>;
-}
+function ThemeSection({ title, children }: { title: string; children: ReactNode }) { return <section className="theme-section"><h3>{title}</h3>{children}</section>; }
+function ThemeSwitch({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) { return <div className="theme-switch-row"><span>{label}</span><Switch ariaLabel={label} checked={checked} onChange={onChange} /></div>; }
+function ThemeSelect<T extends string>({ label, value, options, labelOf, onChange }: { label: string; value: T; options: ReadonlyArray<T>; labelOf: (value: T) => string; onChange: (value: T) => void }) { return <div className="theme-switch-row"><SelectField label={label} value={value} onValueChange={(next) => onChange(next as T)} options={options.map((option) => ({ value: option, label: labelOf(option) }))} className="w-44" /></div>; }

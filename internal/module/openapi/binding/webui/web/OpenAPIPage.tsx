@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActionTrigger, InlineAlert, PageFrame, PageHeader } from "@webui/sdk/ui";
+import { ActionTrigger, Button, InlineAlert, PageFrame, PageHeader, SegmentedControl } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { webuiOpenAPISpec, webuiOpenAPISpecSourceRevision } from "@webui/generated/openapi-spec";
 import { ApiTree } from "./ApiTree";
@@ -144,21 +144,15 @@ export default function OpenAPIPage() {
   }, [initialId, openFirstOperation, rowsById.size]);
 
   const segmentSwitcher = isCompact ? (
-    <nav className={styles.segmentNav} aria-label={t("webui.openapi.segments.label")}>
-      {([
+    <SegmentedControl className={styles.segmentNav} label={t("webui.openapi.segments.label")} value={segment} options={([
         { id: "resource" as const, label: t("webui.openapi.segments.resource") },
         { id: "request" as const, label: t("webui.openapi.segments.request") },
         { id: "response" as const, label: t("webui.openapi.segments.response") },
-      ]).map((item) => (
-        <button key={item.id} type="button" className={segment === item.id ? `${styles.segmentButton} ${styles.segmentButtonActive}` : styles.segmentButton} onClick={() => setSegment(item.id)} aria-pressed={segment === item.id}>
-          {item.label}
-        </button>
-      ))}
-    </nav>
+      ]).map((item) => ({ value: item.id, label: item.label }))} onValueChange={(value) => setSegment(value as typeof segment)} />
   ) : null;
 
   return <PageFrame variant="workbench" className={`${styles.openapiModule} ${styles.workspaceShell}`}>
-    <PageHeader eyebrow={t("webui.openapi.docs.eyebrow")} title={t("webui.openapi.docs.title")} description={t("webui.openapi.docs.description")} actions={<button type="button" className={styles.shellSearchTrigger} onClick={() => setPaletteOpen(true)}>{t("webui.openapi.palette.title")}</button>} />
+    <PageHeader eyebrow={t("webui.openapi.docs.eyebrow")} title={t("webui.openapi.docs.title")} description={t("webui.openapi.docs.description")} actions={<Button type="button" variant="secondary" className={styles.shellSearchTrigger} onClick={() => setPaletteOpen(true)}>{t("webui.openapi.palette.title")}</Button>} />
     <p className={styles.pageMeta}>{t("webui.openapi.docs.source", { revision: webuiOpenAPISpecSourceRevision })}</p>
     {!usable
       ? <InlineAlert tone="danger" title={t("webui.openapi.docs.unavailable")} />

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActionTrigger, Check, EmptyState, InlineAlert, PageFrame, PageHeader, PageSection, SearchInput, SelectField, StickyActionBar } from "@webui/sdk/ui";
+import { ActionTrigger, Check, EmptyState, InlineAlert, PageFrame, PageHeader, PageSection, SearchInput, SelectField, StickyActionBar, ToggleButton } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { getAssignment, replaceAssignment, listAccounts, listDepartments, listPositions, type Account, type Department, type Position } from "./api";
 import styles from "./organization.module.css";
@@ -94,10 +94,10 @@ export default function AssignmentsPage() {
               {filteredAccounts.length === 0
                 ? <EmptyState title={t("webui.organization.assignments.empty")} />
                 : filteredAccounts.map((item) => (
-                    <button type="button" key={item.id} className={`${styles.selectRow} ${item.id === accountId ? styles.selectRowActive : ""}`.trim()} onClick={() => setAccountId(item.id)} aria-pressed={item.id === accountId}>
+                    <ToggleButton key={item.id} className={`${styles.selectRow} ${item.id === accountId ? styles.selectRowActive : ""}`.trim()} selected={item.id === accountId} onChange={() => setAccountId(item.id)}>
                       <strong>{item.displayName}</strong>
                       <small>@{item.username}</small>
-                    </button>
+                    </ToggleButton>
                   ))}
             </div>
           </section>

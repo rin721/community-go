@@ -1,4 +1,4 @@
-import { Tabs } from "@heroui/react";
+import { IconButton, Tabs } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { MethodBadge } from "./MethodBadge";
 import type { OperationRow } from "./openapi-data";
@@ -19,16 +19,10 @@ export function WorkspaceTabs({ tabs, activeId, onActivate, onClose }: {
   const { t } = useWebUITranslation("webui.openapi");
   if (tabs.length === 0) return null;
   return <div className={styles.workspaceTabs}>
-    <Tabs selectedKey={activeId} onSelectionChange={(key) => onActivate(String(key))} aria-label={t("webui.openapi.tabs.label")} className={styles.workspaceTabsRoot}>
-      <Tabs.List className={styles.workspaceTabsList}>
-        {tabs.map((tab) => (
-          <Tabs.Tab key={tab.id} id={tab.id} className={styles.workspaceTab}>
+    <Tabs selectedKey={activeId} onSelectionChange={onActivate} label={t("webui.openapi.tabs.label")} className={styles.workspaceTabsRoot} listClassName={styles.workspaceTabsList} tabClassName={styles.workspaceTab} items={tabs.map((tab) => ({ id: tab.id, content: null, label: <>
             <MethodBadge method={tab.row.method} compact />
             <span className={styles.workspaceTabLabel}>{tab.row.path}</span>
-            <button type="button" className={styles.workspaceTabClose} tabIndex={-1} onClick={() => onClose(tab.id)} aria-label={t("webui.openapi.tabs.close")} data-testid={`openapi-tab-close-${tab.row.id}`}>×</button>
-          </Tabs.Tab>
-        ))}
-      </Tabs.List>
-    </Tabs>
+            <IconButton className={styles.workspaceTabClose} onClick={() => onClose(tab.id)} label={t("webui.openapi.tabs.close")} data={{ "data-testid": `openapi-tab-close-${tab.row.id}` }}>×</IconButton>
+          </> }))} />
   </div>;
 }

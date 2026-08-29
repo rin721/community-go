@@ -17,9 +17,8 @@ describe("宿主主题 Drawer", () => {
       const html = document.body.innerHTML;
       // 069：RAC Modal/Dialog 客户端挂载（portal）。
       expect(html).toContain('role="dialog"');
-      expect(html).toContain('role="tablist"');
-      expect(html).toContain('role="tab"');
-      expect(html).toContain('aria-controls="theme-panel-appearance"');
+      expect(html).toContain('role="radiogroup"');
+      expect(html).toContain('value="appearance"');
       expect(html).toContain('aria-pressed="true"');
     } finally {
       unmount();

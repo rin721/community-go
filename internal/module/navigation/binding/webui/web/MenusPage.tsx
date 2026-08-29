@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActionTrigger, Check, CodeText, EmptyState, Field, InlineAlert, PageFrame, PageHeader, PageSection, SelectField, StatusBadge, TreeView } from "@webui/sdk/ui";
+import { ActionTrigger, Check, CodeText, EmptyState, InlineAlert, NumberField, PageFrame, PageHeader, PageSection, SelectField, StatusBadge, TreeView } from "@webui/sdk/ui";
 import { useWebUITranslation, translateMessage, ensureRouteLocale } from "@webui/sdk/i18n";
 import { useHostRuntime } from "@webui/sdk/runtime";
 import { listMenus, updateMenu, type Menu, type MenuList } from "./api";
@@ -125,7 +125,7 @@ export default function MenusPage() {
                 <div className={styles.policyStack}>
                   <div className={styles.policyField}><Check checked={enabled} onChange={setEnabled}>{t("webui.navigation.enabled")}</Check></div>
                   <div className={styles.policyField}><SelectField label={t("webui.navigation.parent")} value={parent} onValueChange={setParent} options={[{ value: "__default", label: t("webui.navigation.useDefault") }, { value: "", label: t("webui.navigation.root") }, ...items.filter((candidate) => candidate.id !== selected.id).map((candidate) => ({ value: candidate.id, label: menuTitle(candidate) }))]} /></div>
-                  <div className={styles.policyField}><Field label={t("webui.navigation.order")} type="number" value={order} placeholder={String(selected.defaultOrder)} onChange={(event) => setOrder(event.target.value)} /></div>
+                  <div className={styles.policyField}><NumberField label={t("webui.navigation.order")} value={order === "" ? null : Number(order)} placeholder={String(selected.defaultOrder)} onValueChange={(value) => setOrder(value === null ? "" : String(value))} /></div>
                   <div className="row-actions">
                     <ActionTrigger operationId="navigation.menus.update" pendingLabel={t("webui.navigation.save")} onAction={save}>{t("webui.navigation.save")}</ActionTrigger>
                   </div>

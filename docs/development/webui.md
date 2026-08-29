@@ -357,3 +357,7 @@ const setupErrorMessageIDs: Record<string, string> = {
 4. architecture、module lint 与 i18n 扫描已实际枚举本次模块；动态发现不会替代新增模块的反向违规证据；
 5. `pnpm generate:check`、`pnpm typecheck`、`pnpm test`、`pnpm lint` 和 `pnpm lint:modules` 均通过；其中 `pnpm lint` 已包含 i18n 与 architecture，但不包含 `lint:modules`、typecheck、test、build、E2E 或 generate check；
 6. `pnpm e2e -- --workers=1` 覆盖真实状态门禁。至少检查 setup/login/logout/session、denied/unavailable/degraded 与 management 请求数量；Auth/Ops 桌面、移动和主题截图在 Playwright `test-results/` 中人工复核。未启动浏览器测试或未查看截图时必须明确标为未验证。
+
+## 全站交互组件单轨治理（092）
+
+092 supersedes the 091 component-source boundary for implementation details. The current path is `HeroUI v3 / React Aria → @webui/sdk/ui → business composite → page`: pages and Shell do not import HeroUI/RAC directly, and generic interaction tags or hand-written `combobox/listbox/menu/radio/tab/tree` roles are forbidden outside the centralized UI layer. `SearchControl`, `NumberField`, `DateField`, `DateTimeField`, `FilePicker`, `Check`, `RadioGroup`, `SegmentedControl`, `Tabs`, `Disclosure`, `CommandList` and `ActionMenu` are the shared contracts; `FilterBarField` uses the `text | date | datetime | select | switch` discriminated union. `lint-architecture` and `interaction-rules.test.mjs` provide the negative/positive source fixtures.

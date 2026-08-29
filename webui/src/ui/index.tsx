@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type CSSProperties, type ReactNode } from "react";
 import { Dialog as RACDialog, Modal as RACModal } from "react-aria-components";
-import { Button as HeroButton, Card, Pagination as HeroPagination, ToastProvider } from "@heroui/react";
+import { Button as HeroButton, Card, Pagination as HeroPagination, SearchField as HeroSearchField, ToastProvider } from "@heroui/react";
 import { Check as CheckIcon, ChevronDown, ChevronRight, Copy, Search } from "lucide-react";
 import type { CapabilityState } from "../contracts";
 import { translateMessage } from "../i18n";
@@ -8,10 +8,10 @@ import { Reveal } from "../motion/reveal";
 import { useActionAccess } from "../sdk/zone";
 import { Sparkline } from "./charts";
 import { Skeleton, StatusPill } from "./feedback";
-export { BatchResultSummary, CapabilityBanner, EmptyState, ErrorState, InlineAlert, Skeleton, StatusBadge, StatusPill, Toast } from "./feedback";
+export { BatchResultSummary, CapabilityBanner, EmptyState, ErrorState, InlineAlert, Skeleton, Spinner, StatusBadge, StatusPill, Toast } from "./feedback";
 export type { SemanticStatus } from "./feedback";
-import { FilterSelect, type SelectOption } from "./forms";
-export { Field, FilterSelect, FormField, SelectField, fieldWidthClass } from "./forms";
+import { DateField, DateTimeField, FilterSelect, FilterTextField, type SelectOption } from "./forms";
+export { DateField, DateTimeField, Field, FilePicker, FilterSelect, FilterTextField, FormField, NumberField, SearchControl, SelectField, TextAreaField, fieldWidthClass } from "./forms";
 export type { FieldWidth, SelectOption } from "./forms";
 export { DataTable, DataTableRowMenu, getDataTableSelectionState } from "./data";
 export type { DataTableColumn, DataTableEnhancements, DataTableProps } from "./data";
@@ -72,7 +72,7 @@ export function DataToolbar({ filters, actions, ariaLabel }: { filters?: ReactNo
 export function FilterPanel({ label, open, onToggle, expandLabel, collapseLabel, children }: { label: string; open: boolean; onToggle: () => void; expandLabel: string; collapseLabel: string; children: ReactNode }) {
   const panelID = `webui-filter-panel-${useId().replaceAll(":", "")}`;
   const toggleID = `${panelID}-toggle`;
-  return <section className={`filter-panel ${open ? "open" : ""}`}><button id={toggleID} className="filter-panel-toggle" type="button" onClick={onToggle} aria-expanded={open} aria-controls={panelID} aria-label={open ? collapseLabel : expandLabel}><span className="filter-panel-chevron" aria-hidden="true" />{label}</button>{open && <div id={panelID} className="filter-panel-content" role="region" aria-labelledby={toggleID}>{children}</div>}</section>;
+  return <section className={`filter-panel ${open ? "open" : ""}`}><Button id={toggleID} className="filter-panel-toggle" type="button" variant="ghost" onClick={onToggle} aria-expanded={open} aria-controls={panelID} aria-label={open ? collapseLabel : expandLabel}><span className="filter-panel-chevron" aria-hidden="true" />{label}</Button>{open && <div id={panelID} className="filter-panel-content" role="region" aria-labelledby={toggleID}>{children}</div>}</section>;
 }
 
 export type PaginationItem = number | "ellipsis-left" | "ellipsis-right";
@@ -119,7 +119,8 @@ export function IconButton({ label, title, onClick, onPress, className = "", chi
 
 import { Switch } from "./primitives";
 // Check/Switch 原语独立于 primitives.tsx（RAC 底座），供 index.tsx 与 data.tsx 共享。
-export { Check, Switch } from "./primitives";
+export { ActionMenu, Avatar, Check, CommandList, Disclosure, RadioGroup, SegmentedControl, Switch, Tabs, ToggleButton, Tooltip } from "./primitives";
+export type { ActionMenuItem, ChoiceOption, CommandListItem, TabsItem } from "./primitives";
 
 // SectionNavItem 是页内分区导航项：id 用于 activeId/onSelect，href 存在时按链接渲染。
 export type SectionNavItem = { id: string; label: ReactNode; icon?: ReactNode; href?: string };
@@ -151,7 +152,7 @@ export function SectionNav({ items, activeId, onSelect, className = "", ariaLabe
           const common = { "data-section-nav-id": item.id, "aria-current": active ? ("page" as const) : undefined, className: active ? "section-nav-item active" : "section-nav-item" };
           return <li key={item.id}>{item.href
             ? <a href={item.href} onClick={onSelect ? (event) => { event.preventDefault(); onSelect?.(item.id); } : undefined} {...common}>{item.icon && <span className="section-nav-icon" aria-hidden="true">{item.icon}</span>}<span>{item.label}</span></a>
-            : <button type="button" onClick={() => onSelect?.(item.id)} {...common}>{item.icon && <span className="section-nav-icon" aria-hidden="true">{item.icon}</span>}<span>{item.label}</span></button>}</li>;
+            : <Button type="button" variant="ghost" onClick={() => onSelect?.(item.id)} {...common}>{item.icon && <span className="section-nav-icon" aria-hidden="true">{item.icon}</span>}<span>{item.label}</span></Button>}</li>;
         })}
       </ul>
     </nav>
@@ -168,7 +169,7 @@ export function ConfirmDialog({ open, title, description, confirmLabel, cancelLa
       <RACDialog aria-label={title} id={titleID} className="rac-modal-panel">
         <header className="confirm-dialog-header"><h2 id={titleID}>{title}</h2><IconButton label={closeLabel} onClick={() => { setTyped(""); onCancel(); }}>×</IconButton></header>
         {description && <p id={`${titleID}-description`} className="confirm-dialog-description">{description}</p>}
-        {confirmInput && <label className="confirm-dialog-input">请输入 <code>{confirmInput.expected}</code> 以确认<input type="text" value={typed} onChange={(event) => setTyped(event.target.value)} /></label>}
+        {confirmInput && <label className="confirm-dialog-input">请输入 <code>{confirmInput.expected}</code> 以确认<HeroSearchField value={typed} onChange={setTyped} aria-label={typeof confirmInput.label === "string" ? confirmInput.label : title}><HeroSearchField.Group><HeroSearchField.Input /></HeroSearchField.Group></HeroSearchField></label>}
         <footer className="confirm-dialog-footer"><Button type="button" variant="secondary" data-confirm-initial-focus onClick={() => { setTyped(""); onCancel(); }}>{cancelLabel}</Button><Button type="button" variant="danger" disabled={!canConfirm} onClick={() => { setTyped(""); onConfirm(); }}>{confirmLabel}</Button></footer>
       </RACDialog>
     </RACModal>
@@ -187,6 +188,11 @@ export function Drawer({ open, title, description, closeLabel, onClose, children
       </RACDialog>
     </RACModal>
   );
+}
+
+/** ModalDialog 将居中弹层的 Portal、焦点、Escape、backdrop 与恢复语义集中到 RAC。 */
+export function ModalDialog({ open, title, closeLabel, onClose, children, className = "" }: { open: boolean; title: string; closeLabel: string; onClose: () => void; children: ReactNode; className?: string }) {
+  return <RACModal isOpen={open} onOpenChange={(next) => { if (!next) onClose(); }} isDismissable className="rac-modal-backdrop"><RACDialog aria-label={title} className={`rac-modal-panel ${className}`.trim()}><header className="confirm-dialog-header"><h2>{title}</h2><IconButton label={closeLabel} onClick={onClose}>×</IconButton></header>{children}</RACDialog></RACModal>;
 }
 
 // ActionDisabledReason 是触发点禁用原因分类：permission（权限 denied/未投影受限）、
@@ -396,7 +402,7 @@ export function DataCard({ kicker, title, description, actions, footer, classNam
    状态由页面 owner 经 useListQueryParams 驱动（URL 同步）；本组件只做受控呈现。
    --------------------------------------------------------------------------- */
 
-export type FilterFieldControl = "select" | "switch" | "input";
+export type FilterFieldControl = "select" | "switch" | "text" | "date" | "datetime";
 
 /** FilterBar 的字段声明：一个 filter 对应一个受控控件。 */
 export type FilterBarField = {
@@ -405,10 +411,8 @@ export type FilterBarField = {
   control: FilterFieldControl;
   /** select 控件选项（control=select 时必须）。 */
   options?: ReadonlyArray<SelectOption>;
-  /** input 控件占位提示（control=input 时可选，084 提高筛选输入可辨识度）。 */
+  /** text 控件占位提示。 */
   placeholder?: string;
-  /** 原生输入类型；用于时间范围等后端已支持的查询能力。 */
-  inputType?: "text" | "date" | "datetime-local";
   /** 受控值：select 为字符串 value，switch 为 boolean，input 为字符串。 */
   value: string | boolean | undefined;
   onValueChange: (next: string | boolean) => void;
@@ -428,8 +432,12 @@ function renderFilterField(field: FilterBarField) {
   switch (field.control) {
     case "switch":
       return <Switch key={field.key} label={field.label} checked={field.value === true} onChange={(next) => field.onValueChange(next)} />;
-    case "input":
-      return <label key={field.key} className="filter-field"><span className="filter-field-label">{field.label}</span><input type={field.inputType ?? "text"} placeholder={field.placeholder} value={typeof field.value === "string" ? field.value : ""} onChange={(event) => field.onValueChange(event.target.value)} /></label>;
+    case "text":
+      return <FilterTextField key={field.key} label={field.label} value={typeof field.value === "string" ? field.value : ""} placeholder={field.placeholder} onValueChange={(next) => field.onValueChange(next)} />;
+    case "date":
+      return <DateField key={field.key} label={String(field.label)} value={typeof field.value === "string" ? field.value : ""} onValueChange={(next) => field.onValueChange(next)} className="filter-field" />;
+    case "datetime":
+      return <DateTimeField key={field.key} label={String(field.label)} value={typeof field.value === "string" ? field.value : ""} onValueChange={(next) => field.onValueChange(next)} className="filter-field" />;
     case "select":
     default:
       // 091：筛选下拉统一为 HeroUI Select（FilterSelect），替代 084 回退的原生
@@ -444,7 +452,7 @@ export function ActiveFilters({ items, clearLabel, ariaLabel }: { items: Readonl
   if (items.length === 0) return null;
   const clearText = clearLabel ?? translateMessage("webui.host.ui.clear");
   return <div className="filter-bar-active" aria-label={ariaLabel ?? translateMessage("webui.host.ui.results")}>
-    {items.map((item) => <span className="active-filter" key={item.key}><span className="active-filter-label">{item.label}{item.value !== undefined && <>: {item.value}</>}</span><button type="button" onClick={item.onClear} aria-label={`${clearText} ${String(item.label)}`}>×</button></span>)}
+    {items.map((item) => <span className="active-filter" key={item.key}><span className="active-filter-label">{item.label}{item.value !== undefined && <>: {item.value}</>}</span><IconButton label={`${clearText} ${String(item.label)}`} onClick={item.onClear}>×</IconButton></span>)}
   </div>;
 }
 
@@ -475,7 +483,7 @@ export function FilterBar({ fields, trailingFields = [], onClear, clearLabel, re
       <div className="filter-bar-main">
         {searchInput}
         <div className="filter-bar-summary">
-          {onClear && hasActive && <button type="button" className="filter-bar-clear ui-button" onClick={onClear}>{clearLabel ?? translateMessage("webui.host.ui.clear")}</button>}
+          {onClear && hasActive && <Button type="button" variant="ghost" className="filter-bar-clear" onClick={onClear}>{clearLabel ?? translateMessage("webui.host.ui.clear")}</Button>}
           {resultCount !== undefined && <span className="filter-bar-count">{resultCountLabel ? resultCountLabel(resultCount) : `${resultCount} results`}</span>}
         </div>
       </div>
@@ -512,14 +520,7 @@ export function SearchInput({ value, onChange, placeholder, label, debounceMs = 
   return (
     <div className={`search-input-wrap ${className}`.trim()}>
       <Search className="search-input-icon" size={15} strokeWidth={1.8} aria-hidden="true" />
-      <input
-        type="search"
-        className="search-input"
-        value={inputValue}
-        aria-label={label ?? placeholder ?? translateMessage("webui.host.ui.search")}
-        placeholder={placeholder ?? `${translateMessage("webui.host.ui.search")}…`}
-        onChange={(event) => handleChange(event.target.value)}
-      />
+      <HeroSearchField value={inputValue} onChange={handleChange} aria-label={label ?? placeholder ?? translateMessage("webui.host.ui.search")} className="search-input"><HeroSearchField.Group><HeroSearchField.Input placeholder={placeholder ?? `${translateMessage("webui.host.ui.search")}…`} /><HeroSearchField.ClearButton /></HeroSearchField.Group></HeroSearchField>
     </div>
   );
 }
@@ -540,7 +541,7 @@ export function CodeText({ value, copyable = false, className = "", copyLabel }:
   return (
     <span className={`code-text ${className}`.trim()}>
       <code className="code-text-value">{value}</code>
-      {copyable && <button type="button" className="code-text-copy ui-button" onClick={copy} aria-label={copyLabel ?? translateMessage("webui.host.ui.copy")}>{copied ? <CheckIcon size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}</button>}
+      {copyable && <IconButton className="code-text-copy" onClick={copy} label={copyLabel ?? translateMessage("webui.host.ui.copy")}>{copied ? <CheckIcon size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}</IconButton>}
     </span>
   );
 }
@@ -566,7 +567,7 @@ export function DangerZone({ title, consequence, confirmTitleText, inputConfirma
   };
   return (
     <div className={`danger-zone ${className}`.trim()}>
-      <div className="danger-zone-header"><strong className="danger-zone-title">{title}</strong><button type="button" className="ui-button" onClick={() => { setFailed(false); setOpen(true); }}>{confirmLabel}</button></div>
+      <div className="danger-zone-header"><strong className="danger-zone-title">{title}</strong><Button type="button" variant="danger" onClick={() => { setFailed(false); setOpen(true); }}>{confirmLabel}</Button></div>
       <div className="danger-zone-consequence">{consequence}</div>
       <ConfirmDialog open={open} title={confirmTitleText ?? title} description={failed ? "操作失败，请重试。" : undefined} confirmLabel={confirmLabel} cancelLabel={cancelLabel} closeLabel={closeLabel} confirmInput={inputConfirmation ? { expected: inputConfirmation, label: inputConfirmation } : undefined} onConfirm={() => { setOpen(false); run(); }} onCancel={() => setOpen(false)} />
     </div>
@@ -596,7 +597,7 @@ export function CodeViewer({ value, language = "json", maxHeight = 320, initiall
     <div className={`code-viewer ${className}`.trim()}>
       <div className="code-viewer-head">
         <span className="code-viewer-label">{label ?? language}</span>
-        <button type="button" className="code-viewer-toggle ui-button" onClick={() => setCollapsed((current) => !current)} aria-label={collapsed ? translateMessage("webui.host.ui.expand") : translateMessage("webui.host.ui.collapse")}>{collapsed ? <ChevronRight size={15} aria-hidden="true" /> : <ChevronDown size={15} aria-hidden="true" />}</button>
+        <IconButton className="code-viewer-toggle" onClick={() => setCollapsed((current) => !current)} label={collapsed ? translateMessage("webui.host.ui.expand") : translateMessage("webui.host.ui.collapse")}>{collapsed ? <ChevronRight size={15} aria-hidden="true" /> : <ChevronDown size={15} aria-hidden="true" />}</IconButton>
       </div>
       {!collapsed && <pre className="code-viewer-pre" style={{ maxHeight }}><code className={`code-viewer-code ${language === "json" ? "language-json" : ""}`}>{value}</code></pre>}
     </div>
@@ -694,9 +695,9 @@ function TreeNodes<T>({ nodes, getChildren, renderNode, getKey, collapsed, onTog
       <li key={key} role="treeitem" aria-expanded={children.length > 0 ? !isCollapsed : undefined} aria-selected={selected || undefined} data-tree-depth={depth}>
         <div className={`tree-node ${selected ? "tree-node-selected" : ""}`.trim()}>
           {children.length > 0
-            ? <button type="button" className="tree-node-toggle" aria-label={isCollapsed ? translateMessage("webui.host.ui.expand") : translateMessage("webui.host.ui.collapse")} onClick={() => onToggle(key)}>{isCollapsed ? <ChevronRight size={14} aria-hidden="true" /> : <ChevronDown size={14} aria-hidden="true" />}</button>
+            ? <IconButton className="tree-node-toggle" label={isCollapsed ? translateMessage("webui.host.ui.expand") : translateMessage("webui.host.ui.collapse")} onClick={() => onToggle(key)}>{isCollapsed ? <ChevronRight size={14} aria-hidden="true" /> : <ChevronDown size={14} aria-hidden="true" />}</IconButton>
             : <span className="tree-node-toggle tree-node-toggle-empty" aria-hidden="true" />}
-          <button type="button" className="tree-node-label" onClick={() => onSelect?.(key)}>{renderNode(node)}</button>
+          <Button type="button" variant="ghost" className="tree-node-label" onClick={() => onSelect?.(key)}>{renderNode(node)}</Button>
         </div>
         {children.length > 0 && !isCollapsed && <ul role="group">{<TreeNodes nodes={children} getChildren={getChildren} renderNode={renderNode} getKey={getKey} collapsed={collapsed} onToggle={onToggle} selectedId={selectedId} onSelect={onSelect} depth={depth + 1} />}</ul>}
       </li>

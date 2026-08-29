@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactNode } from "react";
-import { Alert, Chip, EmptyState as HeroEmptyState, Skeleton as HeroSkeleton, toast as herouiToast } from "@heroui/react";
+import { Alert, Chip, EmptyState as HeroEmptyState, Skeleton as HeroSkeleton, Spinner as HeroSpinner, toast as herouiToast } from "@heroui/react";
 import type { CapabilityState } from "../contracts";
 
 /** SemanticStatus 是跨资源复用的状态集合；颜色只表达语义，不承担分类/身份信息。 */
@@ -39,6 +39,8 @@ export function CapabilityBanner({ state, statusLabel, title, detail }: { state:
 export function Skeleton({ lines = 3, label }: { lines?: number; label: string }) {
   return <div className="skeleton-stack" aria-label={label}>{Array.from({ length: lines }, (_, index) => <HeroSkeleton className="h-2.5 rounded-full" key={index} />)}</div>;
 }
+
+export function Spinner({ label, size = "sm" }: { label: string; size?: "sm" | "md" | "lg" }) { return <HeroSpinner aria-label={label} size={size} />; }
 
 /** EmptyState 表达无数据或筛选无结果，并允许注入下一步动作。 */
 export function EmptyState({ title, detail, action }: { title: string; detail?: string; action?: ReactNode }) {

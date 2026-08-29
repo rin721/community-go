@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { PageHeader, PageSection } from "@webui/sdk/ui";
+import { PageHeader, PageSection, RadioGroup } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { selfPreferences, updateSelfPreferences } from "./api";
 import styles from "./settings.module.css";
@@ -45,12 +45,7 @@ export default function LanguagePage() {
     {syncState === "offline" && <p className="page-meta" role="status">{t("webui.settings.language.syncOffline")}</p>}
     <div className="page-sections">
       <PageSection kicker={t("webui.settings.language.kicker")} title={t("webui.settings.language.interfaceTitle")}>
-        <div className="setting-options" role="radiogroup" aria-label={t("webui.settings.language.interfaceTitle")}>
-          {languageOptions.map((option) => {
-            const selected = option.value === current;
-            return <button type="button" key={option.value} role="radio" aria-checked={selected} className="setting-option" onClick={() => choose(option.value)}><span className="setting-option-radio" aria-hidden="true" /><span>{t(option.label)}</span></button>;
-          })}
-        </div>
+        <RadioGroup label={t("webui.settings.language.interfaceTitle")} value={current} options={languageOptions.map((option) => ({ value: option.value, label: t(option.label) }))} onValueChange={choose} className="setting-options" />
         <p className="page-meta">{t("webui.settings.language.reloadNote")}</p>
       </PageSection>
     </div>

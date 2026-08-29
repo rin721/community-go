@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { Button, Chip, Spinner } from "@heroui/react";
-import { InlineAlert } from "@webui/sdk/ui";
+import { Button, Disclosure, InlineAlert, Spinner, StatusBadge } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { highlightJSON } from "./highlight";
 import { formatBytes, type RunState } from "./run-store";
@@ -17,7 +16,7 @@ export function ResponsePane({ state }: { state: RunState }) {
     return <section className={styles.responsePane} data-testid="openapi-response"><p className={styles.responseIdle}>{t("webui.openapi.response.empty")}</p></section>;
   }
   if (state.kind === "pending") {
-    return <section className={styles.responsePane} data-testid="openapi-response"><div className={styles.responsePending}><Spinner size="sm" /><span>{t("webui.openapi.run.running")}</span></div></section>;
+    return <section className={styles.responsePane} data-testid="openapi-response"><div className={styles.responsePending}><Spinner size="sm" label={t("webui.openapi.run.running")} /><span>{t("webui.openapi.run.running")}</span></div></section>;
   }
   if (state.kind === "error") {
     return <section className={styles.responsePane} data-testid="openapi-response"><InlineAlert tone="danger" title={t("webui.openapi.run.error")} detail={state.message} /></section>;
@@ -28,13 +27,13 @@ export function ResponsePane({ state }: { state: RunState }) {
   const headerLines = Object.entries(result.headers).map(([name, value]) => `${name}: ${value}`).join("\n");
   return <section className={styles.responsePane} data-testid="openapi-response">
     <div className={styles.responseMeta}>
-      <Chip className={statusClass} size="sm">{result.status} {result.statusText}</Chip>
+      <StatusBadge status={result.status < 300 ? "healthy" : result.status < 400 ? "degraded" : "failed"} className={statusClass}>{result.status} {result.statusText}</StatusBadge>
       <span className={styles.responseStat}>{t("webui.openapi.response.duration", { ms: result.durationMs })}</span>
       <span className={styles.responseStat}>{formatBytes(result.sizeBytes)}</span>
       {result.bodyClass === "json" && view === "json"
-        ? <Button size="sm" variant="ghost" onClick={() => setView("raw")}>{t("webui.openapi.response.view.raw")}</Button>
+        ? <Button variant="ghost" onClick={() => setView("raw")}>{t("webui.openapi.response.view.raw")}</Button>
         : result.bodyClass === "json"
-          ? <Button size="sm" variant="ghost" onClick={() => setView("json")}>{t("webui.openapi.response.view.json")}</Button>
+          ? <Button variant="ghost" onClick={() => setView("json")}>{t("webui.openapi.response.view.json")}</Button>
           : null}
     </div>
     <pre className={styles.responseBody} data-testid="openapi-response-body">
@@ -42,9 +41,6 @@ export function ResponsePane({ state }: { state: RunState }) {
         ? <code dangerouslySetInnerHTML={{ __html: highlightJSON(result.body) }} />
         : result.body}
     </pre>
-    {headerLines !== "" && <details className={styles.responseHeaders}>
-      <summary>{t("webui.openapi.response.headers")}</summary>
-      <pre className={styles.monoBlock}>{headerLines}</pre>
-    </details>}
+    {headerLines !== "" && <Disclosure className={styles.responseHeaders} label={t("webui.openapi.response.headers")}><pre className={styles.monoBlock}>{headerLines}</pre></Disclosure>}
   </section>;
 }

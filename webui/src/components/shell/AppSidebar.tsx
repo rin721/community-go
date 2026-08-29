@@ -1,5 +1,5 @@
 import { X } from "lucide-react";
-import { Avatar } from "@heroui/react";
+import { Avatar, IconButton } from "@webui/sdk/ui";
 import type { KeyboardEvent as ReactKeyboardEvent, RefObject } from "react";
 import type { PrincipalView } from "@webui/sdk/runtime";
 import { translateMessage } from "../../i18n";
@@ -30,11 +30,11 @@ export function AppSidebar({ sidebarRef, mobileOpen, isMobileViewport, collapsed
   const isolated = shouldIsolateMobileSidebar(isMobileViewport, mobileOpen);
   const accountLabel = principal?.username ?? translateMessage("webui.host.account");
   return <aside ref={sidebarRef} className={`app-sidebar ${mobileOpen ? "mobile-open" : ""}`} aria-hidden={isolated} inert={isolated} onKeyDown={onKeyDown}>
-    <div className="brand-row"><Avatar size="sm" className="brand-avatar"><Avatar.Fallback>{translateMessage("webui.host.brandSymbol")}</Avatar.Fallback></Avatar><span className="brand-copy"><strong>{translateMessage("webui.host.brand")}</strong><small>{translateMessage("webui.host.product")}</small></span><button type="button" data-mobile-initial-focus className="mobile-sidebar-close" onClick={onClose} aria-label={translateMessage("webui.host.menu.close")}><X size={18} /></button></div>
+    <div className="brand-row"><Avatar size="sm" className="brand-avatar" fallback={translateMessage("webui.host.brandSymbol")} /><span className="brand-copy"><strong>{translateMessage("webui.host.brand")}</strong><small>{translateMessage("webui.host.product")}</small></span><IconButton label={translateMessage("webui.host.menu.close")} className="mobile-sidebar-close" onClick={onClose} data={{ "data-mobile-initial-focus": "true" }}><X size={18} /></IconButton></div>
     <nav className="sidebar-nav"><SidebarMenu entries={menu} currentRouteID={currentRouteID} expandedMenuIDs={expandedMenuIDs} collapsed={collapsed} onToggle={onToggleMenu} /></nav>
     <div className="sidebar-zones"><ZoneItems zone="sidebar-panels" /></div>
     <div className="sidebar-account" aria-label={translateMessage("webui.host.account")}>
-      <Avatar size="sm" className="sidebar-account-avatar"><Avatar.Fallback>{accountLabel.slice(0, 1).toUpperCase()}</Avatar.Fallback></Avatar>
+      <Avatar size="sm" className="sidebar-account-avatar" fallback={accountLabel.slice(0, 1).toUpperCase()} />
       <span className="sidebar-account-copy"><strong>{accountLabel}</strong><small>{principal ? `#${principal.id.slice(0, 8)}` : translateMessage("webui.host.account")}</small></span>
     </div>
     <div className="sidebar-meta"><span>{translateMessage("webui.host.revision.label")}</span><code>{revision.slice(0, 8)}</code></div>

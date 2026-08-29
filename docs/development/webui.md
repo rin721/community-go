@@ -238,6 +238,25 @@ zone 贡献的公共字段：`ID`（全局唯一）、`EntryID`（复用 `Bindin
 - **OpenAPI 工作台紧凑化**：wide 可调资源栏 + 编辑/响应分栏；compact（<768px）切换「资源/请求/响应」三段式单面板导航（`useCompactWorkspace` 容器级断点）。
 - **单轨清理**：HeroUI v2（`@heroui/theme`/`@heroui/toast`）已移除；`org-tree-inspector` 旧双栏与死 Footer CSS 已删除。
 
+## 组件来源层级与禁止页面级重复造轮子（091）
+
+091 将基础交互组件的来源收敛为单一层级，并确立「禁止页面级重复造轮子」原则：
+
+```
+HeroUI v3 / React Aria（成熟 Primitive）
+  └─ webui/src/ui（项目统一 UI 层：SelectField/FilterSelect/Field/FormField/
+     Check/Switch/DataTable/Pagination/FilterBar/StatusBadge/DangerZone/…）
+       └─ 业务复合组件（PermissionMatrix、AccountSecuritySummary、RuntimeHealthPanel…）
+            └─ 具体 Page
+```
+
+规则：
+- **用户可见下拉统一走 HeroUI Select**：筛选（FilterBar 的 `FilterSelect`）、每页条数（Pagination/AuditPage）、语言切换（AppHeader/AppShell）、表单（`SelectField`）全部同源，不再使用原生 `<select>`（HeroUI Select 内部的隐藏原生 select 仅作表单/读屏 fallback）。
+- **弹层统一走 HeroUI/RAC**：行菜单与列显隐菜单用 HeroUI Dropdown（RAC Menu 底座）、危险确认用 RAC ConfirmDialog（含 `confirmInput` 输入标识符确认）、工作区上下文菜单用 RAC Menu。自研绝对定位 popover/dialog 已删除。
+- **复选框/开关统一走 RAC**：`Check`/`Switch` 原语（`webui/src/ui/primitives.tsx`）供全站复用；DataTable 行选择保留原生 checkbox（RAC selection 集成为后续项）。
+- **业务页面只表达数据/状态/操作**，不得自行实现 Dropdown 展开、Popover 定位、Dialog 焦点、Toast 时序、Checkbox 绘制等通用交互。
+- **保留自研**：仅限业务语义复合组件（`PermissionMatrix`、`StatusBadge` 语义封装、`RuntimeHealthPanel`、`TreeView` 等）。
+
 ## 页面模板与布局规范（069）
 
 所有业务页面的骨架按统一模板组装（HeroUI 控件 + Tailwind 布局；`page-section/stat-card/data-card` 等 class 仅作语义钩子）：

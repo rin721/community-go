@@ -35,11 +35,11 @@
 
 ## 验证与收尾
 
-- [ ] VERIFY-091-001 全量验证：`pnpm typecheck`、`eslint .`、`vitest`（不回归 251）、`lint-architecture`、`build`、mock E2E（不回归 19）、Go 侧适用验证；前置：全部实施任务；完成条件：全绿；证据：命令与结果。
-- [ ] VERIFY-091-002 代码层二次扫描：业务页面与宿主无用户可见原生 `<select>`、无页面级原生 checkbox、无自研 popover/dialog/menu 残留；前置：全部实施任务；完成条件：grep 证据记录；证据：扫描输出。
-- [ ] CLEANUP-091-001 删除已替换的自研组件旧实现（不留双轨）；前置：UI-091-004/005/006/007、PAGE-091-*；完成条件：旧实现零引用；证据：grep 扫描。
-- [ ] DOC-091-001 同步 `docs/development/webui.md` 组件来源层级与"禁止页面级重复造轮子"原则；前置：CLEANUP-091-001；完成条件：文档记录当前组件来源层级与统一控件契约；证据：文档 diff。
-- [ ] GIT-091-001 按仓库规则审阅、精确暂存并提交本任务；前置：全部验证通过；完成条件：Conventional Commit 哈希；证据：提交哈希。
+- [x] VERIFY-091-001 全量验证；前置：全部实施任务；完成证据：Go `build`/`test ./...` 全绿、`git diff --check` 干净；WebUI `typecheck`、`vitest`（251 tests）、`eslint`（0 errors，仅 4 条既有测试文件 warning）、`lint-architecture`、`build` 全绿；mock Playwright E2E 19/19 通过。
+- [x] VERIFY-091-002 代码层二次扫描；前置：全部实施任务；完成证据：grep 扫描确认业务页面与宿主 `webui/src` 零用户可见原生 `<select>`（仅 HeroUI Select 内部隐藏 fallback）、零页面级原生 checkbox（除 DataTable 行选择，已记录为后续项）、零自研 popover/dialog/menu 残留（`data-table-row-menu-item`/`danger-zone-confirm`/`workspace-context-menu` 自研实现已删除）。
+- [x] CLEANUP-091-001 删除已替换的自研组件旧实现；前置：UI-091-004/005/006/007、PAGE-091-*；完成证据：自研 popover/dialog/menu 代码与死 CSS 已删除（单轨），旧符号零引用。
+- [x] DOC-091-001 同步 `docs/development/webui.md`；前置：CLEANUP-091-001；完成证据：新增「组件来源层级与禁止页面级重复造轮子（091）」小节（层级图、各控件来源、保留自研边界）。
+- [x] GIT-091-001 按仓库规则审阅、精确暂存并提交本任务；前置：全部验证通过；完成证据：Conventional Commit：`feat(webui): unify selects via HeroUI FilterSelect`（b4c275c）、`feat(webui): replace self-built overlays with HeroUI/RAC and unify page controls`（f8ca65c）、`refactor(webui): keep data-table row selection native, add Check ariaLabel`（542ac60）、`refactor(webui): drop unused DangerZone busy props and imports`（02f9cb8）等；用户与其他 agent 并行改动（AppearancePage/e2e 润色）未纳入暂存。
 
 ## 范围外（记录，不实施）
 

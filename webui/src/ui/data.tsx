@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type HTMLAttributes, type ReactNode } from "react";
-import { Dropdown, DropdownItem, DropdownMenu, DropdownPopover, DropdownRoot, DropdownTrigger, Table } from "@heroui/react";
+import { DropdownItem, DropdownMenu, DropdownPopover, DropdownRoot, DropdownTrigger, Table } from "@heroui/react";
 import { MoreHorizontal } from "lucide-react";
 import { translateMessage } from "../i18n";
 import { Skeleton } from "./feedback";

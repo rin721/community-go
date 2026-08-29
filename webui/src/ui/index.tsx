@@ -117,7 +117,7 @@ export function IconButton({ label, title, onClick, onPress, className = "", chi
   return <HeroButton ref={buttonRef} type="button" isIconOnly variant="ghost" size="sm" aria-label={label} isDisabled={disabled} onPress={() => (onPress ?? onClick)?.()} className={`icon-button ${className}`.trim()} {...data}>{children}</HeroButton>;
 }
 
-import { Check, Switch } from "./primitives";
+import { Switch } from "./primitives";
 // Check/Switch 原语独立于 primitives.tsx（RAC 底座），供 index.tsx 与 data.tsx 共享。
 export { Check, Switch } from "./primitives";
 
@@ -545,8 +545,9 @@ export function CodeText({ value, copyable = false, className = "", copyLabel }:
   );
 }
 
-/** DangerZone：统一危险操作区（方案「三十六」：后果说明 + 确认（可要求输入标识符）+ pending + 失败反馈）。 */
-export function DangerZone({ title, consequence, confirmTitleText, inputConfirmation, confirmLabel, cancelLabel, closeLabel, busy, busyLabel, onConfirm, className = "" }: {
+/** DangerZone：统一危险操作区（方案「三十六」：后果说明 + 确认（可要求输入标识符）+ 失败反馈）。
+ * 091：确认弹层统一走 RAC ConfirmDialog（含 confirmInput 输入标识符确认）。 */
+export function DangerZone({ title, consequence, confirmTitleText, inputConfirmation, confirmLabel, cancelLabel, closeLabel, onConfirm, className = "" }: {
   title: string;
   consequence: ReactNode;
   confirmTitleText?: string;
@@ -554,8 +555,6 @@ export function DangerZone({ title, consequence, confirmTitleText, inputConfirma
   confirmLabel: string;
   cancelLabel: string;
   closeLabel: string;
-  busy?: boolean;
-  busyLabel?: string;
   onConfirm: () => Promise<unknown>;
   className?: string;
 }) {

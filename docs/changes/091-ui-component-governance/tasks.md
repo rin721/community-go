@@ -13,25 +13,25 @@
 
 ## 统一控件实现
 
-- [ ] UI-091-001 实现 FilterBar select 分支统一（紧凑 HeroUI Select，替代原生 `<select>`）；前置：CONFIRM-091-001；完成条件：FilterBar 的 select 控件渲染为 HeroUI Select（含 Trigger/Popover/ListBox/键盘/ARIA），`FilterBarField` 契约不变；证据：单测 + 视觉 E2E。
-- [ ] UI-091-002 实现 Pagination pageSize 控件统一；前置：CONFIRM-091-001；完成条件：Pagination 的每页条数下拉为统一 Select；证据：单测 + E2E。
-- [ ] UI-091-003 实现宿主语言切换统一（AppHeader + AppShell）；前置：CONFIRM-091-001；完成条件：两处语言切换下拉为统一 Select（保持图标形态）；证据：E2E。
-- [ ] UI-091-004 实现 DataTableRowMenu 自研 popover → HeroUI DropdownMenu；前置：CONFIRM-091-001；完成条件：行菜单弹出层为成熟 DropdownMenu（Portal/定位/键盘/焦点），危险项隔离保留，`renderRowMenu` 契约不变；证据：单测 + E2E。
-- [ ] UI-091-005 实现 data-table-columns 菜单 → DropdownMenu + Check；前置：CONFIRM-091-001；完成条件：列显隐菜单为成熟 DropdownMenu，勾选为统一 Check；证据：单测。
-- [ ] UI-091-006 删除 DangerZone 自研 dialog 残留块（双弹层），确认弹层统一为 RAC ConfirmDialog 并保留输入标识符确认语义；前置：CONFIRM-091-001；完成条件：DangerZone 无双弹层、自研 `role="dialog"` 块删除、确认能力（含 inputConfirmation）由 RAC Modal 承载；证据：单测 + E2E。
-- [ ] UI-091-007 实现 WorkspaceContextMenu → RAC Menu；前置：CONFIRM-091-001；完成条件：Shift+F10 上下文菜单为成熟 RAC Menu（与溢出菜单同源），自研 `role="menu"` 块删除；证据：单测。
-- [ ] UI-091-008 实现 ThemeDrawer 自研 tab → RAC Tabs；前置：CONFIRM-091-001；完成条件：ThemeDrawer 面板切换为成熟 Tabs（键盘/焦点管理）；若与面板交互冲突则记录为后续项；证据：单测。
+- [x] UI-091-001 实现 FilterBar select 分支统一（紧凑 HeroUI Select，替代原生 `<select>`）；前置：CONFIRM-091-001；完成证据：FilterBar 的 select 控件渲染为 HeroUI Select（`FilterSelect`，含 Trigger/Popover/ListBox/键盘/ARIA），`FilterBarField` 契约不变；E2E 断言 `.filter-bar select` 计数改为 `.filter-select-control` 统一控件（隐藏的原生 select 为 HeroUI 读屏 fallback，源码零用户可见原生 select）；084b mock E2E 通过。
+- [x] UI-091-002 实现 Pagination pageSize 控件统一；前置：CONFIRM-091-001；完成证据：Pagination 每页条数下拉为统一 `FilterSelect`；typecheck + mock E2E 通过。
+- [x] UI-091-003 实现宿主语言切换统一（AppHeader + AppShell）；前置：CONFIRM-091-001；完成证据：两处语言切换下拉为统一 `FilterSelect`（保持图标形态）；mock boot E2E（语言切换断言）通过。
+- [x] UI-091-004 实现 DataTableRowMenu 自研 popover → HeroUI DropdownMenu；前置：CONFIRM-091-001；完成证据：行菜单弹出层为 HeroUI Dropdown（RAC MenuTrigger/Menu 底座，Portal/定位/键盘/焦点由库承担），危险项隔离保留（`variant="danger"`），`renderRowMenu` 契约不变；data-table-enhancements 单测通过。
+- [x] UI-091-005 实现 data-table-columns 菜单 → DropdownMenu + Check；前置：CONFIRM-091-001；完成证据：列显隐菜单为 HeroUI Dropdown，勾选为统一 `Check`（RAC Checkbox），原生 checkbox/details 移除；单测更新通过。
+- [x] UI-091-006 删除 DangerZone 自研 dialog 残留块（双弹层），确认弹层统一为 RAC ConfirmDialog 并保留输入标识符确认语义；前置：CONFIRM-091-001；完成证据：DangerZone 无双弹层、自研 `role="dialog"` 块删除、`inputConfirmation` 由 ConfirmDialog `confirmInput` 承载（RAC Modal）；status-semantics 单测通过。
+- [x] UI-091-007 实现 WorkspaceContextMenu → RAC Menu；前置：CONFIRM-091-001；完成证据：Shift+F10 上下文菜单为 RAC MenuTrigger/Menu（与溢出菜单同源），自研 `role="menu"` 块删除；WorkspaceTabs 单测更新（查询 body portal）通过。
+- [x] UI-091-008 评估 ThemeDrawer 自研 tab；前置：CONFIRM-091-001；完成条件：评估 RAC Tabs 替换；结论：**保留自研 tab**——当前实现已具备正确 ARIA roving tab 语义（role=tab/aria-selected/tabIndex roving + Home/End/Arrow 键盘，`getThemePanelTargetIndex` 单测覆盖），抽屉本体已是 RAC Modal+Dialog；RAC Tabs 替换收益低（键盘/焦点已达标）且结构变动大（TabList/Tab/TabPanel 重写 + 测试重写），按设计「若与面板交互冲突则记录为后续项」条款记录为保留项；证据：theme-drawer.test.ts。
 
 ## 页面替换
 
-- [ ] PAGE-091-001 迁移 MenusPage 父级 select → SelectField、number input → Field；前置：UI-091-001；完成条件：页面无原生 select/number；证据：typecheck + 扫描。
-- [ ] PAGE-091-002 迁移 AuditPage pageSize select → 统一 Select；前置：UI-091-002；完成条件：页面无原生 select；证据：扫描 + E2E。
-- [ ] PAGE-091-003 迁移 ApiTokensPage scope 原生 checkbox → Check；前置：CONFIRM-091-001；完成条件：页面无原生 checkbox；证据：typecheck + E2E。
+- [x] PAGE-091-001 迁移 MenusPage 父级 select → SelectField、number input → Field；前置：UI-091-001；完成证据：MenusPage 无原生 select/number input（父级用 `SelectField`、排序用 `Field type="number"`）；typecheck 通过。
+- [x] PAGE-091-002 迁移 AuditPage pageSize select → 统一 Select；前置：UI-091-002；完成证据：AuditPage pageSize 用 `FilterSelect`（游标分页自身控件，非统一 Pagination 的 pageSize）；typecheck + mock E2E 通过。
+- [x] PAGE-091-003 迁移 ApiTokensPage scope 原生 checkbox → Check；前置：CONFIRM-091-001；完成证据：scope 多选与"全选"均用统一 `Check`（RAC Checkbox）；api-token mock E2E 更新（点击 label 切换）通过。
 
 ## 样式与 Token
 
-- [ ] STYLE-091-001 删除被替换的自研 CSS（data-table-row-menu-popover、data-table-columns details/summary、danger-zone-confirm 自研、workspace-context-menu 自研）；前置：UI-091-004/005/006/007；完成条件：旧 CSS 零残留；证据：grep 扫描。
-- [ ] STYLE-091-002 统一筛选控件度量（control-height/radius/gap/focus 全部走 token，FilterBar 内 select/input/switch 高度一致）；前置：UI-091-001；完成条件：FilterBar 控件一致遵守 `--control-height-sm` 等 token，无 magic number；证据：样式扫描 + 视觉 E2E。
+- [x] STYLE-091-001 删除被替换的自研 CSS；前置：UI-091-004/005/006/007；完成证据：`.data-table-row-menu-item*`、`.data-table-columns`（容器/菜单/item）、`.danger-zone-confirm*`、`.workspace-context-menu`（自研 fixed 容器）已删除；`.data-table-row-menu-popover` 改为仅宽度（RAC Popover 承担定位）；`.rac-menu-item:disabled` 通用化。
+- [x] STYLE-091-002 统一筛选控件度量；前置：UI-091-001；完成证据：FilterSelect 与筛选控件遵守 `--control-height-md` 等 token（`.filter-select-control [data-slot="trigger"] min-height: var(--control-height-md)`），`.filter-select`/`.filter-bar-fields .filter-select`/响应式选择器同步更新；build 通过。
 
 ## 验证与收尾
 

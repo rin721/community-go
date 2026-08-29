@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActionTrigger, Check, CodeText, EmptyState, InlineAlert, PageFrame, PageHeader, PageSection, StatusBadge, TreeView } from "@webui/sdk/ui";
+import { ActionTrigger, Check, CodeText, EmptyState, Field, InlineAlert, PageFrame, PageHeader, PageSection, SelectField, StatusBadge, TreeView } from "@webui/sdk/ui";
 import { useWebUITranslation, translateMessage, ensureRouteLocale } from "@webui/sdk/i18n";
 import { useHostRuntime } from "@webui/sdk/runtime";
 import { listMenus, updateMenu, type Menu, type MenuList } from "./api";
@@ -124,8 +124,8 @@ export default function MenusPage() {
                 </div>
                 <div className={styles.policyStack}>
                   <div className={styles.policyField}><Check checked={enabled} onChange={setEnabled}>{t("webui.navigation.enabled")}</Check></div>
-                  <label className={styles.policyField}>{t("webui.navigation.parent")}<select className="field-input" value={parent} onChange={(event) => setParent(event.target.value)}><option value="__default">{t("webui.navigation.useDefault")}</option><option value="">{t("webui.navigation.root")}</option>{items.filter((candidate) => candidate.id !== selected.id).map((candidate) => <option value={candidate.id} key={candidate.id}>{menuTitle(candidate)}</option>)}</select></label>
-                  <label className={styles.policyField}>{t("webui.navigation.order")}<input type="number" className="field-input" value={order} placeholder={String(selected.defaultOrder)} onChange={(event) => setOrder(event.target.value)} /></label>
+                  <div className={styles.policyField}><SelectField label={t("webui.navigation.parent")} value={parent} onValueChange={setParent} options={[{ value: "__default", label: t("webui.navigation.useDefault") }, { value: "", label: t("webui.navigation.root") }, ...items.filter((candidate) => candidate.id !== selected.id).map((candidate) => ({ value: candidate.id, label: menuTitle(candidate) }))]} /></div>
+                  <div className={styles.policyField}><Field label={t("webui.navigation.order")} type="number" value={order} placeholder={String(selected.defaultOrder)} onChange={(event) => setOrder(event.target.value)} /></div>
                   <div className="row-actions">
                     <ActionTrigger operationId="navigation.menus.update" pendingLabel={t("webui.navigation.save")} onAction={save}>{t("webui.navigation.save")}</ActionTrigger>
                   </div>

@@ -66,9 +66,10 @@ describe("082 DataTable 增强", () => {
       }),
     );
     expect(markup).toContain("data-table-toolbar");
-    expect(markup).toContain("data-table-columns-menu");
-    // visible:false 的列不出现在菜单（不可被恢复，保持既有语义）
-    expect(markup).not.toContain('aria-checked="false"');
+    // 091：列菜单 trigger 为统一按钮（HeroUI Dropdown）；popover 内容经 Portal
+    // 渲染，在 renderToStaticMarkup 中不出现，由 mock E2E 做真实 DOM 验证。
+    expect(markup).toContain("data-table-columns-toggle");
+    expect(markup).not.toContain("<details");
   });
 
   it("renderRowMenu 渲染真实操作按钮并在空数组时不渲染菜单列", () => {

@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type CSSProperties, type ReactNode } from "react";
-import { Checkbox as RACCheckbox, Dialog as RACDialog, Modal as RACModal, Switch as RACSwitch } from "react-aria-components";
+import { Dialog as RACDialog, Modal as RACModal } from "react-aria-components";
 import { Button as HeroButton, Card, Pagination as HeroPagination, ToastProvider } from "@heroui/react";
 import { Check as CheckIcon, ChevronDown, ChevronRight, Copy, Search } from "lucide-react";
 import type { CapabilityState } from "../contracts";
@@ -117,17 +117,9 @@ export function IconButton({ label, title, onClick, onPress, className = "", chi
   return <HeroButton ref={buttonRef} type="button" isIconOnly variant="ghost" size="sm" aria-label={label} isDisabled={disabled} onPress={() => (onPress ?? onClick)?.()} className={`icon-button ${className}`.trim()} {...data}>{children}</HeroButton>;
 }
 
-// Check 是复选框原语（react-aria-components 底座，HeroUI v3 交互引擎）：
-// children 作为可访问名子节点；checked/onChange(boolean)/indeterminate 契约。
-export function Check({ children, checked, onChange, disabled, className = "", indeterminate = false }: { children: ReactNode; checked: boolean; onChange?: (checked: boolean) => void; disabled?: boolean; className?: string; indeterminate?: boolean }) {
-  return <RACCheckbox isSelected={checked} isIndeterminate={indeterminate} isDisabled={disabled} onChange={(next) => onChange?.(next)} className={`rac-checkbox ${className}`.trim()}>{children}</RACCheckbox>;
-}
-
-// Switch 是开关原语（react-aria-components 底座）：label 子节点提供可访问名，
-// ariaLabel 提供替代可访问名（配合外部视觉标签行）；视觉走 .rac-switch 平台类。
-export function Switch({ label, ariaLabel, checked, onChange, disabled, className = "" }: { label?: ReactNode; ariaLabel?: string; checked: boolean; onChange?: (checked: boolean) => void; disabled?: boolean; className?: string }) {
-  return <RACSwitch isSelected={checked} isDisabled={disabled} aria-label={ariaLabel} onChange={(next) => onChange?.(next)} className={`rac-switch ${className}`.trim()}>{label}</RACSwitch>;
-}
+import { Check, Switch } from "./primitives";
+// Check/Switch 原语独立于 primitives.tsx（RAC 底座），供 index.tsx 与 data.tsx 共享。
+export { Check, Switch } from "./primitives";
 
 // SectionNavItem 是页内分区导航项：id 用于 activeId/onSelect，href 存在时按链接渲染。
 export type SectionNavItem = { id: string; label: ReactNode; icon?: ReactNode; href?: string };
@@ -166,15 +158,18 @@ export function SectionNav({ items, activeId, onSelect, className = "", ariaLabe
   );
 }
 
-export function ConfirmDialog({ open, title, description, confirmLabel, cancelLabel, closeLabel, onConfirm, onCancel }: { open: boolean; title: string; description?: string; confirmLabel: string; cancelLabel: string; closeLabel: string; onConfirm: () => void; onCancel: () => void }) {
+export function ConfirmDialog({ open, title, description, confirmLabel, cancelLabel, closeLabel, onConfirm, onCancel, confirmInput }: { open: boolean; title: string; description?: string; confirmLabel: string; cancelLabel: string; closeLabel: string; onConfirm: () => void; onCancel: () => void; confirmInput?: { expected: string; label: ReactNode } }) {
   const titleID = `webui-confirm-title-${useId().replaceAll(":", "")}`;
+  const [typed, setTyped] = useState("");
+  const canConfirm = !confirmInput || typed === confirmInput.expected;
   // 069：确认弹窗迁到 RAC 受控 Modal+Dialog（焦点/Escape/backdrop 由 react-aria 承担）。
   return (
-    <RACModal isOpen={open} onOpenChange={(next) => { if (!next) onCancel(); }} isDismissable className="rac-modal-backdrop">
+    <RACModal isOpen={open} onOpenChange={(next) => { if (!next) { setTyped(""); onCancel(); } }} isDismissable className="rac-modal-backdrop">
       <RACDialog aria-label={title} id={titleID} className="rac-modal-panel">
-        <header className="confirm-dialog-header"><h2 id={titleID}>{title}</h2><IconButton label={closeLabel} onClick={onCancel}>×</IconButton></header>
+        <header className="confirm-dialog-header"><h2 id={titleID}>{title}</h2><IconButton label={closeLabel} onClick={() => { setTyped(""); onCancel(); }}>×</IconButton></header>
         {description && <p id={`${titleID}-description`} className="confirm-dialog-description">{description}</p>}
-        <footer className="confirm-dialog-footer"><Button type="button" variant="secondary" data-confirm-initial-focus onClick={onCancel}>{cancelLabel}</Button><Button type="button" variant="danger" onClick={onConfirm}>{confirmLabel}</Button></footer>
+        {confirmInput && <label className="confirm-dialog-input">请输入 <code>{confirmInput.expected}</code> 以确认<input type="text" value={typed} onChange={(event) => setTyped(event.target.value)} /></label>}
+        <footer className="confirm-dialog-footer"><Button type="button" variant="secondary" data-confirm-initial-focus onClick={() => { setTyped(""); onCancel(); }}>{cancelLabel}</Button><Button type="button" variant="danger" disabled={!canConfirm} onClick={() => { setTyped(""); onConfirm(); }}>{confirmLabel}</Button></footer>
       </RACDialog>
     </RACModal>
   );
@@ -565,29 +560,16 @@ export function DangerZone({ title, consequence, confirmTitleText, inputConfirma
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [typed, setTyped] = useState("");
   const [failed, setFailed] = useState(false);
-  const requireInput = Boolean(inputConfirmation);
-  const canConfirm = !requireInput || typed === inputConfirmation;
   const run = () => {
     setFailed(false);
     void onConfirm().catch(() => setFailed(true)).finally(() => setOpen(false));
   };
   return (
     <div className={`danger-zone ${className}`.trim()}>
-      <div className="danger-zone-header"><strong className="danger-zone-title">{title}</strong><button type="button" className="ui-button" onClick={() => { setTyped(""); setFailed(false); setOpen(true); }}>{confirmLabel}</button></div>
+      <div className="danger-zone-header"><strong className="danger-zone-title">{title}</strong><button type="button" className="ui-button" onClick={() => { setFailed(false); setOpen(true); }}>{confirmLabel}</button></div>
       <div className="danger-zone-consequence">{consequence}</div>
-      <ConfirmDialog open={open} title={confirmTitleText ?? title} description={failed ? "操作失败，请重试。" : undefined} confirmLabel={confirmLabel} cancelLabel={cancelLabel} closeLabel={closeLabel} onConfirm={() => { setOpen(false); run(); }} onCancel={() => setOpen(false)} />
-      {open && (
-        <div className="danger-zone-confirm" role="dialog" aria-modal="true" aria-label={confirmTitleText ?? title}>
-          <p>{consequence}</p>
-          {requireInput && <label className="danger-zone-confirm-input">请输入 <code>{inputConfirmation}</code> 以确认<input type="text" value={typed} onChange={(event) => setTyped(event.target.value)} /></label>}
-          <div className="danger-zone-confirm-actions">
-            <button type="button" className="ui-button" disabled={!canConfirm || busy} onClick={() => { setFailed(false); void run(); }}>{busy ? busyLabel ?? translateMessage("webui.host.loading.label") : confirmLabel}</button>
-            <button type="button" className="ui-button" onClick={() => setOpen(false)}>{cancelLabel}</button>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog open={open} title={confirmTitleText ?? title} description={failed ? "操作失败，请重试。" : undefined} confirmLabel={confirmLabel} cancelLabel={cancelLabel} closeLabel={closeLabel} confirmInput={inputConfirmation ? { expected: inputConfirmation, label: inputConfirmation } : undefined} onConfirm={() => { setOpen(false); run(); }} onCancel={() => setOpen(false)} />
     </div>
   );
 }

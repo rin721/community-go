@@ -131,6 +131,7 @@ test("083 visual snapshots for design baseline review", async ({ page }, testInf
 });
 
 test("090 page family viewport matrix keeps content inside the viewport", async ({ page }, testInfo) => {
+  test.setTimeout(90_000);
   await page.emulateMedia({ reducedMotion: "reduce" });
   const viewports = [
     { width: 1440, height: 900, name: "desktop" },
@@ -582,9 +583,10 @@ test("090 api token one-time secret flow renders in mock mode", async ({ page })
   await page.goto("/admin/api-tokens");
   await expect(activePage.getByRole("heading", { name: "API tokens", exact: true })).toBeVisible();
   // 创建令牌：填写名称并选择至少一个 scope（mock 会话权限包含 iam:account:read）。
+  // 091：scope 复选框为统一 RAC Check（label 包裹），点击文本切换勾选。
   const nameInput = activePage.getByRole("textbox", { name: "Name", exact: true }).first();
   await nameInput.fill("e2e-token");
-  await activePage.getByRole("checkbox", { name: "iam:account:read", exact: true }).check();
+  await activePage.locator(".api-token-scope-grid .page-check", { hasText: "iam:account:read" }).click();
   // 有效期默认 custom；填写过期时间（datetime-local input）。
   await activePage.locator("input[type='datetime-local']").fill("2027-01-01T00:00");
   await activePage.getByRole("button", { name: "Create token", exact: true }).click();

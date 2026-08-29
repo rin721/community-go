@@ -1040,17 +1040,7 @@ kbd {
   color: var(--primary);
   background: var(--primary-soft);
 }
-.workspace-context-menu {
-  position: fixed;
-  z-index: var(--z-overlay);
-  min-width: var(--workspace-tabs-context-menu-min-width);
-  padding: var(--menu-popover-padding);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  box-shadow: var(--shadow);
-}
-.workspace-context-menu .rac-menu-item:disabled {
+.rac-menu-item:disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }
@@ -2244,45 +2234,11 @@ textarea.field-input {
   margin-left: auto;
   margin-bottom: var(--space-2);
 }
-.data-table-columns {
-  position: relative;
-}
 .data-table-columns-toggle {
-  cursor: pointer;
-  user-select: none;
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--text-secondary);
-  font-size: 12px;
-}
-.data-table-columns-menu {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 4px);
-  min-width: 180px;
-  padding: var(--space-2);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-md);
-  z-index: var(--z-account-menu);
-  display: grid;
-  gap: 2px;
-}
-.data-table-columns-item {
-  display: flex;
+  /* 091：列显隐 trigger 复用 ui-button 形态，仅保留行内图标/文本间距。 */
+  display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-2);
-  border-radius: var(--radius-xs);
-  cursor: pointer;
-  color: var(--text);
-  font-size: 13px;
-}
-.data-table-columns-item:hover {
-  background: var(--surface-muted);
 }
 .data-table-row-menu {
   display: flex;
@@ -2320,42 +2276,12 @@ textarea.field-input {
   background: var(--primary-soft);
 }
 .data-table-row-menu-popover {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 4px);
-  z-index: var(--z-dropdown);
-  min-width: 150px;
-  padding: 5px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
-}
-.data-table-row-menu-item {
-  display: block;
-  width: 100%;
-  padding: 8px 10px;
-  color: var(--text);
-  background: transparent;
-  border: 0;
-  border-radius: var(--radius-sm);
-  font-size: 12px;
-  text-align: left;
-}
-.data-table-row-menu-item:hover {
-  background: var(--surface-muted);
+  /* 091：弹出层为 HeroUI Dropdown（RAC Popover，定位/Portal 由库承担）；
+     项目只提供宽度与留白，不再自绘绝对定位容器。 */
+  min-width: 160px;
 }
 .data-table-row-menu-danger {
   color: var(--danger);
-}
-.data-table-row-menu-border {
-  border-top: 1px solid var(--border);
-  margin-top: 4px;
-  padding-top: 9px;
-  border-radius: 0;
-  border-left: 0;
-  border-right: 0;
-  border-bottom: 0;
 }
 .pagination-total {
   display: block;
@@ -2435,7 +2361,7 @@ textarea.field-input {
   font-size: 12px;
   color: var(--text-secondary);
 }
-/* 084：FilterBar 紧凑下拉（行内标签 + 原生 select） */
+/* 091：FilterBar 紧凑下拉（行内标签 + HeroUI Select，替代 084 原生 select） */
 .filter-select {
   display: inline-flex;
   align-items: center;
@@ -2443,11 +2369,11 @@ textarea.field-input {
   font-size: 12px;
   color: var(--text-secondary);
 }
-.filter-select .field-input {
-  width: auto;
+.filter-select .filter-select-control {
   min-width: 136px;
+}
+.filter-select .filter-select-control [data-slot="trigger"] {
   min-height: var(--control-height-md);
-  padding: 0 var(--control-padding-x);
 }
 .filter-field input {
   width: 168px;
@@ -2663,30 +2589,6 @@ textarea.field-input {
   font-size: 13px;
   color: var(--text-secondary);
   line-height: var(--font-lineheight-normal);
-}
-.danger-zone-confirm {
-  display: grid;
-  gap: var(--space-3);
-  margin-top: var(--space-3);
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--border);
-}
-.danger-zone-confirm-input {
-  display: grid;
-  gap: 6px;
-  font-size: 13px;
-  color: var(--text);
-}
-.danger-zone-confirm-input input {
-  height: var(--control-height-md);
-  padding: 0 var(--control-padding-x);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--control-radius);
-  font-size: var(--font-scale-md);
-}
-.danger-zone-confirm-actions {
-  display: flex;
-  gap: 8px;
 }
 .error-state {
   display: flex;
@@ -4059,7 +3961,7 @@ textarea.field-input {
 .filter-bar-fields .filter-bar-trailing {
   margin-left: auto;
 }
-.filter-bar-fields .filter-select .field-input {
+.filter-bar-fields .filter-select .filter-select-control {
   width: var(--filter-select-width);
   min-width: 0;
 }
@@ -4148,7 +4050,7 @@ textarea.field-input {
     margin-left: 0;
   }
   .filter-select,
-  .filter-select .field-input,
+  .filter-select .filter-select-control,
   .filter-field input {
     width: 100%;
   }

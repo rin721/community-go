@@ -199,7 +199,8 @@ function collectOverflowTabs(rail: HTMLElement, tabs: WorkspaceTabView[]): Works
   return hidden;
 }
 
-// WorkspaceContextMenu 是 Shift+F10/溢出的上下文菜单（复用 RAC menu item 视觉）。
+// WorkspaceContextMenu 是 Shift+F10/溢出的上下文菜单（RAC MenuTrigger 受控形态，
+// 091：替代自研 role=menu；与溢出菜单同源，Portal/定位/键盘/焦点由库承担）。
 function WorkspaceContextMenu({ tab, canRestore, onClose, onCloseOthers, onCloseRight, onPin, onUnpin, onRestore }: {
   tab: WorkspaceTabView;
   canRestore: boolean;
@@ -210,17 +211,22 @@ function WorkspaceContextMenu({ tab, canRestore, onClose, onCloseOthers, onClose
   onUnpin: (id: WorkspaceID) => void;
   onRestore: () => void;
 }) {
-  const actions: Array<{ id: string; label: string; icon: ReactNode; disabled?: boolean; run: () => void }> = [
+  const actions: ReadonlyArray<{ id: string; label: string; icon: ReactNode; disabled?: boolean; run: () => void }> = [
     { id: "pin", label: translateMessage(tab.pinned ? "webui.host.workspace.unpin" : "webui.host.workspace.pin"), icon: tab.pinned ? <PinOff size={15} /> : <Pin size={15} />, run: () => (tab.pinned ? onUnpin(tab.id) : onPin(tab.id)) },
     { id: "closeOthers", label: translateMessage("webui.host.workspace.closeOthers"), icon: <History size={15} />, run: () => onCloseOthers(tab.id) },
     { id: "closeRight", label: translateMessage("webui.host.workspace.closeRight"), icon: <History size={15} />, run: () => onCloseRight(tab.id) },
     { id: "restore", label: translateMessage("webui.host.workspace.restore"), icon: <History size={15} />, disabled: !canRestore, run: onRestore },
   ];
   return (
-    <div className="workspace-context-menu" role="menu" aria-label={translateMessage("webui.host.workspace.tabs.label")} data-testid="workspace-context-menu" onKeyDown={(event) => { if (event.key === "Escape") onClose(); }}>
-      {actions.map((action) => (
-        <button key={action.id} type="button" role="menuitem" className="rac-menu-item" data-action={action.id} disabled={action.disabled} onClick={() => { action.run(); onClose(); }}>{action.icon}{action.label}</button>
-      ))}
-    </div>
+    <MenuTrigger isOpen onOpenChange={(next) => { if (!next) onClose(); }}>
+      <div className="workspace-context-menu-anchor" aria-hidden="true" />
+      <Popover className="rac-menu-popover" placement="bottom start">
+        <Menu aria-label={translateMessage("webui.host.workspace.tabs.label")} className="rac-menu" data-testid="workspace-context-menu" onAction={(key) => { const action = actions.find((item) => item.id === String(key)); if (action) { action.run(); onClose(); } }}>
+          {actions.map((action) => (
+            <MenuItem key={action.id} id={action.id} isDisabled={action.disabled} className="rac-menu-item" data-action={action.id}>{action.icon}{action.label}</MenuItem>
+          ))}
+        </Menu>
+      </Popover>
+    </MenuTrigger>
   );
 }

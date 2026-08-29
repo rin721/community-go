@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Button, CodeText, CodeViewer, DataTable, DetailDrawer, EmptyState, ErrorState, FilterBar, formatDateTime, formatRelativeTime, PageFrame, PageHeader, PageSection, ResourceIndex, Skeleton, StatusBadge } from "@webui/sdk/ui";
+import { Button, CodeText, CodeViewer, DataTable, DetailDrawer, EmptyState, ErrorState, FilterBar, FilterSelect, formatDateTime, formatRelativeTime, PageFrame, PageHeader, PageSection, ResourceIndex, Skeleton, StatusBadge } from "@webui/sdk/ui";
 import { useListQueryParams, type ProblemError } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { auditEvent, listAuditEvents, type AuditEventView, type AuditFilter, type AuditOutcome } from "./api";
@@ -192,7 +192,7 @@ export default function AuditPage() {
             <span className="audit-pagination-page" aria-label={t("webui.auth.audit.page")}>{t("webui.auth.audit.pageLabel", { page: currentPage })}</span>
             <Button variant="secondary" disabled={cursorStack.length === 0 || loading} onClick={() => void goPrevious()}>{t("webui.auth.audit.previous")}</Button>
             <Button variant="secondary" disabled={!hasMore || loading} onClick={() => void goNext()}>{t("webui.auth.audit.next")}</Button>
-            <select aria-label={t("webui.auth.audit.pageSize")} value={listQuery.pageSize} onChange={(event) => listQuery.setPageSize(Number(event.target.value))} className="pagination-size">{[20, 50, 100].map((option) => <option value={option} key={option}>{option}</option>)}</select>
+            <FilterSelect ariaLabel={t("webui.auth.audit.pageSize")} value={String(listQuery.pageSize)} options={[20, 50, 100].map((option) => ({ value: String(option), label: String(option) }))} onValueChange={(next) => listQuery.setPageSize(Number(next))} className="pagination-size" />
           </div>
         </ResourceIndex>
       </PageSection>

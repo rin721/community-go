@@ -99,8 +99,10 @@ describe("WorkspaceTabs 呈现与键盘（REQ-085-003/010）", () => {
     const { host, calls } = renderTabs(state);
     const [first] = Array.from(host.querySelectorAll('[role="tab"]')) as HTMLButtonElement[];
     act(() => { first.dispatchEvent(new KeyboardEvent("keydown", { key: "F10", shiftKey: true, bubbles: true })); });
-    expect(host.querySelector('[role="menu"]')).not.toBeNull();
-    const items = Array.from(host.querySelectorAll('[role="menuitem"]'));
+    // 091：上下文菜单为 RAC Menu（经 Popover，portal 挂到 body 附近 fragment，非 host 内）。
+    const menu = document.body.querySelector('[role="menu"]');
+    expect(menu).not.toBeNull();
+    const items = Array.from(document.body.querySelectorAll('[role="menuitem"]'));
     expect(items.length).toBeGreaterThanOrEqual(4);
     // 触发「关闭其他」动作（data-action 稳定定位，不依赖文案）。
     const closeOthersItem = items.find((item) => item.getAttribute("data-action") === "closeOthers");

@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type HTMLAttributes, type ReactNode } from "react";
-import { Table } from "@heroui/react";
+import { Dropdown, DropdownItem, DropdownMenu, DropdownPopover, DropdownRoot, DropdownTrigger, Table } from "@heroui/react";
 import { MoreHorizontal } from "lucide-react";
 import { translateMessage } from "../i18n";
 import { Skeleton } from "./feedback";
+import { Check } from "./primitives";
 
 export type DataTableColumn<Row> = { id: string; header: ReactNode; cell: (row: Row, index: number) => ReactNode; className?: string; visible?: boolean };
 
@@ -81,7 +82,16 @@ export function DataTable<Row>({ columns, rows, ariaLabel, getRowKey = (_row, in
   const hasColumnMenu = Boolean(columnVisibility) && columns.some((column) => column.visible !== false);
   const hasRowMenu = Boolean(renderRowMenu);
   return <Table.Root className="data-table-wrap" data-density={density} data-sticky={stickyHeader || undefined} {...wrapperProps}>
-    {hasColumnMenu && <div className="data-table-toolbar"><details className="data-table-columns" aria-label={columnMenuLabel ?? translateMessage("webui.host.ui.columns")}><summary role="button" tabIndex={0} className="data-table-columns-toggle">{columnMenuLabel ?? translateMessage("webui.host.ui.columns")}</summary><div role="menu" className="data-table-columns-menu">{columns.filter((column) => column.visible !== false).map((column) => <label key={column.id} className="data-table-columns-item" role="menuitemcheckbox" aria-checked={!hiddenColumns.has(column.id)}><input type="checkbox" checked={!hiddenColumns.has(column.id)} onChange={() => toggleColumn(column.id)} />{column.header}</label>)}</div></details></div>}
+    {hasColumnMenu && <div className="data-table-toolbar"><DropdownRoot>
+      <DropdownTrigger>
+        <button type="button" className="ui-button data-table-columns-toggle" aria-label={columnMenuLabel ?? translateMessage("webui.host.ui.columns")}>{columnMenuLabel ?? translateMessage("webui.host.ui.columns")}</button>
+      </DropdownTrigger>
+      <DropdownPopover className="data-table-columns-menu">
+        <DropdownMenu className="data-table-columns-list">
+          {columns.filter((column) => column.visible !== false).map((column) => <DropdownItem key={column.id} textValue={typeof column.header === "string" ? column.header : String(column.header)}><label className="data-table-columns-item"><Check checked={!hiddenColumns.has(column.id)} onChange={() => toggleColumn(column.id)}>{column.header}</Check></label></DropdownItem>)}
+        </DropdownMenu>
+      </DropdownPopover>
+    </DropdownRoot></div>}
     <Table.Content className="data-table" aria-label={ariaLabel} aria-busy={loading}>
       <Table.Header>{selectable && <Table.Column id="selection"><input ref={headerSelectionRef} type="checkbox" checked={allSelected} onChange={toggleAll} aria-checked={partiallySelected ? "mixed" : allSelected} aria-label={selectionLabel} /></Table.Column>}{visibleColumns.map((column, index) => <Table.Column id={column.id} className={column.className} isRowHeader={index === 0} key={column.id}>{column.header}</Table.Column>)}{hasRowMenu && <Table.Column id="row-menu" aria-label={columnMenuLabel ?? ""} style={{ width: 104 }}>{rowMenuHeader}</Table.Column>}</Table.Header>
       <Table.Body>
@@ -93,21 +103,22 @@ export function DataTable<Row>({ columns, rows, ariaLabel, getRowKey = (_row, in
   </Table.Root>;
 }
 
-/** DataTableRowMenu 只将次要动作收进更多菜单，危险动作不与主动作混淆。 */
+/** DataTableRowMenu 只将次要动作收进更多菜单，危险动作不与主动作混淆。
+ * 091：弹出层改为 HeroUI Dropdown（RAC MenuTrigger/Menu 底座，Portal/定位/
+ * 键盘导航/焦点管理由库承担），替代自研绝对定位 popover。 */
 export function DataTableRowMenu<Row>({ row, index, renderRowMenu, moreLabel = "…" }: { row: Row; index: number; renderRowMenu: (row: Row, index: number) => ReadonlyArray<{ key: string; label: ReactNode; onSelect: () => void; danger?: boolean }>; moreLabel?: string }) {
   const items = renderRowMenu(row, index);
   if (items.length === 0) return null;
   const primary = items.find((item) => !item.danger);
   const rest = items.filter((item) => item !== primary);
-  const [open, setOpen] = useState(false);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const close = (event: globalThis.MouseEvent) => { if (buttonRef.current && !buttonRef.current.contains(event.target as Node)) setOpen(false); };
-    const closeKey = (event: KeyboardEvent) => { if (event.key === "Escape") setOpen(false); };
-    document.addEventListener("mousedown", close);
-    document.addEventListener("keydown", closeKey);
-    return () => { document.removeEventListener("mousedown", close); document.removeEventListener("keydown", closeKey); };
-  }, [open]);
-  return <div className="data-table-row-menu">{primary && <button type="button" className="ui-button data-table-row-primary" onClick={primary.onSelect}>{primary.label}</button>}{rest.length > 0 && <><button ref={buttonRef} type="button" className="ui-button data-table-row-more" aria-expanded={open} aria-haspopup="menu" onClick={() => setOpen((current) => !current)} aria-label={moreLabel}><MoreHorizontal size={15} aria-hidden="true" /></button>{open && <div className="data-table-row-menu-popover" role="menu">{rest.map((item, itemIndex) => <button key={item.key} type="button" role="menuitem" className={`data-table-row-menu-item ${item.danger ? "data-table-row-menu-danger" : ""} ${itemIndex === rest.length - 1 && item.danger ? "data-table-row-menu-border" : ""}`} onClick={() => { setOpen(false); item.onSelect(); }}>{item.label}</button>)}</div>}</>}</div>;
+  return <div className="data-table-row-menu">{primary && <button type="button" className="ui-button data-table-row-primary" onClick={primary.onSelect}>{primary.label}</button>}{rest.length > 0 && <DropdownRoot>
+    <DropdownTrigger>
+      <button type="button" className="ui-button data-table-row-more" aria-label={moreLabel}><MoreHorizontal size={15} aria-hidden="true" /></button>
+    </DropdownTrigger>
+    <DropdownPopover className="data-table-row-menu-popover">
+      <DropdownMenu className="data-table-row-menu-list">
+        {rest.map((item) => <DropdownItem key={item.key} variant={item.danger ? "danger" : undefined} onAction={() => item.onSelect()} className={item.danger ? "data-table-row-menu-danger" : ""}>{item.label}</DropdownItem>)}
+      </DropdownMenu>
+    </DropdownPopover>
+  </DropdownRoot>}</div>;
 }

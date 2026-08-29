@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActionTrigger, BatchResultSummary, BulkActionBar, Button, CodeText, ConfirmDialog, DataTable, EmptyState, ErrorState, Field, FilterBar, formatDateTime, InlineAlert, PageFrame, PageHeader, PageSection, Pagination, ResourceIndex, SelectField, StatusBadge } from "@webui/sdk/ui";
+import { ActionTrigger, BatchResultSummary, BulkActionBar, Button, Check, CodeText, ConfirmDialog, DataTable, EmptyState, ErrorState, Field, FilterBar, formatDateTime, InlineAlert, PageFrame, PageHeader, PageSection, Pagination, ResourceIndex, SelectField, StatusBadge } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { useListQueryParams, type ProblemError } from "@webui/sdk/query";
 import { batchRevokeApiTokens, createApiToken, disableApiToken, enableApiToken, listApiTokens, loadSession, revokeApiToken, rotateApiToken, updateApiToken, type ApiTokenView } from "./api";
@@ -153,14 +153,11 @@ export default function ApiTokensPage() {
                   <div className="api-token-scope-group" key={group.ownerModuleId}>
                     <div className="api-token-scope-head">
                       <h4 className="api-token-scope-owner">{group.ownerModuleId}<span className={styles.scopeOwnerCount}>{String(group.scopes.length)}</span></h4>
-                      <label className="scope-select-all"><input type="checkbox" checked={groupAllSelected} onChange={setGroupScopes} />{t("webui.iam.apiTokens.selectAll")}</label>
+                      <Check checked={groupAllSelected} onChange={setGroupScopes} className="scope-select-all">{t("webui.iam.apiTokens.selectAll")}</Check>
                     </div>
                     <div className="api-token-scope-grid">
                       {group.scopes.map((scope) => (
-                        <label key={scope} className="page-check">
-                          <input type="checkbox" checked={selectedScopes.includes(scope)} onChange={() => { setTouched(true); toggleScope(scope); }} />
-                          <span>{scope === "*" ? t("webui.iam.apiTokens.scopeWildcard") : scope}</span>
-                        </label>
+                        <Check key={scope} checked={selectedScopes.includes(scope)} onChange={() => { setTouched(true); toggleScope(scope); }} className="page-check">{scope === "*" ? t("webui.iam.apiTokens.scopeWildcard") : scope}</Check>
                       ))}
                     </div>
                   </div>

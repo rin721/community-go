@@ -19,17 +19,6 @@ type FieldTextProps = Readonly<{
   error?: string;
 }>;
 
-const fieldRootClass = 'grid w-full gap-2 text-sm';
-const fieldLabelClass = 'font-semibold text-ink';
-const fieldControlClass =
-  'min-h-11 w-full rounded-control border border-border bg-surface px-3.5 text-sm font-normal text-ink shadow-sm outline-none placeholder:text-ink-muted/70 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-55 data-[focus-visible]:border-brand data-[invalid]:border-danger';
-const fieldHintClass = 'text-xs font-normal leading-5 text-ink-muted';
-const fieldErrorClass = 'text-xs font-medium leading-5 text-danger';
-const popupClass =
-  'max-h-72 min-w-56 overflow-auto rounded-panel border border-border bg-surface-raised p-1.5 text-ink shadow-overlay';
-const optionClass =
-  'flex min-h-10 cursor-default items-center justify-between gap-3 rounded-control px-3 py-2 text-sm outline-none data-[disabled]:opacity-45 data-[focused]:bg-surface-muted data-[selected]:bg-brand-soft data-[selected]:font-semibold data-[selected]:text-brand';
-
 type FieldValueProps =
   | Readonly<{ value: string; defaultValue?: never }>
   | Readonly<{ value?: never; defaultValue?: string }>;
@@ -55,19 +44,19 @@ export function TextField({
 }: TextFieldProps) {
   return (
     <HeroTextField
-      className={fieldRootClass}
+      className="ui-field"
       isDisabled={disabled}
       isInvalid={Boolean(error)}
       {...(name ? { name } : {})}
       {...(value !== undefined ? { value } : {})}
       {...(defaultValue !== undefined ? { defaultValue } : {})}
     >
-      <Label className={fieldLabelClass}>{label}</Label>
-      <Input className={fieldControlClass} {...inputProps} />
+      <Label className="ui-field-label">{label}</Label>
+      <Input className="ui-field-control" {...inputProps} />
       {error ? (
-        <FieldError className={fieldErrorClass}>{error}</FieldError>
+        <FieldError className="ui-field-error">{error}</FieldError>
       ) : hint ? (
-        <Description className={fieldHintClass}>{hint}</Description>
+        <Description className="ui-field-hint">{hint}</Description>
       ) : null}
     </HeroTextField>
   );
@@ -96,19 +85,19 @@ export function TextAreaField({
 }: TextAreaFieldProps) {
   return (
     <HeroTextField
-      className={fieldRootClass}
+      className="ui-field"
       isDisabled={disabled}
       isInvalid={Boolean(error)}
       {...(name ? { name } : {})}
       {...(value !== undefined ? { value } : {})}
       {...(defaultValue !== undefined ? { defaultValue } : {})}
     >
-      <Label className={fieldLabelClass}>{label}</Label>
-      <TextArea className={`${fieldControlClass} resize-y py-3`} rows={rows} {...inputProps} />
+      <Label className="ui-field-label">{label}</Label>
+      <TextArea className="ui-field-control resize-y py-3" rows={rows} {...inputProps} />
       {error ? (
-        <FieldError className={fieldErrorClass}>{error}</FieldError>
+        <FieldError className="ui-field-error">{error}</FieldError>
       ) : hint ? (
-        <Description className={fieldHintClass}>{hint}</Description>
+        <Description className="ui-field-hint">{hint}</Description>
       ) : null}
     </HeroTextField>
   );
@@ -149,9 +138,10 @@ export function SelectField({
   const disabledKeys = options.filter((option) => option.disabled).map((option) => option.value);
   return (
     <Select
-      className={fieldRootClass}
+      className="ui-field"
       defaultOpen={defaultOpen}
       disabledKeys={disabledKeys}
+      fullWidth
       isDisabled={disabled}
       isInvalid={Boolean(error)}
       onChange={(key) => {
@@ -162,21 +152,21 @@ export function SelectField({
       {...(placeholder ? { placeholder } : {})}
       {...(value !== undefined ? { value } : {})}
     >
-      <Label className={fieldLabelClass}>{label}</Label>
-      <Select.Trigger className={`${fieldControlClass} flex items-center justify-between gap-3`}>
+      <Label className="ui-field-label">{label}</Label>
+      <Select.Trigger className="ui-field-control flex items-center justify-between gap-3">
         <Select.Value className="min-w-0 flex-1 truncate text-left" />
         <Select.Indicator className="size-4 shrink-0 text-ink-muted" />
       </Select.Trigger>
       {error ? (
-        <FieldError className={fieldErrorClass}>{error}</FieldError>
+        <FieldError className="ui-field-error">{error}</FieldError>
       ) : hint ? (
-        <Description className={fieldHintClass}>{hint}</Description>
+        <Description className="ui-field-hint">{hint}</Description>
       ) : null}
-      <Select.Popover className={popupClass}>
-        <ListBox className="outline-none">
+      <Select.Popover className="ui-overlay-surface ui-anchored-overlay-match-trigger">
+        <ListBox className="ui-listbox">
           {options.map((option) => (
             <ListBox.Item
-              className={optionClass}
+              className="ui-option"
               id={option.value}
               key={option.value}
               textValue={option.label}
@@ -219,7 +209,8 @@ export function ComboField({
 }: ComboFieldProps) {
   return (
     <ComboBox
-      className={fieldRootClass}
+      className="ui-field"
+      fullWidth
       isDisabled={disabled}
       isInvalid={Boolean(error)}
       menuTrigger="focus"
@@ -228,8 +219,8 @@ export function ComboField({
       }}
       {...(value !== undefined ? { selectedKey: value } : {})}
     >
-      <Label className={fieldLabelClass}>{label}</Label>
-      <ComboBox.InputGroup className={`${fieldControlClass} flex items-center gap-2 px-0`}>
+      <Label className="ui-field-label">{label}</Label>
+      <ComboBox.InputGroup className="ui-field-control flex items-center gap-2 px-0">
         <Input
           className="min-w-0 flex-1 bg-transparent px-3.5 outline-none"
           placeholder={placeholder}
@@ -237,15 +228,15 @@ export function ComboField({
         <ComboBox.Trigger className="mr-1 grid size-9 shrink-0 place-items-center rounded-control text-ink-muted hover:bg-surface-muted" />
       </ComboBox.InputGroup>
       {error ? (
-        <FieldError className={fieldErrorClass}>{error}</FieldError>
+        <FieldError className="ui-field-error">{error}</FieldError>
       ) : hint ? (
-        <Description className={fieldHintClass}>{hint}</Description>
+        <Description className="ui-field-hint">{hint}</Description>
       ) : null}
-      <ComboBox.Popover className={popupClass}>
-        <ListBox className="outline-none">
+      <ComboBox.Popover className="ui-overlay-surface ui-anchored-overlay-match-trigger">
+        <ListBox className="ui-listbox">
           {options.map((option) => (
             <ListBox.Item
-              className={optionClass}
+              className="ui-option"
               id={option.value}
               key={option.value}
               textValue={option.label}

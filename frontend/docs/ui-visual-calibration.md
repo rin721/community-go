@@ -28,6 +28,10 @@ TailAdmin 的 `UI Elements` 用于校准后台产品的视觉秩序和组件完�
 - 状态完整性：Default、Hover、Focus、Active、Selected、Disabled、Loading、Error、Open、Closed 都属于组件契约，不能只验证静态 Trigger。
 - Overlay：Trigger 和浮层使用同一视觉语言；浮层需同时治理背景、边框、圆角、阴影、间距、文字、Hover、Selected、Focus、Disabled 和 Motion。
 
+本轮实际复核 TailAdmin `Alerts`、`Form Elements` 与 `Dropdowns`：Alerts 以 Success、Warning、Error、Info 的同构层级保持语义一致；Form Elements 将 Input、Select、Password、Date Picker、Input Group、Textarea 与状态放在同一页面对比；Dropdowns 同时展示 Default、Divider、Icon 与 Icon+Divider。由此确认项目不应按页面分别塑造控件或 Popup，而应以共享 Form Control、Overlay Surface 和 Option State 保持家族一致性。
+
+HeroUI 当前 `Select`、`ComboBox` 和 `Popover` 继续承担 ARIA、Keyboard、Focus、Portal、Placement 与 Collision；项目利用其 Trigger 宽度变量实现表单选择浮层的 `match-trigger` 策略，不自行重写定位系统。内部分类与完整契约见 [UI Element System](ui-element-system.md)。
+
 ## 3. UI Elements 校准矩阵
 
 | TailAdmin 页面                                                  | 本轮观察重点                                                  | 项目内部落点                                 | 当前结论                                                                 |
@@ -40,7 +44,7 @@ TailAdmin 的 `UI Elements` 用于校准后台产品的视觉秩序和组件完�
 | [Button Groups](https://react-demo.tailadmin.com/buttons-group) | 连续边框、首尾圆角、Active 与邻项层级                         | 未来工具栏分段操作                           | 已复核；出现真实选择语义时再基于 HeroUI 能力扩展                         |
 | [Cards](https://react-demo.tailadmin.com/cards)                 | 图片/文字/动作节奏、横向与纵向层级、链接语义                  | `Panel`、Showcase `Card 与 Surface` 区       | 确认 Elevated/Outlined/Embedded 三轨                                     |
 | [Carousel](https://react-demo.tailadmin.com/carousel)           | Controls、Indicators、Controls+Indicators、媒体比例           | 未来媒体浏览场景                             | 已复核；无真实产品用例前不引入轮播依赖                                   |
-| [Dropdowns](https://react-demo.tailadmin.com/dropdowns)         | Trigger Active、浮层 Shadow、Item 密度、Divider、Icon         | `MenuButton`、Showcase 与打开态快照          | 已采用 HeroUI Menu/Overlay；禁止业务页自写菜单                           |
+| [Dropdowns](https://react-demo.tailadmin.com/dropdowns)         | Trigger Active、浮层 Shadow、Item 密度、Divider、Icon         | `MenuButton`、Showcase 与打开态快照          | Content Width；与 Form Selection 共享 Surface/Option，不共享选择语义     |
 | [Images](https://react-demo.tailadmin.com/images)               | Responsive、2/3 Grid、裁切和容器比例                          | Feature Composition                          | 属于内容布局，不新增无语义 Adapter                                       |
 | [Links](https://react-demo.tailadmin.com/links)                 | 语义色、Underline、Hover、Opacity 的辨识度                    | Typography / Feature Composition             | 保持链接语义与 Focus 可见；不提供任意透明度 API                          |
 | [List](https://react-demo.tailadmin.com/list)                   | Ordered/Unordered、Icon、Action、Disabled、Checkbox/Radio     | Feature Composition 与 Form Control          | 按语义组合；不建立万能 List Wrapper                                      |

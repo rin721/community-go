@@ -9,6 +9,16 @@ async function assertOverlayAccessibility(page: Page) {
   expect(accessibility.violations).toEqual([]);
 }
 
+async function assertMatchesTriggerWidth(page: Page, slot: string) {
+  await page.waitForTimeout(250);
+  const metrics = await page.locator(`[data-slot="${slot}"]`).evaluate((element) => ({
+    popupWidth: element.getBoundingClientRect().width,
+    triggerWidth: Number.parseFloat(getComputedStyle(element).getPropertyValue('--trigger-width')),
+  }));
+  expect(metrics.triggerWidth).toBeGreaterThan(0);
+  expect(Math.abs(metrics.popupWidth - metrics.triggerWidth)).toBeLessThanOrEqual(1);
+}
+
 test.beforeEach(async ({ page }) => {
   await page.goto('/showcase');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('组件与组合行为实验场');
@@ -27,8 +37,12 @@ test('Alert、Badge、Card 与 Notification 形成可访问的内部权威面', 
 
 test('Select 与 Combobox 使用统一 Popup、键盘和选中状态', async ({ page }) => {
   await page.getByLabel('Select').click();
-  await expect(page.getByRole('listbox')).toBeVisible();
+  const selectListbox = page.getByRole('listbox');
+  await expect(selectListbox).toBeVisible();
   await expect(page.getByRole('option', { name: '自动执行' })).toBeDisabled();
+  await assertMatchesTriggerWidth(page, 'select-popover');
+  await expect(selectListbox).toHaveCSS('overflow-y', 'auto');
+  await expect(page).toHaveScreenshot('showcase-select-open.png');
   await page.keyboard.press('ArrowUp');
   await page.keyboard.press('Enter');
 
@@ -36,6 +50,9 @@ test('Select 与 Combobox 使用统一 Popup、键盘和选中状态', async ({ 
   await combo.click();
   await combo.fill('Mika');
   await expect(page.getByRole('option', { name: 'Mika Sato' })).toBeVisible();
+  await assertMatchesTriggerWidth(page, 'combo-box-popover');
+  await expect(page.getByRole('listbox')).toHaveCSS('overflow-y', 'auto');
+  await expect(page).toHaveScreenshot('showcase-combobox-open.png');
   await page.keyboard.press('ArrowDown');
   await page.keyboard.press('Enter');
   await assertOverlayAccessibility(page);

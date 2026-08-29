@@ -63,6 +63,7 @@ packages/design-system 语义 Design Token 与主题变量
 - Skeleton 必须保留目标内容的大致结构；错误状态提供恢复路径；禁用状态说明原因；Pending 与 Loading 不得混用。
 - 共享 UI 或 Layout 改动必须先在 Reference/Showcase 中验证正常、长文本、Locale 扩张、窄屏和嵌套组合；状态与组合缺陷优先修复 Token、Variant、Slot 或 Layout Contract，不在页面增加特例 CSS。
 - `/showcase` 是 Button、Alert、Badge、Card、Dropdown、Modal、Form Control、Notification 与全部 Overlay 的项目级当前权威。业务页面优先复用内部规范，只有缺少合理能力时才回到外部参考扩展基础体系。
+- UI Element 分类、Form Control、Anchored Overlay、Overlay Surface、Option State 与 Composition 的当前契约统一见 [UI Element System](docs/ui-element-system.md)；Feature 新增基础能力前必须先按该文档判断复用、Variant、Composition 或新 Element。
 
 ## 8. 明确禁止的架构污染
 
@@ -82,7 +83,7 @@ packages/design-system 语义 Design Token 与主题变量
 pnpm check
 ```
 
-`architecture:check` 强制 HeroUI 隔离、原生选择控件禁用、Host API 隔离、依赖方向、跨 Workspace 深相对引用、arbitrary value、`!important` 与样式硬编码规则。`dependency:check` 校验每个运行时依赖的职责和允许 Workspace；`performance:check` 校验 gzip 产物预算。TypeScript、ESLint、Vitest、Vite build 与 Prettier 分别验证类型、静态规则、纯规则、Host 构建和格式。
+`architecture:check` 强制 HeroUI 隔离、原生表单控件禁用、Adapter 内部 Element 样式隔离、Host API 隔离、依赖方向、跨 Workspace 深相对引用、arbitrary value、`!important` 与颜色 Token 归属。`dependency:check` 校验每个运行时依赖的职责和允许 Workspace；`performance:check` 校验 gzip 产物预算。TypeScript、ESLint、Vitest、Vite build 与 Prettier 分别验证类型、静态规则、纯规则、Host 构建和格式。
 
 Playwright 必须覆盖关键 Reference 流程、键盘/焦点、Axe WCAG AA 扫描，以及桌面、超宽屏、移动端、Dark Mode、英文扩张和全部 Floating Layer 打开态。视觉基线只能在人工确认变化合理后更新，不得用提高 diff 阈值掩盖回归。
 

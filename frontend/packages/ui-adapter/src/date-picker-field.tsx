@@ -19,13 +19,13 @@ export function DatePickerField({
 }: DatePickerFieldProps) {
   return (
     <DatePicker
-      className="grid w-full gap-2 text-sm"
+      className="ui-field"
       defaultOpen={defaultOpen}
       isDisabled={disabled}
       onChange={(value) => onValueChange?.(value?.toString() ?? null)}
     >
-      <Label className="font-semibold text-ink">{label}</Label>
-      <DateField.Group className="flex min-h-11 items-center rounded-control border border-border bg-surface px-3.5 text-sm text-ink shadow-sm data-[focus-within]:border-brand">
+      <Label className="ui-field-label">{label}</Label>
+      <DateField.Group className="ui-field-control flex items-center">
         <DateField.Input className="min-w-0 flex-1">
           {(segment) => (
             <DateField.Segment
@@ -40,8 +40,8 @@ export function DatePickerField({
           </DatePicker.Trigger>
         </DateField.Suffix>
       </DateField.Group>
-      {hint ? <Description className="text-xs leading-5 text-ink-muted">{hint}</Description> : null}
-      <DatePicker.Popover className="rounded-panel border border-border bg-surface-raised p-3 text-ink shadow-overlay">
+      {hint ? <Description className="ui-field-hint">{hint}</Description> : null}
+      <DatePicker.Popover className="ui-overlay-surface p-3">
         <Calendar aria-label={calendarLabel}>
           <Calendar.Header>
             <Calendar.YearPickerTrigger>

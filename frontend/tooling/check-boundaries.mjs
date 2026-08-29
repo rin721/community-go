@@ -42,14 +42,32 @@ for (const filePath of files) {
   ) {
     report(violations, filePath, 'Token governance', '禁止 Tailwind arbitrary value');
   }
-  if (extname(filePath) === '.tsx' && /<(?:select|option)\b/.test(content)) {
-    report(violations, filePath, 'UI contract', '产品交互禁止退化为原生 select/option');
+  if (
+    extname(filePath) === '.tsx' &&
+    !localPath.startsWith('packages/ui-adapter/') &&
+    /<(?:input|textarea|select|option)\b/.test(content)
+  ) {
+    report(violations, filePath, 'UI contract', 'Feature 禁止绕过 UI Adapter 使用原生表单控件');
+  }
+  if (
+    extname(filePath) === '.tsx' &&
+    !localPath.startsWith('packages/ui-adapter/') &&
+    /\bui-(?:field|overlay|anchored|listbox|option)(?:-|\b)/.test(content)
+  ) {
+    report(violations, filePath, 'UI contract', 'Adapter 内部 Element 样式禁止向 Feature 泄漏');
   }
   if (content.includes('!important')) {
     report(violations, filePath, 'Style governance', '禁止 !important');
   }
   if (extname(filePath) === '.tsx' && /#[0-9a-fA-F]{3,8}\b|rgba?\(/.test(content)) {
     report(violations, filePath, 'Token governance', '组件中禁止硬编码颜色');
+  }
+  if (
+    extname(filePath) === '.css' &&
+    localPath !== 'packages/design-system/src/tokens.css' &&
+    /#[0-9a-fA-F]{3,8}\b|rgba?\(/.test(content)
+  ) {
+    report(violations, filePath, 'Token governance', '硬编码颜色只能由 Design Token 权威文件声明');
   }
 
   for (const match of content.matchAll(importPattern)) {

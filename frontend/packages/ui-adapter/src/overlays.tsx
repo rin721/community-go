@@ -12,12 +12,6 @@ import {
 } from '@heroui/react';
 import { useMemo, useState, type ReactNode } from 'react';
 
-const triggerClass =
-  'inline-flex h-10 items-center justify-center gap-2 rounded-control border border-border bg-surface px-3.5 text-sm font-semibold text-ink shadow-sm outline-none transition-colors hover:bg-surface-muted';
-const overlayClass = 'rounded-panel border border-border bg-surface-raised text-ink shadow-overlay';
-const menuItemClass =
-  'flex min-h-10 cursor-default items-center gap-3 rounded-control px-3 py-2 text-sm outline-none data-[disabled]:opacity-45 data-[focused]:bg-surface-muted';
-
 export type MenuAction = Readonly<{
   id: string;
   label: string;
@@ -44,8 +38,8 @@ export function MenuButton({
 }: MenuButtonProps) {
   return (
     <Dropdown defaultOpen={defaultOpen}>
-      <Dropdown.Trigger className={triggerClass}>{label}</Dropdown.Trigger>
-      <Dropdown.Popover className={`${overlayClass} min-w-60 p-1.5`} placement="bottom end">
+      <Dropdown.Trigger className="ui-overlay-trigger">{label}</Dropdown.Trigger>
+      <Dropdown.Popover className="ui-overlay-surface min-w-60 p-1.5" placement="bottom end">
         <Dropdown.Menu
           aria-label={ariaLabel}
           disabledKeys={items.filter((item) => item.disabled).map((item) => item.id)}
@@ -53,7 +47,7 @@ export function MenuButton({
         >
           {items.map((item) => (
             <Dropdown.Item
-              className={`${menuItemClass} ${item.tone === 'danger' ? 'text-danger data-[focused]:bg-danger-soft' : 'text-ink'}`}
+              className={`ui-option ${item.tone === 'danger' ? 'text-danger data-[focused]:bg-danger-soft' : 'text-ink'}`}
               id={item.id}
               key={item.id}
               textValue={item.label}
@@ -88,8 +82,8 @@ export function PopoverCard({
 }: PopoverCardProps) {
   return (
     <Popover defaultOpen={defaultOpen}>
-      <Popover.Trigger className={triggerClass}>{triggerLabel}</Popover.Trigger>
-      <Popover.Content className={`${overlayClass} max-w-sm`} placement="bottom start">
+      <Popover.Trigger className="ui-overlay-trigger">{triggerLabel}</Popover.Trigger>
+      <Popover.Content className="ui-overlay-surface max-w-sm" placement="bottom start">
         <Popover.Arrow className="fill-surface-raised stroke-border" />
         <Popover.Dialog className="p-4">
           <Popover.Heading className="text-sm font-bold text-ink">{title}</Popover.Heading>
@@ -109,7 +103,7 @@ export type TooltipActionProps = Readonly<{
 export function TooltipAction({ label, tooltip, defaultOpen = false }: TooltipActionProps) {
   return (
     <Tooltip defaultOpen={defaultOpen} delay={100}>
-      <Tooltip.Trigger className={triggerClass}>{label}</Tooltip.Trigger>
+      <Tooltip.Trigger className="ui-overlay-trigger">{label}</Tooltip.Trigger>
       <Tooltip.Content
         className="rounded-control border border-border bg-ink px-3 py-2 text-xs font-medium text-surface shadow-overlay"
         placement="top"
@@ -144,17 +138,17 @@ export function DialogSurface({
 }: DialogSurfaceProps) {
   return (
     <Modal defaultOpen={defaultOpen}>
-      <HeroButton className={triggerClass}>{triggerLabel}</HeroButton>
+      <HeroButton className="ui-overlay-trigger">{triggerLabel}</HeroButton>
       <Modal.Backdrop className="bg-scrim backdrop-blur-sm">
         <Modal.Container placement="center" size="lg">
-          <Modal.Dialog className={`${overlayClass} w-full`}>
+          <Modal.Dialog className="ui-overlay-surface w-full">
             <Modal.Header className="border-b border-border px-6 py-5">
               <Modal.Heading className="text-lg font-bold text-ink">{title}</Modal.Heading>
               <p className="mt-1 text-sm leading-6 text-ink-muted">{description}</p>
             </Modal.Header>
             <Modal.Body className="px-6 py-5">{children}</Modal.Body>
             <Modal.Footer className="flex justify-end gap-3 border-t border-border px-6 py-4">
-              <Modal.CloseTrigger className={`${triggerClass} shadow-none`}>
+              <Modal.CloseTrigger className="ui-overlay-trigger shadow-none">
                 {cancelLabel}
               </Modal.CloseTrigger>
               <Modal.CloseTrigger
@@ -190,10 +184,10 @@ export function DrawerSurface({
 }: DrawerSurfaceProps) {
   return (
     <Drawer defaultOpen={defaultOpen}>
-      <HeroButton className={triggerClass}>{triggerLabel}</HeroButton>
+      <HeroButton className="ui-overlay-trigger">{triggerLabel}</HeroButton>
       <Drawer.Backdrop className="bg-scrim backdrop-blur-sm">
         <Drawer.Content placement="right">
-          <Drawer.Dialog className={`${overlayClass} relative h-full w-full max-w-lg rounded-none`}>
+          <Drawer.Dialog className="ui-overlay-surface relative h-full w-full max-w-lg rounded-none">
             <Drawer.Header className="border-b border-border px-6 py-5 pr-20">
               <Drawer.Heading className="text-lg font-bold text-ink">{title}</Drawer.Heading>
               <p className="mt-1 text-sm leading-6 text-ink-muted">{description}</p>
@@ -261,10 +255,10 @@ export function CommandMenu({
       {...(isOpen !== undefined ? { isOpen } : {})}
       {...(onOpenChange ? { onOpenChange } : {})}
     >
-      <HeroButton className={triggerClass}>{triggerLabel}</HeroButton>
+      <HeroButton className="ui-overlay-trigger">{triggerLabel}</HeroButton>
       <Modal.Backdrop className="bg-scrim backdrop-blur-sm">
         <Modal.Container placement="top" size="lg">
-          <Modal.Dialog className={`${overlayClass} mt-16 w-full overflow-hidden`}>
+          <Modal.Dialog className="ui-overlay-surface mt-16 w-full overflow-hidden">
             <Modal.Heading className="border-b border-border px-5 py-4 text-base font-bold text-ink">
               {title}
             </Modal.Heading>
@@ -292,7 +286,7 @@ export function CommandMenu({
                 >
                   {visibleItems.map((item) => (
                     <ListBox.Item
-                      className={menuItemClass}
+                      className="ui-option"
                       id={item.id}
                       key={item.id}
                       textValue={item.label}

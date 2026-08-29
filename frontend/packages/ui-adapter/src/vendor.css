@@ -1,1 +1,44 @@
 @import '@heroui/styles';
+
+@layer components {
+  .ui-field {
+    @apply grid w-full gap-2 text-sm;
+  }
+
+  .ui-field-label {
+    @apply font-semibold text-ink;
+  }
+
+  .ui-field-control {
+    @apply min-h-control w-full rounded-control border border-border bg-surface px-3.5 text-sm font-normal text-ink shadow-sm outline-none placeholder:text-ink-muted/70 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-55 data-[focus-visible]:border-brand data-[focus-within]:border-brand data-[invalid]:border-danger;
+  }
+
+  .ui-field-hint {
+    @apply text-xs font-normal leading-5 text-ink-muted;
+  }
+
+  .ui-field-error {
+    @apply text-xs font-medium leading-5 text-danger;
+  }
+
+  .ui-overlay-trigger {
+    @apply inline-flex h-10 items-center justify-center gap-2 rounded-control border border-border bg-surface px-3.5 text-sm font-semibold text-ink shadow-sm outline-none transition-colors hover:bg-surface-muted;
+  }
+
+  .ui-overlay-surface {
+    @apply rounded-panel border border-border bg-surface-raised text-ink shadow-overlay;
+  }
+
+  .ui-anchored-overlay-match-trigger {
+    box-sizing: border-box;
+    width: var(--trigger-width);
+  }
+
+  .ui-listbox {
+    @apply max-h-overlay w-full overflow-auto p-1.5 outline-none;
+  }
+
+  .ui-option {
+    @apply flex min-h-option cursor-default items-center justify-between gap-3 rounded-control px-3 py-2 text-sm outline-none data-[disabled]:opacity-45 data-[focused]:bg-surface-muted data-[hovered]:bg-surface-muted data-[selected]:bg-brand-soft data-[selected]:font-semibold data-[selected]:text-brand;
+  }
+}

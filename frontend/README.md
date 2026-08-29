@@ -25,12 +25,15 @@ pnpm check
 
 TailAdmin `UI Elements` 是长期外部视觉校准基准，HeroUI 是交互与可访问性基础，项目最终规范由 Semantic Token、UI Adapter 与 `/showcase` 决定。逐页对照矩阵、内部权威范围和强制复核触发器见 [UI 视觉校准基线](docs/ui-visual-calibration.md)。
 
+项目自己的分类、Form Control Family、Anchored Overlay、Overlay Surface、Option State 与 Composition Rules 见 [UI Element System](docs/ui-element-system.md)。
+
 这些页面只使用本地确定性数据，不代表已接入业务后端。它们的职责是证明 Layout、Token、UI Adapter、状态模型和 Host Port 能承载后续页面迁移。
 
 ## 稳定契约
 
 - `apps/web/src/layouts/page-layout.tsx` 定义页面级 Layout Contract：Header、Toolbar、Filter Bar、Section、Split View 与 sticky actions。
 - `packages/ui-adapter` 统一交互组件和全部 HeroUI Floating Layer。业务代码不得使用原生 `<select>`，也不得直接导入 HeroUI。
+- Form Selection 默认使用 `match-trigger` Anchored Overlay；Popup 继承 Trigger 宽度，Listbox 自己管理最大高度和滚动。
 - `packages/reference` 保存 Host-neutral Feature、确定性场景数据和导出 Port；Web 与 Desktop 分别装配平台实现，共享层不出现平台条件分支。
 - `packages/design-system` 保存 Light/Dark 语义 Token；页面不得用硬编码颜色修复局部对比度或状态表达。
 

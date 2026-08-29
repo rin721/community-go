@@ -341,6 +341,8 @@ export const resources = {
         select: 'Select',
         combobox: 'Combobox',
         comboboxPlaceholder: '输入以筛选选项',
+        selectionOverlayHint: '打开后验证大量选项、内部滚动、键盘 Focus、Selected 与 Disabled。',
+        queueOption: '执行队列 {{number}}',
         datePicker: 'DatePicker',
         overlayHint: '打开后检查 Popup 的主题、Focus、Selected 与 Disabled 状态。',
         textArea: '多行文本',
@@ -765,6 +767,9 @@ export const resources = {
         select: 'Select',
         combobox: 'Combobox',
         comboboxPlaceholder: 'Type to filter options',
+        selectionOverlayHint:
+          'Open to inspect a large collection, internal scrolling, keyboard focus, selected, and disabled states.',
+        queueOption: 'Execution queue {{number}}',
         datePicker: 'DatePicker',
         overlayHint: 'Open the popup to inspect theme, focus, selected, and disabled states.',
         textArea: 'Text area',

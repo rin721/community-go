@@ -19,6 +19,22 @@ async function assertMatchesTriggerWidth(page: Page, slot: string) {
   expect(Math.abs(metrics.popupWidth - metrics.triggerWidth)).toBeLessThanOrEqual(1);
 }
 
+async function assertListboxScrolls(page: Page) {
+  const listbox = page.getByRole('listbox');
+  await expect(listbox).toHaveCSS('overflow-y', 'auto');
+  const initialMetrics = await listbox.evaluate((element) => ({
+    clientHeight: element.clientHeight,
+    scrollHeight: element.scrollHeight,
+    scrollTop: element.scrollTop,
+  }));
+  expect(initialMetrics.scrollHeight).toBeGreaterThan(initialMetrics.clientHeight);
+  expect(initialMetrics.scrollTop).toBe(0);
+
+  await page.keyboard.press('End');
+  const scrolledTop = await listbox.evaluate((element) => element.scrollTop);
+  expect(scrolledTop).toBeGreaterThan(0);
+}
+
 test.beforeEach(async ({ page }) => {
   await page.goto('/showcase');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('组件与组合行为实验场');
@@ -41,20 +57,26 @@ test('Select 与 Combobox 使用统一 Popup、键盘和选中状态', async ({ 
   await expect(selectListbox).toBeVisible();
   await expect(page.getByRole('option', { name: '自动执行' })).toBeDisabled();
   await assertMatchesTriggerWidth(page, 'select-popover');
-  await expect(selectListbox).toHaveCSS('overflow-y', 'auto');
+  await assertListboxScrolls(page);
+  await expect(page.getByRole('option', { name: '执行队列 12' })).toBeVisible();
   await expect(page).toHaveScreenshot('showcase-select-open.png');
-  await page.keyboard.press('ArrowUp');
   await page.keyboard.press('Enter');
+  await expect(page.getByRole('button', { name: '执行队列 12 Select' })).toBeVisible();
 
   const combo = page.getByRole('combobox', { name: 'Combobox' });
+  await combo.click();
+  await expect(page.getByRole('option', { name: 'Omar Haddad' })).toBeDisabled();
+  await assertMatchesTriggerWidth(page, 'combo-box-popover');
+  await assertListboxScrolls(page);
+  await page.keyboard.press('Escape');
   await combo.click();
   await combo.fill('Mika');
   await expect(page.getByRole('option', { name: 'Mika Sato' })).toBeVisible();
   await assertMatchesTriggerWidth(page, 'combo-box-popover');
-  await expect(page.getByRole('listbox')).toHaveCSS('overflow-y', 'auto');
   await expect(page).toHaveScreenshot('showcase-combobox-open.png');
   await page.keyboard.press('ArrowDown');
   await page.keyboard.press('Enter');
+  await expect(combo).toHaveValue('Mika Sato');
   await assertOverlayAccessibility(page);
 });
 

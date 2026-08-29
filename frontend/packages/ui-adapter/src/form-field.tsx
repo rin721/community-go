@@ -207,9 +207,11 @@ export function ComboField({
   disabled = false,
   onValueChange,
 }: ComboFieldProps) {
+  const disabledKeys = options.filter((option) => option.disabled).map((option) => option.value);
   return (
     <ComboBox
       className="ui-field"
+      disabledKeys={disabledKeys}
       fullWidth
       isDisabled={disabled}
       isInvalid={Boolean(error)}

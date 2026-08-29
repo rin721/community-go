@@ -40,6 +40,23 @@ import { useSearchParams } from 'react-router';
 import { PageHeader, PageLayout, PageSection } from '../../layouts/page-layout';
 import { useShellStore } from '../../state/use-shell-store';
 
+const ownerOptions = [
+  'Lin Chen',
+  'Avery Morgan',
+  'Mika Sato',
+  'Noah Williams',
+  'Sofia Rossi',
+  'Amara Okafor',
+  'Mateo Garcia',
+  'Lea Dubois',
+  'Omar Haddad',
+  'Priya Shah',
+  'Jonas Berg',
+  'Nora Jensen',
+  'Kai Müller',
+  'Mei Tanaka',
+] as const;
+
 export function ShowcaseScreen() {
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
@@ -211,7 +228,7 @@ export function ShowcaseScreen() {
           <TextField label={t('showcase.disabledField')} disabled defaultValue="readonly" />
           <SelectField
             label={t('showcase.select')}
-            hint={t('showcase.overlayHint')}
+            hint={t('showcase.selectionOverlayHint')}
             defaultOpen={overlay === 'select'}
             options={[
               { value: 'observe', label: t('formReference.modeOption.observe') },
@@ -221,19 +238,23 @@ export function ShowcaseScreen() {
                 label: t('formReference.modeOption.automatic'),
                 disabled: true,
               },
+              ...Array.from({ length: 12 }, (_, index) => ({
+                value: `queue-${index + 1}`,
+                label: t('showcase.queueOption', { number: index + 1 }),
+              })),
             ]}
             value={selected}
             onValueChange={setSelected}
           />
           <ComboField
             label={t('showcase.combobox')}
-            hint={t('showcase.overlayHint')}
+            hint={t('showcase.selectionOverlayHint')}
             placeholder={t('showcase.comboboxPlaceholder')}
-            options={[
-              { value: 'Lin Chen', label: 'Lin Chen' },
-              { value: 'Avery Morgan', label: 'Avery Morgan' },
-              { value: 'Mika Sato', label: 'Mika Sato' },
-            ]}
+            options={ownerOptions.map((owner) => ({
+              value: owner,
+              label: owner,
+              disabled: owner === 'Omar Haddad',
+            }))}
           />
           <DatePickerField
             label={t('showcase.datePicker')}

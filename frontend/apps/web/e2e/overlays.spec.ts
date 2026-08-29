@@ -51,6 +51,39 @@ test('Alert、Badge、Card 与 Notification 形成可访问的内部权威面', 
   await assertOverlayAccessibility(page);
 });
 
+test('Tabs 保持 HeroUI 键盘语义并由父 Surface 提供内边距', async ({ page }) => {
+  const tablist = page.getByRole('tablist', { name: '状态组合 Tabs' });
+  const normalTab = tablist.getByRole('tab', { name: '正常' });
+  const emptyTab = tablist.getByRole('tab', { name: '空状态' });
+  const warningTab = tablist.getByRole('tab', { name: '警告' });
+
+  await expect(normalTab).toHaveAttribute('aria-selected', 'true');
+  const inset = await tablist.evaluate((element) => {
+    const surface = element.closest('section');
+    if (!surface) return null;
+    const tablistRect = element.getBoundingClientRect();
+    const surfaceRect = surface.getBoundingClientRect();
+    return {
+      left: tablistRect.left - surfaceRect.left,
+      right: surfaceRect.right - tablistRect.right,
+      top: tablistRect.top - surfaceRect.top,
+    };
+  });
+  expect(inset).not.toBeNull();
+  expect(inset?.left).toBeGreaterThanOrEqual(12);
+  expect(inset?.right).toBeGreaterThanOrEqual(12);
+  expect(inset?.top).toBeGreaterThanOrEqual(12);
+
+  await normalTab.focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(emptyTab).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('heading', { name: '这里还没有内容' })).toBeVisible();
+  await page.keyboard.press('ArrowRight');
+  await expect(warningTab).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('heading', { name: '部分能力受到限制' })).toBeVisible();
+  await assertOverlayAccessibility(page);
+});
+
 test('Select 与 Combobox 使用统一 Popup、键盘和选中状态', async ({ page }) => {
   await page.getByLabel('Select').click();
   const selectListbox = page.getByRole('listbox');

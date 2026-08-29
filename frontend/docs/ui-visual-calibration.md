@@ -28,7 +28,7 @@ TailAdmin 的 `UI Elements` 用于校准后台产品的视觉秩序和组件完�
 - 状态完整性：Default、Hover、Focus、Active、Selected、Disabled、Loading、Error、Open、Closed 都属于组件契约，不能只验证静态 Trigger。
 - Overlay：Trigger 和浮层使用同一视觉语言；浮层需同时治理背景、边框、圆角、阴影、间距、文字、Hover、Selected、Focus、Disabled 和 Motion。
 
-本轮实际复核 TailAdmin `Alerts`、`Form Elements` 与 `Dropdowns`：Alerts 以 Success、Warning、Error、Info 的同构层级保持语义一致；Form Elements 将 Input、Select、Password、Date Picker、Input Group、Textarea 与状态放在同一页面对比；Dropdowns 同时展示 Default、Divider、Icon 与 Icon+Divider。由此确认项目不应按页面分别塑造控件或 Popup，而应以共享 Form Control、Overlay Surface 和 Option State 保持家族一致性。
+本轮实际复核 TailAdmin `Alerts`、`Form Elements`、`Dropdowns` 与 `Tabs`：Alerts 以 Success、Warning、Error、Info 的同构层级保持语义一致；Form Elements 将 Input、Select、Password、Date Picker、Input Group、Textarea 与状态放在同一页面对比；Dropdowns 同时展示 Default、Divider、Icon 与 Icon+Divider；Tabs 同页展示 Default、Underline、Icon、Badge 与 Vertical，但每组都由外层 Section 和内层内容 Surface 承担边界与留白，Tab 本体只表达视图选择。由此确认项目不应按页面分别塑造控件或 Popup，也不应为贴边问题改写 Tabs Variant；共享 Form Control、Overlay Surface、Option State 与父级 Composition 分别承担各自职责。
 
 HeroUI 当前 `Select`、`ComboBox` 和 `Popover` 继续承担 ARIA、Keyboard、Focus、Portal、Placement 与 Collision；项目利用其 Trigger 宽度变量实现表单选择浮层的 `match-trigger` 策略，不自行重写定位系统。内部分类与完整契约见 [UI Element System](ui-element-system.md)。
 

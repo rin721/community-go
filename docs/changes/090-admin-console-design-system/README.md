@@ -5,7 +5,7 @@
 - 任务性质：包含前端与后端非文档变更的产品级重设计。
 - 研究门禁：已通过；当前事实、外部参照与能力缺口已形成可复核档案。
 - 计划状态：已确认（用户消息“确认 090 计划”）。
-- 实施状态：前端基础与高频资源列表骨架已完成两批收敛；后端 P0 契约、详情页和全量页面矩阵仍保留为明确的后续任务，未将目标设计误写成已实现能力。
+- 实施状态：P0 后端契约（一致查询、详情聚合、审计投影/游标、幂等批量、跨设备偏好、typed 指标）与全量页面矩阵（账户/角色/权限/会话/API Token/审计/组织/设置/Dashboard/OpenAPI）均已实施并经全量验证（Go 全绿、WebUI typecheck/vitest 251/eslint/build 全绿、mock E2E 19/19、`webui generate --check` 通过）；tasks.md 中已满足完成条件的任务已标记完成，剩余项为 P1 契约（组织成员反向查询、账户活动投影、preview/running/partial 状态机、真实历史指标）与人工审阅记录（VERIFY-090-002/003 多模态/对比度/长文本、DOC-090-001 视觉基线），按门禁需独立研究/人工执行。
 
 ## 目标
 
@@ -46,7 +46,7 @@
 - 一致查询语义已收敛（BE-090-001）：IAM 账户/角色/会话/API Token 列表排序经服务层白名单校验，非法排序返回稳定 `invalid_request`（账户列表不再静默忽略、其余资源不再落 500）；过大分页在 HTTP 边界稳定拒绝；审计使用服务端游标分页。
 - OpenAPI 工作台完成紧凑化（PAGE-090-007）：wide 保持可调资源栏与编辑/响应分栏，compact（<768px）切换为「资源/请求/响应」三段式单面板导航（`useCompactWorkspace` 容器级断点），长 revision/path/JSON 走自身换行/滚动且不扩大页面宽度，390px 单面板切换 E2E 断言无横向溢出；发送/响应与 mock 禁执行语义保持既有覆盖。
 - Dashboard 指标数据源收敛为 typed 投影（PAGE-090-006 / design §8）：新增 `/management/metrics-summary` 返回稳定 key/value/unit/asOf（`pkgobservability.Metrics.Summary` 从进程 registry gather，按 key 排序、失败即错不返回部分数据），WebUI 运维卡片与 Monitoring 改消费 typed 投影，删除 Prometheus 文本解析，不再从前端推断业务语义；raw text 仍服务监控系统。
-- HeroUI v3 依赖与 Toast API 已单轨收敛；最新验证中 `pnpm typecheck`、`pnpm lint`、`pnpm test`（51 files / 248 tests）、`pnpm build`、mock 视觉快照以及组织/安全页面 dev E2E 均通过（lint 保留 4 条既有测试文件 warning；build 仅提示大 bundle）。
+- HeroUI v3 依赖与 Toast API 已单轨收敛；收尾全量验证：`pnpm typecheck`、`pnpm lint`（eslint 0 errors，仅 4 条既有测试文件 warning）、`pnpm test`（51 files / 251 tests）、`pnpm build`（仅提示大 bundle）、mock Playwright E2E 19/19、Go build/vet/test 全绿、`webui generate --check` 通过。
 
 ## 阅读顺序
 

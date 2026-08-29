@@ -187,6 +187,9 @@ test("090 dark compact snapshots for settings and accounts", async ({ page }, te
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("/settings/appearance");
   await expect(page.getByRole("heading", { name: "Appearance", exact: true })).toBeVisible();
+  await expect(page.locator("html")).toHaveAttribute("data-color-scheme", "light");
+  await expect(page.locator("html")).toHaveAttribute("data-density", "comfortable");
+  await page.screenshot({ path: testInfo.outputPath("090-settings-appearance-light-comfortable-1280.png"), fullPage: true });
   await page.getByLabel("Theme mode", { exact: true }).click();
   await page.getByRole("option", { name: "Dark", exact: true }).click();
   await page.getByLabel("Content density", { exact: true }).click();
@@ -199,7 +202,24 @@ test("090 dark compact snapshots for settings and accounts", async ({ page }, te
   await expect(page.locator("html")).toHaveAttribute("data-color-scheme", "dark");
   await expect(page.locator("html")).toHaveAttribute("data-density", "compact");
   await expect(page.getByText("Governance & Audit", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Direction", { exact: true })).toHaveCount(0);
   await page.screenshot({ path: testInfo.outputPath("090-accounts-dark-compact-1280.png"), fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.getByRole("heading", { name: "Users", exact: true })).toBeVisible();
+  const mobileGeometry = await page.evaluate(() => {
+    const table = document.querySelector<HTMLElement>(".data-table-wrap");
+    return {
+      viewport: document.documentElement.clientWidth,
+      documentWidth: document.documentElement.scrollWidth,
+      tableClientWidth: table?.clientWidth ?? 0,
+      tableScrollWidth: table?.scrollWidth ?? 0,
+      codeWhiteSpace: getComputedStyle(document.querySelector<HTMLElement>(".data-table-wrap .code-text-value")!).whiteSpace,
+    };
+  });
+  expect(mobileGeometry.documentWidth).toBeLessThanOrEqual(mobileGeometry.viewport + 1);
+  expect(mobileGeometry.tableScrollWidth).toBeGreaterThan(mobileGeometry.tableClientWidth);
+  expect(mobileGeometry.codeWhiteSpace).toBe("nowrap");
+  await page.screenshot({ path: testInfo.outputPath("090-accounts-dark-compact-390.png"), fullPage: true });
 });
 
 // 084：组织三页/菜单页/权限页/OpenAPI 的重构工作台在 mock 下可浏览且无已知
@@ -601,9 +621,19 @@ test("090 api token one-time secret flow renders in mock mode", async ({ page })
   await activePage.locator(".data-table-row-menu .data-table-row-primary").first().click();
   await expect(activePage.getByText("iam_mock-rotated-secret")).toBeVisible();
   // 批量吊销（090 PAGE-090-002）：勾选行出现批量操作条并显示选择数。
-  const rowCheckbox = activePage.locator(".data-table tbody input[type='checkbox']").first();
-  await rowCheckbox.check();
+  const tokenRow = activePage.locator('.data-table [role="row"]', { hasText: "mock-ci" });
+  await tokenRow.locator("label.rac-checkbox").click();
   await expect(activePage.getByText(/tokens selected/)).toBeVisible();
+  await activePage.getByRole("button", { name: "Revoke", exact: true }).click();
+  const confirmDialog = page.getByRole("dialog");
+  await expect(confirmDialog).toBeVisible();
+  await confirmDialog.getByRole("button", { name: "Revoke", exact: true }).click();
+  await expect(activePage.getByText("tok-1: temporarily_unavailable")).toBeVisible();
+  const retryButton = activePage.getByRole("button", { name: "Retry (1)", exact: true });
+  await expect(retryButton).toBeVisible();
+  await retryButton.click();
+  await expect(activePage.getByText("tok-1: temporarily_unavailable")).not.toBeVisible();
+  await expect(retryButton).not.toBeVisible();
 });
 
 // 090 VERIFY-090-003：迁移页面的键盘/读屏语义基线（aria-label、role、焦点可达）。

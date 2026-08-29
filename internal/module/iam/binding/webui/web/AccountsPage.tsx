@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ActionTrigger, BatchResultSummary, Button, BulkActionBar, Check, CodeText, ConfirmActionTrigger, DataTable, DetailDrawer, Drawer, EmptyState, EntityDetail, ErrorState, Field, FilterBar, FormField, PageFrame, PageHeader, PageSection, Pagination, ResourceIndex, SearchInput, Skeleton, StatusBadge, StickyActionBar } from "@webui/sdk/ui";
 import { useListQueryParams, type ProblemError } from "@webui/sdk/query";
 import { useWebUITranslation } from "@webui/sdk/i18n";
-import { accountDetail, accountRolesView, archiveAccount, batchAccountStatus, batchArchiveAccounts, createAccount, listAccounts, listRoles, replaceAccountRoles, resetAccountPassword, setAccountStatus, updateAccountInfo, type Account, type AccountDetail, type Role } from "./api";
+import { accountDetail, accountRolesView, archiveAccount, batchAccountStatus, batchArchiveAccounts, createAccount, listAccounts, listRoles, replaceAccountRoles, resetAccountPassword, setAccountStatus, updateAccountInfo, type Account, type AccountDetail, type BatchResult, type Role } from "./api";
 import styles from "./iam.module.css";
 
 // checklistCandidates only exposes active, non-archived roles for assignment.
@@ -28,6 +28,7 @@ export function sameRoleIDs(left: ReadonlyArray<string>, right: ReadonlyArray<st
 }
 
 const PAGE_SIZE = 10;
+type AccountBatchAction = { kind: "status"; status: Account["status"] } | { kind: "archive" };
 
 export default function AccountsPage() {
   const { t } = useWebUITranslation("webui.iam");
@@ -46,7 +47,8 @@ export default function AccountsPage() {
   const [selection, setSelection] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkMessage, setBulkMessage] = useState("");
-  const [bulkErrors, setBulkErrors] = useState<Array<{ resourceId: string; code: string }>>([]);
+  const [bulkErrors, setBulkErrors] = useState<BatchResult["failed"]>([]);
+  const [bulkRetryAction, setBulkRetryAction] = useState<AccountBatchAction | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [username, setUsername] = useState("");
   const [name, setName] = useState("");
@@ -157,6 +159,24 @@ export default function AccountsPage() {
     }
     return actions;
   };
+  const runBulkAction = (resourceIDs: string[], action: AccountBatchAction): Promise<void> => {
+    setBulkBusy(true);
+    setBulkMessage("");
+    setBulkErrors([]);
+    const request = action.kind === "archive" ? batchArchiveAccounts(resourceIDs) : batchAccountStatus(resourceIDs, action.status);
+    return request.then((result) => {
+      setBulkMessage(action.kind === "archive"
+        ? t("webui.iam.accounts.bulkArchived", { count: result.succeeded.length })
+        : t("webui.iam.accounts.bulkResult", { processed: result.succeeded.length, failed: result.failed.length }));
+      setBulkErrors(result.failed);
+      setBulkRetryAction(result.failed.some((item) => item.retryable) ? action : null);
+      setSelection(new Set());
+      return refresh();
+    }).catch(() => {
+      setBulkMessage(t("webui.iam.error"));
+      setBulkRetryAction(null);
+    }).finally(() => setBulkBusy(false));
+  };
   return <PageFrame variant="index" className={styles.iamModule}>
     <PageHeader eyebrow={t("webui.iam.brand")} title={t("webui.iam.accounts.title")} description={t("webui.iam.accounts.description")} actions={<ActionTrigger operationId="iam.accounts.create" onAction={() => setCreateOpen(true)}>{t("webui.iam.accounts.create.title")}</ActionTrigger>} />
     <div className="page-sections">
@@ -229,7 +249,14 @@ export default function AccountsPage() {
             renderRowMenu: rowActions,
           }}
         />
-        <BatchResultSummary summary={bulkMessage} errors={bulkErrors.map((item) => ({ key: item.resourceId, code: item.code }))} errorsLabel={t("webui.iam.error")} />
+        <BatchResultSummary
+          summary={bulkMessage}
+          errors={bulkErrors.map((item) => ({ key: item.resourceId, code: item.code, retryable: item.retryable }))}
+          errorsLabel={t("webui.iam.error")}
+          retryLabel={hostT("webui.host.retry")}
+          retryPending={bulkBusy}
+          onRetry={bulkRetryAction ? () => { void runBulkAction(bulkErrors.filter((item) => item.retryable).map((item) => item.resourceId), bulkRetryAction); } : undefined}
+        />
         <BulkActionBar
           open={items.length > 0}
           selectionLabel={t("webui.iam.accounts.selection", { count: selection.size })}
@@ -251,27 +278,11 @@ export default function AccountsPage() {
             confirmTitle: t("webui.iam.accounts.bulkArchiveTitle"),
             confirmDescription: t("webui.iam.accounts.bulkArchiveDetail", { count: selection.size }),
             confirmLabel: t("webui.iam.accounts.bulkArchive"),
-            onConfirm: () => {
-              setBulkBusy(true);
-              return batchArchiveAccounts([...selection]).then((result) => {
-                setBulkBusy(false);
-                setBulkMessage(t("webui.iam.accounts.bulkArchived", { count: result.succeeded.length }));
-                setBulkErrors(result.failed);
-                setSelection(new Set());
-                return refresh();
-              }).catch(() => { setBulkBusy(false); setBulkMessage(t("webui.iam.error")); return Promise.resolve(); });
-            },
+            onConfirm: () => runBulkAction([...selection], { kind: "archive" }),
           }]}
           onConfirm={() => {
             const targetStatus: Account["status"] = [...selection].every((id) => items.find((item) => item.id === id)?.status === "disabled") ? "active" : "disabled";
-            setBulkBusy(true);
-            return batchAccountStatus([...selection], targetStatus).then((result) => {
-              setBulkBusy(false);
-              setBulkMessage(t("webui.iam.accounts.bulkResult", { processed: result.succeeded.length, failed: result.failed.length }));
-              setBulkErrors(result.failed);
-              setSelection(new Set());
-              return refresh();
-            }).catch(() => { setBulkBusy(false); setBulkMessage(t("webui.iam.error")); return Promise.resolve(); });
+            return runBulkAction([...selection], { kind: "status", status: targetStatus });
           }}
           onClear={() => setSelection(new Set())}
         />

@@ -509,6 +509,12 @@ select:focus-visible {
 .sidebar-link svg {
   flex: 0 0 auto;
 }
+.sidebar-link > span:not(.menu-icon-fallback) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .menu-icon-fallback {
   display: block;
   width: 17px;
@@ -3555,6 +3561,10 @@ textarea.field-input {
 .data-table-wrap .data-table [data-slot="tr"]:last-child [data-slot="td"] {
   border-bottom: 0;
 }
+.data-table-wrap .code-text-value {
+  overflow-wrap: normal;
+  white-space: nowrap;
+}
 .item-card {
   border-radius: var(--radius-md);
   box-shadow: none;
@@ -3592,9 +3602,6 @@ textarea.field-input {
     border-inline: 0;
     border-radius: 0;
     margin-inline: calc(var(--page-gutter-compact) * -1);
-  }
-  .data-table-wrap .data-table {
-    min-width: 0;
   }
 }
 

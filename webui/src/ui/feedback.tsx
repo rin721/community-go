@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { Alert, Chip, EmptyState as HeroEmptyState, Skeleton as HeroSkeleton, Spinner as HeroSpinner, toast as herouiToast } from "@heroui/react";
+import { Button as RACButton } from "react-aria-components";
 import type { CapabilityState } from "../contracts";
 
 /** SemanticStatus 是跨资源复用的状态集合；颜色只表达语义，不承担分类/身份信息。 */
@@ -53,13 +54,22 @@ export function InlineAlert({ tone = "info", title, detail, action }: { tone?: "
   return <Alert status={status} className={`inline-alert inline-alert-${tone}`} role="status"><Alert.Content><Alert.Title><strong>{title}</strong></Alert.Title><Alert.Description>{detail && <span>{detail}</span>}</Alert.Description></Alert.Content>{action && <Alert.Content><span className="inline-alert-action">{action}</span></Alert.Content>}</Alert>;
 }
 
-/** BatchResultSummary 统一批量操作的汇总与逐项失败呈现，避免页面各自拼接反馈结构。 */
-export function BatchResultSummary({ summary, errors, errorsLabel }: { summary?: string; errors?: ReadonlyArray<{ key: string; code: string }>; errorsLabel: string }) {
+/** BatchResultSummary 统一批量操作的汇总、逐项失败与可重试失败入口。 */
+export function BatchResultSummary({ summary, errors, errorsLabel, retryLabel, retryPending = false, onRetry }: {
+  summary?: string;
+  errors?: ReadonlyArray<{ key: string; code: string; retryable?: boolean }>;
+  errorsLabel: string;
+  retryLabel?: string;
+  retryPending?: boolean;
+  onRetry?: () => void;
+}) {
   const failureItems = errors ?? [];
   if (!summary && failureItems.length === 0) return null;
+  const retryableCount = failureItems.filter((item) => item.retryable).length;
   return <div className="batch-result-summary" role="status">
     {summary && <p className="page-meta">{summary}</p>}
-    {failureItems.length > 0 && <ul className="bulk-error-list" aria-label={errorsLabel}>{failureItems.map((item) => <li key={`${item.key}-${item.code}`}><code>{item.key}: {item.code}</code></li>)}</ul>}
+    {failureItems.length > 0 && <ul className="bulk-error-list" aria-label={errorsLabel}>{failureItems.map((item) => <li key={`${item.key}-${item.code}`} data-retryable={item.retryable || undefined}><code>{item.key}: {item.code}</code></li>)}</ul>}
+    {retryableCount > 0 && retryLabel && onRetry && <RACButton className="ui-button ui-button-secondary" isDisabled={retryPending} onPress={onRetry} aria-busy={retryPending || undefined}>{retryLabel} ({retryableCount})</RACButton>}
   </div>;
 }
 

@@ -7,6 +7,9 @@ import type { PermissionDefinition } from "./api";
 const createdAt = "2026-01-01T00:00:00.000Z";
 const expiresAt = "2026-01-31T00:00:00.000Z";
 
+// 批量吊销首次对 tok-1 返回可重试失败，用于验证失败项重试闭环；后续重试成功。
+let mockBatchRevokeAttempted = false;
+
 const mockSession = {
   identity: {
     accountId: "mock-admin",
@@ -146,7 +149,15 @@ export const webuiMockRoutes: ReadonlyArray<WebUIMockRoute> = [
   { method: "POST", pattern: "/api/v1/iam/api-tokens/batch-revoke", handler: (request) => {
     const body = (request.body ?? {}) as { tokenIds?: string[] };
     const tokenIds = body.tokenIds ?? [];
-    return { requestedCount: tokenIds.length, processedCount: tokenIds.length, succeeded: tokenIds.map((tokenId) => ({ resourceId: tokenId })), failed: [], correlationId: "mock-corr-batch-revoke" };
+    const transientFailure = tokenIds.includes("tok-1") && !mockBatchRevokeAttempted;
+    mockBatchRevokeAttempted ||= transientFailure;
+    return {
+      requestedCount: tokenIds.length,
+      processedCount: tokenIds.length,
+      succeeded: tokenIds.filter((tokenId) => !transientFailure || tokenId !== "tok-1").map((tokenId) => ({ resourceId: tokenId })),
+      failed: transientFailure ? [{ resourceId: "tok-1", code: "temporarily_unavailable", retryable: true }] : [],
+      correlationId: "mock-corr-batch-revoke",
+    };
   } },
 ];
 

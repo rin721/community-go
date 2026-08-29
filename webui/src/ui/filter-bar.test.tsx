@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { ActiveFilters, FilterBar, SearchInput, SelectField } from "./index";
+import { ActiveFilters, FilterBar, FilterSelect, SearchInput, SelectField } from "./index";
 
 describe("082 FilterBar / SearchInput", () => {
   it("FilterBar 渲染字段与 result count", () => {
@@ -71,6 +71,19 @@ describe("082 FilterBar / SearchInput", () => {
       createElement(SelectField, { label: "状态", value: "active", options: [{ value: "active", label: "Active" }], onValueChange: () => undefined }),
     );
     expect(markup).toContain("form-field");
+  });
+
+  it("FilterSelect 将空字符串业务值呈现为明确的全部选项", () => {
+    const markup = renderToStaticMarkup(
+      createElement(FilterSelect, {
+        label: "状态",
+        value: "",
+        options: [{ value: "", label: "全部状态" }, { value: "active", label: "启用" }],
+        onValueChange: () => undefined,
+      }),
+    );
+    expect(markup).toContain("全部状态");
+    expect(markup).toContain("__webui_empty_option__");
   });
 
   it("ActiveFilters 公开逐项清除语义", () => {

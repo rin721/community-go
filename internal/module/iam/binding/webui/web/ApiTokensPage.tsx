@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActionTrigger, BatchResultSummary, BulkActionBar, Button, Check, CodeText, ConfirmDialog, DataTable, DateTimeField, EmptyState, ErrorState, Field, FilterBar, formatDateTime, InlineAlert, PageFrame, PageHeader, PageSection, Pagination, ResourceIndex, SelectField, StatusBadge } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { useListQueryParams, type ProblemError } from "@webui/sdk/query";
-import { batchRevokeApiTokens, createApiToken, disableApiToken, enableApiToken, listApiTokens, loadSession, revokeApiToken, rotateApiToken, updateApiToken, type ApiTokenView } from "./api";
+import { batchRevokeApiTokens, createApiToken, disableApiToken, enableApiToken, listApiTokens, loadSession, revokeApiToken, rotateApiToken, updateApiToken, type ApiTokenView, type BatchResult } from "./api";
 import styles from "./iam.module.css";
 
 // groupScopesByModule groups available scopes by their owner prefix
@@ -49,7 +49,7 @@ export default function ApiTokensPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkMessage, setBulkMessage] = useState("");
-  const [bulkErrors, setBulkErrors] = useState<Array<{ resourceId: string; code: string }>>([]);
+  const [bulkErrors, setBulkErrors] = useState<BatchResult["failed"]>([]);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<ProblemError | null>(null);
   const pageSize = Math.min(Math.max(listQuery.pageSize, 1), 100);
@@ -105,6 +105,19 @@ export default function ApiTokensPage() {
   const expireToken = (row: ApiTokenView) => {
     // PATCH keeps name/description and clears expiry via neverExpires when requested.
     void updateApiToken(row.id, row.name, row.description || "", undefined, false).then(() => refresh());
+  };
+  const runBulkRevoke = (resourceIDs: string[]): Promise<void> => {
+    setBulkBusy(true);
+    setBulkMessage("");
+    setBulkErrors([]);
+    return batchRevokeApiTokens(resourceIDs).then((result) => {
+      setBulkMessage(t("webui.iam.apiTokens.bulkResult", { processed: result.succeeded.length, failed: result.failed.length }));
+      setBulkErrors(result.failed);
+      setSelected(new Set());
+      return refresh();
+    }).catch(() => {
+      setBulkMessage(t("webui.iam.error"));
+    }).finally(() => setBulkBusy(false));
   };
 
   return <PageFrame variant="index" className={styles.iamModule}>
@@ -250,8 +263,14 @@ export default function ApiTokensPage() {
             onPageChange={listQuery.setPage}
             onPageSizeChange={listQuery.setPageSize}
           />
-          {bulkMessage && <p className="page-meta" role="status">{bulkMessage}</p>}
-          <BatchResultSummary summary={bulkMessage || undefined} errors={bulkErrors.map((item) => ({ key: item.resourceId, code: item.code }))} errorsLabel={t("webui.iam.apiTokens.bulkPartial")} />
+          <BatchResultSummary
+            summary={bulkMessage || undefined}
+            errors={bulkErrors.map((item) => ({ key: item.resourceId, code: item.code, retryable: item.retryable }))}
+            errorsLabel={t("webui.iam.apiTokens.bulkPartial")}
+            retryLabel={hostT("webui.host.retry")}
+            retryPending={bulkBusy}
+            onRetry={bulkErrors.some((item) => item.retryable) ? () => { void runBulkRevoke(bulkErrors.filter((item) => item.retryable).map((item) => item.resourceId)); } : undefined}
+          />
           <BulkActionBar
           open={tokens.length > 0}
           selectionLabel={t("webui.iam.apiTokens.selection", { count: selected.size })}
@@ -266,18 +285,7 @@ export default function ApiTokensPage() {
           pendingLabel={t("webui.iam.saving")}
           disabled={selected.size === 0}
           disabledReason="invalid"
-          onConfirm={() => {
-            setBulkBusy(true);
-            setBulkMessage("");
-            setBulkErrors([]);
-            return batchRevokeApiTokens([...selected]).then((result) => {
-              setBulkBusy(false);
-              setBulkMessage(t("webui.iam.apiTokens.bulkResult", { processed: result.succeeded.length, failed: result.failed.length }));
-              setBulkErrors(result.failed);
-              setSelected(new Set());
-              return refresh();
-            }).catch(() => { setBulkBusy(false); setBulkMessage(t("webui.iam.error")); return Promise.resolve(); });
-          }}
+          onConfirm={() => runBulkRevoke([...selected])}
           onClear={() => setSelected(new Set())}
           />
         </ResourceIndex>

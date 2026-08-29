@@ -87,9 +87,10 @@ describe("082 状态反馈语义组件", () => {
   });
 
   it("BatchResultSummary 同时呈现汇总与逐项失败", () => {
-    const markup = renderToStaticMarkup(createElement(BatchResultSummary, { summary: "已处理 2 个，失败 1 个。", errors: [{ key: "acct-3", code: "conflict" }], errorsLabel: "批量错误" }));
+    const markup = renderToStaticMarkup(createElement(BatchResultSummary, { summary: "已处理 2 个，失败 1 个。", errors: [{ key: "acct-3", code: "temporarily_unavailable", retryable: true }], errorsLabel: "批量错误", retryLabel: "重试失败项", onRetry: () => undefined }));
     expect(markup).toContain("batch-result-summary");
-    expect(markup).toContain("acct-3: conflict");
+    expect(markup).toContain("acct-3: temporarily_unavailable");
     expect(markup).toContain("已处理 2 个，失败 1 个。");
+    expect(markup).toContain("重试失败项 (1)");
   });
 });

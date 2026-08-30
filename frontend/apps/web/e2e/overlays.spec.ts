@@ -114,15 +114,32 @@ test('Select 与 Combobox 使用统一 Popup、键盘和选中状态', async ({ 
 });
 
 test('Dropdown、Popover 与 Tooltip 展开面进入视觉回归', async ({ page }) => {
-  await page.getByRole('button', { name: 'Dropdown Menu' }).click();
+  const menuTrigger = page.getByRole('button', { name: 'Dropdown Menu' });
+  await menuTrigger.click();
   await expect(page.getByRole('menu')).toBeVisible();
   await expect(page).toHaveScreenshot('showcase-menu-open.png');
   await page.keyboard.press('Escape');
+  await expect(menuTrigger).toBeFocused();
 
-  await page.getByRole('button', { name: 'Popover' }).click();
-  await expect(page.getByRole('dialog', { name: '组合提示' })).toBeVisible();
+  const popoverTrigger = page.getByRole('button', { name: 'Popover' });
+  const pageHeightBeforeOpen = await page
+    .locator('html')
+    .evaluate((element) => element.scrollHeight);
+  const triggerRect = await popoverTrigger.evaluate((element) => element.getBoundingClientRect());
+  await popoverTrigger.click();
+  const popover = page.getByRole('dialog', { name: '组合提示' });
+  await expect(popover).toBeVisible();
+  const popoverRect = await popover.evaluate((element) => element.getBoundingClientRect());
+  expect(popoverRect.top).toBeGreaterThanOrEqual(triggerRect.bottom);
+  await expect(popover).toBeFocused();
+  const pageHeightAfterOpen = await page
+    .locator('html')
+    .evaluate((element) => element.scrollHeight);
+  expect(pageHeightAfterOpen).toBe(pageHeightBeforeOpen);
   await expect(page).toHaveScreenshot('showcase-popover-open.png');
   await page.keyboard.press('Escape');
+  await expect(popover).toBeHidden();
+  await expect(popoverTrigger).toBeFocused();
 
   const tooltipTrigger = page.getByRole('button', { name: 'Tooltip' });
   await tooltipTrigger.focus();

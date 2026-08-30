@@ -67,6 +67,8 @@ Showcase 中的 Select 与 Combobox 必须保留足以触发内部滚动的大�
 
 `ui-overlay-surface` 是 Dropdown、Select、Combobox、Popover、DatePicker、Dialog、Drawer 和 Command 共用的 Surface 语义，统一 Background、Border、Radius、Shadow 和文字颜色。不同 Overlay 只决定内容 Padding、宽度策略和结构，不复制一套 Surface。
 
+`PopoverCard` 当前只承载与 Trigger 直接相关的短说明，使用内容宽度和稳定的 `bottom start` Placement；打开时 HeroUI 将焦点移入 Popover Dialog，Escape 关闭后再返回 Trigger。它不是表单值选择、命令列表或强制确认。更短且不可交互的补充说明使用 `TooltipAction`，操作集合使用 `MenuButton`，必须阻断主流程并等待决策时使用 `DialogSurface`。外部参考出现更多方向或内容组合，不自动扩大项目 API；只有真实产品场景需要时才新增可验证的交互内容或 Placement 语义。
+
 `ui-option` 是 Listbox 与 Menu Item 的共享状态基线：
 
 - Default：普通文字与透明背景。

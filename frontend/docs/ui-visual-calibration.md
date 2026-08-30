@@ -28,7 +28,7 @@ TailAdmin 的 `UI Elements` 用于校准后台产品的视觉秩序和组件完�
 - 状态完整性：Default、Hover、Focus、Active、Selected、Disabled、Loading、Error、Open、Closed 都属于组件契约，不能只验证静态 Trigger。
 - Overlay：Trigger 和浮层使用同一视觉语言；浮层需同时治理背景、边框、圆角、阴影、间距、文字、Hover、Selected、Focus、Disabled 和 Motion。
 
-本轮实际复核 TailAdmin `Alerts`、`Form Elements`、`Dropdowns` 与 `Tabs`：Alerts 以 Success、Warning、Error、Info 的同构层级保持语义一致；Form Elements 将 Input、Select、Password、Date Picker、Input Group、Textarea 与状态放在同一页面对比；Dropdowns 同时展示 Default、Divider、Icon 与 Icon+Divider；Tabs 同页展示 Default、Underline、Icon、Badge 与 Vertical，但每组都由外层 Section 和内层内容 Surface 承担边界与留白，Tab 本体只表达视图选择。由此确认项目不应按页面分别塑造控件或 Popup，也不应为贴边问题改写 Tabs Variant；共享 Form Control、Overlay Surface、Option State 与父级 Composition 分别承担各自职责。
+本轮实际复核 TailAdmin `Alerts`、`Form Elements`、`Dropdowns`、`Tabs` 与 `Popovers`：Alerts 以 Success、Warning、Error、Info 的同构层级保持语义一致；Form Elements 将 Input、Select、Password、Date Picker、Input Group、Textarea 与状态放在同一页面对比；Dropdowns 同时展示 Default、Divider、Icon 与 Icon+Divider；Tabs 同页展示 Default、Underline、Icon、Badge 与 Vertical，但每组都由外层 Section 和内层内容 Surface 承担边界与留白，Tab 本体只表达视图选择；Popovers 的关闭态确认 Default、With Button、With Link 三类内容，以及 Top、Bottom、Right、Left 四个方向。外部 Popover 打开态细节尚未取得稳定证据，因此不用于推导内部视觉数值。由此确认项目不应按页面分别塑造控件或 Popup，也不应为贴边问题改写 Tabs Variant；共享 Form Control、Overlay Surface、Option State 与父级 Composition 分别承担各自职责。
 
 HeroUI 当前 `Select`、`ComboBox` 和 `Popover` 继续承担 ARIA、Keyboard、Focus、Portal、Placement 与 Collision；项目利用其 Trigger 宽度变量实现表单选择浮层的 `match-trigger` 策略，不自行重写定位系统。内部分类与完整契约见 [UI Element System](ui-element-system.md)。
 
@@ -51,7 +51,7 @@ HeroUI 当前 `Select`、`ComboBox` 和 `Popover` 继续承担 ARIA、Keyboard�
 | [Modals](https://react-demo.tailadmin.com/modals)               | Default/Centered/Form/Fullscreen、Scrim、Close、Footer Action | `DialogSurface`、Showcase 打开态快照         | 已采用 HeroUI Dialog/Focus 管理并治理完整 Surface                        |
 | [Notification](https://react-demo.tailadmin.com/notifications)  | Announcement、Toast、语义通知、Dismiss 与操作层级             | `NotificationCard`、`AlertBanner`、Showcase  | 已建立静态通知权威；全局 Toast 等真实需求出现后再扩展                    |
 | [Pagination](https://react-demo.tailadmin.com/pagination)       | Text/Icon、Current、Disabled、Ellipsis                        | 未来分页数据场景                             | 已复核；与真实数据契约一起引入，禁止静态假分页                           |
-| [Popovers](https://react-demo.tailadmin.com/popovers)           | 四方向、带 Button/Link、打开层级和内容宽度                    | `PopoverCard`、Showcase 打开态快照           | 已采用 HeroUI Popover；位置由 Overlay 决策                               |
+| [Popovers](https://react-demo.tailadmin.com/popovers)           | 四方向、Default/Button/Link 内容组合；打开态仍待稳定复核      | `PopoverCard`、Showcase 打开态快照           | 外部类型与方向已复核；项目保持单一真实语义，不机械暴露全部 Placement     |
 | [Progressbar](https://react-demo.tailadmin.com/progress-bar)    | Size、Inside/Outside Label、确定进度                          | `ProgressMeter`、状态页面                    | 已有内部契约；进度值和文本必须保持同义                                   |
 | [Ribbons](https://react-demo.tailadmin.com/ribbons)             | 角标与容器关系、Hover、Filled                                 | Feature Composition                          | 已复核；Badge 能表达时不新增 Ribbon                                      |
 | [Spinners](https://react-demo.tailadmin.com/spinners)           | 多种 Loading 表达、按钮内 Spinner                             | `Action loading`、`Skeleton`、`StateSurface` | Loading 按作用域选择，不堆叠多个指示器                                   |

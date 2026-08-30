@@ -1,19 +1,30 @@
 import {
   Action,
   AlertBanner,
+  Avatar,
   Badge,
+  BreadcrumbTrail,
+  BusyIndicator,
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
   CheckboxField,
   ComboField,
   CommandMenu,
   DatePickerField,
   DataTable,
+  DestructiveConfirmDialog,
+  DescriptionList,
   DialogSurface,
   DrawerSurface,
   MenuButton,
   NotificationCard,
   Panel,
+  PaginationControl,
   PopoverCard,
   ProgressMeter,
+  RadioGroupField,
   SearchBox,
   SelectField,
   StateSurface,
@@ -23,6 +34,8 @@ import {
   TextAreaField,
   TextField,
   TooltipAction,
+  UserIdentity,
+  useFeedback,
   type DataColumn,
 } from '@community-go/ui-adapter';
 import {
@@ -35,7 +48,7 @@ import {
   Pencil,
   Trash2,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
 
@@ -71,19 +84,36 @@ type ShowcaseDataRow = Readonly<{
 
 export function ShowcaseScreen() {
   const { t } = useTranslation();
+  const { notify } = useFeedback();
   const [searchParams] = useSearchParams();
   const overlay = searchParams.get('overlay');
   const locale = useShellStore((state) => state.locale);
   const setLocale = useShellStore((state) => state.setLocale);
-  const [density, setDensity] = useState<'comfortable' | 'compact'>('comfortable');
+  const [density, setDensity] = useState<'comfortable' | 'compact'>(
+    searchParams.get('density') === 'compact' ? 'compact' : 'comfortable',
+  );
   const [longText, setLongText] = useState(false);
   const [notificationVisible, setNotificationVisible] = useState(true);
-  const [showEmptyTable, setShowEmptyTable] = useState(false);
+  const [alertVisible, setAlertVisible] = useState(true);
+  const [showEmptyTable, setShowEmptyTable] = useState(searchParams.get('data') === 'empty');
   const [selectedTableId, setSelectedTableId] = useState('UI-001');
   const [checked, setChecked] = useState(true);
   const [selected, setSelected] = useState('guided');
+  const [page, setPage] = useState(2);
+  const [lastAction, setLastAction] = useState<string>();
+  const directToastSent = useRef(false);
   const description = longText ? t('showcase.longDescription') : t('showcase.shortDescription');
   const spacing = density === 'compact' ? 'gap-2' : 'gap-4';
+
+  useEffect(() => {
+    if (overlay !== 'toast' || directToastSent.current) return;
+    directToastSent.current = true;
+    notify({
+      title: t('showcase.toastTitle'),
+      description: t('showcase.toastDescription'),
+      tone: 'info',
+    });
+  }, [notify, overlay, t]);
   const tableRows: readonly ShowcaseDataRow[] = [
     {
       id: 'UI-001',
@@ -170,13 +200,30 @@ export function ShowcaseScreen() {
 
       <PageSection title={t('showcase.actionsTitle')} description={description}>
         <div className={`flex flex-wrap items-center p-5 ${spacing}`}>
-          <Action>{t('showcase.primary')}</Action>
-          <Action variant="secondary">{t('showcase.secondary')}</Action>
-          <Action variant="quiet">{t('showcase.quiet')}</Action>
-          <Action variant="danger">{t('showcase.danger')}</Action>
-          <Action size="sm">{t('showcase.small')}</Action>
-          <Action loading>{t('showcase.loading')}</Action>
+          <Action onPress={() => setLastAction(t('showcase.primary'))}>
+            {t('showcase.primary')}
+          </Action>
+          <Action variant="secondary" onPress={() => setLastAction(t('showcase.secondary'))}>
+            {t('showcase.secondary')}
+          </Action>
+          <Action variant="quiet" onPress={() => setLastAction(t('showcase.quiet'))}>
+            {t('showcase.quiet')}
+          </Action>
+          <Action variant="danger" onPress={() => setLastAction(t('showcase.danger'))}>
+            {t('showcase.danger')}
+          </Action>
+          <Action size="sm" onPress={() => setLastAction(t('showcase.small'))}>
+            {t('showcase.small')}
+          </Action>
+          <Action loading disabled>
+            {t('showcase.loading')}
+          </Action>
           <Action disabled>{t('showcase.disabled')}</Action>
+          {lastAction ? (
+            <span className="text-sm text-ink-muted" role="status">
+              {lastAction}
+            </span>
+          ) : null}
         </div>
       </PageSection>
 
@@ -186,12 +233,20 @@ export function ShowcaseScreen() {
       >
         <div className="grid gap-5 p-5 xl:grid-cols-2">
           <div className="grid content-start gap-3">
-            <AlertBanner
-              tone="success"
-              icon={<CheckCircle2 className="size-5" />}
-              title={t('showcase.successAlertTitle')}
-              description={description}
-            />
+            {alertVisible ? (
+              <AlertBanner
+                tone="success"
+                icon={<CheckCircle2 className="size-5" />}
+                title={t('showcase.successAlertTitle')}
+                description={description}
+                dismissLabel={t('showcase.alertDismiss')}
+                onDismiss={() => setAlertVisible(false)}
+              />
+            ) : (
+              <Action variant="quiet" onPress={() => setAlertVisible(true)}>
+                {t('showcase.alertRestore')}
+              </Action>
+            )}
             <AlertBanner
               tone="warning"
               icon={<AlertTriangle className="size-5" />}
@@ -213,6 +268,19 @@ export function ShowcaseScreen() {
               <Badge tone="info" appearance="solid" size="md">
                 {t('showcase.infoStatus')}
               </Badge>
+              <Action
+                size="sm"
+                variant="secondary"
+                onPress={() =>
+                  notify({
+                    title: t('showcase.toastTitle'),
+                    description: t('showcase.toastDescription'),
+                    tone: 'info',
+                  })
+                }
+              >
+                {t('showcase.toastAction')}
+              </Action>
             </div>
             {notificationVisible ? (
               <NotificationCard
@@ -265,6 +333,74 @@ export function ShowcaseScreen() {
       </PageSection>
 
       <PageSection
+        title={t('showcase.identityNavigationTitle')}
+        description={t('showcase.identityNavigationDescription')}
+      >
+        <div className="grid gap-5 p-5 lg:grid-cols-2">
+          <Card appearance="outlined">
+            <CardHeader title={t('showcase.identityTitle')} />
+            <CardContent>
+              <div className="flex flex-wrap items-center gap-4">
+                <Avatar
+                  name="Rin"
+                  size="lg"
+                  presence={{ label: t('showcase.presenceOnline'), tone: 'success' }}
+                />
+                <Avatar name="Lin Chen" />
+                <UserIdentity
+                  description={t('showcase.identityDescription')}
+                  name="Avery Morgan"
+                  presence={{ label: t('showcase.presenceOnline'), tone: 'success' }}
+                />
+              </div>
+              <div className="mt-5">
+                <DescriptionList
+                  columns={2}
+                  label={t('showcase.descriptionListLabel')}
+                  items={[
+                    {
+                      id: 'role',
+                      term: t('showcase.roleTerm'),
+                      description: t('showcase.identityDescription'),
+                    },
+                    {
+                      id: 'region',
+                      term: t('showcase.regionTerm'),
+                      description: t('reference.region.apac'),
+                    },
+                  ]}
+                />
+              </div>
+            </CardContent>
+          </Card>
+          <Card appearance="outlined">
+            <CardHeader title={t('showcase.navigationTitle')} />
+            <CardContent>
+              <BreadcrumbTrail
+                label={t('layout.breadcrumb')}
+                items={[
+                  { id: 'root', label: t('showcase.breadcrumbRoot'), disabled: true },
+                  { id: 'current', label: t('showcase.breadcrumbCurrent') },
+                ]}
+              />
+              <div className="mt-5 flex flex-wrap items-center justify-between gap-4">
+                <BusyIndicator label={t('showcase.busyLabel')} showLabel />
+                <PaginationControl
+                  getPageLabel={(pageNumber) => t('showcase.pageLabel', { page: pageNumber })}
+                  label={t('showcase.paginationLabel')}
+                  nextLabel={t('showcase.nextPage')}
+                  onPageChange={setPage}
+                  page={page}
+                  previousLabel={t('showcase.previousPage')}
+                  totalPages={12}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </PageSection>
+
+      <PageSection
         title={t('showcase.dataDisplayTitle')}
         description={t('showcase.dataDisplayDescription')}
         action={
@@ -288,34 +424,56 @@ export function ShowcaseScreen() {
 
       <PageSection title={t('showcase.cardsTitle')} description={t('showcase.cardsDescription')}>
         <div className="grid gap-4 p-5 lg:grid-cols-3">
-          <Panel appearance="elevated" className="p-5">
-            <Badge tone="info">{t('showcase.elevatedCardBadge')}</Badge>
-            <h3 className="mt-4 text-base font-bold text-ink">{t('showcase.elevatedCardTitle')}</h3>
-            <p className="mt-2 text-sm leading-6 text-ink-muted">{description}</p>
-            <div className="mt-5">
-              <Action size="sm">{t('showcase.cardAction')}</Action>
-            </div>
-          </Panel>
-          <Panel appearance="outlined" className="p-5">
-            <Badge>{t('showcase.outlinedCardBadge')}</Badge>
-            <h3 className="mt-4 text-base font-bold text-ink">{t('showcase.outlinedCardTitle')}</h3>
-            <p className="mt-2 text-sm leading-6 text-ink-muted">{description}</p>
-            <div className="mt-5">
-              <Action variant="secondary" size="sm">
+          <Card>
+            <CardHeader
+              action={<Badge tone="info">{t('showcase.elevatedCardBadge')}</Badge>}
+              title={t('showcase.elevatedCardTitle')}
+            />
+            <CardContent>
+              <p className="text-sm leading-6 text-ink-muted">{description}</p>
+            </CardContent>
+            <CardFooter>
+              <Action size="sm" onPress={() => setLastAction(t('showcase.elevatedCardTitle'))}>
                 {t('showcase.cardAction')}
               </Action>
-            </div>
-          </Panel>
-          <Panel appearance="embedded" tone="muted" className="rounded-panel p-5">
-            <Badge tone="neutral">{t('showcase.embeddedCardBadge')}</Badge>
-            <h3 className="mt-4 text-base font-bold text-ink">{t('showcase.embeddedCardTitle')}</h3>
-            <p className="mt-2 text-sm leading-6 text-ink-muted">{description}</p>
-            <div className="mt-5">
-              <Action variant="quiet" size="sm">
+            </CardFooter>
+          </Card>
+          <Card appearance="outlined">
+            <CardHeader
+              action={<Badge>{t('showcase.outlinedCardBadge')}</Badge>}
+              title={t('showcase.outlinedCardTitle')}
+            />
+            <CardContent>
+              <p className="text-sm leading-6 text-ink-muted">{description}</p>
+            </CardContent>
+            <CardFooter>
+              <Action
+                variant="secondary"
+                size="sm"
+                onPress={() => setLastAction(t('showcase.outlinedCardTitle'))}
+              >
                 {t('showcase.cardAction')}
               </Action>
-            </div>
-          </Panel>
+            </CardFooter>
+          </Card>
+          <Card appearance="flat">
+            <CardHeader
+              action={<Badge tone="neutral">{t('showcase.embeddedCardBadge')}</Badge>}
+              title={t('showcase.embeddedCardTitle')}
+            />
+            <CardContent>
+              <p className="text-sm leading-6 text-ink-muted">{description}</p>
+            </CardContent>
+            <CardFooter>
+              <Action
+                variant="quiet"
+                size="sm"
+                onPress={() => setLastAction(t('showcase.embeddedCardTitle'))}
+              >
+                {t('showcase.cardAction')}
+              </Action>
+            </CardFooter>
+          </Card>
         </div>
       </PageSection>
 
@@ -379,12 +537,16 @@ export function ShowcaseScreen() {
             checked={checked}
             onCheckedChange={setChecked}
           />
-          <CheckboxField
-            label={t('showcase.disabledCheckbox')}
-            checked={false}
-            disabled
-            onCheckedChange={() => undefined}
+          <RadioGroupField
+            label={t('showcase.radioGroup')}
+            options={[
+              { value: 'observe', label: t('formReference.modeOption.observe') },
+              { value: 'guided', label: t('formReference.modeOption.guided') },
+            ]}
+            value={selected}
+            onValueChange={setSelected}
           />
+          <CheckboxField label={t('showcase.disabledCheckbox')} checked={false} disabled />
         </div>
       </PageSection>
 
@@ -397,6 +559,7 @@ export function ShowcaseScreen() {
             ariaLabel={t('showcase.menuLabel')}
             label={t('showcase.menu')}
             defaultOpen={overlay === 'menu'}
+            onAction={(id) => setLastAction(id)}
             items={[
               { id: 'edit', label: t('showcase.menuEdit'), icon: <Pencil className="size-4" /> },
               { id: 'copy', label: t('showcase.menuCopy'), icon: <Copy className="size-4" /> },
@@ -433,9 +596,21 @@ export function ShowcaseScreen() {
             cancelLabel={t('reference.cancel')}
             confirmLabel={t('reference.confirm')}
             defaultOpen={overlay === 'dialog'}
+            onConfirm={() => setLastAction(t('reference.confirm'))}
           >
             <TextField label={t('showcase.dialogField')} defaultValue="Community" />
           </DialogSurface>
+          <DestructiveConfirmDialog
+            cancelLabel={t('reference.cancel')}
+            confirmLabel={t('showcase.destructiveAction')}
+            description={t('showcase.destructiveDescription')}
+            failureMessage={t('showcase.confirmFailure')}
+            impact={t('showcase.destructiveImpact')}
+            title={t('showcase.destructiveTitle')}
+            triggerLabel={t('showcase.destructiveConfirm')}
+            defaultOpen={overlay === 'confirm'}
+            onConfirm={() => setLastAction(t('showcase.destructiveAction'))}
+          />
           <DrawerSurface
             triggerLabel={t('showcase.drawer')}
             title={t('showcase.drawerTitle')}
@@ -460,6 +635,7 @@ export function ShowcaseScreen() {
             searchPlaceholder={t('showcase.commandSearchPlaceholder')}
             emptyLabel={t('showcase.commandEmpty')}
             defaultOpen={overlay === 'command'}
+            onAction={(id) => setLastAction(id)}
             items={[
               {
                 id: 'workspace',

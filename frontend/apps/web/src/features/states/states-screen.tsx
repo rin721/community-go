@@ -1,4 +1,4 @@
-import { Panel, Skeleton, StateSurface } from '@community-go/ui-adapter';
+import { BusyIndicator, Panel, Skeleton, StateSurface } from '@community-go/ui-adapter';
 import type { ProductState } from '@community-go/types';
 import {
   Ban,
@@ -6,7 +6,6 @@ import {
   Clock3,
   CloudOff,
   Inbox,
-  LoaderCircle,
   LockKeyhole,
   OctagonAlert,
   TriangleAlert,
@@ -14,7 +13,7 @@ import {
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { PageHeading } from '../../components/page-heading';
+import { PageHeader } from '../../layouts/page-layout';
 
 const stateDefinitions = [
   { id: 'empty', icon: Inbox },
@@ -33,7 +32,7 @@ export function StatesScreen() {
 
   return (
     <div className="space-y-6">
-      <PageHeading
+      <PageHeader
         eyebrow={t('states.eyebrow')}
         title={t('states.title')}
         description={t('states.description')}
@@ -41,8 +40,7 @@ export function StatesScreen() {
       <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
         <Panel aria-busy="true" aria-label={t('states.loading.title')} className="p-5">
           <div className="flex items-center gap-3 text-info">
-            <LoaderCircle className="size-5 animate-spin" />
-            <span className="text-sm font-bold text-ink">{t('states.loading.title')}</span>
+            <BusyIndicator label={t('states.loading.title')} showLabel />
           </div>
           <p className="mt-2 text-xs leading-5 text-ink-muted">{t('states.loading.description')}</p>
           <div className="mt-5 space-y-3">

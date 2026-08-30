@@ -21,7 +21,7 @@ pnpm check
 
 - `/reference`：48 条确定性数据组成的 Dashboard、筛选、Data Table、Master-Detail、Tabs、Drawer、Dialog，以及 Loading、Empty、Partial Error、Offline、Permission 等状态。
 - `/reference/form`：React Hook Form、Zod、Select、Combobox、DatePicker、Tabs 与 sticky footer 组成的复杂表单，覆盖错误、Disabled、Pending 与成功反馈。
-- `/showcase`：Action、Field、Overlay、嵌套 Panel、长文本、密度、Locale 和窄屏组合实验场。`?overlay=menu|popover|tooltip|date|command|dialog|drawer` 可直接打开指定浮层。
+- `/showcase`：Action、Identity、Navigation、Feedback/Toast、Status/Async、Data、Card、Field、Overlay、组合压力、长文本、密度、Locale 和窄屏实验场。`?overlay=menu|popover|tooltip|date|command|dialog|confirm|drawer|toast`、`?data=empty` 与 `?density=compact` 可直接打开关键状态。
 
 TailAdmin `UI Elements` 是长期外部视觉校准基准，HeroUI 是交互与可访问性基础，项目最终规范由 Semantic Token、UI Adapter 与 `/showcase` 决定。逐页对照矩阵、内部权威范围和强制复核触发器见 [UI 视觉校准基线](docs/ui-visual-calibration.md)。
 
@@ -29,10 +29,13 @@ TailAdmin `UI Elements` 是长期外部视觉校准基准，HeroUI 是交互与�
 
 这些页面只使用本地确定性数据，不代表已接入业务后端。它们的职责是证明 Layout、Token、UI Adapter、状态模型和 Host Port 能承载后续页面迁移。
 
+任务级研究、需求、设计、实施和验证证据统一从 [Frontend 变更记录](docs/changes/README.md) 进入。进行中的变更不得代替当前 UI authority；完成后必须把真实终态同步回本 README、`AGENTS.md` 和对应主题文档。
+
 ## 稳定契约
 
 - `apps/web/src/layouts/page-layout.tsx` 定义页面级 Layout Contract：Header、Toolbar、Filter Bar、Section、Split View 与 sticky actions。
 - `packages/ui-adapter` 统一交互组件和全部 HeroUI Floating Layer。业务代码不得使用原生 `<select>`，也不得直接导入 HeroUI。
+- 只有 HeroUI 的直接依赖以及 Tailwind 对 HeroUI compound parts 的 styling 收口在 UI Adapter；Tailwind CSS v4 可在整个前端通过项目 Semantic Token、utilities 与 variants 承担布局、响应式、主题、密度和视觉组合，HeroUI/React Aria 则负责交互与可访问 primitive。长期规则见 [AGENTS.md 的官方互补基线](AGENTS.md#41-heroui-v3-与-tailwind-css-v4-官方互补基线)。
 - Form Selection 默认使用 `match-trigger` Anchored Overlay；Popup 继承 Trigger 宽度，Listbox 自己管理最大高度和滚动。
 - `packages/reference` 保存 Host-neutral Feature、确定性场景数据和导出 Port；Web 与 Desktop 分别装配平台实现，共享层不出现平台条件分支。
 - `packages/design-system` 保存 Light/Dark 语义 Token；页面不得用硬编码颜色修复局部对比度或状态表达。
@@ -55,7 +58,7 @@ pnpm dependency:check
 pnpm performance:check
 ```
 
-视觉基线覆盖 Reference 桌面/超宽屏、Showcase 桌面权威面、移动端、Dark Mode、英文扩张及 Menu、Popover、Tooltip、DatePicker、Command、Dialog、Drawer 打开态。当前 gzip 预算为：首屏 JS 不高于 400 KiB、全部 JS 不高于 430 KiB、CSS 不高于 48 KiB、最大 JS Chunk 不高于 200 KiB。依赖职责与允许边界记录在 `tooling/dependency-policy.json`。
+视觉基线覆盖 Overview、Reference 列表/多选/超宽屏、Reference Form、Preferences、States、Showcase 桌面与移动端、Dark Mode、英文扩张、Compact Density、Toast、Confirm，以及 Menu、Popover、Tooltip、Select、Combobox、DatePicker、Command、Dialog、Drawer 打开态。当前 gzip 预算为：首屏 JS 不高于 400 KiB、全部 JS 不高于 430 KiB、CSS 不高于 48 KiB、最大 JS Chunk 不高于 200 KiB。依赖职责与允许边界记录在 `tooling/dependency-policy.json`。
 
 ## 架构地图
 

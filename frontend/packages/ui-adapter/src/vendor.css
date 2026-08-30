@@ -10,7 +10,7 @@
   }
 
   .ui-field-control {
-    @apply min-h-control w-full rounded-control border border-border bg-surface px-3.5 text-sm font-normal text-ink shadow-sm outline-none placeholder:text-ink-muted/70 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-55 data-[focus-visible]:border-brand data-[focus-within]:border-brand data-[invalid]:border-danger;
+    @apply min-h-control w-full rounded-control border border-border bg-surface px-3.5 text-sm font-normal text-ink shadow-sm outline-none placeholder:text-ink-muted/70 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-55 data-[focus-visible]:border-focus-ring data-[focus-within]:border-focus-ring data-[invalid]:border-danger;
   }
 
   .ui-field-hint {

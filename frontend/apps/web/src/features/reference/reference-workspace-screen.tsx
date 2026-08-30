@@ -8,9 +8,11 @@ import {
 import {
   Action,
   DataTable,
+  DescriptionList,
   DialogSurface,
   DrawerSurface,
   Panel,
+  PaginationControl,
   ProgressMeter,
   SearchBox,
   SelectField,
@@ -18,12 +20,13 @@ import {
   StateSurface,
   StatusPill,
   TabsView,
+  UserIdentity,
+  useFeedback,
   type DataColumn,
   type StatusTone,
 } from '@community-go/ui-adapter';
 import {
   AlertTriangle,
-  ArrowUpRight,
   CloudOff,
   Download,
   FileWarning,
@@ -50,6 +53,7 @@ type SceneMode = 'ready' | 'loading' | 'empty' | 'partial-error' | 'offline' | '
 
 const records = getReferenceRecords();
 const referenceFeature = createReferenceFeature(browserReferenceExport);
+const pageSize = 12;
 
 const statusTone: Record<ReferenceStatus, StatusTone> = {
   healthy: 'success',
@@ -59,6 +63,7 @@ const statusTone: Record<ReferenceStatus, StatusTone> = {
 
 export function ReferenceWorkspaceScreen() {
   const { t } = useTranslation();
+  const { notify } = useFeedback();
   const locale = useShellStore((state) => state.locale);
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<ReferenceStatus | 'all'>('all');
@@ -66,6 +71,12 @@ export function ReferenceWorkspaceScreen() {
   const [density, setDensity] = useState<'comfortable' | 'compact'>('comfortable');
   const [sceneMode, setSceneMode] = useState<SceneMode>('ready');
   const [selectedId, setSelectedId] = useState(records[0]?.id ?? '');
+  const [selectedIds, setSelectedIds] = useState<readonly string[]>([]);
+  const [page, setPage] = useState(1);
+  const [sort, setSort] = useState<{
+    columnId: string;
+    direction: 'ascending' | 'descending';
+  }>({ columnId: 'updated', direction: 'descending' });
   const [exported, setExported] = useState(false);
 
   const filteredRecords = useMemo(
@@ -74,6 +85,31 @@ export function ReferenceWorkspaceScreen() {
   );
   const selectedRecord =
     filteredRecords.find((record) => record.id === selectedId) ?? filteredRecords[0];
+
+  const sortedRecords = useMemo(() => {
+    const direction = sort.direction === 'ascending' ? 1 : -1;
+    return [...filteredRecords].sort((left, right) => {
+      const leftValue =
+        sort.columnId === 'workstream'
+          ? left.name
+          : sort.columnId === 'progress'
+            ? left.completionPercent
+            : sort.columnId === 'updated'
+              ? left.updatedAt
+              : left[sort.columnId as 'owner' | 'status' | 'region'];
+      const rightValue =
+        sort.columnId === 'workstream'
+          ? right.name
+          : sort.columnId === 'progress'
+            ? right.completionPercent
+            : sort.columnId === 'updated'
+              ? right.updatedAt
+              : right[sort.columnId as 'owner' | 'status' | 'region'];
+      return (
+        String(leftValue).localeCompare(String(rightValue), locale, { numeric: true }) * direction
+      );
+    });
+  }, [filteredRecords, locale, sort]);
 
   const dateFormatter = useMemo(
     () => new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric', year: 'numeric' }),
@@ -86,6 +122,7 @@ export function ReferenceWorkspaceScreen() {
         id: 'workstream',
         label: t('reference.columns.workstream'),
         rowHeader: true,
+        sortable: true,
         render: (record) => (
           <div className="min-w-48">
             <p className="font-semibold text-ink">{record.name}</p>
@@ -93,10 +130,22 @@ export function ReferenceWorkspaceScreen() {
           </div>
         ),
       },
-      { id: 'owner', label: t('reference.columns.owner'), render: (record) => record.owner },
+      {
+        id: 'owner',
+        label: t('reference.columns.owner'),
+        sortable: true,
+        render: (record) => (
+          <UserIdentity
+            avatarSize="sm"
+            description={t(`reference.region.${record.region}`)}
+            name={record.owner}
+          />
+        ),
+      },
       {
         id: 'status',
         label: t('reference.columns.status'),
+        sortable: true,
         render: (record) => (
           <StatusPill tone={statusTone[record.status]}>
             {t(`reference.status.${record.status}`)}
@@ -106,11 +155,13 @@ export function ReferenceWorkspaceScreen() {
       {
         id: 'region',
         label: t('reference.columns.region'),
+        sortable: true,
         render: (record) => t(`reference.region.${record.region}`),
       },
       {
         id: 'progress',
         label: t('reference.columns.progress'),
+        sortable: true,
         render: (record) => (
           <div className="min-w-32">
             <ProgressMeter
@@ -123,13 +174,17 @@ export function ReferenceWorkspaceScreen() {
       {
         id: 'updated',
         label: t('reference.columns.updated'),
+        sortable: true,
         render: (record) => dateFormatter.format(new Date(record.updatedAt)),
       },
     ],
     [dateFormatter, t],
   );
 
-  const visibleRecords = sceneMode === 'empty' ? [] : filteredRecords;
+  const visibleRecords = sceneMode === 'empty' ? [] : sortedRecords;
+  const totalPages = Math.max(1, Math.ceil(visibleRecords.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pageRecords = visibleRecords.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const metrics = [
     { label: t('reference.metrics.total'), value: String(records.length), tone: 'text-brand' },
     {
@@ -152,6 +207,22 @@ export function ReferenceWorkspaceScreen() {
   const exportSnapshot = async () => {
     await referenceFeature.exportSnapshot(filteredRecords);
     setExported(true);
+    notify({
+      title: t('reference.exported'),
+      description: t('reference.tableDescription', { count: filteredRecords.length }),
+      tone: 'success',
+    });
+  };
+
+  const exportSelected = async () => {
+    const selectedRecords = records.filter((record) => selectedIds.includes(record.id));
+    await referenceFeature.exportSnapshot(selectedRecords);
+    setExported(true);
+    notify({
+      title: t('reference.exported'),
+      description: t('reference.selectedCount', { count: selectedRecords.length }),
+      tone: 'success',
+    });
   };
 
   return (
@@ -188,6 +259,7 @@ export function ReferenceWorkspaceScreen() {
               description={t('reference.dialogDescription')}
               cancelLabel={t('reference.cancel')}
               confirmLabel={t('reference.confirm')}
+              onConfirm={() => setExported(true)}
             >
               <p className="text-sm leading-6 text-ink-muted">{t('reference.dialogBody')}</p>
             </DialogSurface>
@@ -243,7 +315,10 @@ export function ReferenceWorkspaceScreen() {
             { value: 'attention', label: t('reference.status.attention') },
             { value: 'paused', label: t('reference.status.paused') },
           ]}
-          onValueChange={(value) => setStatus(value as ReferenceStatus | 'all')}
+          onValueChange={(value) => {
+            setStatus(value as ReferenceStatus | 'all');
+            setPage(1);
+          }}
         />
         <SelectField
           label={t('reference.regionLabel')}
@@ -254,7 +329,10 @@ export function ReferenceWorkspaceScreen() {
             { value: 'emea', label: t('reference.region.emea') },
             { value: 'americas', label: t('reference.region.americas') },
           ]}
-          onValueChange={(value) => setRegion(value as ReferenceRecord['region'] | 'all')}
+          onValueChange={(value) => {
+            setRegion(value as ReferenceRecord['region'] | 'all');
+            setPage(1);
+          }}
         />
         <SelectField
           label={t('reference.densityLabel')}
@@ -339,17 +417,52 @@ export function ReferenceWorkspaceScreen() {
                   }}
                 />
               ) : (
-                <DataTable
-                  label={t('reference.tableLabel')}
-                  columns={columns}
-                  density={density}
-                  emptyContent={t('reference.emptyDescription')}
-                  rows={visibleRecords}
-                  selection={{
-                    onSelectionChange: setSelectedId,
-                    ...(selectedRecord ? { selectedId: selectedRecord.id } : {}),
-                  }}
-                />
+                <>
+                  {selectedIds.length > 0 ? (
+                    <div className="flex items-center justify-between gap-3 border-b border-border bg-brand-soft px-4 py-3">
+                      <span className="text-sm font-semibold text-brand">
+                        {t('reference.selectedCount', { count: selectedIds.length })}
+                      </span>
+                      <Action size="sm" variant="secondary" onPress={() => void exportSelected()}>
+                        {t('reference.exportSelected')}
+                      </Action>
+                    </div>
+                  ) : null}
+                  <DataTable
+                    label={t('reference.tableLabel')}
+                    columns={columns}
+                    density={density}
+                    emptyContent={t('reference.emptyDescription')}
+                    rows={pageRecords}
+                    selection={{
+                      mode: 'multiple',
+                      selectedIds,
+                      onSelectionChange: (ids) => {
+                        setSelectedIds(ids);
+                        const latestId = ids.at(-1);
+                        if (latestId) setSelectedId(latestId);
+                      },
+                    }}
+                    sort={{
+                      ...sort,
+                      onSortChange: (columnId, direction) => {
+                        setSort({ columnId, direction });
+                        setPage(1);
+                      },
+                    }}
+                  />
+                  <div className="flex justify-end border-t border-border p-4">
+                    <PaginationControl
+                      getPageLabel={(pageNumber) => t('reference.pageLabel', { page: pageNumber })}
+                      label={t('reference.paginationLabel')}
+                      nextLabel={t('reference.nextPage')}
+                      onPageChange={setPage}
+                      page={currentPage}
+                      previousLabel={t('reference.previousPage')}
+                      totalPages={totalPages}
+                    />
+                  </div>
+                </>
               )}
             </PageSection>
           }
@@ -377,14 +490,30 @@ export function ReferenceWorkspaceScreen() {
                         id: 'summary',
                         label: t('reference.tabs.summary'),
                         content: (
-                          <div className="space-y-4 p-5 text-sm leading-6 text-ink-muted">
+                          <div className="space-y-5 p-5 text-sm leading-6 text-ink-muted">
                             <p>{selectedRecord.description}</p>
-                            <div className="rounded-control bg-surface-muted p-3">
-                              <p className="text-xs font-semibold text-ink-muted">
-                                {t('reference.columns.owner')}
-                              </p>
-                              <p className="mt-1 font-bold text-ink">{selectedRecord.owner}</p>
-                            </div>
+                            <DescriptionList
+                              label={t('reference.detailTabsLabel')}
+                              items={[
+                                {
+                                  id: 'owner',
+                                  term: t('reference.columns.owner'),
+                                  description: (
+                                    <UserIdentity
+                                      description={t(`reference.region.${selectedRecord.region}`)}
+                                      name={selectedRecord.owner}
+                                    />
+                                  ),
+                                },
+                                {
+                                  id: 'updated',
+                                  term: t('reference.columns.updated'),
+                                  description: dateFormatter.format(
+                                    new Date(selectedRecord.updatedAt),
+                                  ),
+                                },
+                              ]}
+                            />
                           </div>
                         ),
                       },
@@ -418,16 +547,6 @@ export function ReferenceWorkspaceScreen() {
                       },
                     ]}
                   />
-                  <div className="border-t border-border p-4">
-                    <Action
-                      fullWidth
-                      size="sm"
-                      variant="secondary"
-                      leadingIcon={<ArrowUpRight className="size-4" />}
-                    >
-                      {t('reference.detailAction')}
-                    </Action>
-                  </div>
                 </>
               ) : null}
             </Panel>

@@ -16,7 +16,7 @@
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "architecture:check": "node tooling/check-boundaries.mjs",
+    "architecture:check": "node tooling/check-boundaries-fixtures.mjs && node tooling/check-boundaries.mjs",
     "dependency:check": "node tooling/check-dependencies.mjs",
     "performance:check": "node tooling/check-performance-budget.mjs",
     "check": "pnpm architecture:check && pnpm dependency:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm performance:check && pnpm test:browser && pnpm format:check"

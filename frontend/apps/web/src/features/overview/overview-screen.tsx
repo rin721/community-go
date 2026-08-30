@@ -1,4 +1,4 @@
-import { Action, Panel, ProgressMeter, StatusPill } from '@community-go/ui-adapter';
+import { Card, CardContent, Panel, ProgressMeter, StatusPill } from '@community-go/ui-adapter';
 import {
   ArrowRight,
   Boxes,
@@ -11,7 +11,8 @@ import {
   Workflow,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router';
+
+import { RouterTextLink } from '../../host/router-text-link';
 
 const capabilityDefinitions = [
   { id: 'design', progress: 78, icon: Layers3, status: 'ready' },
@@ -29,7 +30,6 @@ const metrics = [
 
 export function OverviewScreen() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
 
   return (
     <div className="space-y-6">
@@ -45,43 +45,35 @@ export function OverviewScreen() {
           <p className="mt-4 max-w-2xl text-sm leading-7 text-ink-muted sm:text-base">
             {t('overview.description')}
           </p>
-          <div className="mt-7 flex flex-wrap gap-3">
-            <Action
-              leadingIcon={<Layers3 className="size-4" />}
-              onPress={() => {
-                void navigate('/foundations');
-              }}
-            >
+          <div className="mt-7 flex flex-wrap gap-5">
+            <RouterTextLink href="/foundations" leadingIcon={<Layers3 className="size-4" />}>
               {t('overview.action')}
-            </Action>
-            <Action
-              variant="secondary"
-              onPress={() => {
-                void navigate('/states');
-              }}
-            >
+            </RouterTextLink>
+            <RouterTextLink href="/states" tone="neutral">
               {t('overview.secondaryAction')}
-            </Action>
+            </RouterTextLink>
           </div>
         </div>
       </Panel>
 
       <section className="metric-grid gap-4" aria-label="Foundation metrics">
         {metrics.map(({ value, label, detail, icon: Icon }) => (
-          <Panel key={label} className="p-5">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-sm font-medium text-ink-muted">
-                  {t(`overview.metrics.${label}`)}
-                </p>
-                <p className="mt-3 text-3xl font-extrabold tracking-tight text-ink">{value}</p>
-                <p className="mt-1 text-xs text-ink-muted">{t(`overview.metrics.${detail}`)}</p>
+          <Card key={label}>
+            <CardContent>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-medium text-ink-muted">
+                    {t(`overview.metrics.${label}`)}
+                  </p>
+                  <p className="mt-3 text-3xl font-extrabold tracking-tight text-ink">{value}</p>
+                  <p className="mt-1 text-xs text-ink-muted">{t(`overview.metrics.${detail}`)}</p>
+                </div>
+                <span className="grid size-11 place-items-center rounded-control bg-brand-soft text-brand">
+                  <Icon className="size-5" />
+                </span>
               </div>
-              <span className="grid size-11 place-items-center rounded-control bg-brand-soft text-brand">
-                <Icon className="size-5" />
-              </span>
-            </div>
-          </Panel>
+            </CardContent>
+          </Card>
         ))}
       </section>
 
@@ -96,22 +88,24 @@ export function OverviewScreen() {
           </div>
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             {capabilityDefinitions.map(({ id, progress, icon: Icon, status }) => (
-              <article key={id} className="rounded-panel border border-border bg-canvas/70 p-4">
-                <div className="flex items-start gap-3">
-                  <span className="grid size-10 shrink-0 place-items-center rounded-control bg-surface text-brand shadow-sm">
-                    <Icon className="size-4.5" />
-                  </span>
-                  <div className="min-w-0">
-                    <h3 className="text-sm font-bold text-ink">{t(`capability.${id}`)}</h3>
-                    <p className="mt-1 line-clamp-2 text-xs leading-5 text-ink-muted">
-                      {t(`capability.${id}Description`)}
-                    </p>
+              <Card key={id} appearance="flat">
+                <CardContent>
+                  <div className="flex items-start gap-3">
+                    <span className="grid size-10 shrink-0 place-items-center rounded-control bg-surface text-brand shadow-sm">
+                      <Icon className="size-4.5" />
+                    </span>
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-bold text-ink">{t(`capability.${id}`)}</h3>
+                      <p className="mt-1 line-clamp-2 text-xs leading-5 text-ink-muted">
+                        {t(`capability.${id}Description`)}
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <div className="mt-4">
-                  <ProgressMeter value={progress} label={t(`capability.${status}`)} />
-                </div>
-              </article>
+                  <div className="mt-4">
+                    <ProgressMeter value={progress} label={t(`capability.${status}`)} />
+                  </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         </Panel>

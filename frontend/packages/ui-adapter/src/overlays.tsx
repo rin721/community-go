@@ -1,4 +1,5 @@
 import {
+  AlertDialog,
   Button as HeroButton,
   Dropdown,
   Input,
@@ -22,11 +23,11 @@ export type MenuAction = Readonly<{
 }>;
 
 export type MenuButtonProps = Readonly<{
-  label: string;
+  label: ReactNode;
   ariaLabel: string;
   items: readonly MenuAction[];
   defaultOpen?: boolean;
-  onAction?: (id: string) => void;
+  onAction: (id: string) => void;
 }>;
 
 export function MenuButton({
@@ -43,7 +44,7 @@ export function MenuButton({
         <Dropdown.Menu
           aria-label={ariaLabel}
           disabledKeys={items.filter((item) => item.disabled).map((item) => item.id)}
-          onAction={(key) => onAction?.(String(key))}
+          onAction={(key) => onAction(String(key))}
         >
           {items.map((item) => (
             <Dropdown.Item
@@ -123,7 +124,9 @@ export type DialogSurfaceProps = Readonly<{
   cancelLabel: string;
   confirmLabel: string;
   defaultOpen?: boolean;
-  onConfirm?: () => void;
+  confirmDisabled?: boolean;
+  failureMessage?: string;
+  onConfirm: () => void | Promise<void>;
 }>;
 
 export function DialogSurface({
@@ -134,11 +137,32 @@ export function DialogSurface({
   cancelLabel,
   confirmLabel,
   defaultOpen = false,
+  confirmDisabled = false,
+  failureMessage,
   onConfirm,
 }: DialogSurfaceProps) {
+  const [open, setOpen] = useState(defaultOpen);
+  const [pending, setPending] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  const confirm = async () => {
+    setPending(true);
+    setFailed(false);
+    try {
+      await onConfirm();
+      setOpen(false);
+    } catch {
+      setFailed(true);
+    } finally {
+      setPending(false);
+    }
+  };
+
   return (
-    <Modal defaultOpen={defaultOpen}>
-      <HeroButton className="ui-overlay-trigger">{triggerLabel}</HeroButton>
+    <Modal isOpen={open} onOpenChange={setOpen}>
+      <HeroButton className="ui-overlay-trigger" onPress={() => setOpen(true)}>
+        {triggerLabel}
+      </HeroButton>
       <Modal.Backdrop className="bg-scrim backdrop-blur-sm">
         <Modal.Container placement="center" size="lg">
           <Modal.Dialog className="ui-overlay-surface w-full">
@@ -147,22 +171,128 @@ export function DialogSurface({
               <p className="mt-1 text-sm leading-6 text-ink-muted">{description}</p>
             </Modal.Header>
             <Modal.Body className="px-6 py-5">{children}</Modal.Body>
+            {failed && failureMessage ? (
+              <p className="px-6 pb-4 text-sm font-medium text-danger" role="alert">
+                {failureMessage}
+              </p>
+            ) : null}
             <Modal.Footer className="flex justify-end gap-3 border-t border-border px-6 py-4">
-              <Modal.CloseTrigger className="ui-overlay-trigger shadow-none">
+              <Modal.CloseTrigger
+                aria-label={cancelLabel}
+                className="static inline-flex h-10 w-auto min-w-20 items-center justify-center rounded-control border border-border bg-surface px-4 text-sm font-semibold leading-none text-ink shadow-sm hover:bg-surface-muted"
+                isDisabled={pending}
+              >
                 {cancelLabel}
               </Modal.CloseTrigger>
-              <Modal.CloseTrigger
+              <HeroButton
                 className="inline-flex h-10 items-center justify-center rounded-control bg-brand px-4 text-sm font-semibold text-white hover:bg-brand-strong"
-                {...(onConfirm ? { onPress: onConfirm } : {})}
+                isDisabled={confirmDisabled || pending}
+                isPending={pending}
+                onPress={() => void confirm()}
               >
                 {confirmLabel}
-              </Modal.CloseTrigger>
+              </HeroButton>
             </Modal.Footer>
           </Modal.Dialog>
         </Modal.Container>
       </Modal.Backdrop>
     </Modal>
   );
+}
+
+export type ConfirmDialogProps = Readonly<{
+  triggerLabel: string;
+  title: string;
+  description: string;
+  impact: ReactNode;
+  cancelLabel: string;
+  confirmLabel: string;
+  failureMessage: string;
+  tone?: 'primary' | 'danger';
+  defaultOpen?: boolean;
+  confirmDisabled?: boolean;
+  onConfirm: () => void | Promise<void>;
+}>;
+
+export function ConfirmDialog({
+  triggerLabel,
+  title,
+  description,
+  impact,
+  cancelLabel,
+  confirmLabel,
+  failureMessage,
+  tone = 'primary',
+  defaultOpen = false,
+  confirmDisabled = false,
+  onConfirm,
+}: ConfirmDialogProps) {
+  const [open, setOpen] = useState(defaultOpen);
+  const [pending, setPending] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  const confirm = async () => {
+    setPending(true);
+    setFailed(false);
+    try {
+      await onConfirm();
+      setOpen(false);
+    } catch {
+      setFailed(true);
+    } finally {
+      setPending(false);
+    }
+  };
+
+  return (
+    <AlertDialog isOpen={open} onOpenChange={setOpen}>
+      <AlertDialog.Trigger className="ui-overlay-trigger">{triggerLabel}</AlertDialog.Trigger>
+      <AlertDialog.Backdrop className="bg-scrim backdrop-blur-sm">
+        <AlertDialog.Container placement="center" size="md">
+          <AlertDialog.Dialog className="ui-overlay-surface w-full">
+            <AlertDialog.Header className="px-6 pt-6">
+              <AlertDialog.Icon status={tone === 'danger' ? 'danger' : 'accent'} />
+              <AlertDialog.Heading className="mt-4 text-lg font-bold text-ink">
+                {title}
+              </AlertDialog.Heading>
+            </AlertDialog.Header>
+            <AlertDialog.Body className="px-6 py-4 text-sm leading-6 text-ink-muted">
+              <p>{description}</p>
+              <div className="mt-3 rounded-control bg-surface-muted p-3 text-ink">{impact}</div>
+              {failed ? (
+                <p className="mt-3 font-medium text-danger" role="alert">
+                  {failureMessage}
+                </p>
+              ) : null}
+            </AlertDialog.Body>
+            <AlertDialog.Footer className="flex justify-end gap-3 border-t border-border px-6 py-4">
+              <AlertDialog.CloseTrigger
+                aria-label={cancelLabel}
+                className="static inline-flex h-10 w-auto min-w-20 items-center justify-center rounded-control border border-border bg-surface px-4 text-sm font-semibold leading-none text-ink shadow-sm hover:bg-surface-muted"
+                isDisabled={pending}
+              >
+                {cancelLabel}
+              </AlertDialog.CloseTrigger>
+              <HeroButton
+                className={`inline-flex h-10 items-center justify-center rounded-control px-4 text-sm font-semibold ${tone === 'danger' ? 'bg-danger text-on-danger hover:bg-danger/90' : 'bg-brand text-on-brand hover:bg-brand-strong'}`}
+                isDisabled={confirmDisabled || pending}
+                isPending={pending}
+                onPress={() => void confirm()}
+              >
+                {confirmLabel}
+              </HeroButton>
+            </AlertDialog.Footer>
+          </AlertDialog.Dialog>
+        </AlertDialog.Container>
+      </AlertDialog.Backdrop>
+    </AlertDialog>
+  );
+}
+
+export type DestructiveConfirmDialogProps = Omit<ConfirmDialogProps, 'tone'>;
+
+export function DestructiveConfirmDialog(props: DestructiveConfirmDialogProps) {
+  return <ConfirmDialog {...props} tone="danger" />;
 }
 
 export type DrawerSurfaceProps = Readonly<{
@@ -223,7 +353,7 @@ export type CommandMenuProps = Readonly<{
   defaultOpen?: boolean;
   isOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
-  onAction?: (id: string) => void;
+  onAction: (id: string) => void;
 }>;
 
 export function CommandMenu({
@@ -282,7 +412,7 @@ export function CommandMenu({
                 <ListBox
                   aria-label={title}
                   className="max-h-80 overflow-auto p-2 outline-none"
-                  onAction={(key) => onAction?.(String(key))}
+                  onAction={(key) => onAction(String(key))}
                 >
                   {visibleItems.map((item) => (
                     <ListBox.Item

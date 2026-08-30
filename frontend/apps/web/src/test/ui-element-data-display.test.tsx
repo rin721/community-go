@@ -1,6 +1,6 @@
 import { DataTable, type DataColumn } from '@community-go/ui-adapter';
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 
 type TestRow = Readonly<{ id: string; name: string }>;
 
@@ -9,6 +9,7 @@ const columns: readonly DataColumn<TestRow>[] = [
     id: 'name',
     label: '名称',
     rowHeader: true,
+    sortable: true,
     render: (row) => row.name,
   },
 ];
@@ -34,5 +35,29 @@ describe('Data Display Family', () => {
 
     expect(screen.getByRole('grid', { name: '能力清单' })).toBeVisible();
     expect(screen.getByText('没有能力')).toBeVisible();
+  });
+
+  it('排序与多选都通过项目契约回传稳定标识', () => {
+    const onSortChange = vi.fn();
+    const onSelectionChange = vi.fn();
+    render(
+      <DataTable
+        label="能力清单"
+        columns={columns}
+        emptyContent="没有能力"
+        rows={[
+          { id: 'tokens', name: 'Semantic Tokens' },
+          { id: 'adapter', name: 'UI Adapter' },
+        ]}
+        selection={{ mode: 'multiple', selectedIds: [], onSelectionChange }}
+        sort={{ columnId: 'name', direction: 'ascending', onSortChange }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('columnheader', { name: /名称/ }));
+    expect(onSortChange).toHaveBeenCalledWith('name', 'descending');
+
+    fireEvent.click(screen.getByRole('rowheader', { name: 'UI Adapter' }));
+    expect(onSelectionChange).toHaveBeenCalledWith(['adapter']);
   });
 });

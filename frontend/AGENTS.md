@@ -41,6 +41,14 @@ packages/design-system 语义 Design Token 与主题变量
 - TailAdmin React Demo 左侧 `UI Elements` 是长期外部视觉校准基准；新增或修改公共基础组件前，必须进入对应具体页面检查完整状态，不得只浏览首页，也不得复制其源码、DOM、CSS、图片或具体尺寸。
 - HeroUI 负责 Accessibility、Keyboard、Focus、Overlay 与 Portal，TailAdmin 用于校准后台产品视觉，项目最终规范由 Semantic Token、UI Adapter 和 `/showcase` 决定。具体矩阵与复核触发器见 [UI 视觉校准基线](docs/ui-visual-calibration.md)。
 
+### 4.1 HeroUI v3 与 Tailwind CSS v4 官方互补基线
+
+- HeroUI v3 官方建立在 Tailwind CSS v4 与 React Aria Components 之上。新增或修改交互组件时，必须先选择正确的 HeroUI primitive、compound anatomy 和可访问状态，再使用项目 Token 与 Tailwind composition 表达产品视觉；禁止用 Tailwind 或自研 React 状态重复实现 HeroUI 已提供的 Selection、Collection、Keyboard、Focus、Overlay 和 Pending/Disabled 机制。
+- 只有 HeroUI 的直接 import，以及对 HeroUI compound parts 的 Tailwind styling，必须收口在 `packages/ui-adapter`。允许的结合点是 HeroUI 官方公开的 `className`、compound parts、documented data attributes/render props 和 responsive utilities；禁止依赖未公开 slot、内部 DOM 层级、深层选择器或把 vendor props/class 向 Feature、Page 透传。
+- Tailwind CSS v4 可在整个 `/frontend` 使用。其 `@theme`、CSS theme variables、utilities 与 variants 负责把项目 Semantic Token 映射为 Light/Dark、Density、Responsive、Container、Focus、Contrast 和 Reduced Motion 等视觉规则；需要 utility 的 Token 使用 `@theme`，不应生成 utility 的运行时变量使用受控 CSS variable。Feature、Page、Host 与公共包可以消费项目语义 class，但不得用 Tailwind selector 穿透 HeroUI DOM 或绕过 Token 所有权。
+- 多维 Variant 或 compound slots 在 UI Adapter 内优先复用已安装的 `@heroui/styles` `tv` 与官方 component variant 基线，再收敛为项目语义 props；局部单态样式直接使用 semantic utility，不得为了形式统一机械引入 Variant Wrapper。
+- 以上规则的当前官方依据是 [HeroUI v3 Introduction](https://heroui.com/en/docs/react/getting-started)、[HeroUI Styling](https://heroui.com/en/docs/react/getting-started/styling)、[HeroUI Migration](https://heroui.com/en/docs/react/migration)、[Tailwind Theme Variables](https://tailwindcss.com/docs/theme) 与 [Tailwind States and Variants](https://tailwindcss.com/docs/hover-focus-and-other-states)。HeroUI/Tailwind 版本、官方 styling/compound API 或浏览器基线变化时，必须定向复核官方文档并同步本规则与项目 UI authority，不得沿用过时集成方式。
+
 ## 5. UI Contract 与组件职责
 
 - `packages/ui-adapter` 是唯一允许直接导入 `@heroui/*` 的边界，Web 入口只导入其聚合后的 vendor stylesheet。
@@ -83,7 +91,7 @@ packages/design-system 语义 Design Token 与主题变量
 pnpm check
 ```
 
-`architecture:check` 强制 HeroUI 隔离、原生表单控件禁用、Adapter 内部 Element 样式隔离、Host API 隔离、依赖方向、跨 Workspace 深相对引用、arbitrary value、`!important` 与颜色 Token 归属。`dependency:check` 校验每个运行时依赖的职责和允许 Workspace；`performance:check` 校验 gzip 产物预算。TypeScript、ESLint、Vitest、Vite build 与 Prettier 分别验证类型、静态规则、纯规则、Host 构建和格式。
+`architecture:check` 强制 HeroUI 隔离、原生表单控件禁用、Adapter 内部 Element 样式隔离、Host API 隔离、依赖方向、跨 Workspace 深相对引用、arbitrary value、`!important` 与颜色 Token 归属。新增或修改公共 Element 还必须用 Contract/DOM/Playwright/Axe/Visual 证据同时证明 HeroUI 交互与可访问语义未被破坏、Tailwind Token/Variant/Composition 没有越界。`dependency:check` 校验每个运行时依赖的职责和允许 Workspace；`performance:check` 校验 gzip 产物预算。TypeScript、ESLint、Vitest、Vite build 与 Prettier 分别验证类型、静态规则、纯规则、Host 构建和格式。
 
 Playwright 必须覆盖关键 Reference 流程、键盘/焦点、Axe WCAG AA 扫描，以及桌面、超宽屏、移动端、Dark Mode、英文扩张和全部 Floating Layer 打开态。视觉基线只能在人工确认变化合理后更新，不得用提高 diff 阈值掩盖回归。
 

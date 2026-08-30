@@ -31,8 +31,8 @@
   }
 
   :focus-visible {
-    outline: 0.125rem solid var(--ds-brand);
-    outline-offset: 0.125rem;
+    outline: var(--spacing-focus-ring-width) solid var(--ds-focus-ring);
+    outline-offset: var(--spacing-focus-ring-offset);
   }
 }
 
@@ -44,7 +44,7 @@
   .shell-grid {
     display: grid;
     grid-template-columns: 16.5rem minmax(0, 1fr);
-    transition: grid-template-columns 180ms var(--ease-product);
+    transition: grid-template-columns var(--motion-duration-standard) var(--ease-product);
   }
 
   .shell-grid[data-sidebar='collapsed'] {

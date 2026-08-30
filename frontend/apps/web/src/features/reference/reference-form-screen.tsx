@@ -5,12 +5,14 @@ import {
   ComboField,
   DatePickerField,
   Panel,
+  RadioGroupField,
   SelectField,
   StatusPill,
   SwitchField,
   TabsView,
   TextAreaField,
   TextField,
+  useFeedback,
 } from '@community-go/ui-adapter';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CheckCircle2, Save, ShieldCheck } from 'lucide-react';
@@ -30,6 +32,7 @@ const simulatedSaveDelayMs = 450;
 
 export function ReferenceFormScreen() {
   const { t } = useTranslation();
+  const { notify } = useFeedback();
   const [pending, setPending] = useState(false);
   const [saved, setSaved] = useState(false);
   const {
@@ -60,6 +63,11 @@ export function ReferenceFormScreen() {
     await new Promise((resolve) => window.setTimeout(resolve, simulatedSaveDelayMs));
     setPending(false);
     setSaved(true);
+    notify({
+      title: t('formReference.saved'),
+      description: t('formReference.description'),
+      tone: 'success',
+    });
   };
 
   const errorProps = (field: keyof typeof errors): Readonly<{ error?: string }> =>
@@ -170,7 +178,7 @@ export function ReferenceFormScreen() {
                           control={control}
                           name="mode"
                           render={({ field }) => (
-                            <SelectField
+                            <RadioGroupField
                               label={t('formReference.mode')}
                               hint={t('formReference.modeHint')}
                               disabled={pending}

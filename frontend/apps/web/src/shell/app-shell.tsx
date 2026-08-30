@@ -1,10 +1,9 @@
 import { getNavigation, isNavigationHrefActive } from '@community-go/core';
-import { CommandMenu, IconAction } from '@community-go/ui-adapter';
+import { productMotion } from '@community-go/design-system/motion';
+import { CommandMenu, IconAction, MenuButton, UserIdentity } from '@community-go/ui-adapter';
 import {
-  Bell,
   Boxes,
   ChevronRight,
-  CircleUserRound,
   Component,
   FilePenLine,
   Languages,
@@ -163,26 +162,30 @@ export function AppShell() {
           <>
             <motion.button
               aria-label={t('shell.closeNavOverlay')}
-              className="fixed inset-0 z-40 bg-scrim backdrop-blur-sm lg:hidden"
+              className="fixed inset-0 z-sticky bg-scrim backdrop-blur-sm lg:hidden"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setMobileNavigationOpen(false)}
             />
             <motion.aside
-              className="fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-surface shadow-overlay lg:hidden"
+              className="fixed inset-y-0 left-0 z-overlay flex w-72 flex-col bg-surface shadow-overlay lg:hidden"
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
-              transition={{ duration: 0.2, ease: [0.2, 0.8, 0.2, 1] }}
+              transition={{
+                duration: productMotion.durationSeconds.standard,
+                ease: productMotion.easing,
+              }}
             >
-              <button
-                aria-label={t('shell.closeNav')}
-                className="absolute right-3 top-5 grid size-10 place-items-center rounded-control text-ink-muted hover:bg-surface-muted"
-                onClick={() => setMobileNavigationOpen(false)}
-              >
-                <X className="size-5" />
-              </button>
+              <div className="absolute right-3 top-5">
+                <IconAction
+                  label={t('shell.closeNav')}
+                  onPress={() => setMobileNavigationOpen(false)}
+                >
+                  <X className="size-5" />
+                </IconAction>
+              </div>
               <NavigationContent onNavigate={() => setMobileNavigationOpen(false)} />
             </motion.aside>
           </>
@@ -190,14 +193,12 @@ export function AppShell() {
       </AnimatePresence>
 
       <div className="min-w-0">
-        <header className="sticky top-0 z-30 flex h-20 items-center gap-3 border-b border-border bg-canvas/90 px-4 backdrop-blur-xl sm:px-6 xl:px-8">
-          <button
-            aria-label={t('shell.menu')}
-            className="grid size-10 place-items-center rounded-control border border-border bg-surface text-ink-muted lg:hidden"
-            onClick={() => setMobileNavigationOpen(true)}
-          >
-            <Menu className="size-5" />
-          </button>
+        <header className="sticky top-0 z-sticky flex h-20 items-center gap-3 border-b border-border bg-canvas/90 px-4 backdrop-blur-xl sm:px-6 xl:px-8">
+          <div className="lg:hidden">
+            <IconAction label={t('shell.menu')} onPress={() => setMobileNavigationOpen(true)}>
+              <Menu className="size-5" />
+            </IconAction>
+          </div>
           <div className="hidden lg:block">
             <IconAction
               label={sidebarCollapsed ? t('shell.expandSidebar') : t('shell.collapseSidebar')}
@@ -240,21 +241,20 @@ export function AppShell() {
             >
               {theme === 'light' ? <Moon className="size-4.5" /> : <Sun className="size-4.5" />}
             </IconAction>
-            <IconAction label={t('shell.notifications')}>
-              <Bell className="size-4.5" />
-            </IconAction>
-            <button
-              aria-label={t('shell.account')}
-              className="ml-1 flex h-11 items-center gap-2 rounded-control border border-border bg-surface px-2 pr-3 text-left"
-            >
-              <span className="grid size-7 place-items-center rounded-lg bg-brand-soft text-brand">
-                <CircleUserRound className="size-4.5" />
-              </span>
-              <span className="hidden sm:block">
-                <span className="block text-xs font-bold text-ink">Rin</span>
-                <span className="block text-xs text-ink-muted">{t('shell.productOwner')}</span>
-              </span>
-            </button>
+            <MenuButton
+              ariaLabel={t('shell.account')}
+              items={[
+                {
+                  id: '/preferences',
+                  label: t('nav.preferences'),
+                  description: t('preferences.description'),
+                },
+              ]}
+              label={
+                <UserIdentity avatarSize="sm" description={t('shell.productOwner')} name="Rin" />
+              }
+              onAction={(href) => void navigate(href)}
+            />
           </div>
         </header>
         <main className="mx-auto max-w-screen-2xl p-4 sm:p-6 xl:p-8">

@@ -1,5 +1,4 @@
-import { Panel } from '@community-go/ui-adapter';
-import { ChevronRight } from 'lucide-react';
+import { BreadcrumbTrail, Panel } from '@community-go/ui-adapter';
 import type { ReactNode } from 'react';
 
 export function PageLayout({ children }: Readonly<{ children: ReactNode }>) {
@@ -10,29 +9,6 @@ export type BreadcrumbItem = Readonly<{
   label: string;
   current?: boolean;
 }>;
-
-export function PageBreadcrumbs({
-  items,
-  label,
-}: Readonly<{ items: readonly BreadcrumbItem[]; label: string }>) {
-  return (
-    <nav aria-label={label}>
-      <ol className="flex min-w-0 flex-wrap items-center gap-1.5 text-xs font-medium text-ink-muted">
-        {items.map((item, index) => (
-          <li className="flex min-w-0 items-center gap-1.5" key={`${item.label}-${index}`}>
-            {index > 0 ? <ChevronRight aria-hidden="true" className="size-3.5 shrink-0" /> : null}
-            <span
-              aria-current={item.current ? 'page' : undefined}
-              className={item.current ? 'truncate font-semibold text-ink' : 'truncate'}
-            >
-              {item.label}
-            </span>
-          </li>
-        ))}
-      </ol>
-    </nav>
-  );
-}
 
 export type PageHeaderProps = Readonly<{
   eyebrow?: string;
@@ -54,7 +30,14 @@ export function PageHeader({
   return (
     <header className="space-y-4">
       {breadcrumbs && breadcrumbLabel ? (
-        <PageBreadcrumbs items={breadcrumbs} label={breadcrumbLabel} />
+        <BreadcrumbTrail
+          items={breadcrumbs.map((item, index) => ({
+            id: `breadcrumb-${index}`,
+            label: item.label,
+            ...(item.current ? {} : { disabled: true }),
+          }))}
+          label={breadcrumbLabel}
+        />
       ) : null}
       <div className="flex flex-wrap items-end justify-between gap-5">
         <div className="min-w-0 max-w-3xl">
@@ -132,16 +115,16 @@ export function PageSection({
 
 export function SplitView({ master, detail }: Readonly<{ master: ReactNode; detail: ReactNode }>) {
   return (
-    <div className="grid min-w-0 gap-5 xl:grid-cols-3">
-      <div className="min-w-0 xl:col-span-2">{master}</div>
-      <aside className="min-w-0 xl:sticky xl:top-24 xl:self-start">{detail}</aside>
+    <div className="grid min-w-0 gap-5 2xl:grid-cols-3">
+      <div className="min-w-0 2xl:col-span-2">{master}</div>
+      <aside className="min-w-0 2xl:sticky 2xl:top-24 2xl:self-start">{detail}</aside>
     </div>
   );
 }
 
 export function FooterActions({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <footer className="sticky bottom-3 z-20 flex flex-wrap items-center justify-end gap-3 rounded-panel border border-border bg-surface/95 px-4 py-3 shadow-overlay backdrop-blur-xl">
+    <footer className="sticky bottom-3 z-shell flex flex-wrap items-center justify-end gap-3 rounded-panel border border-border bg-surface/95 px-4 py-3 shadow-overlay backdrop-blur-xl">
       {children}
     </footer>
   );

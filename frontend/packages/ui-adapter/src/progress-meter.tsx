@@ -18,7 +18,7 @@ export function ProgressMeter({ value, label }: ProgressMeterProps) {
       <Label>{label}</Label>
       <HeroProgressBar.Output>{normalizedValue}%</HeroProgressBar.Output>
       <HeroProgressBar.Track className="h-2 overflow-hidden rounded-full bg-surface-muted">
-        <HeroProgressBar.Fill className="h-full rounded-full bg-brand transition-all duration-300" />
+        <HeroProgressBar.Fill className="h-full rounded-full bg-brand transition-all duration-standard" />
       </HeroProgressBar.Track>
     </HeroProgressBar>
   );

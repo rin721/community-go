@@ -75,7 +75,38 @@ test('Alert、Badge、Card 与 Notification 形成可访问的内部权威面', 
   await expect(page.getByRole('region', { name: '新的基座能力可用' })).toBeVisible();
   await page.getByRole('button', { name: '关闭通知' }).click();
   await expect(page.getByRole('region', { name: '通知已关闭' })).toBeVisible();
+  await page.getByRole('button', { name: '发送 Toast' }).click();
+  await expect(page.getByText('项目反馈已入队')).toBeVisible();
   await assertOverlayAccessibility(page);
+});
+
+test('危险确认使用 AlertDialog 语义且确认动作真实可执行', async ({ page }) => {
+  await page.goto('/showcase?overlay=confirm');
+  const dialog = page.getByRole('alertdialog');
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText('仅清除当前 Showcase 中的本地动作状态。');
+  await assertOverlayAccessibility(page);
+  const trigger = page.getByRole('button', { name: '危险确认' });
+  await page.getByRole('button', { name: '取消' }).click();
+  await expect(dialog).toBeHidden();
+  await trigger.click();
+  await expect(dialog).toBeVisible();
+  await page.getByRole('button', { name: '取消' }).click();
+  await expect(dialog).toBeHidden();
+  await expect(trigger).toBeFocused();
+  await trigger.click();
+  await expect(dialog).toBeVisible();
+  await page.getByRole('button', { name: '确认删除' }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByRole('status').filter({ hasText: '确认删除' })).toBeVisible();
+});
+
+test('Toast 与 Data 状态可通过确定性 URL 直接验证', async ({ page }) => {
+  await page.goto('/showcase?overlay=toast');
+  await expect(page.getByText('项目反馈已入队')).toBeVisible();
+
+  await page.goto('/showcase?data=empty');
+  await expect(page.getByText('当前筛选条件下没有 UI Element。')).toBeVisible();
 });
 
 test('Status 与 Progress 保持对象状态和确定进度语义', async ({ page }) => {

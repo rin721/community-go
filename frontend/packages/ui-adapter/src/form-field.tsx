@@ -6,6 +6,8 @@ import {
   Input,
   Label,
   ListBox,
+  Radio,
+  RadioGroup,
   Select,
   Switch,
   TextArea,
@@ -286,13 +288,17 @@ export function SwitchField({
   );
 }
 
+type CheckboxChangeProps =
+  | Readonly<{ disabled: true; onCheckedChange?: never }>
+  | Readonly<{ disabled?: false; onCheckedChange: (checked: boolean) => void }>
+  | Readonly<{ disabled: boolean; onCheckedChange: (checked: boolean) => void }>;
+
 export type CheckboxFieldProps = Readonly<{
   label: string;
   description?: string;
   checked: boolean;
-  disabled?: boolean;
-  onCheckedChange: (checked: boolean) => void;
-}>;
+}> &
+  CheckboxChangeProps;
 
 export function CheckboxField({
   label,
@@ -306,7 +312,7 @@ export function CheckboxField({
       className="flex items-start gap-3 text-sm"
       isDisabled={disabled}
       isSelected={checked}
-      onChange={onCheckedChange}
+      {...(onCheckedChange ? { onChange: onCheckedChange } : {})}
     >
       <Checkbox.Control className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-md border border-border-strong bg-surface text-white data-[selected]:border-brand data-[selected]:bg-brand">
         <Checkbox.Indicator>✓</Checkbox.Indicator>
@@ -318,6 +324,70 @@ export function CheckboxField({
         ) : null}
       </Checkbox.Content>
     </Checkbox>
+  );
+}
+
+export type RadioOption = Readonly<{
+  value: string;
+  label: string;
+  description?: string;
+  disabled?: boolean;
+}>;
+
+export type RadioGroupFieldProps = FieldTextProps &
+  Readonly<{
+    value: string;
+    options: readonly RadioOption[];
+    disabled?: boolean;
+    onValueChange: (value: string) => void;
+  }>;
+
+export function RadioGroupField({
+  label,
+  hint,
+  error,
+  value,
+  options,
+  disabled = false,
+  onValueChange,
+}: RadioGroupFieldProps) {
+  return (
+    <RadioGroup
+      className="ui-field"
+      isDisabled={disabled}
+      isInvalid={Boolean(error)}
+      value={value}
+      onChange={onValueChange}
+    >
+      <Label className="ui-field-label">{label}</Label>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {options.map((option) => (
+          <Radio
+            className="group flex min-h-20 items-start gap-3 rounded-panel border border-border bg-surface p-4 text-sm data-[selected]:border-brand data-[selected]:bg-brand-soft"
+            key={option.value}
+            value={option.value}
+            {...(option.disabled ? { isDisabled: true } : {})}
+          >
+            <Radio.Control className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border border-border-strong bg-surface group-data-[selected]:border-brand">
+              <Radio.Indicator className="size-2.5 rounded-full bg-brand" />
+            </Radio.Control>
+            <Radio.Content className="min-w-0">
+              <span className="block font-semibold text-ink">{option.label}</span>
+              {option.description ? (
+                <span className="mt-1 block text-xs leading-5 text-ink-muted">
+                  {option.description}
+                </span>
+              ) : null}
+            </Radio.Content>
+          </Radio>
+        ))}
+      </div>
+      {error ? (
+        <FieldError className="ui-field-error">{error}</FieldError>
+      ) : hint ? (
+        <Description className="ui-field-hint">{hint}</Description>
+      ) : null}
+    </RadioGroup>
   );
 }
 

@@ -1,12 +1,19 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+
+async function expectReferenceReady(page: Page) {
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('高密度数据工作台');
+  await expect(page.getByRole('grid').getByRole('row')).toHaveCount(13);
+}
 
 test('桌面与超宽屏 Reference 布局保持稳定', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/reference');
+  await expectReferenceReady(page);
   await expect(page).toHaveScreenshot('reference-desktop.png', { fullPage: true });
 
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.reload();
+  await expectReferenceReady(page);
   await expect(page).toHaveScreenshot('reference-ultrawide.png', { fullPage: true });
 });
 
@@ -43,7 +50,7 @@ test('移动侧栏打开状态纳入视觉回归', async ({ page }) => {
   await page.goto('/reference');
   await page.getByRole('button', { name: '打开导航' }).click();
   await expect(page.getByRole('navigation', { name: '主导航' })).toBeVisible();
-  await expect(page).toHaveScreenshot('mobile-navigation-open.png', { fullPage: true });
+  await expect(page).toHaveScreenshot('mobile-navigation-open.png');
 });
 
 test('状态体系页面保持 Loading 与异常状态视觉基线', async ({ page }) => {
@@ -55,4 +62,44 @@ test('状态体系页面保持 Loading 与异常状态视觉基线', async ({ pa
     'true',
   );
   await expect(page).toHaveScreenshot('states-desktop.png', { fullPage: true });
+});
+
+test('Overview、Reference Form 与 Preferences 真实页面进入视觉矩阵', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+
+  await page.goto('/');
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  await expect(page).toHaveScreenshot('overview-desktop.png', { fullPage: true });
+
+  await page.goto('/reference/form');
+  await expect(page.getByRole('heading', { name: '复杂设置与审批表单' })).toBeVisible();
+  await expect(page).toHaveScreenshot('reference-form-desktop.png', { fullPage: true });
+
+  await page.goto('/preferences');
+  await expect(page.getByRole('heading', { name: '界面偏好' })).toBeVisible();
+  await expect(page).toHaveScreenshot('preferences-desktop.png', { fullPage: true });
+});
+
+test('Toast、Destructive Confirm 与 Compact Density 开启态进入视觉矩阵', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+
+  await page.goto('/showcase?overlay=toast&density=compact');
+  await expect(page.getByText('项目反馈已入队')).toBeVisible();
+  await expect(page).toHaveScreenshot('showcase-toast-compact.png');
+
+  await page.goto('/showcase?overlay=confirm');
+  await expect(page.getByRole('alertdialog')).toBeVisible();
+  await expect(page).toHaveScreenshot('showcase-destructive-confirm.png');
+});
+
+test('Reference 多选与分页的真实联动状态进入视觉矩阵', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/reference');
+  await expectReferenceReady(page);
+  const rows = page.getByRole('grid').getByRole('row');
+  await rows.nth(1).click();
+  await rows.nth(2).click();
+  await expect(page.getByText('已选 2 条')).toBeVisible();
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+  await expect(page).toHaveScreenshot('reference-multi-select.png', { fullPage: true });
 });

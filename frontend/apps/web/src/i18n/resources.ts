@@ -2,6 +2,14 @@ export const resources = {
   'zh-CN': {
     translation: {
       brand: { name: 'Community', edition: '统一前端基座' },
+      common: {
+        close: '关闭',
+        appLoading: '正在加载应用',
+        rootErrorEyebrow: '界面异常',
+        rootErrorTitle: '界面暂时无法继续呈现',
+        rootErrorDescription: '请重新加载页面。错误细节只保留在受控诊断边界中。',
+        reload: '重新加载',
+      },
       nav: {
         workspace: '工作空间',
         system: '系统',
@@ -168,6 +176,12 @@ export const resources = {
         confirm: '确认',
         export: '导出快照',
         exported: '快照已导出',
+        selectedCount: '已选 {{count}} 条',
+        exportSelected: '导出已选',
+        paginationLabel: 'Reference 列表分页',
+        previousPage: '上一页',
+        nextPage: '下一页',
+        pageLabel: '第 {{page}} 页',
         searchLabel: '搜索 Reference 数据',
         searchPlaceholder: '按名称、编号或负责人搜索',
         statusLabel: '状态',
@@ -312,6 +326,8 @@ export const resources = {
         feedbackDescription:
           '用同一套语义色、文字层级、边框与操作密度表达轻量反馈、状态标签和可操作通知。',
         successAlertTitle: '更改已经保存',
+        alertDismiss: '关闭成功提示',
+        alertRestore: '恢复成功提示',
         warningAlertTitle: '需要复核当前配置',
         warningAlertDescription: '警告说明影响范围，但不会把可继续使用的健康路径伪装成错误。',
         reviewAction: '查看影响',
@@ -324,6 +340,9 @@ export const resources = {
         notificationDismissedTitle: '通知已关闭',
         notificationDismissedDescription: '关闭只影响当前 Showcase 状态，可随时恢复继续检查。',
         notificationRestore: '恢复通知',
+        toastAction: '发送 Toast',
+        toastTitle: '项目反馈已入队',
+        toastDescription: 'Toast 由显式 FeedbackProvider 管理，Feature 不直接访问 vendor queue。',
         statusTitle: 'Status 与 Progress',
         statusDescription:
           '区分对象生命周期状态、确定进度与未知等待，不让相同颜色掩盖不同产品语义。',
@@ -332,6 +351,21 @@ export const resources = {
         progressTitle: '确定进度',
         progressDescription: '只有总量已知时才显示百分比；未知等待使用 Pending 或 Loading 状态。',
         progressLabel: 'UI Element 契约完成度',
+        identityNavigationTitle: 'Identity、Navigation 与 Async',
+        identityNavigationDescription:
+          '集中验证 Avatar fallback、UserIdentity、DescriptionList、Breadcrumb、Pagination 与 Busy 语义。',
+        identityTitle: '账号与在线状态',
+        identityDescription: '产品设计负责人',
+        presenceOnline: '在线',
+        descriptionListLabel: '身份属性',
+        roleTerm: '角色',
+        regionTerm: '区域',
+        navigationTitle: '导航与集合进度',
+        paginationLabel: 'Showcase 分页',
+        previousPage: '上一页',
+        nextPage: '下一页',
+        pageLabel: '第 {{page}} 页',
+        busyLabel: '正在刷新组件契约',
         dataDisplayTitle: 'Data Display 与 Table',
         dataDisplayDescription:
           '表格默认只展示结构化数据；显式启用单选后，选中态、键盘导航和空集合继续由 HeroUI 管理。',
@@ -388,6 +422,7 @@ export const resources = {
         checkbox: '复选项',
         checkboxDescription: '验证标签、说明与 Control 的组合。',
         disabledCheckbox: '禁用复选项',
+        radioGroup: '反馈密度',
         overlaysTitle: 'Overlay 与 Floating Layer',
         overlaysDescription: '每个 Trigger 与展开层均由 UI Adapter 组合 HeroUI，并纳入视觉回归。',
         menu: 'Dropdown Menu',
@@ -404,6 +439,12 @@ export const resources = {
         dialogTitle: '编辑显示名称',
         dialogDescription: '验证 Portal 内的表单、焦点锁定和 Footer。',
         dialogField: '显示名称',
+        destructiveConfirm: '危险确认',
+        destructiveTitle: '删除当前演示记录？',
+        destructiveDescription: '危险动作要求显式确认，并在处理期间阻止重复提交。',
+        destructiveImpact: '仅清除当前 Showcase 中的本地动作状态。',
+        destructiveAction: '确认删除',
+        confirmFailure: '操作未完成，请保留对话框后重试。',
         drawer: 'Drawer',
         drawerTitle: '辅助配置',
         drawerDescription: '验证窄屏、高内容量与内部滚动。',
@@ -433,6 +474,15 @@ export const resources = {
   en: {
     translation: {
       brand: { name: 'Community', edition: 'Unified Frontend' },
+      common: {
+        close: 'Close',
+        appLoading: 'Loading application',
+        rootErrorEyebrow: 'Interface error',
+        rootErrorTitle: 'The interface cannot continue right now',
+        rootErrorDescription:
+          'Reload the page. Error details remain only inside the controlled diagnostic boundary.',
+        reload: 'Reload',
+      },
       nav: {
         workspace: 'Workspace',
         system: 'System',
@@ -618,6 +668,12 @@ export const resources = {
         confirm: 'Confirm',
         export: 'Export snapshot',
         exported: 'Snapshot exported',
+        selectedCount: '{{count}} selected',
+        exportSelected: 'Export selected',
+        paginationLabel: 'Reference list pagination',
+        previousPage: 'Previous page',
+        nextPage: 'Next page',
+        pageLabel: 'Page {{page}}',
         searchLabel: 'Search reference data',
         searchPlaceholder: 'Search by name, ID, or owner',
         statusLabel: 'Status',
@@ -774,6 +830,8 @@ export const resources = {
         feedbackDescription:
           'One semantic palette, type hierarchy, border system, and action density covers inline feedback, labels, and actionable notices.',
         successAlertTitle: 'Changes saved',
+        alertDismiss: 'Dismiss success message',
+        alertRestore: 'Restore success message',
         warningAlertTitle: 'Configuration needs review',
         warningAlertDescription:
           'Warnings explain impact without presenting an otherwise usable path as an error.',
@@ -789,6 +847,10 @@ export const resources = {
         notificationDismissedDescription:
           'Dismissal only changes the current Showcase state and can be restored for inspection.',
         notificationRestore: 'Restore notification',
+        toastAction: 'Send toast',
+        toastTitle: 'Project feedback queued',
+        toastDescription:
+          'An explicit FeedbackProvider owns toast delivery; features never access the vendor queue.',
         statusTitle: 'Status and progress',
         statusDescription:
           'Separates object lifecycle state, determinate progress, and unknown waiting so shared color never replaces product meaning.',
@@ -798,6 +860,21 @@ export const resources = {
         progressDescription:
           'Show a percentage only when the total is known; use pending or loading states for unknown waits.',
         progressLabel: 'UI Element contract completion',
+        identityNavigationTitle: 'Identity, navigation, and async',
+        identityNavigationDescription:
+          'Validates avatar fallback, user identity, description list, breadcrumbs, pagination, and busy semantics together.',
+        identityTitle: 'Account and presence',
+        identityDescription: 'Product design owner',
+        presenceOnline: 'Online',
+        descriptionListLabel: 'Identity attributes',
+        roleTerm: 'Role',
+        regionTerm: 'Region',
+        navigationTitle: 'Navigation and collection progress',
+        paginationLabel: 'Showcase pagination',
+        previousPage: 'Previous page',
+        nextPage: 'Next page',
+        pageLabel: 'Page {{page}}',
+        busyLabel: 'Refreshing component contracts',
         dataDisplayTitle: 'Data display and tables',
         dataDisplayDescription:
           'Tables display structured data by default; explicit single selection delegates selected state, keyboard navigation, and empty collections to HeroUI.',
@@ -856,6 +933,7 @@ export const resources = {
         checkbox: 'Checkbox',
         checkboxDescription: 'Validates label, description, and control composition.',
         disabledCheckbox: 'Disabled checkbox',
+        radioGroup: 'Feedback density',
         overlaysTitle: 'Overlays and floating layers',
         overlaysDescription:
           'Every trigger and open layer composes HeroUI through the UI Adapter and joins visual regression.',
@@ -873,6 +951,13 @@ export const resources = {
         dialogTitle: 'Edit display name',
         dialogDescription: 'Validates a portal form, focus lock, and footer.',
         dialogField: 'Display name',
+        destructiveConfirm: 'Danger confirmation',
+        destructiveTitle: 'Delete the current demonstration record?',
+        destructiveDescription:
+          'Destructive actions require explicit confirmation and prevent duplicate submissions while pending.',
+        destructiveImpact: 'Only the local action state in this Showcase will be cleared.',
+        destructiveAction: 'Confirm deletion',
+        confirmFailure: 'The action did not complete. Keep the dialog open and try again.',
         drawer: 'Drawer',
         drawerTitle: 'Supplementary configuration',
         drawerDescription: 'Validates narrow windows, high content volume, and internal scrolling.',

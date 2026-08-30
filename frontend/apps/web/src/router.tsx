@@ -1,26 +1,15 @@
 import { createBrowserRouter } from 'react-router';
 
+import { AppLoadingSurface } from './app/app-loading-surface';
 import { AppShell } from './shell/app-shell';
 import { OverviewScreen } from './features/overview/overview-screen';
+import { i18n } from './i18n/i18n';
 
 export const router = createBrowserRouter([
   {
     path: '/',
     Component: AppShell,
-    hydrateFallbackElement: (
-      <main
-        aria-busy="true"
-        aria-label="正在加载应用"
-        className="grid min-h-screen place-items-center bg-canvas p-6 text-ink"
-      >
-        <div className="w-full max-w-sm animate-pulse space-y-4" role="status">
-          <div className="h-4 w-28 rounded-full bg-border-strong" />
-          <div className="h-10 w-full rounded-control bg-border" />
-          <div className="h-28 w-full rounded-panel bg-surface-muted" />
-          <span className="sr-only">正在加载应用</span>
-        </div>
-      </main>
-    ),
+    hydrateFallbackElement: <AppLoadingSurface label={i18n.t('common.appLoading')} />,
     children: [
       { index: true, Component: OverviewScreen },
       {

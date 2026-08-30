@@ -13,6 +13,10 @@ type OptionalSecondaryAction =
   | Readonly<{ secondaryActionLabel: string; onSecondaryAction: () => void }>
   | Readonly<{ secondaryActionLabel?: never; onSecondaryAction?: never }>;
 
+type OptionalDismissAction =
+  | Readonly<{ dismissLabel: string; onDismiss: () => void }>
+  | Readonly<{ dismissLabel?: never; onDismiss?: never }>;
+
 const softToneClass: Record<FeedbackTone, string> = {
   neutral: 'border-border bg-surface-muted text-ink',
   success: 'border-success/35 bg-success-soft text-success',
@@ -23,10 +27,10 @@ const softToneClass: Record<FeedbackTone, string> = {
 
 const solidToneClass: Record<FeedbackTone, string> = {
   neutral: 'bg-ink text-surface',
-  success: 'bg-success text-white',
-  warning: 'bg-warning text-white',
-  danger: 'bg-danger text-white',
-  info: 'bg-info text-white',
+  success: 'bg-success text-on-success',
+  warning: 'bg-warning text-on-warning',
+  danger: 'bg-danger text-on-danger',
+  info: 'bg-info text-on-info',
 };
 
 export type BadgeProps = Readonly<{
@@ -66,7 +70,8 @@ export type AlertBannerProps = Readonly<
     tone?: Exclude<FeedbackTone, 'neutral'>;
     icon: ReactNode;
     announcement?: 'none' | 'polite' | 'urgent';
-  } & OptionalAlertAction
+  } & OptionalAlertAction &
+    OptionalDismissAction
 >;
 
 export function AlertBanner({
@@ -76,12 +81,14 @@ export function AlertBanner({
   icon,
   actionLabel,
   onAction,
+  dismissLabel,
+  onDismiss,
   announcement = 'none',
 }: AlertBannerProps) {
   return (
     <section
       aria-label={title}
-      className={`flex items-start gap-3 rounded-panel border p-4 ${softToneClass[tone]}`}
+      className={`relative flex items-start gap-3 rounded-panel border p-4 ${softToneClass[tone]}`}
       {...(announcement === 'urgent'
         ? { role: 'alert' as const }
         : announcement === 'polite'
@@ -91,7 +98,7 @@ export function AlertBanner({
       <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-surface/70">
         {icon}
       </span>
-      <div className="min-w-0 flex-1">
+      <div className={dismissLabel ? 'min-w-0 flex-1 pr-control-sm' : 'min-w-0 flex-1'}>
         <h3 className="text-sm font-bold text-ink">{title}</h3>
         <p className="mt-1 text-sm leading-6 text-ink-muted">{description}</p>
         {actionLabel !== undefined ? (
@@ -102,6 +109,13 @@ export function AlertBanner({
           </div>
         ) : null}
       </div>
+      {dismissLabel ? (
+        <span className="absolute right-2 top-2">
+          <IconAction label={dismissLabel} onPress={onDismiss} size="sm">
+            <span aria-hidden="true">×</span>
+          </IconAction>
+        </span>
+      ) : null}
     </section>
   );
 }

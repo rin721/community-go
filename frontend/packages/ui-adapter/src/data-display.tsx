@@ -5,12 +5,28 @@ export type DataColumn<Row> = Readonly<{
   id: string;
   label: string;
   rowHeader?: boolean;
+  sortable?: boolean;
   render: (row: Row) => ReactNode;
 }>;
 
-export type DataTableSelection = Readonly<{
+export type DataTableSingleSelection = Readonly<{
+  mode?: 'single';
   selectedId?: string;
   onSelectionChange: (id: string) => void;
+}>;
+
+export type DataTableMultiSelection = Readonly<{
+  mode: 'multiple';
+  selectedIds: readonly string[];
+  onSelectionChange: (ids: readonly string[]) => void;
+}>;
+
+export type DataTableSelection = DataTableSingleSelection | DataTableMultiSelection;
+
+export type DataTableSort = Readonly<{
+  columnId: string;
+  direction: 'ascending' | 'descending';
+  onSortChange: (columnId: string, direction: 'ascending' | 'descending') => void;
 }>;
 
 export type DataTableProps<Row extends Readonly<{ id: string }>> = Readonly<{
@@ -20,6 +36,7 @@ export type DataTableProps<Row extends Readonly<{ id: string }>> = Readonly<{
   emptyContent: ReactNode;
   density?: 'comfortable' | 'compact';
   selection?: DataTableSelection;
+  sort?: DataTableSort;
 }>;
 
 export function DataTable<Row extends Readonly<{ id: string }>>({
@@ -29,8 +46,16 @@ export function DataTable<Row extends Readonly<{ id: string }>>({
   emptyContent,
   density = 'comfortable',
   selection,
+  sort,
 }: DataTableProps<Row>) {
   const cellSpacing = density === 'compact' ? 'px-3 py-2' : 'px-4 py-3.5';
+  const selectedIds = selection
+    ? selection.mode === 'multiple'
+      ? selection.selectedIds
+      : selection.selectedId
+        ? [selection.selectedId]
+        : []
+    : [];
   return (
     <Table>
       <Table.ScrollContainer className="overflow-auto">
@@ -39,15 +64,33 @@ export function DataTable<Row extends Readonly<{ id: string }>>({
           className="min-w-full border-separate border-spacing-0 text-left text-sm"
           {...(selection
             ? {
-                selectionMode: 'single' as const,
-                selectionBehavior: 'replace' as const,
-                disallowEmptySelection: Boolean(selection.selectedId),
-                selectedKeys: selection.selectedId ? new Set([selection.selectedId]) : new Set(),
+                selectionMode:
+                  selection.mode === 'multiple' ? ('multiple' as const) : ('single' as const),
+                selectionBehavior:
+                  selection.mode === 'multiple' ? ('toggle' as const) : ('replace' as const),
+                disallowEmptySelection:
+                  selection.mode !== 'multiple' && Boolean(selection.selectedId),
+                selectedKeys: new Set(selectedIds),
                 onSelectionChange: (keys: 'all' | Set<Key>) => {
+                  if (selection.mode === 'multiple') {
+                    selection.onSelectionChange(
+                      keys === 'all' ? rows.map((row) => row.id) : [...keys].map(String),
+                    );
+                    return;
+                  }
                   if (keys === 'all') return;
                   const selectedKey = keys.values().next().value;
                   if (selectedKey !== undefined) selection.onSelectionChange(String(selectedKey));
                 },
+              }
+            : {})}
+          {...(sort
+            ? {
+                sortDescriptor: { column: sort.columnId, direction: sort.direction },
+                onSortChange: (descriptor: {
+                  column: Key;
+                  direction: 'ascending' | 'descending';
+                }) => sort.onSortChange(String(descriptor.column), descriptor.direction),
               }
             : {})}
         >
@@ -57,9 +100,14 @@ export function DataTable<Row extends Readonly<{ id: string }>>({
                 className={`${cellSpacing} sticky top-0 border-b border-border bg-surface-muted text-xs font-bold uppercase tracking-wider text-ink-muted`}
                 id={column.id}
                 key={column.id}
+                {...(column.sortable ? { allowsSorting: true } : {})}
                 {...(column.rowHeader ? { isRowHeader: true } : {})}
               >
-                {column.label}
+                {({ sortDirection }) => (
+                  <Table.SortableColumnHeader {...(sortDirection ? { sortDirection } : {})}>
+                    {column.label}
+                  </Table.SortableColumnHeader>
+                )}
               </Table.Column>
             ))}
           </Table.Header>

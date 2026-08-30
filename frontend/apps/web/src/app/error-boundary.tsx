@@ -1,4 +1,8 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { Card, CardContent, StateSurface } from '@community-go/ui-adapter';
+import { OctagonAlert } from 'lucide-react';
+
+import { i18n } from '../i18n/i18n';
 
 type ErrorBoundaryState = { hasError: boolean };
 
@@ -20,13 +24,24 @@ export class AppErrorBoundary extends Component<{ children: ReactNode }, ErrorBo
     if (this.state.hasError) {
       return (
         <main className="grid min-h-screen place-items-center bg-canvas p-6 text-ink">
-          <section className="max-w-lg rounded-panel border border-border bg-surface p-8 shadow-panel">
-            <p className="text-sm font-semibold text-danger">Unexpected interface error</p>
-            <h1 className="mt-2 text-2xl font-bold">界面暂时无法继续呈现</h1>
-            <p className="mt-3 text-sm leading-6 text-ink-muted">
-              请刷新页面。错误细节只保留在受控诊断边界中。
-            </p>
-          </section>
+          <Card>
+            <CardContent>
+              <div className="max-w-lg">
+                <p className="mb-3 text-sm font-semibold text-danger">
+                  {i18n.t('common.rootErrorEyebrow')}
+                </p>
+                <StateSurface
+                  compact
+                  actionLabel={i18n.t('common.reload')}
+                  description={i18n.t('common.rootErrorDescription')}
+                  icon={<OctagonAlert className="size-5" />}
+                  state="error"
+                  title={i18n.t('common.rootErrorTitle')}
+                  onAction={() => window.location.reload()}
+                />
+              </div>
+            </CardContent>
+          </Card>
         </main>
       );
     }

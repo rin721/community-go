@@ -1,8 +1,8 @@
-import { Panel, StatusPill } from '@community-go/ui-adapter';
+import { Card, CardContent, Panel, StatusPill } from '@community-go/ui-adapter';
 import { AppWindow, Braces, Component, DatabaseZap, ShieldCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import { PageHeading } from '../../components/page-heading';
+import { PageHeader } from '../../layouts/page-layout';
 
 const layers = [
   { id: 'hosts', icon: AppWindow, tone: 'bg-brand-soft text-brand' },
@@ -15,26 +15,30 @@ export function FoundationsScreen() {
   const { t } = useTranslation();
   return (
     <div className="space-y-6">
-      <PageHeading
+      <PageHeader
         eyebrow={t('foundations.eyebrow')}
         title={t('foundations.title')}
         description={t('foundations.description')}
-        action={<StatusPill tone="success">Executable boundaries</StatusPill>}
+        actions={<StatusPill tone="success">Executable boundaries</StatusPill>}
       />
       <div className="grid gap-4 lg:grid-cols-2">
         {layers.map(({ id, icon: Icon, tone }, index) => (
-          <Panel key={id} className="relative overflow-hidden p-5 sm:p-6">
-            <span className="absolute right-5 top-5 text-5xl font-black text-ink/5">
-              0{index + 1}
-            </span>
-            <span className={`grid size-11 place-items-center rounded-control ${tone}`}>
-              <Icon className="size-5" />
-            </span>
-            <h2 className="mt-5 text-lg font-bold text-ink">{t(`foundations.layers.${id}`)}</h2>
-            <p className="mt-2 max-w-xl text-sm leading-6 text-ink-muted">
-              {t(`foundations.layers.${id}Description`)}
-            </p>
-          </Panel>
+          <Card key={id}>
+            <CardContent>
+              <div className="relative">
+                <span className="absolute right-0 top-0 text-5xl font-black text-ink/5">
+                  0{index + 1}
+                </span>
+                <span className={`grid size-11 place-items-center rounded-control ${tone}`}>
+                  <Icon className="size-5" />
+                </span>
+                <h2 className="mt-5 text-lg font-bold text-ink">{t(`foundations.layers.${id}`)}</h2>
+                <p className="mt-2 max-w-xl text-sm leading-6 text-ink-muted">
+                  {t(`foundations.layers.${id}Description`)}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         ))}
       </div>
       <div className="grid gap-6 xl:grid-cols-3">

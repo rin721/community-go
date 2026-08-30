@@ -10,6 +10,19 @@ export default defineConfig({
     manifest: true,
     target: 'es2022',
     sourcemap: true,
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [
+            {
+              name: 'ui-vendor',
+              test: /node_modules[\\/](?:@heroui|@react-aria|@react-spectrum|@react-stately|@react-types|react-aria|react-aria-components)[\\/]/,
+              includeDependenciesRecursively: false,
+            },
+          ],
+        },
+      },
+    },
   },
   test: {
     environment: 'jsdom',

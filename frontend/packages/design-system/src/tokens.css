@@ -4,6 +4,7 @@
   --color-surface: var(--ds-surface);
   --color-surface-raised: var(--ds-surface-raised);
   --color-surface-muted: var(--ds-surface-muted);
+  --color-surface-inset: var(--ds-surface-inset);
   --color-border: var(--ds-border);
   --color-border-strong: var(--ds-border-strong);
   --color-ink: var(--ds-ink);
@@ -19,24 +20,48 @@
   --color-danger-soft: var(--ds-danger-soft);
   --color-info: var(--ds-info);
   --color-info-soft: var(--ds-info-soft);
+  --color-on-brand: var(--ds-on-brand);
+  --color-on-success: var(--ds-on-success);
+  --color-on-warning: var(--ds-on-warning);
+  --color-on-danger: var(--ds-on-danger);
+  --color-on-info: var(--ds-on-info);
+  --color-focus-ring: var(--ds-focus-ring);
   --color-scrim: var(--ds-scrim);
   --radius-control: 0.75rem;
   --radius-panel: 1rem;
   --radius-shell: 1.25rem;
+  --spacing-control-sm: 2.25rem;
   --spacing-control: 2.75rem;
+  --spacing-control-lg: 3rem;
+  --spacing-icon-sm: 1rem;
+  --spacing-icon: 1.25rem;
+  --spacing-icon-lg: 1.5rem;
   --spacing-option: 2.5rem;
   --spacing-overlay: 18rem;
+  --spacing-focus-ring-width: 0.125rem;
+  --spacing-focus-ring-offset: 0.125rem;
   --shadow-panel: 0 1px 2px rgb(15 23 42 / 0.04), 0 12px 32px rgb(15 23 42 / 0.06);
   --shadow-overlay: 0 24px 64px rgb(15 23 42 / 0.18);
   --ease-product: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --transition-duration-fast: var(--motion-duration-fast);
+  --transition-duration-standard: var(--motion-duration-standard);
+  --transition-duration-slow: var(--motion-duration-slow);
+  --z-index-shell: 20;
+  --z-index-sticky: 30;
+  --z-index-overlay: 50;
+  --z-index-toast: 60;
 }
 
 :root {
   color-scheme: light;
+  --motion-duration-fast: 120ms;
+  --motion-duration-standard: 180ms;
+  --motion-duration-slow: 240ms;
   --ds-canvas: #f6f7fb;
   --ds-surface: #ffffff;
   --ds-surface-raised: #ffffff;
   --ds-surface-muted: #f0f2f7;
+  --ds-surface-inset: #e9ecf3;
   --ds-border: #e4e7ee;
   --ds-border-strong: #cfd5df;
   --ds-ink: #172033;
@@ -52,6 +77,12 @@
   --ds-danger-soft: #ffeaec;
   --ds-info: #2463eb;
   --ds-info-soft: #e9f0ff;
+  --ds-on-brand: #ffffff;
+  --ds-on-success: #ffffff;
+  --ds-on-warning: #2b1600;
+  --ds-on-danger: #ffffff;
+  --ds-on-info: #ffffff;
+  --ds-focus-ring: #5d49d6;
   --ds-scrim: rgb(15 23 42 / 0.38);
 }
 
@@ -61,6 +92,7 @@
   --ds-surface: #141a27;
   --ds-surface-raised: #1a2232;
   --ds-surface-muted: #20293a;
+  --ds-surface-inset: #101622;
   --ds-border: #273247;
   --ds-border-strong: #36435b;
   --ds-ink: #f5f7fb;
@@ -76,6 +108,12 @@
   --ds-danger-soft: #422129;
   --ds-info: #78a5ff;
   --ds-info-soft: #192d55;
+  --ds-on-brand: #17122d;
+  --ds-on-success: #082416;
+  --ds-on-warning: #2a1800;
+  --ds-on-danger: #2d1015;
+  --ds-on-info: #0b1b3a;
+  --ds-focus-ring: #b0a5ff;
   --ds-scrim: rgb(0 0 0 / 0.58);
 }
 

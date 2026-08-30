@@ -11,7 +11,7 @@ import {
   OctagonAlert,
   TriangleAlert,
 } from 'lucide-react';
-import { motion } from 'motion/react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { PageHeading } from '../../components/page-heading';
@@ -29,15 +29,17 @@ const stateDefinitions = [
 
 export function StatesScreen() {
   const { t } = useTranslation();
+  const [errorRecovered, setErrorRecovered] = useState(false);
+
   return (
-    <motion.div className="space-y-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+    <div className="space-y-6">
       <PageHeading
         eyebrow={t('states.eyebrow')}
         title={t('states.title')}
         description={t('states.description')}
       />
       <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-        <Panel className="p-5">
+        <Panel aria-busy="true" aria-label={t('states.loading.title')} className="p-5">
           <div className="flex items-center gap-3 text-info">
             <LoaderCircle className="size-5 animate-spin" />
             <span className="text-sm font-bold text-ink">{t('states.loading.title')}</span>
@@ -49,21 +51,29 @@ export function StatesScreen() {
             <Skeleton className="h-10 w-full" />
           </div>
         </Panel>
-        {stateDefinitions.map(({ id, icon: Icon }) => (
-          <Panel key={id}>
-            <StateSurface
-              compact
-              state={id}
-              icon={<Icon className="size-5" />}
-              title={t(`states.${id}.title`)}
-              description={t(`states.${id}.description`)}
-              {...(id === 'error'
-                ? { actionLabel: t('states.retry'), onAction: () => undefined }
-                : {})}
-            />
-          </Panel>
-        ))}
+        {stateDefinitions.map(({ id, icon: Icon }) => {
+          const recovered = id === 'error' && errorRecovered;
+          const DisplayIcon = recovered ? CheckCircle2 : Icon;
+          const displayedState = recovered ? 'success' : id;
+          const translationKey = recovered ? 'recovered' : id;
+
+          return (
+            <Panel key={id}>
+              <StateSurface
+                compact
+                state={displayedState}
+                icon={<DisplayIcon className="size-5" />}
+                title={t(`states.${translationKey}.title`)}
+                description={t(`states.${translationKey}.description`)}
+                announcement={recovered ? 'polite' : 'none'}
+                {...(id === 'error' && !recovered
+                  ? { actionLabel: t('states.retry'), onAction: () => setErrorRecovered(true) }
+                  : {})}
+              />
+            </Panel>
+          );
+        })}
       </div>
-    </motion.div>
+    </div>
   );
 }

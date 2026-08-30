@@ -9,7 +9,6 @@ import {
 } from '@community-go/ui-adapter';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Save } from 'lucide-react';
-import { motion } from 'motion/react';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
@@ -43,7 +42,7 @@ export function PreferencesScreen() {
   };
 
   return (
-    <motion.div className="space-y-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+    <div className="space-y-6">
       <PageHeading
         eyebrow={t('preferences.eyebrow')}
         title={t('preferences.title')}
@@ -115,6 +114,6 @@ export function PreferencesScreen() {
           </div>
         </form>
       </Panel>
-    </motion.div>
+    </div>
   );
 }

@@ -107,6 +107,10 @@ export const resources = {
           title: '加载未完成',
           description: '保留原始失败语义，在当前决策边界提供恢复动作。',
         },
+        recovered: {
+          title: '能力已经恢复',
+          description: '重新尝试已完成，当前成功结果替代了先前失败状态。',
+        },
         success: { title: '更改已经保存', description: '成功反馈简短、明确，不制造额外确认步骤。' },
         warning: {
           title: '部分能力受到限制',
@@ -514,6 +518,11 @@ export const resources = {
         error: {
           title: 'Loading did not finish',
           description: 'Preserve failure semantics and offer recovery at the decision boundary.',
+        },
+        recovered: {
+          title: 'Capability restored',
+          description:
+            'The retry completed and the current success result replaced the prior failure.',
         },
         success: {
           title: 'Changes saved',

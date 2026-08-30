@@ -1,4 +1,4 @@
-import { ProgressMeter, Skeleton } from '@community-go/ui-adapter';
+import { ProgressMeter, Skeleton, StateSurface } from '@community-go/ui-adapter';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
@@ -20,6 +20,36 @@ describe('Status Family', () => {
   it('Skeleton 只提供视觉占位，不进入辅助技术内容', () => {
     const { container } = render(<Skeleton className="h-8" />);
 
+    expect(container.firstElementChild).toHaveAttribute('data-slot', 'skeleton');
     expect(container.firstElementChild).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('StateSurface 只在显式声明后进入 Live Region', () => {
+    const { rerender } = render(
+      <StateSurface
+        announcement="polite"
+        state="success"
+        icon={<span aria-hidden="true">✓</span>}
+        title="能力已经恢复"
+        description="当前成功结果替代了先前失败状态。"
+      />,
+    );
+
+    expect(screen.getByRole('status')).toContainElement(
+      screen.getByRole('heading', { name: '能力已经恢复' }),
+    );
+
+    rerender(
+      <StateSurface
+        announcement="urgent"
+        state="error"
+        icon={<span aria-hidden="true">!</span>}
+        title="操作失败"
+        description="当前操作无法安全继续。"
+      />,
+    );
+    expect(screen.getByRole('alert')).toContainElement(
+      screen.getByRole('heading', { name: '操作失败' }),
+    );
   });
 });

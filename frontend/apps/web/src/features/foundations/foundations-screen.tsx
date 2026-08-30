@@ -1,6 +1,5 @@
 import { Panel, StatusPill } from '@community-go/ui-adapter';
 import { AppWindow, Braces, Component, DatabaseZap, ShieldCheck } from 'lucide-react';
-import { motion } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 
 import { PageHeading } from '../../components/page-heading';
@@ -15,7 +14,7 @@ const layers = [
 export function FoundationsScreen() {
   const { t } = useTranslation();
   return (
-    <motion.div className="space-y-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+    <div className="space-y-6">
       <PageHeading
         eyebrow={t('foundations.eyebrow')}
         title={t('foundations.title')}
@@ -64,6 +63,6 @@ export function FoundationsScreen() {
           </ol>
         </Panel>
       </div>
-    </motion.div>
+    </div>
   );
 }

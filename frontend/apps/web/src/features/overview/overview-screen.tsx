@@ -10,7 +10,6 @@ import {
   Sparkles,
   Workflow,
 } from 'lucide-react';
-import { motion } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 
@@ -33,12 +32,7 @@ export function OverviewScreen() {
   const navigate = useNavigate();
 
   return (
-    <motion.div
-      className="space-y-6"
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.22 }}
-    >
+    <div className="space-y-6">
       <Panel className="relative overflow-hidden p-6 sm:p-8 xl:p-10" tone="brand">
         <div className="pointer-events-none absolute -right-16 -top-24 size-72 rounded-full bg-brand/10 blur-3xl" />
         <div className="relative max-w-3xl">
@@ -181,6 +175,6 @@ export function OverviewScreen() {
           </Panel>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

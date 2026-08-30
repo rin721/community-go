@@ -26,6 +26,7 @@ export type StateSurfaceProps = Readonly<
     title: string;
     description: string;
     compact?: boolean;
+    announcement?: 'none' | 'polite' | 'urgent';
   } & OptionalRecoveryAction
 >;
 
@@ -37,10 +38,16 @@ export function StateSurface({
   actionLabel,
   onAction,
   compact = false,
+  announcement = 'none',
 }: StateSurfaceProps) {
   return (
     <div
       className={`grid place-items-center text-center ${compact ? 'min-h-56 p-5' : 'min-h-80 p-8'}`}
+      {...(announcement === 'urgent'
+        ? { role: 'alert' as const }
+        : announcement === 'polite'
+          ? { role: 'status' as const }
+          : {})}
     >
       <span className={`grid size-12 place-items-center rounded-panel ${stateTone[state]}`}>
         {icon}

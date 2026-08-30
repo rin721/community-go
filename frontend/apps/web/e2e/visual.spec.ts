@@ -44,3 +44,14 @@ test('移动侧栏打开状态纳入视觉回归', async ({ page }) => {
   await expect(page.getByRole('navigation', { name: '主导航' })).toBeVisible();
   await expect(page).toHaveScreenshot('mobile-navigation-open.png', { fullPage: true });
 });
+
+test('状态体系页面保持 Loading 与异常状态视觉基线', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/states');
+  await expect(page.getByRole('heading', { name: '加载未完成' })).toBeVisible();
+  await expect(page.getByRole('region', { name: '正在同步界面能力' })).toHaveAttribute(
+    'aria-busy',
+    'true',
+  );
+  await expect(page).toHaveScreenshot('states-desktop.png', { fullPage: true });
+});

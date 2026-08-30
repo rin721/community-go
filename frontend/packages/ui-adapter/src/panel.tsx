@@ -6,7 +6,7 @@ export type PanelProps = Readonly<{
   tone?: 'default' | 'muted' | 'brand';
   appearance?: 'elevated' | 'outlined' | 'embedded';
 }> &
-  Pick<HTMLAttributes<HTMLElement>, 'aria-label'>;
+  Pick<HTMLAttributes<HTMLElement>, 'aria-busy' | 'aria-label' | 'role'>;
 
 const toneClass = {
   default: 'border-border bg-surface',

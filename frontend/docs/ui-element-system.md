@@ -84,7 +84,18 @@ Listbox 的滚动属于列表内部责任：Overlay Surface 提供外壳，Listb
 
 Showcase 中的 Select 与 Combobox 必须保留足以触发内部滚动的大集合，并包含 Disabled Option。交互回归需同时证明内容高度超过 Listbox 可视高度、键盘能够滚动到末项以及筛选后仍能完成选择；仅检查 `overflow: auto` 声明不构成滚动能力证据。
 
-## 7. Overlay Surface 与 Option State
+## 7. Data Display
+
+`DataTable` 只负责结构化数据的行列语义、密度、横向滚动和可选的单行选择，不内置搜索、筛选、分页、批量动作或请求状态。后者属于拥有真实数据状态的 Feature Composition。
+
+- 默认表格是纯展示；只有显式传入 `selection` 才启用 HeroUI `Table.Content` 的单选、Selected 与 Keyboard Navigation。不得给每行挂载无行为的 `onAction` 来伪造可操作性。
+- 每张表必须提供 `emptyContent`，由 HeroUI `Table.Body.renderEmptyState` 保证空集合仍有可读反馈。需要说明原因、恢复操作或离线语义时，Feature 可以用 `StateSurface` 替换整个表格 Composition。
+- 至少一个能够唯一识别行的列应声明为 `rowHeader`；状态和确定进度分别组合 `StatusPill` 与 `ProgressMeter`，不在 Cell 中创造第二套视觉。
+- Comfortable 与 Compact 只改变稳定的 Cell Padding，不改变触控、选择和键盘语义。
+- `Table.ScrollContainer` 是横向溢出的唯一所有者；父 Section 不再增加第二层横向滚动。
+- 搜索、筛选、分页和 Footer 只有接入真实集合、总量和请求状态后才能进入 Pattern；禁止为展示完整度添加静态假分页或空操作列。
+
+## 8. Overlay Surface 与 Option State
 
 `ui-overlay-surface` 是 Dropdown、Select、Combobox、Popover、DatePicker、Dialog、Drawer 和 Command 共用的 Surface 语义，统一 Background、Border、Radius、Shadow 和文字颜色。不同 Overlay 只决定内容 Padding、宽度策略和结构，不复制一套 Surface。
 
@@ -100,7 +111,7 @@ Showcase 中的 Select 与 Combobox 必须保留足以触发内部滚动的大�
 
 Hover/Focus 与 Selected 不得合并为同一种状态；Selected 不能只依靠 Hover 才可见。
 
-## 8. Composition Rules
+## 9. Composition Rules
 
 - 一个视觉 Surface 只能由一层负责 Border、Radius、Shadow、Background 和外部 Padding。
 - 父 Surface 通过内边距拉开子 Element；不得为了解决贴边问题改写子组件自身 Variant。
@@ -109,19 +120,20 @@ Hover/Focus 与 Selected 不得合并为同一种状态；Selected 不能只依�
 - Page Header、Toolbar、Filter Bar、Section、Split View 与 Footer Actions 通过 Layout Contract 组合，不在每个 Page 重写同类骨架。
 - 承载文字的 Page 与 Surface 不参与整体 Opacity 动画；否则进入中间帧会改变 Semantic Token 的实际对比度。Opacity Motion 只用于 Scrim 等无文字装饰层，内容型 Overlay 使用自身成熟交互契约。
 
-## 9. Showcase 与质量证据
+## 10. Showcase 与质量证据
 
 - `/showcase` 按 Family 并排暴露 Variant、Density、Disabled、Invalid、Selected、长文本、Locale 和窄屏漂移。
 - Action 必须验证 Focus、Pending、Disabled 和尺寸序列；Pending 与 Disabled 不得合并成同一状态证据。
 - Feedback 的可见动作必须具备真实处理函数；静态 Alert 不得自动声明为 Live Region，动态 Announcement 必须按影响选择播报强度。
 - Status Family 必须在 Showcase 中并排暴露生命周期 Tone 与确定进度；`/states` 长期覆盖 Loading、Empty、Error、Success、Warning、Disabled、Pending、Offline 与 Permission Denied。Progress 边界值、Skeleton 的辅助技术可见性、Busy 容器和 Error 恢复路径必须进入自动化回归。
+- Data Display 必须在 Showcase 中暴露 Row Header、Density、Selected、Keyboard Selection 与 Empty Collection；Pattern Reference 继续验证筛选、Master-Detail 与异常状态组合。
 - Select、Combobox、Dropdown、Popover、Tooltip、DatePicker、Command、Dialog 与 Drawer 必须保留打开态视觉基线。
 - Form Selection 的视觉回归必须断言 Popup 使用 Trigger 宽度且 Listbox 自己滚动。
 - 关键 Overlay 必须验证 Escape、焦点返回、Keyboard Navigation、ARIA 与 Axe WCAG AA。
 - `/reference` 与 `/reference/form` 是 Pattern Reference，用于验证 Element 进入 Toolbar、Filter、Table、Master-Detail、Split View 和复杂 Form 后仍保持契约。
 - `architecture:check` 禁止 Feature 使用原生表单控件、直接消费 Adapter 内部 `ui-*` Element 样式，或在 Design Token 权威文件之外声明硬编码颜色。
 
-## 10. 演进规则
+## 11. 演进规则
 
 新增基础能力前按顺序判断：
 

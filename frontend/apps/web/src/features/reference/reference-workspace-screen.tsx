@@ -343,9 +343,12 @@ export function ReferenceWorkspaceScreen() {
                   label={t('reference.tableLabel')}
                   columns={columns}
                   density={density}
+                  emptyContent={t('reference.emptyDescription')}
                   rows={visibleRecords}
-                  onRowAction={setSelectedId}
-                  {...(selectedRecord ? { selectedId: selectedRecord.id } : {})}
+                  selection={{
+                    onSelectionChange: setSelectedId,
+                    ...(selectedRecord ? { selectedId: selectedRecord.id } : {}),
+                  }}
                 />
               )}
             </PageSection>

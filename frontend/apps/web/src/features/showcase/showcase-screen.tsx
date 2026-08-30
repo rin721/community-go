@@ -6,6 +6,7 @@ import {
   ComboField,
   CommandMenu,
   DatePickerField,
+  DataTable,
   DialogSurface,
   DrawerSurface,
   MenuButton,
@@ -22,6 +23,7 @@ import {
   TextAreaField,
   TextField,
   TooltipAction,
+  type DataColumn,
 } from '@community-go/ui-adapter';
 import {
   AlertTriangle,
@@ -59,6 +61,14 @@ const ownerOptions = [
 
 const showcaseProgressValue = 64;
 
+type ShowcaseDataRow = Readonly<{
+  id: string;
+  element: string;
+  owner: string;
+  status: string;
+  tone: 'success' | 'warning' | 'info';
+}>;
+
 export function ShowcaseScreen() {
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
@@ -68,10 +78,58 @@ export function ShowcaseScreen() {
   const [density, setDensity] = useState<'comfortable' | 'compact'>('comfortable');
   const [longText, setLongText] = useState(false);
   const [notificationVisible, setNotificationVisible] = useState(true);
+  const [showEmptyTable, setShowEmptyTable] = useState(false);
+  const [selectedTableId, setSelectedTableId] = useState('UI-001');
   const [checked, setChecked] = useState(true);
   const [selected, setSelected] = useState('guided');
   const description = longText ? t('showcase.longDescription') : t('showcase.shortDescription');
   const spacing = density === 'compact' ? 'gap-2' : 'gap-4';
+  const tableRows: readonly ShowcaseDataRow[] = [
+    {
+      id: 'UI-001',
+      element: t('showcase.dataTableRows.tokens'),
+      owner: t('showcase.dataTableOwners.foundation'),
+      status: t('showcase.dataTableStatus.ready'),
+      tone: 'success',
+    },
+    {
+      id: 'UI-002',
+      element: t('showcase.dataTableRows.formControl'),
+      owner: t('showcase.dataTableOwners.interaction'),
+      status: t('showcase.dataTableStatus.review'),
+      tone: 'warning',
+    },
+    {
+      id: 'UI-003',
+      element: t('showcase.dataTableRows.overlaySurface'),
+      owner: t('showcase.dataTableOwners.composition'),
+      status: t('showcase.dataTableStatus.verified'),
+      tone: 'info',
+    },
+  ];
+  const tableColumns: readonly DataColumn<ShowcaseDataRow>[] = [
+    {
+      id: 'element',
+      label: t('showcase.dataTableColumns.element'),
+      rowHeader: true,
+      render: (row) => (
+        <div className="min-w-40">
+          <p className="font-semibold text-ink">{row.element}</p>
+          <p className="mt-0.5 text-xs text-ink-muted">{row.id}</p>
+        </div>
+      ),
+    },
+    {
+      id: 'owner',
+      label: t('showcase.dataTableColumns.owner'),
+      render: (row) => row.owner,
+    },
+    {
+      id: 'status',
+      label: t('showcase.dataTableColumns.status'),
+      render: (row) => <StatusPill tone={row.tone}>{row.status}</StatusPill>,
+    },
+  ];
 
   return (
     <PageLayout>
@@ -204,6 +262,28 @@ export function ShowcaseScreen() {
             </div>
           </Panel>
         </div>
+      </PageSection>
+
+      <PageSection
+        title={t('showcase.dataDisplayTitle')}
+        description={t('showcase.dataDisplayDescription')}
+        action={
+          <Action size="sm" variant="quiet" onPress={() => setShowEmptyTable((empty) => !empty)}>
+            {showEmptyTable ? t('showcase.dataTableRestoreRows') : t('showcase.dataTableShowEmpty')}
+          </Action>
+        }
+      >
+        <DataTable
+          label={t('showcase.dataTableLabel')}
+          columns={tableColumns}
+          density={density}
+          emptyContent={t('showcase.dataTableEmpty')}
+          rows={showEmptyTable ? [] : tableRows}
+          selection={{
+            onSelectionChange: setSelectedTableId,
+            ...(!showEmptyTable ? { selectedId: selectedTableId } : {}),
+          }}
+        />
       </PageSection>
 
       <PageSection title={t('showcase.cardsTitle')} description={t('showcase.cardsDescription')}>

@@ -332,6 +332,33 @@ export const resources = {
         progressTitle: '确定进度',
         progressDescription: '只有总量已知时才显示百分比；未知等待使用 Pending 或 Loading 状态。',
         progressLabel: 'UI Element 契约完成度',
+        dataDisplayTitle: 'Data Display 与 Table',
+        dataDisplayDescription:
+          '表格默认只展示结构化数据；显式启用单选后，选中态、键盘导航和空集合继续由 HeroUI 管理。',
+        dataTableLabel: 'UI Element 治理状态',
+        dataTableShowEmpty: '查看空集合',
+        dataTableRestoreRows: '恢复数据行',
+        dataTableEmpty: '当前筛选条件下没有 UI Element。',
+        dataTableColumns: {
+          element: 'UI Element',
+          owner: '职责层',
+          status: '状态',
+        },
+        dataTableRows: {
+          tokens: 'Semantic Tokens',
+          formControl: 'Form Control',
+          overlaySurface: 'Overlay Surface',
+        },
+        dataTableOwners: {
+          foundation: 'Foundation',
+          interaction: 'Interaction',
+          composition: 'Composition',
+        },
+        dataTableStatus: {
+          ready: '已稳定',
+          review: '复核中',
+          verified: '已验证',
+        },
         cardsTitle: 'Card 与 Surface 层级',
         cardsDescription:
           'Elevated、Outlined 与 Embedded 是项目确认的三种容器语义，不由业务页自行创造阴影和圆角。',
@@ -771,6 +798,33 @@ export const resources = {
         progressDescription:
           'Show a percentage only when the total is known; use pending or loading states for unknown waits.',
         progressLabel: 'UI Element contract completion',
+        dataDisplayTitle: 'Data display and tables',
+        dataDisplayDescription:
+          'Tables display structured data by default; explicit single selection delegates selected state, keyboard navigation, and empty collections to HeroUI.',
+        dataTableLabel: 'UI Element governance status',
+        dataTableShowEmpty: 'Show empty collection',
+        dataTableRestoreRows: 'Restore data rows',
+        dataTableEmpty: 'No UI Elements match the current filter.',
+        dataTableColumns: {
+          element: 'UI Element',
+          owner: 'Responsibility layer',
+          status: 'Status',
+        },
+        dataTableRows: {
+          tokens: 'Semantic tokens',
+          formControl: 'Form control',
+          overlaySurface: 'Overlay surface',
+        },
+        dataTableOwners: {
+          foundation: 'Foundation',
+          interaction: 'Interaction',
+          composition: 'Composition',
+        },
+        dataTableStatus: {
+          ready: 'Stable',
+          review: 'In review',
+          verified: 'Verified',
+        },
         cardsTitle: 'Card and surface hierarchy',
         cardsDescription:
           'Elevated, outlined, and embedded are the three approved container semantics; screens do not invent local shadows and radii.',

@@ -20,6 +20,7 @@ export {
   TabsView,
   type DataColumn,
   type DataTableProps,
+  type DataTableSelection,
   type TabsViewItem,
   type TabsViewProps,
 } from './data-display';

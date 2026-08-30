@@ -1,5 +1,5 @@
 import { Table, Tabs } from '@heroui/react';
-import type { ReactNode } from 'react';
+import type { Key, ReactNode } from 'react';
 
 export type DataColumn<Row> = Readonly<{
   id: string;
@@ -8,30 +8,48 @@ export type DataColumn<Row> = Readonly<{
   render: (row: Row) => ReactNode;
 }>;
 
+export type DataTableSelection = Readonly<{
+  selectedId?: string;
+  onSelectionChange: (id: string) => void;
+}>;
+
 export type DataTableProps<Row extends Readonly<{ id: string }>> = Readonly<{
   label: string;
   columns: readonly DataColumn<Row>[];
   rows: readonly Row[];
+  emptyContent: ReactNode;
   density?: 'comfortable' | 'compact';
-  selectedId?: string;
-  onRowAction?: (id: string) => void;
+  selection?: DataTableSelection;
 }>;
 
 export function DataTable<Row extends Readonly<{ id: string }>>({
   label,
   columns,
   rows,
+  emptyContent,
   density = 'comfortable',
-  selectedId,
-  onRowAction,
+  selection,
 }: DataTableProps<Row>) {
   const cellSpacing = density === 'compact' ? 'px-3 py-2' : 'px-4 py-3.5';
   return (
-    <Table aria-label={label}>
+    <Table>
       <Table.ScrollContainer className="overflow-auto">
         <Table.Content
           aria-label={label}
           className="min-w-full border-separate border-spacing-0 text-left text-sm"
+          {...(selection
+            ? {
+                selectionMode: 'single' as const,
+                selectionBehavior: 'replace' as const,
+                disallowEmptySelection: Boolean(selection.selectedId),
+                selectedKeys: selection.selectedId ? new Set([selection.selectedId]) : new Set(),
+                onSelectionChange: (keys: 'all' | Set<Key>) => {
+                  if (keys === 'all') return;
+                  const selectedKey = keys.values().next().value;
+                  if (selectedKey !== undefined) selection.onSelectionChange(String(selectedKey));
+                },
+              }
+            : {})}
         >
           <Table.Header>
             {columns.map((column) => (
@@ -45,13 +63,16 @@ export function DataTable<Row extends Readonly<{ id: string }>>({
               </Table.Column>
             ))}
           </Table.Header>
-          <Table.Body>
+          <Table.Body
+            renderEmptyState={() => (
+              <div className="px-4 py-10 text-center text-sm text-ink-muted">{emptyContent}</div>
+            )}
+          >
             {rows.map((row) => (
               <Table.Row
-                className={`cursor-default outline-none transition-colors hover:bg-surface-muted data-[focus-visible]:bg-brand-soft ${selectedId === row.id ? 'bg-brand-soft' : ''}`}
+                className={selection ? 'cursor-pointer' : 'cursor-default'}
                 id={row.id}
                 key={row.id}
-                onAction={() => onRowAction?.(row.id)}
               >
                 {columns.map((column) => (
                   <Table.Cell

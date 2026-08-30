@@ -11,9 +11,17 @@ test('Reference 工作台覆盖筛选、Master-Detail 与侧栏布局契约', as
   await page.keyboard.press('ArrowDown');
   await page.keyboard.press('Enter');
 
-  const firstDataRow = page.getByRole('row').nth(1);
-  await firstDataRow.click();
-  await expect(page.getByRole('complementary').nth(1)).toContainText('摘要');
+  const dataRows = page.getByRole('grid').getByRole('row');
+  await expect(dataRows.nth(1)).toHaveAttribute('data-selected', 'true');
+  const selectedRecordId = await dataRows.nth(2).getAttribute('data-key');
+  expect(selectedRecordId).not.toBeNull();
+  await dataRows.nth(2).click();
+  await expect(dataRows.nth(2)).toHaveAttribute('data-selected', 'true');
+  await expect(page.getByRole('complementary').nth(1)).toContainText(selectedRecordId!);
+
+  await dataRows.nth(3).focus();
+  await page.keyboard.press('Enter');
+  await expect(dataRows.nth(3)).toHaveAttribute('data-selected', 'true');
 
   const collapseButton = page.getByRole('button', { name: '收起侧栏' });
   await collapseButton.click();

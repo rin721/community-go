@@ -3,6 +3,10 @@ import type { ReactNode } from 'react';
 
 import { Action } from './action';
 
+type OptionalRecoveryAction =
+  | Readonly<{ actionLabel: string; onAction: () => void }>
+  | Readonly<{ actionLabel?: never; onAction?: never }>;
+
 const stateTone: Record<ProductState, string> = {
   loading: 'bg-info-soft text-info',
   empty: 'bg-surface-muted text-ink-muted',
@@ -15,15 +19,15 @@ const stateTone: Record<ProductState, string> = {
   'permission-denied': 'bg-danger-soft text-danger',
 };
 
-export type StateSurfaceProps = Readonly<{
-  state: ProductState;
-  icon: ReactNode;
-  title: string;
-  description: string;
-  actionLabel?: string;
-  onAction?: () => void;
-  compact?: boolean;
-}>;
+export type StateSurfaceProps = Readonly<
+  {
+    state: ProductState;
+    icon: ReactNode;
+    title: string;
+    description: string;
+    compact?: boolean;
+  } & OptionalRecoveryAction
+>;
 
 export function StateSurface({
   state,
@@ -45,7 +49,7 @@ export function StateSurface({
         <h3 className="text-base font-bold text-ink">{title}</h3>
         <p className="mt-2 text-sm leading-6 text-ink-muted">{description}</p>
       </div>
-      {actionLabel && onAction ? (
+      {actionLabel !== undefined ? (
         <div className="mt-5">
           <Action variant="secondary" size="sm" onPress={onAction}>
             {actionLabel}

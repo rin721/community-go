@@ -63,13 +63,18 @@ test('Action 区分可操作、Pending 与 Disabled 状态', async ({ page }) =>
 });
 
 test('Alert、Badge、Card 与 Notification 形成可访问的内部权威面', async ({ page }) => {
-  await expect(page.getByRole('region', { name: '更改已经保存' })).toBeVisible();
+  const staticAlert = page.getByRole('region', { name: '更改已经保存' });
+  await expect(staticAlert).toBeVisible();
+  await expect(staticAlert).not.toHaveAttribute('role', 'status');
+  await expect(staticAlert).not.toHaveAttribute('role', 'alert');
   await expect(page.getByLabel('Badge 语义与外观')).toContainText('成功');
   await expect(page.getByRole('region', { name: '新的基座能力可用' })).toBeVisible();
-  await page.getByRole('button', { name: '关闭通知' }).click();
+  await page.getByRole('button', { name: '稍后处理' }).click();
   await expect(page.getByRole('region', { name: '通知已关闭' })).toBeVisible();
   await page.getByRole('button', { name: '恢复通知' }).click();
   await expect(page.getByRole('region', { name: '新的基座能力可用' })).toBeVisible();
+  await page.getByRole('button', { name: '关闭通知' }).click();
+  await expect(page.getByRole('region', { name: '通知已关闭' })).toBeVisible();
   await assertOverlayAccessibility(page);
 });
 

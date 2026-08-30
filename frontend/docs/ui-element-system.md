@@ -45,7 +45,18 @@ Media 只有出现真实产品场景后才建立稳定 Element；图片、视频
 - `sm` 与 `md` 只改变稳定的控件高度和横向 Padding；Feature 不得自行覆盖按钮高度制造第三套密度。
 - 纯图标操作必须使用 `IconAction` 并提供可访问名称；不得传入空文字的 `Action` 充当 Icon Button。
 
-## 4. Form Control Family
+## 4. Feedback 与 Status Family
+
+Feedback 解释刚发生的结果、风险或可恢复问题；Status 描述对象当前所处的稳定状态。两者可以共享 Tone Token，但不得因为颜色相同而互换语义。
+
+- `AlertBanner` 是页面流内的信息块，默认不加入 Live Region。只有内容在用户操作后动态出现且需要辅助技术及时播报时，才选择 `polite`；会阻断当前安全操作的紧急失败才选择 `urgent`。
+- `NotificationCard` 是可操作的静态通知组合，不等同于全局 Toast。它固定包含主要动作和关闭动作；可选次要动作必须同时提供文案与处理函数。
+- `Badge` 表达类别、属性或短元数据，可使用 Soft/Solid、Icon 与尺寸；`StatusPill` 专门表达对象生命周期状态，保持 Dot + Soft 的单一结构。
+- `StateSurface` 承担 Empty、Error、Offline、Permission 等大范围内容状态；恢复动作的文案与处理函数必须成对，禁止渲染无行为按钮。
+- `ProgressMeter` 只表达已知的确定进度；未知等待使用 `Action loading`、Skeleton 或 Loading State，不伪造百分比。
+- `Skeleton` 只提供视觉占位并保持 `aria-hidden`；所属 Composition 必须另有可访问的 Loading 文案。
+
+## 5. Form Control Family
 
 所有 Form Control 共享以下不变量：
 
@@ -57,7 +68,7 @@ Media 只有出现真实产品场景后才建立稳定 Element；图片、视频
 
 当前语义尺寸由 `--spacing-control` 管理，Option 触控高度由 `--spacing-option` 管理。业务页面不得复制对应数值。
 
-## 5. Anchored Overlay
+## 6. Anchored Overlay
 
 Anchored Overlay 负责 Trigger 与 Popup 的空间关系，定位和碰撞继续由 HeroUI 管理。项目只固定产品语义：
 
@@ -73,7 +84,7 @@ Listbox 的滚动属于列表内部责任：Overlay Surface 提供外壳，Listb
 
 Showcase 中的 Select 与 Combobox 必须保留足以触发内部滚动的大集合，并包含 Disabled Option。交互回归需同时证明内容高度超过 Listbox 可视高度、键盘能够滚动到末项以及筛选后仍能完成选择；仅检查 `overflow: auto` 声明不构成滚动能力证据。
 
-## 6. Overlay Surface 与 Option State
+## 7. Overlay Surface 与 Option State
 
 `ui-overlay-surface` 是 Dropdown、Select、Combobox、Popover、DatePicker、Dialog、Drawer 和 Command 共用的 Surface 语义，统一 Background、Border、Radius、Shadow 和文字颜色。不同 Overlay 只决定内容 Padding、宽度策略和结构，不复制一套 Surface。
 
@@ -89,7 +100,7 @@ Showcase 中的 Select 与 Combobox 必须保留足以触发内部滚动的大�
 
 Hover/Focus 与 Selected 不得合并为同一种状态；Selected 不能只依靠 Hover 才可见。
 
-## 7. Composition Rules
+## 8. Composition Rules
 
 - 一个视觉 Surface 只能由一层负责 Border、Radius、Shadow、Background 和外部 Padding。
 - 父 Surface 通过内边距拉开子 Element；不得为了解决贴边问题改写子组件自身 Variant。
@@ -97,17 +108,18 @@ Hover/Focus 与 Selected 不得合并为同一种状态；Selected 不能只依�
 - Scroll Container 由实际拥有滚动内容的一层负责；父子不能重复声明滚动和固定高度。
 - Page Header、Toolbar、Filter Bar、Section、Split View 与 Footer Actions 通过 Layout Contract 组合，不在每个 Page 重写同类骨架。
 
-## 8. Showcase 与质量证据
+## 9. Showcase 与质量证据
 
 - `/showcase` 按 Family 并排暴露 Variant、Density、Disabled、Invalid、Selected、长文本、Locale 和窄屏漂移。
 - Action 必须验证 Focus、Pending、Disabled 和尺寸序列；Pending 与 Disabled 不得合并成同一状态证据。
+- Feedback 的可见动作必须具备真实处理函数；静态 Alert 不得自动声明为 Live Region，动态 Announcement 必须按影响选择播报强度。
 - Select、Combobox、Dropdown、Popover、Tooltip、DatePicker、Command、Dialog 与 Drawer 必须保留打开态视觉基线。
 - Form Selection 的视觉回归必须断言 Popup 使用 Trigger 宽度且 Listbox 自己滚动。
 - 关键 Overlay 必须验证 Escape、焦点返回、Keyboard Navigation、ARIA 与 Axe WCAG AA。
 - `/reference` 与 `/reference/form` 是 Pattern Reference，用于验证 Element 进入 Toolbar、Filter、Table、Master-Detail、Split View 和复杂 Form 后仍保持契约。
 - `architecture:check` 禁止 Feature 使用原生表单控件、直接消费 Adapter 内部 `ui-*` Element 样式，或在 Design Token 权威文件之外声明硬编码颜色。
 
-## 9. 演进规则
+## 10. 演进规则
 
 新增基础能力前按顺序判断：
 

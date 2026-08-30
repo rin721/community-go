@@ -5,6 +5,14 @@ import { IconAction } from './icon-action';
 
 export type FeedbackTone = 'neutral' | 'success' | 'warning' | 'danger' | 'info';
 
+type OptionalAlertAction =
+  | Readonly<{ actionLabel: string; onAction: () => void }>
+  | Readonly<{ actionLabel?: never; onAction?: never }>;
+
+type OptionalSecondaryAction =
+  | Readonly<{ secondaryActionLabel: string; onSecondaryAction: () => void }>
+  | Readonly<{ secondaryActionLabel?: never; onSecondaryAction?: never }>;
+
 const softToneClass: Record<FeedbackTone, string> = {
   neutral: 'border-border bg-surface-muted text-ink',
   success: 'border-success/35 bg-success-soft text-success',
@@ -51,15 +59,15 @@ export function Badge({
   );
 }
 
-export type AlertBannerProps = Readonly<{
-  title: string;
-  description: string;
-  tone?: Exclude<FeedbackTone, 'neutral'>;
-  icon: ReactNode;
-  actionLabel?: string;
-  onAction?: () => void;
-  announcement?: 'none' | 'polite' | 'urgent';
-}>;
+export type AlertBannerProps = Readonly<
+  {
+    title: string;
+    description: string;
+    tone?: Exclude<FeedbackTone, 'neutral'>;
+    icon: ReactNode;
+    announcement?: 'none' | 'polite' | 'urgent';
+  } & OptionalAlertAction
+>;
 
 export function AlertBanner({
   title,
@@ -86,7 +94,7 @@ export function AlertBanner({
       <div className="min-w-0 flex-1">
         <h3 className="text-sm font-bold text-ink">{title}</h3>
         <p className="mt-1 text-sm leading-6 text-ink-muted">{description}</p>
-        {actionLabel && onAction ? (
+        {actionLabel !== undefined ? (
           <div className="mt-3">
             <Action variant="secondary" size="sm" onPress={onAction}>
               {actionLabel}
@@ -98,17 +106,17 @@ export function AlertBanner({
   );
 }
 
-export type NotificationCardProps = Readonly<{
-  title: string;
-  description: string;
-  icon: ReactNode;
-  primaryActionLabel: string;
-  secondaryActionLabel?: string;
-  dismissLabel: string;
-  onPrimaryAction: () => void;
-  onSecondaryAction?: () => void;
-  onDismiss: () => void;
-}>;
+export type NotificationCardProps = Readonly<
+  {
+    title: string;
+    description: string;
+    icon: ReactNode;
+    primaryActionLabel: string;
+    dismissLabel: string;
+    onPrimaryAction: () => void;
+    onDismiss: () => void;
+  } & OptionalSecondaryAction
+>;
 
 export function NotificationCard({
   title,
@@ -136,12 +144,8 @@ export function NotificationCard({
         </div>
       </div>
       <div className="mt-4 flex flex-wrap justify-end gap-2">
-        {secondaryActionLabel ? (
-          <Action
-            variant="secondary"
-            size="sm"
-            {...(onSecondaryAction ? { onPress: onSecondaryAction } : {})}
-          >
+        {secondaryActionLabel !== undefined ? (
+          <Action variant="secondary" size="sm" onPress={onSecondaryAction}>
             {secondaryActionLabel}
           </Action>
         ) : null}

@@ -21,7 +21,7 @@ pnpm check
 
 - `/reference`：48 条确定性数据组成的 Dashboard、筛选、Data Table、Master-Detail、Tabs、Drawer、Dialog，以及 Loading、Empty、Partial Error、Offline、Permission 等状态。
 - `/reference/form`：React Hook Form、Zod、Select、Combobox、DatePicker、Tabs 与 sticky footer 组成的复杂表单，覆盖错误、Disabled、Pending 与成功反馈。
-- `/showcase`：Action、Identity、Navigation、Feedback/Toast、Status/Async、Data、Card、Field、Overlay、组合压力、长文本、密度、Locale 和窄屏实验场。`?overlay=menu|popover|tooltip|date|command|dialog|confirm|drawer|toast`、`?data=empty` 与 `?density=compact` 可直接打开关键状态。
+- `/showcase`：39 个公开 UI Element 的可审计目录，按 9 个 Family 提供独立预览、状态清单和真实交互，并继续覆盖组合压力、长文本、密度、Locale 与窄屏。`?overlay=menu|popover|tooltip|date|command|dialog|confirm-primary|confirm|drawer|toast`、`?data=empty` 与 `?density=compact` 可直接打开关键状态。
 
 TailAdmin `UI Elements` 是长期外部视觉校准基准，HeroUI 是交互与可访问性基础，项目最终规范由 Semantic Token、UI Adapter 与 `/showcase` 决定。逐页对照矩阵、内部权威范围和强制复核触发器见 [UI 视觉校准基线](docs/ui-visual-calibration.md)。
 
@@ -58,7 +58,7 @@ pnpm dependency:check
 pnpm performance:check
 ```
 
-视觉基线覆盖 Overview、Reference 列表/多选/超宽屏、Reference Form、Preferences、States、Showcase 桌面与移动端、Dark Mode、英文扩张、Compact Density、Toast、Confirm，以及 Menu、Popover、Tooltip、Select、Combobox、DatePicker、Command、Dialog、Drawer 打开态。当前 gzip 预算为：首屏 JS 不高于 400 KiB、全部 JS 不高于 430 KiB、CSS 不高于 48 KiB、最大 JS Chunk 不高于 200 KiB。依赖职责与允许边界记录在 `tooling/dependency-policy.json`。
+视觉基线覆盖 Overview、Reference 列表/多选/超宽屏、Reference Form、Preferences、States、Showcase 桌面与移动端、9 个 UI Element Family、Dark Mode、英文扩张、Compact Density、Toast、Confirm，以及 Menu、Popover、Tooltip、Select、Combobox、DatePicker、Command、Dialog、Drawer 打开态。当前 gzip 预算为：首屏 JS 不高于 400 KiB、全部 JS 不高于 430 KiB、CSS 不高于 48 KiB、最大 JS Chunk 不高于 200 KiB。依赖职责与允许边界记录在 `tooling/dependency-policy.json`。
 
 ## 架构地图
 

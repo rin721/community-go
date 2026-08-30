@@ -37,14 +37,72 @@ async function assertListboxScrolls(page: Page) {
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/showcase');
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('组件与组合行为实验场');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+    'UI Elements 完整目录与交互验收',
+  );
+});
+
+test('Showcase 逐项公开全部 UI Element，而不是用混合 Demo 代替', async ({ page }) => {
+  const publicElements = [
+    'Action',
+    'IconAction',
+    'ToggleGroup',
+    'AlertBanner',
+    'Badge',
+    'NotificationCard',
+    'FeedbackProvider / Toast',
+    'StatusPill',
+    'ProgressMeter',
+    'BusyIndicator',
+    'Skeleton',
+    'StateSurface',
+    'Avatar',
+    'UserIdentity',
+    'DescriptionList',
+    'TextLink',
+    'BreadcrumbTrail',
+    'PaginationControl',
+    'TabsView',
+    'DataTable',
+    'Card / CardHeader / CardContent / CardFooter',
+    'Panel',
+    'TextField',
+    'TextAreaField',
+    'SearchBox',
+    'SelectField',
+    'ComboField',
+    'DatePickerField',
+    'CheckboxField',
+    'RadioGroupField',
+    'SwitchField',
+    'MenuButton',
+    'PopoverCard',
+    'TooltipAction',
+    'DialogSurface',
+    'ConfirmDialog',
+    'DestructiveConfirmDialog',
+    'DrawerSurface',
+    'CommandMenu',
+  ] as const;
+
+  await expect(
+    page.getByRole('navigation', { name: 'UI Elements 分类导航' }).getByRole('link'),
+  ).toHaveCount(9);
+  await expect(page.getByText('公开 Element 39 / 39')).toBeVisible();
+  for (const element of publicElements) {
+    await expect(page.getByRole('heading', { level: 3, name: element, exact: true })).toHaveCount(
+      1,
+    );
+    await expect(page.getByLabel(`${element} states`, { exact: true })).toBeAttached();
+  }
+  await assertOverlayAccessibility(page);
 });
 
 test('Action 区分可操作、Pending 与 Disabled 状态', async ({ page }) => {
   const primary = page.getByRole('button', { name: '主要操作' });
   const small = page.getByRole('button', { name: '小尺寸' });
-  const loading = page.getByRole('button', { name: '处理中' });
-  const disabled = page.getByRole('button', { name: '不可用' });
+  const loading = page.getByRole('button', { name: '处理中', exact: true });
+  const disabled = page.getByRole('button', { name: '不可用', exact: true });
 
   await expect(primary).toBeEnabled();
   await primary.focus();
@@ -62,6 +120,30 @@ test('Action 区分可操作、Pending 与 Disabled 状态', async ({ page }) =>
   await assertOverlayAccessibility(page);
 });
 
+test('ToggleGroup 与 DataTable 状态矩阵具有真实联动', async ({ page }) => {
+  const viewMode = page.getByRole('radiogroup', { name: '视图模式' });
+  await viewMode.getByRole('radio', { name: '列表' }).click();
+  await expect(viewMode.getByRole('radio', { name: '列表' })).toBeChecked();
+  await expect(viewMode.getByRole('radio', { name: '不可用' })).toBeDisabled();
+
+  const visibleColumns = page.getByRole('toolbar', { name: '可见列' });
+  await visibleColumns.getByRole('button', { name: '状态' }).click();
+  await expect(
+    page.getByRole('grid', { name: 'UI Element 治理状态' }).getByRole('columnheader'),
+  ).toHaveCount(2);
+
+  const tableMode = page.getByRole('radiogroup', { name: '表格状态' });
+  await tableMode.getByRole('radio', { name: '多选' }).click();
+  const rows = page.getByRole('grid', { name: 'UI Element 治理状态' }).getByRole('row');
+  await rows.nth(1).click();
+  await rows.nth(2).click();
+  await expect(rows.nth(1)).toHaveAttribute('aria-selected', 'true');
+  await expect(rows.nth(2)).toHaveAttribute('aria-selected', 'true');
+
+  await tableMode.getByRole('radio', { name: '查看空集合' }).click();
+  await expect(page.getByText('当前筛选条件下没有 UI Element。')).toBeVisible();
+});
+
 test('Alert、Badge、Card 与 Notification 形成可访问的内部权威面', async ({ page }) => {
   const staticAlert = page.getByRole('region', { name: '更改已经保存' });
   await expect(staticAlert).toBeVisible();
@@ -75,7 +157,7 @@ test('Alert、Badge、Card 与 Notification 形成可访问的内部权威面', 
   await expect(page.getByRole('region', { name: '新的基座能力可用' })).toBeVisible();
   await page.getByRole('button', { name: '关闭通知' }).click();
   await expect(page.getByRole('region', { name: '通知已关闭' })).toBeVisible();
-  await page.getByRole('button', { name: '发送 Toast' }).click();
+  await page.getByRole('button', { name: 'info', exact: true }).click();
   await expect(page.getByText('项目反馈已入队')).toBeVisible();
   await assertOverlayAccessibility(page);
 });
@@ -101,6 +183,20 @@ test('危险确认使用 AlertDialog 语义且确认动作真实可执行', asyn
   await expect(page.getByRole('status').filter({ hasText: '确认删除' })).toBeVisible();
 });
 
+test('普通 ConfirmDialog 与危险确认保持独立契约', async ({ page }) => {
+  await page.goto('/showcase?overlay=confirm-primary');
+  const dialog = page.getByRole('alertdialog');
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText('不会写入后端、文件或外部系统。');
+  await expect(dialog.getByRole('button', { name: '确认' })).toBeEnabled();
+  await assertOverlayAccessibility(page);
+  await dialog.getByRole('button', { name: '取消' }).click();
+  const trigger = page.getByRole('button', { name: '普通确认' });
+  await trigger.click();
+  await page.getByRole('alertdialog').getByRole('button', { name: '取消' }).click();
+  await expect(trigger).toBeFocused();
+});
+
 test('Toast 与 Data 状态可通过确定性 URL 直接验证', async ({ page }) => {
   await page.goto('/showcase?overlay=toast');
   await expect(page.getByText('项目反馈已入队')).toBeVisible();
@@ -121,7 +217,7 @@ test('Status 与 Progress 保持对象状态和确定进度语义', async ({ pag
   await expect(progress).toHaveAttribute('aria-valuemin', '0');
   await expect(progress).toHaveAttribute('aria-valuemax', '100');
   await expect(progress).toHaveAttribute('aria-valuenow', '64');
-  await expect(page.getByText('64%')).toBeVisible();
+  await expect(progress.getByText('64%')).toBeVisible();
   await expect(progress.locator('[data-slot="progress-bar-fill"]')).toHaveAttribute(
     'style',
     /width: 64%/,
@@ -163,7 +259,7 @@ test('Tabs 保持 HeroUI 键盘语义并由父 Surface 提供内边距', async (
 });
 
 test('Select 与 Combobox 使用统一 Popup、键盘和选中状态', async ({ page }) => {
-  await page.getByLabel('Select').click();
+  await page.getByRole('button', { name: '引导执行 Select' }).click();
   const selectListbox = page.getByRole('listbox');
   await expect(selectListbox).toBeVisible();
   await expect(page.getByRole('option', { name: '自动执行' })).toBeDisabled();

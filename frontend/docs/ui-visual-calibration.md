@@ -65,6 +65,8 @@ HeroUI 当前 `Select`、`ComboBox` 和 `Popover` 继续承担 ARIA、Keyboard�
 
 `/showcase` 是以下能力的项目级当前权威：
 
+- 目录完整度：39 个公开可见 UI Element 各有独立预览和状态声明，9 个 Family 各有独立视觉基线；自动化按名称逐项验证 39/39，不接受混合 Demo 代替。
+
 - Button：Primary、Secondary、Quiet、Danger、Small、Loading、Disabled。
 - Identity / Display：Avatar fallback/size/presence、UserIdentity、DescriptionList。
 - Navigation / Async：Breadcrumb、TextLink 边界、Pagination、Busy Indicator。
@@ -77,6 +79,8 @@ HeroUI 当前 `Select`、`ComboBox` 和 `Popover` 继续承担 ARIA、Keyboard�
 - Overlay：Menu、Popover、Tooltip、DatePicker、Command、Dialog、Drawer 的完整打开态。
 - Notification / Toast：标题、说明、Dismiss、一主一次操作、Provider queue 与确定性直接 URL。
 - Data Display：Row Header、Comfortable/Compact、Sort、Single/Multiple Selection、Keyboard Selection 与 Empty Collection。
+
+当前视觉证据共 31 张 PNG，其中 9 张按 Family 单独截取 Actions、Feedback、Status/Async、Identity/Display、Navigation、Data、Surfaces、Forms 和 Overlays；长分区截图排除 Host sticky Header，避免外壳污染 Element 基线。
 
 业务页面不得创造与上述权威冲突的 Radius、Shadow、控件高度、语义色或 Overlay Surface。合理差异通过已记录的 Variant、Size、Tone、State 与 Composition 表达。
 

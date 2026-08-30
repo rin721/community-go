@@ -17,7 +17,7 @@ export const resources = {
         foundations: '基座能力',
         reference: 'Reference 工作台',
         formReference: '复杂表单',
-        showcase: '组件 Showcase',
+        showcase: 'UI Elements',
         states: '状态体系',
         preferences: '偏好设置',
       },
@@ -300,10 +300,10 @@ export const resources = {
       showcase: {
         breadcrumbRoot: '基座验证',
         breadcrumbCurrent: 'Showcase',
-        eyebrow: 'Showcase · Playground',
-        title: '组件与组合行为实验场',
+        eyebrow: 'UI Elements · Catalog',
+        title: 'UI Elements 完整目录与交互验收',
         description:
-          '集中观察 Variant、Size、Density、Loading、Disabled、Error、长文本、Locale、嵌套组合与完整 Overlay 表面。',
+          '逐项检查公开契约的 Variant、Size、Density、Loading、Disabled、Error、长文本、Locale、组合与完整 Overlay 表面。',
         density: '展示密度',
         comfortable: '舒适',
         compact: '紧凑',
@@ -351,9 +351,6 @@ export const resources = {
         progressTitle: '确定进度',
         progressDescription: '只有总量已知时才显示百分比；未知等待使用 Pending 或 Loading 状态。',
         progressLabel: 'UI Element 契约完成度',
-        identityNavigationTitle: 'Identity、Navigation 与 Async',
-        identityNavigationDescription:
-          '集中验证 Avatar fallback、UserIdentity、DescriptionList、Breadcrumb、Pagination 与 Busy 语义。',
         identityTitle: '账号与在线状态',
         identityDescription: '产品设计负责人',
         presenceOnline: '在线',
@@ -463,6 +460,110 @@ export const resources = {
         normalTab: '正常',
         emptyTab: '空状态',
         warningTab: '警告',
+        catalog: {
+          label: 'UI Elements 分类导航',
+          kicker: '公开契约目录',
+          title: '39 个可逐项验收的 UI Elements',
+          description:
+            '每个公开 Element 都有独立预览、支持状态清单和真实交互；分类链接可直接定位，不再用一个混合 Demo 代替完整度。',
+          total: '公开 Element {{count}} / {{count}}',
+          actions: 'Actions 与 Selection',
+          feedback: 'Feedback 与 Status',
+          statusAsync: 'Async 与 Product State',
+          identityDisplay: 'Identity 与 Display',
+          identityDisplayDescription:
+            '独立验证头像图片与 fallback、在线状态、长身份文本、结构化属性和缺失值语义。',
+          navigation: 'Navigation',
+          data: 'Data Display',
+          surfaces: 'Surface 与 Card',
+          forms: 'Form Controls',
+          overlays: 'Overlay 与 Floating UI',
+          actionDescription: '命令动作以稳定 intent、size、icon 与 pending 语义表达，不承担导航。',
+          iconActionDescription: '空间受限的图标命令必须保留可访问名称、活动态和危险语义。',
+          toggleDescription: '即时视图偏好支持单选或多选，不与表单 RadioGroup 混用。',
+          large: '大尺寸',
+          lastAction: '最近动作：{{action}}',
+          search: '搜索',
+          refresh: '刷新',
+          delete: '删除',
+          more: '更多操作',
+          refreshing: '刷新处理中',
+          moreDisabled: '更多操作不可用',
+          viewMode: '视图模式',
+          grid: '网格',
+          list: '列表',
+          locked: '不可用',
+          visibleColumns: '可见列',
+          alertDescription: '流内反馈按 tone、动作、关闭与播报强度区分，不替代 Toast 或对象状态。',
+          infoAlertTitle: '这是补充信息',
+          dangerAlertTitle: '当前操作已经中断',
+          dangerAlertDescription: '危险反馈只在需要立即处理的阻断失败中使用紧急播报。',
+          badgeDescription: 'Badge 表达类别和短元数据，支持语义 tone、外观、尺寸和 Icon。',
+          notificationDescription: '静态通知拥有明确生命周期和可操作结构，不自动进入全局队列。',
+          toastDescription:
+            'Toast 由 FeedbackProvider 管理短暂反馈、队列和关闭，不泄露 vendor API。',
+          statusDescription: 'StatusPill 只表达对象生命周期，不与普通标签或操作反馈互换。',
+          progressQueued: '等待开始',
+          progressComplete: '全部完成',
+          busyDescription: '未知总量的局部等待使用 BusyIndicator，并按范围决定是否显示文字。',
+          skeletonDescription:
+            'Skeleton 只保持内容节奏；外层 Busy Composition 提供可访问等待语义。',
+          loadingPreview: '内容骨架正在加载',
+          stateSurfaceDescription: '内容级状态覆盖成功路径之外的九种产品结果，并按需提供恢复动作。',
+          stateTabs: '产品状态预览',
+          avatarDescription: 'Avatar 统一真实图像、fallback、尺寸和 presence，不推导业务状态。',
+          presenceAway: '暂离',
+          presenceOffline: '离线',
+          userIdentityDescription: 'UserIdentity 只组合 Avatar、姓名和可选说明，长内容保持收敛。',
+          descriptionListDescription:
+            'DescriptionList 保留 term/description 语义、缺失值和窄屏重排。',
+          optionalValue: '可选字段',
+          navigationDescription: '文本链接、层级导航、分页和内容 Tabs 分别保留原生导航语义。',
+          textLinkDescription:
+            'TextLink 用于真实导航；SPA 拦截由 Host Adapter 注入，Action 不伪装链接。',
+          backToActions: '返回 Actions',
+          interceptedLink: 'Host 拦截示例',
+          breadcrumbDescription: 'Breadcrumb 显式区分可导航层级、禁用层级和当前位置。',
+          disabledLevel: '受限层级',
+          paginationDescription:
+            'Pagination 表达边界、当前页、Ellipsis 和整体禁用，集合状态留给 Feature。',
+          disabledPagination: '禁用分页',
+          tabsDescription: 'TabsView 只切换同一内容域，保留 selected、disabled 和键盘语义。',
+          contentTabsLabel: '内容视图 Tabs',
+          dataTableDescription: 'DataTable 展示排序、单选、多选、行标题、空集合、密度和溢出契约。',
+          tableMode: '表格状态',
+          singleSelection: '单选',
+          multipleSelection: '多选',
+          cardDescription:
+            'Card 通过 Header、Content 与 Footer anatomy 表达内容容器，不替代页面 Section。',
+          panelDescription: 'Panel 只拥有布局 Surface；tone 与 appearance 决定唯一视觉 owner。',
+          textFieldDescription: 'TextField 保持 Label、Control、Hint 与 Error 的单一 Field owner。',
+          textAreaDescription: 'TextAreaField 复用 Field 状态，并保留多行、长内容和调整高度能力。',
+          searchBoxDescription: 'SearchBox 是搜索交互组合，拥有搜索图标、清除动作和可访问名称。',
+          disabledSearch: '禁用搜索',
+          selectDescription:
+            'Select 从有限集合选择值；Popup、Selection 与 Keyboard 由 HeroUI 管理。',
+          comboDescription: 'ComboField 允许筛选候选，不与普通 Select 或 Command Menu 混用。',
+          dateDescription: 'DatePickerField 组合可编辑日期段和日历 Popup，并保留键盘与禁用状态。',
+          checkboxDescription: 'CheckboxField 表达独立布尔值，Label 与说明只出现一次。',
+          radioDescription: 'RadioGroupField 表达表单单选值，与即时 ToggleGroup 保持职责分离。',
+          switchDescription: 'SwitchField 表达立即生效的开关状态，并在相邻说明中解释影响。',
+          disabledControlDescription: '禁用状态保留清晰标签和原因说明。',
+          menuDescription: 'MenuButton 承载命令集合，区分普通、危险和不可用 Item。',
+          popoverDescription:
+            'PopoverCard 承载与 Trigger 相关的可交互短内容，不替代 Tooltip 或 Dialog。',
+          tooltipDescription: 'Tooltip 只提供简短非交互说明，同时支持 Hover 与 Keyboard Focus。',
+          dialogDescription: 'DialogSurface 承载普通表单决策，并统一焦点、Pending、失败与 Footer。',
+          confirmDescription: 'ConfirmDialog 用于需要显式确认的普通决策，并呈现影响范围。',
+          confirmPrompt: '确认后只更新当前 Showcase 的本地状态。',
+          confirmImpact: '不会写入后端、文件或外部系统。',
+          confirmTitle: '确认应用当前选择？',
+          confirmTrigger: '普通确认',
+          destructiveConfirmDescription:
+            'Destructive Confirm 以危险语义强调不可逆后果，不与普通确认共用视觉。',
+          drawerDescription: 'Drawer 在侧边承载辅助任务，拥有独立 Header、Body、关闭和滚动边界。',
+          commandDescription: 'CommandMenu 组合搜索、过滤、空结果和键盘命令执行。',
+        },
         defaultStatus: '默认',
         successStatus: '成功',
         warningStatus: '警告',
@@ -490,7 +591,7 @@ export const resources = {
         foundations: 'Foundations',
         reference: 'Reference workspace',
         formReference: 'Complex form',
-        showcase: 'Component showcase',
+        showcase: 'UI Elements',
         states: 'Product states',
         preferences: 'Preferences',
       },
@@ -804,10 +905,10 @@ export const resources = {
       showcase: {
         breadcrumbRoot: 'Foundation validation',
         breadcrumbCurrent: 'Showcase',
-        eyebrow: 'Showcase · Playground',
-        title: 'Component and composition laboratory',
+        eyebrow: 'UI Elements · Catalog',
+        title: 'Complete UI Elements catalog and interaction review',
         description:
-          'Inspect variants, sizes, density, loading, disabled, errors, long text, locale, nested composition, and complete overlay surfaces.',
+          'Inspect every public contract across variants, sizes, density, loading, disabled, errors, long text, locale, composition, and complete overlay surfaces.',
         density: 'Display density',
         comfortable: 'Comfortable',
         compact: 'Compact',
@@ -860,9 +961,6 @@ export const resources = {
         progressDescription:
           'Show a percentage only when the total is known; use pending or loading states for unknown waits.',
         progressLabel: 'UI Element contract completion',
-        identityNavigationTitle: 'Identity, navigation, and async',
-        identityNavigationDescription:
-          'Validates avatar fallback, user identity, description list, breadcrumbs, pagination, and busy semantics together.',
         identityTitle: 'Account and presence',
         identityDescription: 'Product design owner',
         presenceOnline: 'Online',
@@ -977,6 +1075,141 @@ export const resources = {
         normalTab: 'Normal',
         emptyTab: 'Empty',
         warningTab: 'Warning',
+        catalog: {
+          label: 'UI Elements family navigation',
+          kicker: 'Public contract catalog',
+          title: '39 independently inspectable UI Elements',
+          description:
+            'Every public Element has its own preview, supported-state inventory, and real interaction. Family links replace the previous mixed-demo claim.',
+          total: '{{count}} / {{count}} public Elements',
+          actions: 'Actions and selection',
+          feedback: 'Feedback and status',
+          statusAsync: 'Async and product state',
+          identityDisplay: 'Identity and display',
+          identityDisplayDescription:
+            'Independently validates avatar images and fallbacks, presence, long identity text, structured attributes, and missing values.',
+          navigation: 'Navigation',
+          data: 'Data display',
+          surfaces: 'Surfaces and cards',
+          forms: 'Form controls',
+          overlays: 'Overlays and floating UI',
+          actionDescription:
+            'Commands use stable intent, size, icon, and pending semantics and never impersonate navigation.',
+          iconActionDescription:
+            'Space-constrained icon commands retain accessible names, active state, and danger semantics.',
+          toggleDescription:
+            'Immediate view preferences support single or multiple selection and remain distinct from form radio groups.',
+          large: 'Large size',
+          lastAction: 'Latest action: {{action}}',
+          search: 'Search',
+          refresh: 'Refresh',
+          delete: 'Delete',
+          more: 'More actions',
+          refreshing: 'Refresh pending',
+          moreDisabled: 'More actions unavailable',
+          viewMode: 'View mode',
+          grid: 'Grid',
+          list: 'List',
+          locked: 'Unavailable',
+          visibleColumns: 'Visible columns',
+          alertDescription:
+            'In-flow feedback separates tone, actions, dismissal, and announcement strength from toast and status.',
+          infoAlertTitle: 'Supplementary information',
+          dangerAlertTitle: 'The current action stopped',
+          dangerAlertDescription:
+            'Danger feedback uses urgent announcements only for blocking failures that need immediate attention.',
+          badgeDescription:
+            'Badges express categories and short metadata with semantic tones, appearances, sizes, and icons.',
+          notificationDescription:
+            'Static notifications have an explicit lifecycle and actionable anatomy without joining the global queue.',
+          toastDescription:
+            'FeedbackProvider owns transient toast delivery, queueing, and dismissal without leaking vendor APIs.',
+          statusDescription:
+            'StatusPill expresses object lifecycle only and never substitutes for labels or action feedback.',
+          progressQueued: 'Waiting to start',
+          progressComplete: 'Complete',
+          busyDescription:
+            'Unknown-duration local work uses BusyIndicator with visible text selected by scope.',
+          skeletonDescription:
+            'Skeleton preserves content rhythm while its busy composition supplies accessible waiting semantics.',
+          loadingPreview: 'Content skeleton is loading',
+          stateSurfaceDescription:
+            'Content states cover nine product outcomes beyond the happy path and add recovery only when meaningful.',
+          stateTabs: 'Product state previews',
+          avatarDescription:
+            'Avatar unifies real images, fallback, size, and presence without deriving business state.',
+          presenceAway: 'Away',
+          presenceOffline: 'Offline',
+          userIdentityDescription:
+            'UserIdentity composes avatar, name, and optional description while constraining long content.',
+          descriptionListDescription:
+            'DescriptionList retains term/description semantics, missing values, and narrow reflow.',
+          optionalValue: 'Optional value',
+          navigationDescription:
+            'Text links, hierarchy, pagination, and content tabs each preserve their native navigation meaning.',
+          textLinkDescription:
+            'TextLink performs navigation; SPA interception belongs to the Host adapter and Action never impersonates a link.',
+          backToActions: 'Back to actions',
+          interceptedLink: 'Host interception example',
+          breadcrumbDescription:
+            'Breadcrumbs explicitly separate linked, disabled, and current hierarchy levels.',
+          disabledLevel: 'Restricted level',
+          paginationDescription:
+            'Pagination expresses boundaries, current page, ellipsis, and disabled state while features own collections.',
+          disabledPagination: 'Disabled pagination',
+          tabsDescription:
+            'TabsView switches one content domain and retains selected, disabled, and keyboard semantics.',
+          contentTabsLabel: 'Content view tabs',
+          dataTableDescription:
+            'DataTable exposes sort, single and multiple selection, row headers, empty state, density, and overflow.',
+          tableMode: 'Table state',
+          singleSelection: 'Single select',
+          multipleSelection: 'Multi select',
+          cardDescription:
+            'Card uses Header, Content, and Footer anatomy for content without replacing page sections.',
+          panelDescription:
+            'Panel owns layout surfaces only; tone and appearance select the single visual owner.',
+          textFieldDescription:
+            'TextField keeps Label, Control, Hint, and Error under one field owner.',
+          textAreaDescription:
+            'TextAreaField reuses field states while preserving multiline, long-content, and resize behavior.',
+          searchBoxDescription:
+            'SearchBox composes search icon, clear action, and accessible naming around search behavior.',
+          disabledSearch: 'Disabled search',
+          selectDescription:
+            'Select chooses from a finite collection while HeroUI owns popup, selection, and keyboard behavior.',
+          comboDescription:
+            'ComboField filters candidates and remains distinct from select and command menus.',
+          dateDescription:
+            'DatePickerField combines editable date segments with a calendar popup, keyboard, and disabled state.',
+          checkboxDescription:
+            'CheckboxField represents an independent boolean and owns one label and description.',
+          radioDescription:
+            'RadioGroupField represents form single selection and remains distinct from immediate toggles.',
+          switchDescription:
+            'SwitchField represents an immediately applied setting with adjacent impact copy.',
+          disabledControlDescription: 'Disabled controls retain clear labels and reasons.',
+          menuDescription:
+            'MenuButton owns command collections with normal, danger, and unavailable items.',
+          popoverDescription:
+            'PopoverCard contains short interactive context tied to its trigger without becoming a tooltip or dialog.',
+          tooltipDescription:
+            'Tooltip provides concise non-interactive help through both hover and keyboard focus.',
+          dialogDescription:
+            'DialogSurface owns ordinary form decisions, focus, pending, failure, and footer behavior.',
+          confirmDescription:
+            'ConfirmDialog handles ordinary explicit decisions and presents their impact.',
+          confirmPrompt: 'Confirmation only updates local Showcase state.',
+          confirmImpact: 'No backend, file, or external system is changed.',
+          confirmTitle: 'Apply the current selection?',
+          confirmTrigger: 'Standard confirmation',
+          destructiveConfirmDescription:
+            'Destructive confirmation highlights irreversible consequences and stays visually distinct.',
+          drawerDescription:
+            'Drawer hosts supplementary work with its own header, body, close, and scrolling boundary.',
+          commandDescription:
+            'CommandMenu composes search, filtering, empty results, and keyboard command execution.',
+        },
         defaultStatus: 'Default',
         successStatus: 'Success',
         warningStatus: 'Warning',

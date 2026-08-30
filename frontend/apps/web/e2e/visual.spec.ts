@@ -32,6 +32,32 @@ test('桌面 Showcase 保持基础组件权威面稳定', async ({ page }) => {
   expect(consoleErrors).toEqual([]);
 });
 
+test('Showcase 九个 UI Element Family 分区均有独立视觉基线', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto('/showcase');
+  await expect(page.getByText('公开 Element 39 / 39')).toBeVisible();
+
+  const families = [
+    'actions',
+    'feedback',
+    'status-async',
+    'identity-display',
+    'navigation',
+    'data',
+    'surfaces',
+    'forms',
+    'overlays',
+  ] as const;
+
+  // Family 基线只审计 Element 内容；隐藏 Host 的 sticky Header，避免长分区滚动拼接时混入外壳。
+  await page.getByRole('banner').evaluate((element) => {
+    (element as HTMLElement).style.visibility = 'hidden';
+  });
+  for (const family of families) {
+    await expect(page.locator(`#${family}`)).toHaveScreenshot(`showcase-family-${family}.png`);
+  }
+});
+
 test('移动窗口、Dark Mode 与英文扩张保持无溢出', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/showcase');

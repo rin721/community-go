@@ -83,6 +83,7 @@ export function PageFilterBar({ children }: Readonly<{ children: ReactNode }>) {
 }
 
 export type PageSectionProps = Readonly<{
+  id?: string;
   title: string;
   description?: string;
   action?: ReactNode;
@@ -91,13 +92,14 @@ export type PageSectionProps = Readonly<{
 }>;
 
 export function PageSection({
+  id,
   title,
   description,
   action,
   children,
   appearance = 'elevated',
 }: PageSectionProps) {
-  return (
+  const section = (
     <Panel appearance={appearance} className="overflow-hidden">
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border px-5 py-4">
         <div className="min-w-0">
@@ -110,6 +112,14 @@ export function PageSection({
       </div>
       <div>{children}</div>
     </Panel>
+  );
+
+  return id ? (
+    <div className="scroll-mt-24" id={id}>
+      {section}
+    </div>
+  ) : (
+    section
   );
 }
 

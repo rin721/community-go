@@ -137,9 +137,11 @@ Hover/Focus 与 Selected 不得合并为同一种状态；Selected 不能只依�
 
 ## 11. Showcase 与质量证据
 
-- `/showcase` 按 Family 并排暴露 Variant、Density、Disabled、Invalid、Selected、长文本、Locale 和窄屏漂移。
+- `/showcase` 是公开 UI Contract 的可执行目录。当前 39 个可见 Element 必须各自拥有一个独立 `ComponentPreview`，展示准确名称、支持状态清单和真实交互；9 个 Family 锚点负责导航与逐族视觉基线，禁止再用一个混合 Demo 代替完整度声明。
+- 每个状态清单都是验收声明，必须能在同一 Preview、确定性 URL、自动化交互或该 Family 的视觉基线中找到对应证据；不能展示的状态不得写入清单。
+- `/showcase` 按 Family 暴露 Variant、Size、Tone、Icon、Disabled、Loading、Long Content、Edge Case、Dark Theme 和可交互状态；不适用于某个 Element 的维度由其稳定职责裁决，不创建无语义 Variant 凑矩阵。
 - Action 必须验证 Focus、Pending、Disabled 和尺寸序列；Pending 与 Disabled 不得合并成同一状态证据。
-- Identity / Navigation 必须验证 Avatar fallback/presence、UserIdentity 长文本、DescriptionList、Breadcrumb、Pagination、Busy 与真实 Host Router 边界。
+- Identity / Display 必须验证 Avatar image/fallback/size/presence、UserIdentity 长文本与 DescriptionList 缺失值；Navigation 独立验证 Breadcrumb、TextLink、Pagination、Tabs 与真实 Host Router 边界；Busy 归入 Async。
 - Feedback 的可见动作必须具备真实处理函数；静态 Alert 不得自动声明为 Live Region，动态 Announcement 必须按影响选择播报强度。
 - Status Family 必须在 Showcase 中并排暴露生命周期 Tone 与确定进度；`/states` 长期覆盖 Loading、Empty、Error、Success、Warning、Disabled、Pending、Offline 与 Permission Denied。Progress 边界值、Skeleton 的辅助技术可见性、Busy 容器和 Error 恢复路径必须进入自动化回归。
 - Data Display 必须在 Showcase 中暴露 Row Header、Density、Selected、Keyboard Selection 与 Empty Collection；Pattern Reference 继续验证筛选、Master-Detail 与异常状态组合。

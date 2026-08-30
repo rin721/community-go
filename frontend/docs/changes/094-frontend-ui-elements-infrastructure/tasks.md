@@ -61,3 +61,10 @@
 - [x] `VERIFY-094-003` 生成并逐图复核视觉矩阵；依赖：VERIFY-094-002；完成条件：1440/1920/390、Light/Dark、zh/en、density、Overlay 打开态无 P0/P1；证据：22 张 PNG 人工复核，修复 close action、Layer token、1440 SplitView 和 fixed overlay 基线；`--repeat-each=3` 72/72。
 - [x] `VERIFY-094-004` 按原目标 14 条、REQ-094-001..012 和本清单做逐项完成审计；依赖：全部验证；完成条件：填写 `design/completion-traceability.md` 每行的实际强证据，条件性候选裁决仍有效，无缺失/弱证据/未决 required work；证据：README 完成记录、完成追踪表与条件性候选裁决。
 - [x] `GIT-094-001` 精确暂存并创建 Conventional Commit，不推送、不混入用户改动；依赖：全部任务完成；完成条件：diff/check/status/log 复核通过；证据：本清单随最终 Conventional Commit 入库，commit hash 在交付报告记录。
+
+## 验收纠正
+
+- [x] `AUDIT-094-002` 接受用户验收对初次完成声明的反证并重新打开 Showcase 完整度审计；依赖：GIT-094-001；完成条件：以公共可见导出、运行时 DOM、状态矩阵和视觉证据逐项比对，不把“已导出”或混合 Demo 等同于“已完整实现”；证据：确认旧 Showcase 未独立呈现 IconAction、ToggleGroup、TextLink、Skeleton、ConfirmDialog 等契约，形成 39 个公开可见 Element 清单。
+- [x] `SHOW-094-003` 把 Showcase 改造成可直接审计的完整目录；依赖：AUDIT-094-002；完成条件：39/39 每项只有一个独立三级标题、状态清单与真实预览，9 个 Family 可锚点导航，普通/危险 Confirm 分轨，条件性候选不创建空壳；证据：`component-preview.tsx`、`showcase-screen.tsx`、中英文资源和本地 Avatar 资产。
+- [x] `VERIFY-094-005` 扩展交互、Axe 与视觉验收并重新运行完整门禁；依赖：SHOW-094-003；完成条件：自动化逐项证明 39/39、9 个 Family 均有独立视觉基线、关键交互和 Axe 全绿、全部 31 张 PNG 人工复核无 P0/P1；证据：`overlays.spec.ts` 13/13、`visual.spec.ts` 9/9、完整 `pnpm check` 28/28 浏览器用例，performance initial=386201、total=440225、CSS=43858、largest=171600 bytes 及完成追踪表。
+- [x] `GIT-094-002` 精确暂存并创建验收纠正 Conventional Commit，不推送、不混入 `AGENTS.md` 用户标题和父目录改动；依赖：VERIFY-094-005；完成条件：diff/check/status/log 复核通过；证据：本清单随纠正提交入库，commit hash 在交付报告记录。

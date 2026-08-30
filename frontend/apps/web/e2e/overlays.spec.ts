@@ -40,6 +40,28 @@ test.beforeEach(async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('组件与组合行为实验场');
 });
 
+test('Action 区分可操作、Pending 与 Disabled 状态', async ({ page }) => {
+  const primary = page.getByRole('button', { name: '主要操作' });
+  const small = page.getByRole('button', { name: '小尺寸' });
+  const loading = page.getByRole('button', { name: '处理中' });
+  const disabled = page.getByRole('button', { name: '不可用' });
+
+  await expect(primary).toBeEnabled();
+  await primary.focus();
+  await expect(primary).toBeFocused();
+
+  const primaryHeight = await primary.evaluate((element) => element.getBoundingClientRect().height);
+  const smallHeight = await small.evaluate((element) => element.getBoundingClientRect().height);
+  expect(smallHeight).toBeLessThan(primaryHeight);
+
+  await expect(loading).toHaveAttribute('data-pending', 'true');
+  await expect(loading).toHaveAttribute('aria-disabled', 'true');
+  await expect(loading).toBeDisabled();
+  await expect(disabled).not.toHaveAttribute('data-pending');
+  await expect(disabled).toBeDisabled();
+  await assertOverlayAccessibility(page);
+});
+
 test('Alert、Badge、Card 与 Notification 形成可访问的内部权威面', async ({ page }) => {
   await expect(page.getByRole('region', { name: '更改已经保存' })).toBeVisible();
   await expect(page.getByLabel('Badge 语义与外观')).toContainText('成功');

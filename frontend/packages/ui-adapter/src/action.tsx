@@ -38,9 +38,9 @@ export function Action({
 }: ActionProps) {
   return (
     <HeroButton
-      aria-busy={loading}
       className={`gap-2 rounded-control font-semibold transition-all ${variantClass[variant]} ${sizeClass[size]} ${fullWidth ? 'w-full' : ''}`}
-      isDisabled={disabled || loading}
+      isDisabled={disabled}
+      isPending={loading}
       type={type}
       {...(onPress ? { onPress } : {})}
     >

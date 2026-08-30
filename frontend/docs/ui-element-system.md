@@ -35,7 +35,17 @@ Semantic Design Token
 
 Media 只有出现真实产品场景后才建立稳定 Element；图片、视频比例等局部内容布局默认留在 Feature Composition。
 
-## 3. Form Control Family
+## 3. Action Family
+
+`Action` 用于执行即时命令或提交表单，`IconAction` 用于空间受限且图标语义稳定的同类操作。页面跳转和外部地址必须使用 Link 或 Router Navigation，不得把导航伪装为 `onPress` 命令。
+
+- Primary 表达当前 Surface 的一个主要动作；Secondary 承担普通辅助动作；Quiet 用于低强调工具动作；Danger 只用于具有破坏后果的动作。
+- `loading` 是受调用方控制的 Pending 状态：保留原按钮文字、显示进度、通过 HeroUI/React Aria 标记 Pending 并阻止重复触发；它不是普通 Disabled 的视觉别名。
+- `disabled` 表达当前动作不可用。业务组合应在相邻上下文说明原因，不得只依赖降低透明度传达限制。
+- `sm` 与 `md` 只改变稳定的控件高度和横向 Padding；Feature 不得自行覆盖按钮高度制造第三套密度。
+- 纯图标操作必须使用 `IconAction` 并提供可访问名称；不得传入空文字的 `Action` 充当 Icon Button。
+
+## 4. Form Control Family
 
 所有 Form Control 共享以下不变量：
 
@@ -47,7 +57,7 @@ Media 只有出现真实产品场景后才建立稳定 Element；图片、视频
 
 当前语义尺寸由 `--spacing-control` 管理，Option 触控高度由 `--spacing-option` 管理。业务页面不得复制对应数值。
 
-## 4. Anchored Overlay
+## 5. Anchored Overlay
 
 Anchored Overlay 负责 Trigger 与 Popup 的空间关系，定位和碰撞继续由 HeroUI 管理。项目只固定产品语义：
 
@@ -63,7 +73,7 @@ Listbox 的滚动属于列表内部责任：Overlay Surface 提供外壳，Listb
 
 Showcase 中的 Select 与 Combobox 必须保留足以触发内部滚动的大集合，并包含 Disabled Option。交互回归需同时证明内容高度超过 Listbox 可视高度、键盘能够滚动到末项以及筛选后仍能完成选择；仅检查 `overflow: auto` 声明不构成滚动能力证据。
 
-## 5. Overlay Surface 与 Option State
+## 6. Overlay Surface 与 Option State
 
 `ui-overlay-surface` 是 Dropdown、Select、Combobox、Popover、DatePicker、Dialog、Drawer 和 Command 共用的 Surface 语义，统一 Background、Border、Radius、Shadow 和文字颜色。不同 Overlay 只决定内容 Padding、宽度策略和结构，不复制一套 Surface。
 
@@ -79,7 +89,7 @@ Showcase 中的 Select 与 Combobox 必须保留足以触发内部滚动的大�
 
 Hover/Focus 与 Selected 不得合并为同一种状态；Selected 不能只依靠 Hover 才可见。
 
-## 6. Composition Rules
+## 7. Composition Rules
 
 - 一个视觉 Surface 只能由一层负责 Border、Radius、Shadow、Background 和外部 Padding。
 - 父 Surface 通过内边距拉开子 Element；不得为了解决贴边问题改写子组件自身 Variant。
@@ -87,16 +97,17 @@ Hover/Focus 与 Selected 不得合并为同一种状态；Selected 不能只依�
 - Scroll Container 由实际拥有滚动内容的一层负责；父子不能重复声明滚动和固定高度。
 - Page Header、Toolbar、Filter Bar、Section、Split View 与 Footer Actions 通过 Layout Contract 组合，不在每个 Page 重写同类骨架。
 
-## 7. Showcase 与质量证据
+## 8. Showcase 与质量证据
 
 - `/showcase` 按 Family 并排暴露 Variant、Density、Disabled、Invalid、Selected、长文本、Locale 和窄屏漂移。
+- Action 必须验证 Focus、Pending、Disabled 和尺寸序列；Pending 与 Disabled 不得合并成同一状态证据。
 - Select、Combobox、Dropdown、Popover、Tooltip、DatePicker、Command、Dialog 与 Drawer 必须保留打开态视觉基线。
 - Form Selection 的视觉回归必须断言 Popup 使用 Trigger 宽度且 Listbox 自己滚动。
 - 关键 Overlay 必须验证 Escape、焦点返回、Keyboard Navigation、ARIA 与 Axe WCAG AA。
 - `/reference` 与 `/reference/form` 是 Pattern Reference，用于验证 Element 进入 Toolbar、Filter、Table、Master-Detail、Split View 和复杂 Form 后仍保持契约。
 - `architecture:check` 禁止 Feature 使用原生表单控件、直接消费 Adapter 内部 `ui-*` Element 样式，或在 Design Token 权威文件之外声明硬编码颜色。
 
-## 8. 演进规则
+## 9. 演进规则
 
 新增基础能力前按顺序判断：
 

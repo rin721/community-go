@@ -41,4 +41,9 @@
   .ui-option {
     @apply flex min-h-option cursor-default items-center justify-between gap-3 rounded-control px-3 py-2 text-sm outline-none data-[disabled]:opacity-45 data-[focused]:bg-surface-muted data-[hovered]:bg-surface-muted data-[selected]:bg-brand-soft data-[selected]:font-semibold data-[selected]:text-brand;
   }
+
+  .ui-progress-meter [data-slot='label'],
+  .ui-progress-meter [data-slot='progress-bar-output'] {
+    @apply text-xs font-medium text-ink-muted;
+  }
 }

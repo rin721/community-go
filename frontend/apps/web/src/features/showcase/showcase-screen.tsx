@@ -12,6 +12,7 @@ import {
   NotificationCard,
   Panel,
   PopoverCard,
+  ProgressMeter,
   SearchBox,
   SelectField,
   StateSurface,
@@ -29,7 +30,6 @@ import {
   CheckCircle2,
   Copy,
   Inbox,
-  MoreHorizontal,
   Pencil,
   Trash2,
 } from 'lucide-react';
@@ -56,6 +56,8 @@ const ownerOptions = [
   'Kai Müller',
   'Mei Tanaka',
 ] as const;
+
+const showcaseProgressValue = 64;
 
 export function ShowcaseScreen() {
   const { t } = useTranslation();
@@ -177,6 +179,30 @@ export function ShowcaseScreen() {
               />
             )}
           </div>
+        </div>
+      </PageSection>
+
+      <PageSection title={t('showcase.statusTitle')} description={t('showcase.statusDescription')}>
+        <div className="grid gap-5 p-5 lg:grid-cols-2">
+          <Panel appearance="embedded" tone="muted" className="rounded-panel p-4">
+            <h3 className="text-sm font-bold text-ink">{t('showcase.statusTonesTitle')}</h3>
+            <div aria-label={t('showcase.statusTonesLabel')} className="mt-4 flex flex-wrap gap-2">
+              <StatusPill>{t('showcase.defaultStatus')}</StatusPill>
+              <StatusPill tone="success">{t('showcase.successStatus')}</StatusPill>
+              <StatusPill tone="warning">{t('showcase.warningStatus')}</StatusPill>
+              <StatusPill tone="danger">{t('showcase.dangerStatus')}</StatusPill>
+              <StatusPill tone="info">{t('showcase.infoStatus')}</StatusPill>
+            </div>
+          </Panel>
+          <Panel appearance="embedded" tone="muted" className="rounded-panel p-4">
+            <h3 className="text-sm font-bold text-ink">{t('showcase.progressTitle')}</h3>
+            <p className="mt-2 text-sm leading-6 text-ink-muted">
+              {t('showcase.progressDescription')}
+            </p>
+            <div className="mt-4">
+              <ProgressMeter value={showcaseProgressValue} label={t('showcase.progressLabel')} />
+            </div>
+          </Panel>
         </div>
       </PageSection>
 
@@ -440,15 +466,6 @@ export function ShowcaseScreen() {
           </Panel>
         </div>
       </PageSection>
-
-      <div className="flex flex-wrap gap-2">
-        <StatusPill>{t('showcase.defaultStatus')}</StatusPill>
-        <StatusPill tone="success">{t('showcase.successStatus')}</StatusPill>
-        <StatusPill tone="warning">{t('showcase.warningStatus')}</StatusPill>
-        <StatusPill tone="danger">{t('showcase.dangerStatus')}</StatusPill>
-        <StatusPill tone="info">{t('showcase.infoStatus')}</StatusPill>
-        <MoreHorizontal className="size-5 text-ink-muted" />
-      </div>
     </PageLayout>
   );
 }

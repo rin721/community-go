@@ -18,6 +18,7 @@ test('桌面 Showcase 保持基础组件权威面稳定', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto('/showcase');
   await expect(page.getByRole('heading', { name: 'Alert、Badge 与 Notification' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Status 与 Progress' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Card 与 Surface 层级' })).toBeVisible();
   await expect(page).toHaveScreenshot('showcase-desktop.png', { fullPage: true });
   expect(consoleErrors).toEqual([]);

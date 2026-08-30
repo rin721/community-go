@@ -78,6 +78,26 @@ test('Alert、Badge、Card 与 Notification 形成可访问的内部权威面', 
   await assertOverlayAccessibility(page);
 });
 
+test('Status 与 Progress 保持对象状态和确定进度语义', async ({ page }) => {
+  const tones = page.getByLabel('StatusPill 语义色');
+  await expect(tones).toContainText('默认');
+  await expect(tones).toContainText('成功');
+  await expect(tones).toContainText('警告');
+  await expect(tones).toContainText('危险');
+  await expect(tones).toContainText('信息');
+
+  const progress = page.getByRole('progressbar', { name: 'UI Element 契约完成度' });
+  await expect(progress).toHaveAttribute('aria-valuemin', '0');
+  await expect(progress).toHaveAttribute('aria-valuemax', '100');
+  await expect(progress).toHaveAttribute('aria-valuenow', '64');
+  await expect(page.getByText('64%')).toBeVisible();
+  await expect(progress.locator('[data-slot="progress-bar-fill"]')).toHaveAttribute(
+    'style',
+    /width: 64%/,
+  );
+  await assertOverlayAccessibility(page);
+});
+
 test('Tabs 保持 HeroUI 键盘语义并由父 Surface 提供内边距', async ({ page }) => {
   const tablist = page.getByRole('tablist', { name: '状态组合 Tabs' });
   const normalTab = tablist.getByRole('tab', { name: '正常' });

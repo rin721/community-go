@@ -53,7 +53,7 @@ Feedback 解释刚发生的结果、风险或可恢复问题；Status 描述对�
 - `NotificationCard` 是可操作的静态通知组合，不等同于全局 Toast。它固定包含主要动作和关闭动作；可选次要动作必须同时提供文案与处理函数。
 - `Badge` 表达类别、属性或短元数据，可使用 Soft/Solid、Icon 与尺寸；`StatusPill` 专门表达对象生命周期状态，保持 Dot + Soft 的单一结构。
 - `StateSurface` 承担 Empty、Error、Offline、Permission 等大范围内容状态；恢复动作的文案与处理函数必须成对，禁止渲染无行为按钮。
-- `ProgressMeter` 只表达已知的确定进度；未知等待使用 `Action loading`、Skeleton 或 Loading State，不伪造百分比。
+- `ProgressMeter` 只表达已知的确定进度；它复用 HeroUI/React Aria 的 ProgressBar 数值与 ARIA 语义，并由项目样式固定 Label、Output、Track 和 Fill。未知等待使用 `Action loading`、Skeleton 或 Loading State，不伪造百分比。
 - `Skeleton` 只提供视觉占位并保持 `aria-hidden`；所属 Composition 必须另有可访问的 Loading 文案。
 
 ## 5. Form Control Family
@@ -113,6 +113,7 @@ Hover/Focus 与 Selected 不得合并为同一种状态；Selected 不能只依�
 - `/showcase` 按 Family 并排暴露 Variant、Density、Disabled、Invalid、Selected、长文本、Locale 和窄屏漂移。
 - Action 必须验证 Focus、Pending、Disabled 和尺寸序列；Pending 与 Disabled 不得合并成同一状态证据。
 - Feedback 的可见动作必须具备真实处理函数；静态 Alert 不得自动声明为 Live Region，动态 Announcement 必须按影响选择播报强度。
+- Status Family 必须在 Showcase 中并排暴露生命周期 Tone 与确定进度；Progress 边界值和 Skeleton 的辅助技术可见性必须进入自动化回归。
 - Select、Combobox、Dropdown、Popover、Tooltip、DatePicker、Command、Dialog 与 Drawer 必须保留打开态视觉基线。
 - Form Selection 的视觉回归必须断言 Popup 使用 Trigger 宽度且 Listbox 自己滚动。
 - 关键 Overlay 必须验证 Escape、焦点返回、Keyboard Navigation、ARIA 与 Axe WCAG AA。

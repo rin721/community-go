@@ -50,8 +50,8 @@ export {
   type PopoverCardProps,
   type TooltipActionProps,
 } from './overlays';
-export { ProgressMeter } from './progress-meter';
+export { ProgressMeter, type ProgressMeterProps } from './progress-meter';
 export { SearchBox, type SearchBoxProps } from './search-box';
-export { Skeleton } from './skeleton';
+export { Skeleton, type SkeletonProps } from './skeleton';
 export { StateSurface, type StateSurfaceProps } from './state-surface';
-export { StatusPill, type StatusTone } from './status-pill';
+export { StatusPill, type StatusPillProps, type StatusTone } from './status-pill';

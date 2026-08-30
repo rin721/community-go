@@ -320,6 +320,14 @@ export const resources = {
         notificationDismissedTitle: '通知已关闭',
         notificationDismissedDescription: '关闭只影响当前 Showcase 状态，可随时恢复继续检查。',
         notificationRestore: '恢复通知',
+        statusTitle: 'Status 与 Progress',
+        statusDescription:
+          '区分对象生命周期状态、确定进度与未知等待，不让相同颜色掩盖不同产品语义。',
+        statusTonesTitle: '对象状态',
+        statusTonesLabel: 'StatusPill 语义色',
+        progressTitle: '确定进度',
+        progressDescription: '只有总量已知时才显示百分比；未知等待使用 Pending 或 Loading 状态。',
+        progressLabel: 'UI Element 契约完成度',
         cardsTitle: 'Card 与 Surface 层级',
         cardsDescription:
           'Elevated、Outlined 与 Embedded 是项目确认的三种容器语义，不由业务页自行创造阴影和圆角。',
@@ -745,6 +753,15 @@ export const resources = {
         notificationDismissedDescription:
           'Dismissal only changes the current Showcase state and can be restored for inspection.',
         notificationRestore: 'Restore notification',
+        statusTitle: 'Status and progress',
+        statusDescription:
+          'Separates object lifecycle state, determinate progress, and unknown waiting so shared color never replaces product meaning.',
+        statusTonesTitle: 'Object status',
+        statusTonesLabel: 'StatusPill semantic tones',
+        progressTitle: 'Determinate progress',
+        progressDescription:
+          'Show a percentage only when the total is known; use pending or loading states for unknown waits.',
+        progressLabel: 'UI Element contract completion',
         cardsTitle: 'Card and surface hierarchy',
         cardsDescription:
           'Elevated, outlined, and embedded are the three approved container semantics; screens do not invent local shadows and radii.',

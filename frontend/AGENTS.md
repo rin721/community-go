@@ -49,6 +49,16 @@ packages/design-system 语义 Design Token 与主题变量
 - 多维 Variant 或 compound slots 在 UI Adapter 内优先复用已安装的 `@heroui/styles` `tv` 与官方 component variant 基线，再收敛为项目语义 props；局部单态样式直接使用 semantic utility，不得为了形式统一机械引入 Variant Wrapper。
 - 以上规则的当前官方依据是 [HeroUI v3 Introduction](https://heroui.com/en/docs/react/getting-started)、[HeroUI Styling](https://heroui.com/en/docs/react/getting-started/styling)、[HeroUI Migration](https://heroui.com/en/docs/react/migration)、[Tailwind Theme Variables](https://tailwindcss.com/docs/theme) 与 [Tailwind States and Variants](https://tailwindcss.com/docs/hover-focus-and-other-states)。HeroUI/Tailwind 版本、官方 styling/compound API 或浏览器基线变化时，必须定向复核官方文档并同步本规则与项目 UI authority，不得沿用过时集成方式。
 
+### 4.2 Motion 分层与治理
+
+Motion 主题的唯一当前权威文档是 [Motion Foundation 与语义动效分层](docs/motion-foundation.md)，本条款只保留长期稳定底线：
+
+- Motion 属于 Design System 的语义基础能力。Duration、Easing、位移距离、Scale、Opacity 与 Reduced Motion Policy 由 `packages/design-system` 统一定义，页面和 Feature 不得硬编码动画时长、缓动曲线或关键帧参数；业务代码使用用途语义 Token（`--motion-duration-*`、`--motion-distance-*`、`duration-*` utility），不直接书写数值。
+- 动效按职责分层：组件自身状态动效由对应 UI Element 管理；Overlay 的 Enter/Exit 生命周期由 `packages/ui-adapter` 与 HeroUI Overlay 能力统一管理，不得在 Modal/Drawer/Popover 外再套动画容器；页面导航动效由 Host 提供导航生命周期、Layout/Semantic Transition 容器消费；异步数据切换由 Loading/Empty/Error/Ready 等产品状态组件管理，不得做成加载动画容器。
+- 禁止万能动画容器：不得建立同时承担 Layout、Loading、Presence、Navigation 与 Overlay 的动画 Wrapper；动画容器不得隐式改变页面高度、滚动容器、定位上下文或 Layout Contract（动画层与空间层分离）。
+- 页面不得以 `fade`、`slide-left`、`scale-in` 等实现型动画作为长期业务 Contract，应优先使用 `screen`、`overlay`、`feedback`、`disclosure`、`content-swap` 等语义 Transition，由底层映射具体 Motion 实现。
+- `prefers-reduced-motion` 必须由 Motion Foundation 统一处理；Feature 与 Page 不得各自实现 Reduced Motion 判断。
+
 ## 5. UI Contract 与组件职责
 
 - `packages/ui-adapter` 是唯一允许直接导入 `@heroui/*` 的边界，Web 入口只导入其聚合后的 Adapter stylesheet。

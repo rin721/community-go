@@ -21,7 +21,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { ReactNode } from 'react';
 
-import { pageTransitionTypes } from '../host/page-transition-constants';
+import { pageTransitionTypes } from '../layouts/page-transition-constants';
 import { useShellStore } from '../state/use-shell-store';
 import { BrandMark } from './brand-mark';
 import { shellNavigationGroups } from './navigation';

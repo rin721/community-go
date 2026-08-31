@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 
-import { PageTransition } from '../../../host/page-transition';
+import { PageTransition } from '../../../layouts/page-transition';
 import { SurfacesPage } from '../../../page-components/ui-elements/surfaces-page';
 
 export default function SurfacesRoute() {

@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 
-import { PageTransition } from '../../../host/page-transition';
+import { PageTransition } from '../../../layouts/page-transition';
 import { OverlayElementsPage } from '../../../page-components/ui-elements/overlay-elements-page';
 
 export default function OverlayElementsRoute() {

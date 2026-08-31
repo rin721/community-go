@@ -3,7 +3,7 @@
 import { TextLink, type TextLinkProps } from '@community-go/ui-adapter/navigation';
 import { useRouter } from 'next/navigation';
 
-import { pageTransitionTypes } from './page-transition-constants';
+import { pageTransitionTypes } from '../layouts/page-transition-constants';
 
 type RouterTextLinkProps = Omit<TextLinkProps, 'onNavigate'>;
 

@@ -34,7 +34,7 @@ import { useTranslation } from 'react-i18next';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-import { pageTransitionTypes } from '../host/page-transition-constants';
+import { pageTransitionTypes } from '../layouts/page-transition-constants';
 
 const iconByNavigationId: Readonly<Record<string, LucideIcon>> = {
   overview: LayoutDashboard,

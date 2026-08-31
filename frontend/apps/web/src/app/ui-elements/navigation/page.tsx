@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 
-import { PageTransition } from '../../../host/page-transition';
+import { PageTransition } from '../../../layouts/page-transition';
 import { NavigationElementsPage } from '../../../page-components/ui-elements/navigation-elements-page';
 
 export default function NavigationElementsRoute() {

@@ -35,7 +35,7 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { browserReferenceExport } from '../../host/browser-reference-export';
-import { PageTransition } from '../../host/page-transition';
+import { PageTransition } from '../../layouts/page-transition';
 import {
   PageFilterBar,
   PageHeader,

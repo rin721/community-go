@@ -43,9 +43,13 @@
   --shadow-panel: 0 1px 2px rgb(15 23 42 / 0.04), 0 12px 32px rgb(15 23 42 / 0.06);
   --shadow-overlay: 0 24px 64px rgb(15 23 42 / 0.18);
   --ease-product: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --default-transition-duration: var(
+    --motion-duration-control
+  ); /* 未显式 duration 的 transition-* 统一归 control 语义 */
   --transition-duration-fast: var(--motion-duration-fast);
   --transition-duration-standard: var(--motion-duration-standard);
   --transition-duration-slow: var(--motion-duration-slow);
+  --transition-duration-page: var(--motion-duration-page);
   --z-index-shell: 20;
   --z-index-sticky: 30;
   --z-index-overlay: 50;
@@ -57,6 +61,17 @@
   --motion-duration-fast: 120ms;
   --motion-duration-standard: 180ms;
   --motion-duration-slow: 240ms;
+  /* 用途语义：动效按交互用途引用，不按数值引用（权威：docs/motion-foundation.md） */
+  --motion-duration-control: var(
+    --motion-duration-fast
+  ); /* 组件自身状态动效（hover/press/switch 等） */
+  --motion-duration-feedback: var(
+    --motion-duration-standard
+  ); /* 反馈/异步状态动效（登记消费者：未来 FeedbackTransition） */
+  --motion-duration-page: var(
+    --motion-duration-slow
+  ); /* 页面级转场（消费者：motion.css 与未来页面容器） */
+  --motion-distance-page: 3.75rem; /* 页面转场滑动位移语义（motion.css 消费） */
   --ds-canvas: #f6f7fb;
   --ds-surface: #ffffff;
   --ds-surface-raised: #ffffff;

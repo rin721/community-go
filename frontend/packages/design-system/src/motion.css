@@ -1,19 +1,19 @@
 /*
- * 页面级路由转场动效（View Transitions API）。
+ * 页面级路由转场动效（View Transitions API）—— Motion 配方单文件权威。
  *
- * 本文件与 tokens.css 一起由 packages/design-system 导出，页面不得硬编码时长、缓动或颜色：
- * 时长只引用 --motion-duration-*（fast 120ms / standard 180ms / slow 240ms），缓动引用
- * --ease-product；转场只包含 transform/opacity 快照动画，不产生任何中间色。
- *
- * 类名 nav-forward 与 apps/web/src/host/page-transition-constants.ts 的常量一一对应；
- * viewTransitionName app-header / app-sidebar 由 apps/web/src/shell/app-shell.tsx 设置。
- * 无类型导航（浏览器后退/前进、hydration/Suspense reveal）不应用转场样式，页面瞬时切换。
- *
- * ::view-transition-* 伪元素内的 z-index 只作用于浏览器快照树的堆叠上下文，
- * 不是页面堆叠上下文，不冲击 --z-index-* 语义。
+ * 1. 本文件与 tokens.css 一起由 packages/design-system 导出；所有 CSS 动效配方集中在本文件，
+ *    页面不得散落动画时长、缓动或颜色。
+ * 2. 时长/位移只引用用途语义 Token：退出=fast、进入=standard、滑动=page、位移=--motion-distance-page；
+ *    缓动引用 --ease-product；转场只包含 transform/opacity 快照动画，不产生任何中间色。
+ * 3. 类名 nav-forward 与 apps/web/src/layouts/page-transition-constants.ts 的常量一一对应；
+ *    viewTransitionName app-header / app-sidebar 由 apps/web/src/shell/app-shell.tsx 设置。
+ * 4. 无类型提交（浏览器后退/前进、hydration/Suspense reveal）不应用转场样式，页面瞬时切换。
+ * 5. ::view-transition-* 伪元素内的 z-index 只作用于浏览器快照树的堆叠上下文，
+ *    不是页面堆叠上下文，不冲击 --z-index-* 语义。
  */
 
-/* 深入导航（nav-forward）：旧内容快速左移退场，新内容自右侧进入 */
+/* 1. 页面转场配方：深入导航（nav-forward）——旧内容左移 60px 快速退场，新内容自右侧进入 */
+
 ::view-transition-old(.nav-forward) {
   animation:
     page-fade-out var(--motion-duration-fast) var(--ease-product) both,
@@ -24,10 +24,11 @@
   animation:
     page-fade-in var(--motion-duration-standard) var(--ease-product) var(--motion-duration-fast)
       both,
-    page-slide-in var(--motion-duration-slow) var(--ease-product) var(--motion-duration-fast) both;
+    page-slide-in var(--motion-duration-page) var(--ease-product) var(--motion-duration-fast) both;
 }
 
-/* Shell 锚定：Header 与侧栏在转场中保持视觉静止，作为空间参照 */
+/* 2. Shell 锚定：Header 与侧栏在转场中保持视觉静止，作为空间参照 */
+
 ::view-transition-group(app-header),
 ::view-transition-group(app-sidebar) {
   animation: none;
@@ -63,21 +64,20 @@
 
 @keyframes page-slide-out {
   to {
-    transform: translateX(-3.75rem);
+    transform: translateX(calc(var(--motion-distance-page) * -1));
   }
 }
 
 @keyframes page-slide-in {
   from {
-    transform: translateX(3.75rem);
+    transform: translateX(var(--motion-distance-page));
   }
 }
 
-/*
- * 减弱动态效果：转场动画在 0.01ms 内完成且无位移。
- * 与主规则同特异性、源顺序靠后即可覆盖，不使用 important 声明；
- * 与 tokens.css 既有 reduced-motion 手法一致。
- */
+/* 3. Policy：减弱动态效果 —— 转场动画在 0.01ms 内完成且无位移。
+ *    与主规则同特异性、源顺序靠后即可覆盖，不使用 important 声明；
+ *    与 tokens.css 既有 reduced-motion 手法一致，是全局 Policy 的一部分。 */
+
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-old(.nav-forward),
   ::view-transition-new(.nav-forward),
@@ -86,3 +86,14 @@
     animation-delay: 0ms;
   }
 }
+
+/*
+ * 4. 配方登记表：新增任何 keyframes 或 ::view-transition 规则前必须先在此登记，
+ *    并同步 docs/motion-foundation.md 的配方表与 Reduced Motion 覆盖。
+ *
+ * | 配方 | 语义 | 消费方 | reduced-motion |
+ * |---|---|---|---|
+ * | page-fade-out/in | 旧内容退场/新内容进场淡入淡出（快照层） | ::view-transition-old/new(.nav-forward) | 覆盖 |
+ * | page-slide-out/in | 深入导航方向滑动 ±3.75rem | ::view-transition-old/new(.nav-forward) | 覆盖 |
+ * | app-header/app-sidebar 锚定 | 转场中 Shell 保持静止 | apps/web/src/shell/app-shell.tsx | 覆盖（animation: none 即无动画） |
+ */

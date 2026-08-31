@@ -4,7 +4,7 @@ import { StateSurface } from '@community-go/ui-adapter/state-surface';
 import { FileQuestion } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-import { PageTransition } from '../host/page-transition';
+import { PageTransition } from '../layouts/page-transition';
 
 export default function NotFoundPage() {
   const router = useRouter();

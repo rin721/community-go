@@ -28,7 +28,7 @@ import {
   PageSection,
   SplitView,
 } from '../../../layouts/page-layout';
-import { PageTransition } from '../../../host/page-transition';
+import { PageTransition } from '../../../layouts/page-transition';
 
 const simulatedSaveDelayMs = 450;
 

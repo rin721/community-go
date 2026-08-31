@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import { PageTransition } from '../host/page-transition';
+import { PageTransition } from '../layouts/page-transition';
 import { RouterTextLink } from '../host/router-text-link';
 
 const capabilityDefinitions = [

@@ -7,7 +7,7 @@ import { AppWindow, Braces, Component, DatabaseZap, ShieldCheck } from 'lucide-r
 import { useTranslation } from 'react-i18next';
 
 import { PageHeader } from '../../layouts/page-layout';
-import { PageTransition } from '../../host/page-transition';
+import { PageTransition } from '../../layouts/page-transition';
 
 const layers = [
   { id: 'hosts', icon: AppWindow, tone: 'bg-brand-soft text-brand' },

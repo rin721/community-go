@@ -13,7 +13,7 @@ import { Controller, useForm, type Resolver } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 
 import { PageHeader } from '../../layouts/page-layout';
-import { PageTransition } from '../../host/page-transition';
+import { PageTransition } from '../../layouts/page-transition';
 import { useShellStore } from '../../state/use-shell-store';
 
 const resolvePreferences: Resolver<PreferencesInput> = async (values, context, options) => {

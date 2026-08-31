@@ -156,9 +156,10 @@ Hover/Focus 与 Selected 不得合并为同一种状态；Selected 不能只依�
 
 新增基础能力前按顺序判断：
 
-1. 已有 Element 是否已经表达该语义。
-2. 是否只是已有 Element 的稳定 Variant 或 Density。
-3. 是否应由 Composition、Slot、Primitive 或 Feature 局部结构完成。
-4. 只有存在跨 Feature 的独立语义、状态和验证价值时才新增 UI Element。
+1. 该能力是否属于动效：先查 [Motion Foundation 与语义动效分层](motion-foundation.md) 的配方登记表与容器目录，确认是否已有配方、语义容器或 HeroUI 浮层能力可复用。
+2. 已有 Element 是否已经表达该语义。
+3. 是否只是已有 Element 的稳定 Variant 或 Density。
+4. 是否应由 Composition、Slot、Primitive 或 Feature 局部结构完成。
+5. 只有存在跨 Feature 的独立语义、状态和验证价值时才新增 UI Element。
 
 公共 Token、Form Control、Overlay Surface、Option、Layout 或 Adapter 改动必须同步检查全部调用方、`/ui-elements` 对应 Family 页面的打开态、Pattern Reference、Dark Mode、Locale 扩张、窄屏和 Accessibility。外部成熟产品只用于复核设计规律，内部权威始终是本文、Semantic Token、UI Adapter 与可运行回归证据。

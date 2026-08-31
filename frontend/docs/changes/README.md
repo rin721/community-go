@@ -4,5 +4,6 @@
 
 - [094 新前端 UI Elements 基础设施完善](094-frontend-ui-elements-infrastructure/README.md)：研究门禁已通过，完整线性计划待确认；确认后连续实施 Foundations、UI Elements、Patterns、Showcase、全部现有页面迁移和全量验证。
 - [095 页面转场与动效分层](095-page-transitions-and-motion/README.md)：路由级转场（View Transitions API）、Shell 锚定、reduced-motion 豁免与验证；已完成实施与验证。
+- [096 Motion Foundation 与语义动效分层](096-motion-foundation/README.md)：动效两层治理（Foundation 管怎么动、Semantic Transition 管为何/何时动）、语义 Token、配方治理、AGENTS 条款与容器目录；已完成实施与验证。
 
-下一个任务序号为 `096`。
+下一个任务序号为 `097`。

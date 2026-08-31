@@ -1,6 +1,7 @@
 @import 'tailwindcss';
 @import '@community-go/ui-adapter/styles.css';
 @import '@community-go/design-system/tokens.css';
+@import '@community-go/design-system/motion.css';
 @source '../../../packages';
 
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));

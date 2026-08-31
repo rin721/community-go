@@ -1,0 +1,88 @@
+/*
+ * 页面级路由转场动效（View Transitions API）。
+ *
+ * 本文件与 tokens.css 一起由 packages/design-system 导出，页面不得硬编码时长、缓动或颜色：
+ * 时长只引用 --motion-duration-*（fast 120ms / standard 180ms / slow 240ms），缓动引用
+ * --ease-product；转场只包含 transform/opacity 快照动画，不产生任何中间色。
+ *
+ * 类名 nav-forward 与 apps/web/src/host/page-transition-constants.ts 的常量一一对应；
+ * viewTransitionName app-header / app-sidebar 由 apps/web/src/shell/app-shell.tsx 设置。
+ * 无类型导航（浏览器后退/前进、hydration/Suspense reveal）不应用转场样式，页面瞬时切换。
+ *
+ * ::view-transition-* 伪元素内的 z-index 只作用于浏览器快照树的堆叠上下文，
+ * 不是页面堆叠上下文，不冲击 --z-index-* 语义。
+ */
+
+/* 深入导航（nav-forward）：旧内容快速左移退场，新内容自右侧进入 */
+::view-transition-old(.nav-forward) {
+  animation:
+    page-fade-out var(--motion-duration-fast) var(--ease-product) both,
+    page-slide-out var(--motion-duration-fast) var(--ease-product) both;
+}
+
+::view-transition-new(.nav-forward) {
+  animation:
+    page-fade-in var(--motion-duration-standard) var(--ease-product) var(--motion-duration-fast)
+      both,
+    page-slide-in var(--motion-duration-slow) var(--ease-product) var(--motion-duration-fast) both;
+}
+
+/* Shell 锚定：Header 与侧栏在转场中保持视觉静止，作为空间参照 */
+::view-transition-group(app-header),
+::view-transition-group(app-sidebar) {
+  animation: none;
+  z-index: 100;
+}
+
+::view-transition-old(app-header),
+::view-transition-old(app-sidebar) {
+  display: none;
+}
+
+::view-transition-new(app-header),
+::view-transition-new(app-sidebar) {
+  animation: none;
+}
+
+/* 快照层不拦截指针事件，转场期间页面仍可交互 */
+::view-transition {
+  pointer-events: none;
+}
+
+@keyframes page-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes page-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes page-slide-out {
+  to {
+    transform: translateX(-3.75rem);
+  }
+}
+
+@keyframes page-slide-in {
+  from {
+    transform: translateX(3.75rem);
+  }
+}
+
+/*
+ * 减弱动态效果：转场动画在 0.01ms 内完成且无位移。
+ * 与主规则同特异性、源顺序靠后即可覆盖，不使用 important 声明；
+ * 与 tokens.css 既有 reduced-motion 手法一致。
+ */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(.nav-forward),
+  ::view-transition-new(.nav-forward),
+  ::view-transition-group(.nav-forward) {
+    animation-duration: 0.01ms;
+    animation-delay: 0ms;
+  }
+}

@@ -1,11 +1,14 @@
 import { Suspense } from 'react';
 
+import { PageTransition } from '../../../host/page-transition';
 import { OverlayElementsPage } from '../../../page-components/ui-elements/overlay-elements-page';
 
 export default function OverlayElementsRoute() {
   return (
-    <Suspense fallback={null}>
-      <OverlayElementsPage />
-    </Suspense>
+    <PageTransition>
+      <Suspense fallback={null}>
+        <OverlayElementsPage />
+      </Suspense>
+    </PageTransition>
   );
 }

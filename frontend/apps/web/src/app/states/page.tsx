@@ -19,6 +19,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { PageHeader } from '../../layouts/page-layout';
+import { PageTransition } from '../../host/page-transition';
 
 const stateDefinitions = [
   { id: 'empty', icon: Inbox },
@@ -36,47 +37,51 @@ export default function StatesPage() {
   const [errorRecovered, setErrorRecovered] = useState(false);
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        eyebrow={t('states.eyebrow')}
-        title={t('states.title')}
-        description={t('states.description')}
-      />
-      <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-        <Panel aria-busy="true" aria-label={t('states.loading.title')} className="p-5">
-          <div className="flex items-center gap-3 text-info">
-            <BusyIndicator label={t('states.loading.title')} showLabel />
-          </div>
-          <p className="mt-2 text-xs leading-5 text-ink-muted">{t('states.loading.description')}</p>
-          <div className="mt-5 space-y-3">
-            <Skeleton className="h-5 w-2/3" />
-            <Skeleton className="h-20 w-full" />
-            <Skeleton className="h-10 w-full" />
-          </div>
-        </Panel>
-        {stateDefinitions.map(({ id, icon: Icon }) => {
-          const recovered = id === 'error' && errorRecovered;
-          const DisplayIcon = recovered ? CheckCircle2 : Icon;
-          const displayedState = recovered ? 'success' : id;
-          const translationKey = recovered ? 'recovered' : id;
+    <PageTransition>
+      <div className="space-y-6">
+        <PageHeader
+          eyebrow={t('states.eyebrow')}
+          title={t('states.title')}
+          description={t('states.description')}
+        />
+        <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+          <Panel aria-busy="true" aria-label={t('states.loading.title')} className="p-5">
+            <div className="flex items-center gap-3 text-info">
+              <BusyIndicator label={t('states.loading.title')} showLabel />
+            </div>
+            <p className="mt-2 text-xs leading-5 text-ink-muted">
+              {t('states.loading.description')}
+            </p>
+            <div className="mt-5 space-y-3">
+              <Skeleton className="h-5 w-2/3" />
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          </Panel>
+          {stateDefinitions.map(({ id, icon: Icon }) => {
+            const recovered = id === 'error' && errorRecovered;
+            const DisplayIcon = recovered ? CheckCircle2 : Icon;
+            const displayedState = recovered ? 'success' : id;
+            const translationKey = recovered ? 'recovered' : id;
 
-          return (
-            <Panel key={id}>
-              <StateSurface
-                compact
-                state={displayedState}
-                icon={<DisplayIcon className="size-5" />}
-                title={t(`states.${translationKey}.title`)}
-                description={t(`states.${translationKey}.description`)}
-                announcement={recovered ? 'polite' : 'none'}
-                {...(id === 'error' && !recovered
-                  ? { actionLabel: t('states.retry'), onAction: () => setErrorRecovered(true) }
-                  : {})}
-              />
-            </Panel>
-          );
-        })}
+            return (
+              <Panel key={id}>
+                <StateSurface
+                  compact
+                  state={displayedState}
+                  icon={<DisplayIcon className="size-5" />}
+                  title={t(`states.${translationKey}.title`)}
+                  description={t(`states.${translationKey}.description`)}
+                  announcement={recovered ? 'polite' : 'none'}
+                  {...(id === 'error' && !recovered
+                    ? { actionLabel: t('states.retry'), onAction: () => setErrorRecovered(true) }
+                    : {})}
+                />
+              </Panel>
+            );
+          })}
+        </div>
       </div>
-    </div>
+    </PageTransition>
   );
 }

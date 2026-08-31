@@ -21,6 +21,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { ReactNode } from 'react';
 
+import { pageTransitionTypes } from '../host/page-transition-constants';
 import { useShellStore } from '../state/use-shell-store';
 import { BrandMark } from './brand-mark';
 import { shellNavigationGroups } from './navigation';
@@ -116,7 +117,10 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
       className="shell-grid min-h-screen bg-canvas text-ink"
       data-sidebar={sidebarCollapsed ? 'collapsed' : 'expanded'}
     >
-      <aside className="sticky top-0 hidden h-screen flex-col border-r border-border bg-surface lg:flex">
+      <aside
+        className="sticky top-0 hidden h-screen flex-col border-r border-border bg-surface lg:flex"
+        style={{ viewTransitionName: 'app-sidebar' }}
+      >
         <NavigationContent compact={sidebarCollapsed} />
       </aside>
 
@@ -142,7 +146,10 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
       ) : null}
 
       <div className="min-w-0">
-        <header className="sticky top-0 z-sticky flex h-20 items-center gap-3 border-b border-border bg-canvas/90 px-4 backdrop-blur-xl sm:px-6 xl:px-8">
+        <header
+          className="sticky top-0 z-sticky flex h-20 items-center gap-3 border-b border-border bg-canvas/90 px-4 backdrop-blur-xl sm:px-6 xl:px-8"
+          style={{ viewTransitionName: 'app-header' }}
+        >
           <div className="lg:hidden">
             <IconAction label={t('shell.menu')} onPress={() => setMobileNavigationOpen(true)}>
               <Menu className="size-5" />
@@ -172,7 +179,7 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
               triggerLabel={t('shell.searchShortcut')}
               onAction={(href) => {
                 setCommandOpen(false);
-                void router.push(href);
+                void router.push(href, { transitionTypes: [pageTransitionTypes.forward] });
               }}
               onOpenChange={setCommandOpen}
             />
@@ -202,7 +209,9 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
               label={
                 <UserIdentity avatarSize="sm" description={t('shell.productOwner')} name="Rin" />
               }
-              onAction={(href) => void router.push(href)}
+              onAction={(href) =>
+                void router.push(href, { transitionTypes: [pageTransitionTypes.forward] })
+              }
             />
           </div>
         </header>

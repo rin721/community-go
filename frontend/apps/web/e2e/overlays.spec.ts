@@ -345,7 +345,11 @@ test('Dropdown、Popover 与 Tooltip 展开面进入视觉回归', async ({ page
 
 test('DatePicker 与 Command 展开面支持键盘及无障碍扫描', async ({ page }) => {
   await page.goto('/ui-elements/forms');
-  await page.getByRole('button', { name: '日历 DatePicker' }).click();
+  const datePickerTrigger = page.getByRole('button', { name: '日历 DatePicker' });
+  // 触发元素位于首屏之外：先滚动进入视口再点击，避免打开弹层时的滚动定位竞态
+  // （页面转场组件加入后，点击视口外触发器会偶发改变锚点测量结果）
+  await datePickerTrigger.scrollIntoViewIfNeeded();
+  await datePickerTrigger.click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await expect(page).toHaveScreenshot('ui-elements-date-picker-open.png');
   await page.keyboard.press('Escape');

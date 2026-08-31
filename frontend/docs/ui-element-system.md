@@ -134,6 +134,7 @@ Hover/Focus 与 Selected 不得合并为同一种状态；Selected 不能只依�
 - Page Header、Toolbar、Filter Bar、Section、Split View 与 Footer Actions 通过 Layout Contract 组合，不在每个 Page 重写同类骨架。
 - `Card` 拥有 Header/Content/Footer 的内容 anatomy；`Panel` 只作为 Layout Surface。已经存在父 Surface 时使用 flat/embedded composition，不叠加第二套 Border、Radius 和 Shadow。
 - 承载文字的 Page 与 Surface 不参与整体 Opacity 动画；否则进入中间帧会改变 Semantic Token 的实际对比度。Opacity Motion 只用于 Scrim 等无文字装饰层，内容型 Overlay 使用自身成熟交互契约。
+- 路由级页面转场是浏览器 View Transitions API 快照层的例外路径：深入导航播放 `nav-forward` 方向滑动；无类型提交（浏览器后退/前进、hydration/Suspense reveal）瞬时切换、不播放动画，不改变任何 Semantic Token 的中间对比度。转场样式与时长/缓动只能来自 `packages/design-system` 的 `motion.css` 与动效 Token；页面不得为转场自建组件级透明度动画或硬编码时长颜色。
 
 ## 11. UI Elements 与质量证据
 

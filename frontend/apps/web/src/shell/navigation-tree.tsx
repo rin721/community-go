@@ -34,6 +34,8 @@ import { useTranslation } from 'react-i18next';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
+import { pageTransitionTypes } from '../host/page-transition-constants';
+
 const iconByNavigationId: Readonly<Record<string, LucideIcon>> = {
   overview: LayoutDashboard,
   foundations: Boxes,
@@ -92,6 +94,7 @@ function ExpandedTreeNode({
         <Link
           className={`group flex min-h-10 items-center gap-3 rounded-control px-3 py-2 text-sm font-semibold transition-colors ${active ? 'bg-brand-soft text-brand' : 'text-ink-muted hover:bg-surface-muted hover:text-ink'}`}
           href={node.href}
+          transitionTypes={[pageTransitionTypes.forward]}
           {...(onNavigate ? { onClick: onNavigate } : {})}
         >
           <NavigationIcon
@@ -116,6 +119,7 @@ function ExpandedTreeNode({
         <Link
           className="flex min-w-0 flex-1 items-center gap-3 px-3 py-2 text-sm font-semibold"
           href={node.defaultHref}
+          transitionTypes={[pageTransitionTypes.forward]}
           {...(onNavigate ? { onClick: onNavigate } : {})}
         >
           <NavigationIcon
@@ -221,6 +225,7 @@ function CompactLeaf({
       className={`flex h-11 items-center justify-center rounded-control px-2 transition-colors ${active ? 'bg-brand-soft text-brand' : 'text-ink-muted hover:bg-surface-muted hover:text-ink'}`}
       title={t(leaf.labelKey)}
       href={leaf.href}
+      transitionTypes={[pageTransitionTypes.forward]}
       {...(onNavigate ? { onClick: onNavigate } : {})}
     >
       <NavigationIcon className="size-4.5" id={leaf.id} strokeWidth={active ? 2.3 : 1.9} />

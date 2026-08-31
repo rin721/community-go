@@ -13,6 +13,7 @@ import { Controller, useForm, type Resolver } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 
 import { PageHeader } from '../../layouts/page-layout';
+import { PageTransition } from '../../host/page-transition';
 import { useShellStore } from '../../state/use-shell-store';
 
 const resolvePreferences: Resolver<PreferencesInput> = async (values, context, options) => {
@@ -55,77 +56,81 @@ export default function PreferencesPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        eyebrow={t('preferences.eyebrow')}
-        title={t('preferences.title')}
-        description={t('preferences.description')}
-        actions={
-          saved ? <StatusPill tone="success">{t('preferences.saved')}</StatusPill> : undefined
-        }
-      />
-      <Panel className="max-w-3xl p-5 sm:p-7">
-        <form className="grid gap-6" onSubmit={(event) => void handleSubmit(onSubmit)(event)}>
-          <TextField
-            label={t('preferences.name')}
-            hint={t('preferences.nameHint')}
-            {...(errors.interfaceName ? { error: t('preferences.nameError') } : {})}
-            {...register('interfaceName')}
-          />
-          <div className="grid gap-5 sm:grid-cols-2">
-            <Controller
-              name="locale"
-              control={control}
-              render={({ field }) => (
-                <SelectField
-                  label={t('preferences.locale')}
-                  hint={t('preferences.localeHint')}
-                  options={[
-                    { value: 'zh-CN', label: '简体中文' },
-                    { value: 'en', label: 'English' },
-                  ]}
-                  name={field.name}
-                  value={field.value}
-                  onValueChange={field.onChange}
-                />
-              )}
+    <PageTransition>
+      <div className="space-y-6">
+        <PageHeader
+          eyebrow={t('preferences.eyebrow')}
+          title={t('preferences.title')}
+          description={t('preferences.description')}
+          actions={
+            saved ? <StatusPill tone="success">{t('preferences.saved')}</StatusPill> : undefined
+          }
+        />
+        <Panel className="max-w-3xl p-5 sm:p-7">
+          <form className="grid gap-6" onSubmit={(event) => void handleSubmit(onSubmit)(event)}>
+            <TextField
+              label={t('preferences.name')}
+              hint={t('preferences.nameHint')}
+              {...(errors.interfaceName ? { error: t('preferences.nameError') } : {})}
+              {...register('interfaceName')}
             />
-            <Controller
-              name="density"
-              control={control}
-              render={({ field }) => (
-                <ToggleGroup
-                  label={t('preferences.density')}
-                  description={t('preferences.densityHint')}
-                  options={[
-                    { id: 'comfortable', label: t('preferences.comfortable') },
-                    { id: 'compact', label: t('preferences.compact') },
-                  ]}
-                  selectedIds={[field.value]}
-                  onSelectionChange={(selectedIds) => field.onChange(selectedIds[0] ?? field.value)}
-                />
-              )}
-            />
-          </div>
-          <Controller
-            name="reduceMotion"
-            control={control}
-            render={({ field }) => (
-              <SwitchField
-                label={t('preferences.reduceMotion')}
-                description={t('preferences.reduceMotionDescription')}
-                checked={field.value}
-                onCheckedChange={field.onChange}
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Controller
+                name="locale"
+                control={control}
+                render={({ field }) => (
+                  <SelectField
+                    label={t('preferences.locale')}
+                    hint={t('preferences.localeHint')}
+                    options={[
+                      { value: 'zh-CN', label: '简体中文' },
+                      { value: 'en', label: 'English' },
+                    ]}
+                    name={field.name}
+                    value={field.value}
+                    onValueChange={field.onChange}
+                  />
+                )}
               />
-            )}
-          />
-          <div>
-            <Action type="submit" leadingIcon={<Save className="size-4" />}>
-              {t('preferences.save')}
-            </Action>
-          </div>
-        </form>
-      </Panel>
-    </div>
+              <Controller
+                name="density"
+                control={control}
+                render={({ field }) => (
+                  <ToggleGroup
+                    label={t('preferences.density')}
+                    description={t('preferences.densityHint')}
+                    options={[
+                      { id: 'comfortable', label: t('preferences.comfortable') },
+                      { id: 'compact', label: t('preferences.compact') },
+                    ]}
+                    selectedIds={[field.value]}
+                    onSelectionChange={(selectedIds) =>
+                      field.onChange(selectedIds[0] ?? field.value)
+                    }
+                  />
+                )}
+              />
+            </div>
+            <Controller
+              name="reduceMotion"
+              control={control}
+              render={({ field }) => (
+                <SwitchField
+                  label={t('preferences.reduceMotion')}
+                  description={t('preferences.reduceMotionDescription')}
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              )}
+            />
+            <div>
+              <Action type="submit" leadingIcon={<Save className="size-4" />}>
+                {t('preferences.save')}
+              </Action>
+            </div>
+          </form>
+        </Panel>
+      </div>
+    </PageTransition>
   );
 }

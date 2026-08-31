@@ -39,6 +39,7 @@ TailAdmin `UI Elements` 是长期外部视觉校准基准，HeroUI 是交互与�
 - Form Selection 默认使用 `match-trigger` Anchored Overlay；Popup 继承 Trigger 宽度，Listbox 自己管理最大高度和滚动。
 - `packages/reference` 保存 Host-neutral Feature、确定性场景数据和导出 Port；Web 与 Desktop 分别装配平台实现，共享层不出现平台条件分支。
 - `packages/design-system` 保存 Light/Dark 语义 Token；页面不得用硬编码颜色修复局部对比度或状态表达。
+- 路由级页面转场使用浏览器 View Transitions API（React `ViewTransition`，Next 16 内置支持）：深入导航播放方向滑动，无类型导航（浏览器后退/前进等）按浏览器官方行为瞬时切换、不伪造方向；Header 与侧栏在转场中保持锚定；时长、缓动与动效样式单源收敛在 `packages/design-system` 的 `motion.css`，`prefers-reduced-motion` 自动把转场压到无感知时长。
 
 ## 验证与治理
 

@@ -8,6 +8,7 @@
   },
   "exports": {
     "./tokens.css": "./src/tokens.css",
+    "./motion.css": "./src/motion.css",
     "./motion": "./src/motion.ts"
   }
 }

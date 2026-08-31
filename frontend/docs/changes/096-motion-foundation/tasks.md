@@ -28,7 +28,7 @@
 - [x] `VER-096-001` `pnpm check` 全量门禁：architecture ✓ / dependency ✓ / lint ✓（0 错误）/ typecheck ✓ / unit ✓ / build ✓ / performance ✓（css gzip 43,992B ≤ 48KiB）/ browser 36/36 ✓ / format:check 仅剩两个既有基线例外（`apps/web/src/test/providers.test.tsx`、`eslint.config.mjs`，HEAD 同样失败，不属本任务）。
 - [x] `VER-096-002` 浏览器全量回归（transition/navigation/overlays/visual 等，CI=1 全新 server）：36/36 通过，**视觉基线零变化**；performance css 43,992B（相对 095 的 43,940B 仅 +52B）。
 - [x] `VER-096-003` 语义一致性检查：业务代码（apps/web/src、packages/ui-adapter/src）零裸露时长/缓动/位移字面量（grep 命中仅第三方 node_modules）；`host/page-transition` 与 `design-system/motion` 残留引用均为 0；容器目录与代码现状一致（PageTransition 位于 layouts 的页面转场容器，无幻影容器）。
-- [ ] `COM-096-001` 审阅完整 diff、仅提交本任务文件、Conventional Commits；证据：git log。
+- [x] `COM-096-001` 审阅完整 diff、仅提交本任务文件、Conventional Commits；证据：`86697e24 feat(frontend): formalize motion foundation and semantic transition layers`（39 个文件，含 2 个 rename；用户既有 webui/ 等 26 个改动保持未暂存）。
 
 ## 未来任务（登记触发条件，本变更不实施）
 

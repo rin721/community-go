@@ -8,6 +8,7 @@ import {
   type ReferenceStatus,
 } from '@community-go/reference';
 import { Action } from '@community-go/ui-adapter/action';
+import { AsyncRegion } from '@community-go/ui-adapter/async-region';
 import { DataTable, TabsView, type DataColumn } from '@community-go/ui-adapter/data-display';
 import { DescriptionList } from '@community-go/ui-adapter/description-list';
 import { useFeedback } from '@community-go/ui-adapter/feedback-context';
@@ -182,6 +183,16 @@ export default function ReferenceWorkspacePage() {
   const totalPages = Math.max(1, Math.ceil(visibleRecords.length / pageSize));
   const currentPage = Math.min(page, totalPages);
   const pageRecords = visibleRecords.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  // sceneMode → AsyncRegion 状态映射：loading/empty/error(offline|permission)/ready
+  const asyncState =
+    sceneMode === 'loading'
+      ? 'loading'
+      : sceneMode === 'empty'
+        ? 'empty'
+        : sceneMode === 'offline' || sceneMode === 'permission'
+          ? 'error'
+          : 'ready';
+
   const metrics = [
     { label: t('reference.metrics.total'), value: String(records.length), tone: 'text-brand' },
     {
@@ -368,24 +379,55 @@ export default function ReferenceWorkspacePage() {
           </div>
         ) : null}
 
-        {sceneMode === 'offline' || sceneMode === 'permission' ? (
-          <Panel>
-            <StateSurface
-              state={sceneMode === 'offline' ? 'offline' : 'permission-denied'}
-              icon={
-                sceneMode === 'offline' ? (
-                  <CloudOff className="size-5" />
-                ) : (
-                  <LockKeyhole className="size-5" />
-                )
-              }
-              title={t(`reference.${sceneMode}Title`)}
-              description={t(`reference.${sceneMode}Description`)}
-              actionLabel={t('reference.retry')}
-              onAction={() => setSceneMode('ready')}
-            />
-          </Panel>
-        ) : (
+        <AsyncRegion
+          label={t('reference.tableLabel')}
+          state={asyncState}
+          loading={
+            <div className="space-y-3 p-5">
+              {Array.from({ length: 8 }, (_, index) => (
+                <Skeleton className="h-12 w-full" key={index} />
+              ))}
+            </div>
+          }
+          empty={
+            <Panel>
+              <StateSurface
+                compact
+                state="empty"
+                icon={<Inbox className="size-5" />}
+                title={t('reference.emptyTitle')}
+                description={t('reference.emptyDescription')}
+                actionLabel={t('reference.clearFilters')}
+                onAction={() => {
+                  setQuery('');
+                  setStatus('all');
+                  setRegion('all');
+                  setSceneMode('ready');
+                }}
+              />
+            </Panel>
+          }
+          error={
+            sceneMode === 'offline' || sceneMode === 'permission' ? (
+              <Panel>
+                <StateSurface
+                  state={sceneMode === 'offline' ? 'offline' : 'permission-denied'}
+                  icon={
+                    sceneMode === 'offline' ? (
+                      <CloudOff className="size-5" />
+                    ) : (
+                      <LockKeyhole className="size-5" />
+                    )
+                  }
+                  title={t(`reference.${sceneMode}Title`)}
+                  description={t(`reference.${sceneMode}Description`)}
+                  actionLabel={t('reference.retry')}
+                  onAction={() => setSceneMode('ready')}
+                />
+              </Panel>
+            ) : undefined
+          }
+        >
           <SplitView
             master={
               <PageSection
@@ -393,77 +435,52 @@ export default function ReferenceWorkspacePage() {
                 description={t('reference.tableDescription', { count: visibleRecords.length })}
                 action={<Filter className="size-4 text-ink-muted" />}
               >
-                {sceneMode === 'loading' ? (
-                  <div className="space-y-3 p-5">
-                    {Array.from({ length: 8 }, (_, index) => (
-                      <Skeleton className="h-12 w-full" key={index} />
-                    ))}
-                  </div>
-                ) : visibleRecords.length === 0 ? (
-                  <StateSurface
-                    compact
-                    state="empty"
-                    icon={<Inbox className="size-5" />}
-                    title={t('reference.emptyTitle')}
-                    description={t('reference.emptyDescription')}
-                    actionLabel={t('reference.clearFilters')}
-                    onAction={() => {
-                      setQuery('');
-                      setStatus('all');
-                      setRegion('all');
-                      setSceneMode('ready');
+                <>
+                  {selectedIds.length > 0 ? (
+                    <div className="flex items-center justify-between gap-3 border-b border-border bg-brand-soft px-4 py-3">
+                      <span className="text-sm font-semibold text-brand">
+                        {t('reference.selectedCount', { count: selectedIds.length })}
+                      </span>
+                      <Action size="sm" variant="secondary" onPress={() => void exportSelected()}>
+                        {t('reference.exportSelected')}
+                      </Action>
+                    </div>
+                  ) : null}
+                  <DataTable
+                    label={t('reference.tableLabel')}
+                    columns={columns}
+                    density={density}
+                    emptyContent={t('reference.emptyDescription')}
+                    rows={pageRecords}
+                    selection={{
+                      mode: 'multiple',
+                      selectedIds,
+                      onSelectionChange: (ids) => {
+                        setSelectedIds(ids);
+                        const latestId = ids.at(-1);
+                        if (latestId) setSelectedId(latestId);
+                      },
+                    }}
+                    sort={{
+                      ...sort,
+                      onSortChange: (columnId, direction) => {
+                        setSort({ columnId, direction });
+                        setPage(1);
+                      },
                     }}
                   />
-                ) : (
-                  <>
-                    {selectedIds.length > 0 ? (
-                      <div className="flex items-center justify-between gap-3 border-b border-border bg-brand-soft px-4 py-3">
-                        <span className="text-sm font-semibold text-brand">
-                          {t('reference.selectedCount', { count: selectedIds.length })}
-                        </span>
-                        <Action size="sm" variant="secondary" onPress={() => void exportSelected()}>
-                          {t('reference.exportSelected')}
-                        </Action>
-                      </div>
-                    ) : null}
-                    <DataTable
-                      label={t('reference.tableLabel')}
-                      columns={columns}
-                      density={density}
-                      emptyContent={t('reference.emptyDescription')}
-                      rows={pageRecords}
-                      selection={{
-                        mode: 'multiple',
-                        selectedIds,
-                        onSelectionChange: (ids) => {
-                          setSelectedIds(ids);
-                          const latestId = ids.at(-1);
-                          if (latestId) setSelectedId(latestId);
-                        },
-                      }}
-                      sort={{
-                        ...sort,
-                        onSortChange: (columnId, direction) => {
-                          setSort({ columnId, direction });
-                          setPage(1);
-                        },
-                      }}
+                  <div className="flex justify-end border-t border-border p-4">
+                    <PaginationControl
+                      getPageLabel={(pageNumber) => t('reference.pageLabel', { page: pageNumber })}
+                      label={t('reference.paginationLabel')}
+                      nextLabel={t('reference.nextPage')}
+                      onPageChange={setPage}
+                      page={currentPage}
+                      previousLabel={t('reference.previousPage')}
+                      totalPages={totalPages}
                     />
-                    <div className="flex justify-end border-t border-border p-4">
-                      <PaginationControl
-                        getPageLabel={(pageNumber) =>
-                          t('reference.pageLabel', { page: pageNumber })
-                        }
-                        label={t('reference.paginationLabel')}
-                        nextLabel={t('reference.nextPage')}
-                        onPageChange={setPage}
-                        page={currentPage}
-                        previousLabel={t('reference.previousPage')}
-                        totalPages={totalPages}
-                      />
-                    </div>
-                  </>
-                )}
+                  </div>
+                </>
               </PageSection>
             }
             detail={
@@ -554,7 +571,7 @@ export default function ReferenceWorkspacePage() {
               </Panel>
             }
           />
-        )}
+        </AsyncRegion>
       </PageLayout>
     </PageTransition>
   );

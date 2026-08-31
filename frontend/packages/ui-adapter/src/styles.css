@@ -46,4 +46,17 @@
   .ui-progress-meter [data-slot='progress-bar-output'] {
     @apply text-xs font-medium text-ink-muted;
   }
+
+  /* AsyncRegion（async-region.tsx）：数据就绪后内容层播放 content.enter 配方
+   * （keyframes 与 recipe 定义见 packages/design-system/src/motion.css；
+   *  reduced-motion 由 tokens.css 全局 `*` 规则覆盖） */
+  .ui-async-region {
+    position: relative;
+  }
+
+  .ui-async-region[data-state='ready'] > .ui-async-region-content {
+    animation:
+      content-fade-in var(--motion-duration-standard) var(--ease-product) both,
+      content-rise-in var(--motion-duration-standard) var(--ease-product) both;
+  }
 }

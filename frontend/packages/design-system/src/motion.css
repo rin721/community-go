@@ -1,18 +1,19 @@
 /*
- * 页面级路由转场动效（View Transitions API）—— Motion 配方单文件权威。
+ * Motion 配方单文件权威 —— Token 之上的 Recipe 层。
  *
- * 1. 本文件与 tokens.css 一起由 packages/design-system 导出；所有 CSS 动效配方集中在本文件，
- *    页面不得散落动画时长、缓动或颜色。
- * 2. 时长/位移只引用用途语义 Token：退出=fast、进入=standard、滑动=page、位移=--motion-distance-page；
- *    缓动引用 --ease-product；转场只包含 transform/opacity 快照动画，不产生任何中间色。
- * 3. 类名 nav-forward 与 apps/web/src/layouts/page-transition-constants.ts 的常量一一对应；
- *    viewTransitionName app-header / app-sidebar 由 apps/web/src/shell/app-shell.tsx 设置。
- * 4. 无类型提交（浏览器后退/前进、hydration/Suspense reveal）不应用转场样式，页面瞬时切换。
- * 5. ::view-transition-* 伪元素内的 z-index 只作用于浏览器快照树的堆叠上下文，
- *    不是页面堆叠上下文，不冲击 --z-index-* 语义。
+ * 1. 本文件与 tokens.css 一起由 packages/design-system 导出；所有 CSS 动效关键帧与
+ *    ::view-transition-* 规则集中在本文件，页面不得散落动画时长、缓动或颜色。
+ * 2. 配方（Recipe）标注 recipe: 命名（如 screen.enter / content.enter），只被语义组件
+ *    内部绑定；Feature 不选择 Recipe、不写实现型动画（权威：docs/motion-foundation.md）。
+ * 3. 时长/位移只引用用途语义 Token；缓动引用 --ease-product；转场只包含
+ *    transform/opacity 快照动画，不产生任何中间色。
+ * 4. 普通元素配方的"应用层"规则允许落在消费组件所在包（如 ui-adapter styles.css），
+ *    关键帧必须在本文件登记；新增配方前先更新文末配方登记表并补 reduced-motion 覆盖。
  */
 
-/* 1. 页面转场配方：深入导航（nav-forward）——旧内容左移 60px 快速退场，新内容自右侧进入 */
+/* 1. Screen 配方：页面转场（recipe: screen.enter / screen.exit）
+ *    深入导航（nav-forward）——旧内容左移 1rem 快速退场，新内容自右侧进入。
+ *    布局容器：PageTransition（apps/web/src/layouts），无 DOM 外壳。 */
 
 ::view-transition-old(.nav-forward) {
   animation:
@@ -27,8 +28,7 @@
     page-slide-in var(--motion-duration-page) var(--ease-product) var(--motion-duration-fast) both;
 }
 
-/* 2. Shell 锚定：Header 与侧栏在转场中保持视觉静止，作为空间参照 */
-
+/* Shell 锚定：Header 与侧栏在转场中保持视觉静止，作为空间参照 */
 ::view-transition-group(app-header),
 ::view-transition-group(app-sidebar) {
   animation: none;
@@ -74,9 +74,27 @@
   }
 }
 
+/* 2. Content 配方（recipe: content.enter）：数据就绪后内容平滑进场
+ *    布局容器：AsyncRegion（packages/ui-adapter/src/async-region.tsx），
+ *    应用层规则由 ui-adapter styles.css 中的 .ui-async-region 承担。 */
+
+@keyframes content-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes content-rise-in {
+  from {
+    transform: translateY(var(--motion-distance-reveal));
+  }
+}
+
 /* 3. Policy：减弱动态效果 —— 转场动画在 0.01ms 内完成且无位移。
  *    与主规则同特异性、源顺序靠后即可覆盖，不使用 important 声明；
- *    与 tokens.css 既有 reduced-motion 手法一致，是全局 Policy 的一部分。 */
+ *    与 tokens.css 既有 reduced-motion 手法一致，是全局 Policy 的一部分。
+ *    普通元素配方（content.enter 等）已被 tokens.css 的 `*` 规则覆盖，
+ *    无需在此重复；本块只覆盖 ::view-transition-* 伪元素。 */
 
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-old(.nav-forward),
@@ -91,9 +109,9 @@
  * 4. 配方登记表：新增任何 keyframes 或 ::view-transition 规则前必须先在此登记，
  *    并同步 docs/motion-foundation.md 的配方表与 Reduced Motion 覆盖。
  *
- * | 配方 | 语义 | 消费方 | reduced-motion |
+ * | recipe | 语义 | 消费方 | reduced-motion |
  * |---|---|---|---|
- * | page-fade-out/in | 旧内容退场/新内容进场淡入淡出（快照层） | ::view-transition-old/new(.nav-forward) | 覆盖 |
- * | page-slide-out/in | 深入导航方向滑动 ±3.75rem | ::view-transition-old/new(.nav-forward) | 覆盖 |
+ * | screen.enter/screen.exit | 页面转场淡入淡出 + 方向滑动 ±1rem | ::view-transition-old/new(.nav-forward)（PageTransition）| 覆盖（专属块） |
  * | app-header/app-sidebar 锚定 | 转场中 Shell 保持静止 | apps/web/src/shell/app-shell.tsx | 覆盖（animation: none 即无动画） |
+ * | content.enter | 异步数据就绪后内容 fade + 0.5rem rise | .ui-async-region[data-state='ready'] 内容层（AsyncRegion） | 覆盖（tokens.css `*` 规则） |
  */

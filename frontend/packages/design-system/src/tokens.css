@@ -71,7 +71,9 @@
   --motion-duration-page: var(
     --motion-duration-slow
   ); /* 页面级转场（消费者：motion.css 与未来页面容器） */
+  /* 页面转场保持 60px 位移：097 尝试轻转场（1rem）因本机移动端溢出用例的时序问题回退，评估记录见 changes/097 */
   --motion-distance-page: 3.75rem; /* 页面转场滑动位移语义（motion.css 消费） */
+  --motion-distance-reveal: 0.5rem; /* 内容/区域进场抬升位移（content.enter 配方消费；登记：未来 section.reveal） */
   --ds-canvas: #f6f7fb;
   --ds-surface: #ffffff;
   --ds-surface-raised: #ffffff;

@@ -40,7 +40,7 @@ TailAdmin `UI Elements` 是长期外部视觉校准基准，HeroUI 是交互与�
 - `packages/reference` 保存 Host-neutral Feature、确定性场景数据和导出 Port；Web 与 Desktop 分别装配平台实现，共享层不出现平台条件分支。
 - `packages/design-system` 保存 Light/Dark 语义 Token；页面不得用硬编码颜色修复局部对比度或状态表达。
 - 路由级页面转场使用浏览器 View Transitions API（React `ViewTransition`，Next 16 内置支持）：深入导航播放方向滑动，无类型导航（浏览器后退/前进等）按浏览器官方行为瞬时切换、不伪造方向；Header 与侧栏在转场中保持锚定；时长、缓动与动效样式单源收敛在 `packages/design-system` 的 `motion.css`，`prefers-reduced-motion` 自动把转场压到无感知时长。
-- Motion 采用"Foundation 管怎么动、Semantic Transition 管为何/何时动"的两层治理：动效参数（时长/缓动/位移）与 Reduced Motion Policy 只来自 `packages/design-system`，业务代码声明语义不声明参数；动效按职责分层（组件状态→UI Element、Overlay→HeroUI/Adapter、页面导航→Layout 语义容器、异步状态→产品状态组件），禁止万能动画容器。当前权威与容器目录见 [Motion Foundation 与语义动效分层](docs/motion-foundation.md)。
+- Motion 采用三层治理（Policy 管允许动什么、Recipe 管语义行为、Semantic Component 管为何/何时动）：动效参数（时长/缓动/位移）与 Reduced Motion Policy 只来自 `packages/design-system`，业务代码声明语义不声明参数；动效按职责分层（组件状态→UI Element、Overlay→HeroUI/Adapter、页面导航→Layout 语义容器（`PageTransition`，轻转场）、异步数据→`AsyncRegion`（ui-adapter，Skeleton→内容平滑切换）），禁止万能动画容器。新增动效先走 [Motion 决策树](docs/motion-foundation.md)；完整权威见 [Motion Foundation 与语义动效分层](docs/motion-foundation.md)。
 
 ## 验证与治理
 

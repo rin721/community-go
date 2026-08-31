@@ -58,6 +58,7 @@ Motion 主题的唯一当前权威文档是 [Motion Foundation 与语义动效�
 - 禁止万能动画容器：不得建立同时承担 Layout、Loading、Presence、Navigation 与 Overlay 的动画 Wrapper；动画容器不得隐式改变页面高度、滚动容器、定位上下文或 Layout Contract（动画层与空间层分离）。
 - 页面不得以 `fade`、`slide-left`、`scale-in` 等实现型动画作为长期业务 Contract，应优先使用 `screen`、`overlay`、`feedback`、`disclosure`、`content-swap` 等语义 Transition，由底层映射具体 Motion 实现。
 - `prefers-reduced-motion` 必须由 Motion Foundation 统一处理；Feature 与 Page 不得各自实现 Reduced Motion 判断。
+- 新增动效必须先按 Motion 决策树（权威文档 [Motion Foundation 与语义动效分层](docs/motion-foundation.md) §9）判断变化来自什么生命周期（路由→ScreenTransition、异步状态→AsyncRegion、视口首现→ViewportReveal、挂载/卸载→Presence、折叠→Disclosure、浮层→Adapter Overlay 内部、反馈→Feedback 组件、组件交互→组件自身），再选择对应语义组件；禁止直接写动画类或选择 fade/slide/scale 等实现型动画作为业务 Contract。
 
 ## 5. UI Contract 与组件职责
 

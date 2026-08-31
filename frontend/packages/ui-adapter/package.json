@@ -6,6 +6,7 @@
   "exports": {
     "./styles.css": "./src/styles.css",
     "./action": "./src/action.tsx",
+    "./async-region": "./src/async-region.tsx",
     "./busy-indicator": "./src/busy-indicator.tsx",
     "./card": "./src/card.tsx",
     "./command-menu": "./src/command-menu.tsx",

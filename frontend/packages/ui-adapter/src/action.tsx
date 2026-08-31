@@ -1,5 +1,5 @@
 import { tv } from '@heroui/styles';
-import { Button as HeroButton } from '@heroui/react';
+import { Button as HeroButton } from '@heroui/react/button';
 import type { ReactNode } from 'react';
 
 type ActionBehavior =

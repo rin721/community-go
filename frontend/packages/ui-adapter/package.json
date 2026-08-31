@@ -4,8 +4,31 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./styles.css": "./src/styles.css"
+    "./styles.css": "./src/styles.css",
+    "./action": "./src/action.tsx",
+    "./busy-indicator": "./src/busy-indicator.tsx",
+    "./card": "./src/card.tsx",
+    "./command-menu": "./src/command-menu.tsx",
+    "./data-display": "./src/data-display.tsx",
+    "./date-picker-field": "./src/date-picker-field.tsx",
+    "./description-list": "./src/description-list.tsx",
+    "./feedback": "./src/feedback.tsx",
+    "./feedback-context": "./src/feedback-context.ts",
+    "./feedback-provider": "./src/feedback-provider.tsx",
+    "./form-field": "./src/form-field.tsx",
+    "./icon-action": "./src/icon-action.tsx",
+    "./identity": "./src/identity.tsx",
+    "./menu-button": "./src/menu-button.tsx",
+    "./navigation": "./src/navigation.tsx",
+    "./navigation-flyout": "./src/navigation-flyout.tsx",
+    "./overlays": "./src/overlays.tsx",
+    "./panel": "./src/panel.tsx",
+    "./progress-meter": "./src/progress-meter.tsx",
+    "./search-box": "./src/search-box.tsx",
+    "./skeleton": "./src/skeleton.tsx",
+    "./state-surface": "./src/state-surface.tsx",
+    "./status-pill": "./src/status-pill.tsx",
+    "./toggle-group": "./src/toggle-group.tsx"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

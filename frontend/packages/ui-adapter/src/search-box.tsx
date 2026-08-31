@@ -1,4 +1,4 @@
-import { SearchField } from '@heroui/react';
+import { SearchField } from '@heroui/react/search-field';
 
 export type SearchBoxProps = Readonly<{
   label: string;

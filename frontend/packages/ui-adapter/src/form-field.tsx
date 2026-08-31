@@ -1,18 +1,16 @@
-import {
-  Checkbox,
-  ComboBox,
-  Description,
-  FieldError,
-  Input,
-  Label,
-  ListBox,
-  Radio,
-  RadioGroup,
-  Select,
-  Switch,
-  TextArea,
-  TextField as HeroTextField,
-} from '@heroui/react';
+import { Checkbox } from '@heroui/react/checkbox';
+import { ComboBox } from '@heroui/react/combo-box';
+import { Description } from '@heroui/react/description';
+import { FieldError } from '@heroui/react/field-error';
+import { Input } from '@heroui/react/input';
+import { Label } from '@heroui/react/label';
+import { ListBox } from '@heroui/react/list-box';
+import { Radio } from '@heroui/react/radio';
+import { RadioGroup } from '@heroui/react/radio-group';
+import { Select } from '@heroui/react/select';
+import { Switch } from '@heroui/react/switch';
+import { TextArea } from '@heroui/react/textarea';
+import { TextField as HeroTextField } from '@heroui/react/textfield';
 import type { ChangeEvent, ReactNode } from 'react';
 
 type FieldTextProps = Readonly<{

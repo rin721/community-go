@@ -1,10 +1,8 @@
-import {
-  Action,
-  ConfirmDialog,
-  IconAction,
-  RadioGroupField,
-  ToggleGroup,
-} from '@community-go/ui-adapter';
+import { Action } from '@community-go/ui-adapter/action';
+import { RadioGroupField } from '@community-go/ui-adapter/form-field';
+import { IconAction } from '@community-go/ui-adapter/icon-action';
+import { ConfirmDialog } from '@community-go/ui-adapter/overlays';
+import { ToggleGroup } from '@community-go/ui-adapter/toggle-group';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 

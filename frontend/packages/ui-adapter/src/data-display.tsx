@@ -1,4 +1,5 @@
-import { Table, Tabs } from '@heroui/react';
+import { Table } from '@heroui/react/table';
+import { Tabs } from '@heroui/react/tabs';
 import type { Key, ReactNode } from 'react';
 
 export type DataColumn<Row> = Readonly<{
@@ -158,23 +159,22 @@ export function TabsView({ label, items, selectedId, onSelectionChange }: TabsVi
     <Tabs
       className="w-full"
       disabledKeys={items.filter((item) => item.disabled).map((item) => item.id)}
+      keyboardActivation="automatic"
       onSelectionChange={(key) => onSelectionChange?.(String(key))}
       {...(selectedId ? { selectedKey: selectedId } : {})}
     >
-      <Tabs.ListContainer>
-        <Tabs.List aria-label={label}>
-          {items.map((item) => (
-            <Tabs.Tab
-              className="text-sm font-semibold text-ink-muted data-[selected]:text-brand"
-              id={item.id}
-              key={item.id}
-            >
-              {item.label}
-              <Tabs.Indicator />
-            </Tabs.Tab>
-          ))}
-        </Tabs.List>
-      </Tabs.ListContainer>
+      <Tabs.List aria-label={label} className="w-full max-w-full overflow-x-auto">
+        {items.map((item) => (
+          <Tabs.Tab
+            className="w-auto shrink-0 text-sm font-semibold text-ink-muted data-[selected]:text-brand"
+            id={item.id}
+            key={item.id}
+          >
+            {item.label}
+            <Tabs.Indicator />
+          </Tabs.Tab>
+        ))}
+      </Tabs.List>
       {items.map((item) => (
         <Tabs.Panel className="outline-none" id={item.id} key={item.id}>
           {item.content}

@@ -1,4 +1,5 @@
-import { Label, ProgressBar as HeroProgressBar } from '@heroui/react';
+import { Label } from '@heroui/react/label';
+import { ProgressBar as HeroProgressBar } from '@heroui/react/progress-bar';
 
 export type ProgressMeterProps = Readonly<{
   value: number;

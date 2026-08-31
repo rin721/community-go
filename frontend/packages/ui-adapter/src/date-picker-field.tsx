@@ -1,4 +1,8 @@
-import { Calendar, DateField, DatePicker, Description, Label } from '@heroui/react';
+import { Calendar } from '@heroui/react/calendar';
+import { DateField } from '@heroui/react/date-field';
+import { DatePicker } from '@heroui/react/date-picker';
+import { Description } from '@heroui/react/description';
+import { Label } from '@heroui/react/label';
 
 export type DatePickerFieldProps = Readonly<{
   label: string;

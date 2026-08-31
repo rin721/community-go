@@ -2,6 +2,7 @@ node_modules/
 dist/
 coverage/
 .vite/
+.next/
 playwright-report/
 test-results/
 *.tsbuildinfo

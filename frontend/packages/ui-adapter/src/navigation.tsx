@@ -1,5 +1,7 @@
 import { tv } from '@heroui/styles';
-import { Breadcrumbs, Link as HeroLink, Pagination } from '@heroui/react';
+import { Breadcrumbs } from '@heroui/react/breadcrumbs';
+import { Link as HeroLink } from '@heroui/react/link';
+import { Pagination } from '@heroui/react/pagination';
 import type { MouseEvent, ReactNode } from 'react';
 
 export type BreadcrumbItem = Readonly<{

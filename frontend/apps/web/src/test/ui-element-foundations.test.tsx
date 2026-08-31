@@ -1,15 +1,8 @@
-import {
-  Avatar,
-  BreadcrumbTrail,
-  BusyIndicator,
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  DescriptionList,
-  PaginationControl,
-  UserIdentity,
-} from '@community-go/ui-adapter';
+import { BusyIndicator } from '@community-go/ui-adapter/busy-indicator';
+import { Card, CardContent, CardFooter, CardHeader } from '@community-go/ui-adapter/card';
+import { DescriptionList } from '@community-go/ui-adapter/description-list';
+import { Avatar, UserIdentity } from '@community-go/ui-adapter/identity';
+import { BreadcrumbTrail, PaginationControl } from '@community-go/ui-adapter/navigation';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 

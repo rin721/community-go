@@ -1,4 +1,5 @@
-import { FeedbackProvider, useFeedback } from '@community-go/ui-adapter';
+import { useFeedback } from '@community-go/ui-adapter/feedback-context';
+import { FeedbackProvider } from '@community-go/ui-adapter/feedback-provider';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 

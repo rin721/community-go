@@ -9,21 +9,21 @@ pnpm install
 pnpm dev
 ```
 
-浏览器访问 Vite 输出的本地地址。完整质量门禁：
+浏览器访问 Next.js 静态前端输出的本地地址（`http://127.0.0.1:4173`）。完整质量门禁：
 
 ```powershell
 pnpm check
 ```
 
-## Reference 与 Showcase
+## Reference 与 UI Elements
 
 当前基座通过可运行场景而不是孤立 Demo 验证契约：
 
 - `/reference`：48 条确定性数据组成的 Dashboard、筛选、Data Table、Master-Detail、Tabs、Drawer、Dialog，以及 Loading、Empty、Partial Error、Offline、Permission 等状态。
 - `/reference/form`：React Hook Form、Zod、Select、Combobox、DatePicker、Tabs 与 sticky footer 组成的复杂表单，覆盖错误、Disabled、Pending 与成功反馈。
-- `/showcase`：39 个公开 UI Element 的可审计目录，按 9 个 Family 提供独立预览、状态清单和真实交互，并继续覆盖组合压力、长文本、密度、Locale 与窄屏。`?overlay=menu|popover|tooltip|date|command|dialog|confirm-primary|confirm|drawer|toast`、`?data=empty` 与 `?density=compact` 可直接打开关键状态。
+- `/ui-elements`：39 个公开 UI Element 的可审计目录，按 9 个 Family 拆分为独立页面（`/ui-elements/actions-selection`、`/ui-elements/feedback`、`/ui-elements/status-async`、`/ui-elements/identity-display`、`/ui-elements/navigation`、`/ui-elements/data`、`/ui-elements/surfaces`、`/ui-elements/forms`、`/ui-elements/overlays`），每页提供独立预览、状态清单和真实交互，并继续覆盖组合压力、长文本、密度、Locale 与窄屏。`?overlay=menu|popover|tooltip|date|command|dialog|confirm-primary|confirm|drawer|toast`、`?data=empty` 与 `?density=compact` 可直接打开关键状态。
 
-TailAdmin `UI Elements` 是长期外部视觉校准基准，HeroUI 是交互与可访问性基础，项目最终规范由 Semantic Token、UI Adapter 与 `/showcase` 决定。逐页对照矩阵、内部权威范围和强制复核触发器见 [UI 视觉校准基线](docs/ui-visual-calibration.md)。
+TailAdmin `UI Elements` 是长期外部视觉校准基准，HeroUI 是交互与可访问性基础，项目最终规范由 Semantic Token、UI Adapter 与 `/ui-elements` 的 9 个 Family 页面决定。逐页对照矩阵、内部权威范围和强制复核触发器见 [UI 视觉校准基线](docs/ui-visual-calibration.md)。
 
 项目自己的分类、Form Control Family、Anchored Overlay、Overlay Surface、Option State 与 Composition Rules 见 [UI Element System](docs/ui-element-system.md)。
 
@@ -58,11 +58,11 @@ pnpm dependency:check
 pnpm performance:check
 ```
 
-视觉基线覆盖 Overview、Reference 列表/多选/超宽屏、Reference Form、Preferences、States、Showcase 桌面与移动端、9 个 UI Element Family、Dark Mode、英文扩张、Compact Density、Toast、Confirm，以及 Menu、Popover、Tooltip、Select、Combobox、DatePicker、Command、Dialog、Drawer 打开态。当前 gzip 预算为：首屏 JS 不高于 400 KiB、全部 JS 不高于 430 KiB、CSS 不高于 48 KiB、最大 JS Chunk 不高于 200 KiB。依赖职责与允许边界记录在 `tooling/dependency-policy.json`。
+视觉基线覆盖 Overview、Reference 列表/多选/超宽屏、Reference Form、Preferences、States、UI Elements 桌面与移动端、9 个 UI Element Family、Dark Mode、英文扩张、Compact Density、Toast、Confirm，以及 Menu、Popover、Tooltip、Select、Combobox、DatePicker、Command、Dialog、Drawer 打开态。当前 gzip 预算为：首屏 JS 不高于 400 KiB、全部 JS 不高于 640 KiB、CSS 不高于 48 KiB、最大 JS Chunk 不高于 200 KiB（total 预算按 Next.js App Router 静态导出基线校准，2026-09 实测为 608,401 B，旧 Vite/React Router 基线为 440,225 B；其余三项预算保持原值）。依赖职责与允许边界记录在 `tooling/dependency-policy.json`。
 
 ## 架构地图
 
-- `apps/web`：Web Host，拥有浏览器入口、路由、App Shell 和 Web 专属集成。
+- `apps/web`：Web Host，基于 Next.js App Router 的文件系统路由与静态导出，拥有浏览器入口、路由、App Shell 和 Web 专属集成。
 - `apps/desktop`：Desktop Host 契约边界；在选定 Desktop Runtime 前不伪造可运行壳。
 - `packages/core`：与 UI Library、Host 和数据源无关的纯规则。
 - `packages/types`：跨模块稳定共享的 TypeScript 类型。

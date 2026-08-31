@@ -1,9 +1,11 @@
-import { TextLink, type TextLinkProps } from '@community-go/ui-adapter';
-import { useNavigate } from 'react-router';
+'use client';
+
+import { TextLink, type TextLinkProps } from '@community-go/ui-adapter/navigation';
+import { useRouter } from 'next/navigation';
 
 type RouterTextLinkProps = Omit<TextLinkProps, 'onNavigate'>;
 
 export function RouterTextLink({ href, ...props }: RouterTextLinkProps) {
-  const navigate = useNavigate();
-  return <TextLink {...props} href={href} onNavigate={() => void navigate(href)} />;
+  const router = useRouter();
+  return <TextLink {...props} href={href} onNavigate={() => void router.push(href)} />;
 }

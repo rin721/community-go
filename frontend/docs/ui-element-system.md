@@ -95,7 +95,7 @@ Anchored Overlay 负责 Trigger 与 Popup 的空间关系，定位和碰撞继�
 
 Listbox 的滚动属于列表内部责任：Overlay Surface 提供外壳，Listbox 负责 Maximum Height、Overflow 和 Option 排列。
 
-Showcase 中的 Select 与 Combobox 必须保留足以触发内部滚动的大集合，并包含 Disabled Option。交互回归需同时证明内容高度超过 Listbox 可视高度、键盘能够滚动到末项以及筛选后仍能完成选择；仅检查 `overflow: auto` 声明不构成滚动能力证据。
+`/ui-elements/forms` 中的 Select 与 Combobox 必须保留足以触发内部滚动的大集合，并包含 Disabled Option。交互回归需同时证明内容高度超过 Listbox 可视高度、键盘能够滚动到末项以及筛选后仍能完成选择；仅检查 `overflow: auto` 声明不构成滚动能力证据。
 
 ## 8. Data Display
 
@@ -135,16 +135,16 @@ Hover/Focus 与 Selected 不得合并为同一种状态；Selected 不能只依�
 - `Card` 拥有 Header/Content/Footer 的内容 anatomy；`Panel` 只作为 Layout Surface。已经存在父 Surface 时使用 flat/embedded composition，不叠加第二套 Border、Radius 和 Shadow。
 - 承载文字的 Page 与 Surface 不参与整体 Opacity 动画；否则进入中间帧会改变 Semantic Token 的实际对比度。Opacity Motion 只用于 Scrim 等无文字装饰层，内容型 Overlay 使用自身成熟交互契约。
 
-## 11. Showcase 与质量证据
+## 11. UI Elements 与质量证据
 
-- `/showcase` 是公开 UI Contract 的可执行目录。当前 39 个可见 Element 必须各自拥有一个独立 `ComponentPreview`，展示准确名称、支持状态清单和真实交互；9 个 Family 锚点负责导航与逐族视觉基线，禁止再用一个混合 Demo 代替完整度声明。
+- `/ui-elements` 是公开 UI Contract 的可执行目录，按 9 个 Family 拆分为独立页面。当前 39 个可见 Element 必须各自拥有一个独立 `ComponentPreview`，展示准确名称、支持状态清单和真实交互；9 个 Family 页面负责导航与逐族视觉基线，禁止再用一个混合 Demo 代替完整度声明。
 - 每个状态清单都是验收声明，必须能在同一 Preview、确定性 URL、自动化交互或该 Family 的视觉基线中找到对应证据；不能展示的状态不得写入清单。
-- `/showcase` 按 Family 暴露 Variant、Size、Tone、Icon、Disabled、Loading、Long Content、Edge Case、Dark Theme 和可交互状态；不适用于某个 Element 的维度由其稳定职责裁决，不创建无语义 Variant 凑矩阵。
+- `/ui-elements` 按 Family 暴露 Variant、Size、Tone、Icon、Disabled、Loading、Long Content、Edge Case、Dark Theme 和可交互状态；不适用于某个 Element 的维度由其稳定职责裁决，不创建无语义 Variant 凑矩阵。
 - Action 必须验证 Focus、Pending、Disabled 和尺寸序列；Pending 与 Disabled 不得合并成同一状态证据。
 - Identity / Display 必须验证 Avatar image/fallback/size/presence、UserIdentity 长文本与 DescriptionList 缺失值；Navigation 独立验证 Breadcrumb、TextLink、Pagination、Tabs 与真实 Host Router 边界；Busy 归入 Async。
 - Feedback 的可见动作必须具备真实处理函数；静态 Alert 不得自动声明为 Live Region，动态 Announcement 必须按影响选择播报强度。
-- Status Family 必须在 Showcase 中并排暴露生命周期 Tone 与确定进度；`/states` 长期覆盖 Loading、Empty、Error、Success、Warning、Disabled、Pending、Offline 与 Permission Denied。Progress 边界值、Skeleton 的辅助技术可见性、Busy 容器和 Error 恢复路径必须进入自动化回归。
-- Data Display 必须在 Showcase 中暴露 Row Header、Density、Selected、Keyboard Selection 与 Empty Collection；Pattern Reference 继续验证筛选、Master-Detail 与异常状态组合。
+- Status Family 必须在 `/ui-elements` 对应 Family 页面中并排暴露生命周期 Tone 与确定进度；`/states` 长期覆盖 Loading、Empty、Error、Success、Warning、Disabled、Pending、Offline 与 Permission Denied。Progress 边界值、Skeleton 的辅助技术可见性、Busy 容器和 Error 恢复路径必须进入自动化回归。
+- Data Display 必须在 `/ui-elements/data` 中暴露 Row Header、Density、Selected、Keyboard Selection 与 Empty Collection；Pattern Reference 继续验证筛选、Master-Detail 与异常状态组合。
 - Select、Combobox、Dropdown、Popover、Tooltip、DatePicker、Command、Dialog、Confirm 与 Drawer 必须保留打开态视觉基线；Toast 必须通过显式 Provider 和确定性 URL 验证。
 - Form Selection 的视觉回归必须断言 Popup 使用 Trigger 宽度且 Listbox 自己滚动。
 - 关键 Overlay 必须验证 Escape、焦点返回、Keyboard Navigation、ARIA 与 Axe WCAG AA。
@@ -160,4 +160,4 @@ Hover/Focus 与 Selected 不得合并为同一种状态；Selected 不能只依�
 3. 是否应由 Composition、Slot、Primitive 或 Feature 局部结构完成。
 4. 只有存在跨 Feature 的独立语义、状态和验证价值时才新增 UI Element。
 
-公共 Token、Form Control、Overlay Surface、Option、Layout 或 Adapter 改动必须同步检查全部调用方、Showcase 打开态、Pattern Reference、Dark Mode、Locale 扩张、窄屏和 Accessibility。外部成熟产品只用于复核设计规律，内部权威始终是本文、Semantic Token、UI Adapter 与可运行回归证据。
+公共 Token、Form Control、Overlay Surface、Option、Layout 或 Adapter 改动必须同步检查全部调用方、`/ui-elements` 对应 Family 页面的打开态、Pattern Reference、Dark Mode、Locale 扩张、窄屏和 Accessibility。外部成熟产品只用于复核设计规律，内部权威始终是本文、Semantic Token、UI Adapter 与可运行回归证据。

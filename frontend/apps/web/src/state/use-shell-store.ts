@@ -7,8 +7,10 @@ type ThemeMode = 'light' | 'dark';
 type ShellState = {
   theme: ThemeMode;
   locale: AppLocale;
+  hasHydrated: boolean;
   mobileNavigationOpen: boolean;
   sidebarCollapsed: boolean;
+  setHasHydrated: (hydrated: boolean) => void;
   setTheme: (theme: ThemeMode) => void;
   setLocale: (locale: AppLocale) => void;
   setMobileNavigationOpen: (open: boolean) => void;
@@ -20,8 +22,10 @@ export const useShellStore = create<ShellState>()(
     (set) => ({
       theme: 'light',
       locale: 'zh-CN',
+      hasHydrated: false,
       mobileNavigationOpen: false,
       sidebarCollapsed: false,
+      setHasHydrated: (hasHydrated) => set({ hasHydrated }),
       setTheme: (theme) => set({ theme }),
       setLocale: (locale) => set({ locale }),
       setMobileNavigationOpen: (mobileNavigationOpen) => set({ mobileNavigationOpen }),
@@ -29,7 +33,9 @@ export const useShellStore = create<ShellState>()(
     }),
     {
       name: 'community-go.shell',
+      skipHydration: true,
       partialize: ({ theme, locale, sidebarCollapsed }) => ({ theme, locale, sidebarCollapsed }),
+      onRehydrateStorage: () => (state) => state?.setHasHydrated(true),
     },
   ),
 );

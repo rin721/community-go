@@ -1,5 +1,6 @@
 import { tv } from '@heroui/styles';
-import { ToggleButton, ToggleButtonGroup as HeroToggleButtonGroup } from '@heroui/react';
+import { ToggleButton } from '@heroui/react/toggle-button';
+import { ToggleButtonGroup as HeroToggleButtonGroup } from '@heroui/react/toggle-button-group';
 import { useId, type ReactNode } from 'react';
 
 export type ToggleGroupOption = Readonly<{

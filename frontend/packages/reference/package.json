@@ -10,9 +10,6 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
-  "dependencies": {
-    "@community-go/schemas": "workspace:*"
-  },
   "devDependencies": {
     "vitest": "^4.1.11"
   }

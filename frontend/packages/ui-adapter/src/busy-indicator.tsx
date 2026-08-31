@@ -1,4 +1,4 @@
-import { Spinner as HeroSpinner } from '@heroui/react';
+import { Spinner as HeroSpinner } from '@heroui/react/spinner';
 
 export type BusyIndicatorProps = Readonly<{
   label: string;

@@ -28,18 +28,17 @@
     },
     "@heroui/styles": { "owner": "HeroUI vendor styles", "allowed": ["packages/ui-adapter"] },
     "@hookform/resolvers": { "owner": "form-schema bridge", "allowed": ["apps/web"] },
-    "@tanstack/react-query": {
-      "owner": "server-state lifecycle",
-      "allowed": ["apps/web"],
-      "category": "server-state"
-    },
     "i18next": {
       "owner": "localization runtime",
       "allowed": ["apps/web"],
       "category": "localization"
     },
     "lucide-react": { "owner": "interface icons", "allowed": ["apps/web"], "category": "icons" },
-    "motion": { "owner": "route and shell motion", "allowed": ["apps/web"], "category": "motion" },
+    "next": {
+      "owner": "Web Host framework and routing",
+      "allowed": ["apps/web"],
+      "category": "framework"
+    },
     "react": { "owner": "view runtime", "allowed": ["apps/web", "packages/ui-adapter"] },
     "react-dom": { "owner": "Web renderer", "allowed": ["apps/web"] },
     "react-hook-form": {
@@ -48,7 +47,6 @@
       "category": "form-state"
     },
     "react-i18next": { "owner": "React localization binding", "allowed": ["apps/web"] },
-    "react-router": { "owner": "Web routing", "allowed": ["apps/web"], "category": "routing" },
     "zod": { "owner": "schema validation", "allowed": ["packages/schemas"], "category": "schema" },
     "zustand": {
       "owner": "cross-feature client state",

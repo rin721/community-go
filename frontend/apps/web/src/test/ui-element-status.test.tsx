@@ -1,4 +1,6 @@
-import { ProgressMeter, Skeleton, StateSurface } from '@community-go/ui-adapter';
+import { ProgressMeter } from '@community-go/ui-adapter/progress-meter';
+import { Skeleton } from '@community-go/ui-adapter/skeleton';
+import { StateSurface } from '@community-go/ui-adapter/state-surface';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 

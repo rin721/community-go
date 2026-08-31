@@ -1,21 +1,21 @@
 # UI 视觉校准基线
 
-- 最近复核：2026-08-31
+- 最近复核：2026-09（Next.js App Router 迁移后，权威面迁至 `/ui-elements` 9 个 Family 页面）
 - 外部基准：[TailAdmin React Demo · UI Elements](https://react-demo.tailadmin.com/)
-- 内部权威：`/showcase` 与 `packages/ui-adapter`
+- 内部权威：`/ui-elements` 的 9 个 Family 页面与 `packages/ui-adapter`
 
 ## 1. 职责边界
 
-TailAdmin 的 `UI Elements` 用于校准后台产品的视觉秩序和组件完整度；HeroUI 提供 Accessibility、Keyboard Navigation、Focus Management、Overlay 与 Portal 等成熟交互基础；本项目的 Semantic Design Token、UI Adapter 与 Showcase 决定最终产品规范。
+TailAdmin 的 `UI Elements` 用于校准后台产品的视觉秩序和组件完整度；HeroUI 提供 Accessibility、Keyboard Navigation、Focus Management、Overlay 与 Portal 等成熟交互基础；本项目的 Semantic Design Token、UI Adapter 与 `/ui-elements` 目录决定最终产品规范。
 
 校准只学习 Typography、信息层级、比例、留白、语义色、Border、Radius、Shadow、Icon/Text 关系及完整状态表达。禁止复制 TailAdmin 的源码、DOM、CSS、图片资产和具体尺寸数值，也不得为了接近参考而绕过 HeroUI 自行实现 Overlay。
 
 优先级固定为：
 
-1. 业务页面遵守内部 Showcase 和 UI Adapter。
+1. 业务页面遵守内部 `/ui-elements` 目录和 UI Adapter。
 2. 内部缺少合理能力时，复核对应 TailAdmin 页面并扩展 Design System。
 3. HeroUI 负责交互与可访问性；项目 Token 和 Adapter 负责产品视觉。
-4. TailAdmin 与内部规范冲突时，以已经验证并记录的内部规范为准；若冲突暴露明显漂移，则先修订 Showcase，不在业务页打补丁。
+4. TailAdmin 与内部规范冲突时，以已经验证并记录的内部规范为准；若冲突暴露明显漂移，则先修订 `/ui-elements` 对应 Family 页面，不在业务页打补丁。
 
 ## 2. 已确认的视觉规律
 
@@ -61,9 +61,9 @@ HeroUI 当前 `Select`、`ComboBox` 和 `Popover` 继续承担 ARIA、Keyboard�
 | [Tooltips](https://react-demo.tailadmin.com/tooltips)           | Light/Dark、方向、Arrow、Hover/Focus                          | `TooltipAction`、Showcase 打开态快照             | 已采用 HeroUI Tooltip；同时支持键盘 Focus 与悬停                             |
 | [Videos](https://react-demo.tailadmin.com/videos)               | 16:9、4:3、21:9、1:1 比例                                     | Feature Composition                              | 以内容比例契约实现，不新增播放器 Wrapper                                     |
 
-## 4. 内部 Showcase 权威范围
+## 4. 内部 UI Elements 权威范围
 
-`/showcase` 是以下能力的项目级当前权威：
+`/ui-elements` 下的 9 个 Family 页面是以下能力的项目级当前权威：
 
 - 目录完整度：39 个公开可见 UI Element 各有独立预览和状态声明，9 个 Family 各有独立视觉基线；自动化按名称逐项验证 39/39，不接受混合 Demo 代替。
 
@@ -94,4 +94,4 @@ HeroUI 当前 `Select`、`ComboBox` 和 `Popover` 继续承担 ARIA、Keyboard�
 - 视觉回归显示组件族之间的间距、密度、圆角、阴影或状态表达开始分叉。
 - 业务页面提出内部 Design System 尚未覆盖的基础能力。
 
-复核步骤固定为：关闭态 → Hover/Focus/Active/Selected → Disabled/Loading/Error → 打开态与 Escape/焦点返回 → Light/Dark → 中文/英文长文本 → 窄屏/桌面/超宽屏。外部参考发生变化时，只更新本矩阵中的观察结论；是否改变内部规范必须通过 Showcase 和视觉回归验证。
+复核步骤固定为：关闭态 → Hover/Focus/Active/Selected → Disabled/Loading/Error → 打开态与 Escape/焦点返回 → Light/Dark → 中文/英文长文本 → 窄屏/桌面/超宽屏。外部参考发生变化时，只更新本矩阵中的观察结论；是否改变内部规范必须通过 `/ui-elements` 对应 Family 页面和视觉回归验证。

@@ -13,11 +13,27 @@ export type ProductState =
   | 'offline'
   | 'permission-denied';
 
-export type NavigationItem = Readonly<{
+export type NavigationLeaf = Readonly<{
+  kind: 'leaf';
   id: string;
   labelKey: string;
   href: string;
-  group: 'workspace' | 'system';
+}>;
+
+export type NavigationBranch = Readonly<{
+  kind: 'branch';
+  id: string;
+  labelKey: string;
+  defaultHref: string;
+  children: readonly [NavigationNode, ...NavigationNode[]];
+}>;
+
+export type NavigationNode = NavigationLeaf | NavigationBranch;
+
+export type NavigationGroup = Readonly<{
+  id: string;
+  labelKey: string;
+  items: readonly [NavigationNode, ...NavigationNode[]];
 }>;
 
 export type CapabilityStatus = 'ready' | 'in-progress' | 'planned';

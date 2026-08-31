@@ -1,5 +1,3 @@
-import { referenceFormSchema, type ReferenceFormInput } from '@community-go/schemas';
-
 export type ReferenceStatus = 'healthy' | 'attention' | 'paused';
 export type ReferenceRisk = 'low' | 'medium' | 'high';
 
@@ -80,9 +78,6 @@ export function filterReferenceRecords(
 
 export function createReferenceFeature(exportPort: ReferenceExportPort) {
   return {
-    validateDraft(input: unknown) {
-      return referenceFormSchema.safeParse(input);
-    },
     async exportSnapshot(records: readonly ReferenceRecord[]) {
       const payload = JSON.stringify(
         {
@@ -94,9 +89,6 @@ export function createReferenceFeature(exportPort: ReferenceExportPort) {
         2,
       );
       await exportPort.exportTextFile('frontend-reference-snapshot.json', payload);
-    },
-    createDraft(input: ReferenceFormInput) {
-      return referenceFormSchema.parse(input);
     },
   };
 }

@@ -5,7 +5,7 @@ import { findImportPolicyViolations, findSourcePolicyViolations } from './bounda
 const safeSource = findSourcePolicyViolations({
   content: `<Action className="bg-surface text-ink" onPress={save}>保存</Action>`,
   extension: '.tsx',
-  localPath: 'apps/web/src/features/preferences/safe.tsx',
+  localPath: 'apps/web/src/app/preferences/safe.tsx',
 });
 assert.deepEqual(safeSource, [], '项目语义 class 与项目 Action 应通过边界规则');
 
@@ -22,7 +22,7 @@ const negativeFixtures = [
     input: {
       content: `<div className="h-[37px]" />`,
       extension: '.tsx',
-      localPath: 'apps/web/src/features/example.tsx',
+      localPath: 'apps/web/src/app/example.tsx',
     },
     rule: 'Token governance',
   },
@@ -31,7 +31,7 @@ const negativeFixtures = [
     input: {
       content: `<select><option>one</option></select>`,
       extension: '.tsx',
-      localPath: 'apps/web/src/features/example.tsx',
+      localPath: 'apps/web/src/app/example.tsx',
     },
     rule: 'UI contract',
   },
@@ -40,7 +40,7 @@ const negativeFixtures = [
     input: {
       content: `<div className="ui-overlay-surface" />`,
       extension: '.tsx',
-      localPath: 'apps/web/src/features/example.tsx',
+      localPath: 'apps/web/src/app/example.tsx',
     },
     rule: 'UI contract',
   },
@@ -49,7 +49,7 @@ const negativeFixtures = [
     input: {
       content: `<Vendor classNames={{ root: 'bg-surface' }} />`,
       extension: '.tsx',
-      localPath: 'apps/web/src/features/example.tsx',
+      localPath: 'apps/web/src/app/example.tsx',
     },
     rule: 'Vendor contract',
   },
@@ -76,7 +76,7 @@ const negativeFixtures = [
     input: {
       content: `<div style={{ color: '#fff' }} />`,
       extension: '.tsx',
-      localPath: 'apps/web/src/features/example.tsx',
+      localPath: 'apps/web/src/app/example.tsx',
     },
     rule: 'Token governance',
   },
@@ -92,7 +92,7 @@ for (const fixture of negativeFixtures) {
 
 assert(
   findImportPolicyViolations({
-    localPath: 'apps/web/src/features/example.tsx',
+    localPath: 'apps/web/src/app/example.tsx',
     specifier: '@heroui/react',
     workspace: 'apps/web',
   }).some(([rule]) => rule === 'HeroUI isolation'),

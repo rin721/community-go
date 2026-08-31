@@ -1,41 +1,35 @@
-import { getNavigation, isNavigationHrefActive } from '@community-go/core';
-import { productMotion } from '@community-go/design-system/motion';
-import { CommandMenu, IconAction, MenuButton, UserIdentity } from '@community-go/ui-adapter';
+'use client';
+
+import { flattenNavigationLeaves } from '@community-go/core';
+import type { NavigationNode } from '@community-go/types';
+import { IconAction } from '@community-go/ui-adapter/icon-action';
+import { UserIdentity } from '@community-go/ui-adapter/identity';
+import { MenuButton } from '@community-go/ui-adapter/menu-button';
 import {
-  Boxes,
-  ChevronRight,
-  Component,
-  FilePenLine,
   Languages,
-  LayoutDashboard,
   Menu,
   Moon,
   PanelLeftClose,
   PanelLeftOpen,
-  Settings2,
   Sparkles,
   Sun,
-  TableProperties,
-  Workflow,
   X,
 } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
+import dynamic from 'next/dynamic';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router';
+import type { ReactNode } from 'react';
 
 import { useShellStore } from '../state/use-shell-store';
 import { BrandMark } from './brand-mark';
+import { shellNavigationGroups } from './navigation';
+import { NavigationTree } from './navigation-tree';
 
-const iconByNavigationId = {
-  overview: LayoutDashboard,
-  foundations: Boxes,
-  reference: TableProperties,
-  formReference: FilePenLine,
-  showcase: Component,
-  states: Workflow,
-  preferences: Settings2,
-} as const;
+const CommandMenu = dynamic(
+  () => import('@community-go/ui-adapter/command-menu').then((module) => module.CommandMenu),
+  { ssr: false },
+);
 
 function NavigationContent({
   onNavigate,
@@ -45,8 +39,6 @@ function NavigationContent({
   compact?: boolean;
 }) {
   const { t } = useTranslation();
-  const { pathname } = useLocation();
-  const navigation = getNavigation();
 
   return (
     <>
@@ -67,41 +59,7 @@ function NavigationContent({
         className={`flex-1 space-y-7 overflow-y-auto py-6 ${compact ? 'px-2' : 'px-3'}`}
         aria-label={t('shell.primaryNav')}
       >
-        {(['workspace', 'system'] as const).map((group) => (
-          <div key={group}>
-            {compact ? null : (
-              <p className="mb-2 px-3 text-xs font-bold uppercase tracking-widest text-ink-muted">
-                {t(`nav.${group}`)}
-              </p>
-            )}
-            <div className="space-y-1">
-              {navigation
-                .filter((item) => item.group === group)
-                .map((item) => {
-                  const Icon = iconByNavigationId[item.id as keyof typeof iconByNavigationId];
-                  const active = isNavigationHrefActive(pathname, item.href);
-                  return (
-                    <NavLink
-                      aria-label={compact ? t(item.labelKey) : undefined}
-                      className={`group flex h-11 items-center rounded-control text-sm font-semibold transition-colors ${compact ? 'justify-center px-2' : 'gap-3 px-3'} ${active ? 'bg-brand-soft text-brand' : 'text-ink-muted hover:bg-surface-muted hover:text-ink'}`}
-                      key={item.id}
-                      title={compact ? t(item.labelKey) : undefined}
-                      to={item.href}
-                      onClick={onNavigate}
-                    >
-                      <Icon className="size-4.5 shrink-0" strokeWidth={active ? 2.3 : 1.9} />
-                      {compact ? null : (
-                        <>
-                          <span className="flex-1">{t(item.labelKey)}</span>
-                          {active ? <ChevronRight className="size-4" /> : null}
-                        </>
-                      )}
-                    </NavLink>
-                  );
-                })}
-            </div>
-          </div>
-        ))}
+        <NavigationTree compact={compact} groups={shellNavigationGroups} onNavigate={onNavigate} />
       </nav>
       {compact ? null : (
         <div className="m-3 rounded-panel border border-brand/15 bg-brand-soft p-4">
@@ -118,9 +76,9 @@ function NavigationContent({
   );
 }
 
-export function AppShell() {
+export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const router = useRouter();
   const theme = useShellStore((state) => state.theme);
   const locale = useShellStore((state) => state.locale);
   const mobileNavigationOpen = useShellStore((state) => state.mobileNavigationOpen);
@@ -142,10 +100,15 @@ export function AppShell() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
-  const commandItems = getNavigation().map((item) => ({
-    id: item.href,
-    label: t(item.labelKey),
-    description: t('shell.commandDescription'),
+  const commandItems = flattenNavigationLeaves(
+    shellNavigationGroups.flatMap((group) => group.items as readonly NavigationNode[]),
+  ).map(({ leaf, ancestors }) => ({
+    id: leaf.href,
+    label: t(leaf.labelKey),
+    description:
+      ancestors.length > 0
+        ? ancestors.map((ancestor) => t(ancestor.labelKey)).join(' / ')
+        : t('shell.commandDescription'),
   }));
 
   return (
@@ -157,40 +120,26 @@ export function AppShell() {
         <NavigationContent compact={sidebarCollapsed} />
       </aside>
 
-      <AnimatePresence>
-        {mobileNavigationOpen ? (
-          <>
-            <motion.button
-              aria-label={t('shell.closeNavOverlay')}
-              className="fixed inset-0 z-sticky bg-scrim backdrop-blur-sm lg:hidden"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setMobileNavigationOpen(false)}
-            />
-            <motion.aside
-              className="fixed inset-y-0 left-0 z-overlay flex w-72 flex-col bg-surface shadow-overlay lg:hidden"
-              initial={{ x: '-100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
-              transition={{
-                duration: productMotion.durationSeconds.standard,
-                ease: productMotion.easing,
-              }}
-            >
-              <div className="absolute right-3 top-5">
-                <IconAction
-                  label={t('shell.closeNav')}
-                  onPress={() => setMobileNavigationOpen(false)}
-                >
-                  <X className="size-5" />
-                </IconAction>
-              </div>
-              <NavigationContent onNavigate={() => setMobileNavigationOpen(false)} />
-            </motion.aside>
-          </>
-        ) : null}
-      </AnimatePresence>
+      {mobileNavigationOpen ? (
+        <>
+          <button
+            aria-label={t('shell.closeNavOverlay')}
+            className="fixed inset-0 z-sticky bg-scrim backdrop-blur-sm lg:hidden"
+            onClick={() => setMobileNavigationOpen(false)}
+          />
+          <aside className="fixed inset-y-0 left-0 z-overlay flex w-72 flex-col bg-surface shadow-overlay lg:hidden">
+            <div className="absolute right-3 top-5">
+              <IconAction
+                label={t('shell.closeNav')}
+                onPress={() => setMobileNavigationOpen(false)}
+              >
+                <X className="size-5" />
+              </IconAction>
+            </div>
+            <NavigationContent onNavigate={() => setMobileNavigationOpen(false)} />
+          </aside>
+        </>
+      ) : null}
 
       <div className="min-w-0">
         <header className="sticky top-0 z-sticky flex h-20 items-center gap-3 border-b border-border bg-canvas/90 px-4 backdrop-blur-xl sm:px-6 xl:px-8">
@@ -214,16 +163,16 @@ export function AppShell() {
           <div className="hidden min-w-0 flex-1 md:block">
             <CommandMenu
               defaultOpen={false}
-              emptyLabel={t('showcase.commandEmpty')}
+              emptyLabel={t('uiElements.commandEmpty')}
               isOpen={commandOpen}
               items={commandItems}
-              searchLabel={t('showcase.commandSearchLabel')}
+              searchLabel={t('uiElements.commandSearchLabel')}
               searchPlaceholder={t('shell.search')}
-              title={t('showcase.commandTitle')}
+              title={t('uiElements.commandTitle')}
               triggerLabel={t('shell.searchShortcut')}
               onAction={(href) => {
                 setCommandOpen(false);
-                void navigate(href);
+                void router.push(href);
               }}
               onOpenChange={setCommandOpen}
             />
@@ -253,13 +202,11 @@ export function AppShell() {
               label={
                 <UserIdentity avatarSize="sm" description={t('shell.productOwner')} name="Rin" />
               }
-              onAction={(href) => void navigate(href)}
+              onAction={(href) => void router.push(href)}
             />
           </div>
         </header>
-        <main className="mx-auto max-w-screen-2xl p-4 sm:p-6 xl:p-8">
-          <Outlet />
-        </main>
+        <main className="mx-auto max-w-screen-2xl p-4 sm:p-6 xl:p-8">{children}</main>
       </div>
     </div>
   );

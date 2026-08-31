@@ -1,5 +1,5 @@
 import { tv } from '@heroui/styles';
-import { Avatar as HeroAvatar } from '@heroui/react';
+import { Avatar as HeroAvatar } from '@heroui/react/avatar';
 import type { ReactNode } from 'react';
 
 export type AvatarPresence = Readonly<{

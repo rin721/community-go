@@ -5,7 +5,7 @@ import { findImportPolicyViolations, findSourcePolicyViolations } from './bounda
 
 const frontendRoot = resolve(import.meta.dirname, '..');
 const sourceExtensions = new Set(['.ts', '.tsx', '.css']);
-const ignoredDirectories = new Set(['node_modules', 'dist', 'coverage', '.vite']);
+const ignoredDirectories = new Set(['node_modules', 'dist', 'coverage', '.next', '.vite']);
 
 async function collectSourceFiles(directory) {
   const entries = await readdir(directory, { withFileTypes: true });

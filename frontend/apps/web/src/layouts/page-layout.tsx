@@ -1,4 +1,5 @@
-import { BreadcrumbTrail, Panel } from '@community-go/ui-adapter';
+import { BreadcrumbTrail } from '@community-go/ui-adapter/navigation';
+import { Panel } from '@community-go/ui-adapter/panel';
 import type { ReactNode } from 'react';
 
 export function PageLayout({ children }: Readonly<{ children: ReactNode }>) {

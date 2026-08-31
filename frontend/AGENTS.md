@@ -1,4 +1,4 @@
-# Community Go 新前端开发守则
+# 前端开发守则
 
 ## 1. 适用范围与目标
 
@@ -39,7 +39,7 @@ packages/design-system 语义 Design Token 与主题变量
 - 合理差异先通过 Variant、size、density、state、slot、composition 或 context 表达；不得为一个页面修改全局默认 Token 或公共组件默认行为。
 - 复杂组合避免成形组件套成形组件。已有外壳进入 Panel、Dialog、Sidebar 或 Form 时，优先使用 primitive、embedded、inset 或 slot composition。
 - TailAdmin React Demo 左侧 `UI Elements` 是长期外部视觉校准基准；新增或修改公共基础组件前，必须进入对应具体页面检查完整状态，不得只浏览首页，也不得复制其源码、DOM、CSS、图片或具体尺寸。
-- HeroUI 负责 Accessibility、Keyboard、Focus、Overlay 与 Portal，TailAdmin 用于校准后台产品视觉，项目最终规范由 Semantic Token、UI Adapter 和 `/showcase` 决定。具体矩阵与复核触发器见 [UI 视觉校准基线](docs/ui-visual-calibration.md)。
+- HeroUI 负责 Accessibility、Keyboard、Focus、Overlay 与 Portal，TailAdmin 用于校准后台产品视觉，项目最终规范由 Semantic Token、UI Adapter 和 `/ui-elements` 的 9 个 Family 页面决定。具体矩阵与复核触发器见 [UI 视觉校准基线](docs/ui-visual-calibration.md)。
 
 ### 4.1 HeroUI v3 与 Tailwind CSS v4 官方互补基线
 
@@ -69,8 +69,8 @@ packages/design-system 语义 Design Token 与主题变量
 - 所有用户可见文本、日期、时间、数字、相对时间、复数和单位都通过 i18n 基础设施，不在页面硬编码。
 - 新功能至少判断 Loading、Empty、Error、Success、Warning、Disabled、Pending、Offline 与 Permission Denied 中适用的状态。
 - Skeleton 必须保留目标内容的大致结构；错误状态提供恢复路径；禁用状态说明原因；Pending 与 Loading 不得混用。
-- 共享 UI 或 Layout 改动必须先在 Reference/Showcase 中验证正常、长文本、Locale 扩张、窄屏和嵌套组合；状态与组合缺陷优先修复 Token、Variant、Slot 或 Layout Contract，不在页面增加特例 CSS。
-- `/showcase` 是 Button、Alert、Badge、Card、Dropdown、Modal、Form Control、Notification 与全部 Overlay 的项目级当前权威。业务页面优先复用内部规范，只有缺少合理能力时才回到外部参考扩展基础体系。
+- 共享 UI 或 Layout 改动必须先在 Reference/UI Elements 页面中验证正常、长文本、Locale 扩张、窄屏和嵌套组合；状态与组合缺陷优先修复 Token、Variant、Slot 或 Layout Contract，不在页面增加特例 CSS。
+- `/ui-elements` 是 Button、Alert、Badge、Card、Dropdown、Modal、Form Control、Notification 与全部 Overlay 的项目级当前权威。业务页面优先复用内部规范，只有缺少合理能力时才回到外部参考扩展基础体系。
 - UI Element 分类、Form Control、Anchored Overlay、Overlay Surface、Option State 与 Composition 的当前契约统一见 [UI Element System](docs/ui-element-system.md)；Feature 新增基础能力前必须先按该文档判断复用、Variant、Composition 或新 Element。
 
 ## 8. 明确禁止的架构污染

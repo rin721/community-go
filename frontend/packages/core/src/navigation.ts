@@ -1,24 +1,50 @@
-import type { NavigationItem } from '@community-go/types';
+import type { NavigationBranch, NavigationLeaf, NavigationNode } from '@community-go/types';
 
-const navigation = [
-  { id: 'overview', labelKey: 'nav.overview', href: '/', group: 'workspace' },
-  { id: 'foundations', labelKey: 'nav.foundations', href: '/foundations', group: 'workspace' },
-  { id: 'reference', labelKey: 'nav.reference', href: '/reference', group: 'workspace' },
-  {
-    id: 'formReference',
-    labelKey: 'nav.formReference',
-    href: '/reference/form',
-    group: 'workspace',
-  },
-  { id: 'showcase', labelKey: 'nav.showcase', href: '/showcase', group: 'workspace' },
-  { id: 'states', labelKey: 'nav.states', href: '/states', group: 'workspace' },
-  { id: 'preferences', labelKey: 'nav.preferences', href: '/preferences', group: 'system' },
-] as const satisfies readonly NavigationItem[];
+export type NavigationLeafPath = Readonly<{
+  leaf: NavigationLeaf;
+  ancestors: readonly NavigationBranch[];
+}>;
 
-export function getNavigation(): readonly NavigationItem[] {
-  return navigation;
+export function getFirstNavigationLeaf(node: NavigationNode): NavigationLeaf {
+  return node.kind === 'leaf' ? node : getFirstNavigationLeaf(node.children[0]);
 }
 
-export function isNavigationHrefActive(currentPath: string, href: string): boolean {
-  return href === '/' ? currentPath === href : currentPath.startsWith(href);
+export function flattenNavigationLeaves(
+  nodes: readonly NavigationNode[],
+  ancestors: readonly NavigationBranch[] = [],
+): readonly NavigationLeafPath[] {
+  return nodes.flatMap((node) => {
+    if (node.kind === 'leaf') return [{ leaf: node, ancestors }];
+    return flattenNavigationLeaves(node.children, [...ancestors, node]);
+  });
+}
+
+export function getNavigationTreeErrors(nodes: readonly NavigationNode[]): readonly string[] {
+  const errors: string[] = [];
+  const ids = new Set<string>();
+  const hrefs = new Set<string>();
+
+  const visit = (node: NavigationNode) => {
+    if (ids.has(node.id)) errors.push(`duplicate id: ${node.id}`);
+    ids.add(node.id);
+
+    if (node.kind === 'leaf') {
+      if (hrefs.has(node.href)) errors.push(`duplicate href: ${node.href}`);
+      hrefs.add(node.href);
+      return;
+    }
+
+    if (node.defaultHref !== getFirstNavigationLeaf(node).href) {
+      errors.push(`invalid default href: ${node.id}`);
+    }
+    node.children.forEach(visit);
+  };
+
+  nodes.forEach(visit);
+  return errors;
+}
+
+export function isNavigationHrefActive(href: string, pathname: string): boolean {
+  const normalize = (value: string) => (value.length > 1 ? value.replace(/\/$/, '') : value);
+  return normalize(href) === normalize(pathname);
 }

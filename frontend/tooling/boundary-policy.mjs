@@ -68,6 +68,9 @@ export function findImportPolicyViolations({ localPath, specifier, workspace }) 
   if (specifier.startsWith('@heroui/') && !localPath.startsWith('packages/ui-adapter/')) {
     violations.push(['HeroUI isolation', '直接依赖只能出现在 packages/ui-adapter']);
   }
+  if (specifier === '@community-go/ui-adapter') {
+    violations.push(['UI adapter imports', '必须使用 UI Adapter 语义子路径，禁止根 Barrel 导入']);
+  }
   if (workspace?.startsWith('packages/') && specifier.startsWith('@community-go/web')) {
     violations.push(['Dependency direction', '公共包不得依赖 Web Host']);
   }

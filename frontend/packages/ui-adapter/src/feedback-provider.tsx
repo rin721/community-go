@@ -1,4 +1,5 @@
-import { Spinner as HeroSpinner, Toast, type ToastContentValue } from '@heroui/react';
+import { Spinner as HeroSpinner } from '@heroui/react/spinner';
+import { Toast, type ToastContentValue } from '@heroui/react/toast';
 import { useMemo, useState, type ReactNode } from 'react';
 
 import { FeedbackContext, type FeedbackController } from './feedback-context';

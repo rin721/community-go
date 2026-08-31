@@ -28,7 +28,7 @@
 ## 文档同步
 
 - [x] `DOC-095-002` 权威文档同步完成：`frontend/README.md`（转场能力条款）、`docs/ui-element-system.md` §10（页面级转场边界条款）、`docs/changes/README.md`（095 登记）；095 变更内 README/需求/设计/研究档案与最终实现一致。
-- [ ] `COM-095-001` 审阅完整 diff、仅提交本任务文件并创建 Conventional Commits 提交；完成条件：提交信息与变更范围一致；证据：git log。
+- [x] `COM-095-001` 审阅完整 diff、仅提交本任务文件并创建 Conventional Commits 提交；证据：`c2854031 feat(frontend): add view-transition page motion with hierarchy anchoring`（38 个文件；用户既有 webui/ 等改动保持未暂存）。
 
 ## 待人工确认
 

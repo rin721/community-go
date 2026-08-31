@@ -33,7 +33,7 @@
 
 - [x] `VER-097-001` `pnpm check` 全量门禁：architecture / dependency / lint / typecheck / unit / build / performance（css gzip 44,070B ≤ 48KiB）/ browser **39/39**；format:check 仅两个既有基线例外（`providers.test.tsx`、`eslint.config.mjs`，HEAD 同样失败，不属本任务）。
 - [x] `VER-097-002` 语义一致性：业务代码零裸露时长/位移字面量（新配方引 Token）；`ui-async-region` 规则与配方登记表一致；FUTURE 区无幻影组件；evidence: grep + 文档对照。
-- [x] `COM-097-001` 审阅完整 diff、仅提交本任务文件、Conventional Commits；证据：git log。
+- [x] `COM-097-001` 审阅完整 diff、仅提交本任务文件、Conventional Commits；证据：`3a06172 feat(frontend): add async region content transitions and motion governance`（22 个文件，含 FIX-097-001 面包屑修复与视觉基线更新；用户既有 webui/ 等 26 个改动保持未暂存）。
 
 ## 未来任务（登记触发条件，本变更不实施）
 

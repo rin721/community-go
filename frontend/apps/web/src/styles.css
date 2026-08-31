@@ -1,5 +1,5 @@
 @import 'tailwindcss';
-@import '@community-go/ui-adapter/vendor.css';
+@import '@community-go/ui-adapter/styles.css';
 @import '@community-go/design-system/tokens.css';
 @source '../../../packages';
 

@@ -51,7 +51,7 @@ packages/design-system 语义 Design Token 与主题变量
 
 ## 5. UI Contract 与组件职责
 
-- `packages/ui-adapter` 是唯一允许直接导入 `@heroui/*` 的边界，Web 入口只导入其聚合后的 vendor stylesheet。
+- `packages/ui-adapter` 是唯一允许直接导入 `@heroui/*` 的边界，Web 入口只导入其聚合后的 Adapter stylesheet。
 - UI Adapter 只保护长期高影响能力，不机械封装每个 HeroUI 组件，也不重新制造自研组件库。
 - Adapter 对外 props 必须是稳定产品语义，禁止透传 HeroUI props、DOM 结构、slot 名和内部 class。
 - Primitive 负责交互基础；通用 UI Component 负责可复用语义；Layout 负责空间骨架；Composite 负责复合交互；Feature/Domain Component 负责业务；Page/Screen 只做路由级编排与状态选择。

@@ -1,7 +1,3 @@
-export type AppLocale = 'zh-CN' | 'en';
-
-export type RuntimeHost = 'web' | 'desktop';
-
 export type ProductState =
   | 'loading'
   | 'empty'
@@ -34,14 +30,4 @@ export type NavigationGroup = Readonly<{
   id: string;
   labelKey: string;
   items: readonly [NavigationNode, ...NavigationNode[]];
-}>;
-
-export type CapabilityStatus = 'ready' | 'in-progress' | 'planned';
-
-export type FoundationCapability = Readonly<{
-  id: string;
-  nameKey: string;
-  descriptionKey: string;
-  status: CapabilityStatus;
-  progressPercent: number;
 }>;

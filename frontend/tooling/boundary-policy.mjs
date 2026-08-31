@@ -71,11 +71,8 @@ export function findImportPolicyViolations({ localPath, specifier, workspace }) 
   if (specifier === '@community-go/ui-adapter') {
     violations.push(['UI adapter imports', '必须使用 UI Adapter 语义子路径，禁止根 Barrel 导入']);
   }
-  if (workspace?.startsWith('packages/') && specifier.startsWith('@community-go/web')) {
-    violations.push(['Dependency direction', '公共包不得依赖 Web Host']);
-  }
-  if (workspace?.startsWith('packages/') && specifier.startsWith('@community-go/desktop-host')) {
-    violations.push(['Dependency direction', '公共包不得依赖 Desktop Host']);
+  if (workspace?.startsWith('packages/') && specifier.startsWith('@community-go/admin-web')) {
+    violations.push(['Dependency direction', '公共包不得依赖 Runtime Host']);
   }
   if (workspace === 'packages/core') {
     const allowed =

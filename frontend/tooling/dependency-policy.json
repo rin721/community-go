@@ -1,56 +1,94 @@
 {
   "dependencies": {
-    "@community-go/core": { "owner": "workspace", "allowed": ["apps/web"] },
-    "@community-go/design-system": { "owner": "workspace", "allowed": ["apps/web"] },
-    "@community-go/reference": {
-      "owner": "reference feature",
-      "allowed": ["apps/web", "apps/desktop"]
+    "@community-go/admin-foundation": {
+      "owner": "Admin Surface Foundation",
+      "allowed": ["apps/admin-web"]
     },
+    "@community-go/core": {
+      "owner": "pure frontend semantics",
+      "allowed": ["apps/admin-web", "packages/admin-foundation"]
+    },
+    "@community-go/design-system": {
+      "owner": "semantic design tokens",
+      "allowed": ["apps/admin-web"]
+    },
+    "@community-go/form-foundation": {
+      "owner": "universal form lifecycle",
+      "allowed": ["apps/admin-web", "packages/admin-foundation"]
+    },
+    "@community-go/i18n": { "owner": "universal locale runtime", "allowed": ["apps/admin-web"] },
     "@community-go/schemas": {
-      "owner": "runtime validation",
-      "allowed": ["apps/web", "packages/reference"]
+      "owner": "schema contract primitives",
+      "allowed": ["apps/admin-web", "packages/form-foundation"]
     },
     "@community-go/types": {
       "owner": "stable shared types",
       "allowed": [
-        "apps/web",
-        "apps/desktop",
+        "apps/admin-web",
         "packages/core",
         "packages/schemas",
-        "packages/ui-adapter"
+        "packages/ui-adapter",
+        "packages/admin-foundation"
       ]
     },
-    "@community-go/ui-adapter": { "owner": "UI contract", "allowed": ["apps/web"] },
+    "@community-go/ui-adapter": {
+      "owner": "product-neutral UI contracts",
+      "allowed": ["apps/admin-web", "packages/admin-foundation"]
+    },
     "@heroui/react": {
       "owner": "accessible UI primitives",
       "allowed": ["packages/ui-adapter"],
       "category": "ui-primitives"
     },
     "@heroui/styles": { "owner": "HeroUI vendor styles", "allowed": ["packages/ui-adapter"] },
-    "@hookform/resolvers": { "owner": "form-schema bridge", "allowed": ["apps/web"] },
+    "@hookform/resolvers": {
+      "owner": "form-schema bridge",
+      "allowed": ["packages/form-foundation"]
+    },
     "i18next": {
       "owner": "localization runtime",
-      "allowed": ["apps/web"],
+      "allowed": ["packages/i18n"],
       "category": "localization"
     },
-    "lucide-react": { "owner": "interface icons", "allowed": ["apps/web"], "category": "icons" },
+    "lucide-react": {
+      "owner": "interface icons",
+      "allowed": ["apps/admin-web"],
+      "category": "icons"
+    },
     "next": {
       "owner": "Web Host framework and routing",
-      "allowed": ["apps/web"],
+      "allowed": ["apps/admin-web"],
       "category": "framework"
     },
-    "react": { "owner": "view runtime", "allowed": ["apps/web", "packages/ui-adapter"] },
-    "react-dom": { "owner": "Web renderer", "allowed": ["apps/web"] },
+    "react": {
+      "owner": "view runtime",
+      "allowed": [
+        "apps/admin-web",
+        "packages/admin-foundation",
+        "packages/form-foundation",
+        "packages/i18n",
+        "packages/ui-adapter"
+      ]
+    },
+    "react-aria-components": {
+      "owner": "accessible interaction primitives",
+      "allowed": ["packages/ui-adapter"]
+    },
+    "react-dom": { "owner": "Web renderer", "allowed": ["apps/admin-web"] },
     "react-hook-form": {
       "owner": "complex form state",
-      "allowed": ["apps/web"],
+      "allowed": ["packages/form-foundation"],
       "category": "form-state"
     },
-    "react-i18next": { "owner": "React localization binding", "allowed": ["apps/web"] },
-    "zod": { "owner": "schema validation", "allowed": ["packages/schemas"], "category": "schema" },
+    "react-i18next": { "owner": "React localization binding", "allowed": ["packages/i18n"] },
+    "zod": {
+      "owner": "runtime schema validation",
+      "allowed": ["apps/admin-web", "packages/schemas"],
+      "category": "schema"
+    },
     "zustand": {
-      "owner": "cross-feature client state",
-      "allowed": ["apps/web"],
+      "owner": "Host-local UI preference state",
+      "allowed": ["apps/admin-web"],
       "category": "client-state"
     }
   }

@@ -3,7 +3,7 @@ import { join, relative, resolve, sep } from 'node:path';
 import { gzipSync } from 'node:zlib';
 
 const frontendRoot = resolve(import.meta.dirname, '..');
-const webRoot = join(frontendRoot, 'apps', 'web');
+const webRoot = join(frontendRoot, 'apps', 'admin-web');
 const outputCandidates = [join(webRoot, 'dist'), join(webRoot, 'out')];
 
 async function exists(path) {

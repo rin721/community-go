@@ -1,0 +1,13 @@
+{
+  "workspaces": {
+    "packages/core": { "layer": "universal" },
+    "packages/design-system": { "layer": "universal" },
+    "packages/form-foundation": { "layer": "universal" },
+    "packages/i18n": { "layer": "universal" },
+    "packages/schemas": { "layer": "universal" },
+    "packages/types": { "layer": "universal" },
+    "packages/ui-adapter": { "layer": "universal" },
+    "packages/admin-foundation": { "layer": "surface", "surface": "admin" },
+    "apps/admin-web": { "layer": "host", "surface": "admin", "runtime": "web" }
+  }
+}

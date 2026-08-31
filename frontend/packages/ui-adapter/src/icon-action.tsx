@@ -10,6 +10,8 @@ export type IconActionProps = Readonly<{
   label: string;
   children: ReactNode;
   active?: boolean;
+  controls?: string;
+  expanded?: boolean;
   loading?: boolean;
   size?: 'sm' | 'md';
   tone?: 'neutral' | 'danger';
@@ -49,6 +51,8 @@ const iconActionStyles = tv({
 export function IconAction({
   label,
   children,
+  controls,
+  expanded,
   onPress,
   active = false,
   disabled = false,
@@ -65,6 +69,8 @@ export function IconAction({
       isIconOnly
       isPending={loading}
       variant="ghost"
+      {...(controls ? { 'aria-controls': controls } : {})}
+      {...(expanded === undefined ? {} : { 'aria-expanded': expanded })}
       {...(onPress ? { onPress } : {})}
     >
       {loading ? (

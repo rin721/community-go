@@ -7,7 +7,7 @@
     "node": ">=20.9.0"
   },
   "scripts": {
-    "dev": "pnpm --filter @community-go/web dev",
+    "dev": "pnpm --filter @community-go/admin-web dev",
     "build": "pnpm -r --if-present build",
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present test",
@@ -17,9 +17,10 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "architecture:check": "node tooling/check-boundaries-fixtures.mjs && node tooling/check-boundaries.mjs",
+    "foundation:check": "node tooling/check-foundation-fixtures.mjs && node tooling/check-foundation-governance.mjs",
     "dependency:check": "node tooling/check-dependencies.mjs",
     "performance:check": "node tooling/check-performance-budget.mjs",
-    "check": "pnpm architecture:check && pnpm dependency:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm performance:check && pnpm test:browser && pnpm format:check"
+    "check": "pnpm foundation:check && pnpm architecture:check && pnpm dependency:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm performance:check && pnpm test:browser && pnpm format:check"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

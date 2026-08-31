@@ -65,7 +65,7 @@ HeroUI 当前 `Select`、`ComboBox` 和 `Popover` 继续承担 ARIA、Keyboard�
 
 `/ui-elements` 下的 9 个 Family 页面是以下能力的项目级当前权威：
 
-- 目录完整度：39 个公开可见 UI Element 各有独立预览和状态声明，9 个 Family 各有独立视觉基线；自动化按名称逐项验证 39/39，不接受混合 Demo 代替。
+- 目录完整度：45 个公开可见 UI Element 各有独立预览和状态声明，9 个 Family 各有独立视觉基线；自动化按名称逐项验证 45/45，不接受混合 Demo 代替。
 
 - Button：Primary、Secondary、Quiet、Danger、Small、Loading、Disabled。
 - Identity / Display：Avatar fallback/size/presence、UserIdentity、DescriptionList。

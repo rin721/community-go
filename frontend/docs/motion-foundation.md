@@ -71,7 +71,7 @@ Navigation → 轻 Screen Transition → Page Shell 立即稳定
 
 - 所有 CSS 动效配方（keyframes 与 `::view-transition-*` 规则）集中在本文件，分节编号，顶部注释登记消费方与 reduced-motion 覆盖。
 - **配方登记表**：新增配方前必须先在文件内登记并同步本文档与 Reduced Motion 覆盖。
-- 当前配方：`screen.enter/screen.exit`（页面转场，含锚定抑制）、`content.enter`（AsyncRegion 内容进场），均标注 `recipe:` 命名并经 reduced-motion 覆盖。
+- 当前配方分层：Universal `design-system/motion.css` 只登记 `content.enter`；Admin `admin-foundation/styles.css` 登记 `screen.enter/screen.exit`、Shell 锚定与 Bulk Action，均经 reduced-motion 覆盖。
 
 ### 4.3 退役与重建纪律
 
@@ -79,14 +79,14 @@ Navigation → 轻 Screen Transition → Page Shell 立即稳定
 
 ## 5. Semantic Transition 容器目录
 
-| 语义容器                                      | 生命周期来源                                  | 状态                             | 触发条件                                                                                    |
-| --------------------------------------------- | --------------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------- |
-| `PageTransition`（=ScreenTransition 语义）    | Next `transitionTypes` + React ViewTransition | 现役（`apps/web/src/layouts/`）  | —                                                                                           |
-| `AsyncRegion`（=AsyncContentTransition 语义） | 数据请求状态 loading/error/empty/ready        | 现役（ui-adapter，组合 Pattern） | 消费方：reference `sceneMode`；真实数据页接入时重验                                         |
-| `ViewportReveal`                              | IntersectionObserver，reveal-once             | FUTURE                           | below-fold 长内容页/仪表盘出现                                                              |
-| `DisclosureTransition`（折叠/展开）           | 展开状态                                      | FUTURE                           | 折叠面板需求；复用 HeroUI `./disclosure`/`./accordion`，经 ui-adapter 包装，不自研 Collapse |
-| `FeedbackTransition`（Toast/Inline Alert）    | 反馈生命周期                                  | FUTURE                           | FeedbackProvider 强化                                                                       |
-| `ContentSwapTransition`（Tabs/筛选切换）      | 同路由内容切换                                | FUTURE                           | Tabs/筛选联动需求（对应 same-route crossfade 模式）                                         |
+| 语义容器                                      | 生命周期来源                                  | 状态                                  | 触发条件                                            |
+| --------------------------------------------- | --------------------------------------------- | ------------------------------------- | --------------------------------------------------- |
+| `PageTransition`（=ScreenTransition 语义）    | Next `transitionTypes` + React ViewTransition | 现役（`apps/admin-web/src/layouts/`） | —                                                   |
+| `AsyncRegion`（=AsyncContentTransition 语义） | 数据请求状态 loading/error/empty/ready        | 现役（ui-adapter，组合 Pattern）      | 消费方：reference `sceneMode`；真实数据页接入时重验 |
+| `ViewportReveal`                              | IntersectionObserver，reveal-once             | FUTURE                                | below-fold 长内容页/仪表盘出现                      |
+| `DisclosurePanel`（折叠/展开）                | 展开状态                                      | 现役（ui-adapter）                    | HeroUI/React Aria 主持键盘、Focus 与展开状态        |
+| `FeedbackTransition`（Toast/Inline Alert）    | 反馈生命周期                                  | FUTURE                                | FeedbackProvider 强化                               |
+| `ContentSwapTransition`（Tabs/筛选切换）      | 同路由内容切换                                | FUTURE                                | Tabs/筛选联动需求（对应 same-route crossfade 模式） |
 
 未来容器实现原则：① 真实用例与验收先行；② 不暴露 duration/easing prop（只暴露用途语义或速度档）；③ 动画层与空间层分离；④ 实现时补齐中断测试矩阵（§16）；⑤ 需要 JS 生命周期协调（mount/enter/stable/exit/unmount）时，才在同一任务中引入 ui-adapter 的 Presence 原语（数量 ≤2，只服务语义容器，不直接给业务页）。
 
@@ -159,8 +159,8 @@ Component interaction?         → 组件自身状态动效（duration-control�
 ## 14. Reduced Motion Policy（单一实现）
 
 - 常规动画：`tokens.css` 全局块（0.01ms、iteration 1）。
-- 转场伪元素：`motion.css` 专属块（同特异性、源顺序靠后，0.01ms，不使用 important 声明）。
-- 普通元素配方（content.enter 等）：`motion.css` policy 块覆盖。
+- Admin 转场伪元素：`admin-foundation/styles.css` 专属块（同特异性、源顺序靠后，0.01ms，不使用 important 声明）。
+- 普通元素配方（content.enter 等）：`tokens.css` 全局 policy 覆盖。
 - Tailwind 变体：`motion-reduce:`。
 - 规则：Feature/Page 不得各自 `matchMedia`；新配方必须进入 Policy 覆盖范围才可合入（配方登记表强制项）。
 - 分级策略：大位移 → 去掉；缩放 → 去掉/减弱；长时转场 → 缩短；必要状态反馈（loading/进度）→ 保留。
@@ -173,9 +173,9 @@ Component interaction?         → 组件自身状态动效（duration-control�
 4. 公共新能力同步 `/ui-elements` 或文档权威；局部能力留在 Feature。
 5. 无真实用例不新建原语/容器（用例先行）。
 
-## 16. 验证矩阵（未来 /motion 参考页规格）
+## 16. `/motion` 验证矩阵
 
-首个动效组合场景落地时建立 `/motion` 参考/验证页（不是动画展览馆），必测：
+`/motion` 是 Universal Motion Primitive 的当前验证页（不是动画展览馆），必测：
 
 1. 快速连续切换、Enter 未完成再次 Exit、Exit 未完成重新 Enter（动画中断）。
 2. 长内容/短内容/不同高度切换（Layout Contract）。
@@ -186,9 +186,9 @@ Component interaction?         → 组件自身状态动效（duration-control�
 
 | 三层/治理项         | 当前实现                                                                                   |
 | ------------------- | ------------------------------------------------------------------------------------------ |
-| Screen Transition   | `PageTransition`（apps/web/src/layouts）+ `motion.css` screen.enter/screen.exit 配方       |
-| Async Content       | `AsyncRegion`（packages/ui-adapter/src/async-region.tsx）+ `motion.css` content.enter 配方 |
+| Screen Transition   | Host `PageTransition` 提供生命周期；`admin-foundation/styles.css` 提供 Admin screen recipe |
+| Async Content       | `AsyncRegion` + Universal `design-system/motion.css` content.enter 配方                    |
 | Viewport Reveal     | 未实现（登记）                                                                             |
 | Recipe 命名与登记表 | `motion.css` 配方块 `recipe:` 标注                                                         |
-| Policy              | tokens.css + motion.css reduced-motion 单一实现；Developer Override 登记                   |
+| Policy              | tokens.css + Universal/Admin recipe 各自的 reduced-motion 覆盖                             |
 | 决策树              | §9（AGENTS 4.2 引用本文件）                                                                |

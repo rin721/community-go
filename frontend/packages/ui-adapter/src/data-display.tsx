@@ -59,7 +59,7 @@ export function DataTable<Row extends Readonly<{ id: string }>>({
     : [];
   return (
     <Table>
-      <Table.ScrollContainer className="overflow-auto">
+      <Table.ScrollContainer className="overflow-auto" data-table-scroll-container>
         <Table.Content
           aria-label={label}
           className="min-w-full border-separate border-spacing-0 text-left text-sm"

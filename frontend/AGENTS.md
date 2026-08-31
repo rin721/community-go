@@ -4,31 +4,29 @@
 
 本文件约束 `/frontend` 内的人工开发与 Coding Agent。这里是全新的统一前端根目录，与根 `webui/`、`old-frontend/` 及其它 legacy product 完全隔离。基础建设阶段不得复制旧系统的 DOM、CSS、组件、页面结构或交互实现，也不得研究后端接口来反向塑造新架构。
 
-技术基线是 React 19、HeroUI v3 与 Tailwind CSS v4。Vite 只属于 Web Host 的 build/tooling 基础设施，不得进入 Feature、Core、Schema 或 UI Contract。
+技术基线是 React 19、HeroUI v3、Tailwind CSS v4 与 Next.js 16。Next.js 只属于 Web Host，不得进入 Feature、Core、Schema、Surface Foundation 或 UI Contract。
 
 ## 2. 架构地图
 
 ```text
-apps/web       Web Host：入口、路由、App Shell、浏览器集成
-apps/desktop   Desktop Host：Runtime 契约、窗口与原生能力集成
-     ↓
-Application / Feature：页面能力、交互编排、View Model、复合组件
-     ↓
-packages/ui-adapter    稳定 UI Contract，唯一 HeroUI 直接依赖边界
-packages/schemas       运行时数据、配置与表单 Schema
-packages/core          与 UI、数据源和 Host 无关的纯规则
-packages/types         真正跨模块稳定的共享类型
-packages/design-system 语义 Design Token 与主题变量
+Universal Frontend Foundation
+  design-system / ui-adapter / form-foundation / i18n / core / schemas / types
+        ↓
+Product-Surface Foundation
+  admin-foundation（首个成熟 Surface）
+        ↓
+Application = Product Surface × Runtime Host
+  admin-web（Admin × Web）
 ```
 
-允许的依赖方向：Host 与 Feature 可以依赖公共包；UI Adapter 可以依赖 HeroUI、React 与 Design Token；Schema 可以依赖 Zod 与稳定类型；Core 只依赖稳定类型。公共包禁止依赖 `apps/*`，Core 禁止依赖 UI、Host、Schema 实现或 Infrastructure。
+Product Surface 与 Runtime Host 是正交维度。Universal 禁止依赖 Surface/Host；Surface 只能依赖 Universal 和自身 Surface；Host 只能装配与其匹配的 Surface。命名固定使用 `packages/<surface>-foundation` 与 `apps/<surface>-<runtime>`。机器可读分类以 `tooling/foundation-policy.json` 为准。
 
 ## 3. Host 与共享边界
 
-- Web 与 Desktop 是 Runtime Host，不与 Core、Schema、Adapter 并列为普通分层。
+- `admin-web` 是当前唯一 Runtime Host；未来只有真实 Product Surface 与 Runtime 同时出现时才创建新的 Host，不预造空 Desktop 契约。
 - Host 拥有启动入口、Shell、路由或窗口结构、平台生命周期、Error Boundary 和平台 Adapter 装配。
-- 文件系统、窗口、系统菜单、快捷键、更新等 Desktop 能力只留在 `apps/desktop`；DOM、History、Storage 等浏览器能力只留在 `apps/web` 或 Browser Adapter。
-- 跨 Host 共享的是产品语义、纯规则、Schema、Types、Design System、UI Contract 和确有复用价值的 Feature，不追求百分之百共享。
+- DOM、History、Storage、Next Router 与 View Transition 生命周期只留在 `apps/admin-web` 或明确 Browser Adapter；Surface Foundation 只能消费 Router/Leave Confirmation 等 Port。
+- 同一 Product Surface 的 Web/Desktop 未来共享对应 Surface Foundation 与 Feature；不同 Surface 不为表面复用强塞进万能 Pattern。
 - 不得复制两套近似逻辑；也不得为共享而把平台对象、条件分支或最低公分母接口塞入 Core。
 
 ## 4. Design System 与样式
@@ -54,7 +52,7 @@ packages/design-system 语义 Design Token 与主题变量
 Motion 主题的唯一当前权威文档是 [Motion Foundation 与语义动效分层](docs/motion-foundation.md)，本条款只保留长期稳定底线：
 
 - Motion 属于 Design System 的语义基础能力。Duration、Easing、位移距离、Scale、Opacity 与 Reduced Motion Policy 由 `packages/design-system` 统一定义，页面和 Feature 不得硬编码动画时长、缓动曲线或关键帧参数；业务代码使用用途语义 Token（`--motion-duration-*`、`--motion-distance-*`、`duration-*` utility），不直接书写数值。
-- 动效按职责分层：组件自身状态动效由对应 UI Element 管理；Overlay 的 Enter/Exit 生命周期由 `packages/ui-adapter` 与 HeroUI Overlay 能力统一管理，不得在 Modal/Drawer/Popover 外再套动画容器；页面导航动效由 Host 提供导航生命周期、Layout/Semantic Transition 容器消费；异步数据切换由 Loading/Empty/Error/Ready 等产品状态组件管理，不得做成加载动画容器。
+- 动效按职责分层：Universal 管 Duration/Easing/Distance、Reduced Motion、Content Swap/Disclosure 等 Primitive；Surface Foundation 管产品特有 Screen/Shell/State Recipe；Host 只提供路由与 View Transition 生命周期。Overlay 的 Enter/Exit 继续由 `packages/ui-adapter` 与 HeroUI 统一管理。
 - 禁止万能动画容器：不得建立同时承担 Layout、Loading、Presence、Navigation 与 Overlay 的动画 Wrapper；动画容器不得隐式改变页面高度、滚动容器、定位上下文或 Layout Contract（动画层与空间层分离）。
 - 页面不得以 `fade`、`slide-left`、`scale-in` 等实现型动画作为长期业务 Contract，应优先使用 `screen`、`overlay`、`feedback`、`disclosure`、`content-swap` 等语义 Transition，由底层映射具体 Motion 实现。
 - `prefers-reduced-motion` 必须由 Motion Foundation 统一处理；Feature 与 Page 不得各自实现 Reduced Motion 判断。
@@ -94,7 +92,15 @@ Motion 主题的唯一当前权威文档是 [Motion Foundation 与语义动效�
 - 复制 Web/Desktop 近似组件，或把 Host 条件分支扩散到共享层。
 - 占位页面、假接口、空分支、无调用方抽象、无边界价值 Wrapper 和无完成条件 TODO。
 
-## 9. 质量门禁
+## 9. Foundation 扩展与生命周期门禁
+
+- 业务需求必须依次尝试 `Element → Variant → Composition → Pattern → Feature Component`；只有缺失能力具有跨业务通用价值且现有方式无法合理表达时，才允许扩展 Foundation。
+- Foundation 新增必须完成：语义分类 → Contract → Token/Motion/State 对齐 → Vendor 边界检查 → Showcase/Reference → Accessibility → Responsive/Dark/Content → Tests/Gates。缺少任一环节不得登记为 stable。
+- 页面视觉或业务特例不得扩展 Universal Token、公共 Variant、组件默认行为或万能 Pattern；Admin 专属 Token/Recipe 归 `admin-foundation`，不得回流 Universal。
+- 公共导出必须登记在 `tooling/foundation-contracts.json`，成熟度只能为 `experimental / stable / replacing / retiring`，并具备 owner、authority route 与验证证据。替换完成后单轨删除旧实现，Git 保存历史。
+- `/ui-elements` 与 `/motion` 是 Universal authority；`/admin-patterns` 是 Admin Contract authority；`/admin-reference` 只证明完整 Page Archetype，不反向成为公共 API。
+
+## 10. 质量门禁
 
 每次改动至少执行与范围匹配的检查；交付前执行：
 
@@ -102,7 +108,7 @@ Motion 主题的唯一当前权威文档是 [Motion Foundation 与语义动效�
 pnpm check
 ```
 
-`architecture:check` 强制 HeroUI 隔离、原生表单控件禁用、Adapter 内部 Element 样式隔离、Host API 隔离、依赖方向、跨 Workspace 深相对引用、arbitrary value、`!important` 与颜色 Token 归属。新增或修改公共 Element 还必须用 Contract/DOM/Playwright/Axe/Visual 证据同时证明 HeroUI 交互与可访问语义未被破坏、Tailwind Token/Variant/Composition 没有越界。`dependency:check` 校验每个运行时依赖的职责和允许 Workspace；`performance:check` 校验 gzip 产物预算。TypeScript、ESLint、Vitest、Vite build 与 Prettier 分别验证类型、静态规则、纯规则、Host 构建和格式。
+`foundation:check` 校验 Workspace 分类、Surface × Runtime 命名、依赖方向、公共 exports、成熟度、authority/evidence 与 RHF/i18next/Next/Intl 边界。`architecture:check` 强制 HeroUI 隔离、原生表单控件禁用、Adapter 内部 Element 样式隔离、Host API 隔离、跨 Workspace 深相对引用、arbitrary value、`!important` 与颜色 Token 归属。新增或修改公共 Element 还必须用 Contract/DOM/Playwright/Axe/Visual 证据证明交互与可访问语义未被破坏。`dependency:check` 校验每个运行时依赖的职责和允许 Workspace；`performance:check` 校验 gzip 产物预算。TypeScript、ESLint、Vitest、Next build 与 Prettier 分别验证类型、静态规则、纯规则、Host 构建和格式。
 
 Playwright 必须覆盖关键 Reference 流程、键盘/焦点、Axe WCAG AA 扫描，以及桌面、超宽屏、移动端、Dark Mode、英文扩张和全部 Floating Layer 打开态。视觉基线只能在人工确认变化合理后更新，不得用提高 diff 阈值掩盖回归。
 

@@ -184,7 +184,9 @@ export function ConfirmDialog({
 
   return (
     <AlertDialog isOpen={open} onOpenChange={setOpen}>
-      <AlertDialog.Trigger className="ui-overlay-trigger">{triggerLabel}</AlertDialog.Trigger>
+      <HeroButton className="ui-overlay-trigger" onPress={() => setOpen(true)}>
+        {triggerLabel}
+      </HeroButton>
       <AlertDialog.Backdrop className="bg-scrim backdrop-blur-sm">
         <AlertDialog.Container placement="center" size="md">
           <AlertDialog.Dialog className="ui-overlay-surface w-full">

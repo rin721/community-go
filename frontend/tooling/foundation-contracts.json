@@ -1,0 +1,109 @@
+{
+  "contracts": {
+    "@community-go/core": {
+      "layer": "universal",
+      "owner": "pure frontend semantics",
+      "maturity": "stable",
+      "exports": ["."],
+      "authorityRoutes": ["/foundations"],
+      "evidence": ["packages/core/src/navigation.test.ts"]
+    },
+    "@community-go/design-system": {
+      "layer": "universal",
+      "owner": "semantic token and motion primitives",
+      "maturity": "stable",
+      "exports": ["./tokens.css", "./motion.css"],
+      "authorityRoutes": ["/motion", "/ui-elements"],
+      "evidence": ["packages/design-system/src/tokens.css", "packages/design-system/src/motion.css"]
+    },
+    "@community-go/form-foundation": {
+      "layer": "universal",
+      "owner": "form lifecycle and field bridge",
+      "maturity": "stable",
+      "exports": ["."],
+      "authorityRoutes": ["/ui-elements/forms"],
+      "evidence": ["packages/form-foundation/src/index.test.tsx"]
+    },
+    "@community-go/i18n": {
+      "layer": "universal",
+      "owner": "locale runtime and formatting",
+      "maturity": "stable",
+      "exports": ["."],
+      "authorityRoutes": ["/foundations"],
+      "evidence": ["packages/i18n/src/index.test.tsx"]
+    },
+    "@community-go/schemas": {
+      "layer": "universal",
+      "owner": "schema contract primitives",
+      "maturity": "stable",
+      "exports": ["."],
+      "authorityRoutes": ["/foundations"],
+      "evidence": ["packages/schemas/src/index.test.ts"]
+    },
+    "@community-go/types": {
+      "layer": "universal",
+      "owner": "stable cross-workspace types",
+      "maturity": "stable",
+      "exports": ["."],
+      "authorityRoutes": ["/foundations"],
+      "evidence": ["packages/types/src/index.ts"]
+    },
+    "@community-go/ui-adapter": {
+      "layer": "universal",
+      "owner": "product-neutral UI contracts",
+      "maturity": "stable",
+      "exports": [
+        "./styles.css",
+        "./action",
+        "./accessibility",
+        "./async-region",
+        "./busy-indicator",
+        "./card",
+        "./command-menu",
+        "./data-display",
+        "./date-picker-field",
+        "./description-list",
+        "./disclosure",
+        "./feedback",
+        "./feedback-context",
+        "./feedback-provider",
+        "./form-field",
+        "./form-error-summary",
+        "./icon-action",
+        "./identity",
+        "./menu-button",
+        "./navigation",
+        "./navigation-flyout",
+        "./overlays",
+        "./panel",
+        "./progress-meter",
+        "./search-box",
+        "./skeleton",
+        "./state-surface",
+        "./status-pill",
+        "./step-navigation",
+        "./tree",
+        "./toggle-group"
+      ],
+      "authorityRoutes": ["/ui-elements", "/motion"],
+      "evidence": ["apps/admin-web/src/test/ui-element-foundations.test.tsx"]
+    },
+    "@community-go/admin-foundation": {
+      "layer": "surface",
+      "surface": "admin",
+      "owner": "admin product-surface UX",
+      "maturity": "stable",
+      "exports": [
+        "./styles.css",
+        "./layout",
+        "./shell-navigation",
+        "./collection",
+        "./detail-settings",
+        "./form-actions",
+        "./states-operations"
+      ],
+      "authorityRoutes": ["/admin-patterns", "/admin-reference"],
+      "evidence": ["packages/admin-foundation/src/contracts.test.tsx"]
+    }
+  }
+}

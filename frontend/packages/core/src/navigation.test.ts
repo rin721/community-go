@@ -63,8 +63,8 @@ describe('navigation tree', () => {
   it('路径匹配只接受同一路径并兼容末尾斜杠', () => {
     expect(isNavigationHrefActive('/', '/')).toBe(true);
     expect(isNavigationHrefActive('/', '/foundations')).toBe(false);
-    expect(isNavigationHrefActive('/reference', '/reference/')).toBe(true);
-    expect(isNavigationHrefActive('/reference', '/reference-form')).toBe(false);
-    expect(isNavigationHrefActive('/reference', '/reference/form')).toBe(false);
+    expect(isNavigationHrefActive('/admin-reference', '/admin-reference/')).toBe(true);
+    expect(isNavigationHrefActive('/admin-reference', '/admin-reference-form')).toBe(false);
+    expect(isNavigationHrefActive('/admin-reference', '/admin-reference/detail')).toBe(false);
   });
 });

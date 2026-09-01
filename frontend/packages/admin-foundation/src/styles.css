@@ -35,12 +35,6 @@
     );
   }
 
-  .admin-navigation-branch-row {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-  }
-
   .admin-timeline-item {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);

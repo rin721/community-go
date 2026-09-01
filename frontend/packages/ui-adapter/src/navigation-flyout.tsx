@@ -2,6 +2,8 @@ import { Popover } from '@heroui/react/popover';
 import { useEffect, useRef, type ReactNode } from 'react';
 
 const navigationFlyoutCloseDelayMs = 140;
+// Compact Navigation 属于非模态子菜单；Pointer 打开时保持当前焦点，键盘打开时仍进入 Overlay。
+const navigationFlyoutTrigger = 'SubmenuTrigger';
 
 export type NavigationFlyoutProps = Readonly<{
   label: string;
@@ -21,37 +23,48 @@ export function NavigationFlyout({
   onOpenChange,
 }: NavigationFlyoutProps) {
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const triggerRef = useRef<HTMLButtonElement | null>(null);
-  const dialogContentRef = useRef<HTMLDivElement | null>(null);
-  const restoreFocusRef = useRef(false);
-  const suppressPointerOpenRef = useRef(false);
-  const suppressOpenUntilRef = useRef(0);
+  const openRef = useRef(isOpen);
+  const ignoreNextPressCloseRef = useRef(false);
+  const pointerOverTriggerRef = useRef(false);
+  const pointerOverContentRef = useRef(false);
+
+  useEffect(() => {
+    openRef.current = isOpen;
+  }, [isOpen]);
 
   const cancelScheduledClose = () => {
-    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = undefined;
+    }
+  };
+  const requestOpenChange = (open: boolean) => {
+    if (openRef.current === open) return;
+    openRef.current = open;
+    onOpenChange(open);
   };
   const scheduleClose = () => {
     cancelScheduledClose();
-    closeTimerRef.current = setTimeout(() => onOpenChange(false), navigationFlyoutCloseDelayMs);
+    closeTimerRef.current = setTimeout(() => {
+      closeTimerRef.current = undefined;
+      if (!pointerOverTriggerRef.current && !pointerOverContentRef.current) {
+        requestOpenChange(false);
+      }
+    }, navigationFlyoutCloseDelayMs);
   };
 
   const handleOpenChange = (open: boolean) => {
-    if (open && suppressPointerOpenRef.current) return;
-    if (!open) {
-      suppressOpenUntilRef.current = Date.now() + navigationFlyoutCloseDelayMs;
-      if (restoreFocusRef.current) {
-        restoreFocusRef.current = false;
-        suppressPointerOpenRef.current = true;
-        setTimeout(() => triggerRef.current?.focus(), 0);
-      }
+    if (open) {
+      cancelScheduledClose();
     }
-    onOpenChange(open);
+    if (!open && ignoreNextPressCloseRef.current) {
+      ignoreNextPressCloseRef.current = false;
+      return;
+    }
+    requestOpenChange(open);
   };
 
   useEffect(() => () => cancelScheduledClose(), []);
-  useEffect(() => {
-    if (isOpen) dialogContentRef.current?.focus({ preventScroll: true });
-  }, [isOpen]);
 
   return (
     <Popover isOpen={isOpen} onOpenChange={handleOpenChange}>
@@ -59,59 +72,39 @@ export function NavigationFlyout({
         aria-label={label}
         className={`flex h-11 w-full items-center justify-center rounded-control transition-colors ${active ? 'bg-brand-soft text-brand' : 'text-ink-muted hover:bg-surface-muted hover:text-ink'}`}
         title={label}
-        render={({ ref, ...triggerProps }) => (
-          <button
-            {...triggerProps}
-            ref={(element) => {
-              triggerRef.current = element;
-              if (typeof ref === 'function') ref(element);
-              else if (ref) ref.current = element;
-            }}
-            type="button"
-          />
-        )}
-        onFocus={(event) => {
-          if (suppressPointerOpenRef.current) return;
-          if (Date.now() < suppressOpenUntilRef.current) return;
-          if (event.currentTarget.matches(':focus-visible')) onOpenChange(true);
-        }}
-        onMouseEnter={() => {
-          if (suppressPointerOpenRef.current) return;
-          if (Date.now() < suppressOpenUntilRef.current) return;
+        render={(triggerProps) => <button {...triggerProps} type="button" />}
+        onPointerEnter={() => {
+          pointerOverTriggerRef.current = true;
           cancelScheduledClose();
-          onOpenChange(true);
+          requestOpenChange(true);
         }}
-        onMouseLeave={() => {
-          suppressPointerOpenRef.current = false;
+        onPointerLeave={() => {
+          pointerOverTriggerRef.current = false;
           scheduleClose();
         }}
         onPointerDown={() => {
-          suppressPointerOpenRef.current = false;
-        }}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter' || event.key === ' ') suppressPointerOpenRef.current = false;
+          ignoreNextPressCloseRef.current = openRef.current;
         }}
       >
         {icon}
       </Popover.Trigger>
       <Popover.Content
+        aria-label={label}
         className="ui-overlay-surface w-72 p-2"
+        isNonModal
         placement="right top"
-        onMouseEnter={cancelScheduledClose}
-        onMouseLeave={scheduleClose}
+        trigger={navigationFlyoutTrigger}
+        onPointerEnter={() => {
+          pointerOverContentRef.current = true;
+          cancelScheduledClose();
+        }}
+        onPointerLeave={() => {
+          pointerOverContentRef.current = false;
+          scheduleClose();
+        }}
       >
         <Popover.Arrow className="fill-surface-raised stroke-border" />
-        <Popover.Dialog aria-label={label}>
-          <div
-            ref={dialogContentRef}
-            tabIndex={-1}
-            onKeyDownCapture={(event) => {
-              if (event.key === 'Escape') restoreFocusRef.current = true;
-            }}
-          >
-            {children}
-          </div>
-        </Popover.Dialog>
+        {children}
       </Popover.Content>
     </Popover>
   );

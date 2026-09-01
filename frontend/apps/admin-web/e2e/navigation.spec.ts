@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
 test('展开侧栏用同一递归能力呈现 Admin Reference 与 UI Elements', async ({ page }) => {
@@ -12,31 +13,62 @@ test('展开侧栏用同一递归能力呈现 Admin Reference 与 UI Elements', 
 
   await expect(referenceToggle).toHaveAttribute('aria-expanded', 'true');
   await expect(navigation.getByRole('link', { name: '创建与编辑' })).toBeVisible();
+  await expect(navigation).toHaveScreenshot('admin-shell-parent-navigation.png');
+  const accessibilityScan = await new AxeBuilder({ page }).include('nav').analyze();
+  expect(accessibilityScan.violations).toEqual([]);
+  const currentUrl = page.url();
+
+  await referenceToggle.click();
+  await expect(referenceToggle).toHaveAttribute('aria-expanded', 'false');
+  await expect(navigation.getByRole('link', { name: '创建与编辑' })).toBeHidden();
+  await expect(page).toHaveURL(currentUrl);
+
+  await referenceToggle.click();
+  await expect(referenceToggle).toHaveAttribute('aria-expanded', 'true');
+  await expect(page).toHaveURL(currentUrl);
+
   await expect(uiElementsToggle).toHaveAttribute('aria-expanded', 'false');
   await uiElementsToggle.click();
   await expect(uiElementsToggle).toHaveAttribute('aria-expanded', 'true');
   await expect(navigation.getByRole('link', { name: '浮层与弹出界面' })).toBeVisible();
+  await expect(page).toHaveURL(currentUrl);
 
-  await navigation.getByRole('link', { name: 'UI Elements', exact: true }).click();
-  await expect(page).toHaveURL(/\/ui-elements\/actions-selection$/);
-  await expect(uiElementsToggle).toHaveAttribute('aria-expanded', 'true');
+  await uiElementsToggle.click();
+  await expect(uiElementsToggle).toHaveAttribute('aria-expanded', 'false');
+  await expect(page).toHaveURL(currentUrl);
 });
 
-test('收缩侧栏通过可访问 Flyout 进入任意子级', async ({ page }) => {
+test('收缩侧栏的 Hover Flyout 保持稳定并支持键盘进入', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: '收起侧栏' }).click();
+  const expandSidebar = page.getByRole('button', { name: '展开侧栏' });
+  await expect(expandSidebar).toBeFocused();
   const navigation = page.getByRole('navigation', { name: '主导航' });
   const trigger = navigation.getByRole('button', { name: 'UI Elements' });
   await trigger.hover();
 
   const flyout = page.getByRole('dialog', { name: 'UI Elements' });
   await expect(flyout).toBeVisible();
+  await page.waitForTimeout(500);
+  await expect(flyout).toHaveCount(1);
+  await expect(flyout).toBeVisible();
+  await expect(expandSidebar).toBeFocused();
+  await expect(page).toHaveScreenshot('admin-shell-compact-flyout.png');
+
+  await flyout.hover();
+  await page.waitForTimeout(300);
+  await expect(flyout).toBeVisible();
+
   await flyout.getByRole('link', { name: '浮层与弹出界面' }).click();
   await expect(page).toHaveURL(/\/ui-elements\/overlays$/);
   await expect(flyout).toBeHidden();
-  await trigger.click();
+
+  await page.mouse.move(600, 240);
+  await trigger.focus();
+  await page.keyboard.press('Enter');
   await expect(flyout).toBeVisible();
   await page.keyboard.press('Escape');
+  await expect(flyout).toBeHidden();
   await expect(trigger).toBeFocused();
 });
 

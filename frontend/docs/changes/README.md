@@ -7,5 +7,6 @@
 - [096 Motion Foundation 与语义动效分层](096-motion-foundation/README.md)：动效两层治理（Foundation 管怎么动、Semantic Transition 管为何/何时动）、语义 Token、配方治理、AGENTS 条款与容器目录；已完成实施与验证。
 - [097 Motion Governance 体系化与 AsyncRegion 落地](097-motion-governance/README.md)：三层 Motion 模型与 Recipe/Policy/决策树、Motion Region、AsyncRegion（异步内容切换）落地与轻量页面转场；已完成实施与验证。
 - [098 Universal Frontend + Admin Product Foundation](098-frontend-product-foundation/README.md)：Universal、Admin Product Surface 与 admin-web Host 三层单轨迁移，含 Form/i18n/Admin Pattern、七类 Page Archetype、Contract Registry 与自动门禁；实施与验证已完成。
+- [099 Admin Shell Navigation Interaction](099-admin-shell-navigation-interaction/README.md)：修复父级菜单展开/导航语义、恢复单行 Chevron 视觉并治理 Compact Hover Flyout；实施与验证已完成。
 
-下一个任务序号为 `099`。
+下一个任务序号为 `100`。

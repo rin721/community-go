@@ -7,7 +7,6 @@ import type {
   NavigationLeaf,
   NavigationNode,
 } from '@community-go/types';
-import { IconAction } from '@community-go/ui-adapter/icon-action';
 import { NavigationFlyout } from '@community-go/ui-adapter/navigation-flyout';
 import { useState, type ReactNode } from 'react';
 
@@ -34,10 +33,10 @@ type TreeNodeProps = Readonly<{
   node: NavigationNode;
   activeLeafId?: string | undefined;
   activeAncestorIds: ReadonlySet<string>;
-  expandedIds: ReadonlySet<string>;
+  expandedOverrides: ReadonlyMap<string, boolean>;
   presenter: AdminNavigationPresenter;
   router: AdminRouterPort;
-  onToggle: (id: string) => void;
+  onToggle: (id: string, expanded: boolean) => void;
   onNavigate?: (() => void) | undefined;
 }>;
 
@@ -45,7 +44,7 @@ function ExpandedNode({
   node,
   activeLeafId,
   activeAncestorIds,
-  expandedIds,
+  expandedOverrides,
   presenter,
   router,
   onToggle,
@@ -74,46 +73,44 @@ function ExpandedNode({
     );
   }
 
-  const expanded = active || expandedIds.has(node.id);
+  const expanded = expandedOverrides.get(node.id) ?? active;
   const childrenId = `admin-navigation-${node.id}`;
   return (
     <li>
-      <div className="admin-navigation-branch-row">
-        {router.renderLink({
-          href: node.defaultHref,
-          className: linkClassName,
-          children: (
-            <>
-              {presenter.icon(node.id, active)}
-              <span className="min-w-0 flex-1 truncate">{presenter.translate(node.labelKey)}</span>
-            </>
-          ),
-          ...(onNavigate ? { onNavigate } : {}),
+      <button
+        aria-controls={childrenId}
+        aria-expanded={expanded}
+        aria-label={presenter.translate('shell.toggleNavigation', {
+          label: presenter.translate(node.labelKey),
         })}
-        <IconAction
-          active={expanded}
-          controls={childrenId}
-          expanded={expanded}
-          label={presenter.translate('shell.toggleNavigation', {
-            label: presenter.translate(node.labelKey),
-          })}
-          onPress={() => onToggle(node.id)}
+        className={`${linkClassName} w-full border-0 bg-transparent text-start`}
+        onClick={() => onToggle(node.id, expanded)}
+        type="button"
+      >
+        {presenter.icon(node.id, active)}
+        <span className="min-w-0 flex-1 truncate">{presenter.translate(node.labelKey)}</span>
+        <svg
+          aria-hidden="true"
+          className={`size-4 shrink-0 transition-transform motion-reduce:transition-none ${expanded ? 'rotate-180' : ''}`}
+          fill="none"
+          viewBox="0 0 16 16"
         >
-          <span
-            aria-hidden="true"
-            className={`transition-transform motion-reduce:transition-none ${expanded ? 'rotate-180' : ''}`}
-          >
-            ⌄
-          </span>
-        </IconAction>
-      </div>
+          <path
+            d="m4 6 4 4 4-4"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="1.5"
+          />
+        </svg>
+      </button>
       {expanded ? (
         <ul className="ms-4 mt-1 space-y-1 border-s border-border ps-2" id={childrenId}>
           {node.children.map((child) => (
             <ExpandedNode
               activeAncestorIds={activeAncestorIds}
               activeLeafId={activeLeafId}
-              expandedIds={expandedIds}
+              expandedOverrides={expandedOverrides}
               key={child.id}
               node={child}
               onNavigate={onNavigate}
@@ -159,7 +156,7 @@ function CompactBranch({
   active,
   activeLeafId,
   activeAncestorIds,
-  expandedIds,
+  expandedOverrides,
   presenter,
   router,
   onToggle,
@@ -169,10 +166,10 @@ function CompactBranch({
   active: boolean;
   activeLeafId?: string | undefined;
   activeAncestorIds: ReadonlySet<string>;
-  expandedIds: ReadonlySet<string>;
+  expandedOverrides: ReadonlyMap<string, boolean>;
   presenter: AdminNavigationPresenter;
   router: AdminRouterPort;
-  onToggle: (id: string) => void;
+  onToggle: (id: string, expanded: boolean) => void;
   onNavigate?: (() => void) | undefined;
 }>) {
   const [open, setOpen] = useState(false);
@@ -189,7 +186,7 @@ function CompactBranch({
           <ExpandedNode
             activeAncestorIds={activeAncestorIds}
             activeLeafId={activeLeafId}
-            expandedIds={expandedIds}
+            expandedOverrides={expandedOverrides}
             key={child.id}
             node={child}
             onNavigate={() => {
@@ -220,17 +217,18 @@ export function AdminShellNavigation({
   compact?: boolean;
   onNavigate?: (() => void) | undefined;
 }>) {
-  const [expandedIds, setExpandedIds] = useState<ReadonlySet<string>>(new Set());
+  const [expandedOverrides, setExpandedOverrides] = useState<ReadonlyMap<string, boolean>>(
+    new Map(),
+  );
   const paths = flattenNavigationLeaves(groups.flatMap((group) => group.items));
   const activePath = paths.find(({ leaf }) =>
     isNavigationHrefActive(leaf.href, router.currentPath),
   );
   const activeAncestorIds = new Set(activePath?.ancestors.map(({ id }) => id));
-  const onToggle = (id: string) =>
-    setExpandedIds((current) => {
-      const next = new Set(current);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+  const onToggle = (id: string, expanded: boolean) =>
+    setExpandedOverrides((current) => {
+      const next = new Map(current);
+      next.set(id, !expanded);
       return next;
     });
 
@@ -262,7 +260,7 @@ export function AdminShellNavigation({
                     activeAncestorIds={activeAncestorIds}
                     activeLeafId={activePath?.leaf.id}
                     branch={node}
-                    expandedIds={expandedIds}
+                    expandedOverrides={expandedOverrides}
                     onNavigate={onNavigate}
                     onToggle={onToggle}
                     presenter={presenter}
@@ -276,7 +274,7 @@ export function AdminShellNavigation({
             <ExpandedNode
               activeAncestorIds={activeAncestorIds}
               activeLeafId={activePath?.leaf.id}
-              expandedIds={expandedIds}
+              expandedOverrides={expandedOverrides}
               key={node.id}
               node={node}
               onNavigate={onNavigate}

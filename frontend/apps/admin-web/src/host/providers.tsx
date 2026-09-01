@@ -7,6 +7,9 @@ import { useEffect, type ReactNode } from 'react';
 import { adminI18n } from '../i18n/i18n';
 import { useShellStore } from '../state/use-shell-store';
 import { AppLoadingSurface } from './app-loading-surface';
+import { GlobalProgressProvider } from './global-progress-provider';
+import { MotionPolicyProvider } from './motion-policy';
+import { ViewportRevealProvider } from './viewport-reveal';
 
 function AdminRuntimeProviders({ children }: Readonly<{ children: ReactNode }>) {
   const { t } = useFrontendTranslation();
@@ -54,7 +57,13 @@ function AdminRuntimeProviders({ children }: Readonly<{ children: ReactNode }>) 
 export function AppProviders({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <FrontendI18nProvider runtime={adminI18n}>
-      <AdminRuntimeProviders>{children}</AdminRuntimeProviders>
+      <MotionPolicyProvider>
+        <ViewportRevealProvider>
+          <GlobalProgressProvider>
+            <AdminRuntimeProviders>{children}</AdminRuntimeProviders>
+          </GlobalProgressProvider>
+        </ViewportRevealProvider>
+      </MotionPolicyProvider>
     </FrontendI18nProvider>
   );
 }

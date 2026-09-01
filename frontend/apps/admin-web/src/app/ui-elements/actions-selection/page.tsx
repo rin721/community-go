@@ -1,14 +1,12 @@
 import { Suspense } from 'react';
+import { AdminPageLoadingSurface } from '@community-go/admin-foundation/states-operations';
 
-import { PageTransition } from '../../../layouts/page-transition';
 import { ActionsSelectionPage } from '../../../page-components/ui-elements/actions-selection-page';
 
 export default function ActionsSelectionRoute() {
   return (
-    <PageTransition>
-      <Suspense fallback={null}>
-        <ActionsSelectionPage />
-      </Suspense>
-    </PageTransition>
+    <Suspense fallback={<AdminPageLoadingSurface kind="catalog" label="正在加载操作组件" />}>
+      <ActionsSelectionPage />
+    </Suspense>
   );
 }

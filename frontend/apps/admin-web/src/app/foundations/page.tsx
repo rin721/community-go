@@ -7,7 +7,7 @@ import { AppWindow, Braces, Component, DatabaseZap, ShieldCheck } from 'lucide-r
 import { useFrontendTranslation } from '@community-go/i18n';
 
 import { AdminPageHeader } from '@community-go/admin-foundation/layout';
-import { PageTransition } from '../../layouts/page-transition';
+import { ViewportReveal } from '../../host/viewport-reveal';
 
 const layers = [
   { id: 'hosts', icon: AppWindow, tone: 'bg-brand-soft text-brand' },
@@ -19,36 +19,34 @@ const layers = [
 export default function FoundationsPage() {
   const { t } = useFrontendTranslation();
   return (
-    <PageTransition>
-      <div className="space-y-6">
-        <AdminPageHeader
-          eyebrow={t('foundations.eyebrow')}
-          title={t('foundations.title')}
-          description={t('foundations.description')}
-          actions={<StatusPill tone="success">Executable boundaries</StatusPill>}
-        />
-        <div className="grid gap-4 lg:grid-cols-2">
-          {layers.map(({ id, icon: Icon, tone }, index) => (
-            <Card key={id}>
-              <CardContent>
-                <div className="relative">
-                  <span className="absolute right-0 top-0 text-5xl font-black text-ink/5">
-                    0{index + 1}
-                  </span>
-                  <span className={`grid size-11 place-items-center rounded-control ${tone}`}>
-                    <Icon className="size-5" />
-                  </span>
-                  <h2 className="mt-5 text-lg font-bold text-ink">
-                    {t(`foundations.layers.${id}`)}
-                  </h2>
-                  <p className="mt-2 max-w-xl text-sm leading-6 text-ink-muted">
-                    {t(`foundations.layers.${id}Description`)}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+    <div className="space-y-6">
+      <AdminPageHeader
+        eyebrow={t('foundations.eyebrow')}
+        title={t('foundations.title')}
+        description={t('foundations.description')}
+        actions={<StatusPill tone="success">Executable boundaries</StatusPill>}
+      />
+      <div className="grid gap-4 lg:grid-cols-2">
+        {layers.map(({ id, icon: Icon, tone }, index) => (
+          <Card key={id}>
+            <CardContent>
+              <div className="relative">
+                <span className="absolute right-0 top-0 text-5xl font-black text-ink/5">
+                  0{index + 1}
+                </span>
+                <span className={`grid size-11 place-items-center rounded-control ${tone}`}>
+                  <Icon className="size-5" />
+                </span>
+                <h2 className="mt-5 text-lg font-bold text-ink">{t(`foundations.layers.${id}`)}</h2>
+                <p className="mt-2 max-w-xl text-sm leading-6 text-ink-muted">
+                  {t(`foundations.layers.${id}Description`)}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      <ViewportReveal>
         <div className="grid gap-6 xl:grid-cols-3">
           <Panel className="p-5 sm:p-6 xl:col-span-2" tone="brand">
             <div className="flex items-start gap-4">
@@ -75,7 +73,7 @@ export default function FoundationsPage() {
             </ol>
           </Panel>
         </div>
-      </div>
-    </PageTransition>
+      </ViewportReveal>
+    </div>
   );
 }

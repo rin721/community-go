@@ -45,7 +45,7 @@ HeroUI 当前 `Select`、`ComboBox` 和 `Popover` 继续承担 ARIA、Keyboard�
 | [Cards](https://react-demo.tailadmin.com/cards)                 | 图片/文字/动作节奏、横向与纵向层级、链接语义                  | `Card` Anatomy、`Panel` 与 Showcase              | Card Header/Content/Footer 与 Layout Panel 分轨，支持 elevated/outlined/flat |
 | [Carousel](https://react-demo.tailadmin.com/carousel)           | Controls、Indicators、Controls+Indicators、媒体比例           | 未来媒体浏览场景                                 | 已复核；无真实产品用例前不引入轮播依赖                                       |
 | [Dropdowns](https://react-demo.tailadmin.com/dropdowns)         | Trigger Active、浮层 Shadow、Item 密度、Divider、Icon         | `MenuButton`、Showcase 与打开态快照              | Content Width；与 Form Selection 共享 Surface/Option，不共享选择语义         |
-| [Images](https://react-demo.tailadmin.com/images)               | Responsive、2/3 Grid、裁切和容器比例                          | Feature Composition                              | 属于内容布局，不新增无语义 Adapter                                           |
+| [Images](https://react-demo.tailadmin.com/images)               | Responsive、2/3 Grid、裁切、资源 readiness 和容器比例         | `ReadyImage` + Feature Composition               | 公共层只管理 reserved layout/load/decode/error；Grid 与内容布局仍归 Feature  |
 | [Basic Tables](https://react-demo.tailadmin.com/basic-tables)   | 横向滚动、Header/Cell 密度、复合身份 Cell、Status Badge       | `DataTable`、Showcase `Data Display` 区          | 保留 HeroUI Table 交互；项目只治理语义 Token、Density 与 Cell Composition    |
 | [Data Tables](https://react-demo.tailadmin.com/data-tables)     | Page Size、Search、分页信息与结构化数据的组合边界             | `/reference` Filter + Table Pattern              | 搜索、筛选、分页属于真实数据 Pattern，不堆入基础 `DataTable`                 |
 | [Links](https://react-demo.tailadmin.com/links)                 | 语义色、Underline、Hover、Opacity 的辨识度                    | `TextLink` / Host Router Link                    | 导航不再伪装 Action；UI Adapter 与 React Router 保持隔离                     |
@@ -65,7 +65,7 @@ HeroUI 当前 `Select`、`ComboBox` 和 `Popover` 继续承担 ARIA、Keyboard�
 
 `/ui-elements` 下的 9 个 Family 页面是以下能力的项目级当前权威：
 
-- 目录完整度：45 个公开可见 UI Element 各有独立预览和状态声明，9 个 Family 各有独立视觉基线；自动化按名称逐项验证 45/45，不接受混合 Demo 代替。
+- 目录完整度：46 个公开可见 UI Element 各有独立预览和状态声明，9 个 Family 各有独立视觉基线；自动化按名称逐项验证 46/46，不接受混合 Demo 代替。
 
 - Button：Primary、Secondary、Quiet、Danger、Small、Loading、Disabled。
 - Identity / Display：Avatar fallback/size/presence、UserIdentity、DescriptionList。

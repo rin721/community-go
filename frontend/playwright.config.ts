@@ -23,6 +23,7 @@ export default defineConfig({
   },
   webServer: {
     command: 'pnpm --filter @community-go/admin-web dev',
+    env: { NEXT_DIST_DIR: '.next' },
     url: 'http://127.0.0.1:4173',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

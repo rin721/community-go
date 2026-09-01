@@ -31,7 +31,7 @@ test('桌面 UI Elements Family 保持基础组件权威面稳定', async ({ pag
   await page.goto('/ui-elements/actions-selection');
   await expectHydrated(page);
   await expect(page.getByRole('heading', { level: 1, name: '操作与选择' })).toBeVisible();
-  await expect(page.getByText('公开 Element 45 / 45')).toBeVisible();
+  await expect(page.getByText('公开 Element 46 / 46')).toBeVisible();
   await expect(page).toHaveScreenshot('ui-elements-desktop.png', { fullPage: true });
   expect(consoleErrors).toEqual([]);
 });
@@ -54,7 +54,7 @@ test('九个 UI Element Family 页面均有独立视觉基线', async ({ page })
   for (const family of families) {
     await page.goto(`/ui-elements/${family}`);
     await expectHydrated(page);
-    await expect(page.getByText('公开 Element 45 / 45')).toBeVisible();
+    await expect(page.getByText('公开 Element 46 / 46')).toBeVisible();
     const sectionId = family === 'actions-selection' ? 'actions' : family;
     await expect(page.locator(`#${sectionId}`)).toHaveScreenshot(
       `ui-elements-family-${family}.png`,

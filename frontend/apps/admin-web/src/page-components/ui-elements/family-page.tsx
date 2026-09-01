@@ -16,13 +16,14 @@ const uiElementFamilies = [
   { id: 'actions-selection', labelKey: 'nav.uiActionsSelection', count: 3 },
   { id: 'feedback', labelKey: 'nav.uiFeedback', count: 4 },
   { id: 'status-async', labelKey: 'nav.uiStatusAsync', count: 7 },
-  { id: 'identity-display', labelKey: 'nav.uiIdentityDisplay', count: 3 },
+  { id: 'identity-display', labelKey: 'nav.uiIdentityDisplay', count: 4 },
   { id: 'navigation', labelKey: 'nav.uiNavigation', count: 7 },
   { id: 'data', labelKey: 'nav.uiData', count: 1 },
   { id: 'surfaces', labelKey: 'nav.uiSurfaces', count: 2 },
   { id: 'forms', labelKey: 'nav.uiForms', count: 10 },
   { id: 'overlays', labelKey: 'nav.uiOverlays', count: 8 },
 ] as const;
+const uiElementTotal = uiElementFamilies.reduce((total, family) => total + family.count, 0);
 
 type UiElementFamilyId = (typeof uiElementFamilies)[number]['id'];
 type UiElementsPageContext = Readonly<{
@@ -104,7 +105,7 @@ export function UiElementsFamilyPage({
             <p className="mt-2 text-sm leading-6 text-ink-muted">{familyDescription}</p>
           </div>
           <Badge appearance="solid" tone="info" size="md">
-            {family.count} / {t('uiElements.catalog.total', { count: 45 })}
+            {family.count} / {t('uiElements.catalog.total', { count: uiElementTotal })}
           </Badge>
         </div>
         <nav aria-label={t('uiElements.catalog.label')} className="mt-5 flex flex-wrap gap-2">

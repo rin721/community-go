@@ -1,14 +1,12 @@
 import { Suspense } from 'react';
+import { AdminPageLoadingSurface } from '@community-go/admin-foundation/states-operations';
 
-import { PageTransition } from '../../../layouts/page-transition';
 import { FeedbackPage } from '../../../page-components/ui-elements/feedback-page';
 
 export default function FeedbackRoute() {
   return (
-    <PageTransition>
-      <Suspense fallback={null}>
-        <FeedbackPage />
-      </Suspense>
-    </PageTransition>
+    <Suspense fallback={<AdminPageLoadingSurface kind="catalog" label="正在加载反馈组件" />}>
+      <FeedbackPage />
+    </Suspense>
   );
 }

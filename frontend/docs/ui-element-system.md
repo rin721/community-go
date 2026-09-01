@@ -27,15 +27,15 @@ Semantic Design Token
 | Actions               | 发起命令或提交               | `Action`、`IconAction`                                                                                                                     | 导航链接、值选择             |
 | Form Controls         | 输入、编辑或选择表单值       | `TextField`、`TextAreaField`、`SelectField`、`ComboField`、`DatePickerField`、`RadioGroupField`                                            | Action Menu、Navigation Menu |
 | Selection             | 独立布尔或集合选择           | `CheckboxField`、`SwitchField`、`ToggleGroup`                                                                                              | 用 Switch 代替即时动作       |
-| Identity / Display    | 展示身份与键值信息           | `Avatar`、`UserIdentity`、`DescriptionList`                                                                                                | 业务权限或在线状态机         |
+| Identity / Display    | 展示身份、媒体与键值信息     | `Avatar`、`UserIdentity`、`ReadyImage`、`DescriptionList`                                                                                  | 业务权限或在线状态机         |
 | Navigation            | 页面、层级、集合或视图切换   | `TextLink`、`BreadcrumbTrail`、`PaginationControl`、`TabsView`、Host Router Link、Shell Navigation                                         | 表单值提交                   |
-| Feedback              | 解释操作结果或风险           | `AlertBanner`、`NotificationCard`、`FeedbackProvider` / Toast                                                                              | 长期数据状态标签             |
-| Status / Async        | 表达对象状态或等待范围       | `Badge`、`StatusPill`、`StateSurface`、`ProgressMeter`、`BusyIndicator`、`Skeleton`                                                        | 交互按钮、万能全屏遮罩       |
+| Feedback              | 解释操作结果或风险           | `AlertBanner`、`NotificationCard`、`FeedbackPresence`、`FeedbackProvider` / Toast                                                          | 长期数据状态标签             |
+| Status / Async        | 表达对象状态或等待范围       | `Badge`、`StatusPill`、`StateSurface`、`ProgressMeter`、`BusyIndicator`、`Skeleton`、`AsyncRegion`                                         | 交互按钮、万能全屏遮罩       |
 | Data Display          | 展示结构化数据               | `DataTable`；Collection Toolbar / Filter / Pagination / Bulk Action 留在 Pattern                                                           | 表单输入与操作菜单           |
 | Overlay / Floating UI | 在普通页面层之上承载短期交互 | `MenuButton`、`PopoverCard`、`TooltipAction`、`DialogSurface`、`ConfirmDialog`、`DestructiveConfirmDialog`、`DrawerSurface`、`CommandMenu` | 普通 Card / Panel 外壳       |
 | Surface / Layout      | 建立内容与页面空间关系       | `Card` Anatomy、`Panel`、Page Layout Contract                                                                                              | 业务状态和数据请求           |
 
-Media 只有出现真实产品场景后才建立稳定 Element；图片、视频比例等局部内容布局默认留在 Feature Composition。
+`ReadyImage` 只管理非 Avatar 图片的 reserved layout、load/decode/error 与 crossfade；图片网格、视频比例和内容排版仍留在 Feature Composition。Avatar 保留 HeroUI 自身 Image/Fallback readiness，不嵌套第二套状态机。
 
 ## 3. Action Family
 
@@ -53,7 +53,8 @@ Media 只有出现真实产品场景后才建立稳定 Element；图片、视频
 - `DescriptionList` 负责 term/description 关系、缺失值与窄屏重排，不把详情键值对伪装成表格，也不拥有业务字段格式化。
 - `TextLink` 保留 anchor 语义与可访问导航；SPA 路由由 Host Router Link 注入，UI Adapter 不依赖 React Router。Action 不承担导航。
 - `BreadcrumbTrail` 表达层级和当前位置；`PaginationControl` 表达 current、previous/next、ellipsis 与总页数。筛选、排序、页码归一和远端请求属于集合 Pattern。
-- `TabsView` 只表达同一内容域中的视图选择。应用级 Workspace Tabs 需要保活、关闭和恢复生命周期，当前没有该场景，不与 Content Tabs 合并。
+- `TabsView` 只表达同一内容域中的视图选择，并以稳定 tab ID 接入 `ContentSwapTransition`；键盘、Selection 与 Focus 仍由 HeroUI 主持。应用级 Workspace Tabs 需要保活、关闭和恢复生命周期，当前没有该场景，不与 Content Tabs 合并。
+- `TabsView` 通过稳定 `variant` 区分场景语义，页面不得用局部 CSS 改写公共 Tabs：`line`（默认）用于轻量同级导航，重点通过 active indicator 表达当前项；`section` 用于 Card、Form、Settings 等内容分区，Tab 区以浅色 surface 与受控内容形成所属关系，选中仍由 indicator + 语义前景色 + typography 表达，不依赖全宽 divider 建立层级。两种 Variant 共享同一状态模型（Active/Inactive/Hover/Focus/Disabled/Keyboard）与 Semantic Token；`segmented` 只在真实分段选择语义出现时作为独立 Variant 加入，不作为默认样式。
 
 ## 5. Feedback 与 Status Family
 
@@ -62,6 +63,7 @@ Feedback 解释刚发生的结果、风险或可恢复问题；Status 描述对�
 - `AlertBanner` 是页面流内的信息块，默认不加入 Live Region。只有内容在用户操作后动态出现且需要辅助技术及时播报时，才选择 `polite`；会阻断当前安全操作的紧急失败才选择 `urgent`。
 - `NotificationCard` 是可操作的静态通知组合，不等同于全局 Toast。它固定包含主要动作和关闭动作；可选次要动作必须同时提供文案与处理函数。
 - `FeedbackProvider` 显式拥有全局 Toast queue 与 Region；Feature 只通过 `useFeedback` 发送 tone、title、description 和可选 action，不直接访问 HeroUI queue。Toast 用于用户动作后的短暂反馈，不能代替流内 Alert、长期 Notification 或对象 Status。
+- 动态 Inline Alert/Notification 需要完整 Enter/Exit 时使用 `FeedbackPresence`；退出阶段立即设置 inert/aria-hidden，动画结束再卸载，并允许快速反转。Toast 继续由 HeroUI queue 主持，不嵌套该 Presence。
 - `Badge` 表达类别、属性或短元数据，可使用 Soft/Solid、Icon 与尺寸；`StatusPill` 专门表达对象生命周期状态，保持 Dot + Soft 的单一结构。
 - `StateSurface` 承担 Empty、Error、Offline、Permission 等大范围内容状态；恢复动作的文案与处理函数必须成对，禁止渲染无行为按钮。静态状态默认不进入 Live Region；只有用户操作后动态出现的结果才显式选择 `polite`，会阻断安全操作的紧急失败才选择 `urgent`。
 - `ProgressMeter` 只表达已知的确定进度；它复用 HeroUI/React Aria 的 ProgressBar 数值与 ARIA 语义，并由项目样式固定 Label、Output、Track 和 Fill。未知等待使用 `Action loading`、Skeleton 或 Loading State，不伪造百分比。
@@ -134,16 +136,16 @@ Hover/Focus 与 Selected 不得合并为同一种状态；Selected 不能只依�
 - Page Header、Toolbar、Filter Bar、Section、Split View 与 Footer Actions 通过 Layout Contract 组合，不在每个 Page 重写同类骨架。
 - `Card` 拥有 Header/Content/Footer 的内容 anatomy；`Panel` 只作为 Layout Surface。已经存在父 Surface 时使用 flat/embedded composition，不叠加第二套 Border、Radius 和 Shadow。
 - 承载文字的 Page 与 Surface 不参与整体 Opacity 动画；否则进入中间帧会改变 Semantic Token 的实际对比度。Opacity Motion 只用于 Scrim 等无文字装饰层，内容型 Overlay 使用自身成熟交互契约。
-- 路由级页面转场是浏览器 View Transitions API 快照层的例外路径：深入导航播放 `nav-forward` 方向滑动；无类型提交（浏览器后退/前进、hydration/Suspense reveal）瞬时切换、不播放动画，不改变任何 Semantic Token 的中间对比度。转场样式与时长/缓动只能来自 `packages/design-system` 的 `motion.css` 与动效 Token；页面不得为转场自建组件级透明度动画或硬编码时长颜色。
-- 异步数据区域（Loading/Empty/Error/Ready）的状态切换由 `AsyncRegion`（ui-adapter，组合 `Skeleton`/`StateSurface` 的 Pattern）编排：内容进场绑定 `content.enter` 配方，区域容器承担 `aria-busy` 与 `data-state` 语义。AsyncRegion 属于 Pattern 而非 Element，不进 `/ui-elements` 目录，权威载体为 `/reference`（Pattern Reference）与 `/states`（状态体系）。
+- 路由级页面转场是浏览器 View Transitions API 快照层的例外路径：Host `RouteTransition` 对深入导航播放 `nav-forward` 方向滑动；无导航类型的 route/Suspense content 使用克制的 `content.enter`，hydration 不重复页面滑动。转场样式与时长/缓动只能来自 Motion authority；页面不得自建转场 Wrapper。
+- 异步数据区域由 `AsyncRegion` 编排 `initial/ready/refreshing/background/empty/error`：initial 使用 Skeleton，refresh 保留旧内容并 busy，background 保留内容且静默，只有无内容进入有内容才绑定 `content.enter`。区域容器承担 `aria-busy` 与 `data-phase` 语义；Admin `AdminStateRegion` 复用相同 readiness，再扩展 partial/readonly/denied/pending。
 
 ## 11. UI Elements 与质量证据
 
-- `/ui-elements` 是公开 UI Contract 的可执行目录，按 9 个 Family 拆分为独立页面。当前 45 个可见 Element 必须各自拥有一个独立 `ComponentPreview`，展示准确名称、支持状态清单和真实交互；9 个 Family 页面负责导航与逐族视觉基线，禁止再用一个混合 Demo 代替完整度声明。
+- `/ui-elements` 是公开 UI Contract 的可执行目录，按 9 个 Family 拆分为独立页面。当前 46 个可见 Element 必须各自拥有一个独立 `ComponentPreview`，展示准确名称、支持状态清单和真实交互；9 个 Family 页面负责导航与逐族视觉基线，禁止再用一个混合 Demo 代替完整度声明。
 - 每个状态清单都是验收声明，必须能在同一 Preview、确定性 URL、自动化交互或该 Family 的视觉基线中找到对应证据；不能展示的状态不得写入清单。
 - `/ui-elements` 按 Family 暴露 Variant、Size、Tone、Icon、Disabled、Loading、Long Content、Edge Case、Dark Theme 和可交互状态；不适用于某个 Element 的维度由其稳定职责裁决，不创建无语义 Variant 凑矩阵。
 - Action 必须验证 Focus、Pending、Disabled 和尺寸序列；Pending 与 Disabled 不得合并成同一状态证据。
-- Identity / Display 必须验证 Avatar image/fallback/size/presence、UserIdentity 长文本与 DescriptionList 缺失值；Navigation 独立验证 Breadcrumb、TextLink、Pagination、Tabs 与真实 Host Router 边界；Busy 归入 Async。
+- Identity / Display 必须验证 Avatar image/fallback/size/presence、ReadyImage decode/error/reserved layout、UserIdentity 长文本与 DescriptionList 缺失值；Navigation 独立验证 Breadcrumb、TextLink、Pagination、Tabs Content Swap 与真实 Host Router 边界；Busy 归入 Async。
 - Feedback 的可见动作必须具备真实处理函数；静态 Alert 不得自动声明为 Live Region，动态 Announcement 必须按影响选择播报强度。
 - Status Family 必须在 `/ui-elements` 对应 Family 页面中并排暴露生命周期 Tone 与确定进度；`/states` 长期覆盖 Loading、Empty、Error、Success、Warning、Disabled、Pending、Offline 与 Permission Denied。Progress 边界值、Skeleton 的辅助技术可见性、Busy 容器和 Error 恢复路径必须进入自动化回归。
 - Data Display 必须在 `/ui-elements/data` 中暴露 Row Header、Density、Selected、Keyboard Selection 与 Empty Collection；Pattern Reference 继续验证筛选、Master-Detail 与异常状态组合。
@@ -151,7 +153,7 @@ Hover/Focus 与 Selected 不得合并为同一种状态；Selected 不能只依�
 - Form Selection 的视觉回归必须断言 Popup 使用 Trigger 宽度且 Listbox 自己滚动。
 - 关键 Overlay 必须验证 Escape、焦点返回、Keyboard Navigation、ARIA 与 Axe WCAG AA。
 - `/reference` 与 `/reference/form` 是 Pattern Reference，用于验证 Element 进入 Toolbar、Filter、Table、Master-Detail、Split View 和复杂 Form 后仍保持契约。
-- `architecture:check` 禁止 Feature 使用原生表单控件、直接消费 Adapter 内部 `ui-*` Element 样式，或在 Design Token 权威文件之外声明硬编码颜色。
+- `architecture:check` 额外禁止空 Suspense fallback、非权威 keyframes、组件数值 duration/delay、Host 外 Observer/media query，以及 Feature 写入 Motion 属性。
 
 ## 12. 演进规则
 

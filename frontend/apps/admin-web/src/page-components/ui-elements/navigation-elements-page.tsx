@@ -128,6 +128,34 @@ export function NavigationElementsPage() {
                 />
               </ComponentPreview>
               <ComponentPreview
+                name="TabsView · section"
+                description={t('uiElements.catalog.tabsSectionDescription')}
+                states={['Selected', 'Keyboard', 'Content sections']}
+              >
+                <div className="overflow-hidden rounded-panel border border-border">
+                  <TabsView
+                    label={t('uiElements.catalog.contentTabsLabel')}
+                    variant="section"
+                    items={[
+                      {
+                        id: 'overview',
+                        label: t('uiElements.normalTab'),
+                        content: <p className="p-4 text-sm text-ink-muted">{description}</p>,
+                      },
+                      {
+                        id: 'activity',
+                        label: t('uiElements.emptyTab'),
+                        content: (
+                          <p className="p-4 text-sm text-ink-muted">
+                            {t('uiElements.dataTableEmpty')}
+                          </p>
+                        ),
+                      },
+                    ]}
+                  />
+                </div>
+              </ComponentPreview>
+              <ComponentPreview
                 name="StepNavigation"
                 description="有限步骤只表达当前位置、完成与错误，不代替页面 Tabs。"
                 states={['Upcoming', 'Current', 'Complete', 'Error', 'Disabled']}

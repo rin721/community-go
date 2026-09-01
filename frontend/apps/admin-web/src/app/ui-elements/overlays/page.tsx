@@ -1,14 +1,12 @@
 import { Suspense } from 'react';
+import { AdminPageLoadingSurface } from '@community-go/admin-foundation/states-operations';
 
-import { PageTransition } from '../../../layouts/page-transition';
 import { OverlayElementsPage } from '../../../page-components/ui-elements/overlay-elements-page';
 
 export default function OverlayElementsRoute() {
   return (
-    <PageTransition>
-      <Suspense fallback={null}>
-        <OverlayElementsPage />
-      </Suspense>
-    </PageTransition>
+    <Suspense fallback={<AdminPageLoadingSurface kind="catalog" label="正在加载浮层组件" />}>
+      <OverlayElementsPage />
+    </Suspense>
   );
 }

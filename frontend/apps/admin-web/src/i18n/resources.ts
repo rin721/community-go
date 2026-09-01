@@ -220,6 +220,8 @@ export const resources = {
         sceneMode: {
           ready: '正常',
           loading: 'Loading / Skeleton',
+          refreshing: '保留内容刷新',
+          background: '后台静默刷新',
           empty: 'Empty',
           partialError: 'Partial Error',
           offline: 'Offline',
@@ -555,6 +557,8 @@ export const resources = {
             'Pagination 表达边界、当前页、Ellipsis 和整体禁用，集合状态留给 Feature。',
           disabledPagination: '禁用分页',
           tabsDescription: 'TabsView 只切换同一内容域，保留 selected、disabled 和键盘语义。',
+          tabsSectionDescription:
+            'section Variant 用于 Card、Form、Settings 等内容分区，Tab 区与受控内容形成所属关系。',
           contentTabsLabel: '内容视图 Tabs',
           dataTableDescription: 'DataTable 展示排序、单选、多选、行标题、空集合、密度和溢出契约。',
           tableMode: '表格状态',
@@ -843,6 +847,8 @@ export const resources = {
         sceneMode: {
           ready: 'Ready',
           loading: 'Loading / Skeleton',
+          refreshing: 'Refresh with stale content',
+          background: 'Silent background refresh',
           empty: 'Empty',
           partialError: 'Partial error',
           offline: 'Offline',
@@ -1211,6 +1217,8 @@ export const resources = {
           disabledPagination: 'Disabled pagination',
           tabsDescription:
             'TabsView switches one content domain and retains selected, disabled, and keyboard semantics.',
+          tabsSectionDescription:
+            'The section variant targets content partitions inside Card, Form, and Settings, binding the tab region to the controlled content.',
           contentTabsLabel: 'Content view tabs',
           dataTableDescription:
             'DataTable exposes sort, single and multiple selection, row headers, empty state, density, and overflow.',

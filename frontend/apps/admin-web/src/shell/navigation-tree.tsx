@@ -31,7 +31,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { createElement } from 'react';
 
-import { pageTransitionTypes } from '../layouts/page-transition-constants';
+import { markForwardRouteIntent, pageTransitionTypes } from '../host/route-transition-constants';
+import { beginNavigation } from '../host/navigation-progress';
 
 const iconByNavigationId: Readonly<Record<string, LucideIcon>> = {
   overview: LayoutDashboard,
@@ -73,7 +74,11 @@ export function NavigationTree({
         transitionTypes={[pageTransitionTypes.forward]}
         {...(ariaLabel ? { 'aria-label': ariaLabel } : {})}
         {...(title ? { title } : {})}
-        {...(onLinkNavigate ? { onClick: () => queueMicrotask(onLinkNavigate) } : {})}
+        onClick={() => {
+          markForwardRouteIntent();
+          beginNavigation(t('shell.primaryNav'));
+          if (onLinkNavigate) queueMicrotask(onLinkNavigate);
+        }}
       >
         {children}
       </Link>

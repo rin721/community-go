@@ -153,6 +153,7 @@ export function SurfacesPage() {
               <Panel appearance="outlined" className="p-4">
                 <TabsView
                   label={t('uiElements.tabsLabel')}
+                  variant="section"
                   items={[
                     {
                       id: 'normal',

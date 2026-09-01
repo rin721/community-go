@@ -96,6 +96,88 @@
     background: var(--ds-danger);
   }
 
+  .admin-viewport-reveal[data-reveal='pending'] {
+    opacity: 0;
+    transform: translateY(var(--motion-distance-reveal));
+  }
+
+  .admin-viewport-reveal[data-reveal='revealed'] {
+    animation:
+      content-fade-in var(--motion-duration-feedback) var(--ease-product) both,
+      content-rise-in var(--motion-duration-feedback) var(--ease-product) both;
+  }
+
+  html[data-motion-reveal='off'] .admin-viewport-reveal {
+    opacity: 1;
+    transform: none;
+    animation-duration: 0.01ms;
+  }
+
+  /* Route content.enter 在 View Transition 快照交接后作用于真实 Region，避免页面内容突然落位。 */
+  .admin-route-content[data-route-enter='true']
+    > .space-y-admin-page
+    > :not(.admin-viewport-reveal) {
+    animation:
+      content-fade-in var(--motion-duration-feedback) var(--ease-product) both,
+      content-rise-in var(--motion-duration-feedback) var(--ease-product) both;
+    animation-delay: var(--motion-delay-route-content);
+  }
+
+  .admin-route-content[data-route-enter='true'][data-route-kind='forward']
+    > .space-y-admin-page
+    > :not(.admin-viewport-reveal) {
+    animation-delay: var(--motion-delay-route-forward);
+  }
+
+  .admin-route-content[data-route-enter='true']
+    > .space-y-admin-page
+    > :not(.admin-viewport-reveal):nth-child(2) {
+    animation-delay: calc(var(--motion-delay-route-content) + var(--motion-duration-fast));
+  }
+
+  .admin-route-content[data-route-enter='true'][data-route-kind='forward']
+    > .space-y-admin-page
+    > :not(.admin-viewport-reveal):nth-child(2) {
+    animation-delay: calc(var(--motion-delay-route-forward) + var(--motion-duration-fast));
+  }
+
+  .admin-route-content[data-route-enter='true']
+    > .space-y-admin-page
+    > :not(.admin-viewport-reveal):nth-child(n + 3) {
+    animation-delay: calc(var(--motion-delay-route-content) + var(--motion-duration-standard));
+  }
+
+  .admin-route-content[data-route-enter='true'][data-route-kind='forward']
+    > .space-y-admin-page
+    > :not(.admin-viewport-reveal):nth-child(n + 3) {
+    animation-delay: calc(var(--motion-delay-route-forward) + var(--motion-duration-standard));
+  }
+
+  html[data-motion-screen='off']
+    .admin-route-content[data-route-enter='true']
+    > .space-y-admin-page
+    > :not(.admin-viewport-reveal) {
+    animation-duration: 0.01ms;
+    animation-delay: 0ms;
+  }
+
+  .admin-state-region:is(
+      [data-state='ready'],
+      [data-state='refreshing'],
+      [data-state='background'],
+      [data-state='partial'],
+      [data-state='readonly']
+    )
+    > .admin-state-region-content {
+    animation:
+      content-fade-in var(--motion-duration-standard) var(--ease-product) both,
+      content-rise-in var(--motion-duration-standard) var(--ease-product) both;
+  }
+
+  html[data-motion-async='off'] .admin-state-region-content {
+    animation-duration: 0.01ms;
+  }
+
   @media (min-width: 80rem) {
     .admin-split-view {
       grid-template-columns: minmax(0, 2fr) minmax(var(--spacing-admin-detail-min), 1fr);
@@ -152,6 +234,24 @@
       var(--motion-duration-fast) both;
 }
 
+::view-transition-old(.route-content-ready) {
+  animation: content-fade-out var(--motion-duration-fast) var(--ease-product) both;
+}
+
+::view-transition-new(.route-content-ready) {
+  animation:
+    content-fade-in var(--motion-duration-feedback) var(--ease-product) both,
+    content-rise-in var(--motion-duration-feedback) var(--ease-product) both;
+}
+
+html[data-motion-screen='off']::view-transition-old(.nav-forward),
+html[data-motion-screen='off']::view-transition-new(.nav-forward),
+html[data-motion-screen='off']::view-transition-old(.route-content-ready),
+html[data-motion-screen='off']::view-transition-new(.route-content-ready) {
+  animation-duration: 0.01ms;
+  animation-delay: 0ms;
+}
+
 ::view-transition-group(app-header),
 ::view-transition-group(app-sidebar) {
   animation: none;
@@ -198,9 +298,11 @@
     animation: none;
   }
 
-  ::view-transition-old(.nav-forward),
-  ::view-transition-new(.nav-forward),
-  ::view-transition-group(.nav-forward) {
+  html:not([data-motion-mode='full'])::view-transition-old(.nav-forward),
+  html:not([data-motion-mode='full'])::view-transition-new(.nav-forward),
+  html:not([data-motion-mode='full'])::view-transition-group(.nav-forward),
+  html:not([data-motion-mode='full'])::view-transition-old(.route-content-ready),
+  html:not([data-motion-mode='full'])::view-transition-new(.route-content-ready) {
     animation-duration: 0.01ms;
     animation-delay: 0ms;
   }

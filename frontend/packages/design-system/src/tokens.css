@@ -33,6 +33,7 @@
   --spacing-control-sm: 2.25rem;
   --spacing-control: 2.75rem;
   --spacing-control-lg: 3rem;
+  --spacing-progress-bar: 0.1875rem;
   --spacing-icon-sm: 1rem;
   --spacing-icon: 1.25rem;
   --spacing-icon-lg: 1.5rem;
@@ -58,9 +59,13 @@
 
 :root {
   color-scheme: light;
-  --motion-duration-fast: 120ms;
-  --motion-duration-standard: 180ms;
-  --motion-duration-slow: 240ms;
+  /* Motion Inspector 只调整调试倍率，基础档位仍是唯一数值权威。 */
+  --motion-debug-scale: 1;
+  --motion-delay-route-forward: calc(var(--motion-duration-fast) + var(--motion-duration-page));
+  --motion-delay-route-content: var(--motion-duration-feedback);
+  --motion-duration-fast: calc(120ms * var(--motion-debug-scale));
+  --motion-duration-standard: calc(180ms * var(--motion-debug-scale));
+  --motion-duration-slow: calc(240ms * var(--motion-debug-scale));
   /* 用途语义：动效按交互用途引用，不按数值引用（权威：docs/motion-foundation.md） */
   --motion-duration-control: var(
     --motion-duration-fast
@@ -71,6 +76,13 @@
   --motion-duration-page: var(
     --motion-duration-slow
   ); /* 页面级转场（消费者：motion.css 与未来页面容器） */
+  /* 顶部进度条：进入/推进/补满/退出使用 progress 语义档位（消费者：top-progress 组件）。
+   * --motion-duration-progress 是 Enter/Complete/Exit 的短档位（反馈语义）；
+   * --motion-duration-progress-cycle 是"从左侧持续延伸"的完整循环周期：
+   * 太短会让延伸肉眼不可辨，太长则等待感过重；1.1s 是克制的反馈节奏。
+   * 每次导航都保证一次完整视觉周期，不采用"导航太快就不显示"的门限策略。 */
+  --motion-duration-progress: var(--motion-duration-feedback);
+  --motion-duration-progress-cycle: 1.1s;
   /* 页面转场保持 60px 位移：097 尝试轻转场（1rem）因本机移动端溢出用例的时序问题回退，评估记录见 changes/097 */
   --motion-distance-page: 3.75rem; /* 页面转场滑动位移语义（motion.css 消费） */
   --motion-distance-reveal: 0.5rem; /* 内容/区域进场抬升位移（content.enter 配方消费；登记：未来 section.reveal） */
@@ -135,12 +147,21 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  html:not([data-motion-mode='full']) *,
+  html:not([data-motion-mode='full']) *::before,
+  html:not([data-motion-mode='full']) *::after {
     scroll-behavior: auto;
     animation-duration: 0.01ms;
     animation-iteration-count: 1;
     transition-duration: 0.01ms;
   }
+}
+
+html:is([data-motion-mode='reduced'], [data-motion-mode='off']) *,
+html:is([data-motion-mode='reduced'], [data-motion-mode='off']) *::before,
+html:is([data-motion-mode='reduced'], [data-motion-mode='off']) *::after {
+  scroll-behavior: auto;
+  animation-duration: 0.01ms;
+  animation-iteration-count: 1;
+  transition-duration: 0.01ms;
 }

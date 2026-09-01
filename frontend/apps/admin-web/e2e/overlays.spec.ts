@@ -60,7 +60,7 @@ test('九个 Family 页面逐项公开全部 UI Element', async ({ page }) => {
     },
     {
       path: '/ui-elements/identity-display',
-      elements: ['Avatar', 'UserIdentity', 'DescriptionList'],
+      elements: ['Avatar', 'UserIdentity', 'ReadyImage', 'DescriptionList'],
     },
     {
       path: '/ui-elements/navigation',
@@ -109,13 +109,13 @@ test('九个 Family 页面逐项公开全部 UI Element', async ({ page }) => {
     },
   ] as const;
 
-  expect(families.flatMap(({ elements }) => elements)).toHaveLength(45);
+  expect(families.flatMap(({ elements }) => elements)).toHaveLength(46);
   for (const family of families) {
     await page.goto(family.path);
     await expect(
       page.getByRole('navigation', { name: 'UI Elements 分类导航' }).getByRole('link'),
     ).toHaveCount(9);
-    await expect(page.getByText('公开 Element 45 / 45')).toBeVisible();
+    await expect(page.getByText('公开 Element 46 / 46')).toBeVisible();
     for (const element of family.elements) {
       await expect(page.getByRole('heading', { level: 3, name: element, exact: true })).toHaveCount(
         1,
@@ -295,6 +295,49 @@ test('Tabs 保持 HeroUI 键盘语义并由父 Surface 提供内边距', async (
   await assertOverlayAccessibility(page);
 });
 
+test('TabsView line 与 section Variant 保持独立且状态一致', async ({ page }) => {
+  await page.goto('/ui-elements/navigation');
+  await expect(page.locator('html')).toHaveAttribute('data-hydrated', 'true');
+
+  // Showcase 同时展示 line（默认）与 section 两个 Variant
+  const tablists = page.getByRole('tablist');
+  await expect(tablists).toHaveCount(2);
+
+  // line：透明 TabList、无圆角、底部有 1px 基线
+  const line = tablists.nth(0);
+  await expect(line).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  await expect(line).toHaveCSS('border-bottom-width', '1px');
+  const lineBorderColor = await line.evaluate(
+    (element) => getComputedStyle(element).borderBottomColor,
+  );
+  expect(lineBorderColor).toBe('rgb(228, 231, 238)'); // --ds-border light
+
+  // section：浅色 surface 容器、顶部圆角、无全宽 divider
+  const section = tablists.nth(1);
+  const sectionBg = await section.evaluate((element) => getComputedStyle(element).backgroundColor);
+  expect(sectionBg).toBe('rgb(240, 242, 247)'); // --ds-surface-muted light
+  await expect(section).toHaveCSS('border-bottom-width', '0px');
+
+  // 两个 Variant 的选中态一致：brand 前景 + semibold（状态模型统一）
+  for (const tablist of [line, section]) {
+    const selected = tablist.getByRole('tab', { name: '正常' });
+    await expect(selected).toHaveAttribute('aria-selected', 'true');
+    await expect(selected).toHaveCSS('color', 'rgb(93, 73, 214)'); // --ds-brand light
+    await expect(selected).toHaveCSS('font-weight', '600');
+    const borderColor = await selected.evaluate(
+      (element) => getComputedStyle(element).borderBottomColor,
+    );
+    expect(borderColor).toBe('rgb(93, 73, 214)'); // brand 下划线 indicator
+  }
+
+  // 切换 section 的 Tab：键盘与选中态仍正确（从"正常"向右移到"空状态"）
+  await section.getByRole('tab', { name: '正常' }).press('ArrowRight');
+  await expect(section.getByRole('tab', { name: '空状态' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+});
+
 test('Select 与 Combobox 使用统一 Popup、键盘和选中状态', async ({ page }) => {
   await page.goto('/ui-elements/forms');
   await page.getByRole('button', { name: '引导执行 Select' }).click();
@@ -374,7 +417,9 @@ test('DatePicker 与 Command 展开面支持键盘及无障碍扫描', async ({ 
   const datePickerTrigger = page.getByRole('button', { name: '日历 DatePicker' });
   // 触发元素位于首屏之外：先滚动进入视口再点击，避免打开弹层时的滚动定位竞态
   // （页面转场组件加入后，点击视口外触发器会偶发改变锚点测量结果）
-  await datePickerTrigger.scrollIntoViewIfNeeded();
+  await datePickerTrigger.evaluate((element) =>
+    element.scrollIntoView({ behavior: 'instant', block: 'center' }),
+  );
   await datePickerTrigger.click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await expect(page).toHaveScreenshot('ui-elements-date-picker-open.png');

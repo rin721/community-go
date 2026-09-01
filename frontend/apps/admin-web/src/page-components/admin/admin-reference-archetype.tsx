@@ -22,8 +22,6 @@ import { StateSurface } from '@community-go/ui-adapter/state-surface';
 import { StatusPill } from '@community-go/ui-adapter/status-pill';
 import { Clock3, FileText } from 'lucide-react';
 
-import { PageTransition } from '../../layouts/page-transition';
-
 export type AdminArchetype = 'overview' | 'detail' | 'settings' | 'master-detail' | 'operation';
 
 const labels = {
@@ -213,16 +211,14 @@ export function AdminReferenceArchetype({ kind }: Readonly<{ kind: AdminArchetyp
     );
 
   return (
-    <PageTransition>
-      <AdminPage>
-        <AdminPageHeader
-          actions={<StatusPill tone="info">Reference Scenario</StatusPill>}
-          description={description}
-          eyebrow="Admin Page Archetype"
-          title={title}
-        />
-        {scenario}
-      </AdminPage>
-    </PageTransition>
+    <AdminPage>
+      <AdminPageHeader
+        actions={<StatusPill tone="info">Reference Scenario</StatusPill>}
+        description={description}
+        eyebrow="Admin Page Archetype"
+        title={title}
+      />
+      {scenario}
+    </AdminPage>
   );
 }

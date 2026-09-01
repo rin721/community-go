@@ -1,7 +1,8 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  distDir: 'dist',
+  // Playwright 的 dev server 使用独立目录，避免 production build 覆盖正在运行的开发缓存。
+  distDir: process.env.NEXT_DIST_DIR ?? 'dist',
   output: 'export',
   transpilePackages: [
     '@community-go/core',

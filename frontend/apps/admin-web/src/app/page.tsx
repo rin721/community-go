@@ -17,8 +17,8 @@ import {
 } from 'lucide-react';
 import { useFrontendTranslation } from '@community-go/i18n';
 
-import { PageTransition } from '../layouts/page-transition';
 import { RouterTextLink } from '../host/router-text-link';
+import { ViewportReveal } from '../host/viewport-reveal';
 
 const capabilityDefinitions = [
   { id: 'design', progress: 78, icon: Layers3, status: 'ready' },
@@ -38,52 +38,52 @@ export default function OverviewPage() {
   const { t } = useFrontendTranslation();
 
   return (
-    <PageTransition>
-      <div className="space-y-6">
-        <Panel className="relative overflow-hidden p-6 sm:p-8 xl:p-10" tone="brand">
-          <div className="pointer-events-none absolute -right-16 -top-24 size-72 rounded-full bg-brand/10 blur-3xl" />
-          <div className="relative max-w-3xl">
-            <p className="text-xs font-bold uppercase tracking-widest text-brand">
-              {t('overview.eyebrow')}
-            </p>
-            <h1 className="mt-4 max-w-2xl text-balance text-3xl font-extrabold tracking-tight text-ink sm:text-4xl xl:text-5xl">
-              {t('overview.title')}
-            </h1>
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-ink-muted sm:text-base">
-              {t('overview.description')}
-            </p>
-            <div className="mt-7 flex flex-wrap gap-5">
-              <RouterTextLink href="/foundations" leadingIcon={<Layers3 className="size-4" />}>
-                {t('overview.action')}
-              </RouterTextLink>
-              <RouterTextLink href="/states" tone="neutral">
-                {t('overview.secondaryAction')}
-              </RouterTextLink>
-            </div>
+    <div className="space-y-6">
+      <Panel className="relative overflow-hidden p-6 sm:p-8 xl:p-10" tone="brand">
+        <div className="pointer-events-none absolute -right-16 -top-24 size-72 rounded-full bg-brand/10 blur-3xl" />
+        <div className="relative max-w-3xl">
+          <p className="text-xs font-bold uppercase tracking-widest text-brand">
+            {t('overview.eyebrow')}
+          </p>
+          <h1 className="mt-4 max-w-2xl text-balance text-3xl font-extrabold tracking-tight text-ink sm:text-4xl xl:text-5xl">
+            {t('overview.title')}
+          </h1>
+          <p className="mt-4 max-w-2xl text-sm leading-7 text-ink-muted sm:text-base">
+            {t('overview.description')}
+          </p>
+          <div className="mt-7 flex flex-wrap gap-5">
+            <RouterTextLink href="/foundations" leadingIcon={<Layers3 className="size-4" />}>
+              {t('overview.action')}
+            </RouterTextLink>
+            <RouterTextLink href="/states" tone="neutral">
+              {t('overview.secondaryAction')}
+            </RouterTextLink>
           </div>
-        </Panel>
+        </div>
+      </Panel>
 
-        <section className="metric-grid gap-4" aria-label="Foundation metrics">
-          {metrics.map(({ value, label, detail, icon: Icon }) => (
-            <Card key={label}>
-              <CardContent>
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-ink-muted">
-                      {t(`overview.metrics.${label}`)}
-                    </p>
-                    <p className="mt-3 text-3xl font-extrabold tracking-tight text-ink">{value}</p>
-                    <p className="mt-1 text-xs text-ink-muted">{t(`overview.metrics.${detail}`)}</p>
-                  </div>
-                  <span className="grid size-11 place-items-center rounded-control bg-brand-soft text-brand">
-                    <Icon className="size-5" />
-                  </span>
+      <section className="metric-grid gap-4" aria-label="Foundation metrics">
+        {metrics.map(({ value, label, detail, icon: Icon }) => (
+          <Card key={label}>
+            <CardContent>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-medium text-ink-muted">
+                    {t(`overview.metrics.${label}`)}
+                  </p>
+                  <p className="mt-3 text-3xl font-extrabold tracking-tight text-ink">{value}</p>
+                  <p className="mt-1 text-xs text-ink-muted">{t(`overview.metrics.${detail}`)}</p>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </section>
+                <span className="grid size-11 place-items-center rounded-control bg-brand-soft text-brand">
+                  <Icon className="size-5" />
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </section>
 
+      <ViewportReveal>
         <div className="grid gap-6 xl:grid-cols-3">
           <Panel className="p-5 sm:p-6 xl:col-span-2">
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -176,7 +176,7 @@ export default function OverviewPage() {
             </Panel>
           </div>
         </div>
-      </div>
-    </PageTransition>
+      </ViewportReveal>
+    </div>
   );
 }

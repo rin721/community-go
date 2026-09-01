@@ -1,8 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
 
 // AsyncRegion（Async Content Transition，recipe: content.enter）验证：
-// loading→ready 播放内容进场动画、reduced-motion 无位移动画、快速切换无残留、
-// loading 态 aria-busy 与 data-state 语义。动画经页面内 rAF watcher 观察
+// initial→ready 播放内容进场动画、refresh/background 保留内容、reduced-motion 无位移动画、
+// initial 态 aria-busy 与 data-phase 语义。动画经页面内 rAF watcher 观察
 // document.getAnimations() 中的 content-* keyframes（design-system motion.css 定义）。
 type MotionRecord = {
   sawContentEnter: boolean;
@@ -60,15 +60,15 @@ test('AsyncRegion 数据就绪后播放内容进场动画并维持加载语义',
   await startMotionWatcher(page);
   await setSceneMode(page, 'Loading / Skeleton');
 
-  // loading 态：data-state 与 aria-busy 语义，区域内为 Skeleton 结构
-  await expect(asyncRegion(page)).toHaveAttribute('data-state', 'loading');
+  // initial 态：data-phase 与 aria-busy 语义，区域内为 Skeleton 结构
+  await expect(asyncRegion(page)).toHaveAttribute('data-phase', 'initial');
   await expect(asyncRegion(page)).toHaveAttribute('aria-busy', 'true');
   await expect(asyncRegion(page).locator('[data-slot="skeleton"]')).toHaveCount(8);
 
   // 数据就绪：内容进场动画（content.enter 配方）
   await setSceneMode(page, '正常');
   await expect(page.getByRole('grid')).toBeVisible();
-  await expect(asyncRegion(page)).toHaveAttribute('data-state', 'ready');
+  await expect(asyncRegion(page)).toHaveAttribute('data-phase', 'ready');
   await page.waitForTimeout(600);
 
   const record = await readMotionRecord(page);
@@ -110,16 +110,35 @@ test('AsyncRegion 快速连续切换后无动画残留与状态污染', async ({
   await expect(page.getByRole('grid')).toBeVisible();
   await page.waitForTimeout(600);
 
-  await expect(asyncRegion(page)).toHaveAttribute('data-state', 'ready');
+  await expect(asyncRegion(page)).toHaveAttribute('data-phase', 'ready');
   await expect(asyncRegion(page)).not.toHaveAttribute('aria-busy', 'true');
 
   const runningContent = await page.evaluate(() => {
     let count = 0;
     for (const animation of document.getAnimations()) {
       const name = (animation as CSSAnimation).animationName;
-      if (name.includes('content-') && animation.playState === 'running') count += 1;
+      if (name?.includes('content-') && animation.playState === 'running') count += 1;
     }
     return count;
   });
   expect(runningContent).toBe(0);
+});
+
+test('refreshing 保留旧内容并 busy，background 保留内容且静默', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/admin-reference/resource-list');
+  await expect(page.locator('html')).toHaveAttribute('data-hydrated', 'true');
+  await expect(page.getByRole('grid')).toBeVisible();
+
+  await setSceneMode(page, '保留内容刷新');
+  await expect(asyncRegion(page)).toHaveAttribute('data-phase', 'refreshing');
+  await expect(asyncRegion(page)).toHaveAttribute('aria-busy', 'true');
+  await expect(page.getByRole('grid')).toBeVisible();
+  await expect(page.getByText('保留内容刷新').last()).toBeVisible();
+
+  await setSceneMode(page, '后台静默刷新');
+  await expect(asyncRegion(page)).toHaveAttribute('data-phase', 'background');
+  await expect(asyncRegion(page)).not.toHaveAttribute('aria-busy');
+  await expect(page.getByRole('grid')).toBeVisible();
+  await expect(asyncRegion(page).getByText('保留内容刷新')).toHaveCount(0);
 });

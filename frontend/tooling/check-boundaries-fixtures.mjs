@@ -80,6 +80,60 @@ const negativeFixtures = [
     },
     rule: 'Token governance',
   },
+  {
+    name: 'empty suspense fallback',
+    input: {
+      content: `<Suspense fallback={null}><Page /></Suspense>`,
+      extension: '.tsx',
+      localPath: 'apps/admin-web/src/app/example.tsx',
+    },
+    rule: 'Content continuity',
+  },
+  {
+    name: 'feature keyframes',
+    input: {
+      content: `@keyframes local-enter { from { opacity: 0; } }`,
+      extension: '.css',
+      localPath: 'apps/admin-web/src/app/example.css',
+    },
+    rule: 'Motion governance',
+  },
+  {
+    name: 'numeric motion utility',
+    input: {
+      content: `<div className="duration-300" />`,
+      extension: '.tsx',
+      localPath: 'apps/admin-web/src/app/example.tsx',
+    },
+    rule: 'Motion governance',
+  },
+  {
+    name: 'feature observer',
+    input: {
+      content: `const observer = new IntersectionObserver(() => undefined);`,
+      extension: '.tsx',
+      localPath: 'apps/admin-web/src/app/example.tsx',
+    },
+    rule: 'Host isolation',
+  },
+  {
+    name: 'feature media query',
+    input: {
+      content: `window.matchMedia('(prefers-reduced-motion: reduce)');`,
+      extension: '.tsx',
+      localPath: 'apps/admin-web/src/app/example.tsx',
+    },
+    rule: 'Host isolation',
+  },
+  {
+    name: 'feature motion attribute',
+    input: {
+      content: `<div data-motion-recipe="screen" />`,
+      extension: '.tsx',
+      localPath: 'apps/admin-web/src/page-components/example.tsx',
+    },
+    rule: 'Motion governance',
+  },
 ];
 
 for (const fixture of negativeFixtures) {

@@ -38,6 +38,46 @@
   }
 }
 
+@layer components {
+  /* Top Progress：应用级 Global Pending 的顶部反馈（Host 单例，见 host/top-progress.tsx）。
+   * 关键帧与 recipe 登记在 packages/design-system/src/motion.css；
+   * reduced/off 由 tokens.css 全局 Motion Policy 覆盖。
+   * 视觉周期：Enter（fill 从 0 宽度自然出现）→ Active（持续延伸）→
+   * Complete（快速补满 100%）→ Exit（容器淡出）。每次导航都保证完整周期，
+   * 不采用"导航太快就不显示"的门限策略。 */
+  .top-progress {
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .top-progress-fill {
+    position: absolute;
+    inset-block: 0;
+    left: 0;
+    width: 0%;
+    border-radius: 9999px;
+  }
+
+  /* Enter + Active：fill 从左侧起点单次延伸至 85% 后保持（forwards），
+   * 绝不回缩或重新从零加载；慢速导航下 fill 停留在 85% 持续表达 Pending。 */
+  .top-progress[data-phase='pending'] .top-progress-fill {
+    animation: progress-grow var(--motion-duration-progress-cycle) var(--ease-product) forwards;
+  }
+
+  /* Complete：fill 快速补满至 100%。 */
+  .top-progress[data-phase='completing'] .top-progress-fill {
+    width: 100%;
+    animation: none;
+    transition: width var(--motion-duration-progress) var(--ease-product);
+  }
+
+  /* Exit：补满后容器轻量淡出；animationend 通知组件卸载。 */
+  .top-progress[data-phase='completing'] {
+    animation: progress-fade-out var(--motion-duration-progress) var(--ease-product) both;
+    animation-delay: var(--motion-duration-progress);
+  }
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;

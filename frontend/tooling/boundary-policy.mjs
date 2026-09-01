@@ -4,6 +4,14 @@ export function findSourcePolicyViolations({ content, extension, localPath }) {
   const violations = [];
   const isUiAdapter = localPath.startsWith('packages/ui-adapter/');
   const isTest = testPathPattern.test(localPath);
+  const isMotionKeyframeAuthority = [
+    'packages/design-system/src/motion.css',
+    'packages/admin-foundation/src/styles.css',
+  ].includes(localPath);
+  const isHostMotionBoundary = localPath.startsWith('apps/admin-web/src/host/');
+  const isFeatureSource =
+    localPath.startsWith('apps/admin-web/src/app/') ||
+    localPath.startsWith('apps/admin-web/src/page-components/');
 
   if (
     extension === '.tsx' &&
@@ -57,6 +65,30 @@ export function findSourcePolicyViolations({ content, extension, localPath }) {
     /#[0-9a-fA-F]{3,8}\b|rgba?\(/.test(content)
   ) {
     violations.push(['Token governance', '硬编码颜色只能由 Design Token 权威文件声明']);
+  }
+
+  if (extension === '.tsx' && /fallback\s*=\s*\{\s*null\s*\}/m.test(content)) {
+    violations.push(['Content continuity', 'Suspense 必须提供结构化 Loading，不得使用空 fallback']);
+  }
+
+  if (extension === '.css' && !isMotionKeyframeAuthority && /@keyframes\b/.test(content)) {
+    violations.push(['Motion governance', 'Keyframes 只能由 Motion 权威样式登记']);
+  }
+
+  if (extension === '.tsx' && /\b(?:duration|delay)-\d+\b/.test(content)) {
+    violations.push(['Motion governance', '组件不得硬编码 Tailwind duration 或 delay 数值']);
+  }
+
+  if (!isTest && !isHostMotionBoundary && /\bIntersectionObserver\b/.test(content)) {
+    violations.push(['Host isolation', 'IntersectionObserver 生命周期只能由 Host 管理']);
+  }
+
+  if (!isTest && !isHostMotionBoundary && /\bmatchMedia\s*\(/.test(content)) {
+    violations.push(['Host isolation', 'matchMedia 偏好读取只能由 Host Motion Policy 管理']);
+  }
+
+  if (extension === '.tsx' && isFeatureSource && /\bdata-motion-[a-z-]+\s*=/.test(content)) {
+    violations.push(['Motion governance', 'Feature 不得写入 Motion Policy 或 Recipe 属性']);
   }
 
   return violations;

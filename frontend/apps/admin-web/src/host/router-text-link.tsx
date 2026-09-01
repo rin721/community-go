@@ -3,7 +3,8 @@
 import { TextLink, type TextLinkProps } from '@community-go/ui-adapter/navigation';
 import { useRouter } from 'next/navigation';
 
-import { pageTransitionTypes } from '../layouts/page-transition-constants';
+import { beginNavigation } from './navigation-progress';
+import { markForwardRouteIntent, pageTransitionTypes } from './route-transition-constants';
 
 type RouterTextLinkProps = Omit<TextLinkProps, 'onNavigate'>;
 
@@ -13,7 +14,11 @@ export function RouterTextLink({ href, ...props }: RouterTextLinkProps) {
     <TextLink
       {...props}
       href={href}
-      onNavigate={() => void router.push(href, { transitionTypes: [pageTransitionTypes.forward] })}
+      onNavigate={() => {
+        markForwardRouteIntent();
+        beginNavigation();
+        void router.push(href, { transitionTypes: [pageTransitionTypes.forward] });
+      }}
     />
   );
 }

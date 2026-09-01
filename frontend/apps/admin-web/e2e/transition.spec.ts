@@ -8,21 +8,30 @@ import { expect, test, type Page } from '@playwright/test';
 // （route data 迟到/useSearchParams Suspense），属于官方已说明的降级行为。
 type TransitionRecord = {
   sawTransition: boolean;
+  sawRouteContentEnter: boolean;
   maxDurationMs: number;
   animationNames: string[];
 };
 
 async function startTransitionWatcher(page: Page) {
   await page.evaluate(() => {
-    const record: TransitionRecord = { sawTransition: false, maxDurationMs: 0, animationNames: [] };
+    const record: TransitionRecord = {
+      sawTransition: false,
+      sawRouteContentEnter: false,
+      maxDurationMs: 0,
+      animationNames: [],
+    };
     (window as unknown as { __transitionWatch?: TransitionRecord }).__transitionWatch = record;
     const startedAt = performance.now();
     const poll = () => {
       for (const animation of document.getAnimations()) {
         const effect = animation.effect as (KeyframeEffect & { pseudoElement?: string }) | null;
+        const name = (animation as CSSAnimation).animationName;
+        if (!effect?.pseudoElement && name?.includes('content-')) {
+          record.sawRouteContentEnter = true;
+        }
         if (effect?.pseudoElement?.includes('view-transition')) {
           record.sawTransition = true;
-          const name = (animation as CSSAnimation).animationName;
           if (name && !record.animationNames.includes(name)) record.animationNames.push(name);
           const duration = Number(effect.getComputedTiming().duration ?? 0);
           if (Number.isFinite(duration)) {
@@ -41,6 +50,7 @@ async function readTransitionRecord(page: Page): Promise<TransitionRecord> {
     return (
       (window as unknown as { __transitionWatch?: TransitionRecord }).__transitionWatch ?? {
         sawTransition: false,
+        sawRouteContentEnter: false,
         maxDurationMs: 0,
         animationNames: [],
       }
@@ -117,6 +127,7 @@ test('无 Suspense 页面深入导航播放完整方向滑动并清理临时样�
   expect(record.animationNames).toContain('admin-screen-slide-in');
   expect(record.animationNames).toContain('admin-screen-slide-out');
   expect(record.maxDurationMs).toBeGreaterThanOrEqual(200);
+  expect(record.sawRouteContentEnter).toBe(true);
 
   // 转场结束后 React 必须还原临时 inline 样式（view-transition-name/class）
   const leftoverCount = await page.evaluate(() => {

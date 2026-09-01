@@ -2,6 +2,7 @@
 
 import { Action } from '@community-go/ui-adapter/action';
 import { AlertBanner, Badge, NotificationCard } from '@community-go/ui-adapter/feedback';
+import { FeedbackPresence } from '@community-go/ui-adapter/feedback-presence';
 import { useFeedback } from '@community-go/ui-adapter/feedback-context';
 import { AlertTriangle, Bell, CheckCircle2, ChevronRight, Info, XCircle } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -56,7 +57,7 @@ export function FeedbackPage() {
                 ]}
               >
                 <div className="grid gap-3 lg:grid-cols-2">
-                  {alertVisible ? (
+                  <FeedbackPresence visible={alertVisible}>
                     <AlertBanner
                       tone="success"
                       icon={<CheckCircle2 className="size-5" />}
@@ -65,11 +66,12 @@ export function FeedbackPage() {
                       dismissLabel={t('uiElements.alertDismiss')}
                       onDismiss={() => setAlertVisible(false)}
                     />
-                  ) : (
+                  </FeedbackPresence>
+                  {!alertVisible ? (
                     <Action variant="quiet" onPress={() => setAlertVisible(true)}>
                       {t('uiElements.alertRestore')}
                     </Action>
-                  )}
+                  ) : null}
                   <AlertBanner
                     tone="warning"
                     icon={<AlertTriangle className="size-5" />}
@@ -126,7 +128,7 @@ export function FeedbackPage() {
                 description={t('uiElements.catalog.notificationDescription')}
                 states={['Primary action', 'Secondary action', 'Dismiss', 'Long content']}
               >
-                {notificationVisible ? (
+                <FeedbackPresence visible={notificationVisible}>
                   <NotificationCard
                     icon={<Bell className="size-5" />}
                     title={t('uiElements.notificationTitle')}
@@ -138,7 +140,8 @@ export function FeedbackPage() {
                     onSecondaryAction={() => setNotificationVisible(false)}
                     onDismiss={() => setNotificationVisible(false)}
                   />
-                ) : (
+                </FeedbackPresence>
+                {!notificationVisible ? (
                   <AlertBanner
                     tone="info"
                     icon={<Bell className="size-5" />}
@@ -147,7 +150,7 @@ export function FeedbackPage() {
                     actionLabel={t('uiElements.notificationRestore')}
                     onAction={() => setNotificationVisible(true)}
                   />
-                )}
+                ) : null}
               </ComponentPreview>
               <ComponentPreview
                 fullWidth

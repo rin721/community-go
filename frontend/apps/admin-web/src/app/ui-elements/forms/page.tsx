@@ -1,14 +1,12 @@
 import { Suspense } from 'react';
+import { AdminPageLoadingSurface } from '@community-go/admin-foundation/states-operations';
 
-import { PageTransition } from '../../../layouts/page-transition';
 import { FormElementsPage } from '../../../page-components/ui-elements/form-elements-page';
 
 export default function FormElementsRoute() {
   return (
-    <PageTransition>
-      <Suspense fallback={null}>
-        <FormElementsPage />
-      </Suspense>
-    </PageTransition>
+    <Suspense fallback={<AdminPageLoadingSurface kind="form" label="正在加载表单组件" />}>
+      <FormElementsPage />
+    </Suspense>
   );
 }

@@ -1,3 +1,4 @@
+import { AsyncRegion, type AsyncRegionPhase } from '@community-go/ui-adapter/async-region';
 import { ProgressMeter } from '@community-go/ui-adapter/progress-meter';
 import { Skeleton } from '@community-go/ui-adapter/skeleton';
 import { StateSurface } from '@community-go/ui-adapter/state-surface';
@@ -5,6 +6,41 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 describe('Status Family', () => {
+  it.each<AsyncRegionPhase>(['initial', 'ready', 'refreshing', 'background', 'empty', 'error'])(
+    'AsyncRegion 暴露 %s 阶段并保持统一 readiness 语义',
+    (phase) => {
+      render(
+        <AsyncRegion
+          empty={<p>empty state</p>}
+          error={<p>error state</p>}
+          label="异步区域"
+          loading={<p>loading state</p>}
+          phase={phase}
+          refreshing={<p>refresh state</p>}
+        >
+          <p>ready content</p>
+        </AsyncRegion>,
+      );
+
+      const region = screen.getByRole('region', { name: '异步区域' });
+      expect(region).toHaveAttribute('data-phase', phase);
+      if (phase === 'initial' || phase === 'refreshing') {
+        expect(region).toHaveAttribute('aria-busy', 'true');
+      } else {
+        expect(region).not.toHaveAttribute('aria-busy');
+      }
+      const readyContent = screen.getByText('ready content').parentElement;
+      if (['initial', 'empty', 'error'].includes(phase)) {
+        expect(readyContent).toHaveAttribute('hidden');
+      } else {
+        expect(readyContent).not.toHaveAttribute('hidden');
+      }
+      expect(screen.queryByText('refresh state')).toBe(
+        phase === 'refreshing' ? screen.getByText('refresh state') : null,
+      );
+    },
+  );
+
   it('ProgressMeter 将确定进度限制在 0 到 100', () => {
     const { rerender } = render(<ProgressMeter label="导入进度" value={140} />);
 

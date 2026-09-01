@@ -30,8 +30,8 @@ pnpm check
 
 本地入口为 `http://127.0.0.1:4173`。验证 authority 分层如下：
 
-- `/ui-elements/*`：45 个 Universal UI Element 的 Variant、状态、DOM、键盘与 Overlay 验收。
-- `/motion`：Universal Content Swap、Disclosure、Live Region 与 Reduced Motion Policy。
+- `/ui-elements/*`：46 个 Universal UI Element 的 Variant、状态、DOM、键盘与 Overlay 验收。
+- `/motion`：Async readiness、Viewport Reveal、Content Swap、Disclosure 与 development Motion Inspector。
 - `/admin-patterns/*`：Layout/Navigation、Collections/Data、Forms/Actions、States/Feedback、Detail/Settings。
 - `/admin-reference/*`：Overview、Resource List、Detail、Create/Edit、Settings、Master-Detail、Operation 七类完整 Page Archetype。
 
@@ -42,7 +42,7 @@ pnpm check
 - UI Element 只通过 `packages/ui-adapter` 直接依赖 HeroUI/React Aria。
 - Form 生命周期只通过 `packages/form-foundation` 直接依赖 React Hook Form/Resolver。
 - locale runtime 与 `Intl` formatter 只通过 `packages/i18n` 直接依赖 i18next/react-i18next。
-- Universal Motion Token/Primitive 位于 `packages/design-system`；方向性页面转场、Shell 锚定和 Admin 状态 Recipe 位于 `packages/admin-foundation`。
+- Universal Motion Token/Recipe 位于 `packages/design-system`，公共 readiness/presence/media contract 位于 `packages/ui-adapter`；方向性页面转场、Shell 锚定和 Admin 状态 Recipe 位于 `packages/admin-foundation`，Router/Observer/Policy 生命周期止于 `admin-web` Host。
 - Reference 场景归验证 Host，不进入公共 Feature Package。
 - 公共 exports、owner、成熟度、authority route 与证据登记在 `tooling/foundation-contracts.json`。
 

@@ -29,7 +29,7 @@ export function AdminPageHeader({
   actions,
 }: AdminPageHeaderProps) {
   return (
-    <header className="space-y-4">
+    <header className="admin-route-region space-y-4">
       {breadcrumbs && breadcrumbLabel ? (
         <BreadcrumbTrail
           items={breadcrumbs.map((item, index) => ({
@@ -97,7 +97,7 @@ export function AdminSection({
   appearance = 'elevated',
 }: AdminSectionProps) {
   const section = (
-    <Panel appearance={appearance} className="overflow-hidden">
+    <Panel appearance={appearance} className="admin-route-region overflow-hidden">
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border px-5 py-4">
         <div className="min-w-0">
           <h2 className="text-base font-bold text-ink">{title}</h2>
@@ -112,7 +112,7 @@ export function AdminSection({
   );
 
   return id ? (
-    <div className="scroll-mt-24" id={id}>
+    <div className="admin-route-region scroll-mt-24" id={id}>
       {section}
     </div>
   ) : (

@@ -22,7 +22,10 @@ import { useEffect, useState } from 'react';
 import { useFrontendTranslation } from '@community-go/i18n';
 import type { ReactNode } from 'react';
 
-import { pageTransitionTypes } from '../layouts/page-transition-constants';
+import { markForwardRouteIntent, pageTransitionTypes } from '../host/route-transition-constants';
+import { beginNavigation } from '../host/navigation-progress';
+import { RouteTransition } from '../host/route-transition';
+import { TopProgress } from '../host/top-progress';
 import { useShellStore } from '../state/use-shell-store';
 import { BrandMark } from './brand-mark';
 import { shellNavigationGroups } from './navigation';
@@ -115,6 +118,7 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
 
   return (
     <AdminShellRoot collapsed={sidebarCollapsed}>
+      <TopProgress />
       <aside
         className="sticky top-0 hidden h-screen flex-col border-r border-border bg-surface lg:flex"
         style={{ viewTransitionName: 'app-sidebar' }}
@@ -177,6 +181,8 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
               triggerLabel={t('shell.searchShortcut')}
               onAction={(href) => {
                 setCommandOpen(false);
+                markForwardRouteIntent();
+                beginNavigation(t('shell.search'));
                 void router.push(href, { transitionTypes: [pageTransitionTypes.forward] });
               }}
               onOpenChange={setCommandOpen}
@@ -207,14 +213,16 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
               label={
                 <UserIdentity avatarSize="sm" description={t('shell.productOwner')} name="Rin" />
               }
-              onAction={(href) =>
-                void router.push(href, { transitionTypes: [pageTransitionTypes.forward] })
-              }
+              onAction={(href) => {
+                markForwardRouteIntent();
+                beginNavigation(t('shell.account'));
+                void router.push(href, { transitionTypes: [pageTransitionTypes.forward] });
+              }}
             />
           </div>
         </header>
         <main className="mx-auto max-w-screen-2xl p-4 sm:p-6 xl:p-8" id="main-content">
-          {children}
+          <RouteTransition>{children}</RouteTransition>
         </main>
       </div>
     </AdminShellRoot>

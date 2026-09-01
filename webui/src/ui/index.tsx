@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type CSSProperties, type ReactNode } from "react";
 import { Dialog as RACDialog, Modal as RACModal } from "react-aria-components";
 import { Button as HeroButton, Card, Pagination as HeroPagination, SearchField as HeroSearchField, ToastProvider } from "@heroui/react";
-import { Check as CheckIcon, ChevronDown, ChevronRight, Copy, Search } from "lucide-react";
+import { Check as CheckIcon, ChevronDown, ChevronRight, Copy } from "lucide-react";
 import type { CapabilityState } from "../contracts";
 import { translateMessage } from "../i18n";
 import { Reveal } from "../motion/reveal";
@@ -10,14 +10,14 @@ import { Sparkline } from "./charts";
 import { Skeleton, StatusPill } from "./feedback";
 export { BatchResultSummary, CapabilityBanner, EmptyState, ErrorState, InlineAlert, Skeleton, Spinner, StatusBadge, StatusPill, Toast } from "./feedback";
 export type { SemanticStatus } from "./feedback";
-import { DateField, DateTimeField, FilterSelect, FilterTextField, type SelectOption } from "./forms";
-export { DateField, DateTimeField, Field, FilePicker, FilterSelect, FilterTextField, FormField, NumberField, SearchControl, SelectField, TextAreaField, fieldWidthClass } from "./forms";
+import { DateField, DateTimeField, FilterDateField, FilterSelect, FilterTextField, type SelectOption } from "./forms";
+export { DateField, DateTimeField, Field, FilePicker, FilterDateField, FilterSelect, FilterTextField, FormField, NumberField, SearchControl, SelectField, TextAreaField, fieldWidthClass } from "./forms";
 export type { FieldWidth, SelectOption } from "./forms";
 export { DataTable, DataTableRowMenu, getDataTableSelectionState } from "./data";
 export type { DataTableColumn, DataTableEnhancements, DataTableProps } from "./data";
 export { PageFrame } from "./layout";
 export type { PageFrameProps, PageFrameVariant } from "./layout";
-export { EntityDetail, ResourceIndex, StickyActionBar } from "./patterns";
+export { EntityDetail, ResourceIndex, StickyActionBar, WorkbenchShell } from "./patterns";
 export { Reveal, RevealList, revealRhythms, revealStaggerStep } from "../motion/reveal";
 export type { RevealProps, RevealRhythm } from "../motion/reveal";
 export { ToastProvider };
@@ -60,9 +60,9 @@ export { PageHeader, PageSection, Surface } from "./layout";
 export type { PageSectionProps } from "./layout";
 
 // Button 映射到 HeroUI Button：primary/secondary/ghost/danger。
-export function Button({ variant = "primary", className = "", type = "button", disabled, onClick, children, ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "secondary" | "ghost" | "danger" }) {
+export function Button({ variant = "primary", size = "md", className = "", type = "button", disabled, onClick, children, ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "secondary" | "ghost" | "danger"; size?: "sm" | "md" | "lg" }) {
   const heroVariant = variant === "ghost" ? "ghost" : variant === "danger" ? "danger" : variant === "secondary" ? "outline" : "primary";
-  return <HeroButton type={type} variant={heroVariant} size="md" isDisabled={disabled} onPress={() => onClick?.(undefined as unknown as React.MouseEvent<HTMLButtonElement>)} className={`ui-button ui-button-${variant} ${className}`.trim()} {...props as object}>{children}</HeroButton>;
+  return <HeroButton type={type} variant={heroVariant} size={size} isDisabled={disabled} onPress={() => onClick?.(undefined as unknown as React.MouseEvent<HTMLButtonElement>)} className={`ui-button ui-button-${variant} ui-button-size-${size} ${className}`.trim()} {...props as object}>{children}</HeroButton>;
 }
 
 export function DataToolbar({ filters, actions, ariaLabel }: { filters?: ReactNode; actions?: ReactNode; ariaLabel?: string }) {
@@ -209,6 +209,7 @@ export function ActionTrigger({ operationId, pending = false, pendingLabel, disa
   pendingLabel?: ReactNode;
   disabledReason?: ActionDisabledReason;
   deniedBehavior?: "hidden" | "disabled";
+  size?: "sm" | "md" | "lg";
   onAction?: () => Promise<unknown> | void;
   onError?: (error: Error) => void;
   variant?: "primary" | "secondary" | "ghost" | "danger";
@@ -435,9 +436,9 @@ function renderFilterField(field: FilterBarField) {
     case "text":
       return <FilterTextField key={field.key} label={field.label} value={typeof field.value === "string" ? field.value : ""} placeholder={field.placeholder} onValueChange={(next) => field.onValueChange(next)} />;
     case "date":
-      return <DateField key={field.key} label={String(field.label)} value={typeof field.value === "string" ? field.value : ""} onValueChange={(next) => field.onValueChange(next)} className="filter-field" />;
+      return <FilterDateField key={field.key} label={String(field.label)} type="date" value={typeof field.value === "string" ? field.value : ""} onValueChange={(next) => field.onValueChange(next)} />;
     case "datetime":
-      return <DateTimeField key={field.key} label={String(field.label)} value={typeof field.value === "string" ? field.value : ""} onValueChange={(next) => field.onValueChange(next)} className="filter-field" />;
+      return <FilterDateField key={field.key} label={String(field.label)} type="datetime-local" value={typeof field.value === "string" ? field.value : ""} onValueChange={(next) => field.onValueChange(next)} />;
     case "select":
     default:
       // 091：筛选下拉统一为 HeroUI Select（FilterSelect），替代 084 回退的原生
@@ -483,7 +484,7 @@ export function FilterBar({ fields, trailingFields = [], onClear, clearLabel, re
       <div className="filter-bar-main">
         {searchInput}
         <div className="filter-bar-summary">
-          {onClear && hasActive && <Button type="button" variant="ghost" className="filter-bar-clear" onClick={onClear}>{clearLabel ?? translateMessage("webui.host.ui.clear")}</Button>}
+          {onClear && hasActive && <Button type="button" variant="ghost" size="sm" className="filter-bar-clear" onClick={onClear}>{clearLabel ?? translateMessage("webui.host.ui.clear")}</Button>}
           {resultCount !== undefined && <span className="filter-bar-count">{resultCountLabel ? resultCountLabel(resultCount) : `${resultCount} results`}</span>}
         </div>
       </div>
@@ -518,9 +519,8 @@ export function SearchInput({ value, onChange, placeholder, label, debounceMs = 
   };
   useEffect(() => () => { if (timerRef.current !== null) window.clearTimeout(timerRef.current); }, []);
   return (
-    <div className={`search-input-wrap ${className}`.trim()}>
-      <Search className="search-input-icon" size={15} strokeWidth={1.8} aria-hidden="true" />
-      <HeroSearchField value={inputValue} onChange={handleChange} aria-label={label ?? placeholder ?? translateMessage("webui.host.ui.search")} className="search-input"><HeroSearchField.Group><HeroSearchField.Input placeholder={placeholder ?? `${translateMessage("webui.host.ui.search")}…`} /><HeroSearchField.ClearButton /></HeroSearchField.Group></HeroSearchField>
+    <div className={`search-input-wrap ${className}`.trim()} data-ui-layer="component" data-ui-context="filter">
+      <HeroSearchField value={inputValue} onChange={handleChange} aria-label={label ?? placeholder ?? translateMessage("webui.host.ui.search")} className="search-input"><HeroSearchField.Group><HeroSearchField.SearchIcon /><HeroSearchField.Input placeholder={placeholder ?? `${translateMessage("webui.host.ui.search")}…`} /><HeroSearchField.ClearButton /></HeroSearchField.Group></HeroSearchField>
     </div>
   );
 }
@@ -641,7 +641,7 @@ export function DetailDrawer({ open, onClose, title, identity, status, actions, 
    --------------------------------------------------------------------------- */
 
 /** TreeView：无环树展示（受控展开）。 */
-export function TreeView<T>({ nodes, getChildren, renderNode, getKey = (node) => String(node), selectedId, onSelect, expandAll = false, ariaLabel }: {
+export function TreeView<T>({ nodes, getChildren, renderNode, getKey = (node) => String(node), selectedId, onSelect, expandAll = false, ariaLabel, getNodeData }: {
   nodes: ReadonlyArray<T>;
   getChildren: (node: T) => ReadonlyArray<T>;
   renderNode: (node: T) => ReactNode;
@@ -650,6 +650,7 @@ export function TreeView<T>({ nodes, getChildren, renderNode, getKey = (node) =>
   onSelect?: (key: string) => void;
   expandAll?: boolean;
   ariaLabel?: string;
+  getNodeData?: (node: T) => Record<string, string | undefined>;
 }) {
   const [collapsed, setCollapsed] = useState<Set<string>>(() => (expandAll ? new Set<string>() : new Set<string>(collectKeys(nodes, getChildren, getKey))));
   const toggle = (key: string) => {
@@ -661,7 +662,7 @@ export function TreeView<T>({ nodes, getChildren, renderNode, getKey = (node) =>
   };
   return (
     <ul className="tree-view" role="tree" aria-label={ariaLabel}>
-      <TreeNodes nodes={nodes} getChildren={getChildren} renderNode={renderNode} getKey={getKey} collapsed={collapsed} onToggle={toggle} selectedId={selectedId} onSelect={onSelect} depth={0} />
+      <TreeNodes nodes={nodes} getChildren={getChildren} renderNode={renderNode} getKey={getKey} getNodeData={getNodeData} collapsed={collapsed} onToggle={toggle} selectedId={selectedId} onSelect={onSelect} depth={0} />
     </ul>
   );
 }
@@ -675,11 +676,12 @@ function collectKeys<T>(nodes: ReadonlyArray<T>, getChildren: (n: T) => Readonly
   return keys;
 }
 
-function TreeNodes<T>({ nodes, getChildren, renderNode, getKey, collapsed, onToggle, selectedId, onSelect, depth }: {
+function TreeNodes<T>({ nodes, getChildren, renderNode, getKey, getNodeData, collapsed, onToggle, selectedId, onSelect, depth }: {
   nodes: ReadonlyArray<T>;
   getChildren: (n: T) => ReadonlyArray<T>;
   renderNode: (n: T) => ReactNode;
   getKey: (n: T) => string;
+  getNodeData?: (node: T) => Record<string, string | undefined>;
   collapsed: ReadonlySet<string>;
   onToggle: (key: string) => void;
   selectedId?: string;
@@ -697,9 +699,9 @@ function TreeNodes<T>({ nodes, getChildren, renderNode, getKey, collapsed, onTog
           {children.length > 0
             ? <IconButton className="tree-node-toggle" label={isCollapsed ? translateMessage("webui.host.ui.expand") : translateMessage("webui.host.ui.collapse")} onClick={() => onToggle(key)}>{isCollapsed ? <ChevronRight size={14} aria-hidden="true" /> : <ChevronDown size={14} aria-hidden="true" />}</IconButton>
             : <span className="tree-node-toggle tree-node-toggle-empty" aria-hidden="true" />}
-          <Button type="button" variant="ghost" className="tree-node-label" onClick={() => onSelect?.(key)}>{renderNode(node)}</Button>
+          <Button type="button" variant="ghost" className="tree-node-label" onClick={() => onSelect?.(key)} {...(getNodeData?.(node) ?? {})}>{renderNode(node)}</Button>
         </div>
-        {children.length > 0 && !isCollapsed && <ul role="group">{<TreeNodes nodes={children} getChildren={getChildren} renderNode={renderNode} getKey={getKey} collapsed={collapsed} onToggle={onToggle} selectedId={selectedId} onSelect={onSelect} depth={depth + 1} />}</ul>}
+        {children.length > 0 && !isCollapsed && <ul role="group">{<TreeNodes nodes={children} getChildren={getChildren} renderNode={renderNode} getKey={getKey} getNodeData={getNodeData} collapsed={collapsed} onToggle={onToggle} selectedId={selectedId} onSelect={onSelect} depth={depth + 1} />}</ul>}
       </li>
     );
   })}</>;

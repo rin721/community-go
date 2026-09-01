@@ -33,14 +33,19 @@ function NativeDateField({ label, value, onValueChange, type, required, disabled
 export function DateField(props: Omit<Parameters<typeof NativeDateField>[0], "type">) { return <NativeDateField {...props} type="date" />; }
 export function DateTimeField(props: Omit<Parameters<typeof NativeDateField>[0], "type">) { return <NativeDateField {...props} type="datetime-local" />; }
 
+/** FilterDateField 是筛选场景的无外部表单壳日期控件，避免把完整 FormField 嵌入 FilterBar。 */
+export function FilterDateField({ label, value, onValueChange, type, disabled = false }: { label: string; value: string; onValueChange: (value: string) => void; type: "date" | "datetime-local"; disabled?: boolean }) {
+  return <label className="filter-control filter-control-date" data-ui-layer="component" data-ui-context="filter"><span className="filter-control-label">{label}</span><HeroInput type={type} value={value} disabled={disabled} aria-label={label} onChange={(event) => onValueChange(event.target.value)} /></label>;
+}
+
 /** FilePicker 通过 RAC FileTrigger 持有浏览器文件 input，不向页面暴露原生控件。 */
 export function FilePicker({ label, onFilesChange, accept, multiple = false, disabled = false, className = "" }: { label: string; onFilesChange: (files: FileList | null) => void; accept?: string; multiple?: boolean; disabled?: boolean; className?: string }) {
   return <FileTrigger onSelect={onFilesChange} acceptedFileTypes={accept ? accept.split(",").map((value) => value.trim()).filter(Boolean) : undefined} allowsMultiple={multiple}><RACButton isDisabled={disabled} className={`ui-button ui-button-secondary ${className}`.trim()}>{label}</RACButton></FileTrigger>;
 }
 
-/** FilterTextField 是筛选区紧凑 HeroUI TextField。 */
+/** FilterTextField 是筛选区紧凑文本控件，不承载完整表单字段外壳。 */
 export function FilterTextField({ label, value, onValueChange, placeholder }: { label: ReactNode; value: string; onValueChange: (value: string) => void; placeholder?: string }) {
-  return <div className="filter-field"><span className="filter-field-label">{label}</span><TextField aria-label={typeof label === "string" ? label : undefined}><HeroInput value={value} placeholder={placeholder} onChange={(event) => onValueChange(event.target.value)} /></TextField></div>;
+  return <label className="filter-control filter-control-text" data-ui-layer="component" data-ui-context="filter"><span className="filter-control-label">{label}</span><HeroInput value={value} placeholder={placeholder} aria-label={typeof label === "string" ? label : undefined} onChange={(event) => onValueChange(event.target.value)} /></label>;
 }
 
 export function TextAreaField({ label, value, onValueChange, rows = 5, disabled = false, className = "" }: { label: string; value: string; onValueChange: (value: string) => void; rows?: number; disabled?: boolean; className?: string }) {
@@ -98,7 +103,7 @@ export function FilterSelect({ label, value, options, onValueChange, className =
 }) {
   const emptyKey = emptyOptionKey(options);
   return (
-    <label className={`filter-select ${className}`.trim()}>
+    <label className={`filter-select ${className}`.trim()} data-ui-layer="component" data-ui-context="filter">
       {label && <span className="filter-select-label">{label}</span>}
       <Select selectedKey={selectKey(value, emptyKey)} onSelectionChange={(key) => onValueChange(key === null || key === undefined || key === emptyKey ? "" : String(key))} className="filter-select-control" aria-label={ariaLabel}>
         <Select.Trigger><Select.Value>{({ selectedText }) => selectedText ?? ""}</Select.Value></Select.Trigger>

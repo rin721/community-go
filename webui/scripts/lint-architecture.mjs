@@ -2,7 +2,7 @@ import { readFile, readdir } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { discoverWebUIModuleRoots } from "./module-roots.mjs";
 import { loadProjectLayout, resolveLayoutPaths } from "./project-layout.mjs";
-import { checkStyleAuthority } from "./style-rules.mjs";
+import { checkContextOwnershipStyles, checkStyleAuthority } from "./style-rules.mjs";
 import { checkInteractionSource } from "./interaction-rules.mjs";
 
 const project = loadProjectLayout();
@@ -10,6 +10,7 @@ const { repositoryRoot, webuiRoot, platformStyles, webuiSourceRoot } = resolveLa
 const errors = [];
 
 const platformStylesSource = await readFile(platformStyles, "utf8");
+errors.push(...checkContextOwnershipStyles(platformStylesSource, project.layout.webui.platformStyles));
 for (const selector of [
   "auth-panel", "auth-form", "auth-summary", "auth-session", "scope-list", "scope-item",
   "ops-grid", "ops-summary", "ops-overview", "ops-metric", "diagnostic-", "capability-preview",

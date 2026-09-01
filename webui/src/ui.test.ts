@@ -117,15 +117,22 @@ describe("公共管理 UI 模式", () => {
     }
   });
 
-  it("renders the TailAdmin-style page section skeleton with header and body", () => {
+  it("renders a contextual page section without claiming a panel surface by default", () => {
     const markup = renderToStaticMarkup(createElement(PageSection, { kicker: "Directory", title: "Departments", description: "Bounded hierarchy", actions: createElement("button", { type: "button" }, "Create"), children: createElement("p", null, "body") }));
 
     expect(markup).toContain('class="page-section');
-    expect(markup).toContain('data-slot="card"');
+    expect(markup).toContain('data-ui-pattern="page-section"');
+    expect(markup).not.toContain('data-slot="card"');
     expect(markup).toContain("section-kicker");
     expect(markup).toContain("section-title");
-    expect(markup).toContain("card__content");
+    expect(markup).toContain("page-section-flow");
     expect(markup).toContain('data-reveal-rhythm');
+  });
+
+  it("allows an explicit panel section when the context owns a surface", () => {
+    const markup = renderToStaticMarkup(createElement(PageSection, { surface: "panel", title: "Panel", children: "body" }));
+    expect(markup).toContain('data-surface-owner="page-section"');
+    expect(markup).toContain('data-slot="card"');
   });
 
   it("renders stat cards inside a responsive stat grid", () => {

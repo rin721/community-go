@@ -10,6 +10,10 @@ test("092 rejects direct HeroUI/RAC imports outside SDK", () => {
   assert.ok(checkInteractionSource(interactionRuleFixtures.rejectDirectLibrary, "fixture.tsx").some((item) => item.includes("@webui/sdk/ui")));
 });
 
+test("093 rejects hand-written composite interaction roles", () => {
+  assert.ok(checkInteractionSource(interactionRuleFixtures.rejectHandWrittenRole, "fixture.tsx").some((item) => item.includes("interaction role")));
+});
+
 test("092 allows semantic form and links", () => {
   assert.deepEqual(checkInteractionSource(interactionRuleFixtures.allowSemanticLayout, "fixture.tsx"), []);
 });

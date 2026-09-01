@@ -11,12 +11,21 @@ export function ResourceIndex({ summary, toolbar, children, footer, className = 
   footer?: ReactNode;
   className?: string;
 } & Omit<HTMLAttributes<HTMLElement>, "children">) {
-  return <section className={`resource-index ${className}`.trim()} {...props}>
+  return <section className={`resource-index ${className}`.trim()} data-ui-layer="pattern" data-ui-pattern="resource-index" data-surface-owner="resource-index" {...props}>
     {summary && <div className="resource-index-summary">{summary}</div>}
     {toolbar && <div className="resource-index-toolbar">{toolbar}</div>}
     <div className="resource-index-content">{children}</div>
     {footer && <div className="resource-index-footer">{footer}</div>}
   </section>;
+}
+
+/** WorkbenchShell 是工作台场景的唯一外壳适配器；模块只负责树、标签和工作区布局。 */
+export function WorkbenchShell({ children, className = "", compact = false, ...props }: {
+  children: ReactNode;
+  className?: string;
+  compact?: boolean;
+} & Omit<HTMLAttributes<HTMLDivElement>, "children">) {
+  return <div className={`workbench-shell ${className}`.trim()} data-ui-layer="pattern" data-ui-pattern="workbench-shell" data-surface-owner="workbench" data-workbench-compact={compact ? "true" : undefined} {...props}>{children}</div>;
 }
 
 /** EntityDetail 将详情页固定为身份/状态/主要动作 + 分区内容。 */

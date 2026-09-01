@@ -165,3 +165,12 @@ export function checkStyleAuthority(source, fileLabel = "module.css") {
   }
   return violations;
 }
+
+/** 093：平台样式不得继续以旧包装器做视觉补偿，避免第二个 Surface owner。 */
+export function checkContextOwnershipStyles(source, fileLabel = "styles.css") {
+  const violations = [];
+  if (/\.filter-field\b/.test(source)) violations.push(`${fileLabel}: stale .filter-field selector must be replaced by a contextual filter adapter`);
+  if (/\.search-input-icon\b/.test(source)) violations.push(`${fileLabel}: stale .search-input-icon selector duplicates SearchField anatomy`);
+  if (/\.data-card\s+\.data-table-wrap[^{]*\{[^}]*margin-inline\s*:/s.test(source)) violations.push(`${fileLabel}: nested data table margin compensation is forbidden; the owning surface must provide layout`);
+  return violations;
+}

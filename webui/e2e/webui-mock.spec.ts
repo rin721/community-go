@@ -295,9 +295,10 @@ test("084c account bulk archive flow renders feedback", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/admin/accounts");
   await expect(page.locator(".data-table").first()).toBeVisible();
-  const rowCheckboxes = page.locator(".data-table tbody input[type='checkbox']");
-  await rowCheckboxes.nth(0).check();
-  await rowCheckboxes.nth(1).check();
+  // 093：DataTable 选择交互由统一 Check 原语承载；点击可见 label，避免触碰 RAC 隐藏 input。
+  const rowCheckboxes = page.locator(".data-table tbody label.rac-checkbox");
+  await rowCheckboxes.nth(0).click();
+  await rowCheckboxes.nth(1).click();
   await expect(page.locator(".bulk-action-bar")).toBeVisible();
   // 批量条存在：清除 + 附加动作（归档）+ 主动作（禁用/启用）。
   expect(await page.locator(".bulk-action-bar button").count()).toBeGreaterThanOrEqual(3);

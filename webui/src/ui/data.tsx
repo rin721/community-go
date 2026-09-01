@@ -77,10 +77,10 @@ export function DataTable<Row>({ columns, rows, ariaLabel, getRowKey = (_row, in
   };
   const hasColumnMenu = Boolean(columnVisibility) && columns.some((column) => column.visible !== false);
   const hasRowMenu = Boolean(renderRowMenu);
-  return <Table.Root className="data-table-wrap" data-density={density} data-sticky={stickyHeader || undefined} {...wrapperProps}>
+  return <Table.Root className="data-table-wrap" data-ui-layer="component" data-ui-pattern="data-table" data-surface-owner="parent" data-density={density} data-sticky={stickyHeader || undefined} {...wrapperProps}>
     {hasColumnMenu && <div className="data-table-toolbar"><DropdownRoot>
       <DropdownTrigger>
-        <Button type="button" variant="ghost" className="ui-button data-table-columns-toggle" aria-label={columnMenuLabel ?? translateMessage("webui.host.ui.columns")}>{columnMenuLabel ?? translateMessage("webui.host.ui.columns")}</Button>
+        <Button type="button" variant="ghost" size="sm" className="ui-button data-table-columns-toggle" aria-label={columnMenuLabel ?? translateMessage("webui.host.ui.columns")}>{columnMenuLabel ?? translateMessage("webui.host.ui.columns")}</Button>
       </DropdownTrigger>
       <DropdownPopover className="data-table-columns-menu">
         <DropdownMenu className="data-table-columns-list">
@@ -107,9 +107,9 @@ export function DataTableRowMenu<Row>({ row, index, renderRowMenu, moreLabel = "
   if (items.length === 0) return null;
   const primary = items.find((item) => !item.danger);
   const rest = items.filter((item) => item !== primary);
-  return <div className="data-table-row-menu">{primary && <Button type="button" variant="ghost" className="ui-button data-table-row-primary" onPress={primary.onSelect}>{primary.label}</Button>}{rest.length > 0 && <DropdownRoot>
+  return <div className="data-table-row-menu">{primary && <Button type="button" variant="ghost" size="sm" className="ui-button data-table-row-primary" onPress={primary.onSelect}>{primary.label}</Button>}{rest.length > 0 && <DropdownRoot>
     <DropdownTrigger>
-      <Button type="button" variant="ghost" className="ui-button data-table-row-more" aria-label={moreLabel}><MoreHorizontal size={15} aria-hidden="true" /></Button>
+      <Button type="button" variant="ghost" size="sm" className="ui-button data-table-row-more" aria-label={moreLabel}><MoreHorizontal size={15} aria-hidden="true" /></Button>
     </DropdownTrigger>
     <DropdownPopover className="data-table-row-menu-popover">
       <DropdownMenu className="data-table-row-menu-list">

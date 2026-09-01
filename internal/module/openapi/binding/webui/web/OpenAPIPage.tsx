@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActionTrigger, Button, InlineAlert, PageFrame, PageHeader, SegmentedControl } from "@webui/sdk/ui";
+import { ActionTrigger, Button, InlineAlert, PageFrame, PageHeader, SegmentedControl, WorkbenchShell } from "@webui/sdk/ui";
 import { useWebUITranslation } from "@webui/sdk/i18n";
 import { webuiOpenAPISpec, webuiOpenAPISpecSourceRevision } from "@webui/generated/openapi-spec";
 import { ApiTree } from "./ApiTree";
@@ -156,7 +156,7 @@ export default function OpenAPIPage() {
     <p className={styles.pageMeta}>{t("webui.openapi.docs.source", { revision: webuiOpenAPISpecSourceRevision })}</p>
     {!usable
       ? <InlineAlert tone="danger" title={t("webui.openapi.docs.unavailable")} />
-      : <div className={`${styles.workspaceRow} ${isCompact ? styles.workspaceRowCompact : ""}`}>
+      : <WorkbenchShell className={`${styles.workspaceRow} ${isCompact ? styles.workspaceRowCompact : ""}`} compact={isCompact}>
         {isCompact
           ? <>
             {segmentSwitcher}
@@ -191,7 +191,7 @@ export default function OpenAPIPage() {
                 </div>}
           </div>
           </>}
-      </div>}
+      </WorkbenchShell>}
     <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} groups={groupedOperationsForPalette(roots)} models={Object.keys(document.components?.schemas ?? {})} onSelectOperation={(id) => { const row = rowsById.get(id); if (row) openOperation(row, "docs"); }} onSelectModel={() => undefined} />
   </PageFrame>;
 }

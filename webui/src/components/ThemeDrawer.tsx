@@ -32,15 +32,6 @@ export function ThemeDrawer({ open, theme, onChange, onReset, onClose }: { open:
   </Drawer>;
 }
 
-export function themePanelTabID(panel: ThemePanel): string { return `webui-theme-tab-${panel}`; }
-export function getThemePanelTargetIndex(key: string, currentIndex: number, count: number): number | undefined {
-  if (count <= 0) return undefined;
-  if (key === "Home") return 0;
-  if (key === "End") return count - 1;
-  if (key === "ArrowRight" || key === "ArrowDown") return (currentIndex + 1) % count;
-  if (key === "ArrowLeft" || key === "ArrowUp") return (currentIndex - 1 + count) % count;
-  return undefined;
-}
 function ThemeSection({ title, children }: { title: string; children: ReactNode }) { return <section className="theme-section"><h3>{title}</h3>{children}</section>; }
 function ThemeSwitch({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) { return <div className="theme-switch-row"><span>{label}</span><Switch ariaLabel={label} checked={checked} onChange={onChange} /></div>; }
 function ThemeSelect<T extends string>({ label, value, options, labelOf, onChange }: { label: string; value: T; options: ReadonlyArray<T>; labelOf: (value: T) => string; onChange: (value: T) => void }) { return <div className="theme-switch-row"><SelectField label={label} value={value} onValueChange={(next) => onChange(next as T)} options={options.map((option) => ({ value: option, label: labelOf(option) }))} className="w-44" /></div>; }

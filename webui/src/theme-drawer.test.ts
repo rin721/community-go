@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { beforeAll, describe, expect, it } from "vitest";
 import { createElement } from "react";
-import { getThemePanelTargetIndex, ThemeDrawer } from "./components/ThemeDrawer";
+import { ThemeDrawer } from "./components/ThemeDrawer";
 import { defaultTheme } from "./theme";
 import { initializeI18n } from "./i18n";
 import { renderClient } from "./test-utils";
@@ -34,12 +34,4 @@ describe("宿主主题 Drawer", () => {
     }
   });
 
-  it("按 roving tab 规则计算主题分区焦点目标", () => {
-    expect(getThemePanelTargetIndex("ArrowRight", 0, 4)).toBe(1);
-    expect(getThemePanelTargetIndex("ArrowLeft", 0, 4)).toBe(3);
-    expect(getThemePanelTargetIndex("ArrowDown", 3, 4)).toBe(0);
-    expect(getThemePanelTargetIndex("Home", 2, 4)).toBe(0);
-    expect(getThemePanelTargetIndex("End", 0, 4)).toBe(3);
-    expect(getThemePanelTargetIndex("Enter", 0, 4)).toBeUndefined();
-  });
 });

@@ -121,13 +121,13 @@
   }
 }
 
-/* 084：单选组（语言等互斥设置项），带可见选中态 */
+/* 093：语言选择只负责上下文布局，单选交互与选中态由 RAC RadioGroup 原语提供。 */
 .settingsModule :global(.setting-options) {
   display: grid;
   gap: 6px;
   max-width: 400px;
 }
-.settingsModule :global(.setting-option) {
+.settingsModule :global(.setting-options .rac-radio) {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -140,15 +140,15 @@
   text-align: left;
   cursor: pointer;
 }
-.settingsModule :global(.setting-option:hover) {
+.settingsModule :global(.setting-options .rac-radio:hover) {
   border-color: var(--border-strong);
 }
-.settingsModule :global(.setting-option[aria-checked="true"]) {
+.settingsModule :global(.setting-options .rac-radio[aria-checked="true"]) {
   border-color: var(--primary);
   background: var(--primary-soft);
   color: var(--primary-strong);
 }
-.settingsModule :global(.setting-option-radio) {
+.settingsModule :global(.setting-options .rac-radio-indicator) {
   display: inline-grid;
   place-items: center;
   width: 16px;
@@ -157,10 +157,10 @@
   border-radius: var(--radius-round);
   flex: 0 0 auto;
 }
-.settingsModule :global(.setting-option[aria-checked="true"] .setting-option-radio) {
+.settingsModule :global(.setting-options .rac-radio[aria-checked="true"] .rac-radio-indicator) {
   border-color: var(--primary);
 }
-.settingsModule :global(.setting-option[aria-checked="true"] .setting-option-radio::after) {
+.settingsModule :global(.setting-options .rac-radio[aria-checked="true"] .rac-radio-indicator::after) {
   content: "";
   width: 8px;
   height: 8px;

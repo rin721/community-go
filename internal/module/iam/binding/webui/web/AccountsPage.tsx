@@ -180,18 +180,18 @@ export default function AccountsPage() {
   return <PageFrame variant="index" className={styles.iamModule}>
     <PageHeader eyebrow={t("webui.iam.brand")} title={t("webui.iam.accounts.title")} description={t("webui.iam.accounts.description")} actions={<ActionTrigger operationId="iam.accounts.create" onAction={() => setCreateOpen(true)}>{t("webui.iam.accounts.create.title")}</ActionTrigger>} />
     <div className="page-sections">
-      <PageSection kicker={t("webui.iam.accounts.list.kicker")} title={t("webui.iam.accounts.list.title")} footer={<Pagination
-        page={page}
-        pageCount={pages}
-        total={total}
-        totalLabel={(count) => t("webui.iam.accounts.total", { total: count })}
-        pageLabel={(current) => t("webui.iam.accounts.pagination", { page: current, total })}
-        paginationLabel={t("webui.iam.accounts.pagination", { page, total })}
-        previousLabel={t("webui.auth.audit.previous")}
-        nextLabel={t("webui.auth.audit.next")}
-        onPageChange={(nextPage) => listQuery.setPage(nextPage)}
-      />}>
-        <ResourceIndex aria-label={t("webui.iam.accounts.list.title")} toolbar={<FilterBar
+      <PageSection kicker={t("webui.iam.accounts.list.kicker")} title={t("webui.iam.accounts.list.title")}>
+        <ResourceIndex aria-label={t("webui.iam.accounts.list.title")} footer={<Pagination
+          page={page}
+          pageCount={pages}
+          total={total}
+          totalLabel={(count) => t("webui.iam.accounts.total", { total: count })}
+          pageLabel={(current) => t("webui.iam.accounts.pagination", { page: current, total })}
+          paginationLabel={t("webui.iam.accounts.pagination", { page, total })}
+          previousLabel={t("webui.auth.audit.previous")}
+          nextLabel={t("webui.auth.audit.next")}
+          onPageChange={(nextPage) => listQuery.setPage(nextPage)}
+        />} toolbar={<FilterBar
           ariaLabel={t("webui.iam.accounts.filter")}
           fields={[
             { key: "status", label: t("webui.iam.accounts.statusFilter"), control: "select", options: [

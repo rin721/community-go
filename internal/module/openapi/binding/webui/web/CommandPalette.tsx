@@ -35,7 +35,7 @@ export function CommandPalette({ open, onClose, groups, models, onSelectOperatio
     onClose();
   };
 
-  return <ModalDialog open={open} title={t("webui.openapi.palette.title")} closeLabel={t("webui.openapi.drawer.close")} onClose={() => { setQuery(""); onClose(); }} className={styles.paletteDialog}>
+  return <ModalDialog open={open} title={t("webui.openapi.palette.title")} closeLabel={t("webui.openapi.drawer.close")} onClose={() => { setQuery(""); onClose(); }} className={styles.paletteDialog} data-ui-layer="composite" data-ui-pattern="command-palette" data-surface-owner="dialog">
     <div className={styles.paletteSearch}><SearchControl autoFocus className={styles.paletteInput} label={t("webui.openapi.palette.title")} value={query} onValueChange={setQuery} placeholder={t("webui.openapi.palette.placeholder")} /><kbd>⌘K</kbd></div>
     <CommandList label={t("webui.openapi.palette.title")} className={styles.paletteList} selectedKey={selectedKey} onSelectionChange={setSelectedKey} onAction={choose} emptyState={<p className={styles.paletteEmpty}>{t("webui.openapi.palette.empty")}</p>} items={entries.map((entry) => ({ id: entry.key, textValue: entry.label, className: styles.paletteItem, label: <>{entry.kind === "operation" && entry.row && <MethodBadge method={entry.row.method} />}<span className={styles.paletteItemLabel}>{entry.label}</span></> }))} />
   </ModalDialog>;

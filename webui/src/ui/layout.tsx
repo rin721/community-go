@@ -36,6 +36,8 @@ export type PageSectionProps = {
   description?: ReactNode;
   actions?: ReactNode;
   footer?: ReactNode;
+  /** section 只提供文档节奏；panel 才拥有一层独立 Surface。 */
+  surface?: "section" | "panel";
   rhythm?: "calm" | "balanced" | "playful";
   className?: string;
   style?: CSSProperties;
@@ -43,23 +45,17 @@ export type PageSectionProps = {
 };
 
 /** PageSection 提供标题/内容/footer 三段 anatomy，所有业务区块共用同一节奏。 */
-export function PageSection({ as: As = "section", kicker, title, description, actions, footer, rhythm = "balanced", className = "", style, children }: PageSectionProps) {
+export function PageSection({ as: As = "section", kicker, title, description, actions, footer, rhythm = "balanced", surface = "section", className = "", style, children }: PageSectionProps) {
+  const heading = (Header: typeof Card.Header | "div") => Header === "div"
+    ? <div className="page-section-header">{(kicker || title || description || actions) && <div className="page-section-heading">{kicker && <span className="section-kicker">{kicker}</span>}{title && <h2 className="section-title">{title}</h2>}{description && <p className="section-description">{description}</p>}{actions && <div className="page-section-actions">{actions}</div>}</div>}</div>
+    : <Card.Header className="page-section-header">{(kicker || title || description || actions) && <><div className="page-section-heading">{kicker && <span className="section-kicker">{kicker}</span>}{title && <h2 className="section-title">{title}</h2>}{description && <p className="section-description">{description}</p>}</div>{actions && <div className="page-section-actions">{actions}</div>}</>}</Card.Header>;
+  const content = (Content: typeof Card.Content | "div") => Content === "div"
+    ? <div className="page-section-content">{children}</div>
+    : <Card.Content className="page-section-content">{children}</Card.Content>;
+  const end = (Footer: typeof Card.Footer | "div") => footer ? (Footer === "div" ? <div className="page-section-footer">{footer}</div> : <Card.Footer className="page-section-footer">{footer}</Card.Footer>) : null;
   return (
     <Reveal as={As} rhythm={rhythm} className={`page-section w-full ${className}`.trim()} style={style}>
-      <Card className="page-section-card">
-        {(kicker || title || description || actions) && (
-          <Card.Header className="page-section-header">
-            <div className="page-section-heading">
-              {kicker && <span className="section-kicker">{kicker}</span>}
-              {title && <h2 className="section-title">{title}</h2>}
-              {description && <p className="section-description">{description}</p>}
-            </div>
-            {actions && <div className="page-section-actions">{actions}</div>}
-          </Card.Header>
-        )}
-        <Card.Content className="page-section-content">{children}</Card.Content>
-        {footer && <Card.Footer className="page-section-footer">{footer}</Card.Footer>}
-      </Card>
+      {surface === "panel" ? <Card className="page-section-card" data-ui-layer="pattern" data-ui-pattern="page-section" data-surface-owner="page-section">{heading(Card.Header)}{content(Card.Content)}{end(Card.Footer)}</Card> : <div className="page-section-flow" data-ui-layer="pattern" data-ui-pattern="page-section">{heading("div")}{content("div")}{end("div")}</div>}
     </Reveal>
   );
 }

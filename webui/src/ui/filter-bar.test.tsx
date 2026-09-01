@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { ActiveFilters, FilterBar, FilterSelect, SearchInput, SelectField } from "./index";
+import { ActiveFilters, FilterBar, FilterDateField, FilterSelect, FilterTextField, SearchInput, SelectField } from "./index";
 
 describe("082 FilterBar / SearchInput", () => {
   it("FilterBar 渲染字段与 result count", () => {
@@ -64,6 +64,17 @@ describe("082 FilterBar / SearchInput", () => {
     expect(markup).toContain('type="search"');
     expect(markup).toContain('aria-label="搜索用户"');
     expect(markup).toContain('value="alice"');
+    expect(markup).toContain('data-slot="search-field-group"');
+    expect(markup.match(/data-slot="search-field-group"/g)?.length).toBe(1);
+  });
+
+  it("筛选日期与文本控件不嵌套完整表单字段壳", () => {
+    const dateMarkup = renderToStaticMarkup(<FilterDateField label="开始日期" type="date" value="2026-08-29" onValueChange={() => undefined} />);
+    const textMarkup = renderToStaticMarkup(<FilterTextField label="名称" value="alpha" onValueChange={() => undefined} />);
+    expect(dateMarkup).toContain("filter-control-date");
+    expect(dateMarkup).not.toContain("form-field");
+    expect(textMarkup).toContain("filter-control-text");
+    expect(textMarkup).not.toContain("form-field");
   });
 
   it("SelectField 既有契约保持（FilterBar select 复用）", () => {

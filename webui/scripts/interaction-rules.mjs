@@ -1,6 +1,6 @@
 // 092 INTERACTION-092-001：宿主与业务源码的交互来源单轨规则。
 const nativeTagPattern = /<(?:input|select|textarea|button|details|summary|dialog)\b/;
-const rolePattern = /role\s*=\s*["'](?:combobox|listbox|menu|radio|tab|tree)/;
+const rolePattern = /role\s*=\s*["'](?:combobox|listbox|menu(?:item)?|radio(?:group)?|tab(?:list|panel)?|tree(?:item)?)/;
 
 export function checkInteractionSource(source, file) {
   const errors = [];
@@ -13,5 +13,6 @@ export function checkInteractionSource(source, file) {
 export const interactionRuleFixtures = {
   rejectNative: `<button onClick={run}>Run</button>`,
   rejectDirectLibrary: `import { Button } from "@heroui/react";`,
+  rejectHandWrittenRole: `<div role="treeitem">Node</div>`,
   allowSemanticLayout: `<form><a href="/docs">Docs</a></form>`,
 };

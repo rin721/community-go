@@ -195,6 +195,15 @@
   --metric-card-padding-block: 16px;
   --toolbar-control-gap: var(--space-2);
   --filter-select-width: 160px;
+  /* 093：同源交互按场景表达密度与层级，不把所有上下文压成一个成品外观。 */
+  --context-form-control-height: var(--control-height-md);
+  --context-filter-control-height: var(--control-height-sm);
+  --context-toolbar-control-height: var(--control-height-sm);
+  --context-inline-control-height: var(--control-height-sm);
+  --context-form-radius: var(--radius-sm);
+  --context-filter-radius: var(--radius-xs);
+  --context-surface-padding: var(--space-4);
+  --context-filter-gap: var(--space-2);
   /* Sidebar 组件命名空间：内边距、折叠态收窄、链接最小高度、品牌区 */
   --sidebar-padding: var(--space-4) var(--space-3);
   --sidebar-collapsed-padding-inline: 10px;
@@ -2361,12 +2370,6 @@ textarea.field-input {
   flex-wrap: wrap;
   margin-left: auto;
 }
-.filter-field {
-  display: grid;
-  gap: 4px;
-  font-size: 12px;
-  color: var(--text-secondary);
-}
 /* 091：FilterBar 紧凑下拉（行内标签 + HeroUI Select，替代 084 原生 select） */
 .filter-select {
   display: inline-flex;
@@ -2380,20 +2383,6 @@ textarea.field-input {
 }
 .filter-select .filter-select-control [data-slot="trigger"] {
   min-height: var(--control-height-md);
-}
-.filter-field input {
-  width: 168px;
-  height: var(--control-height-md);
-  padding: 0 var(--control-padding-x);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--control-radius);
-  background: var(--surface);
-  color: var(--text);
-  font-size: var(--font-scale-md);
-}
-.filter-field input:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 1px;
 }
 .filter-bar-clear {
   height: var(--control-height-md);
@@ -2419,13 +2408,6 @@ textarea.field-input {
   position: relative;
   display: inline-flex;
   align-items: center;
-}
-.search-input-icon {
-  position: absolute;
-  left: 10px;
-  color: var(--text-muted);
-  font-size: 12px;
-  pointer-events: none;
 }
 .search-input {
   height: var(--control-height-md);
@@ -3926,11 +3908,6 @@ textarea.field-input {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
 }
-.data-card .data-table-wrap {
-  margin-inline: calc(var(--card-padding-inline) * -1);
-  border-inline: 0;
-  border-radius: 0;
-}
 .filter-bar {
   display: grid;
   align-items: stretch;
@@ -4034,9 +4011,6 @@ textarea.field-input {
   .data-card-footer {
     padding-inline: var(--page-gutter-compact);
   }
-  .data-card .data-table-wrap {
-    margin-inline: calc(var(--page-gutter-compact) * -1);
-  }
   .filter-bar-main {
     align-items: stretch;
     flex-direction: column;
@@ -4062,7 +4036,139 @@ textarea.field-input {
   }
   .filter-select,
   .filter-select .filter-select-control,
-  .filter-field input {
+  .filter-control,
+  .filter-control [data-slot="input"] {
     width: 100%;
   }
+}
+
+/* --------------------------------------------------------------------------
+   093：上下文化组件与单一视觉所有者
+   交互来源仍由 HeroUI/RAC 提供；本层只声明场景节奏和 Surface 归属。
+   -------------------------------------------------------------------------- */
+.page-section-flow {
+  display: grid;
+  min-width: 0;
+  gap: var(--section-gap);
+}
+.page-section > [data-surface-owner="page-section"] {
+  width: 100%;
+}
+.resource-index {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-3);
+  padding: var(--context-surface-padding);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.resource-index[data-surface-owner="resource-index"] {
+  --surface-owner: resource-index;
+}
+.resource-index-toolbar,
+.resource-index-content,
+.resource-index-footer {
+  min-width: 0;
+}
+.resource-index-toolbar {
+  display: grid;
+  gap: var(--space-2);
+}
+.data-table-wrap {
+  min-width: 0;
+  overflow: auto;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.data-table-wrap .data-table {
+  min-width: 640px;
+}
+.filter-control {
+  display: inline-grid;
+  min-width: 0;
+  gap: 4px;
+  color: var(--text-secondary);
+  font-size: var(--font-scale-xs);
+}
+.filter-control-label {
+  min-height: 1lh;
+  white-space: nowrap;
+}
+.filter-control [data-slot="input-wrapper"],
+.filter-control [data-slot="trigger"] {
+  min-height: var(--context-filter-control-height);
+  border-radius: var(--context-filter-radius);
+  box-shadow: none;
+}
+.filter-control [data-slot="input"] {
+  min-width: 140px;
+  padding-inline: var(--space-2);
+}
+.filter-select {
+  min-height: var(--context-filter-control-height);
+  gap: var(--space-1);
+}
+.filter-select .filter-select-control {
+  min-width: var(--filter-select-width);
+}
+.filter-select .filter-select-control [data-slot="trigger"] {
+  min-height: var(--context-filter-control-height);
+  border-radius: var(--context-filter-radius);
+}
+.search-input-wrap {
+  display: block;
+  min-width: 0;
+}
+.search-input {
+  display: block;
+  min-width: 0;
+  height: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.search-input [data-slot="search-field-group"] {
+  min-height: var(--context-filter-control-height);
+  padding-inline: var(--space-2);
+  border: var(--border-width) solid var(--border-strong);
+  border-radius: var(--context-filter-radius);
+  background: var(--surface);
+  box-shadow: none;
+}
+.search-input [data-slot="search-field-input"] {
+  min-width: 0;
+  padding-inline: var(--space-1);
+}
+.filter-bar .search-input-wrap {
+  flex: 1 1 240px;
+}
+.filter-bar .search-input [data-slot="search-field-group"] {
+  width: 100%;
+}
+.pagination-size {
+  min-height: var(--context-inline-control-height);
+  margin-left: var(--space-2);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.pagination-size .filter-select-label {
+  display: none;
+}
+.pagination-size .filter-select-control,
+.pagination-size .filter-select-control [data-slot="trigger"] {
+  min-width: 64px;
+  min-height: var(--context-inline-control-height);
+}
+.toolbar .ui-button,
+.resource-index-toolbar .ui-button,
+.data-table-row-menu .ui-button {
+  min-height: var(--context-toolbar-control-height);
+}
+.data-card .data-table-wrap .data-table {
+  width: 100%;
 }

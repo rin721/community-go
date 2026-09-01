@@ -163,18 +163,18 @@ export default function RolesPage() {
   return <PageFrame variant="index" className={styles.iamModule}>
     <PageHeader eyebrow={t("webui.iam.brand")} title={t("webui.iam.roles.title")} description={t("webui.iam.roles.description")} actions={<ActionTrigger operationId="iam.roles.create" onAction={() => setCreateOpen(true)}>{t("webui.iam.roles.create.title")}</ActionTrigger>} />
     <div className="page-sections">
-      <PageSection kicker={t("webui.iam.roles.list.kicker")} title={t("webui.iam.roles.list.title")} footer={<Pagination
-        page={page}
-        pageCount={pages}
-        total={total}
-        totalLabel={(count) => t("webui.iam.roles.total", { total: count })}
-        pageLabel={(current) => t("webui.iam.accounts.pagination", { page: current, total })}
-        paginationLabel={t("webui.iam.accounts.pagination", { page, total })}
-        previousLabel={t("webui.auth.audit.previous")}
-        nextLabel={t("webui.auth.audit.next")}
-        onPageChange={(nextPage) => listQuery.setPage(nextPage)}
-      />}>
-        <ResourceIndex toolbar={<FilterBar
+      <PageSection kicker={t("webui.iam.roles.list.kicker")} title={t("webui.iam.roles.list.title")}>
+        <ResourceIndex footer={<Pagination
+          page={page}
+          pageCount={pages}
+          total={total}
+          totalLabel={(count) => t("webui.iam.roles.total", { total: count })}
+          pageLabel={(current) => t("webui.iam.accounts.pagination", { page: current, total })}
+          paginationLabel={t("webui.iam.accounts.pagination", { page, total })}
+          previousLabel={t("webui.auth.audit.previous")}
+          nextLabel={t("webui.auth.audit.next")}
+          onPageChange={(nextPage) => listQuery.setPage(nextPage)}
+        />} toolbar={<FilterBar
           ariaLabel={t("webui.iam.roles.filter")}
           fields={[]}
           trailingFields={[

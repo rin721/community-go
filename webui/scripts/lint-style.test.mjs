@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { checkStyleAuthority } from "./style-rules.mjs";
+import { checkContextOwnershipStyles, checkStyleAuthority } from "./style-rules.mjs";
 
 // 083 STYLE-083-001 反向测试：样式权威规则必须拒绝平台布局类重复与裸 :global 泄漏，
 // 同时放行「模块根类前缀的模块专属 :global」（如 .opsModule :global(.ops-*)）。
@@ -68,4 +68,13 @@ test("086 lint allows known token usage (regression guard)", () => {
 test("086 lint passes module-owned :global with module root (regression guard)", () => {
   const violations = checkStyleAuthority(".opsModule :global(.diagnostic-card) { padding: var(--space-4); border-radius: var(--radius-md); }", "ops.module.css");
   assert.deepEqual(violations, []);
+});
+
+test("093 context lint rejects stale visual compensation", () => {
+  const violations = checkContextOwnershipStyles(".data-card .data-table-wrap { margin-inline: -16px; } .search-input-icon { left: 8px; }", "styles.css");
+  assert.equal(violations.length, 2);
+});
+
+test("093 context lint allows contextual owners", () => {
+  assert.deepEqual(checkContextOwnershipStyles(".resource-index { border: 1px solid var(--border); }", "styles.css"), []);
 });

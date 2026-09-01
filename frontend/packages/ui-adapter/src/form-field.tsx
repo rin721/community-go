@@ -222,12 +222,13 @@ export function ComboField({
       {...(value !== undefined ? { selectedKey: value } : {})}
     >
       <Label className="ui-field-label">{label}</Label>
-      <ComboBox.InputGroup className="ui-field-control flex items-center gap-2 px-0">
+      <ComboBox.InputGroup>
         <Input
-          className="min-w-0 flex-1 bg-transparent px-3.5 outline-none"
+          className="ui-field-control min-w-0 flex-1 pe-7"
+          fullWidth
           placeholder={placeholder}
         />
-        <ComboBox.Trigger className="mr-1 grid size-9 shrink-0 place-items-center rounded-control text-ink-muted hover:bg-surface-muted" />
+        <ComboBox.Trigger />
       </ComboBox.InputGroup>
       {error ? (
         <FieldError className="ui-field-error">{error}</FieldError>

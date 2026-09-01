@@ -1,10 +1,10 @@
 import { Button as HeroButton } from '@heroui/react/button';
-import { Input } from '@heroui/react/input';
 import { Label } from '@heroui/react/label';
 import { ListBox } from '@heroui/react/list-box';
 import { Modal } from '@heroui/react/modal';
-import { SearchField } from '@heroui/react/search-field';
 import { useMemo, useState } from 'react';
+
+import { SearchBox } from './search-box';
 
 export type CommandItem = Readonly<{
   id: string;
@@ -63,21 +63,14 @@ export function CommandMenu({
               {title}
             </Modal.Heading>
             <Modal.Body className="p-0">
-              <SearchField
-                aria-label={searchLabel}
-                className="border-b border-border p-3"
-                value={query}
-                onChange={setQuery}
-              >
-                <SearchField.Group className="flex min-h-11 items-center gap-2 rounded-control bg-surface-muted px-3.5 data-[focus-within]:ring-2 data-[focus-within]:ring-brand">
-                  <SearchField.SearchIcon className="size-4 text-ink-muted" />
-                  <Input
-                    className="min-w-0 flex-1 bg-transparent text-sm text-ink outline-none"
-                    placeholder={searchPlaceholder}
-                  />
-                  <SearchField.ClearButton />
-                </SearchField.Group>
-              </SearchField>
+              <div className="border-b border-border p-3">
+                <SearchBox
+                  label={searchLabel}
+                  placeholder={searchPlaceholder}
+                  value={query}
+                  onValueChange={setQuery}
+                />
+              </div>
               {visibleItems.length > 0 ? (
                 <ListBox
                   aria-label={title}

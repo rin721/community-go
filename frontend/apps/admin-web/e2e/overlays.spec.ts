@@ -313,6 +313,15 @@ test('Select 与 Combobox 使用统一 Popup、键盘和选中状态', async ({ 
   await expect(page.getByRole('option', { name: 'Omar Haddad' })).toBeDisabled();
   await assertMatchesTriggerWidth(page, 'combo-box-popover');
   await assertListboxScrolls(page);
+
+  // ComboField 只有一个 Field Surface：InputGroup 不承担边框/阴影，边框落在内部 Input 上
+  const comboInputGroup = page.locator('[data-slot="combo-box-input-group"]').first();
+  await expect(comboInputGroup).not.toHaveClass(/ui-field-control/);
+  const comboSurface = page
+    .locator('[data-slot="combo-box-input-group"] [data-slot="input"]')
+    .first();
+  await expect(comboSurface).toHaveClass(/ui-field-control/);
+
   await page.keyboard.press('Escape');
   await combo.click();
   await combo.fill('Mika');
@@ -375,6 +384,9 @@ test('DatePicker 与 Command 展开面支持键盘及无障碍扫描', async ({ 
   await page.getByRole('button', { name: 'Command' }).click();
   const commandDialog = page.getByRole('dialog');
   await expect(commandDialog).toContainText('快速跳转');
+  // CommandMenu 复用 SearchBox：输入框是 SearchField.Input，不再出现嵌套的通用 data-slot="input"
+  await expect(commandDialog.locator('[data-slot="search-field-input"]')).toHaveCount(1);
+  await expect(commandDialog.locator('[data-slot="input"]')).toHaveCount(0);
   await page.getByLabel('搜索命令').fill('状态');
   await expect(page.getByRole('option', { name: /状态体系/ })).toBeVisible();
   await assertOverlayAccessibility(page);

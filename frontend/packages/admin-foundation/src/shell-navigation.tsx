@@ -159,7 +159,9 @@ function CompactBranch({
   expandedOverrides,
   presenter,
   router,
+  isOpen,
   onToggle,
+  onOpenChange,
   onNavigate,
 }: Readonly<{
   branch: NavigationBranch;
@@ -169,17 +171,18 @@ function CompactBranch({
   expandedOverrides: ReadonlyMap<string, boolean>;
   presenter: AdminNavigationPresenter;
   router: AdminRouterPort;
+  isOpen: boolean;
   onToggle: (id: string, expanded: boolean) => void;
+  onOpenChange: (open: boolean) => void;
   onNavigate?: (() => void) | undefined;
 }>) {
-  const [open, setOpen] = useState(false);
   return (
     <NavigationFlyout
       active={active}
       icon={presenter.icon(branch.id, active)}
-      isOpen={open}
+      isOpen={isOpen}
       label={presenter.translate(branch.labelKey)}
-      onOpenChange={setOpen}
+      onOpenChange={onOpenChange}
     >
       <ul className="space-y-1">
         {branch.children.map((child) => (
@@ -190,7 +193,7 @@ function CompactBranch({
             key={child.id}
             node={child}
             onNavigate={() => {
-              setOpen(false);
+              onOpenChange(false);
               onNavigate?.();
             }}
             onToggle={onToggle}
@@ -220,6 +223,9 @@ export function AdminShellNavigation({
   const [expandedOverrides, setExpandedOverrides] = useState<ReadonlyMap<string, boolean>>(
     new Map(),
   );
+  // Compact 模式同一时刻只允许一个父级 Flyout 打开：兄弟切换时立即替换，
+  // 旧 Flyout 的延迟关闭回调只能关闭自身，不能误关新菜单。
+  const [openBranchId, setOpenBranchId] = useState<string | null>(null);
   const paths = flattenNavigationLeaves(groups.flatMap((group) => group.items));
   const activePath = paths.find(({ leaf }) =>
     isNavigationHrefActive(leaf.href, router.currentPath),
@@ -261,7 +267,9 @@ export function AdminShellNavigation({
                     activeLeafId={activePath?.leaf.id}
                     branch={node}
                     expandedOverrides={expandedOverrides}
+                    isOpen={openBranchId === node.id}
                     onNavigate={onNavigate}
+                    onOpenChange={(open) => setOpenBranchId(open ? node.id : null)}
                     onToggle={onToggle}
                     presenter={presenter}
                     router={router}

@@ -58,7 +58,7 @@ function NavigationContent({
         )}
       </div>
       <nav
-        className={`flex-1 space-y-7 overflow-y-auto py-6 ${compact ? 'px-2' : 'px-3'}`}
+        className={`admin-shell-navigation-viewport flex-1 space-y-7 py-6 ${compact ? 'px-2' : 'px-3'}`}
         aria-label={t('shell.primaryNav')}
       >
         <NavigationTree compact={compact} groups={shellNavigationGroups} onNavigate={onNavigate} />

@@ -22,6 +22,27 @@
     grid-template-columns: 5.5rem minmax(0, 1fr);
   }
 
+  /* Shell 导航滚动视口：占 Sidebar 顶部/底部稳定区之间的剩余高度，独立纵向滚动。
+   * 隐藏浏览器原生 scrollbar 外观但保留完整滚动能力（滚轮、Touchpad、触摸、键盘 focus scroll）。
+   * 只作用于 NavigationViewport，不影响 html/body、主内容区或其它 Scroll Container。 */
+  .admin-shell-navigation-viewport {
+    overflow-y: auto;
+    scrollbar-width: none;
+    scrollbar-color: transparent transparent;
+    -ms-overflow-style: none;
+  }
+
+  .admin-shell-navigation-viewport::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+  }
+
+  .admin-shell-navigation-viewport::-webkit-scrollbar-track,
+  .admin-shell-navigation-viewport::-webkit-scrollbar-thumb {
+    background: transparent;
+  }
+
   .space-y-admin-page > :not(:last-child) {
     margin-block-end: var(--spacing-admin-section);
   }

@@ -139,6 +139,87 @@ test('移动侧栏使用同一树并在选择叶子后关闭', async ({ page }) 
   await expect(navigation).toBeHidden();
 });
 
+test('Shell NavigationViewport 隐藏原生 scrollbar 且保留滚动能力', async ({ page }) => {
+  // 低高度桌面视口：导航内容必然超出可用高度，触发纵向滚动
+  await page.setViewportSize({ width: 1440, height: 600 });
+  await page.goto('/');
+  const navigation = page.getByRole('navigation', { name: '主导航' });
+
+  // 1. 滚动能力保留：overflow-y 是 auto，而不是 hidden
+  await expect(navigation).toHaveCSS('overflow-y', 'auto');
+
+  // 2. scrollbar 语义隐藏（Firefox scrollbar-width / Chromium 同样识别该属性）
+  await expect(navigation).toHaveCSS('scrollbar-width', 'none');
+
+  // 3. Chromium/WebKit 伪元素轨道宽度为 0（不可见）
+  const webkitScrollbarWidth = await navigation.evaluate((element) => {
+    const style = getComputedStyle(element, '::-webkit-scrollbar');
+    return style.width;
+  });
+  expect(webkitScrollbarWidth).toBe('0px');
+
+  // 4. 内容超出视口时确实可滚动（scrollHeight > clientHeight，且程序化滚动生效）
+  const scrollMetrics = await navigation.evaluate((element) => ({
+    scrollHeight: element.scrollHeight,
+    clientHeight: element.clientHeight,
+  }));
+  expect(scrollMetrics.scrollHeight).toBeGreaterThan(scrollMetrics.clientHeight);
+  await navigation.evaluate((element) => element.scrollTo({ top: 200, behavior: 'instant' }));
+  const scrolledTop = await navigation.evaluate((element) => element.scrollTop);
+  expect(scrolledTop).toBeGreaterThan(0);
+
+  // 5. 顶部 Brand 稳定区不参与导航滚动：滚到顶部时 Brand 区仍在原位
+  await navigation.evaluate((element) => element.scrollTo({ top: 0, behavior: 'instant' }));
+  const brandBefore = await page
+    .locator('aside > div:first-child')
+    .first()
+    .evaluate((element) => element.getBoundingClientRect().top);
+  await navigation.evaluate((element) => element.scrollTo({ top: 200, behavior: 'instant' }));
+  const brandAfter = await page
+    .locator('aside > div:first-child')
+    .first()
+    .evaluate((element) => element.getBoundingClientRect().top);
+  expect(Math.abs(brandAfter - brandBefore)).toBeLessThanOrEqual(1);
+
+  // 6. 底部 Preview 辅助区独立：滚动后位置不变（不随 NavigationContent 滚动）
+  const previewBefore = await page
+    .getByText('React 19 · HeroUI · Tailwind CSS v4')
+    .evaluate((element) => element.getBoundingClientRect().top);
+  await navigation.evaluate((element) => element.scrollTo({ top: 300, behavior: 'instant' }));
+  const previewAfter = await page
+    .getByText('React 19 · HeroUI · Tailwind CSS v4')
+    .evaluate((element) => element.getBoundingClientRect().top);
+  expect(Math.abs(previewAfter - previewBefore)).toBeLessThanOrEqual(1);
+
+  // 7. 展开多个 Group 后仍可滚动访问最后一个菜单项
+  await navigation.getByRole('button', { name: '展开或收起UI Elements' }).click();
+  await navigation.getByRole('button', { name: '展开或收起Admin Reference' }).click();
+  const lastItem = navigation.getByRole('link', { name: '操作任务' });
+  await lastItem.scrollIntoViewIfNeeded();
+  await expect(lastItem).toBeInViewport();
+
+  // 8. 主内容区 scrollbar 不受影响（保持浏览器默认，未被设为 none）
+  const mainScrollbarWidth = await page
+    .locator('main')
+    .evaluate((element) => getComputedStyle(element).scrollbarWidth);
+  expect(mainScrollbarWidth).not.toBe('none');
+
+  // 9. Sidebar 宽度不因 scrollbar 隐藏变化（grid 列宽仍为 16.5rem 语义）
+  const sidebarWidth = await page
+    .locator('aside')
+    .first()
+    .evaluate((element) => element.getBoundingClientRect().width);
+  expect(sidebarWidth).toBe(264); // 16.5rem
+
+  // 10. 移动端导航 drawer 同样隐藏 scrollbar 且可滚动
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await page.getByRole('button', { name: '打开导航' }).click();
+  const mobileNavigation = page.getByRole('navigation', { name: '主导航' });
+  await expect(mobileNavigation).toHaveCSS('overflow-y', 'auto');
+  await expect(mobileNavigation).toHaveCSS('scrollbar-width', 'none');
+});
+
 test('UI Elements 根路径进入默认子级且旧 Showcase 不再匹配', async ({ page }) => {
   await page.goto('/ui-elements');
   await expect(page).toHaveURL(/\/ui-elements\/actions-selection$/);

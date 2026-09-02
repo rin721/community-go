@@ -83,6 +83,7 @@ describe('Action 内部 icon content 契约', () => {
       expect(cls).toContain('size-icon-sm');
       expect(cls).toContain('shrink-0');
       expect(cls).toContain('text-current');
+      expect(cls).toContain('[&>svg]:m-0');
       expect(wrapper.getAttribute('aria-hidden')).toBe('true');
     }
   });
@@ -124,5 +125,61 @@ describe('ToggleGroup 内部 icon 契约', () => {
       expect(wCls.some((c) => c.startsWith(formed))).toBe(false);
     }
     expect(wrapper.getAttribute('aria-hidden')).toBe('true');
+  });
+
+  it('icon wrapper 携带 svg margin 清零覆盖（抵消 vendor 纵向 margin）', () => {
+    render(
+      <ToggleGroup
+        label="视图"
+        onSelectionChange={() => undefined}
+        options={[{ id: 'grid', label: '网格', icon: <span data-testid="icon-m0" /> }]}
+        selectedIds={['grid']}
+      />,
+    );
+    const wrapper = screen.getByTestId('icon-m0').parentElement as HTMLElement;
+    expect((wrapper.getAttribute('class') ?? '').split(' ')).toContain('[&>svg]:m-0');
+  });
+
+  it('single 模式保持 segmented（容器无 gap）；multiple 模式容器有语义 gap 且 item 独立 border/radius', () => {
+    const { unmount: unmountSingle } = render(
+      <ToggleGroup
+        label="单选项"
+        onSelectionChange={() => undefined}
+        options={[
+          { id: 'a', label: 'A' },
+          { id: 'b', label: 'B' },
+        ]}
+        selectedIds={['a']}
+      />,
+    );
+    const singleGroup = screen.getByRole('radiogroup', { name: '单选项' });
+    const singleCls = (singleGroup.getAttribute('class') ?? '').split(' ');
+    expect(singleCls.some((c) => c.startsWith('gap-'))).toBe(false);
+    unmountSingle();
+
+    const { unmount: unmountMulti } = render(
+      <ToggleGroup
+        label="多选项"
+        onSelectionChange={() => undefined}
+        options={[
+          { id: 'x', label: 'X' },
+          { id: 'y', label: 'Y' },
+        ]}
+        selectedIds={['x']}
+        selectionMode="multiple"
+      />,
+    );
+    const multiGroup = screen.getByRole('toolbar', { name: '多选项' });
+    const multiCls = (multiGroup.getAttribute('class') ?? '').split(' ');
+    expect(multiCls.some((c) => c === 'gap-1' || c.startsWith('gap-'))).toBe(true);
+    const items = multiGroup.querySelectorAll('[data-slot="toggle-button"]');
+    expect(items.length).toBeGreaterThanOrEqual(2);
+    for (const item of items) {
+      const cls = (item.getAttribute('class') ?? '').split(' ');
+      // 独立几何：完整 border（不透明）+ radius（无 attached rounded-none 依赖）
+      expect(cls.some((c) => c.includes('border-border') || c.startsWith('border-'))).toBe(true);
+      expect(cls.some((c) => c.startsWith('rounded-'))).toBe(true);
+    }
+    unmountMulti();
   });
 });

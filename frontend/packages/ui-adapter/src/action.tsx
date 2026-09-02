@@ -74,7 +74,7 @@ export function Action({
       ) : leadingIcon ? (
         <span
           aria-hidden="true"
-          className="grid size-icon-sm shrink-0 place-items-center text-current"
+          className="grid size-icon-sm shrink-0 place-items-center text-current [&>svg]:m-0"
         >
           {leadingIcon}
         </span>
@@ -83,7 +83,7 @@ export function Action({
       {trailingIcon ? (
         <span
           aria-hidden="true"
-          className="grid size-icon-sm shrink-0 place-items-center text-current"
+          className="grid size-icon-sm shrink-0 place-items-center text-current [&>svg]:m-0"
         >
           {trailingIcon}
         </span>

@@ -11,4 +11,5 @@
 - Button、Alert、Badge、Card、Dropdown、Modal、Form Control、Notification 和 Overlay 的最终规范必须同步进入 `/ui-elements` 对应 Family 页面，不得让业务页成为新的隐式权威。
 - 组合场景优先提供 `embedded`、`inset`、slot 或 primitive 能力，避免成形组件重复叠加边框、圆角、阴影和 padding。
 - 内部内容职责边界：外层交互组件（Action、ToggleItem、Radio/Checkbox option、Choice Card）拥有 surface/border/radius/selected/pressed；内部 indicator/icon/content 只拥有 geometry/alignment/foreground。禁止「成形组件内部再次出现成形小组件」（如 Button 内嵌 IconButton、ToggleItem 内第二层 item/chip surface、Radio indicator 双 dot）；icon/indicator wrapper 必须保持透明、无 border/radius/shadow、固定 semantic size、`aria-hidden`，并显式覆盖 vendor 默认方向/尺寸/伪元素（如 HeroUI radio/checkbox 的 `flex-col`、`.radio__indicator:empty::before`、`.button svg`/`.toggle-button svg` 尺寸）以免 vendor 视觉直达业务。
+- ToggleGroup 的 selection-mode composition 属产品级契约：single 保持连体 segmented（连续组织、无 per-item gap）；multiple 为独立 toggle items（每 item 独立 surface/border/radius、交互态在自身 boundary、items 间 semantic gap）。实现时不得让 attached/segmented 几何残留进 multiple（如中间项 rounded-none、首尾 radius 裁剪、相邻 border 合并），也不得因实现细节给 single 强加 gap 或拆散。icon wrapper 内 svg 的 vendor 外边距必须以 computed style 验证清理为 0 以保证与文字共轴，禁止用 translate 等视觉补偿。
 - 禁止在本目录新增业务文案、路由、数据请求、Host API 或领域状态。

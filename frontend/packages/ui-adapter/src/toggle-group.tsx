@@ -22,7 +22,7 @@ export type ToggleGroupProps = Readonly<{
 }>;
 
 const toggleStyles = tv({
-  base: 'rounded-control border border-transparent font-semibold text-ink-muted outline-none transition-colors hover:bg-surface data-[selected]:border-brand/25 data-[selected]:bg-brand-soft data-[selected]:text-brand',
+  base: 'rounded-control border font-semibold text-ink-muted outline-none transition-colors',
   defaultVariants: { size: 'md' },
   variants: {
     size: {
@@ -31,6 +31,32 @@ const toggleStyles = tv({
     },
   },
 });
+
+/**
+ * item 几何按 selectionMode：
+ * - single：连体 segmented —— 无独立可见 border（用 transparent 占位防跳动），
+ *   selected 靠 brand-soft surface + 文字表达；border 保持 transparent。
+ * - multiple：独立 toggle items —— 每个 item 完整 border + semantic radius，
+ *   hover/selected/focus-visible 都在自身 control boundary 内；group 只负责排列与 gap。
+ */
+const itemBorderByMode = {
+  single:
+    'border-transparent hover:bg-surface data-[selected]:border-brand/25 data-[selected]:bg-brand-soft data-[selected]:text-brand',
+  multiple:
+    'border-border hover:bg-surface-muted data-[selected]:border-brand/40 data-[selected]:bg-brand-soft data-[selected]:text-brand',
+} as const;
+
+/**
+ * multiple（independent toggle items）的容器：退出 vendor attached/segmented 几何——
+ * items 之间用稳定 semantic gap；每个 item 独立拥有 surface/border/radius，
+ * hover/selected/focus-visible 在自身 control boundary 内表达；group 只负责排列与 gap。
+ * single（coherent segmented）不加 gap，保持连续 segmented composition。
+ */
+const groupContainerClass = {
+  single: 'inline-flex max-w-full rounded-panel border border-border bg-surface-muted p-1',
+  multiple:
+    'inline-flex max-w-full items-stretch gap-1 rounded-panel border border-border bg-surface-muted p-1',
+} as const;
 
 export function ToggleGroup({
   label,
@@ -57,7 +83,7 @@ export function ToggleGroup({
       ) : null}
       <HeroToggleButtonGroup
         aria-labelledby={labelId}
-        className="inline-flex max-w-full rounded-panel border border-border bg-surface-muted p-1"
+        className={groupContainerClass[selectionMode]}
         isDisabled={disabled}
         onSelectionChange={(keys) => onSelectionChange([...keys].map(String))}
         selectedKeys={new Set(selectedIds)}
@@ -66,7 +92,7 @@ export function ToggleGroup({
       >
         {options.map((option) => (
           <ToggleButton
-            className={toggleStyles({ size })}
+            className={`${toggleStyles({ size })} ${itemBorderByMode[selectionMode]}`}
             id={option.id}
             key={option.id}
             variant="ghost"
@@ -75,7 +101,7 @@ export function ToggleGroup({
             {option.icon ? (
               <span
                 aria-hidden="true"
-                className="grid size-icon-sm shrink-0 place-items-center text-current"
+                className="grid size-icon-sm shrink-0 place-items-center text-current [&>svg]:m-0"
               >
                 {option.icon}
               </span>

@@ -503,6 +503,58 @@ test('Action 与 ToggleGroup 内部 icon wrapper 不二次成形', async ({ page
   expect(inner?.bg).toBe('rgba(0, 0, 0, 0)');
   expect(inner?.borderW).toBe('0px');
   expect(inner?.shadow).toContain('none');
+
+  // icon wrapper 内 svg 四向 margin = 0（vendor 纵向 margin 被清理，保证与文字共轴）
+  const iconSvgMargin = await toggleItem
+    .locator('svg')
+    .first()
+    .evaluate((svg) => getComputedStyle(svg).margin);
+  expect(iconSvgMargin).toBe('0px');
+
+  // single：连续 segmented（容器 gap 0，不拆散）
+  const singleGroup = page.getByRole('radiogroup', { name: '视图模式' });
+  await expect(singleGroup).toHaveCSS('gap', '0px');
+  const singleItemRadius = await toggleItem.evaluate((el) => getComputedStyle(el).borderRadius);
+  expect(singleItemRadius).not.toBe('0px'); // 保留自身语义 radius（无 attached 裁剪）
+
+  // multiple：每个 item 独立几何 + 语义 gap（可见列）
+  const multiGroup = page.getByRole('toolbar', { name: '可见列' });
+  await expect(multiGroup).not.toHaveCSS('gap', '0px');
+  const multiGeom = await multiGroup.evaluate((group) => {
+    const items = [...group.querySelectorAll('[data-slot="toggle-button"]')] as HTMLElement[];
+    return items.map((it, index) => {
+      const cs = getComputedStyle(it);
+      const r = it.getBoundingClientRect();
+      const prev = items[index - 1];
+      const gap = prev
+        ? Math.round(
+            r.left - (prev.getBoundingClientRect().left + prev.getBoundingClientRect().width),
+          )
+        : 0;
+      return {
+        label: (it.textContent || '').trim().slice(0, 6),
+        radius: cs.borderRadius,
+        borderTop: cs.borderTopWidth,
+        borderRight: cs.borderRightWidth,
+        borderBottom: cs.borderBottomWidth,
+        borderLeft: cs.borderLeftWidth,
+        gapToPrev: gap,
+      };
+    });
+  });
+  expect(multiGeom.length).toBeGreaterThanOrEqual(2);
+  for (const item of multiGeom) {
+    // 独立几何：四边 border 完整、radius 完整（无 attached 中间项/首尾裁剪）
+    expect(item.borderTop).not.toBe('0px');
+    expect(item.borderRight).not.toBe('0px');
+    expect(item.borderBottom).not.toBe('0px');
+    expect(item.borderLeft).not.toBe('0px');
+    expect(item.radius).not.toBe('0px');
+  }
+  // items 之间有 semantic gap（> 0）
+  for (let i = 1; i < multiGeom.length; i += 1) {
+    expect(multiGeom[i]?.gapToPrev ?? 0).toBeGreaterThan(0);
+  }
 });
 
 test('Select 与 Combobox 使用统一 Popup、键盘和选中状态', async ({ page }) => {

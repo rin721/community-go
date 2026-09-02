@@ -50,9 +50,9 @@
       联合运行 20 passed；navigation.spec 全量 + admin-foundation.spec 中 7 passed；
       证据：对应命令输出。
 - [x] `E2E-103-003` 已知基线问题（与 103 无关，A/B stash 复核 HEAD 同样复现，未擅自更新）：
-      - transition.spec「无 Suspense」在 next dev 环境失败（3 passed / 1 failed，clean HEAD 同样失败）；
-      - admin-foundation.spec `universal-motion-desktop` 视觉基线漂移（1440x900 vs 1466，
-        101/102 已记录）。
+      transition.spec「无 Suspense」在 next dev 环境失败（3 passed / 1 failed，clean HEAD
+      同样失败）；admin-foundation.spec `universal-motion-desktop` 视觉基线漂移
+      （1440x900 vs 1466，101/102 已记录）。
 
 ## 门禁与构建
 

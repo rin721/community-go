@@ -8,7 +8,18 @@ import type {
   NavigationNode,
 } from '@community-go/types';
 import { NavigationFlyout } from '@community-go/ui-adapter/navigation-flyout';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+
+import {
+  accordionRootScope,
+  effectiveExplorationOf,
+  emptyAccordionModel,
+  isBranchExpanded,
+  reduceNavigationAccordion,
+  resetAccordionModel,
+  type AccordionExploration,
+  type AccordionModel,
+} from './shell-navigation-accordion';
 
 export type AdminNavigationLink = Readonly<{
   href: string;
@@ -33,10 +44,13 @@ type TreeNodeProps = Readonly<{
   node: NavigationNode;
   activeLeafId?: string | undefined;
   activeAncestorIds: ReadonlySet<string>;
-  expandedOverrides: ReadonlyMap<string, boolean>;
+  /** 当前节点所属 Accordion scopeKey：顶层 'root'，branch 子级 = 该 branch navigationId。 */
+  scopeKey: string;
+  /** routeKey 门控后的有效 exploration（渲染判定只用它）。 */
+  exploration: AccordionExploration;
   presenter: AdminNavigationPresenter;
   router: AdminRouterPort;
-  onToggle: (id: string, expanded: boolean) => void;
+  onToggle: (branch: NavigationBranch, scopeKey: string, currentlyExpanded: boolean) => void;
   onNavigate?: (() => void) | undefined;
 }>;
 
@@ -44,7 +58,8 @@ function ExpandedNode({
   node,
   activeLeafId,
   activeAncestorIds,
-  expandedOverrides,
+  scopeKey,
+  exploration,
   presenter,
   router,
   onToggle,
@@ -73,7 +88,13 @@ function ExpandedNode({
     );
   }
 
-  const expanded = expandedOverrides.get(node.id) ?? active;
+  const isActiveAncestor = activeAncestorIds.has(node.id);
+  const expanded = isBranchExpanded({
+    branchId: node.id,
+    scopeKey,
+    isActiveAncestor,
+    exploration,
+  });
   const childrenId = `admin-navigation-${node.id}`;
   return (
     <li>
@@ -84,7 +105,7 @@ function ExpandedNode({
           label: presenter.translate(node.labelKey),
         })}
         className={`${linkClassName} w-full border-0 bg-transparent text-start`}
-        onClick={() => onToggle(node.id, expanded)}
+        onClick={() => onToggle(node, scopeKey, expanded)}
         type="button"
       >
         {presenter.icon(node.id, active)}
@@ -110,13 +131,14 @@ function ExpandedNode({
             <ExpandedNode
               activeAncestorIds={activeAncestorIds}
               activeLeafId={activeLeafId}
-              expandedOverrides={expandedOverrides}
+              exploration={exploration}
               key={child.id}
               node={child}
               onNavigate={onNavigate}
               onToggle={onToggle}
               presenter={presenter}
               router={router}
+              scopeKey={node.id}
             />
           ))}
         </ul>
@@ -156,24 +178,25 @@ function CompactBranch({
   active,
   activeLeafId,
   activeAncestorIds,
-  expandedOverrides,
+  exploration,
   presenter,
   router,
   isOpen,
-  onToggle,
   onOpenChange,
+  onToggle,
   onNavigate,
 }: Readonly<{
   branch: NavigationBranch;
   active: boolean;
   activeLeafId?: string | undefined;
   activeAncestorIds: ReadonlySet<string>;
-  expandedOverrides: ReadonlyMap<string, boolean>;
+  /** routeKey 门控后的有效 exploration（Flyout 内嵌套 branch 的展开判定）。 */
+  exploration: AccordionExploration;
   presenter: AdminNavigationPresenter;
   router: AdminRouterPort;
   isOpen: boolean;
-  onToggle: (id: string, expanded: boolean) => void;
   onOpenChange: (open: boolean) => void;
+  onToggle: (branch: NavigationBranch, scopeKey: string, currentlyExpanded: boolean) => void;
   onNavigate?: (() => void) | undefined;
 }>) {
   return (
@@ -189,7 +212,7 @@ function CompactBranch({
           <ExpandedNode
             activeAncestorIds={activeAncestorIds}
             activeLeafId={activeLeafId}
-            expandedOverrides={expandedOverrides}
+            exploration={exploration}
             key={child.id}
             node={child}
             onNavigate={() => {
@@ -199,11 +222,37 @@ function CompactBranch({
             onToggle={onToggle}
             presenter={presenter}
             router={router}
+            scopeKey={branch.id}
           />
         ))}
       </ul>
     </NavigationFlyout>
   );
+}
+
+/** 收集所有 branch navigationId -> 其子树全部 branch navigationId（含自身）。 */
+function collectDescendantBranchIds(nodes: readonly NavigationNode[]): Map<string, string[]> {
+  const index = new Map<string, string[]>();
+  const collectSubtree = (items: readonly NavigationNode[], into: string[]): void => {
+    for (const item of items) {
+      if (item.kind === 'branch') {
+        into.push(item.id);
+        collectSubtree(item.children, into);
+      }
+    }
+  };
+  const visit = (items: readonly NavigationNode[]): void => {
+    for (const item of items) {
+      if (item.kind === 'branch') {
+        const subtree: string[] = [];
+        collectSubtree(item.children, subtree);
+        index.set(item.id, [item.id, ...subtree]);
+        visit(item.children);
+      }
+    }
+  };
+  visit(nodes);
+  return index;
 }
 
 /** AdminShellNavigation 只消费 Router Port，不感知 Next、History 或 Desktop Runtime。 */
@@ -220,23 +269,61 @@ export function AdminShellNavigation({
   compact?: boolean;
   onNavigate?: (() => void) | undefined;
 }>) {
-  const [expandedOverrides, setExpandedOverrides] = useState<ReadonlyMap<string, boolean>>(
-    new Map(),
+  const [accordion, setAccordion] = useState<AccordionModel>(() =>
+    emptyAccordionModel(router.currentPath),
   );
   // Compact 模式同一时刻只允许一个父级 Flyout 打开：兄弟切换时立即替换，
   // 旧 Flyout 的延迟关闭回调只能关闭自身，不能误关新菜单。
+  // openBranchId = Compact Flyout disclosure；exploration = Expanded Tree accordion exploration。
   const [openBranchId, setOpenBranchId] = useState<string | null>(null);
+
   const paths = flattenNavigationLeaves(groups.flatMap((group) => group.items));
   const activePath = paths.find(({ leaf }) =>
     isNavigationHrefActive(leaf.href, router.currentPath),
   );
   const activeAncestorIds = new Set(activePath?.ancestors.map(({ id }) => id));
-  const onToggle = (id: string, expanded: boolean) =>
-    setExpandedOverrides((current) => {
-      const next = new Map(current);
-      next.set(id, !expanded);
-      return next;
-    });
+
+  const descendantBranchIds = useMemo(
+    () => collectDescendantBranchIds(groups.flatMap((group) => group.items)),
+    [groups],
+  );
+
+  // routeKey 门控：旧 Route 的 exploration 在新 Route 可见渲染中立即失效（不等 effect）。
+  const effectiveExploration = effectiveExplorationOf(accordion, router.currentPath);
+
+  // Route Commit 清理：functional reconciliation——只清仍属于旧 Route 世代的状态；
+  // 若 reducer 已把 state 升级到新世代（含用户新 toggle 的 exploration），保留，不覆盖。
+  const previousPathRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (previousPathRef.current === null) {
+      previousPathRef.current = router.currentPath;
+      return;
+    }
+    if (previousPathRef.current === router.currentPath) return;
+    previousPathRef.current = router.currentPath;
+    setAccordion((current) =>
+      current.routeKey !== router.currentPath ? resetAccordionModel(router.currentPath) : current,
+    );
+  }, [router.currentPath]);
+
+  const handleBranchToggle = (
+    branch: NavigationBranch,
+    scopeKey: string,
+    currentlyExpanded: boolean,
+  ) => {
+    setAccordion((current) =>
+      reduceNavigationAccordion(
+        current,
+        {
+          branchId: branch.id,
+          scopeKey,
+          expand: !currentlyExpanded,
+          routeKey: router.currentPath,
+        },
+        { activeBranchIds: activeAncestorIds, descendantBranchIds },
+      ),
+    );
+  };
 
   return groups.map((group) => (
     <div key={group.id}>
@@ -266,11 +353,11 @@ export function AdminShellNavigation({
                     activeAncestorIds={activeAncestorIds}
                     activeLeafId={activePath?.leaf.id}
                     branch={node}
-                    expandedOverrides={expandedOverrides}
+                    exploration={effectiveExploration}
                     isOpen={openBranchId === node.id}
                     onNavigate={onNavigate}
                     onOpenChange={(open) => setOpenBranchId(open ? node.id : null)}
-                    onToggle={onToggle}
+                    onToggle={handleBranchToggle}
                     presenter={presenter}
                     router={router}
                   />
@@ -282,13 +369,14 @@ export function AdminShellNavigation({
             <ExpandedNode
               activeAncestorIds={activeAncestorIds}
               activeLeafId={activePath?.leaf.id}
-              expandedOverrides={expandedOverrides}
+              exploration={effectiveExploration}
               key={node.id}
               node={node}
               onNavigate={onNavigate}
-              onToggle={onToggle}
+              onToggle={handleBranchToggle}
               presenter={presenter}
               router={router}
+              scopeKey={accordionRootScope}
             />
           );
         })}

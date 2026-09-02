@@ -1,7 +1,9 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
-test('展开侧栏用同一递归能力呈现 Admin Reference 与 UI Elements', async ({ page }) => {
+test('展开侧栏用同一递归能力呈现 Admin Reference 与 UI Elements（Active Path Anchored Accordion）', async ({
+  page,
+}) => {
   await page.goto('/admin-reference/create-edit');
   const navigation = page.getByRole('navigation', { name: '主导航' });
   const referenceToggle = navigation.getByRole('button', {
@@ -11,6 +13,7 @@ test('展开侧栏用同一递归能力呈现 Admin Reference 与 UI Elements', 
     name: '展开或收起UI Elements',
   });
 
+  // Admin Reference 是当前 active 链（深层页 /admin-reference/create-edit）：锚定展开
   await expect(referenceToggle).toHaveAttribute('aria-expanded', 'true');
   await expect(navigation.getByRole('link', { name: '创建与编辑' })).toBeVisible();
   await expect(navigation).toHaveScreenshot('admin-shell-parent-navigation.png');
@@ -18,23 +21,25 @@ test('展开侧栏用同一递归能力呈现 Admin Reference 与 UI Elements', 
   expect(accessibilityScan.violations).toEqual([]);
   const currentUrl = page.url();
 
-  await referenceToggle.click();
-  await expect(referenceToggle).toHaveAttribute('aria-expanded', 'false');
-  await expect(navigation.getByRole('link', { name: '创建与编辑' })).toBeHidden();
-  await expect(page).toHaveURL(currentUrl);
-
+  // active ancestor 不允许被普通点击收起（不隐藏当前 Route）
   await referenceToggle.click();
   await expect(referenceToggle).toHaveAttribute('aria-expanded', 'true');
+  await expect(navigation.getByRole('link', { name: '创建与编辑' })).toBeVisible();
   await expect(page).toHaveURL(currentUrl);
 
+  // 展开另一顶层（同 root scope 的非 active）：Admin Reference（active）保持，
+  // UI Elements 成为 exploration 展开
   await expect(uiElementsToggle).toHaveAttribute('aria-expanded', 'false');
   await uiElementsToggle.click();
   await expect(uiElementsToggle).toHaveAttribute('aria-expanded', 'true');
+  await expect(referenceToggle).toHaveAttribute('aria-expanded', 'true');
   await expect(navigation.getByRole('link', { name: '浮层与弹出界面' })).toBeVisible();
   await expect(page).toHaveURL(currentUrl);
 
+  // 再次点击非 active exploration：收起
   await uiElementsToggle.click();
   await expect(uiElementsToggle).toHaveAttribute('aria-expanded', 'false');
+  await expect(referenceToggle).toHaveAttribute('aria-expanded', 'true');
   await expect(page).toHaveURL(currentUrl);
 });
 
@@ -191,8 +196,8 @@ test('Shell NavigationViewport 隐藏原生 scrollbar 且保留滚动能力', as
     .evaluate((element) => element.getBoundingClientRect().top);
   expect(Math.abs(previewAfter - previewBefore)).toBeLessThanOrEqual(1);
 
-  // 7. 展开多个 Group 后仍可滚动访问最后一个菜单项
-  await navigation.getByRole('button', { name: '展开或收起UI Elements' }).click();
+  // 7. 展开一个顶层菜单后可滚动访问最后一个菜单项
+  //    （root scope Accordion：展开 Admin Reference 后即为当前唯一 exploration/active 顶层）
   await navigation.getByRole('button', { name: '展开或收起Admin Reference' }).click();
   const lastItem = navigation.getByRole('link', { name: '操作任务' });
   await lastItem.scrollIntoViewIfNeeded();

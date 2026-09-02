@@ -23,9 +23,9 @@ import { useFrontendTranslation } from '@community-go/i18n';
 import type { ReactNode } from 'react';
 
 import { markForwardRouteIntent, pageTransitionTypes } from '../host/route-transition-constants';
-import { beginNavigation } from '../host/navigation-progress';
 import { AdminHostNavigationPortProvider } from '../host/admin-navigation-port';
 import { adminHostRouteTargetResolver } from '../host/admin-route-target-resolver';
+import { shouldProceedWithNavigation } from '../host/navigation-lifecycle';
 import { RouteTransition } from '../host/route-transition';
 import { TopProgress } from '../host/top-progress';
 import { useShellStore } from '../state/use-shell-store';
@@ -187,8 +187,8 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
               triggerLabel={t('shell.searchShortcut')}
               onAction={(href) => {
                 setCommandOpen(false);
+                if (!shouldProceedWithNavigation(href, t('shell.search'))) return;
                 markForwardRouteIntent();
-                beginNavigation(t('shell.search'));
                 void router.push(href, { transitionTypes: [pageTransitionTypes.forward] });
               }}
               onOpenChange={setCommandOpen}
@@ -220,8 +220,8 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
                 <UserIdentity avatarSize="sm" description={t('shell.productOwner')} name="Rin" />
               }
               onAction={(href) => {
+                if (!shouldProceedWithNavigation(href, t('shell.account'))) return;
                 markForwardRouteIntent();
-                beginNavigation(t('shell.account'));
                 void router.push(href, { transitionTypes: [pageTransitionTypes.forward] });
               }}
             />

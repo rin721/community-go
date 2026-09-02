@@ -4,7 +4,7 @@ import { StateSurface } from '@community-go/ui-adapter/state-surface';
 import { FileQuestion } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-import { beginNavigation } from '../host/navigation-progress';
+import { shouldProceedWithNavigation } from '../host/navigation-lifecycle';
 
 export default function NotFoundPage() {
   const router = useRouter();
@@ -16,7 +16,7 @@ export default function NotFoundPage() {
       state="empty"
       title="404 Not Found"
       onAction={() => {
-        beginNavigation();
+        if (!shouldProceedWithNavigation('/')) return;
         void router.replace('/');
       }}
     />

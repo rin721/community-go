@@ -42,6 +42,12 @@ export function completeNavigation() {
   currentNavigationEnd = null;
 }
 
+/** 导航取消信号：导航被中断/放弃（未提交）时调用，立即结束当前导航。 */
+export function cancelNavigation() {
+  currentNavigationEnd?.();
+  currentNavigationEnd = null;
+}
+
 /** 导航失败信号：Error Boundary 捕获路由错误时调用，立即结束当前导航。 */
 export function failNavigation() {
   currentNavigationEnd?.();

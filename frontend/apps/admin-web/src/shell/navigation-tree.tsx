@@ -32,7 +32,7 @@ import { usePathname } from 'next/navigation';
 import { createElement } from 'react';
 
 import { markForwardRouteIntent, pageTransitionTypes } from '../host/route-transition-constants';
-import { beginNavigation } from '../host/navigation-progress';
+import { shouldProceedWithNavigation } from '../host/navigation-lifecycle';
 
 const iconByNavigationId: Readonly<Record<string, LucideIcon>> = {
   overview: LayoutDashboard,
@@ -75,10 +75,16 @@ export function NavigationTree({
         transitionTypes={[pageTransitionTypes.forward]}
         {...(ariaLabel ? { 'aria-label': ariaLabel } : {})}
         {...(title ? { title } : {})}
-        onClick={() => {
-          markForwardRouteIntent();
-          beginNavigation(t('shell.primaryNav'));
+        onClick={(event) => {
+          // no-op 短路：目标与当前 resolved location 等价时不导航、不启动 Progress。
+          // 仍需触发 onNavigate（移动端关闭菜单、Flyout 关闭等副作用）。
+          const proceed = shouldProceedWithNavigation(href, t('shell.primaryNav'));
           if (onLinkNavigate) queueMicrotask(onLinkNavigate);
+          if (!proceed) {
+            event.preventDefault();
+            return;
+          }
+          markForwardRouteIntent();
         }}
       >
         {children}

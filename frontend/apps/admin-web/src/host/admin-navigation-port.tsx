@@ -9,7 +9,7 @@ import {
 } from '@community-go/admin-framework/plugin';
 
 import { markForwardRouteIntent, pageTransitionTypes } from './route-transition-constants';
-import { beginNavigation } from './navigation-progress';
+import { shouldProceedWithNavigation } from './navigation-lifecycle';
 
 /**
  * Host Navigation Port —— 唯一的 Router 接入点。
@@ -41,10 +41,15 @@ export function AdminHostNavigationPortProvider({
       transitionTypes={[pageTransitionTypes.forward]}
       {...(props.ariaLabel ? { 'aria-label': props.ariaLabel } : {})}
       {...(props.title ? { title: props.title } : {})}
-      onClick={() => {
-        markForwardRouteIntent();
-        beginNavigation('plugin navigation');
+      onClick={(event) => {
+        // no-op 短路：目标与当前 resolved location 等价时不导航、不启动 Progress。
+        const proceed = shouldProceedWithNavigation(props.href, 'plugin navigation');
         if (props.onNavigate) queueMicrotask(props.onNavigate);
+        if (!proceed) {
+          event.preventDefault();
+          return;
+        }
+        markForwardRouteIntent();
       }}
     >
       {props.children}
@@ -56,13 +61,13 @@ export function AdminHostNavigationPortProvider({
       port={{
         resolveHref: (target) => resolveHref(target),
         navigate: (href) => {
+          if (!shouldProceedWithNavigation(href, 'plugin navigation')) return;
           markForwardRouteIntent();
-          beginNavigation('plugin navigation');
           void router.push(href, { transitionTypes: [pageTransitionTypes.forward] });
         },
         replace: (href) => {
+          if (!shouldProceedWithNavigation(href, 'plugin navigation')) return;
           markForwardRouteIntent();
-          beginNavigation('plugin navigation');
           void router.replace(href, { transitionTypes: [pageTransitionTypes.forward] });
         },
         renderLink,

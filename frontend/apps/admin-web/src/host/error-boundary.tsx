@@ -6,7 +6,7 @@ import { StateSurface } from '@community-go/ui-adapter/state-surface';
 import { OctagonAlert } from 'lucide-react';
 
 import { adminI18n } from '../i18n/i18n';
-import { failNavigation } from './navigation-progress';
+import { failRouteNavigation } from './navigation-lifecycle';
 
 type ErrorBoundaryState = { hasError: boolean };
 
@@ -23,7 +23,7 @@ export class AppErrorBoundary extends Component<{ children: ReactNode }, ErrorBo
       componentStack: info.componentStack,
     });
     // 路由渲染失败：立即结束当前全局导航，避免进度条永久停留。
-    failNavigation();
+    failRouteNavigation();
   }
 
   override render() {

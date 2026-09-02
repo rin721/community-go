@@ -14,3 +14,4 @@
 - [100 Top Progress](100-top-progress/README.md)：全局导航进度条（Host 导航生命周期 + 结构化 Loading）；实施与验证已完成。
 - [101 Admin Framework / Surface File Routes](101-admin-surface-file-routes/README.md)：Admin Framework 契约、Registry、Surface 私有边界、Reference Plugin、确定性 codegen、治理门禁与最小 Shell bridge；实施与验证已完成。
 - [102 Frontend 文档体系](102-frontend-documentation-system/README.md)：前端文档入口手册、Admin Framework authority、既有文档同步、变更索引补全与 `docs:check` 结构门禁；实施与验证已完成。
+- [103 导航 no-op 生命周期](103-navigation-noop-lifecycle/README.md)：同 resolved target 重复点击 no-op 短路、导航事务 begin → complete/cancel/fail 收敛、等价判断基于 pathname/search/hash；实施与验证已完成。

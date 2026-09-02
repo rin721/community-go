@@ -28,6 +28,7 @@
     "./navigation": "./src/navigation.tsx",
     "./navigation-flyout": "./src/navigation-flyout.tsx",
     "./overlays": "./src/overlays.tsx",
+    "./overlay-trigger": "./src/overlay-trigger.tsx",
     "./panel": "./src/panel.tsx",
     "./progress-meter": "./src/progress-meter.tsx",
     "./ready-image": "./src/ready-image.tsx",

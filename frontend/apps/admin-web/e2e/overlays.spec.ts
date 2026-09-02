@@ -459,3 +459,100 @@ test('Dialog 与 Drawer 锁定焦点并支持 Escape 恢复 Trigger', async ({ p
   await page.keyboard.press('Escape');
   await expect(drawerTrigger).toBeFocused();
 });
+
+test('Overlay Trigger 交互状态不切换成 Brand Primary（idle/hover/pressed/focus-restored）', async ({
+  page,
+}) => {
+  await page.goto('/ui-elements/overlays');
+
+  // 五类 trigger 的语义断言：底层必须是 ghost variant，绝不带 button--primary
+  const triggerNames = ['Dialog', '普通确认', '危险确认', 'Drawer', 'Command'] as const;
+  for (const name of triggerNames) {
+    const trigger = page.getByRole('button', { name, exact: true });
+    await expect(trigger).toBeVisible();
+    const cls = (await trigger.getAttribute('class')) ?? '';
+    expect(cls).toContain('button--ghost');
+    expect(cls).not.toContain('button--primary');
+    // 语义色断言：danger trigger 用 danger 语义，其它用中性（不用 bg-brand）
+    if (name === '危险确认') {
+      expect(cls).toContain('text-danger');
+    } else {
+      expect(cls).toContain('bg-surface');
+      expect(cls).not.toContain('text-brand');
+    }
+  }
+
+  // Dialog：pressed（mouse down）与 focus-restored 后背景保持中性（非 accent 蓝填充）
+  const dialogTrigger = page.getByRole('button', { name: 'Dialog', exact: true });
+  const readBg = () =>
+    dialogTrigger.evaluate((el) => {
+      const cs = getComputedStyle(el);
+      return {
+        bg: cs.backgroundColor,
+        cls: (el.getAttribute('class') ?? '').split(' ').filter((c) => c.includes('button--')),
+      };
+    });
+
+  const idle = await readBg();
+  expect(idle.bg).toBe('rgb(255, 255, 255)');
+
+  // pressed：mouse down 不释放，背景不得变 accent 蓝（保持中性或 muted 反馈）
+  const box = (await dialogTrigger.boundingBox())!;
+  await page.mouse.move(box.x + 30, box.y + 15);
+  await page.mouse.down();
+  await page.waitForTimeout(120);
+  const pressed = await readBg();
+  // 允许中性按下反馈（surface-muted 灰），但绝不能是 HeroUI accent 蓝（oklch hue≈253 渲染值）
+  expect(pressed.cls).not.toContain('button--primary');
+  await page.mouse.up();
+
+  // 打开 Dialog 再 Escape 关闭（focus restore 到 trigger）：背景仍中性，无蓝色残留
+  await dialogTrigger.click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(dialogTrigger).toBeFocused();
+  await page.waitForTimeout(200);
+  const restored = await readBg();
+  expect(restored.cls).not.toContain('button--primary');
+  // 中性 hover 反馈（surface-muted）或回到 idle 白皆可；绝不出现 brand 蓝实色
+  const isNeutral =
+    restored.bg === 'rgb(255, 255, 255)' ||
+    restored.bg === 'rgb(240, 242, 247)' ||
+    restored.bg === 'rgb(242, 244, 248)';
+  expect(isNeutral).toBe(true);
+});
+
+test('危险确认 Trigger 在 pressed 状态保持 danger 语义（不切换 Brand）', async ({ page }) => {
+  await page.goto('/ui-elements/overlays?overlay=confirm');
+  const trigger = page.getByRole('button', { name: '危险确认', exact: true });
+  await expect(trigger).toBeVisible();
+  // 关闭默认打开的 dialog 以便操作 trigger（与既有用例一致：用取消按钮关闭）
+  await page.getByRole('alertdialog').getByRole('button', { name: '取消' }).click();
+  await expect(page.getByRole('alertdialog')).toBeHidden();
+
+  const readState = () =>
+    trigger.evaluate((el) => {
+      const cs = getComputedStyle(el);
+      return {
+        bg: cs.backgroundColor,
+        color: cs.color,
+        cls: (el.getAttribute('class') ?? '').split(' '),
+      };
+    });
+
+  const idle = await readState();
+  const idleCls = idle.cls.join(' ');
+  expect(idleCls).toContain('text-danger');
+  expect(idleCls).not.toContain('button--primary');
+
+  // pressed：背景变 danger-soft（danger 语义反馈），不出现 brand 蓝
+  const box = (await trigger.boundingBox())!;
+  await page.mouse.move(box.x + 30, box.y + 15);
+  await page.mouse.down();
+  await page.waitForTimeout(120);
+  const pressedCls = (await readState()).cls.join(' ');
+  expect(pressedCls).toContain('data-[pressed=true]:bg-danger-soft');
+  expect(pressedCls).not.toContain('button--primary');
+  expect(pressedCls).not.toContain('data-[pressed=true]:bg-brand');
+  await page.mouse.up();
+});

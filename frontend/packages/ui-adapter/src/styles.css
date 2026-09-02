@@ -23,6 +23,24 @@
 
   .ui-overlay-trigger {
     @apply inline-flex h-10 items-center justify-center gap-2 rounded-control border border-border bg-surface px-3.5 text-sm font-semibold text-ink shadow-sm outline-none transition-colors hover:bg-surface-muted;
+    /* 复合 Overlay Trigger（Popover/Tooltip/Dropdown 的 Trigger 子组件）的交互状态：
+       pressed/hover 保持中性 surface-muted 深浅反馈，不切换到任何语义主色；
+       focus-visible 保留项目 focus ring（可访问性反馈不删除）。 */
+    &:hover,
+    &[data-hovered='true'] {
+      background-color: var(--color-surface-muted);
+    }
+    &:active,
+    &[data-pressed='true'] {
+      background-color: var(--color-surface-muted);
+    }
+    &:focus-visible,
+    &[data-focus-visible='true'] {
+      outline: none;
+      box-shadow:
+        0 0 0 0.125rem var(--color-surface),
+        0 0 0 0.25rem var(--color-focus-ring);
+    }
   }
 
   .ui-overlay-surface {

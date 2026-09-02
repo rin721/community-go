@@ -77,6 +77,7 @@
         "./navigation",
         "./navigation-flyout",
         "./overlays",
+        "./overlay-trigger",
         "./panel",
         "./progress-meter",
         "./ready-image",

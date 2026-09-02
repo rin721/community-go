@@ -1,9 +1,9 @@
-import { Button as HeroButton } from '@heroui/react/button';
 import { Label } from '@heroui/react/label';
 import { ListBox } from '@heroui/react/list-box';
 import { Modal } from '@heroui/react/modal';
 import { useMemo, useState } from 'react';
 
+import { OverlayTriggerAction } from './overlay-trigger';
 import { SearchBox } from './search-box';
 
 export type CommandItem = Readonly<{
@@ -55,7 +55,7 @@ export function CommandMenu({
       {...(isOpen !== undefined ? { isOpen } : {})}
       {...(onOpenChange ? { onOpenChange } : {})}
     >
-      <HeroButton className="ui-overlay-trigger">{triggerLabel}</HeroButton>
+      <OverlayTriggerAction>{triggerLabel}</OverlayTriggerAction>
       <Modal.Backdrop className="bg-scrim backdrop-blur-sm">
         <Modal.Container placement="top" size="lg">
           <Modal.Dialog className="ui-overlay-surface mt-16 w-full overflow-hidden">

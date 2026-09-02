@@ -6,6 +6,8 @@ import { Popover } from '@heroui/react/popover';
 import { Tooltip } from '@heroui/react/tooltip';
 import { useState, type ReactNode } from 'react';
 
+import { OverlayTriggerAction } from './overlay-trigger';
+
 export type PopoverCardProps = Readonly<{
   triggerLabel: string;
   title: string;
@@ -98,9 +100,7 @@ export function DialogSurface({
 
   return (
     <Modal isOpen={open} onOpenChange={setOpen}>
-      <HeroButton className="ui-overlay-trigger" onPress={() => setOpen(true)}>
-        {triggerLabel}
-      </HeroButton>
+      <OverlayTriggerAction onPress={() => setOpen(true)}>{triggerLabel}</OverlayTriggerAction>
       <Modal.Backdrop className="bg-scrim backdrop-blur-sm">
         <Modal.Container placement="center" size="lg">
           <Modal.Dialog className="ui-overlay-surface w-full">
@@ -184,9 +184,12 @@ export function ConfirmDialog({
 
   return (
     <AlertDialog isOpen={open} onOpenChange={setOpen}>
-      <HeroButton className="ui-overlay-trigger" onPress={() => setOpen(true)}>
+      <OverlayTriggerAction
+        tone={tone === 'danger' ? 'danger' : 'default'}
+        onPress={() => setOpen(true)}
+      >
         {triggerLabel}
-      </HeroButton>
+      </OverlayTriggerAction>
       <AlertDialog.Backdrop className="bg-scrim backdrop-blur-sm">
         <AlertDialog.Container placement="center" size="md">
           <AlertDialog.Dialog className="ui-overlay-surface w-full">
@@ -254,7 +257,7 @@ export function DrawerSurface({
 }: DrawerSurfaceProps) {
   return (
     <Drawer defaultOpen={defaultOpen}>
-      <HeroButton className="ui-overlay-trigger">{triggerLabel}</HeroButton>
+      <OverlayTriggerAction>{triggerLabel}</OverlayTriggerAction>
       <Drawer.Backdrop className="bg-scrim backdrop-blur-sm">
         <Drawer.Content placement="right">
           <Drawer.Dialog className="ui-overlay-surface relative h-full w-full max-w-lg rounded-none">

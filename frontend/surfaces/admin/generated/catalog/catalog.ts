@@ -16,6 +16,7 @@ export const generatedRouteCatalog: AdminRouteCatalog = {
       navigationId: 'reference-resources',
       labelKey: 'referenceResources.nav.list',
       groupId: 'admin.reference',
+      iconId: 'resource',
       titleKey: 'referenceResources.list.title',
     },
     {

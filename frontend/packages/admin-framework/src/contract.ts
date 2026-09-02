@@ -20,6 +20,13 @@ export type AdminRouteNavigation = Readonly<{
   navigationId: string;
   labelKey: string;
   groupId: string;
+  /**
+   * 可选 semantic presentation metadata：业务菜单希望呈现的语义标识。
+   * 不是 Plugin capability，不是能力协商；合法集合由 Admin Surface
+   * navigation vocabulary（navigation-icon.ts）治理。Registry/Framework
+   * 只透传 opaque id，不感知 vocabulary 语义、不校验。
+   */
+  iconId?: string;
 }>;
 
 /** 跨 Plugin 引用被禁止；覆盖必须位于同 Plugin 并附带 rationale。 */
@@ -72,6 +79,8 @@ export type AdminFileRouteDescriptor = Readonly<{
   navigationId?: string;
   labelKey?: string;
   groupId?: string;
+  /** 可选 semantic presentation metadata（opaque 透传，合法集合由 Surface vocabulary 治理）。 */
+  iconId?: string;
   titleKey?: string;
   canonicalParentOverride?: AdminRouteOverride;
   activeNavigationOverride?: AdminActiveNavigationOverride;

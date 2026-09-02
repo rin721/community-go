@@ -18,5 +18,16 @@ module resolution、typecheck 与 test 服务。
 - 允许依赖 Universal、`admin-foundation` 与 `admin-framework`；禁止依赖 `apps/*`、
   Browser/Desktop API、后端 DTO、请求、Session 或权限实现。
 - 新建 File Route 前先读 [Admin Framework 与 Surface File Routes](../../docs/admin-framework.md)。
+- `navigation.groupId` 必须命中 Admin Surface taxonomy（唯一 authority：
+  `surfaces/admin/src/navigation-taxonomy.ts` 的 `adminSurfaceTaxonomy`）；
+  新增全局导航分组属于 Admin Surface IA 变更，经中央 taxonomy 治理，不是 Plugin
+  私有扩展点。未知 groupId 由 codegen gate 报 `UNKNOWN_ADMIN_NAVIGATION_GROUP`
+  硬失败，禁止 silent drop。
+- `navigation.iconId`（可选）是 Plugin Navigation Contribution 的 semantic
+  presentation metadata（不是 Plugin capability / 能力协商），必须命中 Admin
+  Surface icon vocabulary（唯一 authority：`surfaces/admin/src/navigation-icon.ts`）；
+  未知 iconId 由 codegen gate 报 `UNKNOWN_ADMIN_NAVIGATION_ICON` 硬失败，禁止静默
+  fallback。插件只声明语义 id，不贡献 ReactNode/SVG/Lucide 组件；扩展 vocabulary
+  属 Surface 治理。
 - 参考插件 `reference-resources` 使用固定路径完成浏览器验证，不引入 `[param]` 动态路由
   （Static Export Host 对动态路由硬失败）。

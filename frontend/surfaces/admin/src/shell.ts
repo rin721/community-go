@@ -9,7 +9,13 @@ export {
   adminSurfaceTaxonomy,
   convertRegistryToShellNavigation,
   findTaxonomyEntry,
+  adminNavigationIconVocabulary,
+  UNKNOWN_ADMIN_NAVIGATION_ICON,
+  collectUnknownNavigationIconDiagnostics,
   type AdminTaxonomyEntry,
+  type AdminNavigationIconId,
+  type AdminNavigationIconReference,
+  type AdminNavigationIconDiagnostic,
 } from './shell-model';
 
 export { surfaceShellI18nResources } from './i18n';

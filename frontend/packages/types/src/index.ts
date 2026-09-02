@@ -14,6 +14,8 @@ export type NavigationLeaf = Readonly<{
   id: string;
   labelKey: string;
   href: string;
+  /** 可选 semantic presentation metadata（opaque；Shell 按自己 presentation policy 消费）。 */
+  iconId?: string;
 }>;
 
 export type NavigationBranch = Readonly<{
@@ -22,6 +24,8 @@ export type NavigationBranch = Readonly<{
   labelKey: string;
   defaultHref: string;
   children: readonly [NavigationNode, ...NavigationNode[]];
+  /** 可选 semantic presentation metadata（opaque；Shell 按自己 presentation policy 消费）。 */
+  iconId?: string;
 }>;
 
 export type NavigationNode = NavigationLeaf | NavigationBranch;

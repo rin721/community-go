@@ -5,9 +5,11 @@ import { createAdminRegistry } from '@community-go/admin-framework';
 
 import {
   adminSurfaceTaxonomy,
+  collectUnknownNavigationGroupDiagnostics,
   convertRegistryToShellNavigation,
   findTaxonomyEntry,
 } from './shell-model';
+import { UNKNOWN_ADMIN_NAVIGATION_GROUP } from './navigation-taxonomy';
 import { mergeTranslationResources } from './composition';
 import { surfaceShellI18nResources } from './i18n';
 
@@ -63,7 +65,19 @@ describe('Registry → Shell navigation 转换', () => {
     });
   });
 
-  it('未命中 taxonomy 的 group 不进入 Shell', () => {
+  it('未知 groupId：collectUnknownNavigationGroupDiagnostics 聚合 routeIds', () => {
+    const diagnostics = collectUnknownNavigationGroupDiagnostics([
+      { groupId: 'admin.reference', routeId: 'reference-resources' },
+      { groupId: 'other.taxonomy', routeId: 'other' },
+      { groupId: 'other.taxonomy', routeId: 'other.detail' },
+    ]);
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]?.code).toBe(UNKNOWN_ADMIN_NAVIGATION_GROUP);
+    expect(diagnostics[0]?.groupId).toBe('other.taxonomy');
+    expect(diagnostics[0]?.routeIds).toEqual(['other', 'other.detail']);
+  });
+
+  it('converter 对未知 taxonomy group deterministic throw（不静默丢弃）', () => {
     const registry = createAdminRegistry({
       plugins: [{ pluginId: 'other', mount: '/other' }],
       routes: [
@@ -81,8 +95,9 @@ describe('Registry → Shell navigation 转换', () => {
         },
       ],
     });
-    const groups = convertRegistryToShellNavigation(registry, adminSurfaceTaxonomy);
-    expect(groups).toHaveLength(0);
+    expect(() => convertRegistryToShellNavigation(registry, adminSurfaceTaxonomy)).toThrow(
+      UNKNOWN_ADMIN_NAVIGATION_GROUP,
+    );
   });
 });
 

@@ -142,6 +142,20 @@ describe('Admin Framework registry', () => {
     });
   });
 
+  it('navigation tree 原样携带可选 iconId（opaque presentation metadata，不校验语义）', () => {
+    const iconCatalog: AdminRouteCatalog = {
+      plugins: [plugin],
+      routes: [
+        {
+          ...listRoute,
+          iconId: 'resource',
+        },
+      ],
+    };
+    const registry = createAdminRegistry(iconCatalog);
+    expect(registry.navigationTree[0]?.items[0]?.iconId).toBe('resource');
+  });
+
   it('breadcrumb topology 沿 canonical hierarchy 派生', () => {
     const registry = createAdminRegistry(catalog);
     const breadcrumbs = registry.breadcrumbs['reference-resources.edit'];

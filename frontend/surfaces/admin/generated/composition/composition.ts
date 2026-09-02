@@ -4,12 +4,19 @@ import { createAdminRegistry } from '@community-go/admin-framework';
 import type { AdminRegistryModel } from '@community-go/admin-framework';
 import type { TranslationResources } from '@community-go/i18n';
 import { generatedRouteCatalog } from '../catalog/catalog';
-import { mergeTranslationResources, type AdminSurfaceComposition } from '../../src/composition';
+import {
+  assertValidAdminSurfaceRegistry,
+  mergeTranslationResources,
+  type AdminSurfaceComposition,
+} from '../../src/composition';
 import { surfaceShellI18nResources } from '../../src/i18n';
 import { pluginI18nResources as pluginI18nResources_reference_resources } from '../../plugins/reference-resources/i18n';
 
 export const generatedSurfaceRegistry: AdminRegistryModel =
   createAdminRegistry(generatedRouteCatalog);
+
+// Surface composition/model boundary runtime invariant：navigation group 必须命中 Admin Surface taxonomy。
+assertValidAdminSurfaceRegistry(generatedSurfaceRegistry);
 
 export const generatedSurfaceI18nResources: TranslationResources = mergeTranslationResources(
   surfaceShellI18nResources,

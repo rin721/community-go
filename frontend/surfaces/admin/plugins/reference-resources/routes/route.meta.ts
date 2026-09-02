@@ -10,6 +10,8 @@ export const routeMeta = {
     navigationId: 'reference-resources',
     labelKey: 'referenceResources.nav.list',
     groupId: 'admin.reference',
+    // semantic presentation metadata：合法集合由 Admin Surface icon vocabulary 治理
+    iconId: 'resource',
   },
   titleKey: 'referenceResources.list.title',
 } as const satisfies AdminRouteMeta;

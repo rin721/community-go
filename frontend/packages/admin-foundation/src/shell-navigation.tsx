@@ -37,7 +37,8 @@ export type AdminRouterPort = Readonly<{
 
 export type AdminNavigationPresenter = Readonly<{
   translate: (key: string, values?: Readonly<Record<string, unknown>>) => string;
-  icon: (id: string, active: boolean) => ReactNode;
+  /** Shell 侧按 node.iconId 决定图标；foundation 只转发 opaque presentation metadata。 */
+  icon: (iconId: string | undefined, active: boolean) => ReactNode;
 }>;
 
 type TreeNodeProps = Readonly<{
@@ -78,7 +79,7 @@ function ExpandedNode({
           className: linkClassName,
           children: (
             <>
-              {presenter.icon(node.id, active)}
+              {presenter.icon(node.iconId, active)}
               <span className="min-w-0 flex-1 truncate">{presenter.translate(node.labelKey)}</span>
             </>
           ),
@@ -108,7 +109,7 @@ function ExpandedNode({
         onClick={() => onToggle(node, scopeKey, expanded)}
         type="button"
       >
-        {presenter.icon(node.id, active)}
+        {presenter.icon(node.iconId, active)}
         <span className="min-w-0 flex-1 truncate">{presenter.translate(node.labelKey)}</span>
         <svg
           aria-hidden="true"
@@ -168,7 +169,7 @@ function CompactLeaf({
     className: `flex h-11 items-center justify-center rounded-control px-2 transition-colors ${
       active ? 'bg-brand-soft text-brand' : 'text-ink-muted hover:bg-surface-muted hover:text-ink'
     }`,
-    children: presenter.icon(leaf.id, active),
+    children: presenter.icon(leaf.iconId, active),
     ...(onNavigate ? { onNavigate } : {}),
   });
 }
@@ -202,7 +203,7 @@ function CompactBranch({
   return (
     <NavigationFlyout
       active={active}
-      icon={presenter.icon(branch.id, active)}
+      icon={presenter.icon(branch.iconId, active)}
       isOpen={isOpen}
       label={presenter.translate(branch.labelKey)}
       onOpenChange={onOpenChange}

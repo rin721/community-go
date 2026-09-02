@@ -52,6 +52,8 @@ export type AdminNavigationItem = Readonly<{
   navigationId: string;
   labelKey: string;
   href: string;
+  /** 可选 semantic presentation metadata（opaque 透传，不校验；Shell 按自己 presentation policy 消费）。 */
+  iconId?: string;
 }>;
 
 export type AdminNavigationGroup = Readonly<{
@@ -255,6 +257,7 @@ export function createAdminRegistry(catalog: AdminRouteCatalog): AdminRegistryMo
       navigationId: descriptor.navigationId,
       labelKey: descriptor.labelKey ?? descriptor.titleKey ?? '',
       href: buildHref(descriptor),
+      ...(descriptor.iconId ? { iconId: descriptor.iconId } : {}),
     };
     const existing = groups.get(descriptor.groupId);
     if (existing) {

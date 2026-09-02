@@ -2,23 +2,32 @@
 
 `/frontend` 是产品统一前端 Monorepo。当前首要成果不是组件库或模板发行，而是可持续演进的 Product Foundation：普通后台业务只选择既有 Layout、Element、Form、State、Motion 与 Admin Pattern，Feature 负责业务语义、Schema、数据、权限和 i18n。
 
-## 三层架构
+## 分层架构
 
 ```text
 Universal Frontend Foundation
+  design-system / ui-adapter / form-foundation / i18n / core / schemas / types
         ↓
-Product-Surface Foundation（当前：Admin）
+Admin Product-Surface
+  packages/admin-foundation      可复用 Admin 视觉、Layout、Pattern、State、Motion
+  packages/admin-framework      Plugin Contract、Route Target、Registry、Host Capability
+  surfaces/admin                Admin Surface 插件实现（private workspace）
         ↓
-Application = Product Surface × Runtime Host（当前：admin-web）
+Application = Product Surface × Runtime Host
+  apps/admin-web                Next.js、Browser Runtime、Host Port 实现、Composition Root
 ```
 
 - Universal：`design-system`、`ui-adapter`、`form-foundation`、`i18n`、`core`、`schemas`、`types`。禁止 Admin、Product 或 Host 特有页面语义。
-- Admin Surface：`packages/admin-foundation`，拥有 Admin Layout、Shell Navigation、Collection、Detail/Settings、Form Action、State/Operation 与 Admin Motion Recipe。
+- Admin Surface：`packages/admin-foundation`（Layout/Shell Navigation/Collection/Detail/Settings/Form Action/State/Operation 与 Admin Motion Recipe）、`packages/admin-framework`（Plugin Contract、Route Target、Registry、Host Capability；不读取 pathname、不复制 Next Route Runtime）、`surfaces/admin`（具体 Surface 插件实现与 generated 产物）。
 - Admin Web Host：`apps/admin-web`，只拥有 Next 启动、Router、Browser API、生命周期、持久化和 Surface 装配。
 
 Product Surface 与 Runtime Host 是正交维度。未来只有真实需求出现时才创建 `packages/<surface>-foundation` 与 `apps/<surface>-<runtime>`，不预造空 Package 或 Runtime Contract。
 
-详细边界见 [Universal Frontend Foundation](docs/frontend-foundation.md)、[Admin Product-Surface Foundation](docs/admin-foundation.md) 与 [Foundation 扩展治理](docs/foundation-extension-governance.md)。
+完整文档入口见 [Frontend 文档手册](docs/README.md)；详细边界见
+[Universal Frontend Foundation](docs/frontend-foundation.md)、
+[Admin Product-Surface Foundation](docs/admin-foundation.md)、
+[Admin Framework 与 Surface File Routes](docs/admin-framework.md) 与
+[Foundation 扩展治理](docs/foundation-extension-governance.md)。
 
 ## 运行与验证
 
@@ -34,6 +43,7 @@ pnpm check
 - `/motion`：Async readiness、Viewport Reveal、Content Swap、Disclosure 与 development Motion Inspector。
 - `/admin-patterns/*`：Layout/Navigation、Collections/Data、Forms/Actions、States/Feedback、Detail/Settings。
 - `/admin-reference/*`：Overview、Resource List、Detail、Create/Edit、Settings、Master-Detail、Operation 七类完整 Page Archetype。
+- `/reference-resources/*`：Admin Surface File Route / Route Target 参考插件（list/create/detail/edit）的浏览器验收。
 
 所有场景使用确定性本地数据，只证明前端语义，不模拟后端业务、API、Session、权限计算或任务状态机。
 
@@ -43,6 +53,8 @@ pnpm check
 - Form 生命周期只通过 `packages/form-foundation` 直接依赖 React Hook Form/Resolver。
 - locale runtime 与 `Intl` formatter 只通过 `packages/i18n` 直接依赖 i18next/react-i18next。
 - Universal Motion Token/Recipe 位于 `packages/design-system`，公共 readiness/presence/media contract 位于 `packages/ui-adapter`；方向性页面转场、Shell 锚定和 Admin 状态 Recipe 位于 `packages/admin-foundation`，Router/Observer/Policy 生命周期止于 `admin-web` Host。
+- Admin Framework（`packages/admin-framework`）定义 Plugin Contract、Route Target、Registry、Host Capability 与 Route Context；唯一真实 Router 是 Next App Router，Framework 不读 pathname、不维护 history。
+- Admin Surface 插件实现位于 `surfaces/admin`（private workspace）：对 Host 只开放 `shell`、`generated/composition`、`generated/catalog`、`generated/routes/*`，`plugins/*` 永不公开；生成物由 `pnpm codegen:admin` 确定性地产生并纳入 `pnpm check` freshness。
 - Reference 场景归验证 Host，不进入公共 Feature Package。
 - 公共 exports、owner、成熟度、authority route 与证据登记在 `tooling/foundation-contracts.json`。
 
@@ -55,4 +67,4 @@ pnpm check
 - `dependency:check`：运行时依赖职责和允许 Workspace。
 - `typecheck`、`test`、`build`、`performance:check`、Playwright/Axe/Visual 与 `format:check`：共同构成交付证据。
 
-任务研究、需求、设计和实施证据从 [098 变更记录](docs/changes/098-frontend-product-foundation/README.md) 进入；历史变更不再作为当前架构 authority。
+任务研究、需求、设计和实施证据从 [变更记录索引](docs/changes/README.md) 进入；当前说明以 [Frontend 文档手册](docs/README.md) 与主题 authority 为准，历史变更不再作为当前架构 authority。

@@ -12,14 +12,18 @@
 Universal Frontend Foundation
   design-system / ui-adapter / form-foundation / i18n / core / schemas / types
         ↓
-Product-Surface Foundation
-  admin-foundation（首个成熟 Surface）
+Admin Product-Surface
+  packages/admin-foundation      可复用 Admin 视觉、Layout、Pattern、State、Motion
+  packages/admin-framework      Plugin Contract、Route Target、Registry、Host Capability
+  surfaces/admin                Admin Surface 插件实现（private workspace）
         ↓
 Application = Product Surface × Runtime Host
-  admin-web（Admin × Web）
+  apps/admin-web                Next.js、Browser Runtime、Host Port 实现、Composition Root
 ```
 
-Product Surface 与 Runtime Host 是正交维度。Universal 禁止依赖 Surface/Host；Surface 只能依赖 Universal 和自身 Surface；Host 只能装配与其匹配的 Surface。命名固定使用 `packages/<surface>-foundation` 与 `apps/<surface>-<runtime>`。机器可读分类以 `tooling/foundation-policy.json` 为准。
+Product Surface 与 Runtime Host 是正交维度。Universal 禁止依赖 Surface/Host；Surface 只能依赖 Universal 和自身 Surface；Host 只能装配与其匹配的 Surface。命名固定使用 `packages/<surface>-foundation`、`packages/<surface>-framework` 与 `apps/<surface>-<runtime>`；`surfaces/<surface>` 存放具体 Surface 实现（private workspace，插件非公共 API）。机器可读分类以 `tooling/foundation-policy.json` 为准。唯一真实 Router 是 Next.js App Router；Framework 不读取 pathname、不维护 history、不复制 Next Route Runtime。
+
+文档入口固定为 `frontend/README.md -> docs/README.md -> 主题 authority -> 局部 README/AGENTS`；任务研究、需求与实施证据只保存在 `docs/changes/<seq-num-name>/`，不作为当前架构 authority。
 
 ## 3. Host 与共享边界
 

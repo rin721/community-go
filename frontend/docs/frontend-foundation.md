@@ -15,3 +15,8 @@ Universal Foundation 只承载跨 Product Surface 成立的契约。
 Universal 禁止出现 Admin Page、Product Workspace、Next Router、Browser/Desktop API、后端 DTO、权限计算和业务状态机。UI authority 为 `/ui-elements/*`，Motion authority 为 `/motion`。
 
 Vendor 类型不得穿透公共 Contract；具体 Surface 通过内容、状态、资源和 Port 组合这些能力。
+
+Universal 之下是 [Admin Product-Surface Foundation](admin-foundation.md)（可复用 Admin 视觉/Pattern）、
+[Admin Framework 与 Surface File Routes](admin-framework.md)（契约/Registry/Host Capability/Codegen）
+与 `surfaces/admin` 插件实现；它们与 Universal 的边界由 `tooling/foundation-policy.json`
+与 `tooling/foundation-contracts.json` 机器校验。

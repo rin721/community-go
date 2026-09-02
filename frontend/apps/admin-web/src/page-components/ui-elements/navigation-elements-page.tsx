@@ -261,7 +261,12 @@ export function NavigationElementsPage() {
                 description={t('uiElements.catalog.tabsSectionDescription')}
                 states={['Embedded in Panel', 'No extra Surface/Toolbar', 'Keyboard']}
               >
-                <div className="overflow-hidden rounded-panel border border-border">
+                <AdminSection
+                  appearance="outlined"
+                  contentInset
+                  description={t('uiElements.catalog.tabsSectionDescription')}
+                  title={t('uiElements.catalog.contentTabsLabel')}
+                >
                   <TabsView
                     label={t('uiElements.catalog.contentTabsLabel')}
                     variant="section"
@@ -269,20 +274,18 @@ export function NavigationElementsPage() {
                       {
                         id: 'overview',
                         label: t('uiElements.normalTab'),
-                        content: <p className="p-4 text-sm text-ink-muted">{description}</p>,
+                        content: <p className="text-sm text-ink-muted">{description}</p>,
                       },
                       {
                         id: 'activity',
                         label: t('uiElements.emptyTab'),
                         content: (
-                          <p className="p-4 text-sm text-ink-muted">
-                            {t('uiElements.dataTableEmpty')}
-                          </p>
+                          <p className="text-sm text-ink-muted">{t('uiElements.dataTableEmpty')}</p>
                         ),
                       },
                     ]}
                   />
-                </div>
+                </AdminSection>
               </ComponentPreview>
               <ComponentPreview
                 name="StepNavigation"

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import {
   FoundationControlledField,
@@ -101,6 +101,7 @@ export default function ReferenceFormPage() {
         <AdminSplitView
           master={
             <AdminSection
+              contentInset
               title={t('formReference.sectionTitle')}
               description={t('formReference.sectionDescription')}
             >
@@ -112,7 +113,7 @@ export default function ReferenceFormPage() {
                     id: 'identity',
                     label: t('formReference.tabs.identity'),
                     content: (
-                      <div className="grid gap-5 p-5 sm:p-6">
+                      <div className="grid gap-5">
                         <TextField
                           label={t('formReference.name')}
                           hint={t('formReference.nameHint')}
@@ -180,7 +181,7 @@ export default function ReferenceFormPage() {
                     id: 'behavior',
                     label: t('formReference.tabs.behavior'),
                     content: (
-                      <div className="grid gap-5 p-5 sm:p-6">
+                      <div className="grid gap-5">
                         <FoundationControlledField form={form} name="mode">
                           {(field) => (
                             <RadioGroupField
@@ -256,7 +257,7 @@ export default function ReferenceFormPage() {
                     id: 'review',
                     label: t('formReference.tabs.review'),
                     content: (
-                      <div className="p-5 sm:p-6">
+                      <div>
                         <div className="flex items-start gap-4 rounded-panel bg-success-soft p-5 text-success">
                           <ShieldCheck className="size-6 shrink-0" />
                           <div>

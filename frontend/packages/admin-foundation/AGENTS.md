@@ -14,3 +14,8 @@
 - `exploration` 是瞬时用户意图，不是历史展开记录：真实 Route Commit 后立即失效并清空（渲染门控 + 清理 effect），由新 Active Path 重算必要展开链；same-route no-op 保留。收起/替换 exploration branch 时必须同步清理其子树内全部 exploration scope。
 - Compact Flyout 的打开（`openBranchId`）与 Expanded Tree 的 exploration 分离：hover/open Flyout 不写入 `exploration['root']`。
 - 上述 Policy 的纯函数放在本目录（如 `shell-navigation-accordion.ts`），不沉淀到 Core（Core 只保留通用 tree traversal / ancestor lookup）。
+
+## Section 宿主组合约束（Panel / AdminSection）
+
+- `Panel` / `AdminSection` 是容器与内容布局的所有者：边界、horizontal inset、divider、section padding 与区域关系由本层提供；子组件（如 `TabsView variant="section"`）不自建 Surface/Toolbar/整条 divider 制造分区感。
+- 需要「章节导航 + 内容共享父容器内容边界」的组合时，使用 `AdminSection` 的 `contentInset` 或 `AdminSectionBody`（统一 horizontal inset 与稳定间距），禁止各调用方手写 px/py/gap/divider 拼凑宿主布局，也禁止把 section composition 下沉到 ui-adapter 或扩大的 Tabs 视觉职责。

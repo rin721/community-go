@@ -79,6 +79,19 @@ export function AdminFilterBar({ children }: Readonly<{ children: ReactNode }>) 
   return <div className="admin-filter-grid rounded-panel bg-surface-muted p-3">{children}</div>;
 }
 
+/**
+ * AdminSectionBody —— Panel/Section 内容区 body 的统一 horizontal inset。
+ *
+ * 组合职责：section 场景（如 `TabsView variant="section"` 作章节导航 + 内容）需要
+ * TabList 与内容共享父容器左右内容边界、并具备稳定上下间距。此 wrapper 只提供
+ * 统一 inset，不创建 Surface/divider（由父 Panel/AdminSection 决定区域分隔）。
+ * 供 AdminSection（contentInset）与自定义 header 的 Panel body 复用，
+ * 避免各调用方手写 px/py。
+ */
+export function AdminSectionBody({ children }: Readonly<{ children: ReactNode }>) {
+  return <div className="px-5 py-5 sm:px-6">{children}</div>;
+}
+
 export type AdminSectionProps = Readonly<{
   id?: string;
   title: string;
@@ -86,6 +99,12 @@ export type AdminSectionProps = Readonly<{
   action?: ReactNode;
   children: ReactNode;
   appearance?: 'elevated' | 'outlined' | 'embedded';
+  /**
+   * true 时 children 包进 AdminSectionBody（统一 horizontal inset + 稳定上下间距），
+   * 供需要“章节导航 + 内容共享父容器内容边界”的组合（如 `TabsView variant="section"`）。
+   * 默认 false 保持既有 flush children 行为（不影响现有调用方）。
+   */
+  contentInset?: boolean;
 }>;
 
 export function AdminSection({
@@ -95,6 +114,7 @@ export function AdminSection({
   action,
   children,
   appearance = 'elevated',
+  contentInset = false,
 }: AdminSectionProps) {
   const section = (
     <Panel appearance={appearance} className="admin-route-region overflow-hidden">
@@ -107,7 +127,7 @@ export function AdminSection({
         </div>
         {action}
       </div>
-      <div>{children}</div>
+      {contentInset ? <AdminSectionBody>{children}</AdminSectionBody> : <div>{children}</div>}
     </Panel>
   );
 

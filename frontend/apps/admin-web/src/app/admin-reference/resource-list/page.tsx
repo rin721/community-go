@@ -42,6 +42,7 @@ import {
   AdminPageHeader,
   AdminPage,
   AdminSection,
+  AdminSectionBody,
   AdminToolbar,
   AdminSplitView,
 } from '@community-go/admin-foundation/layout';
@@ -524,73 +525,73 @@ export default function ReferenceWorkspacePage() {
                       </StatusPill>
                     </div>
                   </div>
-                  <TabsView
-                    label={t('reference.detailTabsLabel')}
-                    variant="section"
-                    items={[
-                      {
-                        id: 'summary',
-                        label: t('reference.tabs.summary'),
-                        content: (
-                          <div className="space-y-5 p-5 text-sm leading-6 text-ink-muted">
-                            <p>{selectedRecord.description}</p>
-                            <DescriptionList
-                              label={t('reference.detailTabsLabel')}
-                              items={[
-                                {
-                                  id: 'owner',
-                                  term: t('reference.columns.owner'),
-                                  description: (
-                                    <UserIdentity
-                                      description={t(`reference.region.${selectedRecord.region}`)}
-                                      name={selectedRecord.owner}
-                                    />
-                                  ),
-                                },
-                                {
-                                  id: 'updated',
-                                  term: t('reference.columns.updated'),
-                                  description: formatDate(locale, selectedRecord.updatedAt, {
-                                    month: 'short',
-                                    day: 'numeric',
-                                    year: 'numeric',
-                                  }),
-                                },
-                              ]}
-                            />
-                          </div>
-                        ),
-                      },
-                      {
-                        id: 'activity',
-                        label: t('reference.tabs.activity'),
-                        content: (
-                          <ol className="space-y-3 p-5">
-                            {[0, 1, 2].map((item) => (
-                              <li className="flex gap-3 text-sm" key={item}>
-                                <RefreshCw className="mt-0.5 size-4 shrink-0 text-info" />
-                                <span className="leading-6 text-ink-muted">
-                                  {t('reference.activityItem', { number: item + 1 })}
-                                </span>
-                              </li>
-                            ))}
-                          </ol>
-                        ),
-                      },
-                      {
-                        id: 'risk',
-                        label: t('reference.tabs.risk'),
-                        content: (
-                          <div className="p-5">
+                  <AdminSectionBody>
+                    <TabsView
+                      label={t('reference.detailTabsLabel')}
+                      variant="section"
+                      items={[
+                        {
+                          id: 'summary',
+                          label: t('reference.tabs.summary'),
+                          content: (
+                            <div className="space-y-5 text-sm leading-6 text-ink-muted">
+                              <p>{selectedRecord.description}</p>
+                              <DescriptionList
+                                label={t('reference.detailTabsLabel')}
+                                items={[
+                                  {
+                                    id: 'owner',
+                                    term: t('reference.columns.owner'),
+                                    description: (
+                                      <UserIdentity
+                                        description={t(`reference.region.${selectedRecord.region}`)}
+                                        name={selectedRecord.owner}
+                                      />
+                                    ),
+                                  },
+                                  {
+                                    id: 'updated',
+                                    term: t('reference.columns.updated'),
+                                    description: formatDate(locale, selectedRecord.updatedAt, {
+                                      month: 'short',
+                                      day: 'numeric',
+                                      year: 'numeric',
+                                    }),
+                                  },
+                                ]}
+                              />
+                            </div>
+                          ),
+                        },
+                        {
+                          id: 'activity',
+                          label: t('reference.tabs.activity'),
+                          content: (
+                            <ol className="space-y-3">
+                              {[0, 1, 2].map((item) => (
+                                <li className="flex gap-3 text-sm" key={item}>
+                                  <RefreshCw className="mt-0.5 size-4 shrink-0 text-info" />
+                                  <span className="leading-6 text-ink-muted">
+                                    {t('reference.activityItem', { number: item + 1 })}
+                                  </span>
+                                </li>
+                              ))}
+                            </ol>
+                          ),
+                        },
+                        {
+                          id: 'risk',
+                          label: t('reference.tabs.risk'),
+                          content: (
                             <div className="flex gap-3 rounded-control bg-warning-soft p-3 text-warning">
                               <AlertTriangle className="size-4 shrink-0" />
                               <p className="text-sm leading-6">{t('reference.riskDescription')}</p>
                             </div>
-                          </div>
-                        ),
-                      },
-                    ]}
-                  />
+                          ),
+                        },
+                      ]}
+                    />
+                  </AdminSectionBody>
                 </>
               ) : null}
             </Panel>

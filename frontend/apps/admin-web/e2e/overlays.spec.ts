@@ -375,6 +375,39 @@ test('TabsView line、section、soft 与 vertical 视觉职责边界', async ({ 
   await assertOverlayAccessibility(page);
 });
 
+test('section Tabs 宿主组合：TabList 与内容共享父容器 inset 且无第二层 Surface', async ({
+  page,
+}) => {
+  // create-edit 的 section Tabs 位于 AdminSection contentInset 内：
+  // TabList 与 TabPanel 内容共享同一 horizontal inset，TabList 不自建背景/Surface。
+  await page.goto('/admin-reference/create-edit');
+  await expect(page.locator('html')).toHaveAttribute('data-hydrated', 'true');
+
+  const tablist = page.getByRole('tablist', { name: '配置步骤' });
+  await expect(tablist).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  await expect(tablist).toHaveCSS('border-bottom-width', '0px');
+  const metrics = await page.evaluate(() => {
+    const list = [...document.querySelectorAll('[role="tablist"]')].find(
+      (l) => l.getAttribute('aria-label') === '配置步骤',
+    );
+    const panel = document.querySelector('[role="tabpanel"]');
+    if (!list || !panel) return null;
+    return {
+      listLeft: Math.round(list.getBoundingClientRect().left),
+      panelLeft: Math.round(panel.getBoundingClientRect().left),
+    };
+  });
+  expect(metrics).not.toBeNull();
+  // TabList 与内容共享父容器 horizontal inset（同一 left 起点，不漂浮左上）
+  expect(Math.abs((metrics?.listLeft ?? 0) - (metrics?.panelLeft ?? 0))).toBeLessThanOrEqual(1);
+  // 内容区不因 Tabs 出现第二层 Surface：TabPanel 背景透明
+  const panelBg = await page
+    .locator('[role="tabpanel"]')
+    .first()
+    .evaluate((el) => getComputedStyle(el).backgroundColor);
+  expect(panelBg).toBe('rgba(0, 0, 0, 0)');
+});
+
 test('Select 与 Combobox 使用统一 Popup、键盘和选中状态', async ({ page }) => {
   await page.goto('/ui-elements/forms');
   await page.getByRole('button', { name: '引导执行 Select' }).click();

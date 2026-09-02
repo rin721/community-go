@@ -106,6 +106,18 @@ export function findImportPolicyViolations({ localPath, specifier, workspace }) 
   if (workspace?.startsWith('packages/') && specifier.startsWith('@community-go/admin-web')) {
     violations.push(['Dependency direction', '公共包不得依赖 Runtime Host']);
   }
+  if (workspace?.startsWith('surfaces/') && specifier.startsWith('@community-go/admin-web')) {
+    violations.push(['Dependency direction', 'Surface 实现不得依赖 Runtime Host']);
+  }
+  if (
+    (workspace?.startsWith('apps/') || workspace?.startsWith('packages/')) &&
+    specifier.startsWith('@community-go/admin-surface/plugins')
+  ) {
+    violations.push(['Surface private boundary', 'Host/公共包不得导入 Surface Plugin 内部实现']);
+  }
+  if (workspace?.startsWith('packages/') && specifier.startsWith('@community-go/admin-surface')) {
+    violations.push(['Dependency direction', '公共包不得依赖 Product Surface 实现']);
+  }
   if (workspace === 'packages/core') {
     const allowed =
       specifier === '@community-go/types' || specifier === 'vitest' || specifier.startsWith('.');

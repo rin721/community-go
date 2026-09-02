@@ -1,6 +1,7 @@
 packages:
   - apps/*
   - packages/*
+  - surfaces/*
 
 onlyBuiltDependencies:
   - esbuild

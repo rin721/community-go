@@ -55,6 +55,12 @@ importers:
       '@community-go/admin-foundation':
         specifier: workspace:*
         version: link:../../packages/admin-foundation
+      '@community-go/admin-framework':
+        specifier: workspace:*
+        version: link:../../packages/admin-framework
+      '@community-go/admin-surface':
+        specifier: workspace:*
+        version: link:../../surfaces/admin
       '@community-go/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -131,6 +137,34 @@ importers:
       '@community-go/ui-adapter':
         specifier: workspace:*
         version: link:../ui-adapter
+      react:
+        specifier: ^19.2.8
+        version: 19.2.8
+    devDependencies:
+      '@testing-library/react':
+        specifier: ^16.3.3
+        version: 16.3.3(@testing-library/dom@10.4.1)(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@types/react':
+        specifier: ^19.2.7
+        version: 19.2.18
+      jsdom:
+        specifier: ^30.0.1
+        version: 30.0.1
+      react-dom:
+        specifier: ^19.2.8
+        version: 19.2.8(react@19.2.8)
+      vitest:
+        specifier: ^4.1.11
+        version: 4.1.11(@types/node@24.13.3)(jsdom@30.0.1)(msw@2.15.0(@types/node@24.13.3)(typescript@5.9.3))(vite@8.2.2(@types/node@24.13.3)(jiti@2.7.0))
+
+  packages/admin-framework:
+    dependencies:
+      '@community-go/core':
+        specifier: workspace:*
+        version: link:../core
+      '@community-go/types':
+        specifier: workspace:*
+        version: link:../types
       react:
         specifier: ^19.2.8
         version: 19.2.8
@@ -240,6 +274,37 @@ importers:
       '@types/react':
         specifier: ^19.2.7
         version: 19.2.18
+
+  surfaces/admin:
+    dependencies:
+      '@community-go/admin-foundation':
+        specifier: workspace:*
+        version: link:../../packages/admin-foundation
+      '@community-go/admin-framework':
+        specifier: workspace:*
+        version: link:../../packages/admin-framework
+      '@community-go/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
+      '@community-go/types':
+        specifier: workspace:*
+        version: link:../../packages/types
+      '@community-go/ui-adapter':
+        specifier: workspace:*
+        version: link:../../packages/ui-adapter
+      react:
+        specifier: ^19.2.8
+        version: 19.2.8
+    devDependencies:
+      '@types/react':
+        specifier: ^19.2.7
+        version: 19.2.18
+      react-dom:
+        specifier: ^19.2.8
+        version: 19.2.8(react@19.2.8)
+      vitest:
+        specifier: ^4.1.11
+        version: 4.1.11(@types/node@24.13.3)(jsdom@30.0.1)(msw@2.15.0(@types/node@24.13.3)(typescript@5.9.3))(vite@8.2.2(@types/node@24.13.3)(jiti@2.7.0))
 
 packages:
   '@adobe/css-tools@4.5.0':

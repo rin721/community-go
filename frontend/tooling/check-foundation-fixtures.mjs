@@ -7,6 +7,8 @@ import {
 
 const universal = { layer: 'universal' };
 const admin = { layer: 'surface', surface: 'admin' };
+const adminFramework = { layer: 'surface', surface: 'admin', kind: 'framework' };
+const adminSurface = { layer: 'surface', surface: 'admin', kind: 'surface' };
 const product = { layer: 'surface', surface: 'product' };
 const adminWeb = { layer: 'host', surface: 'admin', runtime: 'web' };
 
@@ -21,10 +23,20 @@ assert.equal(
   getFoundationWorkspaceNameViolation('packages/admin-patterns', admin),
   'Surface Foundation 命名必须为 packages/<surface>-foundation',
 );
+assert.equal(getFoundationWorkspaceNameViolation('packages/admin-framework', adminFramework), null);
+assert.equal(
+  getFoundationWorkspaceNameViolation('packages/admin-codegen', adminFramework),
+  'Surface Framework 命名必须为 packages/<surface>-framework',
+);
+assert.equal(getFoundationWorkspaceNameViolation('surfaces/admin', adminSurface), null);
+assert.equal(
+  getFoundationWorkspaceNameViolation('packages/admin-surface', adminSurface),
+  'Product Surface 实现必须位于 surfaces/ 目录',
+);
 assert.equal(getFoundationWorkspaceNameViolation('apps/admin-web', adminWeb), null);
 assert.equal(
   getFoundationWorkspaceNameViolation('apps/web', adminWeb),
   'Host 命名必须为 apps/<surface>-<runtime>',
 );
 
-console.log('Foundation fixtures passed: 10 cases.');
+console.log('Foundation fixtures passed: 14 cases.');

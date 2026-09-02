@@ -25,7 +25,7 @@ async function exists(path) {
   }
 }
 
-for (const root of ['apps', 'packages']) {
+for (const root of ['apps', 'packages', 'surfaces']) {
   for (const entry of await readdir(join(frontendRoot, root), { withFileTypes: true })) {
     if (!entry.isDirectory()) continue;
     const workspace = `${root}/${entry.name}`;
@@ -88,8 +88,11 @@ for (const [packageName, contract] of Object.entries(registry.contracts)) {
 }
 
 for (const [workspace, manifest] of manifests) {
-  if (workspace.startsWith('packages/') && !registry.contracts[manifest.name]) {
-    violations.push(`${manifest.name}: 公共 package 缺少 Contract registry`);
+  if (
+    (workspace.startsWith('packages/') || workspace.startsWith('surfaces/')) &&
+    !registry.contracts[manifest.name]
+  ) {
+    violations.push(`${manifest.name}: 公共 package/surface 缺少 Contract registry`);
   }
 }
 

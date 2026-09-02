@@ -107,6 +107,34 @@
       ],
       "authorityRoutes": ["/admin-patterns", "/admin-reference"],
       "evidence": ["packages/admin-foundation/src/contracts.test.tsx"]
+    },
+    "@community-go/admin-framework": {
+      "layer": "surface",
+      "surface": "admin",
+      "kind": "framework",
+      "owner": "admin surface plugin contract, registry, host capability",
+      "maturity": "experimental",
+      "exports": [".", "./plugin", "./route-context"],
+      "authorityRoutes": ["/reference-resources"],
+      "evidence": [
+        "packages/admin-framework/src/framework.test.ts",
+        "packages/admin-framework/src/plugin.test.tsx"
+      ]
+    },
+    "@community-go/admin-surface": {
+      "layer": "surface",
+      "surface": "admin",
+      "kind": "surface",
+      "owner": "admin surface shell, composition and plugin workspace",
+      "maturity": "experimental",
+      "exports": [
+        "./shell",
+        "./generated/catalog",
+        "./generated/composition",
+        "./generated/routes/*"
+      ],
+      "authorityRoutes": ["/reference-resources"],
+      "evidence": ["surfaces/admin/src/shell.test.ts"]
     }
   }
 }

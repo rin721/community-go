@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@community-go/admin-foundation": "workspace:*",
+    "@community-go/admin-framework": "workspace:*",
+    "@community-go/admin-surface": "workspace:*",
     "@community-go/core": "workspace:*",
     "@community-go/design-system": "workspace:*",
     "@community-go/form-foundation": "workspace:*",

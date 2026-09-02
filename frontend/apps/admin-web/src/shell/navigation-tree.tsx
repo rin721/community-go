@@ -52,6 +52,7 @@ const iconByNavigationId: Readonly<Record<string, LucideIcon>> = {
   uiOverlays: Layers3,
   states: Workflow,
   preferences: Settings2,
+  'reference-resources': TableProperties,
 };
 
 export function NavigationTree({

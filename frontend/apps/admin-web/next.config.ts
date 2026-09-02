@@ -8,6 +8,8 @@ const nextConfig: NextConfig = {
     '@community-go/core',
     '@community-go/design-system',
     '@community-go/admin-foundation',
+    '@community-go/admin-framework',
+    '@community-go/admin-surface',
     '@community-go/form-foundation',
     '@community-go/i18n',
     '@community-go/types',

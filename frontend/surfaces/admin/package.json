@@ -1,0 +1,29 @@
+{
+  "name": "@community-go/admin-surface",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./shell": "./src/shell.ts",
+    "./generated/composition": "./generated/composition/composition.ts",
+    "./generated/catalog": "./generated/catalog/catalog.ts",
+    "./generated/routes/*": "./generated/routes/*.tsx"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@community-go/admin-framework": "workspace:*",
+    "@community-go/admin-foundation": "workspace:*",
+    "@community-go/i18n": "workspace:*",
+    "@community-go/types": "workspace:*",
+    "@community-go/ui-adapter": "workspace:*",
+    "react": "^19.2.8"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.7",
+    "react-dom": "^19.2.8",
+    "vitest": "^4.1.11"
+  }
+}

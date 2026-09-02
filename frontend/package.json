@@ -20,7 +20,9 @@
     "foundation:check": "node tooling/check-foundation-fixtures.mjs && node tooling/check-foundation-governance.mjs",
     "dependency:check": "node tooling/check-dependencies.mjs",
     "performance:check": "node tooling/check-performance-budget.mjs",
-    "check": "pnpm foundation:check && pnpm architecture:check && pnpm dependency:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm performance:check && pnpm test:browser && pnpm format:check"
+    "codegen:admin": "node tooling/admin-codegen/codegen.mjs",
+    "codegen:admin:check": "node tooling/admin-codegen/codegen.mjs --check",
+    "check": "pnpm foundation:check && pnpm architecture:check && pnpm dependency:check && pnpm codegen:admin:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm performance:check && pnpm test:browser && pnpm format:check"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

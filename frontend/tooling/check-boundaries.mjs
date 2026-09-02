@@ -21,7 +21,7 @@ async function collectSourceFiles(directory) {
 
 function workspaceOf(filePath) {
   const localPath = relative(frontendRoot, filePath).split(sep);
-  if (!['apps', 'packages'].includes(localPath[0] ?? '')) return null;
+  if (!['apps', 'packages', 'surfaces'].includes(localPath[0] ?? '')) return null;
   return localPath.slice(0, 2).join('/');
 }
 
@@ -70,6 +70,13 @@ for (const filePath of files) {
     /\b(?:window|document|navigator|localStorage|sessionStorage)\b/.test(content)
   ) {
     report(violations, filePath, 'Host leakage', '公共包不得直接访问浏览器 Host API');
+  }
+
+  if (
+    workspace?.startsWith('surfaces/') &&
+    /\b(?:window|document|navigator|localStorage|sessionStorage)\b/.test(content)
+  ) {
+    report(violations, filePath, 'Host leakage', 'Surface 源码不得直接访问浏览器 Host API');
   }
 }
 

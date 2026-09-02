@@ -2,11 +2,24 @@
   "dependencies": {
     "@community-go/admin-foundation": {
       "owner": "Admin Surface Foundation",
+      "allowed": ["apps/admin-web", "surfaces/admin"]
+    },
+    "@community-go/admin-framework": {
+      "owner": "Admin Surface Plugin Contract & Registry",
+      "allowed": ["apps/admin-web", "surfaces/admin"]
+    },
+    "@community-go/admin-surface": {
+      "owner": "Admin Surface Shell & Composition",
       "allowed": ["apps/admin-web"]
     },
     "@community-go/core": {
       "owner": "pure frontend semantics",
-      "allowed": ["apps/admin-web", "packages/admin-foundation"]
+      "allowed": [
+        "apps/admin-web",
+        "packages/admin-foundation",
+        "packages/admin-framework",
+        "surfaces/admin"
+      ]
     },
     "@community-go/design-system": {
       "owner": "semantic design tokens",
@@ -16,7 +29,10 @@
       "owner": "universal form lifecycle",
       "allowed": ["apps/admin-web", "packages/admin-foundation"]
     },
-    "@community-go/i18n": { "owner": "universal locale runtime", "allowed": ["apps/admin-web"] },
+    "@community-go/i18n": {
+      "owner": "universal locale runtime",
+      "allowed": ["apps/admin-web", "surfaces/admin"]
+    },
     "@community-go/schemas": {
       "owner": "schema contract primitives",
       "allowed": ["apps/admin-web", "packages/form-foundation"]
@@ -28,12 +44,14 @@
         "packages/core",
         "packages/schemas",
         "packages/ui-adapter",
-        "packages/admin-foundation"
+        "packages/admin-foundation",
+        "packages/admin-framework",
+        "surfaces/admin"
       ]
     },
     "@community-go/ui-adapter": {
       "owner": "product-neutral UI contracts",
-      "allowed": ["apps/admin-web", "packages/admin-foundation"]
+      "allowed": ["apps/admin-web", "packages/admin-foundation", "surfaces/admin"]
     },
     "@heroui/react": {
       "owner": "accessible UI primitives",
@@ -65,9 +83,11 @@
       "allowed": [
         "apps/admin-web",
         "packages/admin-foundation",
+        "packages/admin-framework",
         "packages/form-foundation",
         "packages/i18n",
-        "packages/ui-adapter"
+        "packages/ui-adapter",
+        "surfaces/admin"
       ]
     },
     "react-aria-components": {

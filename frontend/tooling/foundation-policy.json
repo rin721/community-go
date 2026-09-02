@@ -7,7 +7,9 @@
     "packages/schemas": { "layer": "universal" },
     "packages/types": { "layer": "universal" },
     "packages/ui-adapter": { "layer": "universal" },
-    "packages/admin-foundation": { "layer": "surface", "surface": "admin" },
+    "packages/admin-foundation": { "layer": "surface", "surface": "admin", "kind": "foundation" },
+    "packages/admin-framework": { "layer": "surface", "surface": "admin", "kind": "framework" },
+    "surfaces/admin": { "layer": "surface", "surface": "admin", "kind": "surface" },
     "apps/admin-web": { "layer": "host", "surface": "admin", "runtime": "web" }
   }
 }

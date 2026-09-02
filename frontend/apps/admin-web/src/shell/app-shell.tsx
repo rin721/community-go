@@ -24,11 +24,13 @@ import type { ReactNode } from 'react';
 
 import { markForwardRouteIntent, pageTransitionTypes } from '../host/route-transition-constants';
 import { beginNavigation } from '../host/navigation-progress';
+import { AdminHostNavigationPortProvider } from '../host/admin-navigation-port';
+import { adminHostRouteTargetResolver } from '../host/admin-route-target-resolver';
 import { RouteTransition } from '../host/route-transition';
 import { TopProgress } from '../host/top-progress';
 import { useShellStore } from '../state/use-shell-store';
 import { BrandMark } from './brand-mark';
-import { shellNavigationGroups } from './navigation';
+import { combinedShellNavigationGroups } from './navigation';
 import { NavigationTree } from './navigation-tree';
 
 const CommandMenu = dynamic(
@@ -64,7 +66,11 @@ function NavigationContent({
         className={`admin-shell-navigation-viewport flex-1 space-y-7 py-6 ${compact ? 'px-2' : 'px-3'}`}
         aria-label={t('shell.primaryNav')}
       >
-        <NavigationTree compact={compact} groups={shellNavigationGroups} onNavigate={onNavigate} />
+        <NavigationTree
+          compact={compact}
+          groups={combinedShellNavigationGroups}
+          onNavigate={onNavigate}
+        />
       </nav>
       {compact ? null : (
         <div className="m-3 rounded-panel border border-brand/15 bg-brand-soft p-4">
@@ -106,7 +112,7 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
   }, []);
 
   const commandItems = flattenNavigationLeaves(
-    shellNavigationGroups.flatMap((group) => group.items as readonly NavigationNode[]),
+    combinedShellNavigationGroups.flatMap((group) => group.items as readonly NavigationNode[]),
   ).map(({ leaf, ancestors }) => ({
     id: leaf.href,
     label: t(leaf.labelKey),
@@ -222,7 +228,11 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
           </div>
         </header>
         <main className="mx-auto max-w-screen-2xl p-4 sm:p-6 xl:p-8" id="main-content">
-          <RouteTransition>{children}</RouteTransition>
+          <RouteTransition>
+            <AdminHostNavigationPortProvider resolveHref={adminHostRouteTargetResolver.resolveHref}>
+              {children}
+            </AdminHostNavigationPortProvider>
+          </RouteTransition>
         </main>
       </div>
     </AdminShellRoot>

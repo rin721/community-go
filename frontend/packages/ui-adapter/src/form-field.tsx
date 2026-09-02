@@ -308,13 +308,13 @@ export function CheckboxField({
 }: CheckboxFieldProps) {
   return (
     <Checkbox
-      className="flex items-start gap-3 text-sm"
+      className="flex flex-row items-start gap-3 text-sm"
       isDisabled={disabled}
       isSelected={checked}
       {...(onCheckedChange ? { onChange: onCheckedChange } : {})}
     >
       <Checkbox.Control className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-md border border-border-strong bg-surface text-white data-[selected]:border-brand data-[selected]:bg-brand">
-        <Checkbox.Indicator>✓</Checkbox.Indicator>
+        <Checkbox.Indicator className="pointer-events-none">✓</Checkbox.Indicator>
       </Checkbox.Control>
       <Checkbox.Content className="min-w-0">
         <span className="block font-semibold text-ink">{label}</span>
@@ -362,13 +362,20 @@ export function RadioGroupField({
       <div className="grid gap-3 sm:grid-cols-2">
         {options.map((option) => (
           <Radio
-            className="group flex min-h-20 items-start gap-3 rounded-panel border border-border bg-surface p-4 text-sm data-[selected]:border-brand data-[selected]:bg-brand-soft"
+            className="group flex flex-row min-h-20 items-start gap-3 rounded-panel border border-border bg-surface p-4 text-sm data-[selected]:border-brand data-[selected]:bg-brand-soft"
             key={option.value}
             value={option.value}
             {...(option.disabled ? { isDisabled: true } : {})}
           >
             <Radio.Control className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border border-border-strong bg-surface group-data-[selected]:border-brand">
-              <Radio.Indicator className="size-2.5 rounded-full bg-brand" />
+              <Radio.Indicator className="pointer-events-none">
+                {/* 项目单选 dot：几何固定 10×10；仅 selected 时可见（group 根 data-selected）。
+                    非空子节点避免 vendor `.radio__indicator:empty::before` 的默认 dot。 */}
+                <span
+                  aria-hidden="true"
+                  className="block size-2.5 rounded-full bg-brand opacity-0 transition-opacity group-data-[selected]:opacity-100"
+                />
+              </Radio.Indicator>
             </Radio.Control>
             <Radio.Content className="min-w-0">
               <span className="block font-semibold text-ink">{option.label}</span>

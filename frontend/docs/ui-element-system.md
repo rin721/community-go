@@ -46,6 +46,7 @@ Semantic Design Token
 - `disabled` 表达当前动作不可用。业务组合应在相邻上下文说明原因，不得只依赖降低透明度传达限制。
 - `sm`、`md` 与 `lg` 只改变稳定的控件高度和横向 Padding；Feature 不得自行覆盖按钮高度制造第四套密度。
 - 纯图标操作必须使用 `IconAction` 并提供可访问名称；不得传入空文字的 `Action` 充当 Icon Button。
+- **内部内容契约**：`Action` 自己是唯一成形交互容器；`leadingIcon`/`trailingIcon` 必须作为 Action 内容的一部分（label + icon），icon 只经内部统一 wrapper 表达 semantic size、alignment、shrink、`currentColor` 与 `aria-hidden`。禁止传入 IconAction/Button/其它成形组件作为 icon 形成「Button 内嵌 IconButton」的视觉（独立 border/background/radius/focus surface）；wrapper 不得改变 Action 高度。
 
 ## 4. Identity、Display 与 Navigation Family
 
@@ -86,6 +87,7 @@ Feedback 解释刚发生的结果、风险或可恢复问题；Status 描述对�
 - 复合控件只允许最外层 InputGroup 负责 Border、Background、Radius 和 Focus Surface；内部 `Input` 必须保持透明、无边框的 Primitive 形态。
 - `fullWidth` 是表单列中的稳定默认；局部宽度由布局容器控制，不由 Popup 内容反向决定。
 - `RadioGroupField` 负责单选表单值；`ToggleGroup` 负责即时互斥视图偏好。两者可以视觉相近，但不得交换提交时机和 ARIA 语义。
+- **内部 indicator / option 契约**：外层 option（Radio Choice Card、ToggleItem）拥有 surface/border/radius/selected/pressed；option 行必须保持 control 与 label 同行的 row 布局（覆盖 vendor 默认列堆叠），indicator（Radio 外圈 + 内 dot）只拥有几何/对齐/状态色。Radio indicator 的 selected/unselected/disabled 只改变内 dot 显隐与 ring 状态，不改变尺寸；unselected 保持空心 ring、不出现实心 dot；indicator 不创建独立 shadow/surface。ToggleGroup 的 ToggleItem 是唯一成形 owner，内部 icon/label 不得再次获得 border/background/radius/shadow/selected surface；内部 icon wrapper 保持透明、无边框、固定 semantic size。
 
 当前语义尺寸由 `--spacing-control` 管理，Option 触控高度由 `--spacing-option` 管理。业务页面不得复制对应数值。
 

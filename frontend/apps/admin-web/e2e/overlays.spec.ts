@@ -408,6 +408,103 @@ test('section Tabs 宿主组合：TabList 与内容共享父容器 inset 且无�
   expect(panelBg).toBe('rgba(0, 0, 0, 0)');
 });
 
+test('Radio/Checkbox 内部 indicator 与 label 同行且无双重成形', async ({ page }) => {
+  await page.goto('/ui-elements/forms');
+  await expect(page.locator('html')).toHaveAttribute('data-hydrated', 'true');
+
+  // RadioGroupField：option 行 flex-row（control 与 label 同 top），indicator 无 vendor 双 dot
+  const radioPanel = page
+    .getByRole('heading', { level: 3, name: 'RadioGroupField' })
+    .locator('xpath=ancestor::section[1]');
+  const radioRows = radioPanel.locator('[class*="radio "]');
+  await expect(radioRows.first()).toHaveCSS('flex-direction', 'row');
+  const radioGeom = await radioRows.first().evaluate((row) => {
+    const ctrl = row.querySelector('.radio__control');
+    const content = row.querySelector('.radio__content');
+    if (!ctrl || !content) return null;
+    const rr = row.getBoundingClientRect();
+    return {
+      controlTop: Math.round(ctrl.getBoundingClientRect().top - rr.top),
+      labelTop: Math.round(content.getBoundingClientRect().top - rr.top),
+    };
+  });
+  expect(radioGeom).not.toBeNull();
+  // 同行：control 与 label 垂直差 < 8px（不再列堆叠 32px）
+  expect(Math.abs((radioGeom?.controlTop ?? 0) - (radioGeom?.labelTop ?? 0))).toBeLessThan(8);
+
+  // dot：unselected 行不可见（opacity 0），selected 行可见
+  const dotStates = await radioPanel.evaluate((panel) => {
+    const rows = [...panel.querySelectorAll('[class*="radio "]')];
+    return rows.map((row) => {
+      const input = row.querySelector('input[type="radio"]');
+      const dot = row.querySelector('.radio__indicator span');
+      const checked = input instanceof HTMLInputElement ? input.checked : false;
+      return {
+        checked,
+        dotOpacity: dot instanceof HTMLElement ? getComputedStyle(dot).opacity : null,
+      };
+    });
+  });
+  for (const row of dotStates) {
+    if (row.checked) expect(row.dotOpacity).toBe('1');
+    else expect(row.dotOpacity).toBe('0');
+  }
+
+  // CheckboxField：行 flex-row（非列堆叠）
+  const checkboxPanel = page
+    .getByRole('heading', { level: 3, name: 'CheckboxField' })
+    .locator('xpath=ancestor::section[1]');
+  await expect(checkboxPanel.locator('[class*="checkbox "]').first()).toHaveCSS(
+    'flex-direction',
+    'row',
+  );
+});
+
+test('Action 与 ToggleGroup 内部 icon wrapper 不二次成形', async ({ page }) => {
+  await page.goto('/ui-elements/actions-selection');
+  await expect(page.locator('html')).toHaveAttribute('data-hydrated', 'true');
+
+  // Action：带 leadingIcon 的主操作按钮，icon wrapper 无 surface、16px、与 label 同行
+  const action = page.getByRole('button', { name: '主要操作' });
+  const iconWrap = await action
+    .locator('span.grid')
+    .first()
+    .evaluate((el) => {
+      const s = getComputedStyle(el);
+      return {
+        bg: s.backgroundColor,
+        borderW: s.borderTopWidth,
+        radius: s.borderRadius,
+        shadow: s.boxShadow,
+        w: s.width,
+        h: s.height,
+      };
+    });
+  expect(iconWrap.bg).toBe('rgba(0, 0, 0, 0)');
+  expect(iconWrap.borderW).toBe('0px');
+  expect(iconWrap.radius).toBe('0px');
+  expect(iconWrap.w).toBe('16px');
+
+  // ToggleGroup：item 唯一成形；icon wrapper transparent / border 0 / shadow none
+  const toggleItem = page.getByRole('radio', { name: '网格' });
+  await expect(toggleItem).toHaveAttribute('aria-checked', 'true');
+  const inner = await toggleItem.evaluate((item) => {
+    const wrap = item.querySelector('span.grid');
+    if (!(wrap instanceof HTMLElement)) return null;
+    const s = getComputedStyle(wrap);
+    return {
+      bg: s.backgroundColor,
+      borderW: s.borderTopWidth,
+      radius: s.borderRadius,
+      shadow: s.boxShadow,
+    };
+  });
+  expect(inner).not.toBeNull();
+  expect(inner?.bg).toBe('rgba(0, 0, 0, 0)');
+  expect(inner?.borderW).toBe('0px');
+  expect(inner?.shadow).toContain('none');
+});
+
 test('Select 与 Combobox 使用统一 Popup、键盘和选中状态', async ({ page }) => {
   await page.goto('/ui-elements/forms');
   await page.getByRole('button', { name: '引导执行 Select' }).click();

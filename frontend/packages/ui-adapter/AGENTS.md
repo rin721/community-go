@@ -10,4 +10,5 @@
 - 新增或修改公共组件前，按 `frontend/docs/ui-visual-calibration.md` 进入 TailAdmin 对应 `UI Elements` 页面复核关闭态、交互态和打开态；只学习视觉规律，不复制源码、DOM、CSS 或具体数值。
 - Button、Alert、Badge、Card、Dropdown、Modal、Form Control、Notification 和 Overlay 的最终规范必须同步进入 `/ui-elements` 对应 Family 页面，不得让业务页成为新的隐式权威。
 - 组合场景优先提供 `embedded`、`inset`、slot 或 primitive 能力，避免成形组件重复叠加边框、圆角、阴影和 padding。
+- 内部内容职责边界：外层交互组件（Action、ToggleItem、Radio/Checkbox option、Choice Card）拥有 surface/border/radius/selected/pressed；内部 indicator/icon/content 只拥有 geometry/alignment/foreground。禁止「成形组件内部再次出现成形小组件」（如 Button 内嵌 IconButton、ToggleItem 内第二层 item/chip surface、Radio indicator 双 dot）；icon/indicator wrapper 必须保持透明、无 border/radius/shadow、固定 semantic size、`aria-hidden`，并显式覆盖 vendor 默认方向/尺寸/伪元素（如 HeroUI radio/checkbox 的 `flex-col`、`.radio__indicator:empty::before`、`.button svg`/`.toggle-button svg` 尺寸）以免 vendor 视觉直达业务。
 - 禁止在本目录新增业务文案、路由、数据请求、Host API 或领域状态。

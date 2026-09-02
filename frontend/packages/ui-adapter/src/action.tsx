@@ -72,13 +72,19 @@ export function Action({
           className="size-icon-sm animate-spin rounded-full border-2 border-current border-r-transparent motion-reduce:animate-none"
         />
       ) : leadingIcon ? (
-        <span aria-hidden="true" className="grid size-icon-sm shrink-0 place-items-center">
+        <span
+          aria-hidden="true"
+          className="grid size-icon-sm shrink-0 place-items-center text-current"
+        >
           {leadingIcon}
         </span>
       ) : null}
       <span>{children}</span>
       {trailingIcon ? (
-        <span aria-hidden="true" className="grid size-icon-sm shrink-0 place-items-center">
+        <span
+          aria-hidden="true"
+          className="grid size-icon-sm shrink-0 place-items-center text-current"
+        >
           {trailingIcon}
         </span>
       ) : null}

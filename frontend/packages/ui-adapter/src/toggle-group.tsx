@@ -73,7 +73,10 @@ export function ToggleGroup({
             {...(option.disabled !== undefined ? { isDisabled: option.disabled } : {})}
           >
             {option.icon ? (
-              <span aria-hidden="true" className="grid size-icon-sm place-items-center">
+              <span
+                aria-hidden="true"
+                className="grid size-icon-sm shrink-0 place-items-center text-current"
+              >
                 {option.icon}
               </span>
             ) : null}

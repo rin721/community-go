@@ -558,7 +558,19 @@ export const resources = {
           disabledPagination: '禁用分页',
           tabsDescription: 'TabsView 只切换同一内容域，保留 selected、disabled 和键盘语义。',
           tabsSectionDescription:
-            'section Variant 用于 Card、Form、Settings 等内容分区，Tab 区与受控内容形成所属关系。',
+            'section Variant 用于 Card、Form、Settings 等内部章节导航：透明 TabList、不创建灰色 Toolbar 或独立 Surface，内容分隔由父容器决定。',
+          tabsSoftDescription:
+            'soft Variant 让 TabList 形成轻量选择区域：muted 容器 + selected Tab 用 elevated surface 凸显；仍是内容切换，不是值/模式选择。',
+          tabsIconDescription:
+            'item 支持受控 leading icon：统一尺寸、跟随 foreground、不改变 Tab 语义。',
+          tabsBadgeDescription:
+            'item 支持受控 count badge：由公共 Badge primitive 渲染，selected/unselected 均可读。',
+          tabsVerticalDescription:
+            'vertical 让 Tab 列 + 内容区形成稳定两栏；窄视口自动转为顶部横向可滚动 TabList。',
+          tabsOverview: '总览',
+          tabsNotifications: '通知',
+          tabsAnalytics: '分析',
+          tabsCustomers: '客户',
           contentTabsLabel: '内容视图 Tabs',
           dataTableDescription: 'DataTable 展示排序、单选、多选、行标题、空集合、密度和溢出契约。',
           tableMode: '表格状态',
@@ -1218,7 +1230,19 @@ export const resources = {
           tabsDescription:
             'TabsView switches one content domain and retains selected, disabled, and keyboard semantics.',
           tabsSectionDescription:
-            'The section variant targets content partitions inside Card, Form, and Settings, binding the tab region to the controlled content.',
+            'The section variant targets inner navigation inside Card, Form, and Settings: transparent TabList, no gray toolbar or owned surface; content separation is decided by the parent container.',
+          tabsSoftDescription:
+            'The soft variant gives the TabList a light selection region: a muted container plus an elevated selected tab; still content switching, not value/mode selection.',
+          tabsIconDescription:
+            'Items support a controlled leading icon: unified size, inherits foreground, does not alter tab semantics.',
+          tabsBadgeDescription:
+            'Items support a controlled count badge rendered by the shared Badge primitive, readable when selected or unselected.',
+          tabsVerticalDescription:
+            'Vertical arranges the tab column beside the content in a stable two-column layout; narrow viewports fall back to a top horizontal scrollable TabList.',
+          tabsOverview: 'Overview',
+          tabsNotifications: 'Notifications',
+          tabsAnalytics: 'Analytics',
+          tabsCustomers: 'Customers',
           contentTabsLabel: 'Content view tabs',
           dataTableDescription:
             'DataTable exposes sort, single and multiple selection, row headers, empty state, density, and overflow.',

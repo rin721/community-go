@@ -295,47 +295,84 @@ test('Tabs 保持 HeroUI 键盘语义并由父 Surface 提供内边距', async (
   await assertOverlayAccessibility(page);
 });
 
-test('TabsView line 与 section Variant 保持独立且状态一致', async ({ page }) => {
+test('TabsView line、section、soft 与 vertical 视觉职责边界', async ({ page }) => {
   await page.goto('/ui-elements/navigation');
   await expect(page.locator('html')).toHaveAttribute('data-hydrated', 'true');
 
-  // Showcase 同时展示 line（默认）与 section 两个 Variant
+  // Showcase：soft / line / line+icon / line+badge / vertical / section
   const tablists = page.getByRole('tablist');
-  await expect(tablists).toHaveCount(2);
+  await expect(tablists).toHaveCount(6);
 
-  // line：透明 TabList、无圆角、底部有 1px 基线
-  const line = tablists.nth(0);
+  // soft：muted surface 容器 + selected elevated surface，无 line underline
+  const soft = tablists.nth(0);
+  const softListBg = await soft.evaluate((el) => getComputedStyle(el).backgroundColor);
+  expect(softListBg).toBe('rgb(240, 242, 247)'); // --ds-surface-muted light
+  await expect(soft.getByRole('tab', { name: '总览' })).toHaveAttribute('aria-selected', 'true');
+  const softSelectedBg = await soft
+    .getByRole('tab', { name: '总览' })
+    .evaluate((el) => getComputedStyle(el).backgroundColor);
+  expect(softSelectedBg).toBe('rgb(255, 255, 255)'); // elevated surface
+  // soft selected 无 brand underline indicator（表面可有轻 border，但不是 2px brand 下划线）
+  const softSelectedBorderBottom = await soft.getByRole('tab', { name: '总览' }).evaluate((el) => ({
+    width: getComputedStyle(el).borderBottomWidth,
+    color: getComputedStyle(el).borderBottomColor,
+  }));
+  expect(softSelectedBorderBottom.width).not.toBe('2px');
+  expect(softSelectedBorderBottom.color).not.toBe('rgb(93, 73, 214)'); // 非 brand underline
+
+  // line：透明 TabList、无圆角、底部 1px 基线；无胶囊残留
+  const line = tablists.nth(1);
   await expect(line).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   await expect(line).toHaveCSS('border-bottom-width', '1px');
-  const lineBorderColor = await line.evaluate(
-    (element) => getComputedStyle(element).borderBottomColor,
-  );
-  expect(lineBorderColor).toBe('rgb(228, 231, 238)'); // --ds-border light
+  const lineSelected = line.getByRole('tab', { name: '正常' });
+  await expect(lineSelected).toHaveAttribute('aria-selected', 'true');
+  await expect(lineSelected).toHaveCSS('color', 'rgb(93, 73, 214)'); // --ds-brand light
+  const lineRadius = await lineSelected.evaluate((el) => getComputedStyle(el).borderRadius);
+  expect(lineRadius).toBe('0px'); // 无胶囊
+  const lineUnderline = await lineSelected.evaluate((el) => getComputedStyle(el).borderBottomWidth);
+  expect(lineUnderline).toBe('2px');
 
-  // section：浅色 surface 容器、顶部圆角、无全宽 divider
-  const section = tablists.nth(1);
-  const sectionBg = await section.evaluate((element) => getComputedStyle(element).backgroundColor);
-  expect(sectionBg).toBe('rgb(240, 242, 247)'); // --ds-surface-muted light
+  // section：透明、无成形 Toolbar、无强制 baseline；selected 仍 brand underline
+  const section = tablists.nth(5);
+  await expect(section).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   await expect(section).toHaveCSS('border-bottom-width', '0px');
+  const sectionRadius = await section.evaluate((el) => getComputedStyle(el).borderRadius);
+  expect(sectionRadius).toBe('0px');
+  await expect(section.getByRole('tab', { name: '正常' })).toHaveAttribute('aria-selected', 'true');
 
-  // 两个 Variant 的选中态一致：brand 前景 + semibold（状态模型统一）
-  for (const tablist of [line, section]) {
-    const selected = tablist.getByRole('tab', { name: '正常' });
-    await expect(selected).toHaveAttribute('aria-selected', 'true');
-    await expect(selected).toHaveCSS('color', 'rgb(93, 73, 214)'); // --ds-brand light
-    await expect(selected).toHaveCSS('font-weight', '600');
-    const borderColor = await selected.evaluate(
-      (element) => getComputedStyle(element).borderBottomColor,
-    );
-    expect(borderColor).toBe('rgb(93, 73, 214)'); // brand 下划线 indicator
-  }
+  // vertical：line 语义下 side indicator（border-s）+ foreground，无 bottom underline
+  const vertical = tablists.nth(4);
+  await expect(vertical).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  const verticalSelected = vertical.getByRole('tab', { name: '总览' });
+  await expect(verticalSelected).toHaveAttribute('aria-selected', 'true');
+  await expect(verticalSelected).toHaveCSS('color', 'rgb(93, 73, 214)');
+  const vSide = await verticalSelected.evaluate((el) => getComputedStyle(el).borderLeftWidth);
+  expect(vSide).toBe('2px');
+  const vBottom = await verticalSelected.evaluate((el) => getComputedStyle(el).borderBottomWidth);
+  expect(vBottom).toBe('0px');
+  // vertical ARIA orientation
+  await expect(vertical).toHaveAttribute('aria-orientation', 'vertical');
 
-  // 切换 section 的 Tab：键盘与选中态仍正确（从"正常"向右移到"空状态"）
-  await section.getByRole('tab', { name: '正常' }).press('ArrowRight');
-  await expect(section.getByRole('tab', { name: '空状态' })).toHaveAttribute(
+  // icon / badge 不改变 tab 结构：line+icon / line+badge 的 tab 仍可聚焦、语义稳定
+  const iconLine = tablists.nth(2);
+  await expect(iconLine.getByRole('tab', { name: /通知/ }).locator('svg')).toHaveCount(1);
+  const badgeLine = tablists.nth(3);
+  await expect(
+    badgeLine.getByRole('tab', { name: /通知/ }).locator('span.rounded-full'),
+  ).toHaveCount(1);
+
+  // keyboard：line 的 ArrowRight 切换与 aria-selected
+  await line.getByRole('tab', { name: '正常' }).press('ArrowRight');
+  await expect(line.getByRole('tab', { name: '空状态' })).toHaveAttribute('aria-selected', 'true');
+
+  // vertical keyboard：ArrowDown 切换
+  await vertical.getByRole('tab', { name: '总览' }).press('ArrowDown');
+  await expect(vertical.getByRole('tab', { name: '通知' })).toHaveAttribute(
     'aria-selected',
     'true',
   );
+
+  await assertOverlayAccessibility(page);
 });
 
 test('Select 与 Combobox 使用统一 Popup、键盘和选中状态', async ({ page }) => {

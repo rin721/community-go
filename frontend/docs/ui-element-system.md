@@ -54,7 +54,12 @@ Semantic Design Token
 - `TextLink` 保留 anchor 语义与可访问导航；SPA 路由由 Host Router Link 注入，UI Adapter 不依赖 React Router。Action 不承担导航。
 - `BreadcrumbTrail` 表达层级和当前位置；`PaginationControl` 表达 current、previous/next、ellipsis 与总页数。筛选、排序、页码归一和远端请求属于集合 Pattern。
 - `TabsView` 只表达同一内容域中的视图选择，并以稳定 tab ID 接入 `ContentSwapTransition`；键盘、Selection 与 Focus 仍由 HeroUI 主持。应用级 Workspace Tabs 需要保活、关闭和恢复生命周期，当前没有该场景，不与 Content Tabs 合并。
-- `TabsView` 通过稳定 `variant` 区分场景语义，页面不得用局部 CSS 改写公共 Tabs：`line`（默认）用于轻量同级导航，重点通过 active indicator 表达当前项；`section` 用于 Card、Form、Settings 等内容分区，Tab 区以浅色 surface 与受控内容形成所属关系，选中仍由 indicator + 语义前景色 + typography 表达，不依赖全宽 divider 建立层级。两种 Variant 共享同一状态模型（Active/Inactive/Hover/Focus/Disabled/Keyboard）与 Semantic Token；`segmented` 只在真实分段选择语义出现时作为独立 Variant 加入，不作为默认样式。
+- `TabsView` 按三个正交维度组合，页面不得用局部 CSS 改写公共 Tabs，也不暴露 HeroUI visual variant 或通用 className 逃生口：
+  - Visual Variant：`line`（默认，普通内容导航：透明 TabList + 轻 baseline + bottom brand indicator）、`section`（Card/Form/Settings/Panel 内部章节导航：透明 TabList、不创建灰色 Toolbar 或独立 rounded Surface、不强制整条 baseline，内容分隔由父容器决定）、`soft`（TabList 自身形成轻量选择区域：muted surface 容器 + 紧凑 padding，selected Tab 用 elevated/default surface 凸显，无 line underline）。`soft` 仍是内容切换，不等同于 `ToggleGroup` 的值/模式选择。
+  - Orientation：`horizontal`（默认）/ `vertical`。Vertical 不创建新业务 Variant，只改变 indicator/布局表达（line/section 用 side indicator + foreground 无 selected surface；soft 用 selected surface）；窄 viewport 自动回退为顶部横向可滚动 TabList + 下方内容，使用项目既有 responsive breakpoint，不写 Tabs 私有断点。
+  - Item Content：item 原生支持 `{ id, label, icon?, badge? }`；不建立 icon/badge 业务 Variant。icon 位于 label 前（统一 semantic size、跟随 foreground、不硬编码颜色）；badge 为受控 `number | string`，由公共 `Badge` primitive 渲染（size/tone/alignment 由 TabsView 控制），selected/unselected 均可读且不明显改变 Tab 高度。
+  - 各 Variant 共享同一状态模型（Active/Inactive/Hover/Focus/Disabled/Keyboard）与 Semantic Token；视觉职责（background/foreground/border/indicator/radius/spacing/shadow/focus/hover/selected）必须通过 semantic token/recipe 表达，禁止 HeroUI 胶囊残留（rounded-3xl/h-8/vendor p-1 叠加）与页面级 CSS override。
+- `ToggleGroup` 负责即时互斥的成形值/模式选择（segmented 语义），与 `TabsView` 的内容切换语义不可互换：切换内容区域用 Tabs；选择一个值/模式用 ToggleGroup。
 
 ## 5. Feedback 与 Status Family
 

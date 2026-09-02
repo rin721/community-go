@@ -5,7 +5,7 @@ import { DisclosurePanel } from '@community-go/ui-adapter/disclosure';
 import { BreadcrumbTrail, PaginationControl, TextLink } from '@community-go/ui-adapter/navigation';
 import { StepNavigation } from '@community-go/ui-adapter/step-navigation';
 import { Tree } from '@community-go/ui-adapter/tree';
-import { ChevronRight } from 'lucide-react';
+import { Bell, ChevronRight, LayoutDashboard, Users } from 'lucide-react';
 import { useState } from 'react';
 import { useFrontendTranslation } from '@community-go/i18n';
 import { AdminSection } from '@community-go/admin-foundation/layout';
@@ -95,6 +95,42 @@ export function NavigationElementsPage() {
                 </div>
               </ComponentPreview>
               <ComponentPreview
+                name="TabsView · soft"
+                description={t('uiElements.catalog.tabsSoftDescription')}
+                states={['Overview', 'Notification', 'Analytics', 'Customers']}
+              >
+                <TabsView
+                  label={t('uiElements.catalog.contentTabsLabel')}
+                  variant="soft"
+                  items={[
+                    {
+                      id: 'overview',
+                      label: t('uiElements.catalog.tabsOverview'),
+                      content: <p className="p-4 text-sm text-ink-muted">{description}</p>,
+                    },
+                    {
+                      id: 'notifications',
+                      label: t('uiElements.catalog.tabsNotifications'),
+                      content: (
+                        <p className="p-4 text-sm text-ink-muted">
+                          {t('uiElements.dataTableEmpty')}
+                        </p>
+                      ),
+                    },
+                    {
+                      id: 'analytics',
+                      label: t('uiElements.catalog.tabsAnalytics'),
+                      content: <p className="p-4 text-sm text-ink-muted">{description}</p>,
+                    },
+                    {
+                      id: 'customers',
+                      label: t('uiElements.catalog.tabsCustomers'),
+                      content: <p className="p-4 text-sm text-ink-muted">{description}</p>,
+                    },
+                  ]}
+                />
+              </ComponentPreview>
+              <ComponentPreview
                 name="TabsView"
                 description={t('uiElements.catalog.tabsDescription')}
                 states={['Selected', 'Disabled', 'Controlled', 'Keyboard', 'Content tabs only']}
@@ -128,9 +164,102 @@ export function NavigationElementsPage() {
                 />
               </ComponentPreview>
               <ComponentPreview
-                name="TabsView · section"
+                name="TabsView · line + icon"
+                description={t('uiElements.catalog.tabsIconDescription')}
+                states={['Leading icon', 'Selected', 'Keyboard']}
+              >
+                <TabsView
+                  label={t('uiElements.catalog.contentTabsLabel')}
+                  items={[
+                    {
+                      id: 'overview',
+                      label: t('uiElements.catalog.tabsOverview'),
+                      icon: <LayoutDashboard className="size-4" />,
+                      content: <p className="p-4 text-sm text-ink-muted">{description}</p>,
+                    },
+                    {
+                      id: 'notifications',
+                      label: t('uiElements.catalog.tabsNotifications'),
+                      icon: <Bell className="size-4" />,
+                      content: <p className="p-4 text-sm text-ink-muted">{description}</p>,
+                    },
+                    {
+                      id: 'customers',
+                      label: t('uiElements.catalog.tabsCustomers'),
+                      icon: <Users className="size-4" />,
+                      content: <p className="p-4 text-sm text-ink-muted">{description}</p>,
+                    },
+                  ]}
+                />
+              </ComponentPreview>
+              <ComponentPreview
+                name="TabsView · line + badge"
+                description={t('uiElements.catalog.tabsBadgeDescription')}
+                states={['Count badge', 'Selected', 'Readable on unselected']}
+              >
+                <TabsView
+                  label={t('uiElements.catalog.contentTabsLabel')}
+                  items={[
+                    {
+                      id: 'overview',
+                      label: t('uiElements.catalog.tabsOverview'),
+                      content: <p className="p-4 text-sm text-ink-muted">{description}</p>,
+                    },
+                    {
+                      id: 'notifications',
+                      label: t('uiElements.catalog.tabsNotifications'),
+                      badge: 12,
+                      content: <p className="p-4 text-sm text-ink-muted">{description}</p>,
+                    },
+                    {
+                      id: 'customers',
+                      label: t('uiElements.catalog.tabsCustomers'),
+                      badge: 4,
+                      content: <p className="p-4 text-sm text-ink-muted">{description}</p>,
+                    },
+                  ]}
+                />
+              </ComponentPreview>
+              <ComponentPreview
+                fullWidth
+                name="TabsView · vertical"
+                description={t('uiElements.catalog.tabsVerticalDescription')}
+                states={['Two-column', 'Side indicator', 'ArrowUp/Down', 'Responsive']}
+              >
+                <div className="rounded-panel border border-border bg-surface p-4">
+                  <TabsView
+                    label={t('uiElements.catalog.contentTabsLabel')}
+                    orientation="vertical"
+                    items={[
+                      {
+                        id: 'overview',
+                        label: t('uiElements.catalog.tabsOverview'),
+                        content: <p className="p-4 text-sm text-ink-muted">{description}</p>,
+                      },
+                      {
+                        id: 'notifications',
+                        label: t('uiElements.catalog.tabsNotifications'),
+                        content: <p className="p-4 text-sm text-ink-muted">{description}</p>,
+                      },
+                      {
+                        id: 'analytics',
+                        label: t('uiElements.catalog.tabsAnalytics'),
+                        content: <p className="p-4 text-sm text-ink-muted">{description}</p>,
+                      },
+                      {
+                        id: 'customers',
+                        label: t('uiElements.catalog.tabsCustomers'),
+                        content: <p className="p-4 text-sm text-ink-muted">{description}</p>,
+                      },
+                    ]}
+                  />
+                </div>
+              </ComponentPreview>
+              <ComponentPreview
+                fullWidth
+                name="TabsView · section（Section Tabs in Panel）"
                 description={t('uiElements.catalog.tabsSectionDescription')}
-                states={['Selected', 'Keyboard', 'Content sections']}
+                states={['Embedded in Panel', 'No extra Surface/Toolbar', 'Keyboard']}
               >
                 <div className="overflow-hidden rounded-panel border border-border">
                   <TabsView

@@ -775,3 +775,65 @@ test('危险确认 Trigger 在 pressed 状态保持 danger 语义（不切换 Br
   expect(pressedCls).not.toContain('data-[pressed=true]:bg-brand');
   await page.mouse.up();
 });
+
+test('Tree 层级数据集合：depth 缩进、展开/折叠、状态与 keyboard 语义', async ({ page }) => {
+  await page.goto('/ui-elements/navigation');
+  await expect(page.locator('html')).toHaveAttribute('data-hydrated', 'true');
+  const tree = page.getByRole('treegrid', { name: 'Foundation tree' });
+
+  // Tree 自身轻量透明（Surface 由宿主提供）
+  await expect(tree).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  await expect(tree).toHaveCSS('border-top-width', '0px');
+
+  // depth 缩进：level 2 内容起点 > level 1 内容起点（稳定 semantic 步进）
+  const indents = await tree.evaluate((el) => {
+    const rows = [...el.querySelectorAll('[role="row"]')];
+    return rows.map((r) => {
+      const content = r.querySelector('.ui-tree-row');
+      const cs = content ? getComputedStyle(content) : null;
+      return {
+        level: Number(r.getAttribute('aria-level')),
+        padStart: cs ? Number.parseFloat(cs.paddingInlineStart) : 0,
+        disabled: r.getAttribute('aria-disabled') === 'true',
+        hasChevron: !!r.querySelector('button[slot="chevron"]'),
+        hasFakeLeaf: (
+          r.querySelector(':scope > .ui-tree-row > span.grid.size-5')?.textContent ?? ''
+        ).includes('•'),
+      };
+    });
+  });
+  const level1Pad = indents.find((i) => i.level === 1)?.padStart ?? 0;
+  const level2Pad = indents.find((i) => i.level === 2)?.padStart ?? 0;
+  expect(level2Pad).toBeGreaterThan(level1Pad); // 层级缩进生效
+  // 叶子不渲染假 affordance（•）
+  expect(indents.some((i) => i.hasFakeLeaf)).toBe(false);
+
+  // disabled 行保持结构且降权（aria-disabled + 可见但不可选中）
+  await expect(tree.getByRole('row', { name: 'Motion' })).toHaveAttribute('aria-disabled', 'true');
+
+  // 展开/折叠：焦点父行 chevron，Enter 收起，ArrowRight 重新展开
+  const parentRow = tree.getByRole('row', { name: 'Universal Foundation' });
+  await expect(parentRow).toHaveAttribute('aria-expanded', 'true');
+  const chevron = parentRow.getByRole('button', { name: '收起 Universal Foundation' });
+  await chevron.focus();
+  await page.keyboard.press('Enter');
+  await expect(parentRow).toHaveAttribute('aria-expanded', 'false');
+  await expect(tree.getByRole('row', { name: 'UI Elements' })).toHaveCount(0);
+  await parentRow.focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(parentRow).toHaveAttribute('aria-expanded', 'true');
+  await expect(tree.getByRole('row', { name: 'UI Elements' })).toHaveCount(1);
+
+  // 键盘行导航：ArrowDown 沿可见行移动（RAC treegrid 语义）
+  await parentRow.focus();
+  await expect(parentRow).toBeFocused();
+  await page.keyboard.press('ArrowDown');
+  await expect(tree.getByRole('row', { name: 'UI Elements' })).toBeFocused();
+
+  // Axe WCAG AA（treegrid 内）
+  const accessibility = await new AxeBuilder({ page })
+    .include('[aria-label="Foundation tree"]')
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(accessibility.violations).toEqual([]);
+});

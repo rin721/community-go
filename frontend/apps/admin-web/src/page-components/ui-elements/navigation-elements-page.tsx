@@ -5,7 +5,15 @@ import { DisclosurePanel } from '@community-go/ui-adapter/disclosure';
 import { BreadcrumbTrail, PaginationControl, TextLink } from '@community-go/ui-adapter/navigation';
 import { StepNavigation } from '@community-go/ui-adapter/step-navigation';
 import { Tree } from '@community-go/ui-adapter/tree';
-import { Bell, ChevronRight, LayoutDashboard, Users } from 'lucide-react';
+import {
+  Bell,
+  Boxes,
+  ChevronRight,
+  Component,
+  LayoutDashboard,
+  Users,
+  Waypoints,
+} from 'lucide-react';
 import { useState } from 'react';
 import { useFrontendTranslation } from '@community-go/i18n';
 import { AdminSection } from '@community-go/admin-foundation/layout';
@@ -304,7 +312,15 @@ export function NavigationElementsPage() {
               <ComponentPreview
                 name="Tree"
                 description="层级集合统一键盘导航、展开、选择与 disabled 语义。"
-                states={['Nested', 'Expanded', 'Selected', 'Disabled', 'Keyboard']}
+                states={[
+                  'Nested',
+                  'Expanded',
+                  'Selected',
+                  'Disabled',
+                  'Keyboard',
+                  'Long label',
+                  'Icon + description',
+                ]}
               >
                 <Tree
                   collapseLabel={(label) => t('uiElements.catalog.treeCollapse', { label })}
@@ -315,13 +331,30 @@ export function NavigationElementsPage() {
                     {
                       id: 'foundation',
                       label: 'Universal Foundation',
+                      description: '跨 Surface 稳定契约',
+                      leadingIcon: <Boxes className="size-icon-sm" />,
                       children: [
-                        { id: 'elements', label: 'UI Elements' },
-                        { id: 'motion', label: 'Motion', disabled: true },
+                        {
+                          id: 'elements',
+                          label: 'UI Elements',
+                          leadingIcon: <Component className="size-icon-sm" />,
+                        },
+                        {
+                          id: 'motion',
+                          label: 'Motion',
+                          disabled: true,
+                          leadingIcon: <Waypoints className="size-icon-sm" />,
+                        },
+                        {
+                          id: 'long-label',
+                          label:
+                            '这是一个用于验证长文本在深层级与窄宽度下仍保持完整可读与可访问名称的树节点条目示例',
+                        },
                       ],
                     },
                     { id: 'admin', label: 'Admin Foundation' },
                   ]}
+                  onAction={(id) => setLastAction(`Tree: ${id}`)}
                   selectionMode="single"
                 />
               </ComponentPreview>

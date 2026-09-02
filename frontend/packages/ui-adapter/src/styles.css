@@ -60,6 +60,28 @@
     @apply flex min-h-option cursor-default items-center justify-between gap-3 rounded-control px-3 py-2 text-sm outline-none data-[disabled]:opacity-45 data-[focused]:bg-surface-muted data-[hovered]:bg-surface-muted data-[selected]:bg-brand-soft data-[selected]:font-semibold data-[selected]:text-brand;
   }
 
+  /* Tree（tree.tsx）：层级数据集合的行布局。
+   * Tree 自身轻量透明（Surface 由宿主 Panel/AdminSection 提供）；
+   * 行内层级缩进由 --tree-row-level（RAC 提供）驱动，depth step 使用项目
+   * --spacing 基础变量（0.25rem × 6 = 1.5rem），不依赖可能不存在的 Tailwind
+   * --spacing-* 数值变量。 */
+  .ui-tree {
+    outline: none;
+  }
+
+  .ui-tree-row {
+    --tree-depth-step: calc(var(--spacing, 0.25rem) * 6);
+    padding-inline-start: calc(
+      (var(--tree-row-level, 1) - 1) * var(--tree-depth-step) + var(--spacing, 0.25rem) * 2
+    );
+  }
+
+  /* 行状态统一在 row 内容区表达；disabled 由 RAC 在行容器置 aria-disabled，
+   * 用后代选择器降权（结构与可辨识性保留）。 */
+  [role='row'][aria-disabled='true'] > .ui-tree-row {
+    @apply opacity-45;
+  }
+
   .ui-progress-meter [data-slot='label'],
   .ui-progress-meter [data-slot='progress-bar-output'] {
     @apply text-xs font-medium text-ink-muted;

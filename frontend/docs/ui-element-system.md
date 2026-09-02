@@ -62,6 +62,12 @@ Semantic Design Token
   - Item Content：item 原生支持 `{ id, label, icon?, badge? }`；不建立 icon/badge 业务 Variant。icon 位于 label 前（统一 semantic size、跟随 foreground、不硬编码颜色）；badge 为受控 `number | string`，由公共 `Badge` primitive 渲染（size/tone/alignment 由 TabsView 控制），selected/unselected 均可读且不明显改变 Tab 高度。
   - 各 Variant 共享同一状态模型（Active/Inactive/Hover/Focus/Disabled/Keyboard）与 Semantic Token；视觉职责（background/foreground/border/indicator/radius/spacing/shadow/focus/hover/selected）必须通过 semantic token/recipe 表达，禁止 HeroUI 胶囊残留（rounded-3xl/h-8/vendor p-1 叠加）与页面级 CSS override。
 - `ToggleGroup` 负责即时互斥的成形值/模式选择（segmented 语义），与 `TabsView` 的内容切换语义不可互换：切换内容区域用 Tabs；选择一个值/模式用 ToggleGroup。
+- `Tree` 是**多级层级数据集合**（hierarchical data collection）的浏览/展开/行选择/行动作，与其它 Navigation/Collection 成员的边界固定为：
+  - `ListBox`（`ui-option`）= 扁平可选集合；`Disclosure` = 单一内容区展开；`StepNavigation` = 有限有序过程；Admin Shell Navigation（Sidebar Tree/Accordion）= 页面导航拓扑。**不要把业务导航树与通用数据 Tree 混为一个 Contract**，本 Tree 不承担页面导航。
+  - Tree 自身为 lightweight transparent hierarchical collection：默认不拥有 Card/Panel-like border/background/radius，Surface 由宿主（Panel/AdminSection）提供；只拥有层级结构所需内部 layout/state geometry。
+  - Row anatomy（稳定）：`DisclosureSlot`（叶子保留布局占位、不渲染假 affordance）→ optional `LeadingIcon` → `Content(label required; description optional)`；label-only 行不自带富行高度。深度缩进用稳定 semantic depth step。
+  - 底层使用 React Aria Tree；其 treegrid/row/gridcell DOM 是 RAC 为 row focus/selection/interactive child 提供的实现（accessibility/keyboard 由 RAC 主持），属于 accessibility implementation detail，不因 DOM role 形态自建 ARIA/keyboard。
+  - 完整 accessible name 不因视觉 truncate 丢失；如需 overflow reveal 复用既有 Tooltip 能力，不形成 Tree 私有 title 规则。
 
 ## 5. Feedback 与 Status Family
 

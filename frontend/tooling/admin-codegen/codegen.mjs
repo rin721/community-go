@@ -39,7 +39,7 @@
  */
 
 import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import prettier from 'prettier';
@@ -52,6 +52,45 @@ const hostAppRoot = join(frontendRoot, 'apps', 'admin-web', 'src', 'app');
 const surfacePackageName = '@community-go/admin-surface';
 const navigationGroupsPath = join(pluginsRoot, 'navigation-groups.ts');
 const surfaceIconVocabularyPath = join(surfaceRoot, 'src', 'navigation-icon.ts');
+
+/* ------------------------------------------------------------------ */
+/* 构建期配置（轻量 .env 加载，零依赖）                                  */
+/* ------------------------------------------------------------------ */
+
+/**
+ * 从 frontend 根 .env 加载配置进 process.env（若尚未设置）。
+ *
+ * codegen 是独立 Node CLI（不在 Next 进程内），Node 不会自动读 .env；这里做最小
+ * 自解析：只读 frontend/.env，跳过注释与空行，支持 KEY=VALUE（值不去引号、不展开）。
+ * 已存在的 process.env 优先（不覆盖），保证显式环境变量/CI 可覆盖 .env。
+ */
+export function loadFrontendEnv() {
+  const envPath = join(frontendRoot, '.env');
+  if (!existsSync(envPath)) return;
+  let content;
+  try {
+    content = readFileSync(envPath, 'utf8');
+  } catch {
+    return;
+  }
+  for (const rawLine of content.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (line === '' || line.startsWith('#')) continue;
+    const eq = line.indexOf('=');
+    if (eq <= 0) continue;
+    const key = line.slice(0, eq).trim();
+    const value = line.slice(eq + 1).trim();
+    if (!key || process.env[key] !== undefined) continue;
+    process.env[key] = value;
+  }
+}
+
+/** 是否启用 Plugin 动态路由（[id] 等）——默认 false（默认静态）。 */
+export function isDynamicRoutesEnabled() {
+  return process.env.ADMIN_SURFACE_DYNAMIC_ROUTES === 'true';
+}
+
+loadFrontendEnv();
 
 /**
  * Generator ownership header（单一来源）。
@@ -244,9 +283,20 @@ async function scanRoutesTree(plugin) {
       pagePath: page.file,
       descriptor,
       specialFiles: entries.map((entry) => entry.kind),
+      // 动态 route 是否自带 generateStaticParams（静态导出 Host 放行动态的前提）。
+      hasGenerateStaticParams: await pageExportsGenerateStaticParams(page.file),
     });
   }
   return [...routes].sort((a, b) => a.descriptor.routeId.localeCompare(b.descriptor.routeId));
+}
+
+/** 轻量静态检测 page 是否导出 generateStaticParams（不执行 React 代码）。 */
+async function pageExportsGenerateStaticParams(pagePath) {
+  const content = await readFile(pagePath, 'utf8');
+  return (
+    /export\s+(?:async\s+)?function\s+generateStaticParams\b/.test(content) ||
+    /export\s+(?:const|let)\s+generateStaticParams\b/.test(content)
+  );
 }
 
 /** 只从 pluginId + Next 文件树派生 Page Route identity（无任何逐 Route 声明文件）。 */
@@ -387,11 +437,26 @@ async function collectSurface() {
   await validateNavigationIconReferences(plugins);
   const dynamic = allRoutes.filter((route) => route.descriptor.paramNames.length > 0);
   if (dynamic.length > 0) {
-    throw new Error(
-      `Host capability gate 失败 (UNSUPPORTED_DYNAMIC_PLUGIN_ROUTE): Static Export Host 不支持动态 Plugin Route\n${dynamic
-        .map((route) => `- ${route.descriptor.routeId} (${route.descriptor.pattern})`)
-        .join('\n')}`,
-    );
+    if (!isDynamicRoutesEnabled()) {
+      // 默认静态：未启用动态路由开关 → 任何动态 route 硬失败（与历史行为一致）。
+      throw new Error(
+        `Host capability gate 失败 (UNSUPPORTED_DYNAMIC_PLUGIN_ROUTE): 默认静态 Host 不支持动态 Plugin Route；如需启用请在 frontend/.env 设置 ADMIN_SURFACE_DYNAMIC_ROUTES=true\n${dynamic
+          .map((route) => `- ${route.descriptor.routeId} (${route.descriptor.pattern})`)
+          .join('\n')}`,
+      );
+    }
+    // 已启用动态：静态导出 Host 仍要求动态 page 自带 generateStaticParams（构建期枚举）。
+    const missing = dynamic.filter((route) => !route.hasGenerateStaticParams);
+    if (missing.length > 0) {
+      throw new Error(
+        `Host capability gate 失败 (DYNAMIC_ROUTE_REQUIRES_GENERATE_STATIC_PARAMS): output:"export" 下动态 Plugin Route 必须自带 generateStaticParams\n${missing
+          .map(
+            (route) =>
+              `- ${route.descriptor.routeId} (${route.descriptor.pattern}) @ plugins/${route.dirName}/routes/${route.dir || '.'}/page.tsx`,
+          )
+          .join('\n')}`,
+      );
+    }
   }
   return { plugins, allRoutes, aliases };
 }
@@ -533,20 +598,42 @@ function surfaceShimSubpath(pluginDirName, routeRelDir, kind) {
   return `${surfacePackageName}/plugin-routes/${pluginDirName}/${relDir}${kind}`;
 }
 
-/** (A) shim 文本：只 re-export 源模块 default（薄接线，无逻辑）。 */
-function buildSurfaceShimText(pluginDirName, routeRelDir, kind) {
-  return [
+/** (A) shim 文本：re-export 源模块 default（薄接线，无逻辑）；动态 page 附带转发 generateStaticParams。 */
+function buildSurfaceShimText(
+  pluginDirName,
+  routeRelDir,
+  kind,
+  forwardGenerateStaticParams = false,
+) {
+  const lines = [
     `export { default } from ${JSON.stringify(surfaceShimSourceSpecifier(pluginDirName, routeRelDir, kind))};`,
-    '',
-  ].join('\n');
+  ];
+  if (forwardGenerateStaticParams) {
+    lines.push(
+      `export { generateStaticParams } from ${JSON.stringify(surfaceShimSourceSpecifier(pluginDirName, routeRelDir, kind))};`,
+    );
+  }
+  lines.push('');
+  return lines.join('\n');
 }
 
-/** (B) Host adapter 文本：只 re-export (A) shim default（薄接线，无逻辑、无 client 强制）。 */
-function buildHostAdapterText(pluginDirName, routeRelDir, kind) {
-  return [
+/** (B) Host adapter 文本：re-export (A) shim default（薄接线）；动态 page 附带转发 generateStaticParams。 */
+function buildHostAdapterText(
+  pluginDirName,
+  routeRelDir,
+  kind,
+  forwardGenerateStaticParams = false,
+) {
+  const lines = [
     `export { default } from ${JSON.stringify(surfaceShimSubpath(pluginDirName, routeRelDir, kind))};`,
-    '',
-  ].join('\n');
+  ];
+  if (forwardGenerateStaticParams) {
+    lines.push(
+      `export { generateStaticParams } from ${JSON.stringify(surfaceShimSubpath(pluginDirName, routeRelDir, kind))};`,
+    );
+  }
+  lines.push('');
+  return lines.join('\n');
 }
 
 async function ensureDir(path) {
@@ -595,9 +682,13 @@ async function buildExpectedArtifacts(plugins, allRoutes, aliases) {
   for (const route of allRoutes) {
     // 每个路由段：为段内每个 Next special file 生成 (A) surface 公共 shim + (B) Host adapter。
     for (const kind of route.specialFiles) {
+      // 动态 page（启用动态路由且自带 generateStaticParams）需在两层转发 GS(SP)，
+      // 否则 Next 在 adapter 层看不到构建期枚举。
+      const forwardGenerateStaticParams =
+        kind === 'page' ? route.hasGenerateStaticParams === true : false;
       await pushGenerated(
         `plugin-routes/${route.dirName}/${route.dir === '' ? '' : `${route.dir}/`}${kind}.ts`,
-        buildSurfaceShimText(route.dirName, route.dir, kind),
+        buildSurfaceShimText(route.dirName, route.dir, kind, forwardGenerateStaticParams),
       );
       const adapterPath = hostAdapterPath(route.descriptor, kind);
       artifacts.push({
@@ -605,7 +696,7 @@ async function buildExpectedArtifacts(plugins, allRoutes, aliases) {
         path: adapterPath,
         content: await renderFinalContent(
           adapterPath,
-          buildHostAdapterText(route.dirName, route.dir, kind),
+          buildHostAdapterText(route.dirName, route.dir, kind, forwardGenerateStaticParams),
         ),
       });
     }

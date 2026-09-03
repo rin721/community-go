@@ -284,10 +284,18 @@ Discovery → Framework Contract Validation → Framework Descriptors
 ```
 
 真实 Surface 中的 `[param]` Route：Framework Contract 合法，可进入 descriptors、
-Surface Route Catalog 与 Framework tests；但当前 Static Export Host 返回
-`UNSUPPORTED_DYNAMIC_PLUGIN_ROUTE`，不为该 Route 生成 Host adapter（或生成后由
-capability gate 拦截），Host capability gate 在 Host adapter generation 前硬失败
-（不降级为 warning、不等待 Next build、不使用 `generateStaticParams` 枚举业务实体）。
+Surface Route Catalog 与 Framework tests。Host capability gate 在 Host adapter
+generation 前判定（不降级为 warning、不等待 Next build）：
+
+- **默认静态（`ADMIN_SURFACE_DYNAMIC_ROUTES` 缺省/false）**：任何动态 Plugin Route 返回
+  `UNSUPPORTED_DYNAMIC_PLUGIN_ROUTE` 硬失败，不为该 Route 生成 Host adapter——历史行为
+  不变，现有 Plugin 零影响。
+- **可选启用动态（frontend/.env 设 `ADMIN_SURFACE_DYNAMIC_ROUTES=true`）**：允许
+  Plugin 使用 `routes/[id]/page.tsx` 等动态段；但 `output:"export"` 下动态 page
+  **必须自带 `generateStaticParams`**（构建期枚举实体，Next 官方约束），否则报
+  `DYNAMIC_ROUTE_REQUIRES_GENERATE_STATIC_PARAMS`（指明具体 page，确定性失败）。
+  放行时 codegen 会在 surface shim 与 Host adapter 两层**转发 `generateStaticParams`**，
+  Next 才能静态产出 `/xxx/<param>.html`。
 
 ```text
 Framework Contract Validity ≠ Current Host Deployability
@@ -296,6 +304,23 @@ Framework Contract Validity ≠ Current Host Deployability
 当前 Host 只有在能承载全部可达生产 Route 时才能通过发布门禁。
 隔离 Framework fixtures 可包含动态 Route，不进入真实 Surface Host capability inventory；
 Reference Plugin 使用固定路径完成浏览器验证。
+
+### 启用动态路由示例
+
+```env
+# frontend/.env（复制自 .env.example）
+ADMIN_SURFACE_DYNAMIC_ROUTES=true
+```
+
+```tsx
+// surfaces/admin/plugins/<id>/routes/[id]/page.tsx
+export default function ItemPage() {
+  /* … */
+}
+export function generateStaticParams() {
+  return [{ id: 'a' }, { id: 'b' }]; // 构建期枚举；实体变化需重新构建
+}
+```
 
 ## 8. Legacy 与 Gates
 

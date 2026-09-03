@@ -19,7 +19,7 @@ import { useFrontendTranslation } from '@community-go/i18n';
 import { AdminPage } from '@community-go/admin-foundation/layout';
 
 import { RouterTextLink } from '../host/router-text-link';
-import { ViewportReveal } from '../host/viewport-reveal';
+import { ViewportReveal } from '@community-go/admin-foundation/viewport-reveal';
 
 const capabilityDefinitions = [
   { id: 'design', progress: 78, icon: Layers3, status: 'ready' },

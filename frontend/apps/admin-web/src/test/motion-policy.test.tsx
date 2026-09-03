@@ -1,9 +1,12 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { useMotionPolicy } from '../host/motion-policy-context';
+import { useMotionPolicy } from '@community-go/admin-foundation/motion-policy-context';
 import { MotionPolicyProvider } from '../host/motion-policy';
-import { ViewportReveal, ViewportRevealProvider } from '../host/viewport-reveal';
+import {
+  ViewportReveal,
+  ViewportRevealProvider,
+} from '@community-go/admin-foundation/viewport-reveal';
 
 const sessionKey = 'community-go.motion-inspector';
 

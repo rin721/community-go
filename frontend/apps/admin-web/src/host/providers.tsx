@@ -9,7 +9,7 @@ import { useShellStore } from '../state/use-shell-store';
 import { AppLoadingSurface } from './app-loading-surface';
 import { GlobalProgressProvider } from './global-progress-provider';
 import { MotionPolicyProvider } from './motion-policy';
-import { ViewportRevealProvider } from './viewport-reveal';
+import { ViewportRevealProvider } from '@community-go/admin-foundation/viewport-reveal';
 
 function AdminRuntimeProviders({ children }: Readonly<{ children: ReactNode }>) {
   const { t } = useFrontendTranslation();

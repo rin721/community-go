@@ -7,7 +7,7 @@ import {
   type MotionCategory,
   type MotionMode,
   type MotionScale,
-} from './motion-policy-context';
+} from '@community-go/admin-foundation/motion-policy-context';
 
 const modes: readonly MotionMode[] = ['system', 'full', 'reduced', 'off'];
 const scales: readonly MotionScale[] = [1, 2, 4];

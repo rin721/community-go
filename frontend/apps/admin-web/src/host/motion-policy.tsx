@@ -9,7 +9,7 @@ import {
   type MotionPolicyController,
   type MotionPolicyState,
   type MotionScale,
-} from './motion-policy-context';
+} from '@community-go/admin-foundation/motion-policy-context';
 
 const motionSessionKey = 'community-go.motion-inspector';
 const motionMediaQuery = '(prefers-reduced-motion: reduce)';

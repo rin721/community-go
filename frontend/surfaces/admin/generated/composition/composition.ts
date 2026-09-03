@@ -10,7 +10,12 @@ import {
   type AdminSurfaceComposition,
 } from '../../src/composition';
 import { surfaceShellI18nResources } from '../../src/i18n';
+import { pluginI18nResources as pluginI18nResources_admin_patterns } from '../../plugins/admin-patterns/i18n';
+import { pluginI18nResources as pluginI18nResources_admin_reference } from '../../plugins/admin-reference/i18n';
+import { pluginI18nResources as pluginI18nResources_foundations } from '../../plugins/foundations/i18n';
+import { pluginI18nResources as pluginI18nResources_motion } from '../../plugins/motion/i18n';
 import { pluginI18nResources as pluginI18nResources_reference_resources } from '../../plugins/reference-resources/i18n';
+import { pluginI18nResources as pluginI18nResources_states } from '../../plugins/states/i18n';
 import { pluginI18nResources as pluginI18nResources_system_tools } from '../../plugins/system-tools/i18n';
 import { pluginI18nResources as pluginI18nResources_ui_elements } from '../../plugins/ui-elements/i18n';
 
@@ -22,7 +27,12 @@ assertValidAdminSurfaceRegistry(generatedSurfaceRegistry);
 
 export const generatedSurfaceI18nResources: TranslationResources = mergeTranslationResources(
   surfaceShellI18nResources,
+  pluginI18nResources_admin_patterns,
+  pluginI18nResources_admin_reference,
+  pluginI18nResources_foundations,
+  pluginI18nResources_motion,
   pluginI18nResources_reference_resources,
+  pluginI18nResources_states,
   pluginI18nResources_system_tools,
   pluginI18nResources_ui_elements,
 );

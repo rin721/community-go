@@ -72,8 +72,13 @@ for (const filePath of files) {
     report(violations, filePath, 'Host leakage', '公共包不得直接访问浏览器 Host API');
   }
 
+  // Plugin（surfaces/admin/plugins/**）是被 Web Host 装配的真实 client/route 代码：
+  // 在 Client boundary 正常使用 Web API（window.setTimeout、document/URL 下载等）合法，
+  // 不属 Host leakage。Surface 公共基础设施（surfaces/<surface>/src，被公共消费）
+  // 才不得直接访问浏览器 Host API。
   if (
     workspace?.startsWith('surfaces/') &&
+    !localPath.includes('/plugins/') &&
     /\b(?:window|document|navigator|localStorage|sessionStorage)\b/.test(content)
   ) {
     report(violations, filePath, 'Host leakage', 'Surface 源码不得直接访问浏览器 Host API');

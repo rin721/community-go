@@ -8,7 +8,11 @@ export function findSourcePolicyViolations({ content, extension, localPath }) {
     'packages/design-system/src/motion.css',
     'packages/admin-foundation/src/styles.css',
   ].includes(localPath);
-  const isHostMotionBoundary = localPath.startsWith('apps/admin-web/src/host/');
+  const isHostMotionBoundary =
+    localPath.startsWith('apps/admin-web/src/host/') ||
+    // ViewportReveal（Admin reveal recipe 实现）随 ownership 提升到 admin-foundation，
+    // 是 IntersectionObserver 的唯一合法实现位置之一（Observer 生命周期语义不变）。
+    localPath === 'packages/admin-foundation/src/viewport-reveal.tsx';
   const isFeatureSource =
     localPath.startsWith('apps/admin-web/src/app/') ||
     localPath.startsWith('apps/admin-web/src/page-components/');

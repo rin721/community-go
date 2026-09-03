@@ -104,7 +104,9 @@
         "./collection",
         "./detail-settings",
         "./form-actions",
-        "./states-operations"
+        "./states-operations",
+        "./motion-policy-context",
+        "./viewport-reveal"
       ],
       "authorityRoutes": ["/admin-patterns", "/admin-reference"],
       "evidence": ["packages/admin-foundation/src/contracts.test.tsx"]

@@ -4,11 +4,128 @@ import type { AdminRouteCatalog } from '@community-go/admin-framework';
 
 export const generatedRouteCatalog: AdminRouteCatalog = {
   plugins: [
+    { pluginId: 'admin-patterns', mount: '/admin-patterns' },
+    { pluginId: 'admin-reference', mount: '/admin-reference' },
+    { pluginId: 'foundations', mount: '/foundations' },
+    { pluginId: 'motion', mount: '/motion' },
     { pluginId: 'reference-resources', mount: '/reference-resources' },
+    { pluginId: 'states', mount: '/states' },
     { pluginId: 'system-tools', mount: '/system-tools' },
     { pluginId: 'ui-elements', mount: '/ui-elements' },
   ],
   routes: [
+    {
+      routeId: 'admin-patterns.collections-data',
+      pluginId: 'admin-patterns',
+      path: 'collections-data',
+      segments: ['collections-data'],
+      pattern: '/admin-patterns/collections-data',
+      paramNames: [],
+    },
+    {
+      routeId: 'admin-patterns.detail-settings',
+      pluginId: 'admin-patterns',
+      path: 'detail-settings',
+      segments: ['detail-settings'],
+      pattern: '/admin-patterns/detail-settings',
+      paramNames: [],
+    },
+    {
+      routeId: 'admin-patterns.forms-actions',
+      pluginId: 'admin-patterns',
+      path: 'forms-actions',
+      segments: ['forms-actions'],
+      pattern: '/admin-patterns/forms-actions',
+      paramNames: [],
+    },
+    {
+      routeId: 'admin-patterns.layout-navigation',
+      pluginId: 'admin-patterns',
+      path: 'layout-navigation',
+      segments: ['layout-navigation'],
+      pattern: '/admin-patterns/layout-navigation',
+      paramNames: [],
+    },
+    {
+      routeId: 'admin-patterns.states-feedback',
+      pluginId: 'admin-patterns',
+      path: 'states-feedback',
+      segments: ['states-feedback'],
+      pattern: '/admin-patterns/states-feedback',
+      paramNames: [],
+    },
+    {
+      routeId: 'admin-reference.create-edit',
+      pluginId: 'admin-reference',
+      path: 'create-edit',
+      segments: ['create-edit'],
+      pattern: '/admin-reference/create-edit',
+      paramNames: [],
+    },
+    {
+      routeId: 'admin-reference.detail',
+      pluginId: 'admin-reference',
+      path: 'detail',
+      segments: ['detail'],
+      pattern: '/admin-reference/detail',
+      paramNames: [],
+    },
+    {
+      routeId: 'admin-reference.master-detail',
+      pluginId: 'admin-reference',
+      path: 'master-detail',
+      segments: ['master-detail'],
+      pattern: '/admin-reference/master-detail',
+      paramNames: [],
+    },
+    {
+      routeId: 'admin-reference.operation',
+      pluginId: 'admin-reference',
+      path: 'operation',
+      segments: ['operation'],
+      pattern: '/admin-reference/operation',
+      paramNames: [],
+    },
+    {
+      routeId: 'admin-reference.overview',
+      pluginId: 'admin-reference',
+      path: 'overview',
+      segments: ['overview'],
+      pattern: '/admin-reference/overview',
+      paramNames: [],
+    },
+    {
+      routeId: 'admin-reference.resource-list',
+      pluginId: 'admin-reference',
+      path: 'resource-list',
+      segments: ['resource-list'],
+      pattern: '/admin-reference/resource-list',
+      paramNames: [],
+    },
+    {
+      routeId: 'admin-reference.settings',
+      pluginId: 'admin-reference',
+      path: 'settings',
+      segments: ['settings'],
+      pattern: '/admin-reference/settings',
+      paramNames: [],
+    },
+    {
+      routeId: 'foundations',
+      pluginId: 'foundations',
+      path: '',
+      segments: [],
+      pattern: '/foundations',
+      paramNames: [],
+    },
+    {
+      routeId: 'motion',
+      pluginId: 'motion',
+      path: '',
+      segments: [],
+      pattern: '/motion',
+      paramNames: [],
+    },
     {
       routeId: 'reference-resources',
       pluginId: 'reference-resources',
@@ -39,6 +156,14 @@ export const generatedRouteCatalog: AdminRouteCatalog = {
       path: 'edit',
       segments: ['edit'],
       pattern: '/reference-resources/edit',
+      paramNames: [],
+    },
+    {
+      routeId: 'states',
+      pluginId: 'states',
+      path: '',
+      segments: [],
+      pattern: '/states',
       paramNames: [],
     },
     {
@@ -145,6 +270,135 @@ export const generatedRouteCatalog: AdminRouteCatalog = {
   ],
   contributions: [
     {
+      pluginId: 'admin-patterns',
+      contribution: {
+        parents: [
+          {
+            navigationId: 'admin-patterns.root',
+            labelKey: 'adminPatterns.nav.root',
+            groupId: 'development',
+            iconId: 'catalog',
+            children: [
+              {
+                navigationId: 'admin-patterns.root.layout-navigation',
+                labelKey: 'adminPatterns.nav.layoutNavigation',
+                routeId: 'admin-patterns.layout-navigation',
+                order: 0,
+              },
+              {
+                navigationId: 'admin-patterns.root.collections-data',
+                labelKey: 'adminPatterns.nav.collectionsData',
+                routeId: 'admin-patterns.collections-data',
+                order: 1,
+              },
+              {
+                navigationId: 'admin-patterns.root.forms-actions',
+                labelKey: 'adminPatterns.nav.formsActions',
+                routeId: 'admin-patterns.forms-actions',
+                order: 2,
+              },
+              {
+                navigationId: 'admin-patterns.root.states-feedback',
+                labelKey: 'adminPatterns.nav.statesFeedback',
+                routeId: 'admin-patterns.states-feedback',
+                order: 3,
+              },
+              {
+                navigationId: 'admin-patterns.root.detail-settings',
+                labelKey: 'adminPatterns.nav.detailSettings',
+                routeId: 'admin-patterns.detail-settings',
+                order: 4,
+              },
+            ],
+          },
+        ],
+      },
+    },
+    {
+      pluginId: 'admin-reference',
+      contribution: {
+        parents: [
+          {
+            navigationId: 'admin-reference.root',
+            labelKey: 'adminReference.nav.root',
+            groupId: 'development',
+            iconId: 'resource',
+            children: [
+              {
+                navigationId: 'admin-reference.root.overview',
+                labelKey: 'adminReference.nav.overview',
+                routeId: 'admin-reference.overview',
+                order: 0,
+              },
+              {
+                navigationId: 'admin-reference.root.resource-list',
+                labelKey: 'adminReference.nav.resourceList',
+                routeId: 'admin-reference.resource-list',
+                order: 1,
+              },
+              {
+                navigationId: 'admin-reference.root.detail',
+                labelKey: 'adminReference.nav.detail',
+                routeId: 'admin-reference.detail',
+                order: 2,
+              },
+              {
+                navigationId: 'admin-reference.root.create-edit',
+                labelKey: 'adminReference.nav.createEdit',
+                routeId: 'admin-reference.create-edit',
+                order: 3,
+              },
+              {
+                navigationId: 'admin-reference.root.settings',
+                labelKey: 'adminReference.nav.settings',
+                routeId: 'admin-reference.settings',
+                order: 4,
+              },
+              {
+                navigationId: 'admin-reference.root.master-detail',
+                labelKey: 'adminReference.nav.masterDetail',
+                routeId: 'admin-reference.master-detail',
+                order: 5,
+              },
+              {
+                navigationId: 'admin-reference.root.operation',
+                labelKey: 'adminReference.nav.operation',
+                routeId: 'admin-reference.operation',
+                order: 6,
+              },
+            ],
+          },
+        ],
+      },
+    },
+    {
+      pluginId: 'foundations',
+      contribution: {
+        parents: [
+          {
+            navigationId: 'foundations.root',
+            labelKey: 'foundationsNav.root',
+            groupId: 'development',
+            iconId: 'foundations',
+            routeId: 'foundations',
+          },
+        ],
+      },
+    },
+    {
+      pluginId: 'motion',
+      contribution: {
+        parents: [
+          {
+            navigationId: 'motion.root',
+            labelKey: 'motionNav.root',
+            groupId: 'development',
+            routeId: 'motion',
+          },
+        ],
+      },
+    },
+    {
       pluginId: 'reference-resources',
       contribution: {
         parents: [
@@ -154,6 +408,20 @@ export const generatedRouteCatalog: AdminRouteCatalog = {
             groupId: 'reference',
             iconId: 'resource',
             routeId: 'reference-resources',
+          },
+        ],
+      },
+    },
+    {
+      pluginId: 'states',
+      contribution: {
+        parents: [
+          {
+            navigationId: 'states.root',
+            labelKey: 'statesNav.root',
+            groupId: 'development',
+            iconId: 'states',
+            routeId: 'states',
           },
         ],
       },

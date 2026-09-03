@@ -10,7 +10,9 @@
     "./collection": "./src/collection.tsx",
     "./detail-settings": "./src/detail-settings.tsx",
     "./form-actions": "./src/form-actions.tsx",
-    "./states-operations": "./src/states-operations.tsx"
+    "./states-operations": "./src/states-operations.tsx",
+    "./motion-policy-context": "./src/motion-policy-context.ts",
+    "./viewport-reveal": "./src/viewport-reveal.tsx"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

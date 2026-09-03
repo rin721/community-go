@@ -18,7 +18,6 @@ const catalog: AdminRouteCatalog = {
       segments: [],
       pattern: '/reference-resources',
       paramNames: [],
-      titleKey: 'referenceResources.list.title',
     },
     {
       routeId: 'reference-resources.create',
@@ -27,7 +26,6 @@ const catalog: AdminRouteCatalog = {
       segments: ['create'],
       pattern: '/reference-resources/create',
       paramNames: [],
-      titleKey: 'referenceResources.create.title',
     },
   ],
   aliases: [{ groupId: 'reference', labelKey: 'adminGroups.reference', order: 0 }],

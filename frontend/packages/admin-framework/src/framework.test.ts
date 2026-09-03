@@ -20,7 +20,6 @@ const listRoute: AdminFileRouteDescriptor = {
   segments: [],
   pattern: '/reference-resources',
   paramNames: [],
-  titleKey: 'referenceResources.list.title',
 };
 
 const createRoute: AdminFileRouteDescriptor = {
@@ -30,7 +29,6 @@ const createRoute: AdminFileRouteDescriptor = {
   segments: ['create'],
   pattern: '/reference-resources/create',
   paramNames: [],
-  titleKey: 'referenceResources.create.title',
 };
 
 const detailRoute: AdminFileRouteDescriptor = {
@@ -40,7 +38,6 @@ const detailRoute: AdminFileRouteDescriptor = {
   segments: ['[id]'],
   pattern: '/reference-resources/[id]',
   paramNames: ['id'],
-  titleKey: 'referenceResources.detail.title',
 };
 
 const editRoute: AdminFileRouteDescriptor = {
@@ -50,7 +47,6 @@ const editRoute: AdminFileRouteDescriptor = {
   segments: ['[id]', 'edit'],
   pattern: '/reference-resources/[id]/edit',
   paramNames: ['id'],
-  titleKey: 'referenceResources.edit.title',
 };
 
 const aliases = [{ groupId: 'reference', labelKey: 'adminGroups.reference', order: 0 }] as const;
@@ -126,34 +122,22 @@ describe('Admin Framework registry — Sidebar navigation (Group → Parent → 
     expect(parent?.children).toEqual([]);
   });
 
-  it('canonical hierarchy 与 activeNavigationId：隐藏 Route 关联到 Sidebar Node', () => {
+  it('routes 是 routeId → descriptor 的纯索引（不含 route.meta 派生字段）', () => {
     const registry = createAdminRegistry(catalog);
-    // list route 自身命中 Node → activeNavigationId = Node
-    expect(registry.routes['reference-resources.list']?.activeNavigationId).toBe(
-      'reference-resources.root',
+    const keys = Object.keys(registry.routes).sort();
+    expect(keys).toEqual(
+      [
+        'reference-resources.list',
+        'reference-resources.create',
+        'reference-resources.detail',
+        'reference-resources.edit',
+      ].sort(),
     );
-    expect(registry.routes['reference-resources.list']?.orphan).toBe(false);
-    // create/detail/edit 是隐藏 Route：沿 canonical 找到命中 Node 的祖先（list）
-    expect(registry.routes['reference-resources.create']?.canonicalParentRouteId).toBe(
-      'reference-resources.list',
-    );
-    expect(registry.routes['reference-resources.create']?.activeNavigationId).toBe(
-      'reference-resources.root',
-    );
-    expect(registry.routes['reference-resources.create']?.orphan).toBe(false);
-    expect(registry.routes['reference-resources.detail']?.canonicalParentRouteId).toBe(
-      'reference-resources.list',
-    );
-    expect(registry.routes['reference-resources.edit']?.ancestorRouteIds).toEqual([
-      'reference-resources.detail',
-      'reference-resources.list',
-    ]);
-    expect(registry.routes['reference-resources.edit']?.activeNavigationId).toBe(
-      'reference-resources.root',
-    );
+    expect(registry.routes['reference-resources.list']).toEqual(listRoute);
+    expect(registry.routes['reference-resources.detail']?.paramNames).toEqual(['id']);
   });
 
-  it('Parent 无 routeId → 纯 Disclosure（无 href）；无 routeId 且无 children → orphan 诊断', () => {
+  it('Parent 无 routeId → 纯 Disclosure（无 href）；无 routeId 且无 children → orphan-node 诊断', () => {
     const disclosureCatalog: AdminRouteCatalog = {
       plugins: [plugin],
       routes: [listRoute],
@@ -185,7 +169,7 @@ describe('Admin Framework registry — Sidebar navigation (Group → Parent → 
     expect(parent?.href).toBeUndefined(); // 纯 Disclosure
     expect(parent?.children.map((child) => child.href)).toEqual(['/reference-resources']);
 
-    const orphanCatalog: AdminRouteCatalog = {
+    const orphanNodeCatalog: AdminRouteCatalog = {
       plugins: [plugin],
       routes: [listRoute],
       aliases,
@@ -205,8 +189,8 @@ describe('Admin Framework registry — Sidebar navigation (Group → Parent → 
         },
       ],
     };
-    const orphanRegistry = createAdminRegistry(orphanCatalog);
-    expect(orphanRegistry.diagnostics.map((d) => d.code)).toContain('NAVIGATION_NODE_ORPHAN');
+    const orphanNodeRegistry = createAdminRegistry(orphanNodeCatalog);
+    expect(orphanNodeRegistry.diagnostics.map((d) => d.code)).toContain('NAVIGATION_NODE_ORPHAN');
   });
 
   it('Sidebar Node 引用不存在 routeId / 动态 route → deterministic diagnostics', () => {
@@ -317,15 +301,6 @@ describe('Admin Framework registry — Sidebar navigation (Group → Parent → 
     );
   });
 
-  it('breadcrumb topology 沿 canonical hierarchy 派生', () => {
-    const registry = createAdminRegistry(catalog);
-    const breadcrumbs = registry.breadcrumbs['reference-resources.edit'];
-    expect(breadcrumbs?.map((item) => item.routeId)).toEqual([
-      'reference-resources.detail',
-      'reference-resources.list',
-    ]);
-  });
-
   it('resolveAdminRouteTarget 校验缺失/多余参数并编码', () => {
     const registry = createAdminRegistry(catalog);
     const ok = resolveAdminRouteTarget(
@@ -346,46 +321,6 @@ describe('Admin Framework registry — Sidebar navigation (Group → Parent → 
 
     const unknown = resolveAdminRouteTarget(registry, route('nope.missing', {}));
     expect(unknown.diagnostics.map((d) => d.code)).toContain('UNKNOWN_ROUTE');
-  });
-
-  it('Route 无任何 Sidebar 归属（无 Node 命中、无 override）→ orphan 诊断', () => {
-    const orphanCatalog: AdminRouteCatalog = {
-      plugins: [plugin],
-      routes: [
-        {
-          routeId: 'reference-resources.orphan',
-          pluginId: 'reference-resources',
-          path: 'orphan',
-          segments: ['orphan'],
-          pattern: '/reference-resources/orphan',
-          paramNames: [],
-        },
-      ],
-      aliases,
-      contributions: [],
-    };
-    const registry = createAdminRegistry(orphanCatalog);
-    expect(registry.routes['reference-resources.orphan']?.orphan).toBe(true);
-    expect(registry.diagnostics.map((d) => d.code)).toContain('ORPHAN_ROUTE');
-  });
-
-  it('跨 Plugin override 与缺失 rationale 被诊断（Route Context metadata 保留）', () => {
-    const badCatalog: AdminRouteCatalog = {
-      plugins: [plugin],
-      routes: [
-        {
-          ...listRoute,
-          canonicalParentOverride: { routeId: 'other-plugin.route', rationale: '' },
-          activeNavigationOverride: { navigationId: 'other-plugin.nav', rationale: '' },
-        },
-      ],
-      aliases,
-      contributions: [],
-    };
-    const registry = createAdminRegistry(badCatalog);
-    const codes = registry.diagnostics.map((d) => d.code);
-    expect(codes).toContain('CROSS_PLUGIN_REFERENCE');
-    expect(codes).toContain('INVALID_OVERRIDE_RATIONALE');
   });
 });
 

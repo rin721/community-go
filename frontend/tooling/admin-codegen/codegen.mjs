@@ -3,17 +3,20 @@
  *
  * 职责边界：
  * - Discovery：扫描 surfaces/admin/plugins/ 下各 plugin 的 plugin.ts、plugin.navigation.ts
- *   与 routes 树（每个路由目录一对 page 文件与 route.meta 文件），并加载 plugins 范围
- *   公共 Group Alias（navigation-groups.ts）。
- * - Contract Validation：静态校验 1:1 配对、禁止 Next exports、namespace、override、冲突；
- *   contribution parent 的 groupId 必须命中 Group Alias（plugins 公共 IA，
- *   未知 Alias deterministic fail）；navigation.iconId（可选 semantic presentation
+ *   与 routes 子树，并加载 plugins 范围公共 Group Alias（navigation-groups.ts）。
+ * - Contract Validation：静态校验 pluginId/mount、冲突、namespace、Group Alias 与
+ *   icon vocabulary；contribution parent 的 groupId 必须命中 Group Alias（plugins 公共
+ *   IA，未知 Alias deterministic fail）；navigation.iconId（可选 semantic presentation
  *   metadata）必须命中 Admin Surface icon vocabulary（surfaces/admin/src/navigation-icon.ts），
  *   未知 iconId deterministic fail（UNKNOWN_ADMIN_NAVIGATION_ICON），禁止静默 fallback。
- * - Framework Descriptors：只生成静态 descriptors / aliases / contributions / catalog /
- *   bridges / composition / i18n。
+ * - Framework Descriptors：只生成静态 descriptors（pluginId + Next 文件树派生）/ aliases /
+ *   contributions / catalog / shims / composition / i18n。routes/ 的 authority 是 Next
+ *   App Router：colocated 普通实现文件完全忽略；当前支持的 Next convention
+ *   （page/layout/template/loading/error/not-found）机械装配；Next 有语义但当前不装配的
+ *   convention（route.ts/default.tsx）报 UNSUPPORTED_NEXT_CONVENTION（Host capability
+ *   诊断，非 Plugin Contract 禁止）。
  * - Host Capability Analysis：Static Export Host 对 [param] 路由返回
- *   UNSUPPORTED_DYNAMIC_PLUGIN_ROUTE，不生成 Next 入口并令 gate 失败（硬失败、不降级）。
+ *   UNSUPPORTED_DYNAMIC_PLUGIN_ROUTE，不生成 Host adapter 并令 gate 失败（硬失败、不降级）。
  * - Preflighted Deterministic Reconciliation：先完成全部 semantic / Host capability /
  *   Alias/icon validation，并在内存中渲染全部 ExpectedArtifact（kind/path/content），
  *   再做物理 ownership preflight（期望 Host artifact 已存在且不属于本 Generator →
@@ -24,14 +27,15 @@
  *   本工具不提供 mutation 开始后的 OS/IO/process interruption staging/transaction
  *   commit/rollback，不声称 filesystem-level atomicity。
  *
- * Registry（canonical hierarchy / Sidebar Group→Parent→Child resolution / breadcrumb /
- * command / permission）由 @community-go/admin-framework registry 在运行时完成，
- * Generator 不复制该逻辑，只序列化静态 aliases/contributions。
+ * Registry（Sidebar Group→Parent→Child resolution）由 @community-go/admin-framework
+ * registry 在运行时完成，Generator 不复制该逻辑，只序列化静态 aliases/contributions。
+ * Framework 不平行建模 Next Route Tree：routeId→descriptor 只是 Plugin 管理功能
+ * （Navigation target 校验、Route Target、冲突诊断）需要的 Page Route 索引。
  *
- * 本工具不执行 React 代码；route.meta.ts、plugin.navigation.ts 与 navigation-groups.ts
- * 通过 Node 24 type-stripping 静态加载。生成物全部带固定 `GENERATED_HEADER`
- * （ownership marker 单一来源，emission 与 ownership parser 共享）；freshness check
- * 逐文件重建比较（missing / drift / stale / ownership collision）。
+ * 本工具不执行 React 代码；plugin.navigation.ts 与 navigation-groups.ts 通过 Node 24
+ * type-stripping 静态加载。生成物全部带固定 `GENERATED_HEADER`（ownership marker
+ * 单一来源，emission 与 ownership parser 共享）；freshness check 逐文件重建比较
+ * （missing / drift / stale / ownership collision）。
  */
 
 import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
@@ -162,28 +166,58 @@ export async function discoverSurface() {
 /* ------------------------------------------------------------------ */
 
 /**
- * 扫描 Plugin routes/ 下的 Next special file 树。
+ * Next 有语义、但当前 Generator/Host 尚不机械装配的 convention。
  *
- * - 每个路由段目录可含 page/layout/template/loading/error/not-found（全可选，按需）。
- * - route.meta.ts 是可选的伴生 metadata（只承载 Framework 治理信息，不属 Next special
- *   file，永不下发到 Host）。
- * - page 必须 default export（Next 惯例）；layout/loading/error/not-found/template 同样
- *   要求 default export（与 Next 一致），本层不解析组件名。
+ * authority 是 Next App Router 本身：本集合不是「Plugin routes/ 永久允许的全部 Next
+ * 文件」白名单，只描述「当前支持的机械装配集」。将来扩展 route.ts / default.tsx /
+ * metadata file conventions 等 = 扩大 Host capability（加入装配），不是修改 Plugin
+ * Route Contract。发现此类文件必须给明确诊断，不能静默忽略。
+ */
+const NEXT_CONVENTIONS_NOT_ASSEMBLED = new Set(['route', 'default']);
+
+/**
+ * 扫描 Plugin routes/ 下的 Next special file 树（Page Route 索引）。
+ *
+ * - authority 是 Next App Router：Plugin routes/ 可像正常 app/ 一样 colocate 普通
+ *   实现文件（components/services/lib/schema/styles/tests/_private 等），Framework
+ *   完全忽略它们，不增加 Plugin 语义。
+ * - 当前支持的 Next convention（page/layout/template/loading/error/not-found）机械装配；
+ *   每段只要存在 page 就产出一条 Page Route（page 决定当前 Framework 所索引的可渲染
+ *   Page Route；完整 Next Route Tree 由 Next 文件系统拥有）。
+ * - Next 有语义但当前不装配的 convention（route.ts/default.tsx）→ Host Capability
+ *   诊断，不静默忽略。
  */
 async function scanRoutesTree(plugin) {
   const routesDir = join(plugin.dir, 'routes');
   if (!existsSync(routesDir)) return [];
   const files = await walk(routesDir);
   const filesByDir = new Map(); // dir → [{kind, file}]
+  const unsupportedByDir = new Map(); // dir → [conventionName]
   for (const file of files) {
     const local = toPosix(relative(routesDir, file));
-    if (local.endsWith('route.meta.ts')) continue; // 伴生 metadata，独立处理
     const base = basename(file).replace(/\.tsx?$/, '');
-    if (!NEXT_SPECIAL_FILES.has(base)) continue; // 非 Next special file（如 data.ts）忽略
     const dir = local.includes('/') ? local.slice(0, local.lastIndexOf('/')) : '';
-    const list = filesByDir.get(dir) ?? [];
-    list.push({ kind: base, file });
-    filesByDir.set(dir, list);
+    if (NEXT_SPECIAL_FILES.has(base)) {
+      const list = filesByDir.get(dir) ?? [];
+      list.push({ kind: base, file });
+      filesByDir.set(dir, list);
+      continue;
+    }
+    // Next 有语义但当前不装配的 convention：明确诊断，不静默忽略。
+    if (NEXT_CONVENTIONS_NOT_ASSEMBLED.has(base)) {
+      const list = unsupportedByDir.get(dir) ?? [];
+      list.push(base);
+      unsupportedByDir.set(dir, list);
+    }
+    // 其余文件（colocated components/services/lib/schema/styles/tests/_private 等）：
+    // 普通实现文件，Framework 完全忽略。
+  }
+
+  // Host Capability 诊断：Next 语义文件当前 Host 不装配 → 显式报错（非 Plugin Contract 禁止）。
+  for (const [dir, conventions] of unsupportedByDir) {
+    throw new Error(
+      `Host capability 诊断 (UNSUPPORTED_NEXT_CONVENTION): plugins/${plugin.dirName}/routes/${dir || '.'} 含 Next convention ${conventions.join(', ')} —— 当前 Generator/Host 尚未机械装配该 Next convention；这是 Host capability 限制，不是 Plugin Route Contract 禁止。`,
+    );
   }
 
   const routes = [];
@@ -202,26 +236,12 @@ async function scanRoutesTree(plugin) {
     }
     const entries = filesByDir.get(dir) ?? [];
     const page = entries.find((entry) => entry.kind === 'page');
-    if (!page) continue; // 无 page 的段（如纯 layout 容器？）—— 无 page 不产生 route
-    const metaPath = join(routesDir, dir === '' ? 'route.meta.ts' : `${dir}/route.meta.ts`);
-    let routeMeta = {};
-    if (existsSync(metaPath)) {
-      const metaModule = await loadTypeScriptModule(metaPath);
-      const loaded = metaModule?.routeMeta;
-      if (!loaded || typeof loaded !== 'object') {
-        throw new Error(
-          `plugins/${plugin.dirName}/routes/${dir || '.'}: route.meta.ts 必须导出 routeMeta`,
-        );
-      }
-      routeMeta = loaded;
-    }
-    const descriptor = buildDescriptor(plugin, dir, routeMeta);
-    validateRouteMetaContract(plugin, dir, descriptor, routeMeta);
+    if (!page) continue; // 无 page 的段不产生 Page Route（colocate 目录/layout-only 容器不索引）
+    const descriptor = buildDescriptor(plugin, dir);
     routes.push({
       dir,
       dirName: plugin.dirName,
       pagePath: page.file,
-      routeMetaPath: existsSync(metaPath) ? metaPath : undefined,
       descriptor,
       specialFiles: entries.map((entry) => entry.kind),
     });
@@ -229,7 +249,8 @@ async function scanRoutesTree(plugin) {
   return [...routes].sort((a, b) => a.descriptor.routeId.localeCompare(b.descriptor.routeId));
 }
 
-function buildDescriptor(plugin, relativeDir, routeMeta) {
+/** 只从 pluginId + Next 文件树派生 Page Route identity（无任何逐 Route 声明文件）。 */
+function buildDescriptor(plugin, relativeDir) {
   const pluginId = plugin.definition.pluginId;
   const segments = relativeDir === '' ? [] : relativeDir.split('/');
   const routeId = relativeDir === '' ? pluginId : `${pluginId}.${relativeDir.split('/').join('.')}`;
@@ -248,49 +269,7 @@ function buildDescriptor(plugin, relativeDir, routeMeta) {
     segments,
     pattern,
     paramNames,
-    ...(routeMeta.titleKey ? { titleKey: routeMeta.titleKey } : {}),
-    ...(routeMeta.canonicalParentOverride
-      ? { canonicalParentOverride: routeMeta.canonicalParentOverride }
-      : {}),
-    ...(routeMeta.activeNavigationOverride
-      ? { activeNavigationOverride: routeMeta.activeNavigationOverride }
-      : {}),
-    ...(routeMeta.permissions?.length ? { permissions: routeMeta.permissions } : {}),
   };
-}
-
-function validateRouteMetaContract(plugin, relativeDir, descriptor, routeMeta) {
-  const errors = [];
-  const pluginId = plugin.definition.pluginId;
-  if (routeMeta.navigation) {
-    errors.push('route.meta 不再支持 navigation（Sidebar 贡献迁移到 plugin.navigation.ts）');
-  }
-  if (routeMeta.canonicalParentOverride) {
-    const override = routeMeta.canonicalParentOverride;
-    if (typeof override.routeId !== 'string' || override.routeId.split('.')[0] !== pluginId) {
-      errors.push('canonicalParentOverride.routeId 必须引用同 Plugin Route');
-    }
-    if (typeof override.rationale !== 'string' || !override.rationale.trim()) {
-      errors.push('canonicalParentOverride 必须提供 rationale');
-    }
-  }
-  if (routeMeta.activeNavigationOverride) {
-    const override = routeMeta.activeNavigationOverride;
-    if (
-      typeof override.navigationId !== 'string' ||
-      override.navigationId.split('.')[0] !== pluginId
-    ) {
-      errors.push('activeNavigationOverride.navigationId 必须为同 Plugin namespace');
-    }
-    if (typeof override.rationale !== 'string' || !override.rationale.trim()) {
-      errors.push('activeNavigationOverride 必须提供 rationale');
-    }
-  }
-  if (errors.length > 0) {
-    throw new Error(
-      `plugins/${plugin.dirName}/routes/${relativeDir || '.'}: metadata 契约失败\n${errors.map((item) => `- ${item}`).join('\n')}`,
-    );
-  }
 }
 
 function validateCatalogConflicts(allRoutes, plugins) {
@@ -593,7 +572,7 @@ async function renderFinalContent(path, content) {
 /**
  * 构建完整 expected artifact plan（{ kind, path, content }）。
  *
- * catalog / composition / i18n index / route bridge / Host adapter 的全部文本
+ * catalog / composition / i18n index / surface shim / Host adapter 的全部文本
  * 构造与 prettier 格式化都在此完成——任何可能抛错的 render/serialization 都会在
  * mutation 之前暴露（validation-before-write / no partial output）。
  */

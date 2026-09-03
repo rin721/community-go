@@ -62,41 +62,12 @@ export type AdminNavigationChild = Readonly<{
   iconId?: string;
 }>;
 
-/** 跨 Plugin 引用被禁止；覆盖必须位于同 Plugin 并附带 rationale。 */
-export type AdminRouteOverride = Readonly<{
-  routeId: string;
-  rationale: string;
-}>;
-
-/** 同 Plugin 的 active navigation 覆盖（指向 Sidebar Node navigationId，route 级 metadata）。 */
-export type AdminActiveNavigationOverride = Readonly<{
-  navigationId: string;
-  rationale: string;
-}>;
-
 /**
- * route.meta.ts 的静态声明契约。
+ * 静态 Framework Descriptor：由 Generator 从 Plugin mount + Next 文件树确定性派生。
  *
- * 规则：
- * - Sidebar 贡献不再挂在 route 上（迁移到 plugin.navigation.ts）；route.meta 不再声明 navigation。
- * - 保留 Route Context metadata：titleKey、permissions、canonicalParentOverride、
- *   activeNavigationOverride（隐藏 Route 经 canonical 派生/显式覆盖关联 Sidebar Node）。
- * - 不声明 path、普通 parentRouteId 或 page import（URL 只由 mount + 文件树决定）。
- */
-export type AdminRouteMeta = Readonly<{
-  titleKey?: string;
-  canonicalParentOverride?: AdminRouteOverride;
-  activeNavigationOverride?: AdminActiveNavigationOverride;
-  permissions?: readonly string[];
-}>;
-
-/** 受治理的 Route Module 文件类型。 */
-export type AdminRouteModuleKind = 'page' | 'layout' | 'loading' | 'error';
-
-/**
- * 静态 Framework Descriptor：由 Generator 从文件树 + metadata 静态提取。
- * 只含 Route 文件树与 Route Context metadata；不含 Sidebar Navigation
- * （Sidebar 由 catalog.aliases + catalog.contributions 表达）。
+ * 这是**当前 Plugin 管理功能（Navigation target 校验、Route Target、冲突诊断）需要的
+ * Page Route 索引**，不是 Next 完整 Route Tree 的平行模型——Next 完整 Route Tree 由
+ * Next 文件系统本身拥有与解释，Framework 不尝试完整建模。
  */
 export type AdminFileRouteDescriptor = Readonly<{
   routeId: string;
@@ -105,14 +76,10 @@ export type AdminFileRouteDescriptor = Readonly<{
   path: string;
   /** 文件树段（含 `[param]` 标记）。 */
   segments: readonly AdminRouteSegment[];
-  /** URL pattern（含 `[param]` 占位），如 `/reference-resources/[id]`。 */
+  /** URL pattern（含 `[param]` 占位），如 `/users/[id]`。 */
   pattern: string;
   /** 动态参数名集合（来自 `[param]` 段）。 */
   paramNames: readonly string[];
-  titleKey?: string;
-  canonicalParentOverride?: AdminRouteOverride;
-  activeNavigationOverride?: AdminActiveNavigationOverride;
-  permissions?: readonly string[];
 }>;
 
 /** Surface Catalog：generated 静态目录，Registry 只消费该模型。 */

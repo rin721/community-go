@@ -15,7 +15,6 @@ export const generatedRouteCatalog: AdminRouteCatalog = {
       segments: [],
       pattern: '/reference-resources',
       paramNames: [],
-      titleKey: 'referenceResources.list.title',
     },
     {
       routeId: 'reference-resources.create',
@@ -24,7 +23,6 @@ export const generatedRouteCatalog: AdminRouteCatalog = {
       segments: ['create'],
       pattern: '/reference-resources/create',
       paramNames: [],
-      titleKey: 'referenceResources.create.title',
     },
     {
       routeId: 'reference-resources.detail',
@@ -33,7 +31,6 @@ export const generatedRouteCatalog: AdminRouteCatalog = {
       segments: ['detail'],
       pattern: '/reference-resources/detail',
       paramNames: [],
-      titleKey: 'referenceResources.detail.title',
     },
     {
       routeId: 'reference-resources.edit',
@@ -42,11 +39,6 @@ export const generatedRouteCatalog: AdminRouteCatalog = {
       segments: ['edit'],
       pattern: '/reference-resources/edit',
       paramNames: [],
-      titleKey: 'referenceResources.edit.title',
-      canonicalParentOverride: {
-        routeId: 'reference-resources.detail',
-        rationale: '编辑是详情下的子任务，canonical parent 必须落在同 Plugin 的 detail Route。',
-      },
     },
     {
       routeId: 'system-tools.icons',
@@ -55,7 +47,6 @@ export const generatedRouteCatalog: AdminRouteCatalog = {
       segments: ['icons'],
       pattern: '/system-tools/icons',
       paramNames: [],
-      titleKey: 'systemTools.icons.title',
     },
     {
       routeId: 'system-tools.preferences',
@@ -64,7 +55,6 @@ export const generatedRouteCatalog: AdminRouteCatalog = {
       segments: ['preferences'],
       pattern: '/system-tools/preferences',
       paramNames: [],
-      titleKey: 'systemTools.preferences.title',
     },
   ],
   aliases: [

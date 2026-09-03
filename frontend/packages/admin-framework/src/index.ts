@@ -18,10 +18,6 @@ export {
   type AdminNavigationParent,
   type AdminNavigationChild,
   type AdminPluginNavigationContribution,
-  type AdminRouteOverride,
-  type AdminActiveNavigationOverride,
-  type AdminRouteMeta,
-  type AdminRouteModuleKind,
   type AdminFileRouteDescriptor,
   type AdminRouteCatalog,
 } from './contract';
@@ -29,13 +25,7 @@ export {
 export type { AdminDiagnostic, AdminDiagnosticCode, AdminDiagnostics } from './diagnostics';
 export { collectDiagnostics, finalizeDiagnostics, formatDiagnostics } from './diagnostics';
 
-export type {
-  ResolvedAdminRoute,
-  AdminRegistryModel,
-  AdminBreadcrumbItem,
-  AdminPermissionModel,
-  AdminCommandItem,
-} from './registry';
+export type { AdminRegistryModel } from './registry';
 export type {
   ResolvedNavigationGroup,
   ResolvedNavigationParent,

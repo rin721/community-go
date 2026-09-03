@@ -138,15 +138,16 @@ describe('Generated composition (production invariant)', () => {
         }
       }
     }
-    // Route titleKey（隐藏路由也要求可解析）
-    for (const descriptor of registry.catalog.routes) {
-      if (descriptor.titleKey) {
-        for (const locale of ['zh-CN', 'en']) {
-          expect(
-            lookupTranslation(generatedSurfaceI18nResources, locale, descriptor.titleKey),
-          ).toBeTruthy();
-        }
-      }
+  });
+
+  it('route descriptor 是纯结构（不含 route.meta 派生字段）', () => {
+    const pureKeys = ['routeId', 'pluginId', 'path', 'segments', 'pattern', 'paramNames'] as const;
+    for (const descriptor of generatedSurfaceRegistry.catalog.routes) {
+      const keys = Object.keys(descriptor).sort();
+      expect(keys).toEqual([...pureKeys].sort());
+      expect(descriptor.routeId.length).toBeGreaterThan(0);
+      expect(descriptor.pluginId.length).toBeGreaterThan(0);
+      expect(descriptor.pattern.length).toBeGreaterThan(0);
     }
   });
 

@@ -20,7 +20,7 @@ import type { AdminRouteTarget } from './target-types';
 
 export type { AdminRouteTarget } from './target-types';
 export { route } from './target';
-export type { AdminRouteMeta, AdminPluginDefinition } from './contract';
+export type { AdminPluginDefinition } from './contract';
 
 /** Plugin 层 Navigation Port：Host 在 Composition Root 注入完整实现。 */
 export type AdminPluginNavigationPort = Readonly<{

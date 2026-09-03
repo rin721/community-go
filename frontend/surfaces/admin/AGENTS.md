@@ -11,16 +11,20 @@ dependency ownership、module resolution、typecheck 与 test 服务。
 - Route Catalog、业务 Route IDs 与 module shims 全部位于 `generated/`；
   产物带 `// @generated` 头，**禁止手改**——修改后运行 `pnpm codegen:admin` 重新生成，
   并用 `pnpm codegen:admin:check` 复核 freshness。
-- Plugin `routes/` 是一块 Next App Router 子树：page/layout/template/loading/error/
-  not-found 均为可选 special file（按需存在），采用 **default export**（Next 惯例）。
-  Plugin 内部按正常 Next 开发方式书写；普通导航可用 `next/link`/`next/navigation`
-  （受控白名单），跨 Plugin 稳定引用可用 `route()`（`@community-go/admin-framework/target`，
-  Server/Client 均可 import）/`AdminRouteLink`/`useAdminNavigation`/`useAdminLocale`
+- Plugin `routes/` 是一棵**真实 Next App Router 子树**（authority = Next App Router
+  本身，不是 Framework 维护的固定文件白名单）：page/layout/template/loading/error/
+  not-found 为当前支持的 Next convention（按需存在），采用 **default export**（Next
+  惯例）。Plugin 可像正常 app/ 一样 colocate components/services/lib/schema/styles/
+  tests/_private 等普通实现文件——Framework 完全忽略它们，不增加 Plugin 语义。
+  普通导航可用 `next/link`/`next/navigation`（受控白名单），跨 Plugin 稳定引用可用
+  `route()`（`@community-go/admin-framework/target`，Server/Client 均可 import）/
+  `AdminRouteLink`/`useAdminNavigation`/`useAdminLocale`
   （`@community-go/admin-framework/plugin`，client）。
-- `route.meta.ts` 是可选伴生 metadata（有 page 才允许，非 Next special file，永不
-  镜像进 Host）：只保留 titleKey / permissions / canonicalParentOverride /
-  activeNavigationOverride；**不声明 navigation**（Sidebar 贡献迁移到
-  plugin.navigation.ts）；override 必须同 Plugin 并附 rationale。
+- **不存在第二套 Route Contract**：不引入 route.meta.ts / plugin.route.ts /
+  route.config.ts 或任何逐 Route 显式声明文件；不要求 page.tsx 配 Framework 契约。
+  Route identity 由 Framework 从 pluginId + Next 文件树确定性派生。Next 有语义但
+  当前不装配的 convention（route.ts/default.tsx）由 codegen 报
+  `UNSUPPORTED_NEXT_CONVENTION`（Host capability 诊断，不静默忽略）。
 - 允许依赖 Universal、`admin-foundation`、`admin-framework`、`form-foundation`、
   `schemas` 与 Surface 基础设施（lucide-react 仅限 surface src 基础设施，不进 Plugin）；
   禁止依赖 `apps/*`、Browser/Desktop API、后端 DTO、请求、Session 或权限实现。

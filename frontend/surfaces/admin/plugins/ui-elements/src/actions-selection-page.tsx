@@ -26,7 +26,7 @@ export function ActionsSelectionPage() {
   return (
     <UiElementsFamilyPage
       familyId="actions-selection"
-      title={t('nav.uiActionsSelection')}
+      title={t('uiElements.nav.actionsSelection')}
       description={t('uiElements.shortDescription')}
     >
       {({ description, spacing }) => (

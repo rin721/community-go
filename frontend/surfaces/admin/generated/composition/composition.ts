@@ -12,6 +12,7 @@ import {
 import { surfaceShellI18nResources } from '../../src/i18n';
 import { pluginI18nResources as pluginI18nResources_reference_resources } from '../../plugins/reference-resources/i18n';
 import { pluginI18nResources as pluginI18nResources_system_tools } from '../../plugins/system-tools/i18n';
+import { pluginI18nResources as pluginI18nResources_ui_elements } from '../../plugins/ui-elements/i18n';
 
 export const generatedSurfaceRegistry: AdminRegistryModel =
   createAdminRegistry(generatedRouteCatalog);
@@ -23,6 +24,7 @@ export const generatedSurfaceI18nResources: TranslationResources = mergeTranslat
   surfaceShellI18nResources,
   pluginI18nResources_reference_resources,
   pluginI18nResources_system_tools,
+  pluginI18nResources_ui_elements,
 );
 
 export const generatedAdminSurfaceComposition: AdminSurfaceComposition = {

@@ -13,14 +13,14 @@ import {
 } from '@community-go/ui-adapter/overlays';
 import { Archive, Copy, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useFrontendTranslation } from '@community-go/i18n';
 import { AdminSection } from '@community-go/admin-foundation/layout';
-import { usePageSearchParams } from '../../host/use-page-search-params';
 import { ComponentPreview } from './component-preview';
 import { UiElementsFamilyPage } from './family-page';
 export function OverlayElementsPage() {
   const { t } = useFrontendTranslation();
-  const searchParams = usePageSearchParams();
+  const searchParams = useSearchParams();
   const overlay = searchParams.get('overlay');
   const [checked, setChecked] = useState(true);
   const [lastAction, setLastAction] = useState<string>();

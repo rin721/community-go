@@ -4,7 +4,7 @@
 
 本文件约束 `/frontend` 内的人工开发与 Coding Agent。这里是全新的统一前端根目录，与根 `webui/`、`old-frontend/` 及其它 legacy product 完全隔离。基础建设阶段不得复制旧系统的 DOM、CSS、组件、页面结构或交互实现，也不得研究后端接口来反向塑造新架构。
 
-技术基线是 React 19、HeroUI v3、Tailwind CSS v4 与 Next.js 16。Next.js 只属于 Web Host，不得进入 Feature、Core、Schema、Surface Foundation 或 UI Contract。
+技术基线是 React 19、HeroUI v3、Tailwind CSS v4 与 Next.js 16。Next.js 属于 Web Host 与 Product Surface 的 Plugin `routes/`（真实 Next App Router 子树，route 模块在受控白名单内可用 `next/link`/`next/navigation`），不得进入 Feature、Core、Schema、Surface Foundation、UI Contract 或 `admin-framework`。
 
 ## 2. 架构地图
 

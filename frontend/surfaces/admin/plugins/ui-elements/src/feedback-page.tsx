@@ -6,15 +6,15 @@ import { FeedbackPresence } from '@community-go/ui-adapter/feedback-presence';
 import { useFeedback } from '@community-go/ui-adapter/feedback-context';
 import { AlertTriangle, Bell, CheckCircle2, ChevronRight, Info, XCircle } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useFrontendTranslation } from '@community-go/i18n';
 import { AdminSection } from '@community-go/admin-foundation/layout';
-import { usePageSearchParams } from '../../host/use-page-search-params';
 import { ComponentPreview } from './component-preview';
 import { UiElementsFamilyPage } from './family-page';
 export function FeedbackPage() {
   const { t } = useFrontendTranslation();
   const { notify } = useFeedback();
-  const searchParams = usePageSearchParams();
+  const searchParams = useSearchParams();
   const [notificationVisible, setNotificationVisible] = useState(true);
   const [alertVisible, setAlertVisible] = useState(true);
   const directToastSent = useRef(false);

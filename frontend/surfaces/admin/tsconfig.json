@@ -1,7 +1,7 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "types": ["react"],
+    "types": ["react", "next"],
     "jsx": "react-jsx"
   },
   "include": ["src", "generated", "plugins"]

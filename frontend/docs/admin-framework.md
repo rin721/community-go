@@ -343,20 +343,22 @@ Reference Plugin 使用固定路径完成浏览器验证。
 尽可能完整的 Next App Router 子树）。Built-in 只保留 Runtime Essential（删掉所有业务
 Plugin 后 Shell 仍能启动/导航/处理异常所必须：404/Error/Loading/Permission
 fallback/Shell bootstrap/Plugin unavailable fallback）；Surface/Product Module
-（Preferences、Icon Catalog、Foundation Showcase、Reference Resources、未来业务）
-统一走 Plugin Contract，可独立安装/删除/演进。当前 Host 静态 foundation 展示页
-（ui-elements/admin-patterns/admin-reference/foundations/motion/states/overview）
-是**过渡**：其依赖 Host-private 能力，需先经稳定 Contract/Port 解耦，再整理为
-官方 `foundation-reference` Reference Plugin（展示 Foundation 能力 + 标准 Plugin
-示例）；不保留 "Legacy static business/reference pages + Plugin pages" 长期双轨。
-Preferences 已完成迁移（system-tools），/preferences 旧路由与静态入口已清除。
+（Preferences、Icon Catalog、Foundation Showcase、Reference Resources、UI Elements、
+未来业务）统一走 Plugin Contract，可独立安装/删除/演进。当前 Host 静态 foundation
+展示页（admin-patterns/admin-reference/foundations/motion/states/overview）是
+**过渡**：其依赖 Host-private 能力，需先经稳定 Contract/Port 解耦，再整理为
+官方 Reference Plugin；不保留 "Legacy static business/reference pages + Plugin
+pages" 长期双轨。Preferences 已完成迁移（system-tools）、UI Elements 已完成迁移
+（ui-elements，Host 手写页/Shell 静态分支已清除，URL `/ui-elements/*` 由 codegen
+自动生成的 Host adapter 保持）。
 
 本主题当前实现范围包括：Framework、Navigation Resolution、Group Alias 公共契约、
-Surface private boundary、reference-resources + system-tools、generator
+Surface private boundary、reference-resources + system-tools + ui-elements、generator
 （Next 子树扫描：colocated 忽略 / 当前 convention 装配 / Host capability 诊断 +
 两层薄 re-export adapter）、watch/dev 自动 reconcile、Registry（routeId→descriptor
-索引 + resolved navigation + diagnostics）、gates、icon presentation。以下内容
-**尚未实现**：foundation 展示页插件化迁移、完整 Command/Permission 呈现、统一
+索引 + resolved navigation + diagnostics）、gates、icon presentation、next/* 受控
+白名单（Web Host 与 Plugin route 模块）。以下内容
+**尚未实现**：其余 foundation 展示页插件化迁移、完整 Command/Permission 呈现、统一
 Breadcrumb UI（route.meta 与 breadcrumb/command/permission 展示模型已删除，未来按
 真实 UI 需求重新设计）等（见上文过渡方向）。本文不把这些延期内容描述为已实现。
 

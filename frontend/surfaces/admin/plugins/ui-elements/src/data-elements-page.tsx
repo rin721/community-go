@@ -7,10 +7,10 @@ import { StatusPill } from '@community-go/ui-adapter/status-pill';
 import { ToggleGroup } from '@community-go/ui-adapter/toggle-group';
 import type { DataColumn } from '@community-go/ui-adapter/data-display';
 import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useFrontendTranslation } from '@community-go/i18n';
 import { AdminSection } from '@community-go/admin-foundation/layout';
-import { usePageSearchParams } from '../../host/use-page-search-params';
-import { useShellStore } from '../../state/use-shell-store';
+import { useAdminLocale } from '@community-go/admin-framework/plugin';
 import { ComponentPreview } from './component-preview';
 import { UiElementsFamilyPage } from './family-page';
 
@@ -23,8 +23,8 @@ type UiElementsDataRow = Readonly<{
 }>;
 export function DataElementsPage() {
   const { t } = useFrontendTranslation();
-  const searchParams = usePageSearchParams();
-  const locale = useShellStore((state) => state.locale);
+  const searchParams = useSearchParams();
+  const { locale } = useAdminLocale();
   const [selectedTableId, setSelectedTableId] = useState('UI-001');
   const [selectedTableIds, setSelectedTableIds] = useState<readonly string[]>([]);
   const [tableMode, setTableMode] = useState<'single' | 'multiple' | 'empty'>(

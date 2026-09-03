@@ -4,24 +4,24 @@ import { Badge } from '@community-go/ui-adapter/feedback';
 import { SelectField, SwitchField } from '@community-go/ui-adapter/form-field';
 import { Panel } from '@community-go/ui-adapter/panel';
 import { ChevronRight } from 'lucide-react';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
 import { useFrontendTranslation } from '@community-go/i18n';
 
-import { RouterTextLink } from '../../host/router-text-link';
-import { usePageSearchParams } from '../../host/use-page-search-params';
+import { useAdminLocale } from '@community-go/admin-framework/plugin';
 import { AdminPageHeader, AdminPage } from '@community-go/admin-foundation/layout';
-import { useShellStore } from '../../state/use-shell-store';
 
 const uiElementFamilies = [
-  { id: 'actions-selection', labelKey: 'nav.uiActionsSelection', count: 3 },
-  { id: 'feedback', labelKey: 'nav.uiFeedback', count: 4 },
-  { id: 'status-async', labelKey: 'nav.uiStatusAsync', count: 7 },
-  { id: 'identity-display', labelKey: 'nav.uiIdentityDisplay', count: 4 },
-  { id: 'navigation', labelKey: 'nav.uiNavigation', count: 7 },
-  { id: 'data', labelKey: 'nav.uiData', count: 1 },
-  { id: 'surfaces', labelKey: 'nav.uiSurfaces', count: 2 },
-  { id: 'forms', labelKey: 'nav.uiForms', count: 10 },
-  { id: 'overlays', labelKey: 'nav.uiOverlays', count: 8 },
+  { id: 'actions-selection', labelKey: 'uiElements.nav.actionsSelection', count: 3 },
+  { id: 'feedback', labelKey: 'uiElements.nav.feedback', count: 4 },
+  { id: 'status-async', labelKey: 'uiElements.nav.statusAsync', count: 7 },
+  { id: 'identity-display', labelKey: 'uiElements.nav.identityDisplay', count: 4 },
+  { id: 'navigation', labelKey: 'uiElements.nav.navigation', count: 7 },
+  { id: 'data', labelKey: 'uiElements.nav.data', count: 1 },
+  { id: 'surfaces', labelKey: 'uiElements.nav.surfaces', count: 2 },
+  { id: 'forms', labelKey: 'uiElements.nav.forms', count: 10 },
+  { id: 'overlays', labelKey: 'uiElements.nav.overlays', count: 8 },
 ] as const;
 const uiElementTotal = uiElementFamilies.reduce((total, family) => total + family.count, 0);
 
@@ -46,9 +46,8 @@ export function UiElementsFamilyPage({
   children: (context: UiElementsPageContext) => ReactNode;
 }>) {
   const { t } = useFrontendTranslation();
-  const searchParams = usePageSearchParams();
-  const locale = useShellStore((state) => state.locale);
-  const setLocale = useShellStore((state) => state.setLocale);
+  const searchParams = useSearchParams();
+  const { locale, changeLocale } = useAdminLocale();
   const [density, setDensity] = useState<'comfortable' | 'compact'>(
     searchParams.get('density') === 'compact' ? 'compact' : 'comfortable',
   );
@@ -63,7 +62,7 @@ export function UiElementsFamilyPage({
         breadcrumbLabel={t('layout.breadcrumb')}
         breadcrumbs={[
           { label: t('uiElements.breadcrumbRoot') },
-          { label: t('nav.uiElements') },
+          { label: t('uiElements.nav.root') },
           { label: title, current: true },
         ]}
         eyebrow={t('uiElements.eyebrow')}
@@ -91,7 +90,7 @@ export function UiElementsFamilyPage({
           label={t('uiElements.locale')}
           description={t('uiElements.localeDescription')}
           checked={locale === 'en'}
-          onCheckedChange={(enabled) => setLocale(enabled ? 'en' : 'zh-CN')}
+          onCheckedChange={(enabled) => void changeLocale(enabled ? 'en' : 'zh-CN')}
         />
       </Panel>
 
@@ -110,13 +109,14 @@ export function UiElementsFamilyPage({
         </div>
         <nav aria-label={t('uiElements.catalog.label')} className="mt-5 flex flex-wrap gap-2">
           {uiElementFamilies.map((item) => (
-            <RouterTextLink
+            <Link
+              className="inline-flex items-center gap-1.5 rounded-control font-semibold text-brand underline-offset-4 outline-none hover:text-brand-strong hover:underline"
               href={`/ui-elements/${item.id}`}
               key={item.id}
-              trailingIcon={<ChevronRight />}
             >
               {t(item.labelKey)} · {item.count}
-            </RouterTextLink>
+              <ChevronRight aria-hidden="true" className="size-4" />
+            </Link>
           ))}
         </nav>
       </Panel>

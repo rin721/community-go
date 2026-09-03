@@ -129,9 +129,13 @@ for (const file of await collectSourceFiles(frontendRoot)) {
     }
     if (
       (specifier === 'next' || specifier.startsWith('next/')) &&
-      !localPath.startsWith('apps/admin-web/')
+      !localPath.startsWith('apps/admin-web/') &&
+      // Plugin routes/ 是真实 Next App Router 子树：route 模块在受控白名单内可用
+      // next/link 与 next/navigation（见 surfaces/admin/AGENTS.md）。其它层仍禁。
+      !/^surfaces\/admin\/plugins\/[^/]+\/routes\//.test(localPath) &&
+      !/^surfaces\/admin\/plugins\/[^/]+\/src\//.test(localPath)
     ) {
-      violations.push(`${localPath}: Next 只能由 Web Host 直接依赖`);
+      violations.push(`${localPath}: Next 只能由 Web Host 或 Plugin route 模块直接依赖`);
     }
   }
   if (

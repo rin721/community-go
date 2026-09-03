@@ -13,9 +13,9 @@ import {
 import { SearchBox } from '@community-go/ui-adapter/search-box';
 import { FormErrorSummary } from '@community-go/ui-adapter/form-error-summary';
 import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useFrontendTranslation } from '@community-go/i18n';
 import { AdminSection } from '@community-go/admin-foundation/layout';
-import { usePageSearchParams } from '../../host/use-page-search-params';
 import { ComponentPreview } from './component-preview';
 import { UiElementsFamilyPage } from './family-page';
 
@@ -37,7 +37,7 @@ const ownerOptions = [
 ] as const;
 export function FormElementsPage() {
   const { t } = useFrontendTranslation();
-  const searchParams = usePageSearchParams();
+  const searchParams = useSearchParams();
   const overlay = searchParams.get('overlay');
   const [checked, setChecked] = useState(true);
   const [selected, setSelected] = useState('guided');

@@ -51,6 +51,23 @@ describe('navigation tree', () => {
     ).toContain('invalid default href: invalid');
   });
 
+  it('纯 Disclosure Branch（无 defaultHref）不校验默认地址，只展开/收起', () => {
+    const disclosure: readonly NavigationNode[] = [
+      {
+        kind: 'branch',
+        id: 'disclosure',
+        labelKey: 'disclosure',
+        children: [
+          { kind: 'leaf', id: 'a', labelKey: 'a', href: '/a' },
+          { kind: 'leaf', id: 'b', labelKey: 'b', href: '/b' },
+        ],
+      },
+    ];
+    expect(getNavigationTreeErrors(disclosure)).toEqual([]);
+    // 子级仍参与扁平化（active/leaf 推导不受影响）
+    expect(flattenNavigationLeaves(disclosure).map(({ leaf }) => leaf.id)).toEqual(['a', 'b']);
+  });
+
   it('递归检查重复 ID 与地址', () => {
     expect(
       getNavigationTreeErrors([

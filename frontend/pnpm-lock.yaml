@@ -283,18 +283,30 @@ importers:
       '@community-go/admin-framework':
         specifier: workspace:*
         version: link:../../packages/admin-framework
+      '@community-go/form-foundation':
+        specifier: workspace:*
+        version: link:../../packages/form-foundation
       '@community-go/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
+      '@community-go/schemas':
+        specifier: workspace:*
+        version: link:../../packages/schemas
       '@community-go/types':
         specifier: workspace:*
         version: link:../../packages/types
       '@community-go/ui-adapter':
         specifier: workspace:*
         version: link:../../packages/ui-adapter
+      lucide-react:
+        specifier: ^1.37.0
+        version: 1.37.0(react@19.2.8)
       react:
         specifier: ^19.2.8
         version: 19.2.8
+      zod:
+        specifier: ^4.5.2
+        version: 4.5.2
     devDependencies:
       '@types/react':
         specifier: ^19.2.7

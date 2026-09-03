@@ -1,18 +1,17 @@
 /**
  * Admin Surface —— Shell 公共导出。
  *
- * 只导出 Surface 的 taxonomy、Registry→Shell model 转换与 i18n 资源，
- * 不暴露 plugins/* 内部实现；Host 通过 Composition Root 装配。
+ * 只导出 Registry→Shell model 转换、icon vocabulary（受控 semantic presentation
+ * metadata）与 i18n 资源，不暴露 plugins/* 内部实现；Host 通过 Composition Root
+ * 装配。Group Alias 属 plugins 范围公共 IA（plugins/navigation-groups.ts），
+ * 不从这里导出。
  */
 
 export {
-  adminSurfaceTaxonomy,
   convertRegistryToShellNavigation,
-  findTaxonomyEntry,
   adminNavigationIconVocabulary,
   UNKNOWN_ADMIN_NAVIGATION_ICON,
   collectUnknownNavigationIconDiagnostics,
-  type AdminTaxonomyEntry,
   type AdminNavigationIconId,
   type AdminNavigationIconReference,
   type AdminNavigationIconDiagnostic,

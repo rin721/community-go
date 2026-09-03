@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./navigation": "./src/navigation-contract.ts",
     "./plugin": "./src/plugin.tsx",
     "./route-context": "./src/route-context.tsx"
   },

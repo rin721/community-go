@@ -110,9 +110,9 @@ test('Overview、Reference Form 与 Preferences 真实页面进入视觉矩阵',
   await expect(page.getByRole('heading', { name: '复杂设置与审批表单' })).toBeVisible();
   await expect(page).toHaveScreenshot('reference-form-desktop.png', { fullPage: true });
 
-  await page.goto('/preferences');
+  await page.goto('/system-tools/preferences');
   await expectHydrated(page);
-  await expect(page.getByRole('heading', { name: '界面偏好' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '偏好设置' })).toBeVisible();
   await expect(page).toHaveScreenshot('preferences-desktop.png', { fullPage: true });
 });
 

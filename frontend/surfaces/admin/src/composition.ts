@@ -8,14 +8,13 @@
  *
  * 本模块不读取 pathname、不创建 Registry、不实现 Router；只做纯装配。
  * Surface composition/model boundary 在此对生成的 Registry 做 runtime invariant
- * assertion（navigation group 必须命中 Admin Surface taxonomy），保证 Host 只消费
- * 已验证的 valid navigation model。
+ * assertion（registry diagnostics 必须为空 + iconId 必须命中 vocabulary），
+ * 保证 Host 只消费已验证的 valid navigation model。
  */
 
 import type { AdminRegistryModel } from '@community-go/admin-framework';
 import type { TranslationResources } from '@community-go/i18n';
 
-import { collectUnknownNavigationGroupDiagnostics } from './navigation-taxonomy';
 import { collectUnknownNavigationIconDiagnostics } from './navigation-icon';
 
 export type AdminSurfaceComposition = Readonly<{
@@ -24,33 +23,37 @@ export type AdminSurfaceComposition = Readonly<{
 }>;
 
 /**
- * Surface boundary invariant assertion：Registry navigation 引用的每个 groupId
- * 必须命中 Admin Surface taxonomy；每个声明的 iconId 必须命中 icon vocabulary。
- * 任一非空即 throw（诊断来自 taxonomy/icon authority），不允许 unknown group 或
- * unknown icon 静默进入 Shell。
+ * Surface boundary invariant assertion：
+ * 1. registry.diagnostics 为空 —— Group Alias / namespace / routeId / orphan 等
+ *    Sidebar topology 校验已由 framework resolution 在 createAdminRegistry 完成，
+ *    有诊断即 throw（不静默）。
+ * 2. resolved navigation 中每个声明的 iconId 命中 Admin Surface icon vocabulary。
  */
 export function assertValidAdminSurfaceRegistry(registry: AdminRegistryModel): void {
-  const navigationReferences = registry.navigationTree.flatMap((group) =>
-    group.items.map((item) => ({
-      groupId: group.groupId,
-      routeId: item.routeId,
-    })),
-  );
-  const groupDiagnostics = collectUnknownNavigationGroupDiagnostics(navigationReferences);
+  if (registry.diagnostics.length > 0) {
+    const detail = registry.diagnostics
+      .map((diagnostic) => `[${diagnostic.code}] ${diagnostic.message}`)
+      .join('; ');
+    throw new Error(`Admin Surface Registry 校验失败: ${detail}`);
+  }
 
-  const iconReferences = registry.navigationTree.flatMap((group) =>
-    group.items
-      .filter((item) => item.iconId !== undefined)
-      .map((item) => ({
-        iconId: item.iconId as string,
-        routeId: item.routeId,
-      })),
+  const iconReferences = registry.navigation.flatMap((group) =>
+    group.parents.flatMap((parent) => {
+      const entries = [];
+      if (parent.iconId !== undefined) {
+        entries.push({ iconId: parent.iconId, routeId: parent.navigationId });
+      }
+      for (const child of parent.children) {
+        if (child.iconId !== undefined) {
+          entries.push({ iconId: child.iconId, routeId: child.navigationId });
+        }
+      }
+      return entries;
+    }),
   );
   const iconDiagnostics = collectUnknownNavigationIconDiagnostics(iconReferences);
-
-  const diagnostics = [...groupDiagnostics, ...iconDiagnostics];
-  if (diagnostics.length > 0) {
-    const detail = diagnostics
+  if (iconDiagnostics.length > 0) {
+    const detail = iconDiagnostics
       .map((diagnostic) => `[${diagnostic.code}] ${diagnostic.message}`)
       .join('; ');
     throw new Error(`Admin Surface Registry 校验失败: ${detail}`);

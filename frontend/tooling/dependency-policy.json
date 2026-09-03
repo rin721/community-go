@@ -27,7 +27,7 @@
     },
     "@community-go/form-foundation": {
       "owner": "universal form lifecycle",
-      "allowed": ["apps/admin-web", "packages/admin-foundation"]
+      "allowed": ["apps/admin-web", "packages/admin-foundation", "surfaces/admin"]
     },
     "@community-go/i18n": {
       "owner": "universal locale runtime",
@@ -35,7 +35,7 @@
     },
     "@community-go/schemas": {
       "owner": "schema contract primitives",
-      "allowed": ["apps/admin-web", "packages/form-foundation"]
+      "allowed": ["apps/admin-web", "packages/form-foundation", "surfaces/admin"]
     },
     "@community-go/types": {
       "owner": "stable shared types",
@@ -70,7 +70,7 @@
     },
     "lucide-react": {
       "owner": "interface icons",
-      "allowed": ["apps/admin-web"],
+      "allowed": ["apps/admin-web", "surfaces/admin"],
       "category": "icons"
     },
     "next": {
@@ -103,7 +103,7 @@
     "react-i18next": { "owner": "React localization binding", "allowed": ["packages/i18n"] },
     "zod": {
       "owner": "runtime schema validation",
-      "allowed": ["apps/admin-web", "packages/schemas"],
+      "allowed": ["apps/admin-web", "packages/schemas", "surfaces/admin"],
       "category": "schema"
     },
     "zustand": {

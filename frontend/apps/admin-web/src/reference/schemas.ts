@@ -12,12 +12,3 @@ export const referenceFormSchema = z.object({
 });
 
 export type ReferenceFormInput = z.infer<typeof referenceFormSchema>;
-
-export const preferencesSchema = z.object({
-  interfaceName: z.string().trim().min(2).max(40),
-  locale: z.enum(['zh-CN', 'en']),
-  density: z.enum(['comfortable', 'compact']),
-  reduceMotion: z.boolean(),
-});
-
-export type PreferencesInput = z.infer<typeof preferencesSchema>;

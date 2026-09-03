@@ -22,7 +22,8 @@ export type NavigationBranch = Readonly<{
   kind: 'branch';
   id: string;
   labelKey: string;
-  defaultHref: string;
+  /** 可导航 Branch 的默认目标；纯 Disclosure（无自身页面）不提供。 */
+  defaultHref?: string;
   children: readonly [NavigationNode, ...NavigationNode[]];
   /** 可选 semantic presentation metadata（opaque；Shell 按自己 presentation policy 消费）。 */
   iconId?: string;

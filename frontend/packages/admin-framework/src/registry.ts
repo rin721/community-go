@@ -14,10 +14,18 @@
  * Shell 只消费 Registry resolved model。
  */
 
-import type { AdminFileRouteDescriptor, AdminRouteCatalog } from './contract';
+import type {
+  AdminFileRouteDescriptor,
+  AdminPluginNavigationContribution,
+  AdminRouteCatalog,
+} from './contract';
 import { isDynamicSegment } from './contract';
 import type { AdminDiagnostic } from './diagnostics';
 import { collectDiagnostics } from './diagnostics';
+import {
+  resolveNavigationWithPlugins,
+  type ResolvedNavigationGroup,
+} from './navigation-resolution';
 import { resolveTargetHref } from './target';
 import type { AdminRouteTarget } from './target-types';
 
@@ -28,11 +36,11 @@ export type ResolvedAdminRoute = Readonly<{
   canonicalParentRouteId?: string;
   /** 沿 canonical hierarchy 的祖先 routeId 列表（不含自身）。 */
   ancestorRouteIds: readonly string[];
-  /** 最近可见 navigation 贡献（沿 hierarchy 继承）。 */
+  /** 当前 Route 应激活的 Sidebar Node navigationId（沿 canonical 匹配 Node routeId / 显式覆盖）。 */
   activeNavigationId?: string;
-  /** 找不到可见 navigation 的普通 Route 判定为 orphan。 */
+  /** Route 是否无任何可见归属（无 activeNavigationId）。 */
   orphan: boolean;
-  /** breadcrumb 文本层（静态 labelKey 或 titleKey）。 */
+  /** breadcrumb 文本层（titleKey 或 routeId）。 */
   breadcrumbLabelKey?: string;
 }>;
 
@@ -40,26 +48,19 @@ export type ResolvedAdminRoute = Readonly<{
 export type AdminRegistryModel = Readonly<{
   catalog: AdminRouteCatalog;
   routes: Readonly<Record<string, ResolvedAdminRoute>>;
-  navigationTree: readonly AdminNavigationGroup[];
+  /** Resolved Sidebar model（Group → Parent → Child），Shell 唯一导航数据源。 */
+  navigation: readonly ResolvedNavigationGroup[];
   breadcrumbs: Readonly<Record<string, readonly AdminBreadcrumbItem[]>>;
   commands: readonly AdminCommandItem[];
   permissions: AdminPermissionModel;
   diagnostics: readonly AdminDiagnostic[];
 }>;
 
-export type AdminNavigationItem = Readonly<{
-  routeId: string;
-  navigationId: string;
-  labelKey: string;
-  href: string;
-  /** 可选 semantic presentation metadata（opaque 透传，不校验；Shell 按自己 presentation policy 消费）。 */
-  iconId?: string;
-}>;
-
-export type AdminNavigationGroup = Readonly<{
-  groupId: string;
-  items: readonly AdminNavigationItem[];
-}>;
+export type {
+  ResolvedNavigationGroup,
+  ResolvedNavigationParent,
+  ResolvedNavigationChild,
+} from './navigation-resolution';
 
 export type AdminBreadcrumbItem = Readonly<{
   routeId: string;
@@ -206,34 +207,66 @@ export function createAdminRegistry(catalog: AdminRouteCatalog): AdminRegistryMo
     });
   }
 
-  // 4. Navigation inheritance：沿 canonical hierarchy 找最近可见 ancestor。
+  // 4. Sidebar Navigation resolution：aliases + contributions → Group → Parent → Child。
+  const navigationResult = resolveNavigationWithPlugins({
+    aliases: catalog.aliases,
+    contributionsByPlugin: catalog.contributions.map(
+      (entry: AdminPluginNavigationContribution) => ({
+        pluginId: entry.pluginId,
+        contribution: entry.contribution,
+      }),
+    ),
+    routes: catalog.routes,
+  });
+  for (const diagnostic of navigationResult.diagnostics) collectDiagnostics(errors, diagnostic);
+
+  // 5. Route-level activeNavigationId：routeId → Sidebar Node 反查表，沿 canonical 祖先匹配。
+  // ResolvedNavigationParent/Child 只含 href（Shell 消费形状），不携带 routeId 双源；
+  // 反查表由 registry 用 catalog.contributions 原始声明构造：
+  //   - 自身 routeId 命中某 Node → 该 Node navigationId；
+  //   - 隐藏 Route（create/detail/edit）沿 canonical 找最近命中 Node 的祖先 route；
+  //   - activeNavigationOverride 显式指向 Node navigationId（Route Context metadata 保留）。
+  const nodeNavigationIdByRouteId = new Map<string, string>();
+  for (const entry of catalog.contributions) {
+    for (const parent of entry.contribution.parents) {
+      if (parent.routeId !== undefined) {
+        nodeNavigationIdByRouteId.set(parent.routeId, parent.navigationId);
+      }
+      for (const child of parent.children ?? []) {
+        nodeNavigationIdByRouteId.set(child.routeId, child.navigationId);
+      }
+    }
+  }
+
   for (const descriptor of catalog.routes) {
     const current = routes.get(descriptor.routeId);
     if (!current) continue;
 
+    // 1) 显式覆盖优先；2) 自身 routeId 命中 Sidebar Node；3) 沿 canonical 找命中 Node 的祖先。
     let activeNavigationId: string | undefined;
-    if (descriptor.hasNavigation && descriptor.navigationId) {
-      activeNavigationId = descriptor.navigationId;
+    if (descriptor.activeNavigationOverride) {
+      activeNavigationId = descriptor.activeNavigationOverride.navigationId;
     } else {
-      for (const ancestorId of current.ancestorRouteIds) {
-        const ancestor = routes.get(ancestorId);
-        if (ancestor?.descriptor.hasNavigation && ancestor.descriptor.navigationId) {
-          activeNavigationId = ancestor.descriptor.navigationId;
-          break;
+      const selfHit = nodeNavigationIdByRouteId.get(descriptor.routeId);
+      if (selfHit) {
+        activeNavigationId = selfHit;
+      } else {
+        for (const ancestorId of current.ancestorRouteIds) {
+          const hit = nodeNavigationIdByRouteId.get(ancestorId);
+          if (hit) {
+            activeNavigationId = hit;
+            break;
+          }
         }
       }
     }
 
-    if (descriptor.activeNavigationOverride) {
-      activeNavigationId = descriptor.activeNavigationOverride.navigationId;
-    }
-
-    const orphan = !activeNavigationId && !descriptor.hasNavigation;
+    const orphan = activeNavigationId === undefined;
     if (orphan) {
       collectDiagnostics(errors, {
         code: 'ORPHAN_ROUTE',
         routeId: descriptor.routeId,
-        message: `Route 无可见 navigation 且无可见 ancestor: ${descriptor.routeId}`,
+        message: `Route 未关联任何 Sidebar Node 且无 visible ancestor: ${descriptor.routeId}`,
       });
     }
 
@@ -241,30 +274,8 @@ export function createAdminRegistry(catalog: AdminRouteCatalog): AdminRegistryMo
       ...current,
       ...(activeNavigationId ? { activeNavigationId } : {}),
       orphan,
-      ...((descriptor.titleKey ?? descriptor.labelKey)
-        ? { breadcrumbLabelKey: descriptor.titleKey ?? descriptor.labelKey }
-        : {}),
+      ...(descriptor.titleKey ? { breadcrumbLabelKey: descriptor.titleKey } : {}),
     });
-  }
-
-  // 5. Navigation tree：只有声明 navigation 的 Route 进入；按 group 聚合，组内保持 catalog 顺序。
-  const groups = new Map<string, AdminNavigationGroup>();
-  for (const descriptor of catalog.routes) {
-    if (!descriptor.hasNavigation || !descriptor.navigationId || !descriptor.groupId) continue;
-    if (!pluginById.has(descriptor.pluginId)) continue;
-    const item: AdminNavigationItem = {
-      routeId: descriptor.routeId,
-      navigationId: descriptor.navigationId,
-      labelKey: descriptor.labelKey ?? descriptor.titleKey ?? '',
-      href: buildHref(descriptor),
-      ...(descriptor.iconId ? { iconId: descriptor.iconId } : {}),
-    };
-    const existing = groups.get(descriptor.groupId);
-    if (existing) {
-      groups.set(descriptor.groupId, { ...existing, items: [...existing.items, item] });
-    } else {
-      groups.set(descriptor.groupId, { groupId: descriptor.groupId, items: [item] });
-    }
   }
 
   // 6. Breadcrumb topology：沿 canonical hierarchy 构建。
@@ -277,7 +288,7 @@ export function createAdminRegistry(catalog: AdminRouteCatalog): AdminRegistryMo
         const isLast = index === ancestors.length - 1;
         return {
           routeId: ancestorId,
-          labelKey: ancestor?.breadcrumbLabelKey ?? ancestor?.descriptor.labelKey ?? ancestorId,
+          labelKey: ancestor?.breadcrumbLabelKey ?? ancestorId,
           ...(ancestor ? { href: buildHref(ancestor.descriptor) } : {}),
           ...(isLast ? { current: true } : {}),
         };
@@ -286,12 +297,12 @@ export function createAdminRegistry(catalog: AdminRouteCatalog): AdminRegistryMo
     breadcrumbs[descriptor.routeId] = items;
   }
 
-  // 7. Command model。
+  // 7. Command model（不改 Command Contract：保留 route 级 titleKey 命令源；后续独立演进）。
   const commands: AdminCommandItem[] = catalog.routes
-    .filter((descriptor) => descriptor.hasNavigation || descriptor.titleKey)
+    .filter((descriptor) => descriptor.titleKey)
     .map((descriptor) => ({
       routeId: descriptor.routeId,
-      labelKey: descriptor.labelKey ?? descriptor.titleKey ?? '',
+      labelKey: descriptor.titleKey ?? '',
       href: buildHref(descriptor),
       ancestors: routes.get(descriptor.routeId)?.ancestorRouteIds ?? [],
     }));
@@ -307,7 +318,7 @@ export function createAdminRegistry(catalog: AdminRouteCatalog): AdminRegistryMo
   return {
     catalog,
     routes: Object.fromEntries(routes),
-    navigationTree: [...groups.values()],
+    navigation: navigationResult.groups,
     breadcrumbs,
     commands,
     permissions: { byRoute },

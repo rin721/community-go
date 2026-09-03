@@ -3,7 +3,8 @@ export const pluginI18nResources = {
     translation: {
       referenceResources: {
         nav: {
-          list: '参考资源',
+          root: '参考资源',
+          list: '参考资源列表',
         },
         list: {
           title: '参考资源',
@@ -56,7 +57,8 @@ export const pluginI18nResources = {
     translation: {
       referenceResources: {
         nav: {
-          list: 'Reference Resources',
+          root: 'Reference Resources',
+          list: 'Reference Resources List',
         },
         list: {
           title: 'Reference Resources',

@@ -73,6 +73,37 @@ function usePluginNavigationPort(): AdminPluginNavigationPort {
   return port;
 }
 
+/* ------------------------------------------------------------------ */
+/* Admin Locale Port（Host capability 注入；Plugin 经 useAdminLocale 读写 locale） */
+/* ------------------------------------------------------------------ */
+
+/** Plugin 层 Locale Port：Host 在 Composition Root 注入实现（读写当前 locale）。 */
+export type AdminLocalePort = Readonly<{
+  locale: string;
+  changeLocale: (locale: string) => void;
+}>;
+
+export const AdminLocaleContext = createContext<AdminLocalePort | null>(null);
+
+/** Host 装配 Plugin Locale Port；必须在 Root Provider 中只安装一次。 */
+export function AdminLocaleProvider({
+  port,
+  children,
+}: Readonly<{ port: AdminLocalePort; children: ReactNode }>) {
+  return <AdminLocaleContext.Provider value={port}>{children}</AdminLocaleContext.Provider>;
+}
+
+/** 读取当前 locale；读写委托 Host Locale Port。 */
+export function useAdminLocale(): AdminLocalePort {
+  const port = useContext(AdminLocaleContext);
+  if (!port) {
+    throw new Error(
+      'AdminLocaleProvider 未安装：Plugin Locale Port 属于 application runtime context。',
+    );
+  }
+  return port;
+}
+
 /** imperative navigation：navigate(target) / replace(target) 委托 Host Navigation Port。 */
 export function useAdminNavigation() {
   const port = usePluginNavigationPort();

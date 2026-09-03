@@ -2,19 +2,20 @@
  * admin-codegen —— 确定性 Admin Surface Codegen 工具（Architecture Gate 执行点）。
  *
  * 职责边界：
- * - Discovery：扫描 surfaces/admin/plugins/ 下各 plugin 的 plugin.ts 与 routes 树
- *   （每个路由目录一对 page 文件与 route.meta 文件）。
+ * - Discovery：扫描 surfaces/admin/plugins/ 下各 plugin 的 plugin.ts、plugin.navigation.ts
+ *   与 routes 树（每个路由目录一对 page 文件与 route.meta 文件），并加载 plugins 范围
+ *   公共 Group Alias（navigation-groups.ts）。
  * - Contract Validation：静态校验 1:1 配对、禁止 Next exports、namespace、override、冲突；
- *   navigation.groupId 必须命中 Admin Surface taxonomy（单一 authority：
- *   surfaces/admin/src/navigation-taxonomy.ts），未知分组 deterministic fail；
- *   navigation.iconId（可选 semantic presentation metadata）必须命中 Admin Surface
- *   icon vocabulary（单一 authority：surfaces/admin/src/navigation-icon.ts），
+ *   contribution parent 的 groupId 必须命中 Group Alias（plugins 公共 IA，
+ *   未知 Alias deterministic fail）；navigation.iconId（可选 semantic presentation
+ *   metadata）必须命中 Admin Surface icon vocabulary（surfaces/admin/src/navigation-icon.ts），
  *   未知 iconId deterministic fail（UNKNOWN_ADMIN_NAVIGATION_ICON），禁止静默 fallback。
- * - Framework Descriptors：只生成静态 descriptors / catalog / bridges / composition / i18n。
+ * - Framework Descriptors：只生成静态 descriptors / aliases / contributions / catalog /
+ *   bridges / composition / i18n。
  * - Host Capability Analysis：Static Export Host 对 [param] 路由返回
  *   UNSUPPORTED_DYNAMIC_PLUGIN_ROUTE，不生成 Next 入口并令 gate 失败（硬失败、不降级）。
  * - Preflighted Deterministic Reconciliation：先完成全部 semantic / Host capability /
- *   taxonomy validation，并在内存中渲染全部 ExpectedArtifact（kind/path/content），
+ *   Alias/icon validation，并在内存中渲染全部 ExpectedArtifact（kind/path/content），
  *   再做物理 ownership preflight（期望 Host artifact 已存在且不属于本 Generator →
  *   Host artifact ownership collision，deterministic fail）。
  *   只有全部通过后才执行 mutation：rm/rewrite generatedRoot → create/update Host
@@ -23,13 +24,14 @@
  *   本工具不提供 mutation 开始后的 OS/IO/process interruption staging/transaction
  *   commit/rollback，不声称 filesystem-level atomicity。
  *
- * Registry（canonical hierarchy / navigation inheritance / breadcrumb / command / permission）
- * 由 @community-go/admin-framework registry 在运行时完成，Generator 不复制该逻辑。
+ * Registry（canonical hierarchy / Sidebar Group→Parent→Child resolution / breadcrumb /
+ * command / permission）由 @community-go/admin-framework registry 在运行时完成，
+ * Generator 不复制该逻辑，只序列化静态 aliases/contributions。
  *
- * 本工具不执行 React 代码；route.meta.ts 与 navigation-taxonomy.ts 通过 Node 24
- * type-stripping 静态加载。生成物全部带固定 `GENERATED_HEADER`（ownership marker 单一
- * 来源，emission 与 ownership parser 共享）；freshness check 逐文件重建比较
- * （missing / drift / stale / ownership collision）。
+ * 本工具不执行 React 代码；route.meta.ts、plugin.navigation.ts 与 navigation-groups.ts
+ * 通过 Node 24 type-stripping 静态加载。生成物全部带固定 `GENERATED_HEADER`
+ * （ownership marker 单一来源，emission 与 ownership parser 共享）；freshness check
+ * 逐文件重建比较（missing / drift / stale / ownership collision）。
  */
 
 import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
@@ -44,7 +46,7 @@ const pluginsRoot = join(surfaceRoot, 'plugins');
 const generatedRoot = join(surfaceRoot, 'generated');
 const hostAppRoot = join(frontendRoot, 'apps', 'admin-web', 'src', 'app');
 const surfacePackageName = '@community-go/admin-surface';
-const surfaceTaxonomyPath = join(surfaceRoot, 'src', 'navigation-taxonomy.ts');
+const navigationGroupsPath = join(pluginsRoot, 'navigation-groups.ts');
 const surfaceIconVocabularyPath = join(surfaceRoot, 'src', 'navigation-icon.ts');
 
 /**
@@ -138,10 +140,22 @@ export async function discoverSurface() {
       throw new Error(`plugins/${entry.name}/plugin.ts 缺少合法 pluginDefinition`);
     }
     const i18nPath = join(pluginDir, 'i18n.ts');
+    const navigationPath = join(pluginDir, 'plugin.navigation.ts');
+    let navigationContribution = null;
+    if (await exists(navigationPath)) {
+      const navModule = await loadTypeScriptModule(navigationPath);
+      navigationContribution = navModule?.navigationContribution ?? null;
+      if (!navigationContribution || typeof navigationContribution !== 'object') {
+        throw new Error(
+          `plugins/${entry.name}/plugin.navigation.ts 必须导出 navigationContribution`,
+        );
+      }
+    }
     plugins.push({
       definition,
       dir: pluginDir,
       hasI18n: await exists(i18nPath),
+      navigationContribution,
     });
   }
   return [...plugins].sort((a, b) => a.definition.pluginId.localeCompare(b.definition.pluginId));
@@ -272,7 +286,6 @@ function buildDescriptor(plugin, relativeDir, routeMeta) {
     .filter((segment) => /^\[[A-Za-z0-9_]+]$/.test(segment))
     .map((segment) => segment.slice(1, -1));
 
-  const navigation = routeMeta.navigation;
   return {
     routeId,
     pluginId,
@@ -280,11 +293,6 @@ function buildDescriptor(plugin, relativeDir, routeMeta) {
     segments,
     pattern,
     paramNames,
-    hasNavigation: Boolean(navigation),
-    ...(navigation?.navigationId ? { navigationId: navigation.navigationId } : {}),
-    ...(navigation?.labelKey ? { labelKey: navigation.labelKey } : {}),
-    ...(navigation?.groupId ? { groupId: navigation.groupId } : {}),
-    ...(navigation?.iconId ? { iconId: navigation.iconId } : {}),
     ...(routeMeta.titleKey ? { titleKey: routeMeta.titleKey } : {}),
     ...(routeMeta.canonicalParentOverride
       ? { canonicalParentOverride: routeMeta.canonicalParentOverride }
@@ -300,20 +308,7 @@ function validateRouteMetaContract(plugin, relativeDir, descriptor, routeMeta) {
   const errors = [];
   const pluginId = plugin.definition.pluginId;
   if (routeMeta.navigation) {
-    if (typeof routeMeta.navigation.navigationId !== 'string') {
-      errors.push('navigation.navigationId 必须提供');
-    } else if (
-      routeMeta.navigation.navigationId !== pluginId &&
-      !routeMeta.navigation.navigationId.startsWith(`${pluginId}.`)
-    ) {
-      errors.push(`navigation.navigationId 必须为 ${pluginId}.* namespace`);
-    }
-    if (typeof routeMeta.navigation.labelKey !== 'string' || !routeMeta.navigation.labelKey) {
-      errors.push('navigation.labelKey 必须提供');
-    }
-    if (typeof routeMeta.navigation.groupId !== 'string' || !routeMeta.navigation.groupId) {
-      errors.push('navigation.groupId 必须提供');
-    }
+    errors.push('route.meta 不再支持 navigation（Sidebar 贡献迁移到 plugin.navigation.ts）');
   }
   if (routeMeta.canonicalParentOverride) {
     const override = routeMeta.canonicalParentOverride;
@@ -370,50 +365,67 @@ function validateCatalogConflicts(allRoutes, plugins) {
 }
 
 /**
- * Navigation taxonomy gate：声明 navigation 的 route 的 groupId 必须命中
- * Admin Surface taxonomy（单一 authority：navigation-taxonomy.ts）。
- * 未知分组 deterministic fail，禁止 silent drop。
+ * 加载 plugins 范围公共 Group Alias（navigation-groups.ts，单一 authority）。
  */
-async function validateNavigationGroupReferences(allRoutes) {
-  const taxonomyModule = await loadTypeScriptModule(surfaceTaxonomyPath);
-  const collect = taxonomyModule?.collectUnknownNavigationGroupDiagnostics;
-  if (typeof collect !== 'function') {
-    throw new Error('无法加载 Admin Surface taxonomy authority（navigation-taxonomy.ts）');
+async function loadGroupAliases() {
+  const module = await loadTypeScriptModule(navigationGroupsPath);
+  const aliases = module?.adminNavigationGroupAliases;
+  if (!Array.isArray(aliases)) {
+    throw new Error('无法加载 Group Alias 公共契约（plugins/navigation-groups.ts）');
   }
-  const references = allRoutes
-    .filter((route) => route.descriptor.hasNavigation && route.descriptor.groupId)
-    .map((route) => ({
-      groupId: route.descriptor.groupId,
-      routeId: route.descriptor.routeId,
-    }));
-  const diagnostics = collect(references);
-  if (diagnostics.length > 0) {
+  return aliases;
+}
+
+/**
+ * Navigation Group Alias gate：每个 contribution parent 的 groupId 必须命中
+ * plugins 范围 Group Alias（navigation-groups.ts）。未知 Alias deterministic fail，
+ * 禁止 silent drop。
+ */
+async function validateGroupAliasReferences(plugins) {
+  const aliases = await loadGroupAliases();
+  const aliasIds = new Set(aliases.map((alias) => alias.groupId));
+  const violations = [];
+  for (const plugin of plugins) {
+    const contribution = plugin.navigationContribution;
+    if (!contribution) continue;
+    for (const parent of contribution.parents ?? []) {
+      if (!aliasIds.has(parent.groupId)) {
+        violations.push(
+          `[UNKNOWN_ADMIN_NAVIGATION_GROUP] ${plugin.definition.pluginId}: ${parent.navigationId} 引用不存在的 Group Alias: ${parent.groupId}`,
+        );
+      }
+    }
+  }
+  if (violations.length > 0) {
     throw new Error(
-      `Navigation taxonomy gate 失败 (${diagnostics[0].code}):\n${diagnostics
-        .map((diagnostic) => `- [${diagnostic.code}] ${diagnostic.message}`)
-        .join('\n')}`,
+      `Navigation Group Alias gate 失败:\n${violations.map((v) => `- ${v}`).join('\n')}`,
     );
   }
 }
 
 /**
- * Navigation icon vocabulary gate：声明 navigation 且带 iconId 的 route，其 iconId
- * 必须命中 Admin Surface icon vocabulary（单一 authority：navigation-icon.ts）。
- * iconId 是可选 semantic presentation metadata；未知 iconId deterministic fail，
- * 禁止静默 fallback 掩盖配置错误。
+ * Navigation icon vocabulary gate：contribution parent/child 的 iconId 必须命中
+ * Admin Surface icon vocabulary（navigation-icon.ts，受控语义不动态化）。
  */
-async function validateNavigationIconReferences(allRoutes) {
+async function validateNavigationIconReferences(plugins) {
   const iconModule = await loadTypeScriptModule(surfaceIconVocabularyPath);
   const collect = iconModule?.collectUnknownNavigationIconDiagnostics;
   if (typeof collect !== 'function') {
     throw new Error('无法加载 Admin Surface icon vocabulary authority（navigation-icon.ts）');
   }
-  const references = allRoutes
-    .filter((route) => route.descriptor.hasNavigation && route.descriptor.iconId)
-    .map((route) => ({
-      iconId: route.descriptor.iconId,
-      routeId: route.descriptor.routeId,
-    }));
+  const references = [];
+  for (const plugin of plugins) {
+    const contribution = plugin.navigationContribution;
+    if (!contribution) continue;
+    for (const parent of contribution.parents ?? []) {
+      if (parent.iconId) {
+        references.push({ iconId: parent.iconId, routeId: parent.navigationId });
+      }
+      for (const child of parent.children ?? []) {
+        if (child.iconId) references.push({ iconId: child.iconId, routeId: child.navigationId });
+      }
+    }
+  }
   const diagnostics = collect(references);
   if (diagnostics.length > 0) {
     throw new Error(
@@ -436,8 +448,9 @@ async function collectSurface() {
   }
   const allRoutes = collected.flatMap((item) => item.routes);
   validateCatalogConflicts(allRoutes, plugins);
-  await validateNavigationGroupReferences(allRoutes);
-  await validateNavigationIconReferences(allRoutes);
+  const aliases = await loadGroupAliases();
+  await validateGroupAliasReferences(plugins);
+  await validateNavigationIconReferences(plugins);
   const dynamic = allRoutes.filter((route) => route.descriptor.paramNames.length > 0);
   if (dynamic.length > 0) {
     throw new Error(
@@ -446,14 +459,14 @@ async function collectSurface() {
         .join('\n')}`,
     );
   }
-  return { plugins, allRoutes };
+  return { plugins, allRoutes, aliases };
 }
 
 /* ------------------------------------------------------------------ */
 /* Text builders（emission 与 freshness 共用同一文本生成，保证确定一致） */
 /* ------------------------------------------------------------------ */
 
-function buildCatalogText(plugins, allRoutes) {
+function buildCatalogText(plugins, allRoutes, aliases) {
   const lines = [
     "import type { AdminRouteCatalog } from '@community-go/admin-framework';",
     '',
@@ -473,6 +486,51 @@ function buildCatalogText(plugins, allRoutes) {
       if (value === undefined || value === null) continue;
       lines.push(`      ${key}: ${JSON.stringify(value)},`);
     }
+    lines.push('    },');
+  }
+  lines.push('  ],');
+  lines.push('  aliases: [');
+  for (const alias of aliases) {
+    lines.push(
+      `    { groupId: ${JSON.stringify(alias.groupId)}, labelKey: ${JSON.stringify(alias.labelKey)}${alias.order !== undefined ? `, order: ${JSON.stringify(alias.order)}` : ''} },`,
+    );
+  }
+  lines.push('  ],');
+  lines.push('  contributions: [');
+  for (const plugin of plugins) {
+    if (!plugin.navigationContribution) continue;
+    lines.push('    {');
+    lines.push(`      pluginId: ${JSON.stringify(plugin.definition.pluginId)},`);
+    lines.push('      contribution: { parents: [');
+    for (const parent of plugin.navigationContribution.parents ?? []) {
+      lines.push('        {');
+      lines.push(`          navigationId: ${JSON.stringify(parent.navigationId)},`);
+      lines.push(`          labelKey: ${JSON.stringify(parent.labelKey)},`);
+      lines.push(`          groupId: ${JSON.stringify(parent.groupId)},`);
+      if (parent.order !== undefined)
+        lines.push(`          order: ${JSON.stringify(parent.order)},`);
+      if (parent.iconId !== undefined)
+        lines.push(`          iconId: ${JSON.stringify(parent.iconId)},`);
+      if (parent.routeId !== undefined)
+        lines.push(`          routeId: ${JSON.stringify(parent.routeId)},`);
+      if (parent.children?.length) {
+        lines.push('          children: [');
+        for (const child of parent.children) {
+          lines.push('            {');
+          lines.push(`              navigationId: ${JSON.stringify(child.navigationId)},`);
+          lines.push(`              labelKey: ${JSON.stringify(child.labelKey)},`);
+          lines.push(`              routeId: ${JSON.stringify(child.routeId)},`);
+          if (child.order !== undefined)
+            lines.push(`              order: ${JSON.stringify(child.order)},`);
+          if (child.iconId !== undefined)
+            lines.push(`              iconId: ${JSON.stringify(child.iconId)},`);
+          lines.push('            },');
+        }
+        lines.push('          ],');
+      }
+      lines.push('        },');
+    }
+    lines.push('      ], },');
     lines.push('    },');
   }
   lines.push('  ],');
@@ -591,7 +649,7 @@ async function renderFinalContent(path, content) {
  * 构造与 prettier 格式化都在此完成——任何可能抛错的 render/serialization 都会在
  * mutation 之前暴露（validation-before-write / no partial output）。
  */
-async function buildExpectedArtifacts(plugins, allRoutes) {
+async function buildExpectedArtifacts(plugins, allRoutes, aliases) {
   const artifacts = [];
   const pushGenerated = async (local, text) => {
     const path = join(generatedRoot, local);
@@ -601,7 +659,7 @@ async function buildExpectedArtifacts(plugins, allRoutes) {
       content: await renderFinalContent(path, text),
     });
   };
-  await pushGenerated('catalog/catalog.ts', buildCatalogText(plugins, allRoutes));
+  await pushGenerated('catalog/catalog.ts', buildCatalogText(plugins, allRoutes, aliases));
   await pushGenerated('composition/composition.ts', buildCompositionText(plugins));
   await pushGenerated(
     'composition/i18n.ts',
@@ -693,8 +751,8 @@ async function reconcileArtifacts(artifacts) {
 /* ------------------------------------------------------------------ */
 
 async function checkFreshness() {
-  const { plugins, allRoutes } = await collectSurface();
-  const artifacts = await buildExpectedArtifacts(plugins, allRoutes);
+  const { plugins, allRoutes, aliases } = await collectSurface();
+  const artifacts = await buildExpectedArtifacts(plugins, allRoutes, aliases);
   const drift = [];
 
   const expectedGeneratedPaths = new Set();
@@ -769,8 +827,8 @@ async function main() {
     console.log('Admin codegen is fresh.');
     return;
   }
-  const { plugins, allRoutes } = await collectSurface();
-  const artifacts = await buildExpectedArtifacts(plugins, allRoutes);
+  const { plugins, allRoutes, aliases } = await collectSurface();
+  const artifacts = await buildExpectedArtifacts(plugins, allRoutes, aliases);
 
   // Physical ownership preflight：期望 Host artifact 已存在且不属于本 Generator
   // → deterministic fail。此时尚未发生任何文件系统 mutation。

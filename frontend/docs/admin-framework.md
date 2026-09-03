@@ -1,24 +1,26 @@
-# Admin Framework 与 Surface File Routes
+# Admin Framework 与 Surface File Routes / Sidebar Navigation
 
-本主题的当前唯一 authority（101 实施范围）。实现证据与决策历史见
+本主题的当前唯一 authority。实现证据与决策历史见
 [101 变更记录](changes/101-admin-surface-file-routes/README.md)；本文件只描述当前有效设计与使用方式。
 
 ## 1. 分层与所有权
 
 ```text
 packages/admin-framework      契约层：Plugin Contract、Route Target、Registry、
-                              Diagnostics、Host Port / Host Capability、Route Context
-surfaces/admin (private)      Surface 实现：plugins/*（业务）+ src/（shell、taxonomy、composition）
-                              + generated/*（codegen 产物）
-apps/admin-web                Runtime Host：Next Router、Shell 装配、Host Navigation Port、
-                              i18n 聚合、Registry 派生导航消费
+                              Diagnostics、Host Port / Host Capability、Route Context、
+                              Navigation Resolution（Group → Parent → Child）
+surfaces/admin (private)      Surface 实现：plugins/*（业务 + plugins/navigation-groups.ts
+                              Group Alias 公共契约）+ src/（shell、icon vocabulary、
+                              composition）+ generated/*（codegen 产物）
+apps/admin-web                Runtime Host：Next Router、Shell 装配、Host Navigation/Locale
+                              Port、i18n 聚合、Registry 派生导航消费
 ```
 
 - **唯一真实 Router 是 Next.js App Router。** Framework 不读取 pathname、不维护 history、
   不创建导航栈、不复制 Next Route Runtime。
 - `packages/admin-foundation` 与 `packages/admin-framework` 职责不同：
   foundation 拥有可复用 Admin 视觉/Pattern/Shell 表现；framework 拥有契约与纯模型
-  （Registry、Host Capability、Route Target），不依赖 React Router/Next。
+  （Registry、Navigation Resolution、Host Capability、Route Target），不依赖 React Router/Next。
 - `surfaces/admin`（`@community-go/admin-surface`）是 private workspace，只为 dependency
   ownership、module resolution、typecheck 与 test 服务。具体 Plugin 不是 Package，
   也不是 Surface 公共 API。
@@ -26,6 +28,7 @@ apps/admin-web                Runtime Host：Next Router、Shell 装配、Host N
 ### Surface 对 Host 只开放
 
 - `@community-go/admin-surface/shell`
+- `@community-go/admin-surface/icon-presentation`、`/icon-components`
 - `@community-go/admin-surface/generated/composition`
 - `@community-go/admin-surface/generated/catalog`
 - `@community-go/admin-surface/generated/routes/*`
@@ -44,7 +47,7 @@ Route Context = current selected route context（每个 Generated Route Entry �
 ```
 
 - `admin-web` Composition Root 一次性安装：Host Navigation Port、Route Target resolver、
-  其它 Browser/Host Runtime Ports、当前 Surface Registry。
+  Host Locale Port（Plugin 经 `useAdminLocale` 读写）、当前 Surface Registry。
 - Host Navigation Port 使用 Next Link/Router 执行真实导航。
 - Generated Route Entry 只负责：导入受控 generated Surface route bridge、接收并 await
   Next params、转换稳定 Plugin Page props、发布当前 `routeId + params`、
@@ -53,39 +56,90 @@ Route Context = current selected route context（每个 Generated Route Entry �
 - Shell 订阅 Current Route Context，再通过 Registry 取得 active navigation、Breadcrumb
   与 Permission model。
 
-## 3. Plugin Navigation API
+## 3. Plugin Navigation API 与 Sidebar Navigation Contribution
 
-Plugin 只能导入 `@community-go/admin-framework/plugin`，使用：
+Plugin 页面路由 API 经 `@community-go/admin-framework/plugin`：
 
 ```ts
 route('users.detail', { id });
 ```
 
-引用应用 Route，不手写 URL。`@community-go/admin-framework/plugin` 提供：
+`@community-go/admin-framework/plugin` 提供：`AdminRouteTarget`、`route()`、
+`AdminRouteLink`、`useAdminNavigation`、`AdminRoutePageProps` 等稳定 module props，
+以及 **`AdminLocaleProvider` / `useAdminLocale`（Host Locale Port）**。
 
-- `AdminRouteTarget`
-- Route Catalog protocol / base type
-- `route(routeId, params)`（创建 symbolic target，不执行导航）
-- `AdminRouteLink`
-- `useAdminNavigation`（返回 `navigate(target)` / `replace(target)` / `href(target)`）
-- 稳定 Page/Layout/Loading/Error props 与对应 module type
+行为：`route()` 只创建 symbolic target；`AdminRouteLink` / imperative navigation 委托
+Root Provider 中的 Host Navigation Port；Framework 不读取 pathname、不实现 Router。
 
-行为：
+### Sidebar Navigation Contribution（Group → Parent → Child）
 
-- `route()` 只创建 symbolic target；Registry 使用 generated descriptors 校验 routeId、
-  缺失/多余 params，并逐段编码后构造 href。
-- `AdminRouteLink` 与 imperative navigation 委托 Root Provider 中的 Host Navigation Port；
-  `admin-web` adapter 使用 Next Link/Router。
-- `navigation.iconId`（可选）是 Plugin Navigation Contribution 的 **semantic
-  presentation metadata**（不是 Plugin capability / 能力协商）：插件声明"希望呈现的
-  语义"，合法集合由 Admin Surface icon vocabulary（`navigation-icon.ts`）治理；
-  Registry/Framework 只透传 opaque id，Shell Sidebar 按自己的 presentation policy
-  决定是否及如何消费（显示图标 / fallback / 忽略）。插件不贡献 ReactNode/SVG/组件。
-- Framework 不读取 pathname、不创建导航栈、不实现 Router。
+**Sidebar 固定模型**：
 
-Plugin 禁止：import `next/*`、`generateStaticParams`、`generateMetadata`、
-`dynamic`/`revalidate` 等 Next route config、其它未经 Framework Contract 明确支持的
-Next-specific export、Browser history、全局 location、手写内部 URL 完成应用内导航。
+```text
+Group → Parent → Child
+- Group   = 侧边栏分组/分隔区域（不是 Route、不是父菜单）
+- Parent  = Group 下一级菜单
+- Child   = Parent 下子菜单
+- groupId            只决定 Node 属于哪个 Group
+- Route Tree ≠ Sidebar Tree（不用文件层级替代显式 Navigation hierarchy）
+```
+
+**Group Alias（plugins 范围公共 IA）**：`surfaces/admin/plugins/navigation-groups.ts`
+集中声明 `system` / `reference` / `development` 等（每项 `{groupId, labelKey, order?}`）。
+普通 Plugin **不定义 Group**，只在自身 Contribution 的 `groupId` **选择**既有 Alias；
+新增 Group Alias 属 plugins 范围公共 IA Contract 变更，不是单个 Plugin 私有声明。
+Shell 不写死 Group。多个 Plugin 可选同一 Group，各自维护自己的 Parent→Child 树。
+
+**Plugin Navigation Contribution**：每 Plugin 根目录 `plugin.navigation.ts`：
+
+```ts
+import type { AdminNavigationContribution } from '@community-go/admin-framework/navigation';
+export const navigationContribution = {
+  parents: [
+    {
+      navigationId: 'system-tools.root', // 必须 `${pluginId}.` namespace
+      labelKey: 'systemTools.nav.root',
+      groupId: 'system', // 选择 Group Alias
+      iconId: 'settings', // 可选受控 icon vocabulary
+      // 有 routeId → Parent 可导航；无 routeId → 纯 Disclosure（点击只展开/收起）
+      children: [
+        {
+          navigationId: 'system-tools.root.icons',
+          labelKey: '…',
+          routeId: 'system-tools.icons',
+          order: 0,
+        },
+        {
+          navigationId: 'system-tools.root.preferences',
+          labelKey: '…',
+          routeId: 'system-tools.preferences',
+          order: 1,
+        },
+      ],
+    },
+  ],
+} as const satisfies AdminNavigationContribution;
+```
+
+约束：
+
+- `navigationId` 必须 `${pluginId}.` namespace（Parent/Child 均如此）。
+- Parent/Child 层级用内嵌 `children` 表达；**无 parentNavigationId / 跨 Plugin parent
+  概念**；Child 天然属于声明它的 Parent / Plugin / Group（不声明 groupId）。
+- Child 必须带 `routeId`；Parent 可带 `routeId`（可导航）或无（纯 Disclosure）。
+- **Sidebar 可见 Node 的 routeId 必须静态可解析**（无 runtime params）；动态 `[id]`
+  Route 不得直接作为普通 Sidebar target（报 `NAVIGATION_DYNAMIC_TARGET_UNSUPPORTED`）。
+- Parent 无 routeId 且无 children → `NAVIGATION_NODE_ORPHAN`。
+- `navigation.iconId`（可选）是 Navigation Contribution 的 **semantic presentation
+  metadata**（不是 Plugin capability / 能力协商）：合法集合由 Admin Surface icon
+  vocabulary（`surfaces/admin/src/navigation-icon.ts`，受控、不动态化）治理；
+  iconId → Lucide 组件的**唯一映射**在 `surfaces/admin/src/navigation-icon-components.ts`
+  （`@community-go/admin-surface/icon-components`）；Shell resolver 与 Icon 展示页
+  消费同一映射。**Plugin 代码不直接 import lucide-react**（Icon 大全页经
+  `@community-go/admin-surface/icon-presentation` 的 `AdminNavigationIcon` 消费语义 id）。
+
+Plugin 页面禁止：import `next/*`、`generateStaticParams` 等 Next route config、
+Browser history、全局 location、手写内部 URL 完成应用内导航、直接 import lucide-react。
 
 ### 稳定 Route Module Contracts
 
@@ -102,6 +156,7 @@ Next Error Boundary → `AdminRouteErrorProps`、`reset` → 稳定 `retry`、
 ```text
 surfaces/admin/plugins/users/
 ├── plugin.ts                 export const pluginDefinition = { pluginId, mount } satisfies ...
+├── plugin.navigation.ts      （可选）Sidebar Navigation Contribution（Parent/Child）
 ├── i18n.ts                   （可选）export const pluginI18nResources
 └── routes/
     ├── page.tsx
@@ -115,54 +170,50 @@ surfaces/admin/plugins/users/
 - Plugin 目录名与 `pluginId` 一致；可声明一个静态 mount，默认 `/<plugin-directory>`，
   允许如 `/system/users`；URL 只由 `mount + routes/ 文件树` 决定。
 - `page.tsx` 与同目录 `route.meta.ts` 一一对应。
-- `route.meta.ts` 只允许 `navigation{navigationId,labelKey,groupId,iconId?}`、`titleKey`、
-  `canonicalParentOverride{routeId,rationale}`、`activeNavigationOverride{navigationId,rationale}`、
-  `permissions`；不得声明 path、普通 parentRouteId 或 page import。
-  `navigation.iconId`（可选 semantic presentation metadata）必须命中 Admin Surface
-  icon vocabulary（唯一 authority：`surfaces/admin/src/navigation-icon.ts`）；
-  未知 iconId deterministic fail（`UNKNOWN_ADMIN_NAVIGATION_ICON`），禁止静默 fallback。
+- `route.meta.ts` **只保留 Route Context metadata**：`titleKey`、`permissions`、
+  `canonicalParentOverride{routeId,rationale}`、`activeNavigationOverride{navigationId,rationale}`。
+  **`route.meta` 不再声明 `navigation`**——Sidebar 贡献迁移到 `plugin.navigation.ts`；
+  声明 navigation 会被 codegen 拒绝。
 - 普通 canonical parent 是最近的祖先 `page.tsx`；特殊 `canonicalParentOverride`
   必须引用同 Plugin routeId 并附 rationale。
 - 支持 static segment、`[param]` 及受治理的 page/layout/loading/error；
   暂不支持 catch-all、parallel/intercept route、route group 和 Route Handler。
 
-### Navigation Inheritance
+### Route → Sidebar active 关联（隐藏 Route 激活菜单）
 
-- 只有声明 `navigation` 的 Route 才进入 Sidebar/Command；Navigation target 从
-  File Route descriptor 派生，不单独保存 href。
-- Active Navigation：当前 Route 有 visible contribution 用自身 navigationId；
-  否则沿 canonical hierarchy 找最近 visible ancestor；找不到时普通 Route 判定 orphan；
-  特殊情况使用同 Plugin `activeNavigationOverride + rationale`。
-- `routeId`/`navigationId` 使用 `${pluginId}.*`（根 Route = pluginId）；`groupId`
-  使用 Admin Surface global taxonomy（唯一 authority：`surfaces/admin/src/navigation-taxonomy.ts`）；
-  navigation.groupId 必须命中既有 taxonomy，未知分组 deterministic fail
-  （`UNKNOWN_ADMIN_NAVIGATION_GROUP`），禁止 silent drop。新增全局导航分组属于
-  Admin Surface IA 变更，经中央 taxonomy 治理，不是普通 Plugin 私有扩展点。
-  `iconId` 同理：合法集合由 `navigation-icon.ts` vocabulary 治理，扩展属 Surface 治理。
-  默认禁止跨 Plugin Route/Navigation/active reference。
+- Route 自身的 `activeNavigationId` 由 Registry 派生：routeId 命中某 Sidebar Node
+  （Parent/Child 的 routeId）→ 该 Node navigationId；否则沿 canonical hierarchy 找
+  最近命中 Node 的祖先 route；`activeNavigationOverride` 显式指向 Node navigationId。
+- create/detail/edit 等隐藏 Route 因此仍能激活其 canonical 可见 Sidebar Node
+  （机制未重写，只换了数据来源：菜单不再来自 Route 文件树）。
+- 找不到任何归属的 Route 判定 orphan（`ORPHAN_ROUTE`）。
 
 ## 5. Generator 与 Registry 管线
 
 ```text
 Discovery → Framework Contract Validation → Static Framework Descriptors
-→ Surface Route Catalog / Module Bridges → Registry Resolution
-→ Resolved Navigation/Breadcrumb/Command/Permission Models → Shell
+→ Surface Route Catalog（aliases + contributions 序列化）/ Module Bridges
+→ Registry Resolution（Group Alias 聚合 + Parent/Child 拓扑 + routeId→href + 排序）
+→ Resolved Navigation（Group → Parent → Child）+ Breadcrumb/Command/Permission → Shell
 ```
 
 - **Generator（`tooling/admin-codegen`）只负责**：Plugin/File Route discovery、
-  Metadata 静态提取、static imports/descriptors、Surface Route Catalog 类型、
+  读取 `plugin.navigation.ts` 与 `navigation-groups.ts`、Metadata 静态提取、
+  static imports/descriptors、Surface Route Catalog（含 aliases + contributions）、
   i18n index、Surface generated module bridges、Host capability analysis 后的 Next thin entries。
-  Generator 不生成 resolved Navigation/Breadcrumb/Command/Permission model。
-- **Registry（`packages/admin-framework`，运行时）统一负责**：canonical hierarchy、
-  navigation inheritance、navigation tree/group ordering、breadcrumb topology、
-  command/permission model、Route Target resolution、ownership/legacy/topology diagnostics。
-- Shell 只消费 Registry resolved model。
+  Generator 不生成 resolved Navigation model（只序列化静态声明并做 Alias/icon gate）。
+- **Registry（`packages/admin-framework`，运行时）统一负责**：`navigation-resolution.ts`
+  单一 authority 解析 Group Alias + Parent/Child → `registry.navigation`
+  （Group → Parent → Child）；canonical hierarchy、route 级 activeNavigationId 派生、
+  breadcrumb topology、command/permission model、Route Target resolution、diagnostics。
+- Shell 只消费 Registry resolved model（`convertRegistryToShellNavigation` 把
+  group→parent→child 映射为 Shell NavigationGroup[]；Branch=Parent、Leaf=Child/单节点）。
 
 ## 6. 确定性 Codegen Bootstrap（preflighted deterministic reconciliation）
 
 - `pnpm codegen:admin` 生成；`pnpm codegen:admin:check` 复核（freshness 纳入 `pnpm check`）。
 - Generator 采用 **preflighted deterministic reconciliation**：先完成全部
-  semantic validation、Host capability validation、navigation taxonomy gate，
+  semantic validation、Host capability validation、Group Alias / icon vocabulary gate，
   并在内存中渲染完整 expected artifact plan（catalog / composition / i18n index /
   route bridge / Host adapter，含最终 content），再做物理 ownership preflight；
   全部通过后才执行 mutation（rm/rewrite `generatedRoot`、create/update Host
@@ -213,35 +264,50 @@ Reference Plugin 使用固定路径完成浏览器验证。
 - Architecture Gates 覆盖：Surface private export boundary；Host/Package 直接导入
   Plugin internals；Plugin 对 Framework subpath 的限制；Plugin 到 Shell/Host/Next/Browser
   的非法依赖；Page/metadata 一一对应；Unsupported Next module exports；mount/path 冲突；
-  Route/Navigation namespace；跨 Plugin topology reference；Navigation inheritance 与
-  orphan Route；canonical/active override rationale；catalog/descriptor/bridge/Next entry
-  freshness；Static Host capability 在 Host entry generation 前执行；
-  **navigation.groupId 必须命中 Admin Surface taxonomy**（`navigation-taxonomy.ts`
-  单一 authority，未知分组报 `UNKNOWN_ADMIN_NAVIGATION_GROUP` 并硬失败，禁止 silent
-  drop）；**navigation.iconId 必须命中 Admin Surface icon vocabulary**
-  （`navigation-icon.ts` 单一 authority，未知 iconId 报 `UNKNOWN_ADMIN_NAVIGATION_ICON`
-  并硬失败，禁止静默 fallback 掩盖配置错误）；**Host artifact ownership collision**
-  （期望 Host entry 已存在且不属于 admin-plugin-codegen → deterministic fail，
-  mutation 前 preflight 拦截）。
+  Route/Navigation namespace；跨 Plugin topology reference；Route 与 Sidebar 拓扑
+  diagnostics（orphan/unknown target）；canonical/active override rationale；
+  catalog/descriptor/bridge/Next entry freshness；Static Host capability 在 Host entry
+  generation 前执行；
+  **Contribution groupId 必须命中 Group Alias**（`plugins/navigation-groups.ts` 公共
+  IA，未知 Alias 报 `UNKNOWN_ADMIN_NAVIGATION_GROUP` 并硬失败，禁止 silent drop）；
+  **navigationId 必须 `${pluginId}.` namespace**（`NAVIGATION_NAMESPACE_VIOLATION`）；
+  **Sidebar 可见 Node routeId 必须静态可解析**（`UNKNOWN_NAVIGATION_ROUTE_TARGET` /
+  `NAVIGATION_DYNAMIC_TARGET_UNSUPPORTED`）；**orphan Parent**
+  （`NAVIGATION_NODE_ORPHAN`）；**navigation.iconId 必须命中 icon vocabulary**
+  （`navigation-icon.ts` 单一 authority，未知报 `UNKNOWN_ADMIN_NAVIGATION_ICON`，
+  禁止静默 fallback）；**Host artifact ownership collision**（期望 Host entry 已存在
+  且不属于 admin-plugin-codegen → deterministic fail，mutation 前 preflight 拦截）。
 
 ## 9. 参考验证
 
-固定路径 `reference-resources` Plugin 验证：list Route 贡献 visible navigation
-（含 `iconId: 'resource'` semantic presentation metadata，经 Shell 通用 resolver
-呈现）；create/detail/edit 自动继承 list navigation；edit hierarchy 为 list →
-detail → edit；Link 与 imperative navigation 使用 Route Target API；Root Provider
-只安装一次 Host Navigation Port；Generated entries 只发布 Route Context；
-Sidebar/Breadcrumb/Command/Permission 来自 Registry；Plugin i18n 由 Composition
-pipeline 聚合；Host 无法直接 import Plugin internals；Shell 不再按 navigationId
-手工映射业务图标（统一 iconId resolver）。
+- `reference-resources`：Group `reference` 下单一可导航 Parent（`routeId` → 列表
+  Route，`iconId: 'resource'`）；create/detail/edit 保持 Route，经 canonical
+  hierarchy 关联到该 Parent 的 `activeNavigationId`；Link / imperative navigation
+  使用 Route Target API；Root Provider 只安装一次 Host Navigation Port。
+- `system-tools`：Group `system` 下纯 Disclosure Parent `system-tools.root`
+  （无 routeId，Shell 点击只展开/收起）→ Child Icon 大全（`icons`，经
+  `AdminNavigationIcon` 渲染受控 vocabulary）+ Child 偏好设置（`preferences`，
+  经 `useAdminLocale` 读写 locale；从 Host apps/admin-web 物理迁入）。
+- Shell 不再按 navigationId/pluginId 手工映射业务图标（统一 iconId → 唯一
+  components map resolver）；Sidebar 只渲染 Registry resolved model。
 
 ## 10. 本阶段范围与后续阶段
 
-本主题当前实现范围（101）包括：Framework、Surface private boundary、Reference Plugin、
-generator、Registry、gates 与最小 Shell bridge。以下内容**尚未实现**，保留到后续
-Migration Phase：完整 Shell（Sidebar/Breadcrumb/Command/Permission 全量呈现）、
-现有页面与既有静态导航迁移、Legacy Navigation 冻结、Shell CSS、Host 路由迁移清单。
-本文不把这些延期内容描述为已实现。
+**架构目标（最终收敛方向）**：Built-in 只保留 Runtime Essential（删掉所有业务
+Plugin 后 Shell 仍能启动/导航/处理异常所必须：404/Error/Loading/Permission
+fallback/Shell bootstrap/Plugin unavailable fallback）；Surface/Product Module
+（Preferences、Icon Catalog、Foundation Showcase、Reference Resources、未来业务）
+统一走 Plugin Contract，可独立安装/删除/演进。当前 Host 静态 foundation 展示页
+（ui-elements/admin-patterns/admin-reference/foundations/motion/states/overview）
+是**过渡**：其依赖 Host-private 能力，需先经稳定 Contract/Port 解耦，再整理为
+官方 `foundation-reference` Reference Plugin（展示 Foundation 能力 + 标准 Plugin
+示例）；不保留 "Legacy static business/reference pages + Plugin pages" 长期双轨。
+Preferences 已完成迁移（system-tools），/preferences 旧路由与静态入口已清除。
+
+本主题当前实现范围包括：Framework、Navigation Resolution、Group Alias 公共契约、
+Surface private boundary、reference-resources + system-tools、generator、Registry、
+gates、icon presentation。以下内容**尚未实现**：foundation 展示页插件化迁移、
+完整 Command/Permission 呈现等（见上文过渡方向）。本文不把这些延期内容描述为已实现。
 
 ## 11. 使用入口
 

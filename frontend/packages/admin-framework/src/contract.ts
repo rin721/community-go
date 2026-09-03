@@ -15,17 +15,50 @@ export type AdminPluginDefinition = Readonly<{
   mount: string;
 }>;
 
-/** Navigation 贡献：只有声明 navigation 的 Route 才进入 Sidebar/Command。 */
-export type AdminRouteNavigation = Readonly<{
+/**
+ * Sidebar Navigation Group Alias（plugins 范围公共 IA）。
+ *
+ * Group 是侧边栏分组/分隔区域，不是 Route、不是父菜单。普通 Plugin 不定义 Group，
+ * 只在自身 Navigation Contribution 中按 groupId 选择既有 Alias。新增 Alias 属
+ * plugins 范围公共 IA Contract 变更，不是单个 Plugin 私有声明。
+ */
+export type AdminNavigationGroupAlias = Readonly<{
+  groupId: string;
+  labelKey: string;
+  order?: number;
+}>;
+
+/**
+ * Plugin Navigation Contribution：显式声明 Sidebar 的 Parent/Child 层级。
+ *
+ * 模型：Sidebar = Group → Parent → Child。
+ * - Parent 的 children 内嵌表达层级（无 parentNavigationId / 跨 Plugin parent 概念）；
+ * - Child 天然属于声明它的 Parent / Plugin / Group（不声明 groupId）；
+ * - navigationId 必须 `${pluginId}.` 前缀（Parent/Child 均如此）；
+ * - routeId 必须静态可解析（无 runtime params）才能作为可见 Sidebar target。
+ */
+export type AdminNavigationContribution = Readonly<{
+  parents: readonly AdminNavigationParent[];
+}>;
+
+export type AdminNavigationParent = Readonly<{
   navigationId: string;
   labelKey: string;
   groupId: string;
-  /**
-   * 可选 semantic presentation metadata：业务菜单希望呈现的语义标识。
-   * 不是 Plugin capability，不是能力协商；合法集合由 Admin Surface
-   * navigation vocabulary（navigation-icon.ts）治理。Registry/Framework
-   * 只透传 opaque id，不感知 vocabulary 语义、不校验。
-   */
+  order?: number;
+  /** 可选 semantic presentation metadata（受控 icon vocabulary）。 */
+  iconId?: string;
+  /** 有 routeId → Parent 可导航（静态 target）；无 routeId → 纯 Disclosure（只展开/收起）。 */
+  routeId?: string;
+  children?: readonly AdminNavigationChild[];
+}>;
+
+export type AdminNavigationChild = Readonly<{
+  navigationId: string;
+  labelKey: string;
+  /** 必须、静态可解析（见 Sidebar target gate）。 */
+  routeId: string;
+  order?: number;
   iconId?: string;
 }>;
 
@@ -35,7 +68,7 @@ export type AdminRouteOverride = Readonly<{
   rationale: string;
 }>;
 
-/** 同 Plugin 的 active navigation 覆盖。 */
+/** 同 Plugin 的 active navigation 覆盖（指向 Sidebar Node navigationId，route 级 metadata）。 */
 export type AdminActiveNavigationOverride = Readonly<{
   navigationId: string;
   rationale: string;
@@ -45,11 +78,12 @@ export type AdminActiveNavigationOverride = Readonly<{
  * route.meta.ts 的静态声明契约。
  *
  * 规则：
+ * - Sidebar 贡献不再挂在 route 上（迁移到 plugin.navigation.ts）；route.meta 不再声明 navigation。
+ * - 保留 Route Context metadata：titleKey、permissions、canonicalParentOverride、
+ *   activeNavigationOverride（隐藏 Route 经 canonical 派生/显式覆盖关联 Sidebar Node）。
  * - 不声明 path、普通 parentRouteId 或 page import（URL 只由 mount + 文件树决定）。
- * - canonicalParentOverride / activeNavigationOverride 必须为同 Plugin 引用并附 rationale。
  */
 export type AdminRouteMeta = Readonly<{
-  navigation?: AdminRouteNavigation;
   titleKey?: string;
   canonicalParentOverride?: AdminRouteOverride;
   activeNavigationOverride?: AdminActiveNavigationOverride;
@@ -61,7 +95,8 @@ export type AdminRouteModuleKind = 'page' | 'layout' | 'loading' | 'error';
 
 /**
  * 静态 Framework Descriptor：由 Generator 从文件树 + metadata 静态提取。
- * 不包含 resolved Navigation/Breadcrumb/Command/Permission model（Registry 统一负责）。
+ * 只含 Route 文件树与 Route Context metadata；不含 Sidebar Navigation
+ * （Sidebar 由 catalog.aliases + catalog.contributions 表达）。
  */
 export type AdminFileRouteDescriptor = Readonly<{
   routeId: string;
@@ -74,23 +109,26 @@ export type AdminFileRouteDescriptor = Readonly<{
   pattern: string;
   /** 动态参数名集合（来自 `[param]` 段）。 */
   paramNames: readonly string[];
-  /** 是否贡献可见 navigation。 */
-  hasNavigation: boolean;
-  navigationId?: string;
-  labelKey?: string;
-  groupId?: string;
-  /** 可选 semantic presentation metadata（opaque 透传，合法集合由 Surface vocabulary 治理）。 */
-  iconId?: string;
   titleKey?: string;
   canonicalParentOverride?: AdminRouteOverride;
   activeNavigationOverride?: AdminActiveNavigationOverride;
   permissions?: readonly string[];
 }>;
 
-/** Surface Route Catalog：generated 静态目录，Registry 只消费该模型。 */
+/** Surface Catalog：generated 静态目录，Registry 只消费该模型。 */
 export type AdminRouteCatalog = Readonly<{
   plugins: readonly AdminPluginDefinition[];
   routes: readonly AdminFileRouteDescriptor[];
+  /** plugins 范围公共 Group Alias（IA）。 */
+  aliases: readonly AdminNavigationGroupAlias[];
+  /** 每 Plugin 的 Sidebar Navigation Contribution（带 pluginId 归属，供 namespace 校验）。 */
+  contributions: readonly AdminPluginNavigationContribution[];
+}>;
+
+/** 带 pluginId 归属的 Navigation Contribution。 */
+export type AdminPluginNavigationContribution = Readonly<{
+  pluginId: string;
+  contribution: AdminNavigationContribution;
 }>;
 
 /** 判定段是否为动态段 `[param]`。 */

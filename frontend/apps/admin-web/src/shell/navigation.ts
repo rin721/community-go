@@ -185,19 +185,6 @@ export const shellNavigationGroups = [
       { kind: 'leaf', id: 'states', labelKey: 'nav.states', href: '/states', iconId: 'states' },
     ],
   },
-  {
-    id: 'system',
-    labelKey: 'nav.system',
-    items: [
-      {
-        kind: 'leaf',
-        id: 'preferences',
-        labelKey: 'nav.preferences',
-        href: '/preferences',
-        iconId: 'settings',
-      },
-    ],
-  },
 ] as const satisfies readonly NavigationGroup[];
 
 /** 合并静态 Shell Navigation 与 Admin Surface Registry 派生的 Plugin Navigation（最小 Shell bridge）。 */

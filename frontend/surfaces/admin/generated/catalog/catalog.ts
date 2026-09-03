@@ -3,7 +3,10 @@
 import type { AdminRouteCatalog } from '@community-go/admin-framework';
 
 export const generatedRouteCatalog: AdminRouteCatalog = {
-  plugins: [{ pluginId: 'reference-resources', mount: '/reference-resources' }],
+  plugins: [
+    { pluginId: 'reference-resources', mount: '/reference-resources' },
+    { pluginId: 'system-tools', mount: '/system-tools' },
+  ],
   routes: [
     {
       routeId: 'reference-resources',
@@ -12,11 +15,6 @@ export const generatedRouteCatalog: AdminRouteCatalog = {
       segments: [],
       pattern: '/reference-resources',
       paramNames: [],
-      hasNavigation: true,
-      navigationId: 'reference-resources',
-      labelKey: 'referenceResources.nav.list',
-      groupId: 'admin.reference',
-      iconId: 'resource',
       titleKey: 'referenceResources.list.title',
     },
     {
@@ -26,7 +24,6 @@ export const generatedRouteCatalog: AdminRouteCatalog = {
       segments: ['create'],
       pattern: '/reference-resources/create',
       paramNames: [],
-      hasNavigation: false,
       titleKey: 'referenceResources.create.title',
     },
     {
@@ -36,7 +33,6 @@ export const generatedRouteCatalog: AdminRouteCatalog = {
       segments: ['detail'],
       pattern: '/reference-resources/detail',
       paramNames: [],
-      hasNavigation: false,
       titleKey: 'referenceResources.detail.title',
     },
     {
@@ -46,11 +42,76 @@ export const generatedRouteCatalog: AdminRouteCatalog = {
       segments: ['edit'],
       pattern: '/reference-resources/edit',
       paramNames: [],
-      hasNavigation: false,
       titleKey: 'referenceResources.edit.title',
       canonicalParentOverride: {
         routeId: 'reference-resources.detail',
         rationale: '编辑是详情下的子任务，canonical parent 必须落在同 Plugin 的 detail Route。',
+      },
+    },
+    {
+      routeId: 'system-tools.icons',
+      pluginId: 'system-tools',
+      path: 'icons',
+      segments: ['icons'],
+      pattern: '/system-tools/icons',
+      paramNames: [],
+      titleKey: 'systemTools.icons.title',
+    },
+    {
+      routeId: 'system-tools.preferences',
+      pluginId: 'system-tools',
+      path: 'preferences',
+      segments: ['preferences'],
+      pattern: '/system-tools/preferences',
+      paramNames: [],
+      titleKey: 'systemTools.preferences.title',
+    },
+  ],
+  aliases: [
+    { groupId: 'system', labelKey: 'adminGroups.system', order: 0 },
+    { groupId: 'reference', labelKey: 'adminGroups.reference', order: 1 },
+    { groupId: 'development', labelKey: 'adminGroups.development', order: 2 },
+  ],
+  contributions: [
+    {
+      pluginId: 'reference-resources',
+      contribution: {
+        parents: [
+          {
+            navigationId: 'reference-resources.root',
+            labelKey: 'referenceResources.nav.root',
+            groupId: 'reference',
+            iconId: 'resource',
+            routeId: 'reference-resources',
+          },
+        ],
+      },
+    },
+    {
+      pluginId: 'system-tools',
+      contribution: {
+        parents: [
+          {
+            navigationId: 'system-tools.root',
+            labelKey: 'systemTools.nav.root',
+            groupId: 'system',
+            iconId: 'settings',
+            children: [
+              {
+                navigationId: 'system-tools.root.icons',
+                labelKey: 'systemTools.nav.icons',
+                routeId: 'system-tools.icons',
+                order: 0,
+              },
+              {
+                navigationId: 'system-tools.root.preferences',
+                labelKey: 'systemTools.nav.preferences',
+                routeId: 'system-tools.preferences',
+                order: 1,
+              },
+            ],
+          },
+        ],
       },
     },
   ],

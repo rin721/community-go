@@ -5,6 +5,8 @@
   "type": "module",
   "exports": {
     "./shell": "./src/shell.ts",
+    "./icon-presentation": "./src/navigation-icon-presentation.tsx",
+    "./icon-components": "./src/navigation-icon-components.ts",
     "./generated/composition": "./generated/composition/composition.ts",
     "./generated/catalog": "./generated/catalog/catalog.ts",
     "./generated/routes/*": "./generated/routes/*.tsx"
@@ -16,10 +18,14 @@
   "dependencies": {
     "@community-go/admin-framework": "workspace:*",
     "@community-go/admin-foundation": "workspace:*",
+    "@community-go/form-foundation": "workspace:*",
     "@community-go/i18n": "workspace:*",
+    "@community-go/schemas": "workspace:*",
     "@community-go/types": "workspace:*",
     "@community-go/ui-adapter": "workspace:*",
-    "react": "^19.2.8"
+    "lucide-react": "^1.37.0",
+    "react": "^19.2.8",
+    "zod": "^4.5.2"
   },
   "devDependencies": {
     "@types/react": "^19.2.7",

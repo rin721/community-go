@@ -11,36 +11,45 @@ import { SelectField, SwitchField, TextField } from '@community-go/ui-adapter/fo
 import { Panel } from '@community-go/ui-adapter/panel';
 import { StatusPill } from '@community-go/ui-adapter/status-pill';
 import { ToggleGroup } from '@community-go/ui-adapter/toggle-group';
-import { Save } from 'lucide-react';
-import { useState } from 'react';
-import { useFrontendTranslation } from '@community-go/i18n';
-
 import { AdminPageHeader } from '@community-go/admin-foundation/layout';
-import type { PreferencesInput } from '../../reference/schemas';
-import { useShellStore } from '../../state/use-shell-store';
+import { useAdminLocale } from '@community-go/admin-framework/plugin';
+import { useFrontendTranslation } from '@community-go/i18n';
+import { useState } from 'react';
 
-export default function PreferencesPage() {
+import type { PreferencesInput } from '../../schemas';
+
+/**
+ * 偏好设置 —— 从 Host apps/admin-web 迁入 system-tools Plugin。
+ *
+ * 真实 Host-private 依赖审计结果：原页面只依赖 Host shell store 的
+ * locale/setLocale（theme/density/reduceMotion 字段本页不写 store）。
+ * 迁移后经 AdminLocaleProvider 注入的 useAdminLocale（Plugin Locale Port）读写，
+ * 不再依赖 Host store；文案用 plugin i18n（systemTools.preferences.*）；
+ * schema 随插件走（../../schemas），并经 async factory 动态加载以拆分 zod chunk
+ * （与迁入前 Host 页的 dynamic import 行为一致）。
+ */
+export function SystemToolsPreferencesPage() {
   const { t } = useFrontendTranslation();
-  const locale = useShellStore((state) => state.locale);
-  const setLocale = useShellStore((state) => state.setLocale);
+  const { locale, changeLocale } = useAdminLocale();
   const { notify } = useFeedback();
   const [saved, setSaved] = useState(false);
+  const initialLocale: PreferencesInput['locale'] = locale === 'en' ? 'en' : 'zh-CN';
   const form = useFoundationForm<PreferencesInput>({
-    schema: async () => (await import('../../reference/schemas')).preferencesSchema,
+    schema: async () => (await import('../../schemas')).preferencesSchema,
     defaultValues: {
       interfaceName: 'Community Console',
-      locale,
+      locale: initialLocale,
       density: 'comfortable',
       reduceMotion: false,
     },
   });
 
   const onSubmit = (values: PreferencesInput) => {
-    setLocale(values.locale);
+    changeLocale(values.locale);
     setSaved(true);
     notify({
-      title: t('preferences.saved'),
-      description: t('preferences.description'),
+      title: t('systemTools.preferences.saved'),
+      description: t('systemTools.preferences.description'),
       tone: 'success',
     });
   };
@@ -48,27 +57,31 @@ export default function PreferencesPage() {
   return (
     <div className="space-y-6">
       <AdminPageHeader
-        eyebrow={t('preferences.eyebrow')}
-        title={t('preferences.title')}
-        description={t('preferences.description')}
+        eyebrow={t('systemTools.preferences.eyebrow')}
+        title={t('systemTools.preferences.title')}
+        description={t('systemTools.preferences.description')}
         actions={
-          saved ? <StatusPill tone="success">{t('preferences.saved')}</StatusPill> : undefined
+          saved ? (
+            <StatusPill tone="success">{t('systemTools.preferences.saved')}</StatusPill>
+          ) : undefined
         }
       />
       <Panel className="max-w-3xl p-5 sm:p-7">
         <FoundationForm className="grid gap-6" form={form} onSubmit={onSubmit}>
           <TextField
-            label={t('preferences.name')}
-            hint={t('preferences.nameHint')}
-            {...(form.hasError('interfaceName') ? { error: t('preferences.nameError') } : {})}
+            label={t('systemTools.preferences.name')}
+            hint={t('systemTools.preferences.nameHint')}
+            {...(form.hasError('interfaceName')
+              ? { error: t('systemTools.preferences.nameError') }
+              : {})}
             {...form.registerField('interfaceName')}
           />
           <div className="grid gap-5 sm:grid-cols-2">
             <FoundationControlledField name="locale" form={form}>
               {(field) => (
                 <SelectField
-                  label={t('preferences.locale')}
-                  hint={t('preferences.localeHint')}
+                  label={t('systemTools.preferences.locale')}
+                  hint={t('systemTools.preferences.localeHint')}
                   options={[
                     { value: 'zh-CN', label: '简体中文' },
                     { value: 'en', label: 'English' },
@@ -84,11 +97,11 @@ export default function PreferencesPage() {
             <FoundationControlledField name="density" form={form}>
               {(field) => (
                 <ToggleGroup
-                  label={t('preferences.density')}
-                  description={t('preferences.densityHint')}
+                  label={t('systemTools.preferences.density')}
+                  description={t('systemTools.preferences.densityHint')}
                   options={[
-                    { id: 'comfortable', label: t('preferences.comfortable') },
-                    { id: 'compact', label: t('preferences.compact') },
+                    { id: 'comfortable', label: t('systemTools.preferences.comfortable') },
+                    { id: 'compact', label: t('systemTools.preferences.compact') },
                   ]}
                   selectedIds={[field.value]}
                   onSelectionChange={(selectedIds) => {
@@ -102,17 +115,15 @@ export default function PreferencesPage() {
           <FoundationControlledField name="reduceMotion" form={form}>
             {(field) => (
               <SwitchField
-                label={t('preferences.reduceMotion')}
-                description={t('preferences.reduceMotionDescription')}
+                label={t('systemTools.preferences.reduceMotion')}
+                description={t('systemTools.preferences.reduceMotionDescription')}
                 checked={field.value}
                 onCheckedChange={field.onChange}
               />
             )}
           </FoundationControlledField>
           <div>
-            <Action type="submit" leadingIcon={<Save className="size-4" />}>
-              {t('preferences.save')}
-            </Action>
+            <Action type="submit">{t('systemTools.preferences.save')}</Action>
           </div>
         </FoundationForm>
       </Panel>

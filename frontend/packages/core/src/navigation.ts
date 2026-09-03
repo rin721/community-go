@@ -34,7 +34,9 @@ export function getNavigationTreeErrors(nodes: readonly NavigationNode[]): reado
       return;
     }
 
-    if (node.defaultHref !== getFirstNavigationLeaf(node).href) {
+    // 纯 Disclosure Branch（无 defaultHref）没有自身导航目标，只展开/收起；
+    // 不校验"defaultHref === 首 leaf href"。有 defaultHref 才校验一致性。
+    if (node.defaultHref !== undefined && node.defaultHref !== getFirstNavigationLeaf(node).href) {
       errors.push(`invalid default href: ${node.id}`);
     }
     node.children.forEach(visit);

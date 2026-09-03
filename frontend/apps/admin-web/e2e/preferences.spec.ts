@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
 test('偏好页的 Toggle Group、Submit、Saved 与 Toast 状态真实联动', async ({ page }) => {
-  await page.goto('/preferences');
+  await page.goto('/system-tools/preferences');
   const density = page.getByRole('radiogroup', { name: '信息密度' });
   await expect(density.getByRole('radio', { name: '舒适' })).toBeChecked();
   await density.getByRole('radio', { name: '紧凑' }).click();

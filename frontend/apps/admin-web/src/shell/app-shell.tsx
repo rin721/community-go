@@ -2,6 +2,7 @@
 
 import { flattenNavigationLeaves } from '@community-go/core';
 import { AdminShellRoot } from '@community-go/admin-foundation/shell-navigation';
+import { AdminLocaleProvider } from '@community-go/admin-framework/plugin';
 import type { NavigationNode } from '@community-go/types';
 import { IconAction } from '@community-go/ui-adapter/icon-action';
 import { UserIdentity } from '@community-go/ui-adapter/identity';
@@ -211,7 +212,7 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
               ariaLabel={t('shell.account')}
               items={[
                 {
-                  id: '/preferences',
+                  id: '/system-tools/preferences',
                   label: t('nav.preferences'),
                   description: t('preferences.description'),
                 },
@@ -229,9 +230,20 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
         </header>
         <main className="mx-auto max-w-screen-2xl p-4 sm:p-6 xl:p-8" id="main-content">
           <RouteTransition>
-            <AdminHostNavigationPortProvider resolveHref={adminHostRouteTargetResolver.resolveHref}>
-              {children}
-            </AdminHostNavigationPortProvider>
+            <AdminLocaleProvider
+              port={{
+                locale,
+                changeLocale: (next) => {
+                  if (next === 'en' || next === 'zh-CN') setLocale(next);
+                },
+              }}
+            >
+              <AdminHostNavigationPortProvider
+                resolveHref={adminHostRouteTargetResolver.resolveHref}
+              >
+                {children}
+              </AdminHostNavigationPortProvider>
+            </AdminLocaleProvider>
           </RouteTransition>
         </main>
       </div>

@@ -3,10 +3,6 @@ import { describe, expect, it } from 'vitest';
 import { resolveAdminRouteTarget } from '@community-go/admin-framework';
 
 import { assertValidAdminSurfaceRegistry } from './composition';
-import {
-  adminSurfaceTaxonomy,
-  collectUnknownNavigationGroupDiagnostics,
-} from './navigation-taxonomy';
 import { collectUnknownNavigationIconDiagnostics } from './navigation-icon';
 import {
   generatedAdminSurfaceComposition,
@@ -18,8 +14,7 @@ import {
  * Production generated registry 的 invariant 测试。
  *
  * 不锁定真实生产插件集合（数量/名称/精确结构）——新增或删除普通插件不应要求
- * 修改本文件。精确数量/结构场景测试见 shell.test.ts / framework.test.ts 的
- * 自包含 fixture catalog。
+ * 修改本文件。精确数量/结构场景测试见 framework.test.ts 的 fixture catalog。
  */
 
 /** 在 merged TranslationResources 中按 dotted key 查找文本；找不到返回 undefined。 */
@@ -39,7 +34,7 @@ function lookupTranslation(
 }
 
 describe('Generated composition (production invariant)', () => {
-  it('Registry topology 完整：无 diagnostics', () => {
+  it('Registry topology 完整：无 diagnostics（Alias/namespace/routeId/orphan 全部通过）', () => {
     expect(generatedSurfaceRegistry.diagnostics).toEqual([]);
   });
 
@@ -52,22 +47,40 @@ describe('Generated composition (production invariant)', () => {
     const routeKeys = Object.keys(registry.routes).sort();
     const catalogRouteIds = registry.catalog.routes.map((route) => route.routeId).sort();
     expect(routeKeys).toEqual(catalogRouteIds);
-    // routeId 唯一（catalog 无重复）
     expect(new Set(catalogRouteIds).size).toBe(catalogRouteIds.length);
   });
 
-  it('navigationId 跨 navigationTree 唯一', () => {
+  it('resolved Sidebar model 结构一致：navigation groups 均来自 catalog aliases 且含有效 parents', () => {
     const registry = generatedSurfaceRegistry;
-    const navigationIds = registry.navigationTree.flatMap((group) =>
-      group.items.map((item) => item.navigationId),
+    const aliasGroupIds = new Set(registry.catalog.aliases.map((alias) => alias.groupId));
+    for (const group of registry.navigation) {
+      expect(aliasGroupIds.has(group.groupId)).toBe(true);
+      expect(group.parents.length).toBeGreaterThan(0);
+      for (const parent of group.parents) {
+        expect(parent.navigationId).toMatch(/^[a-z0-9-]+\./); // `${pluginId}.` namespace
+        // Child 有 href；Parent 可导航（有 href）或纯 Disclosure（无 href 且必有 children）
+        for (const child of parent.children) {
+          expect(child.href.length).toBeGreaterThan(0);
+        }
+      }
+    }
+  });
+
+  it('navigationId 在 resolved model 中唯一', () => {
+    const registry = generatedSurfaceRegistry;
+    const ids = registry.navigation.flatMap((group) =>
+      group.parents.flatMap((parent) => [
+        parent.navigationId,
+        ...parent.children.map((c) => c.navigationId),
+      ]),
     );
-    expect(new Set(navigationIds).size).toBe(navigationIds.length);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 
   it('every static route resolvable：resolveAdminRouteTarget 无 diagnostics 且 href === pattern', () => {
     const registry = generatedSurfaceRegistry;
     for (const descriptor of registry.catalog.routes) {
-      if (descriptor.paramNames.length > 0) continue; // 动态 route 由 Host capability gate 隔离，不进真实 Surface
+      if (descriptor.paramNames.length > 0) continue;
       const result = resolveAdminRouteTarget(registry, {
         routeId: descriptor.routeId,
         params: {},
@@ -77,40 +90,56 @@ describe('Generated composition (production invariant)', () => {
     }
   });
 
-  it('navigation group references valid：命中 Admin Surface taxonomy', () => {
-    const registry = generatedSurfaceRegistry;
-    const references = registry.navigationTree.flatMap((group) =>
-      group.items.map((item) => ({ groupId: group.groupId, routeId: item.routeId })),
-    );
-    expect(collectUnknownNavigationGroupDiagnostics(references, adminSurfaceTaxonomy)).toEqual([]);
-  });
-
-  it('navigation icon references valid：每个声明的 iconId 命中 Admin Surface icon vocabulary', () => {
-    const registry = generatedSurfaceRegistry;
-    const references = registry.navigationTree.flatMap((group) =>
-      group.items
-        .filter((item) => item.iconId !== undefined)
-        .map((item) => ({ iconId: item.iconId as string, routeId: item.routeId })),
-    );
-    expect(collectUnknownNavigationIconDiagnostics(references)).toEqual([]);
-  });
-
   it('assertValidAdminSurfaceRegistry 通过（Surface boundary runtime invariant）', () => {
     expect(() => assertValidAdminSurfaceRegistry(generatedSurfaceRegistry)).not.toThrow();
   });
 
+  it('navigation icon references valid：每个声明的 iconId 命中 icon vocabulary', () => {
+    const registry = generatedSurfaceRegistry;
+    const references = registry.navigation.flatMap((group) =>
+      group.parents.flatMap((parent) => {
+        const entries = [];
+        if (parent.iconId !== undefined) {
+          entries.push({ iconId: parent.iconId, routeId: parent.navigationId });
+        }
+        for (const child of parent.children) {
+          if (child.iconId !== undefined) {
+            entries.push({ iconId: child.iconId, routeId: child.navigationId });
+          }
+        }
+        return entries;
+      }),
+    );
+    expect(collectUnknownNavigationIconDiagnostics(references)).toEqual([]);
+  });
+
   it('i18n contribution consistency：按 Contract 声明的键在双 locale 均可解析', () => {
     const registry = generatedSurfaceRegistry;
-    for (const descriptor of registry.catalog.routes) {
-      // 有 navigation 贡献且声明 labelKey → 必须可解析
-      if (descriptor.hasNavigation && descriptor.labelKey) {
+    // Group Alias labelKey
+    for (const alias of registry.catalog.aliases) {
+      for (const locale of ['zh-CN', 'en']) {
+        expect(
+          lookupTranslation(generatedSurfaceI18nResources, locale, alias.labelKey),
+        ).toBeTruthy();
+      }
+    }
+    // Sidebar node labelKey
+    for (const group of registry.navigation) {
+      for (const parent of group.parents) {
         for (const locale of ['zh-CN', 'en']) {
           expect(
-            lookupTranslation(generatedSurfaceI18nResources, locale, descriptor.labelKey),
+            lookupTranslation(generatedSurfaceI18nResources, locale, parent.labelKey),
           ).toBeTruthy();
+          for (const child of parent.children) {
+            expect(
+              lookupTranslation(generatedSurfaceI18nResources, locale, child.labelKey),
+            ).toBeTruthy();
+          }
         }
       }
-      // 声明 titleKey → 必须可解析（无论是否隐藏 route）
+    }
+    // Route titleKey（隐藏路由也要求可解析）
+    for (const descriptor of registry.catalog.routes) {
       if (descriptor.titleKey) {
         for (const locale of ['zh-CN', 'en']) {
           expect(
@@ -118,13 +147,10 @@ describe('Generated composition (production invariant)', () => {
           ).toBeTruthy();
         }
       }
-      // 隐藏 route（无 navigation）不强制 labelKey —— 不在此断言
     }
   });
 
   it('composition 一致性：model/resource 结构一致、registry 通过 assert（不锁内部对象身份）', () => {
-    // singleton identity 不是正式 Contract（Host 直接消费 generatedSurfaceRegistry /
-    // generatedSurfaceI18nResources）；这里验证 model/resource 一致性 + invariants。
     expect(generatedAdminSurfaceComposition.registryModel.catalog).toEqual(
       generatedSurfaceRegistry.catalog,
     );

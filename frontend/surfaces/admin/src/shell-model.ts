@@ -1,39 +1,21 @@
 /**
- * Admin Surface —— taxonomy / icon vocabulary 与 Registry → Shell model 转换。
+ * Admin Surface —— Registry resolved Sidebar model → Shell Navigation model 转换。
  *
- * Shell 只消费 Registry resolved model；转换是纯函数，不读取 pathname、不依赖 Next。
+ * Registry 输出已把 Group Alias + Plugin Parent/Child 解析为
+ * `navigation: ResolvedNavigationGroup[]`（Group → Parent → Child）。本模块只做
+ * 纯呈现转换（iconId opaque 透传），不持有 Group/icon 定义、不校验。
  *
- * taxonomy 定义收敛到独立 authority `./navigation-taxonomy`（Admin Surface 全局
- * IA）；icon vocabulary 收敛到 `./navigation-icon`（semantic presentation metadata
- * 的合法集合）。本模块只做呈现转换与 re-export，不持有二者定义。
- *
- * 未知 groupId 不得静默丢弃：converter 在 taxonomy 未命中时 deterministic throw，
- * 拒绝消费未验证 Registry（Surface boundary 内的最后防线；codegen gate 已在源头拦截）。
- * iconId 是可选 metadata：converter 只透传 opaque id，不做合法性判断
- * （合法性由 codegen gate 与 composition assert 前置拦截）。
+ * icon vocabulary 收敛到 `./navigation-icon`（受控 semantic presentation metadata）；
+ * Group Alias 是 plugins 范围公共 IA（plugins/navigation-groups.ts），此处不重复定义。
  */
 
 import type { AdminRegistryModel } from '@community-go/admin-framework';
-import type { NavigationGroup, NavigationLeaf } from '@community-go/types';
-
-import {
-  adminSurfaceTaxonomy,
-  collectUnknownNavigationGroupDiagnostics,
-  findTaxonomyEntry,
-  type AdminTaxonomyEntry,
-} from './navigation-taxonomy';
-
-export type {
-  AdminTaxonomyEntry,
-  AdminNavigationGroupReference,
-  AdminNavigationGroupDiagnostic,
-} from './navigation-taxonomy';
-export {
-  adminSurfaceTaxonomy,
-  findTaxonomyEntry,
-  UNKNOWN_ADMIN_NAVIGATION_GROUP,
-  collectUnknownNavigationGroupDiagnostics,
-} from './navigation-taxonomy';
+import type {
+  NavigationBranch,
+  NavigationGroup,
+  NavigationLeaf,
+  NavigationNode,
+} from '@community-go/types';
 
 export type {
   AdminNavigationIconId,
@@ -47,46 +29,53 @@ export {
 } from './navigation-icon';
 
 /**
- * 将 Registry navigation tree 转换为 Host Shell 的 NavigationGroup[]。
- * 每个 taxonomy 命中项生成一个 Leaf-only group；children 为 registry group items。
- *
- * 未命中 taxonomy 的 group：deterministic throw（含 groupId 与 routeIds），
- * 保证 unknown group 在任何路径下都不会 quietly disappear。
- * item 的可选 iconId 作为 opaque presentation metadata 原样透传（不校验）。
+ * 将 Registry resolved Sidebar model（Group → Parent → Child）转换为 Host Shell
+ * 可消费的 NavigationGroup[]。
+ * - Parent 可导航（有 href）→ Branch 带 defaultHref；纯 Disclosure → Branch 无
+ *   defaultHref（Shell 点击只展开/收起）。
+ * - Child → Leaf（挂在 Branch.children 下）；无 children 的单 Parent → Leaf。
  */
 export function convertRegistryToShellNavigation(
   registry: AdminRegistryModel,
-  taxonomy: readonly AdminTaxonomyEntry[] = adminSurfaceTaxonomy,
 ): readonly NavigationGroup[] {
   const groups: NavigationGroup[] = [];
 
-  for (const registryGroup of registry.navigationTree) {
-    const entry = findTaxonomyEntry(registryGroup.groupId, taxonomy);
-    if (!entry) {
-      const diagnostics = collectUnknownNavigationGroupDiagnostics(
-        registryGroup.items.map((item) => ({
-          groupId: registryGroup.groupId,
-          routeId: item.routeId,
-        })),
-        taxonomy,
-      );
-      const detail = diagnostics
-        .map((diagnostic) => `[${diagnostic.code}] ${diagnostic.message}`)
-        .join('; ');
-      throw new Error(`Registry navigation group 未命中 Admin Surface taxonomy: ${detail}`);
+  for (const resolvedGroup of registry.navigation) {
+    const nodes: NavigationNode[] = [];
+    for (const parent of resolvedGroup.parents) {
+      if (parent.children.length === 0) {
+        // 单节点 Parent（可导航 leaf；纯 Disclosure 无 children 已被 resolution 判 orphan）
+        nodes.push({
+          kind: 'leaf',
+          id: parent.navigationId,
+          labelKey: parent.labelKey,
+          href: parent.href ?? '',
+          ...(parent.iconId ? { iconId: parent.iconId } : {}),
+        } satisfies NavigationLeaf);
+        continue;
+      }
+      const children = parent.children.map((child): NavigationLeaf => ({
+        kind: 'leaf',
+        id: child.navigationId,
+        labelKey: child.labelKey,
+        href: child.href,
+        ...(child.iconId ? { iconId: child.iconId } : {}),
+      }));
+      const branch: NavigationBranch = {
+        kind: 'branch',
+        id: parent.navigationId,
+        labelKey: parent.labelKey,
+        ...(parent.href !== undefined ? { defaultHref: parent.href } : {}),
+        children: children as [NavigationNode, ...NavigationNode[]],
+        ...(parent.iconId ? { iconId: parent.iconId } : {}),
+      };
+      nodes.push(branch);
     }
-    const items = registryGroup.items.map((item): NavigationLeaf => ({
-      kind: 'leaf',
-      id: item.navigationId,
-      labelKey: item.labelKey,
-      href: item.href,
-      ...(item.iconId ? { iconId: item.iconId } : {}),
-    }));
-    if (items.length === 0) continue;
+    if (nodes.length === 0) continue;
     groups.push({
-      id: registryGroup.groupId,
-      labelKey: entry.labelKey,
-      items: items as [NavigationLeaf, ...NavigationLeaf[]],
+      id: resolvedGroup.groupId,
+      labelKey: resolvedGroup.labelKey,
+      items: nodes as [NavigationNode, ...NavigationNode[]],
     });
   }
 

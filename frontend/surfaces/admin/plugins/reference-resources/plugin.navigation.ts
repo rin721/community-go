@@ -1,0 +1,19 @@
+import type { AdminNavigationContribution } from '@community-go/admin-framework/navigation';
+
+/**
+ * reference-resources —— Sidebar Navigation Contribution。
+ * Group `reference`（plugins 公共 Group Alias）下单 Parent，routeId 指向列表 Route
+ * （reference-resources 根 Route）。create/detail/edit 是隐藏 Route（不进 Sidebar），
+ * 经 canonical 层级关联到本 Parent 的 activeNavigationId。
+ */
+export const navigationContribution = {
+  parents: [
+    {
+      navigationId: 'reference-resources.root',
+      labelKey: 'referenceResources.nav.root',
+      groupId: 'reference',
+      iconId: 'resource',
+      routeId: 'reference-resources',
+    },
+  ],
+} as const satisfies AdminNavigationContribution;

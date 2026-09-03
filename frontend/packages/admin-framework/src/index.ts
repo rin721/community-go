@@ -13,7 +13,11 @@ export {
   collectParamNames,
   type AdminPluginDefinition,
   type AdminRouteSegment,
-  type AdminRouteNavigation,
+  type AdminNavigationGroupAlias,
+  type AdminNavigationContribution,
+  type AdminNavigationParent,
+  type AdminNavigationChild,
+  type AdminPluginNavigationContribution,
   type AdminRouteOverride,
   type AdminActiveNavigationOverride,
   type AdminRouteMeta,
@@ -28,13 +32,25 @@ export { collectDiagnostics, finalizeDiagnostics, formatDiagnostics } from './di
 export type {
   ResolvedAdminRoute,
   AdminRegistryModel,
-  AdminNavigationItem,
-  AdminNavigationGroup,
   AdminBreadcrumbItem,
   AdminPermissionModel,
   AdminCommandItem,
 } from './registry';
+export type {
+  ResolvedNavigationGroup,
+  ResolvedNavigationParent,
+  ResolvedNavigationChild,
+} from './registry';
 export { createAdminRegistry, resolveAdminRouteTarget, hasDynamicSegments } from './registry';
+export {
+  resolveNavigationWithPlugins,
+  navigationIdInPluginNamespace,
+  UNKNOWN_ADMIN_NAVIGATION_GROUP,
+  NAVIGATION_NAMESPACE_VIOLATION,
+  UNKNOWN_NAVIGATION_ROUTE_TARGET,
+  NAVIGATION_DYNAMIC_TARGET_UNSUPPORTED,
+  NAVIGATION_NODE_ORPHAN,
+} from './navigation-resolution';
 
 export {
   UNSUPPORTED_DYNAMIC_PLUGIN_ROUTE,

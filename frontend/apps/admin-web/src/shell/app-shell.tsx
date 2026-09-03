@@ -179,12 +179,12 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
           <div className="hidden min-w-0 flex-1 md:block">
             <CommandMenu
               defaultOpen={false}
-              emptyLabel={t('uiElements.commandEmpty')}
+              emptyLabel={t('shell.commandEmpty')}
               isOpen={commandOpen}
               items={commandItems}
-              searchLabel={t('uiElements.commandSearchLabel')}
+              searchLabel={t('shell.commandSearchLabel')}
               searchPlaceholder={t('shell.search')}
-              title={t('uiElements.commandTitle')}
+              title={t('shell.commandTitle')}
               triggerLabel={t('shell.searchShortcut')}
               onAction={(href) => {
                 setCommandOpen(false);
@@ -214,7 +214,7 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
                 {
                   id: '/system-tools/preferences',
                   label: t('nav.preferences'),
-                  description: t('preferences.description'),
+                  description: t('shell.preferencesDescription'),
                 },
               ]}
               label={

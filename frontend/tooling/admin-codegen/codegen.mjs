@@ -440,6 +440,67 @@ async function validateNavigationIconReferences(plugins) {
 }
 
 /**
+ * i18n namespace collision gate（跨 owner 静默覆盖保护）。
+ *
+ * Surface 层 i18n（surface src/i18n.ts 的 adminGroups）+ 每个 Plugin 的 i18n.ts 一起
+ * 经 mergeTranslationResources 顶层浅合并进运行时。不同 owner 声明**同名顶层
+ * namespace** 会互相静默覆盖（后者赢），产生隐式耦合。本 gate 在生成期静态提取
+ * 每个 source 的顶层 namespace，检测跨 source 同名冲突并 deterministic fail。
+ *
+ * 同 source 内多 locale（zh/en）出现同一 namespace 属正常，不判冲突。
+ */
+async function validateI18nNamespaceCollisions(plugins) {
+  const sources = []; // { owner, namespaces: Set<string> }
+  const surfaceI18nPath = join(surfaceRoot, 'src', 'i18n.ts');
+  if (existsSync(surfaceI18nPath)) {
+    const content = readFileSync(surfaceI18nPath, 'utf8');
+    sources.push({
+      owner: 'surface (src/i18n.ts)',
+      namespaces: extractTopLevelNamespaces(content),
+    });
+  }
+  for (const plugin of plugins) {
+    if (!plugin.hasI18n) continue;
+    const path = join(plugin.dir, 'i18n.ts');
+    const content = readFileSync(path, 'utf8');
+    sources.push({
+      owner: `plugin ${plugin.definition.pluginId}`,
+      namespaces: extractTopLevelNamespaces(content),
+    });
+  }
+  const seen = new Map(); // namespace -> owner
+  const collisions = [];
+  for (const { owner, namespaces } of sources) {
+    for (const ns of namespaces) {
+      const prior = seen.get(ns);
+      if (prior !== undefined && prior !== owner) {
+        collisions.push(`- namespace "${ns}" 同时声明于 ${prior} 与 ${owner}`);
+      } else if (prior === undefined) {
+        seen.set(ns, owner);
+      }
+    }
+  }
+  if (collisions.length > 0) {
+    throw new Error(
+      `i18n namespace collision gate 失败: 不同 owner 声明同名顶层 namespace，mergeTranslationResources 浅合并会静默覆盖\n${collisions.join('\n')}`,
+    );
+  }
+}
+
+/**
+ * 从 i18n.ts 资源文本提取顶层 namespace（translation 下的直接子 key）。
+ * 匹配 `      <ns>: {`（6 空格缩进的 translation 直接子级），不执行代码。
+ */
+function extractTopLevelNamespaces(content) {
+  const namespaces = new Set();
+  for (const line of content.split(/\r?\n/)) {
+    const match = line.match(/^ {6}([A-Za-z][A-Za-z0-9]*): \{/);
+    if (match) namespaces.add(match[1]);
+  }
+  return namespaces;
+}
+
+/**
  * discovery + 全部 deterministic semantic validation。
  * generateAll 与 checkFreshness 共用同一校验链，保证两入口规则一致。
  */
@@ -454,6 +515,7 @@ async function collectSurface() {
   const aliases = await loadGroupAliases();
   await validateGroupAliasReferences(plugins);
   await validateNavigationIconReferences(plugins);
+  await validateI18nNamespaceCollisions(plugins);
   const dynamic = allRoutes.filter((route) => route.descriptor.paramNames.length > 0);
   if (dynamic.length > 0) {
     const mode = getDeploymentMode();

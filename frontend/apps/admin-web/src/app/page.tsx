@@ -16,6 +16,7 @@ import {
   Workflow,
 } from 'lucide-react';
 import { useFrontendTranslation } from '@community-go/i18n';
+import { AdminPage } from '@community-go/admin-foundation/layout';
 
 import { RouterTextLink } from '../host/router-text-link';
 import { ViewportReveal } from '../host/viewport-reveal';
@@ -38,7 +39,7 @@ export default function OverviewPage() {
   const { t } = useFrontendTranslation();
 
   return (
-    <div className="space-y-6">
+    <AdminPage>
       <Panel className="relative overflow-hidden p-6 sm:p-8 xl:p-10" tone="brand">
         <div className="pointer-events-none absolute -right-16 -top-24 size-72 rounded-full bg-brand/10 blur-3xl" />
         <div className="relative max-w-3xl">
@@ -177,6 +178,6 @@ export default function OverviewPage() {
           </div>
         </div>
       </ViewportReveal>
-    </div>
+    </AdminPage>
   );
 }

@@ -18,7 +18,7 @@ import {
 import { useState } from 'react';
 import { useFrontendTranslation } from '@community-go/i18n';
 
-import { AdminPageHeader } from '@community-go/admin-foundation/layout';
+import { AdminPage, AdminPageHeader } from '@community-go/admin-foundation/layout';
 
 const stateDefinitions = [
   { id: 'empty', icon: Inbox },
@@ -36,7 +36,7 @@ export default function StatesPage() {
   const [errorRecovered, setErrorRecovered] = useState(false);
 
   return (
-    <div className="space-y-6">
+    <AdminPage>
       <AdminPageHeader
         eyebrow={t('states.eyebrow')}
         title={t('states.title')}
@@ -77,6 +77,6 @@ export default function StatesPage() {
           );
         })}
       </div>
-    </div>
+    </AdminPage>
   );
 }

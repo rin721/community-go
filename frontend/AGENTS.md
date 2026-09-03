@@ -62,6 +62,23 @@ Motion 主题的唯一当前权威文档是 [Motion Foundation 与语义动效�
 - `prefers-reduced-motion` 必须由 Motion Foundation 统一处理；Feature 与 Page 不得各自实现 Reduced Motion 判断。
 - 新增动效必须先按 Motion 决策树（权威文档 [Motion Foundation 与语义动效分层](docs/motion-foundation.md) §9）判断变化来自什么生命周期（路由→ScreenTransition、异步状态→AsyncRegion、视口首现→ViewportReveal、挂载/卸载→Presence、折叠→Disclosure、浮层→Adapter Overlay 内部、反馈→Feedback 组件、组件交互→组件自身），再选择对应语义组件；禁止直接写动画类或选择 fade/slide/scale 等实现型动画作为业务 Contract。
 
+## 4.3 架构通用性与产品设计规范边界
+
+核心原则：**架构提供通用能力，AGENTS 规定当前项目如何正确使用这些能力。**
+
+- 架构层（Plugin Framework、Next Route Contract、State Foundation、UI Adapter、Admin Foundation 等）**不得**因当前某一个具体页面风格，把具体视觉、动画或页面模板硬编码进 Plugin Contract 或公共契约。Plugin Contract 只承载 identity/mount/navigation 等装配信息，不要求声明 page motion / page pattern / animation type / concrete UI library / visual style。
+- 当前 Admin Web 是统一产品：业务页面、Plugin、Feature 开发**必须优先复用和组合项目已有**的 Design Token、UI Element、Admin Pattern、Motion Recipe、State Pattern、Feedback Pattern 与 i18n，不得重新发明平行实现。
+- Plugin ownership 独立 = 业务 ownership 独立，**不等于**视觉/交互/状态/Motion/Page Pattern 可脱离整个 Admin Product 设计体系。
+- 只有现有能力确实无法表达合理的新场景时，才允许扩展 Foundation；扩展前先评估是否具有通用价值，并走 §9 扩展门禁。禁止在单一业务页面用局部 hack 绕过现有设计体系。
+- `/foundations`、`/motion`、`/ui-elements`、`/admin-patterns`、`/admin-reference`、`/states` 是当前设计与架构能力的 Authority/Showcase；Showcase 展示的能力必须与真实业务页面使用同一套实现，禁止「Showcase 一套、业务另一套」。
+
+### 4.4 Admin Page Foundation 与页面进入体验
+
+- 权威 Admin 页面抽象是 `packages/admin-foundation` 的 `AdminPage`/`AdminPageHeader`/`AdminSection`/`AdminToolbar` 等。正常业务/展示页面顶层使用 `AdminPage`（产出统一 section spacing），区段使用 Header/Section/Panel 等标准组合；禁止手写平行页面骨架（裸 `space-y-*` + 自绘 header 的整页结构）。
+- **Page Enter 是统一页面体验，由 Host 自动提供**：`RouteTransition` 在路由变化时对 `.admin-route-content` 设标记，CSS 对 `AdminPage` 的直接区段做统一 fade+rise stagger；正常页面无需、也不得手工为整页包裹 ViewportReveal 或自定义 page-enter 动画。
+- **ViewportReveal（Section Reveal）只用于长页面中真正 below-fold 的内容区域**，不承担、也不代替 Page Enter。reduced-motion 由项目级 Motion Policy（Host）统一控制，页面不自行判断。
+- Page/Pattern 只做组合（使用 Recipe 提供的动效），不定义第二套 animation system。
+
 ## 5. UI Contract 与组件职责
 
 - `packages/ui-adapter` 是唯一允许直接导入 `@heroui/*` 的边界，Web 入口只导入其聚合后的 Adapter stylesheet。

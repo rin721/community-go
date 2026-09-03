@@ -6,7 +6,7 @@ import { StatusPill } from '@community-go/ui-adapter/status-pill';
 import { AppWindow, Braces, Component, DatabaseZap, ShieldCheck } from 'lucide-react';
 import { useFrontendTranslation } from '@community-go/i18n';
 
-import { AdminPageHeader } from '@community-go/admin-foundation/layout';
+import { AdminPage, AdminPageHeader } from '@community-go/admin-foundation/layout';
 import { ViewportReveal } from '../../host/viewport-reveal';
 
 const layers = [
@@ -19,7 +19,7 @@ const layers = [
 export default function FoundationsPage() {
   const { t } = useFrontendTranslation();
   return (
-    <div className="space-y-6">
+    <AdminPage>
       <AdminPageHeader
         eyebrow={t('foundations.eyebrow')}
         title={t('foundations.title')}
@@ -74,6 +74,6 @@ export default function FoundationsPage() {
           </Panel>
         </div>
       </ViewportReveal>
-    </div>
+    </AdminPage>
   );
 }

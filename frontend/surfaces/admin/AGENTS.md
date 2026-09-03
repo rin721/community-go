@@ -55,3 +55,48 @@ static-enumerated | server`（缺省 static）。**static** 下动态 `[id]` 段
   `DYNAMIC_ROUTE_REQUIRES_GENERATE_STATIC_PARAMS`；**server** 放行动态与 request-time
   能力。Next build 始终是最终 authority。参考插件 `reference-resources` 使用固定路径
   完成浏览器验证。
+
+## Admin 产品设计体系约束（Plugin / 业务页开发规范）
+
+这些是**当前 Admin Surface 的开发规范，不是 Plugin Contract**。Plugin ownership
+独立只表示业务可独立拥有/删除/演进，**不表示视觉、交互、状态、Motion、Page Pattern
+可以脱离整个 Admin Product 设计体系**。业务页开发时优先复用和组合项目已有能力；
+以下细则禁止逐条另行设计平行实现。
+
+1. **Design Token**：必须使用 `packages/design-system` 已有语义 Token（spacing/
+   radius/shadow/typography/motion 等）；不得在业务页硬编码一套新视觉规格
+   （hex/rgb/阴影/圆角/动画时长等）。差异经 variant/size/density/slot 表达。
+2. **UI Adapter / UI Elements**：优先复用已有 Button、Input、Select、Dialog、
+   Drawer、Tabs、Table 等语义组件；不得因 Plugin 独立而重新封装同类基础组件。
+   需要新基础能力时先按 frontend/AGENTS §7/§9 判断 Variant、Composition 或扩展
+   Foundation（走 Contract 门禁），禁止在 Plugin 内自建第二套基础组件库。
+3. **Admin Foundation / Page Pattern**：页面顶层使用 `AdminPage`（`admin-foundation/
+layout`），区段优先组合 `AdminPageHeader`、`AdminSection`、`AdminToolbar`、
+   `AdminFilterBar`、`AdminSplitView`、`AdminStickyActions` 等已有 Pattern；业务差异
+   通过 composition / slot / variant 表达，不得复制一套新页面骨架（裸 `space-y-*`
+   手写 header 的整页结构）。Plugin 页面不得 import `apps/admin-web` 私有实现。
+4. **Motion**：正常页面使用已有 Motion Token / Recipe / Page Pattern 提供的统一动效；
+   不得自行定义另一套 page-enter / drawer / dialog / overlay / async 动画。
+   - Page Enter 是统一页面体验（Host RouteTransition 自动提供）；正常页面**不**手工
+     为整页包 ViewportReveal 或自定义进入动画。
+   - ViewportReveal / Section Reveal 只用于长页面真正 below-fold 的内容区。
+   - reduced-motion 由项目级 Motion Policy 统一控制，页面不自行判断。
+5. **State**：Plugin 私有状态放 Plugin `stores/`，使用项目 State Foundation /
+   Zustand / persist 规范；不得为单个业务重建平行状态基础设施。
+6. **Loading / Error / Empty / Feedback**：优先使用已有统一 State / Feedback Pattern
+   （StateSurface、AsyncRegion、Feedback 等）；不得各 Plugin 自行设计一套视觉语言。
+7. **i18n**：业务文案遵守现有 i18n runtime 与 ownership 规则（见下），不硬编码本可
+   进入项目语言体系的产品文案。i18n 顶层 namespace 分三类 owner：
+   - **Plugin-private**：仅该 Plugin 消费（如 `uiElements.*`），放 Plugin i18n.ts；
+   - **Shell-private**：Host Shell UI 自身文案（`shell.*` 等），放 Host resources；
+     禁止 Shell 引用任何 Plugin 的 namespace（删 Plugin 后 Shell 必须完整运行）；
+   - **Admin Surface shared**：跨 Plugin/跨模块共享词（Group Alias `adminGroups.*`
+     等），放 surface src/i18n.ts。
+     不同 owner 声明同名顶层 namespace 由 codegen i18n namespace collision gate 拦截。
+8. **Navigation / Route**：Route 用 Next 原生能力；Navigation 用 Plugin Navigation
+   Contract（plugin.navigation.ts）；不得为追求统一 UI 重新包装第二套 Router。
+
+**Showcase 与业务同源**：`/ui-elements`、`/motion`、`/admin-patterns`、
+`/admin-reference`、`/states`、`/foundations` 是 Authority/Showcase，其页面使用与
+真实业务页面同一套 Foundation/Pattern/Recipe（当前均已走 `AdminPage` 统一结构）；
+禁止「Showcase 一套、业务另一套」。

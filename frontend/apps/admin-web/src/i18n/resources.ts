@@ -48,6 +48,10 @@ export const resources = {
         expandSidebar: '展开侧栏',
         toggleNavigation: '展开或收起{{label}}',
         commandDescription: '导航到基座验证页面',
+        commandEmpty: '没有匹配命令',
+        commandSearchLabel: '搜索命令',
+        commandTitle: '快速跳转',
+        preferencesDescription: '这些设置只影响当前设备，不会写入旧系统或后端.',
         productOwner: '产品负责人',
         preview: 'Architecture Preview',
       },
@@ -151,9 +155,7 @@ export const resources = {
           description: '不泄露受保护内容，同时给出申请权限路径。',
         },
       },
-      preferences: {
-        description: '这些设置只影响当前设备，不会写入旧系统或后端。',
-      },
+
       layout: { breadcrumb: '面包屑导航', toolbar: '页面工具栏' },
       reference: {
         breadcrumbRoot: '基座验证',
@@ -349,6 +351,11 @@ export const resources = {
         expandSidebar: 'Expand sidebar',
         toggleNavigation: 'Expand or collapse {{label}}',
         commandDescription: 'Navigate to a foundation validation page',
+        commandEmpty: 'No matching commands',
+        commandSearchLabel: 'Search commands',
+        commandTitle: 'Quick navigation',
+        preferencesDescription:
+          'These settings affect this device only and do not write to legacy systems or a backend.',
         productOwner: 'Product owner',
         preview: 'Architecture Preview',
       },
@@ -466,10 +473,6 @@ export const resources = {
           title: 'Access denied',
           description: 'Protect content while offering a path to request access.',
         },
-      },
-      preferences: {
-        description:
-          'These settings affect this device only and do not write to legacy systems or a backend.',
       },
       layout: { breadcrumb: 'Breadcrumb navigation', toolbar: 'Page toolbar' },
       reference: {

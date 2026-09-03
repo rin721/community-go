@@ -10,7 +10,7 @@ import { useState } from 'react';
 
 import { getReferenceResources } from '../../data';
 
-export function ReferenceResourcesEditPage() {
+export default function ReferenceResourcesEditPage() {
   const { t } = useFrontendTranslation();
   const resource = getReferenceResources()[0] ?? null;
   const [name, setName] = useState(resource?.name ?? '');

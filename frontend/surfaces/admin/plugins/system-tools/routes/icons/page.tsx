@@ -13,7 +13,7 @@ import { Panel } from '@community-go/ui-adapter/panel';
  * 基础设施层（@community-go/admin-surface/icon-presentation），本页只消费
  * semantic iconId + AdminNavigationIcon，避免把图标库依赖泄漏进 Plugin。
  */
-export function SystemToolsIconsPage() {
+export default function SystemToolsIconsPage() {
   const { t } = useFrontendTranslation();
 
   return (

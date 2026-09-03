@@ -13,7 +13,7 @@ const statusTone: Record<ReferenceResource['status'], StatusTone> = {
   draft: 'warning',
 };
 
-export function ReferenceResourcesListPage() {
+export default function ReferenceResourcesListPage() {
   const { t } = useFrontendTranslation();
   const resources = getReferenceResources();
 

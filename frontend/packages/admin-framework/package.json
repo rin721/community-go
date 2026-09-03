@@ -7,7 +7,7 @@
     ".": "./src/index.ts",
     "./navigation": "./src/navigation-contract.ts",
     "./plugin": "./src/plugin.tsx",
-    "./route-context": "./src/route-context.tsx"
+    "./target": "./src/target-index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

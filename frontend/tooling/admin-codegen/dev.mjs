@@ -1,0 +1,88 @@
+/**
+ * dev orchestration —— `pnpm dev` 入口。
+ *
+ * 并行运行：
+ * 1. admin-codegen watch（Plugin 自动发现/生成/清理）；
+ * 2. next dev（apps/admin-web，唯一 Next dev server）。
+ *
+ * 任一进程退出：另一进程被终止（Ctrl+C 时同时收尾）。
+ * Windows 兼容：全部经 spawn（shell: false），stdin 直通以支持 Ctrl+C。
+ */
+
+import { spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const here = dirname(fileURLToPath(import.meta.url));
+const require = createRequire(import.meta.url);
+const frontendRoot = resolve(here, '..', '..');
+const watchCli = join(here, 'watch.mjs');
+const adminWebRoot = join(frontendRoot, 'apps', 'admin-web');
+
+/** 解析 next dev 可执行 JS：优先 admin-web node_modules 内 next 包，其次 require.resolve。 */
+function resolveNextBin() {
+  const candidates = [
+    join(adminWebRoot, 'node_modules', 'next', 'dist', 'bin', 'next'),
+    join(frontendRoot, 'node_modules', 'next', 'dist', 'bin', 'next'),
+  ];
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) return candidate;
+  }
+  try {
+    // 经 pnpm store 解析（cwd = admin-web 时 next 可解析）。
+    const resolved = require.resolve('next/dist/bin/next', { paths: [adminWebRoot] });
+    return resolved;
+  } catch {
+    throw new Error(
+      '无法解析 next dev 可执行文件（apps/admin-web/node_modules/next）。请先 pnpm install。',
+    );
+  }
+}
+
+const children = [];
+
+function run(name, command, args, options = {}) {
+  const child = spawn(command, args, {
+    cwd: options.cwd ?? frontendRoot,
+    stdio: 'inherit',
+    shell: false,
+    env: { ...process.env, ...options.env },
+  });
+  console.log(`[dev] ${name} 启动 (pid ${child.pid})`);
+  children.push({ name, child });
+  child.on('exit', (code, signal) => {
+    console.log(`[dev] ${name} 退出 (code=${code}, signal=${signal})`);
+    shutdown(code ?? (signal ? 1 : 0));
+  });
+  return child;
+}
+
+let shuttingDown = false;
+function shutdown(exitCode = 0) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log('[dev] 停止全部子进程…');
+  for (const { name, child } of children) {
+    if (child.exitCode === null && !child.killed) {
+      console.log(`[dev] 终止 ${name}…`);
+      child.kill();
+    }
+  }
+  // 给子进程一点收尾时间后退出。
+  setTimeout(() => process.exit(exitCode), 300);
+}
+
+// 1. Plugin codegen watch（自动 reconcile）。
+run('admin-codegen watch', process.execPath, [watchCli]);
+// 2. Next dev server（admin-web）。
+run(
+  'next dev',
+  process.execPath,
+  [resolveNextBin(), 'dev', '--hostname', '127.0.0.1', '--port', '4173'],
+  { cwd: adminWebRoot },
+);
+
+process.on('SIGINT', () => shutdown(0));
+process.on('SIGTERM', () => shutdown(0));

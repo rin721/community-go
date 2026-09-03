@@ -8,7 +8,7 @@ import { route, AdminRouteLink, useAdminNavigation } from '@community-go/admin-f
 import { useFrontendTranslation } from '@community-go/i18n';
 import { useState } from 'react';
 
-export function ReferenceResourcesCreatePage() {
+export default function ReferenceResourcesCreatePage() {
   const { t } = useFrontendTranslation();
   const { navigate } = useAdminNavigation();
   const [name, setName] = useState('');

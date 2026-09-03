@@ -28,7 +28,7 @@ import type { PreferencesInput } from '../../schemas';
  * schema 随插件走（../../schemas），并经 async factory 动态加载以拆分 zod chunk
  * （与迁入前 Host 页的 dynamic import 行为一致）。
  */
-export function SystemToolsPreferencesPage() {
+export default function SystemToolsPreferencesPage() {
   const { t } = useFrontendTranslation();
   const { locale, changeLocale } = useAdminLocale();
   const { notify } = useFeedback();

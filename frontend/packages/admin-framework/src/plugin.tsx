@@ -1,14 +1,17 @@
 /**
- * Admin Framework —— Plugin API。
+ * Admin Framework —— Plugin API（Client 侧）。
  *
- * `@community-go/admin-framework/plugin` 是 Plugin 唯一允许导入的 Framework 子路径。
- * Plugin 使用 route() 引用应用 Route，不手写 URL；AdminRouteLink 与 imperative
- * navigation 委托 Root Provider 中的 Host Navigation Port。
+ * `@community-go/admin-framework/plugin` 是 Plugin 消费导航/Locale 能力的 Client
+ * 子路径。Plugin 页默认按正常 Next 开发方式书写：可用 `next/link`/`useRouter`；
+ * `route()`（纯 target）经 `@community-go/admin-framework/target` 在 Server/Client
+ * 均可 import。AdminRouteLink / useAdminNavigation / useAdminLocale 是项目增强
+ * 能力（symbolic route、跨 Plugin 稳定引用），委托 Host Navigation/Locale Port，
+ * 不替代 Next 原生导航。
  */
 
 'use client';
 
-/* Library entry同时导出 Provider、Hook、类型与 route()，不是应用 Fast Refresh 边界。 */
+/* Library entry同时导出 Provider、Hook，不是应用 Fast Refresh 边界。 */
 /* eslint-disable react-refresh/only-export-components */
 
 import { createContext, useContext, type ReactNode } from 'react';
@@ -139,52 +142,3 @@ export function AdminRouteLink({
     </>
   );
 }
-
-/* ------------------------------------------------------------------ */
-/* 稳定 Route Module Contracts（Plugin 不直接暴露 Next Module API）     */
-/* ------------------------------------------------------------------ */
-
-export type AdminRouteParams = Readonly<Record<string, string>>;
-
-/** 标准错误表示；不暴露 Next reset。 */
-export type AdminRouteError = Readonly<{
-  message: string;
-  code?: string;
-}>;
-
-export type AdminRoutePageProps<Params extends AdminRouteParams = AdminRouteParams> = Readonly<{
-  params: Params;
-  routeId: string;
-}>;
-
-export type AdminRouteLayoutProps<Params extends AdminRouteParams = AdminRouteParams> = Readonly<{
-  params: Params;
-  routeId: string;
-  children: ReactNode;
-}>;
-
-export type AdminRouteLoadingProps<Params extends AdminRouteParams = AdminRouteParams> = Readonly<{
-  params: Params;
-  routeId: string;
-}>;
-
-export type AdminRouteErrorProps = Readonly<{
-  error: AdminRouteError;
-  retry: () => void;
-}>;
-
-export type AdminRoutePageModule<Params extends AdminRouteParams = AdminRouteParams> = Readonly<{
-  default: (props: AdminRoutePageProps<Params>) => ReactNode;
-}>;
-
-export type AdminRouteLayoutModule<Params extends AdminRouteParams = AdminRouteParams> = Readonly<{
-  default: (props: AdminRouteLayoutProps<Params>) => ReactNode;
-}>;
-
-export type AdminRouteLoadingModule<Params extends AdminRouteParams = AdminRouteParams> = Readonly<{
-  default: (props: AdminRouteLoadingProps<Params>) => ReactNode;
-}>;
-
-export type AdminRouteErrorModule = Readonly<{
-  default: (props: AdminRouteErrorProps) => ReactNode;
-}>;

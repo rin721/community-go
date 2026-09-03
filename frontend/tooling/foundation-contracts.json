@@ -115,7 +115,7 @@
       "kind": "framework",
       "owner": "admin surface plugin contract, registry, host capability",
       "maturity": "experimental",
-      "exports": [".", "./navigation", "./plugin", "./route-context"],
+      "exports": [".", "./navigation", "./plugin", "./target"],
       "authorityRoutes": ["/reference-resources"],
       "evidence": [
         "packages/admin-framework/src/framework.test.ts",
@@ -134,7 +134,8 @@
         "./icon-components",
         "./generated/catalog",
         "./generated/composition",
-        "./generated/routes/*"
+        "./generated/routes/*",
+        "./plugin-routes/*"
       ],
       "authorityRoutes": ["/reference-resources"],
       "evidence": ["surfaces/admin/src/shell.test.ts"]

@@ -7,8 +7,8 @@
     "node": ">=20.9.0"
   },
   "scripts": {
-    "dev": "pnpm --filter @community-go/admin-web dev",
-    "build": "pnpm -r --if-present build",
+    "dev": "node tooling/admin-codegen/dev.mjs",
+    "build": "pnpm codegen:admin && pnpm -r --if-present build",
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present test",
     "test:browser": "playwright test",
@@ -22,6 +22,7 @@
     "performance:check": "node tooling/check-performance-budget.mjs",
     "codegen:admin": "node tooling/admin-codegen/codegen.mjs",
     "codegen:admin:check": "node tooling/admin-codegen/codegen.mjs --check",
+    "codegen:admin:watch": "node tooling/admin-codegen/watch.mjs",
     "docs:check": "node tooling/check-docs.mjs",
     "check": "pnpm foundation:check && pnpm architecture:check && pnpm dependency:check && pnpm codegen:admin:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm performance:check && pnpm test:browser && pnpm format:check && pnpm docs:check"
   },

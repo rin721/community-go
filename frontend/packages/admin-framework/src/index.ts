@@ -43,8 +43,10 @@ export {
 } from './navigation-resolution';
 
 export {
-  UNSUPPORTED_DYNAMIC_PLUGIN_ROUTE,
+  HOST_MODE_CANNOT_DEPLOY,
   analyzeHostCapability,
+  type AdminDeploymentMode,
+  DEFAULT_DEPLOYMENT_MODE,
   type AdminHostCapabilityResult,
   type AdminHostNavigationPort,
   type AdminRouteTargetResolver,

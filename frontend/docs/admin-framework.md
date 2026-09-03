@@ -274,28 +274,42 @@ collision`（deterministic fail，不覆盖）；stale 删除只针对 owned art
 - 本工具不提供 mutation 开始后的 OS/IO/process interruption staging/transaction
   commit/rollback，不声称 filesystem-level atomicity。
 
-## 7. Static Export Host Capability
+## 7. Host Deployment Mode（static / static-enumerated / server）
+
+**Mode 属于 Host（apps/admin-web）构建与部署配置，不属于 Plugin Contract**。Plugin
+routes/ 永远按正常 Next App Router 开发；Mode 只决定「当前 Host 能部署哪些 Next
+能力」，不反向改变 Plugin 开发模型——**同一 Plugin 源码在不同 Mode 下无需改写法**。
+Mode 1 → 2 → 3 是部署能力递增，不是三套 Plugin Route Contract。
 
 固定管线：
 
 ```text
 Discovery → Framework Contract Validation → Framework Descriptors
-→ Host Capability Analysis → Host Route Generation
+→ Host Capability Analysis（按 Mode 预检诊断）→ Host Route Generation
+→ Next build（最终能力判断与生成 authority）
 ```
 
-真实 Surface 中的 `[param]` Route：Framework Contract 合法，可进入 descriptors、
-Surface Route Catalog 与 Framework tests。Host capability gate 在 Host adapter
-generation 前判定（不降级为 warning、不等待 Next build）：
+| Mode                | output                        | 动态 `[param]`                      | generateStaticParams      | request-time (headers/cookies/redirect) |
+| ------------------- | ----------------------------- | ----------------------------------- | ------------------------- | --------------------------------------- |
+| `static`（默认）    | `export`                      | 不支持（`HOST_MODE_CANNOT_DEPLOY`） | 不需要                    | 不支持                                  |
+| `static-enumerated` | `export`                      | 支持                                | **必须**（Next 原生枚举） | 不支持                                  |
+| `server`            | 无 export（真实 Next Server） | 支持                                | 不需要（运行时数据）      | 按 Next 原生规则开放                    |
 
-- **默认静态（`ADMIN_SURFACE_DYNAMIC_ROUTES` 缺省/false）**：任何动态 Plugin Route 返回
-  `UNSUPPORTED_DYNAMIC_PLUGIN_ROUTE` 硬失败，不为该 Route 生成 Host adapter——历史行为
-  不变，现有 Plugin 零影响。
-- **可选启用动态（frontend/.env 设 `ADMIN_SURFACE_DYNAMIC_ROUTES=true`）**：允许
-  Plugin 使用 `routes/[id]/page.tsx` 等动态段；但 `output:"export"` 下动态 page
-  **必须自带 `generateStaticParams`**（构建期枚举实体，Next 官方约束），否则报
-  `DYNAMIC_ROUTE_REQUIRES_GENERATE_STATIC_PARAMS`（指明具体 page，确定性失败）。
-  放行时 codegen 会在 surface shim 与 Host adapter 两层**转发 `generateStaticParams`**，
-  Next 才能静态产出 `/xxx/<param>.html`。
+配置：`apps/admin-web/.env` 设 `ADMIN_HOST_DEPLOYMENT_MODE=static | static-enumerated | server`
+（Next 原生加载；codegen/watch 读同一文件；缺省 static）。旧键
+`ADMIN_SURFACE_DYNAMIC_ROUTES=true` 兼容映射为 static-enumerated（过渡，新代码用新键）。
+
+能力预检与诊断（Framework/Generator 不建立第二套路由解释器；Next build 是 authority）：
+
+- **static** 下出现动态 `[param]` Route → `HOST_MODE_CANNOT_DEPLOY`，措辞为「当前
+  Host Deployment Mode = static 无法承载该 Next 能力」，并给出升级路径
+  （static-enumerated / server）——**不是**「Plugin Route 非法」。
+- **static-enumerated** 下动态 page 未自带 `generateStaticParams` →
+  `DYNAMIC_ROUTE_REQUIRES_GENERATE_STATIC_PARAMS`（指明具体 page）。放行时 codegen
+  在 surface shim 与 Host adapter 两层转发 `generateStaticParams`，Next 静态产出
+  `/xxx/<param>.html`；未枚举的新参数不可访问，需重新 build。
+- **server** 放行动态（运行时数据由 Next Server 处理；不做 GS(SP) 要求）；request-time
+  能力由 Next 原生判定。
 
 ```text
 Framework Contract Validity ≠ Current Host Deployability
@@ -305,20 +319,21 @@ Framework Contract Validity ≠ Current Host Deployability
 隔离 Framework fixtures 可包含动态 Route，不进入真实 Surface Host capability inventory；
 Reference Plugin 使用固定路径完成浏览器验证。
 
-### 启用动态路由示例
+### 示例
 
 ```env
-# frontend/.env（复制自 .env.example）
-ADMIN_SURFACE_DYNAMIC_ROUTES=true
+# apps/admin-web/.env（复制自 .env.example）
+ADMIN_HOST_DEPLOYMENT_MODE=static-enumerated
 ```
 
 ```tsx
-// surfaces/admin/plugins/<id>/routes/[id]/page.tsx
+// surfaces/admin/plugins/<id>/routes/[id]/page.tsx —— Server Component（不写 'use client'，
+// generateStaticParams 是 server-only 导出；交互部分拆 client 子组件）
 export default function ItemPage() {
   /* … */
 }
 export function generateStaticParams() {
-  return [{ id: 'a' }, { id: 'b' }]; // 构建期枚举；实体变化需重新构建
+  return [{ id: 'a' }, { id: 'b' }]; // 构建期枚举；实体变化需重新 build
 }
 ```
 

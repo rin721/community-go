@@ -15,8 +15,11 @@
  *   （page/layout/template/loading/error/not-found）机械装配；Next 有语义但当前不装配的
  *   convention（route.ts/default.tsx）报 UNSUPPORTED_NEXT_CONVENTION（Host capability
  *   诊断，非 Plugin Contract 禁止）。
- * - Host Capability Analysis：Static Export Host 对 [param] 路由返回
- *   UNSUPPORTED_DYNAMIC_PLUGIN_ROUTE，不生成 Host adapter 并令 gate 失败（硬失败、不降级）。
+ * - Host Capability Analysis：按 Host Deployment Mode（apps/admin-web/.env 的
+ *   ADMIN_HOST_DEPLOYMENT_MODE：static / static-enumerated / server）预检：
+ *   static 对 [param] 动态路由报 HOST_MODE_CANNOT_DEPLOY；static-enumerated 要求
+ *   动态 page 自带 generateStaticParams（DYNAMIC_ROUTE_REQUIRES_GENERATE_STATIC_PARAMS）；
+ *   server 放行（Next build 始终是最终能力判断与生成 authority）。
  * - Preflighted Deterministic Reconciliation：先完成全部 semantic / Host capability /
  *   Alias/icon validation，并在内存中渲染全部 ExpectedArtifact（kind/path/content），
  *   再做物理 ownership preflight（期望 Host artifact 已存在且不属于本 Generator →
@@ -52,24 +55,26 @@ const hostAppRoot = join(frontendRoot, 'apps', 'admin-web', 'src', 'app');
 const surfacePackageName = '@community-go/admin-surface';
 const navigationGroupsPath = join(pluginsRoot, 'navigation-groups.ts');
 const surfaceIconVocabularyPath = join(surfaceRoot, 'src', 'navigation-icon.ts');
+/** Host 配置 .env 位置（apps/admin-web：Mode 属 Host，Next 也在此目录原生加载 .env）。 */
+const hostEnvPath = join(frontendRoot, 'apps', 'admin-web', '.env');
 
 /* ------------------------------------------------------------------ */
-/* 构建期配置（轻量 .env 加载，零依赖）                                  */
+/* Host Deployment Mode（构建期配置，轻量 .env 加载，零依赖）              */
 /* ------------------------------------------------------------------ */
 
 /**
- * 从 frontend 根 .env 加载配置进 process.env（若尚未设置）。
+ * 从 apps/admin-web/.env 加载配置进 process.env（若尚未设置）。
  *
  * codegen 是独立 Node CLI（不在 Next 进程内），Node 不会自动读 .env；这里做最小
- * 自解析：只读 frontend/.env，跳过注释与空行，支持 KEY=VALUE（值不去引号、不展开）。
+ * 自解析：只读 apps/admin-web/.env（Host 配置的单一来源，Next 也在此目录原生加载），
+ * 跳过注释与空行，支持 KEY=VALUE（值不去引号、不展开）。
  * 已存在的 process.env 优先（不覆盖），保证显式环境变量/CI 可覆盖 .env。
  */
-export function loadFrontendEnv() {
-  const envPath = join(frontendRoot, '.env');
-  if (!existsSync(envPath)) return;
+export function loadHostEnv() {
+  if (!existsSync(hostEnvPath)) return;
   let content;
   try {
-    content = readFileSync(envPath, 'utf8');
+    content = readFileSync(hostEnvPath, 'utf8');
   } catch {
     return;
   }
@@ -85,12 +90,26 @@ export function loadFrontendEnv() {
   }
 }
 
-/** 是否启用 Plugin 动态路由（[id] 等）——默认 false（默认静态）。 */
-export function isDynamicRoutesEnabled() {
-  return process.env.ADMIN_SURFACE_DYNAMIC_ROUTES === 'true';
+/**
+ * 当前 Host Deployment Mode（三档递增，属 Host 构建/部署配置，不属于 Plugin Contract）：
+ * - static：output:"export"，只允许构建期确定的静态 URL；
+ * - static-enumerated：仍 output:"export"，允许 [param] 动态段，动态 page 须自带
+ *   generateStaticParams（Next build 是最终 authority）；
+ * - server：真实 Next Runtime Server，动态/request-time 按 Next 原生规则开放。
+ * 缺省 = static。
+ *
+ * 兼容：上一轮布尔键 ADMIN_SURFACE_DYNAMIC_ROUTES=true 映射为 static-enumerated
+ * （过渡提示；新代码应使用 ADMIN_HOST_DEPLOYMENT_MODE）。
+ */
+export function getDeploymentMode() {
+  const raw = process.env.ADMIN_HOST_DEPLOYMENT_MODE ?? '';
+  const legacy = process.env.ADMIN_SURFACE_DYNAMIC_ROUTES;
+  if (raw === 'static-enumerated' || raw === 'server' || raw === 'static') return raw;
+  if (legacy === 'true') return 'static-enumerated';
+  return 'static';
 }
 
-loadFrontendEnv();
+loadHostEnv();
 
 /**
  * Generator ownership header（单一来源）。
@@ -437,26 +456,31 @@ async function collectSurface() {
   await validateNavigationIconReferences(plugins);
   const dynamic = allRoutes.filter((route) => route.descriptor.paramNames.length > 0);
   if (dynamic.length > 0) {
-    if (!isDynamicRoutesEnabled()) {
-      // 默认静态：未启用动态路由开关 → 任何动态 route 硬失败（与历史行为一致）。
+    const mode = getDeploymentMode();
+    if (mode === 'static') {
+      // static：output:"export" 只允许构建期确定的静态 URL → 动态 route 报 Host Mode 无法承载。
       throw new Error(
-        `Host capability gate 失败 (UNSUPPORTED_DYNAMIC_PLUGIN_ROUTE): 默认静态 Host 不支持动态 Plugin Route；如需启用请在 frontend/.env 设置 ADMIN_SURFACE_DYNAMIC_ROUTES=true\n${dynamic
+        `Host capability gate 失败 (HOST_MODE_CANNOT_DEPLOY): 当前 Host Deployment Mode = static 无法承载动态 Plugin Route；请切换 static-enumerated（动态 page 需自带 generateStaticParams）或 server。Mode 配置见 apps/admin-web/.env（ADMIN_HOST_DEPLOYMENT_MODE）\n${dynamic
           .map((route) => `- ${route.descriptor.routeId} (${route.descriptor.pattern})`)
           .join('\n')}`,
       );
     }
-    // 已启用动态：静态导出 Host 仍要求动态 page 自带 generateStaticParams（构建期枚举）。
-    const missing = dynamic.filter((route) => !route.hasGenerateStaticParams);
-    if (missing.length > 0) {
-      throw new Error(
-        `Host capability gate 失败 (DYNAMIC_ROUTE_REQUIRES_GENERATE_STATIC_PARAMS): output:"export" 下动态 Plugin Route 必须自带 generateStaticParams\n${missing
-          .map(
-            (route) =>
-              `- ${route.descriptor.routeId} (${route.descriptor.pattern}) @ plugins/${route.dirName}/routes/${route.dir || '.'}/page.tsx`,
-          )
-          .join('\n')}`,
-      );
+    if (mode === 'static-enumerated') {
+      // static-enumerated：仍 output:"export"，动态 page 必须自带 generateStaticParams
+      // （Next 原生枚举，构建期；Next build 是最终 authority，此处只做预检诊断）。
+      const missing = dynamic.filter((route) => !route.hasGenerateStaticParams);
+      if (missing.length > 0) {
+        throw new Error(
+          `Host capability gate 失败 (DYNAMIC_ROUTE_REQUIRES_GENERATE_STATIC_PARAMS): 当前 Host Deployment Mode = static-enumerated 要求动态 Plugin Route 自带 generateStaticParams（output:"export" 下构建期枚举；Next build 是最终 authority）\n${missing
+            .map(
+              (route) =>
+                `- ${route.descriptor.routeId} (${route.descriptor.pattern}) @ plugins/${route.dirName}/routes/${route.dir || '.'}/page.tsx`,
+            )
+            .join('\n')}`,
+        );
+      }
     }
+    // server：真实 Next Runtime Server 放行动态（运行时数据由 Next 处理）；不做 GS(SP) 要求。
   }
   return { plugins, allRoutes, aliases };
 }

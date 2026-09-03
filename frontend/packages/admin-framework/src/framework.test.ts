@@ -7,7 +7,7 @@ import {
   isDynamicSegment,
 } from './contract';
 import { resolveAdminRouteTarget, createAdminRegistry, hasDynamicSegments } from './registry';
-import { analyzeHostCapability, UNSUPPORTED_DYNAMIC_PLUGIN_ROUTE } from './host';
+import { analyzeHostCapability, HOST_MODE_CANNOT_DEPLOY } from './host';
 import { encodeSegment, resolveTargetHref, route } from './target';
 import type { AdminRouteCatalog, AdminFileRouteDescriptor } from './contract';
 
@@ -325,18 +325,26 @@ describe('Admin Framework registry — Sidebar navigation (Group → Parent → 
 });
 
 describe('Admin Framework host capability', () => {
-  it('Static Export Host 对动态 Plugin Route 失败且不降级', () => {
-    const result = analyzeHostCapability([listRoute, detailRoute]);
+  it('static Mode 对动态 Plugin Route 失败（HOST_MODE_CANNOT_DEPLOY，措辞指向 Mode）', () => {
+    const result = analyzeHostCapability([listRoute, detailRoute], 'static');
     expect(result.canDeploy).toBe(false);
     expect(result.unsupported.map((route) => route.routeId)).toEqual([
       'reference-resources.detail',
     ]);
-    expect(result.diagnostics.map((d) => d.code)).toContain(UNSUPPORTED_DYNAMIC_PLUGIN_ROUTE);
+    const diag = result.diagnostics.find((d) => d.code === HOST_MODE_CANNOT_DEPLOY);
+    expect(diag).toBeTruthy();
+    expect(diag?.message).toContain('Host Deployment Mode = static');
     expect(hasDynamicSegments('/reference-resources/[id]')).toBe(true);
     expect(hasDynamicSegments('/reference-resources')).toBe(false);
   });
 
-  it('全静态 Route 集合可通过 Host capability gate', () => {
+  it('server Mode 放行动态 Route（运行时数据由 Next Server 处理）', () => {
+    const result = analyzeHostCapability([listRoute, detailRoute], 'server');
+    expect(result.canDeploy).toBe(true);
+    expect(result.diagnostics).toHaveLength(0);
+  });
+
+  it('缺省 mode = static：全静态 Route 集合可通过 Host capability gate', () => {
     const result = analyzeHostCapability([listRoute, createRoute]);
     expect(result.canDeploy).toBe(true);
     expect(result.diagnostics).toHaveLength(0);

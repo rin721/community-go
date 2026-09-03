@@ -46,9 +46,12 @@ dependency ownership、module resolution、typecheck 与 test 服务。
   受控、不动态化）；未知 iconId 由 codegen gate 报 `UNKNOWN_ADMIN_NAVIGATION_ICON`
   硬失败，禁止静默 fallback。插件只声明语义 id，不贡献 ReactNode/SVG/Lucide 组件；
   扩展 vocabulary 属 Surface 治理。
-- 动态路由：**默认静态**——未启用配置时 `[id]` 等动态段由 codegen gate 报
-  `UNSUPPORTED_DYNAMIC_PLUGIN_ROUTE` 硬失败。可在 `frontend/.env` 设
-  `ADMIN_SURFACE_DYNAMIC_ROUTES=true` 启用动态（复制 `.env.example`）；启用后动态
-  page 必须自带 `generateStaticParams`（`output:"export"` 下构建期枚举），否则报
-  `DYNAMIC_ROUTE_REQUIRES_GENERATE_STATIC_PARAMS`。参考插件 `reference-resources`
-  使用固定路径完成浏览器验证。
+- Host Deployment Mode（属 Host 构建/部署配置，不属于 Plugin Contract；Plugin 写法不随
+  Mode 改变）：`apps/admin-web/.env` 设 `ADMIN_HOST_DEPLOYMENT_MODE=static |
+static-enumerated | server`（缺省 static）。**static** 下动态 `[id]` 段报
+  `HOST_MODE_CANNOT_DEPLOY`（措辞指向 Mode 非 Plugin 非法）；**static-enumerated** 下
+  动态 page 必须自带 `generateStaticParams`（Server Component，不写 'use client'；
+  `output:"export"` 构建期枚举），否则报
+  `DYNAMIC_ROUTE_REQUIRES_GENERATE_STATIC_PARAMS`；**server** 放行动态与 request-time
+  能力。Next build 始终是最终 authority。参考插件 `reference-resources` 使用固定路径
+  完成浏览器验证。

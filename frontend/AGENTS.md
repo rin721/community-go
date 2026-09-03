@@ -75,9 +75,11 @@ Motion 主题的唯一当前权威文档是 [Motion Foundation 与语义动效�
 ### 4.4 Admin Page Foundation 与页面进入体验
 
 - 权威 Admin 页面抽象是 `packages/admin-foundation` 的 `AdminPage`/`AdminPageHeader`/`AdminSection`/`AdminToolbar` 等。正常业务/展示页面顶层使用 `AdminPage`（产出统一 section spacing），区段使用 Header/Section/Panel 等标准组合；禁止手写平行页面骨架（裸 `space-y-*` + 自绘 header 的整页结构）。
-- **Page Enter 是统一页面体验，由 Host 自动提供**：`RouteTransition` 在路由变化时对 `.admin-route-content` 设标记，CSS 对 `AdminPage` 的直接区段做统一 fade+rise stagger；正常页面无需、也不得手工为整页包裹 ViewportReveal 或自定义 page-enter 动画。
+- **Page Enter 是统一页面体验，由 Host 自动提供**：`RouteTransition` 在路由变化时对 `.admin-route-content` 设 `data-route-enter`，CSS 对 `AdminPage` 的直接区段做 region 级 choreography（fade+rise stagger，不逐 DOM 元素）；正常页面无需、也不得手工为整页包裹 ViewportReveal 或自定义 page-enter 动画。
+- **方向过渡（forward/back 语义）由 `data-route-kind` + Motion Token 的纯 CSS 驱动**：导航前进时内容区段做克制右入淡入（`admin-enter-forward`，位移 `--motion-distance-enter`）；后退/无方向做上移淡入。**禁止依赖 React `ViewTransition` 组件**——stable react 不导出该 API（canary 专属），运行时为 undefined；方向语义一律走 token/recipe + data-route-kind。
+- **同路由内容替换（TabsView 等）用 `ContentSwapTransition`**：contentKey 驱动子树重挂 + `.ui-content-swap-surface` CSS 淡入（`data-motion-swap` 门控）；不依赖 View Transition。
 - **ViewportReveal（Section Reveal）只用于长页面中真正 below-fold 的内容区域**，不承担、也不代替 Page Enter。reduced-motion 由项目级 Motion Policy（Host）统一控制，页面不自行判断。
-- Page/Pattern 只做组合（使用 Recipe 提供的动效），不定义第二套 animation system。
+- Page/Pattern 只做组合（使用 Recipe 提供的动效），不定义第二套 animation system；业务/Plugin 页面禁内联硬编码 animation/transition 时长或自定义 keyframes（gate 强制）。
 
 ## 5. UI Contract 与组件职责
 

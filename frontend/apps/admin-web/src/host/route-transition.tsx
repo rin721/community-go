@@ -2,10 +2,9 @@
 
 import { useLayoutEffect, useRef } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { ViewTransition, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 import { completeRouteNavigation, commitResolvedHref } from './navigation-lifecycle';
-import { routeTransitionClasses } from './route-transition-constants';
 
 /**
  * RouteTransition —— Host 单点协调 Router commit 观测与内容 reveal。
@@ -15,7 +14,10 @@ import { routeTransitionClasses } from './route-transition-constants';
  *   调用 completeRouteNavigation 收敛活跃导航事务（同 URL 自导航 / search-only /
  *   hash-only 也必须收敛，避免 pendingCount 遗留）。首次挂载只建立基线。
  * - 视觉转场：只在 pathname 真正变化时设置 data-route-enter / data-route-kind，
- *   让内容 stagger 与 forward 滑动只作用于真实页面切换；search/hash-only 变化不重放。
+ *   由 admin-foundation 的 CSS recipe（route-content choreography / 方向位移）消费。
+ *   search/hash-only 变化不重放。**不依赖 React ViewTransition 实验组件**
+ *   （stable react 不导出该 API）；方向过渡由 data-route-kind + Motion Token 的
+ *   纯 CSS 动画实现，reduced-motion 由全局 Motion Policy 统一降级。
  *
  * 防误触发：useSearchParams 的对象身份不保证稳定（可能随渲染变化），因此本组件
  * 比较**序列化后的 resolved href**，只有真实变化才触发 complete / 转场标记。
@@ -60,16 +62,14 @@ export function RouteTransition({ children }: Readonly<{ children: ReactNode }>)
   }, [pathname, searchParams]);
 
   return (
-    <ViewTransition default="none" enter={routeTransitionClasses} exit={routeTransitionClasses}>
-      <div
-        className="admin-route-content min-w-0"
-        data-motion-recipe="route-content"
-        data-route-enter="false"
-        key={pathname}
-        ref={contentRef}
-      >
-        {children}
-      </div>
-    </ViewTransition>
+    <div
+      className="admin-route-content min-w-0"
+      data-motion-recipe="route-content"
+      data-route-enter="false"
+      key={pathname}
+      ref={contentRef}
+    >
+      {children}
+    </div>
   );
 }

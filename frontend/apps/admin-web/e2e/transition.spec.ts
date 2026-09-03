@@ -1,13 +1,14 @@
 import { expect, test, type Page } from '@playwright/test';
 
-// 页面转场验证：View Transitions API 只在客户端导航时播放，无法用等待断言捕获，
-// 因此在页面内启动 rAF 轮询 watcher，记录转场动画（effect.pseudoElement 命中
-// ::view-transition-*）的最大时长与动画名。
+// 页面转场验证：Host 方向过渡由 data-route-kind + CSS animation 驱动（不依赖
+// React ViewTransition 实验组件——stable react 不导出该 API，运行时为 undefined）。
+// 页面内启动 rAF 轮询 watcher，记录实际发生的 CSS 动画（content-*/admin-enter-*）
+// 的最大时长与动画名。
 // 开始时先访问目标路由一次（warm）再回到起点导航：目标路由数据已缓存，导航会以
-// 单次提交完成，方向滑动确定性播放；未缓存路由的首次导航可能拆帧
+// 单次提交完成，方向过渡确定性播放；未缓存路由的首次导航可能拆帧
 // （route data 迟到/useSearchParams Suspense），属于官方已说明的降级行为。
 type TransitionRecord = {
-  sawTransition: boolean;
+  sawDirectionEnter: boolean;
   sawRouteContentEnter: boolean;
   maxDurationMs: number;
   animationNames: string[];
@@ -16,7 +17,7 @@ type TransitionRecord = {
 async function startTransitionWatcher(page: Page) {
   await page.evaluate(() => {
     const record: TransitionRecord = {
-      sawTransition: false,
+      sawDirectionEnter: false,
       sawRouteContentEnter: false,
       maxDurationMs: 0,
       animationNames: [],
@@ -25,18 +26,22 @@ async function startTransitionWatcher(page: Page) {
     const startedAt = performance.now();
     const poll = () => {
       for (const animation of document.getAnimations()) {
-        const effect = animation.effect as (KeyframeEffect & { pseudoElement?: string }) | null;
+        const effect = animation.effect as KeyframeEffect | null;
         const name = (animation as CSSAnimation).animationName;
-        if (!effect?.pseudoElement && name?.includes('content-')) {
-          record.sawRouteContentEnter = true;
-        }
-        if (effect?.pseudoElement?.includes('view-transition')) {
-          record.sawTransition = true;
-          if (name && !record.animationNames.includes(name)) record.animationNames.push(name);
-          const duration = Number(effect.getComputedTiming().duration ?? 0);
-          if (Number.isFinite(duration)) {
-            record.maxDurationMs = Math.max(record.maxDurationMs, duration);
-          }
+        if (!name) continue;
+        if (effect?.pseudoElement) continue; // 不再使用 View Transition pseudo 动画
+        // 只观察页面内容转场动画（content-* / admin-enter-*），排除 progress-grow
+        // 等非转场动画（Top Progress 1.1s 循环不属于页面过渡预算）。
+        if (!name.includes('content-') && !name.includes('admin-enter-')) continue;
+        // 只记录实际播放中的动画：fill:both 的 finished 动画会残留在
+        // getAnimations() 中，若计入会污染后续用例（如后退不应出现 forward 动画）。
+        if (animation.playState === 'finished') continue;
+        if (!record.animationNames.includes(name)) record.animationNames.push(name);
+        if (name.includes('admin-enter-forward')) record.sawDirectionEnter = true;
+        if (name.includes('content-')) record.sawRouteContentEnter = true;
+        const duration = Number(effect?.getComputedTiming().duration ?? 0);
+        if (Number.isFinite(duration)) {
+          record.maxDurationMs = Math.max(record.maxDurationMs, duration);
         }
       }
       if (performance.now() - startedAt < 3000) requestAnimationFrame(poll);
@@ -49,7 +54,7 @@ async function readTransitionRecord(page: Page): Promise<TransitionRecord> {
   return page.evaluate(() => {
     return (
       (window as unknown as { __transitionWatch?: TransitionRecord }).__transitionWatch ?? {
-        sawTransition: false,
+        sawDirectionEnter: false,
         sawRouteContentEnter: false,
         maxDurationMs: 0,
         animationNames: [],
@@ -80,16 +85,17 @@ async function navigateViaSidebar(page: Page, leafName: string) {
   await navigation.getByRole('link', { name: leafName }).click();
 }
 
-// 等待页面动画（含 View Transition）完全结束，保证后续导航从干净状态开始：
-// 快速连发导航时 React/浏览器的转场类型上下文可能尚未释放，会导致断言歧义。
+// 等待页面动画完全结束，保证后续导航从干净状态开始。
 async function waitForTransitionsToSettle(page: Page) {
   await expect
     .poll(async () => {
       const running = await page.evaluate(() => {
         for (const animation of document.getAnimations()) {
-          const effect = animation.effect as (KeyframeEffect & { pseudoElement?: string }) | null;
+          const effect = animation.effect as KeyframeEffect | null;
+          if (effect?.pseudoElement) continue;
+          const name = (animation as CSSAnimation).animationName ?? '';
           if (
-            effect?.pseudoElement?.includes('view-transition') &&
+            (name.includes('content-') || name.includes('admin-enter-')) &&
             animation.playState === 'running'
           ) {
             return true;
@@ -102,9 +108,9 @@ async function waitForTransitionsToSettle(page: Page) {
     .toBe(true);
 }
 
-test('无 Suspense 页面深入导航播放完整方向滑动并清理临时样式', async ({ page }) => {
+test('无 Suspense 页面深入导航播放方向进入并恢复稳定', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  // warm /foundations 使其走缓存路由，导航单次提交、方向滑动确定性播放
+  // warm /foundations 使其走缓存路由，导航单次提交、方向过渡确定性播放
   await page.goto('/foundations');
   await expectHydrated(page);
   await page.goto('/');
@@ -118,33 +124,34 @@ test('无 Suspense 页面深入导航播放完整方向滑动并清理临时样�
 
   await expect(page).toHaveURL(/\/foundations$/);
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-  // 等待转场（最长时间约 360ms）完整结束，包含 React 的样式还原
-  await page.waitForTimeout(600);
+  // 等待转场完整结束（stagger 最末 region delay ~360ms + 动画 180ms → 窗口 <600ms）
+  await page.waitForTimeout(800);
 
   const record = await readTransitionRecord(page);
-  expect(record.sawTransition).toBe(true);
-  // nav-forward 播放方向滑动：退出与进入的位移动画都必须被观察到
-  expect(record.animationNames).toContain('admin-screen-slide-in');
-  expect(record.animationNames).toContain('admin-screen-slide-out');
-  expect(record.maxDurationMs).toBeGreaterThanOrEqual(200);
+  // forward 导航播放方向进入动画（克制右入淡入，CSS token 驱动）
+  expect(record.sawDirectionEnter).toBe(true);
+  expect(record.animationNames).toContain('admin-enter-forward');
   expect(record.sawRouteContentEnter).toBe(true);
+  expect(record.maxDurationMs).toBeLessThanOrEqual(500);
 
-  // 转场结束后 React 必须还原临时 inline 样式（view-transition-name/class）
-  const leftoverCount = await page.evaluate(() => {
-    let count = 0;
-    for (const element of document.querySelectorAll('main, main *')) {
-      const style = (element as HTMLElement).style;
-      if (style.viewTransitionName || style.viewTransitionClass) count += 1;
-    }
-    return count;
+  // 转场结束后内容必须可见且无残留动画（不 opacity:0 卡死）。
+  // 排除 .admin-viewport-reveal：below-fold Section 未滚入时 opacity:0 是 reveal 语义，非卡死。
+  const settled = await page.evaluate(() => {
+    const rc = document.querySelector('.admin-route-content');
+    const regions = rc
+      ? [...rc.querySelectorAll(':scope > .space-y-admin-page > *')].filter(
+          (r) => !r.classList.contains('admin-viewport-reveal'),
+        )
+      : [];
+    return regions.every((r) => getComputedStyle(r).opacity === '1');
   });
-  expect(leftoverCount).toBe(0);
+  expect(settled).toBe(true);
 });
 
 test('Family 页面导航在拆帧场景下保持功能正确且动画不失控', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   // warm /ui-elements/overlays；Family 页含 useSearchParams/Suspense，
-  // 即使走缓存路由也可能在首帧后补挂内容，滑动“整体必现”不作强制断言
+  // 即使走缓存路由也可能在首帧后补挂内容，方向动画“整体必现”不作强制断言
   await warmAndNavigate(page, '/ui-elements/overlays', '浮层与弹出界面');
 
   await expect(page).toHaveURL(/\/ui-elements\/overlays$/);
@@ -153,12 +160,12 @@ test('Family 页面导航在拆帧场景下保持功能正确且动画不失控'
 
   const record = await readTransitionRecord(page);
   // 导航功能正确（URL/标题断言已覆盖）；任何被观察到的动画时长都处于预算内（≤500ms）
-  if (record.sawTransition) {
+  if (record.animationNames.length > 0) {
     expect(record.maxDurationMs).toBeLessThanOrEqual(500);
   }
 });
 
-test('减弱动态效果时转场时长接近零且无位移', async ({ page }) => {
+test('减弱动态效果时方向过渡时长接近零', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.setViewportSize({ width: 1440, height: 900 });
   await warmAndNavigate(page, '/ui-elements/overlays', '浮层与弹出界面');
@@ -168,22 +175,22 @@ test('减弱动态效果时转场时长接近零且无位移', async ({ page }) 
   await page.waitForTimeout(600);
 
   const record = await readTransitionRecord(page);
-  // 即使观察到动画，时长也必须被压低到 0.01ms 级，不产生可感知位移
-  if (record.sawTransition) {
+  // 即使观察到动画，时长也必须被压低（reduced-motion 降级）
+  if (record.animationNames.length > 0) {
     expect(record.maxDurationMs).toBeLessThan(50);
   }
 });
 
-test('浏览器后退不播放方向滑动并正确恢复页面', async ({ page }) => {
+test('浏览器后退不播放方向进入并正确恢复页面', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   // 保持简单历史栈：goto '/' 后前进到 overlays，再后退回 '/'；
-  // 前进段不承担任何滑动断言，无需预热
+  // 前进段不承担方向断言，无需预热
   await page.goto('/');
   await expectHydrated(page);
   await navigateViaSidebar(page, '浮层与弹出界面');
   await expect(page).toHaveURL(/\/ui-elements\/overlays$/);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Overlay 与 Floating Layer');
-  // 等上一转场完全结束，避免快速后退时上下文尚未释放
+  // 等上一转场完全结束，避免快速后退时动画上下文尚未释放
   await waitForTransitionsToSettle(page);
 
   await startTransitionWatcher(page);
@@ -194,7 +201,6 @@ test('浏览器后退不播放方向滑动并正确恢复页面', async ({ page 
   await page.waitForTimeout(600);
 
   const record = await readTransitionRecord(page);
-  // 浏览器后退不携带转场类型（官方行为）：页面瞬时切换，绝不出现 nav-forward 的方向滑动
-  expect(record.animationNames).not.toContain('admin-screen-slide-in');
-  expect(record.animationNames).not.toContain('admin-screen-slide-out');
+  // 浏览器后退不携带 forward 意图：绝不出现 admin-enter-forward 方向进入
+  expect(record.animationNames).not.toContain('admin-enter-forward');
 });

@@ -81,6 +81,10 @@ layout`），区段优先组合 `AdminPageHeader`、`AdminSection`、`AdminToolb
      为整页包 ViewportReveal 或自定义进入动画。
    - ViewportReveal / Section Reveal 只用于长页面真正 below-fold 的内容区。
    - reduced-motion 由项目级 Motion Policy 统一控制，页面不自行判断。
+   - 方向过渡（forward/back）由 Host `data-route-kind` + Motion Token 纯 CSS 自动
+     提供（`admin-enter-forward`）；同路由内容替换用 `ContentSwapTransition`
+     （TabsView 已接入）。Plugin 页无需、也不得自行接动画；**禁止依赖 React
+     `ViewTransition` 组件**（stable react 不导出，运行时 undefined）。
 5. **State**：Plugin 私有状态放 Plugin `stores/`，使用项目 State Foundation /
    Zustand / persist 规范；不得为单个业务重建平行状态基础设施。
 6. **Loading / Error / Empty / Feedback**：优先使用已有统一 State / Feedback Pattern

@@ -126,10 +126,7 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <AdminShellRoot collapsed={sidebarCollapsed}>
       <TopProgress />
-      <aside
-        className="sticky top-0 hidden h-screen flex-col border-r border-border bg-surface lg:flex"
-        style={{ viewTransitionName: 'app-sidebar' }}
-      >
+      <aside className="sticky top-0 hidden h-screen flex-col border-r border-border bg-surface lg:flex">
         <NavigationContent compact={sidebarCollapsed} />
       </aside>
 
@@ -155,10 +152,7 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
       ) : null}
 
       <div className="min-w-0">
-        <header
-          className="sticky top-0 z-sticky flex h-20 items-center gap-3 border-b border-border bg-canvas/90 px-4 backdrop-blur-xl sm:px-6 xl:px-8"
-          style={{ viewTransitionName: 'app-header' }}
-        >
+        <header className="sticky top-0 z-sticky flex h-20 items-center gap-3 border-b border-border bg-canvas/90 px-4 backdrop-blur-xl sm:px-6 xl:px-8">
           <div className="lg:hidden">
             <IconAction label={t('shell.menu')} onPress={() => setMobileNavigationOpen(true)}>
               <Menu className="size-5" />

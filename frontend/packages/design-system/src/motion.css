@@ -69,17 +69,3 @@
  * | progress.trickle | 应用级 Global Pending 的不确定进度延伸（单次延伸至 85% 后保持，不回缩） | Host Top Progress | tokens.css 全局 policy |
  * | progress.complete | Global Pending 完成后的快速补满与淡出 | Host Top Progress | tokens.css 全局 policy |
  */
-
-::view-transition-old(.content-swap) {
-  animation: content-fade-out var(--motion-duration-fast) var(--ease-product) both;
-}
-
-::view-transition-new(.content-swap) {
-  animation: content-fade-in var(--motion-duration-feedback) var(--ease-product) both;
-}
-
-html[data-motion-swap='off']::view-transition-old(.content-swap),
-html[data-motion-swap='off']::view-transition-new(.content-swap) {
-  animation-duration: 0.01ms;
-  animation-delay: 0ms;
-}

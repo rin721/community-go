@@ -15,7 +15,10 @@ export function findSourcePolicyViolations({ content, extension, localPath }) {
     localPath === 'packages/admin-foundation/src/viewport-reveal.tsx';
   const isFeatureSource =
     localPath.startsWith('apps/admin-web/src/app/') ||
-    localPath.startsWith('apps/admin-web/src/page-components/');
+    localPath.startsWith('apps/admin-web/src/page-components/') ||
+    // Plugin 页面实现层（routes/ + src/）与 Host Feature 同等受 Motion/UI 治理；
+    // 声明文件（plugin.ts / plugin.navigation.ts / i18n.ts）为 .ts，不命中 .tsx 规则。
+    localPath.includes('/plugins/');
 
   if (
     extension === '.tsx' &&
@@ -93,6 +96,19 @@ export function findSourcePolicyViolations({ content, extension, localPath }) {
 
   if (extension === '.tsx' && isFeatureSource && /\bdata-motion-[a-z-]+\s*=/.test(content)) {
     violations.push(['Motion governance', 'Feature 不得写入 Motion Policy 或 Recipe 属性']);
+  }
+
+  // 页面不得以内联 style 硬编码动画时长/位移（必须走 Motion Token / Recipe）；
+  // Tailwind duration-\d / delay-\d class 由上一规则覆盖。
+  if (
+    extension === '.tsx' &&
+    isFeatureSource &&
+    /(?:animation|transition)(?:Duration|Delay|TimingFunction)['"]?\s*:\s*['"]?\d/.test(content)
+  ) {
+    violations.push([
+      'Motion governance',
+      'Feature 不得内联硬编码 animation/transition 时长或缓动',
+    ]);
   }
 
   return violations;

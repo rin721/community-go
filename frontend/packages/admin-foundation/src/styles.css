@@ -113,19 +113,25 @@
     animation-duration: 0.01ms;
   }
 
-  /* Route content.enter 在 View Transition 快照交接后作用于真实 Region，避免页面内容突然落位。 */
+  /* Route content.enter：页面内容进入编排（region 级，不逐 DOM 元素）。
+   * - 无方向/后退：轻上移淡入（content.enter recipe）
+   * - forward（导航前进）：克制右入淡入（方向位移语义，非手机重横滑）
+   * - reduced-motion / motion-screen=off：由 Motion Policy 统一降级（见下）。 */
   .admin-route-content[data-route-enter='true']
     > .space-y-admin-page
     > :not(.admin-viewport-reveal) {
     animation:
-      content-fade-in var(--motion-duration-feedback) var(--ease-product) both,
-      content-rise-in var(--motion-duration-feedback) var(--ease-product) both;
+      content-fade-in var(--motion-duration-standard) var(--ease-product) both,
+      content-rise-in var(--motion-duration-standard) var(--ease-product) both;
     animation-delay: var(--motion-delay-route-content);
   }
 
   .admin-route-content[data-route-enter='true'][data-route-kind='forward']
     > .space-y-admin-page
     > :not(.admin-viewport-reveal) {
+    animation:
+      content-fade-in var(--motion-duration-standard) var(--ease-product) both,
+      admin-enter-forward var(--motion-duration-standard) var(--ease-product) both;
     animation-delay: var(--motion-delay-route-forward);
   }
 
@@ -219,91 +225,20 @@
   }
 }
 
-/* Admin screen.enter/screen.exit：方向性页面转场与 Shell 锚定属于 Admin Surface。 */
-::view-transition-old(.nav-forward) {
-  animation:
-    admin-screen-fade-out var(--motion-duration-fast) var(--ease-product) both,
-    admin-screen-slide-out var(--motion-duration-fast) var(--ease-product) both;
-}
-
-::view-transition-new(.nav-forward) {
-  animation:
-    admin-screen-fade-in var(--motion-duration-standard) var(--ease-product)
-      var(--motion-duration-fast) both,
-    admin-screen-slide-in var(--motion-duration-page) var(--ease-product)
-      var(--motion-duration-fast) both;
-}
-
-::view-transition-old(.route-content-ready) {
-  animation: content-fade-out var(--motion-duration-fast) var(--ease-product) both;
-}
-
-::view-transition-new(.route-content-ready) {
-  animation:
-    content-fade-in var(--motion-duration-feedback) var(--ease-product) both,
-    content-rise-in var(--motion-duration-feedback) var(--ease-product) both;
-}
-
-html[data-motion-screen='off']::view-transition-old(.nav-forward),
-html[data-motion-screen='off']::view-transition-new(.nav-forward),
-html[data-motion-screen='off']::view-transition-old(.route-content-ready),
-html[data-motion-screen='off']::view-transition-new(.route-content-ready) {
-  animation-duration: 0.01ms;
-  animation-delay: 0ms;
-}
-
-::view-transition-group(app-header),
-::view-transition-group(app-sidebar) {
-  animation: none;
-  z-index: 100;
-}
-
-::view-transition-old(app-header),
-::view-transition-old(app-sidebar) {
-  display: none;
-}
-
-::view-transition-new(app-header),
-::view-transition-new(app-sidebar) {
-  animation: none;
-}
-
-::view-transition {
-  pointer-events: none;
-}
-
-@keyframes admin-screen-fade-out {
-  to {
-    opacity: 0;
-  }
-}
-@keyframes admin-screen-fade-in {
+/* Admin route-content 方向进入（forward）：克制右入，非手机重横滑；由 data-route-kind 选择。 */
+@keyframes admin-enter-forward {
   from {
     opacity: 0;
+    transform: translateX(var(--motion-distance-enter));
   }
-}
-@keyframes admin-screen-slide-out {
   to {
-    transform: translateX(calc(var(--motion-distance-page) * -1));
-  }
-}
-@keyframes admin-screen-slide-in {
-  from {
-    transform: translateX(var(--motion-distance-page));
+    opacity: 1;
+    transform: translateX(0);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .admin-bulk-bar {
     animation: none;
-  }
-
-  html:not([data-motion-mode='full'])::view-transition-old(.nav-forward),
-  html:not([data-motion-mode='full'])::view-transition-new(.nav-forward),
-  html:not([data-motion-mode='full'])::view-transition-group(.nav-forward),
-  html:not([data-motion-mode='full'])::view-transition-old(.route-content-ready),
-  html:not([data-motion-mode='full'])::view-transition-new(.route-content-ready) {
-    animation-duration: 0.01ms;
-    animation-delay: 0ms;
   }
 }

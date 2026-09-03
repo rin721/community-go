@@ -152,4 +152,15 @@
   html[data-motion-media='off'] .ui-ready-image-element {
     animation-duration: 0.01ms;
   }
+
+  /* content.swap recipe：同路由内容替换（key 重挂）时新内容淡入；
+     data-motion-swap=off 由全局 Motion Policy 降级（0.01ms）。 */
+  .ui-content-swap-surface {
+    animation: content-fade-in var(--motion-duration-feedback) var(--ease-product) both;
+  }
+
+  html[data-motion-swap='off'] .ui-content-swap-surface {
+    animation-duration: 0.01ms;
+    animation-delay: 0ms;
+  }
 }

@@ -400,38 +400,3 @@ export function AdminShellRoot({
     </div>
   );
 }
-
-export function AdminShellLayout({
-  sidebar,
-  mobileNavigation,
-  header,
-  children,
-  collapsed = false,
-}: Readonly<{
-  sidebar: ReactNode;
-  mobileNavigation?: ReactNode;
-  header: ReactNode;
-  children: ReactNode;
-  collapsed?: boolean;
-}>) {
-  return (
-    <AdminShellRoot collapsed={collapsed}>
-      <aside
-        className="sticky top-0 hidden h-screen flex-col border-e border-border bg-surface lg:flex"
-        style={{ viewTransitionName: 'app-sidebar' }}
-      >
-        {sidebar}
-      </aside>
-      {mobileNavigation}
-      <div className="min-w-0">
-        <header
-          className="sticky top-0 z-sticky flex h-20 items-center gap-3 border-b border-border bg-canvas/90 px-4 backdrop-blur-xl sm:px-6 xl:px-8"
-          style={{ viewTransitionName: 'app-header' }}
-        >
-          {header}
-        </header>
-        <main className="mx-auto max-w-screen-2xl p-4 sm:p-6 xl:p-8">{children}</main>
-      </div>
-    </AdminShellRoot>
-  );
-}

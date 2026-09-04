@@ -47,7 +47,9 @@ export default function StatesPage() {
           <div className="flex items-center gap-3 text-info">
             <BusyIndicator label={t('productStates.loading.title')} showLabel />
           </div>
-          <p className="mt-2 text-xs leading-5 text-ink-muted">{t('productStates.loading.description')}</p>
+          <p className="mt-2 text-xs leading-5 text-ink-muted">
+            {t('productStates.loading.description')}
+          </p>
           <div className="mt-5 space-y-3">
             <Skeleton className="h-5 w-2/3" />
             <Skeleton className="h-20 w-full" />
@@ -70,7 +72,10 @@ export default function StatesPage() {
                 description={t(`productStates.${translationKey}.description`)}
                 announcement={recovered ? 'polite' : 'none'}
                 {...(id === 'error' && !recovered
-                  ? { actionLabel: t('productStates.retry'), onAction: () => setErrorRecovered(true) }
+                  ? {
+                      actionLabel: t('productStates.retry'),
+                      onAction: () => setErrorRecovered(true),
+                    }
                   : {})}
               />
             </Panel>

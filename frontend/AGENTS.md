@@ -92,6 +92,7 @@ Motion 主题的唯一当前权威文档是 [Motion Foundation 与语义动效�
 - **Radius/Border** 语义收口：控件、容器、浮层各自有语义圆角；同一组件类别不因页面不同而圆角漂移。
 - **Showcase 与业务同源**：`/ui-elements`、`/page-patterns`、`/page-archetypes`、`/states`、`/motion` 展示的 Element/Pattern/Recipe/State 必须是业务真实使用的同一实现，禁止 Demo 一套、业务另一套。
 - **公共能力修改规则**：修改 Token / Element / Foundation / Pattern / Recipe 前先查全部真实消费者，回答"是否公共问题、哪些应随变、哪些不应变、是否需要新 Variant、是否只是单场景 composition 错误"；禁止修 Page A 顺手改变 Page B/C/D。单业务场景差异留 Plugin composition，不污染公共组件。
+- **Override 是 Architecture Smell**：当业务页需要大量 className override、高 specificity 或自定义 CSS 来塑形时，先检查是否用错了组件层级、是否缺正式 Contract/Pattern，再决定扩展 Pattern——而不是继续堆 override。CSS 主要属于 Design System / UI Adapter / Foundation / 正式 Pattern；Plugin / Page 原则上不新增独立 CSS 文件，优先组合正式 Element / Pattern / Semantic Token 与正常 Tailwind layout utility。
 
 ## 5. UI Contract 与组件职责
 

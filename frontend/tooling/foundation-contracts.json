@@ -90,7 +90,11 @@
         "./toggle-group"
       ],
       "authorityRoutes": ["/ui-elements", "/motion"],
-      "evidence": ["apps/web/src/test/ui-element-foundations.test.tsx"]
+      "evidence": [
+        "apps/web/src/test/ui-element-foundations.test.tsx",
+        "apps/web/e2e/overlays.spec.ts",
+        "apps/web/e2e/data-display.spec.ts"
+      ]
     },
     "@community-go/surface-foundation": {
       "layer": "surface",

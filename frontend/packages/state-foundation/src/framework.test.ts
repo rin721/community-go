@@ -13,13 +13,12 @@ type DemoState = {
 };
 
 function makeInitializer(): StateCreator<DemoState, [['zustand/persist', unknown]]> {
-  return (set) =>
-    ({
-      theme: 'light',
-      transient: 0,
-      setTheme: (t) => set({ theme: t }),
-      bump: () => set((state) => ({ transient: state.transient + 1 })),
-    });
+  return (set) => ({
+    theme: 'light',
+    transient: 0,
+    setTheme: (t) => set({ theme: t }),
+    bump: () => set((state) => ({ transient: state.transient + 1 })),
+  });
 }
 
 describe('createPersistStore', () => {
@@ -65,10 +64,7 @@ describe('createPersistStore', () => {
   });
 
   it('skipHydration 下 rehydrate 前用默认值，后恢复', () => {
-    memory.backend.setItem(
-      KEY,
-      JSON.stringify({ state: { theme: 'dark' }, version: 1 }),
-    );
+    memory.backend.setItem(KEY, JSON.stringify({ state: { theme: 'dark' }, version: 1 }));
     const store = createPersistStore<DemoState>(makeInitializer(), {
       name: KEY,
       version: 1,

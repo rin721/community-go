@@ -49,15 +49,13 @@ export function createIndexedDBBackend(
 
   return {
     getItem: (name) =>
-      withStore<string | undefined>('readonly', (s) => s.get(name) as IDBRequest<string | undefined>).then(
-        (v) => v ?? null,
-      ),
+      withStore<string | undefined>(
+        'readonly',
+        (s) => s.get(name) as IDBRequest<string | undefined>,
+      ).then((v) => v ?? null),
     setItem: (name, value) =>
-      withStore('readwrite', (s) => s.put(value, name)).then(
-        () => undefined,
-      ),
-    removeItem: (name) =>
-      withStore('readwrite', (s) => s.delete(name)).then(() => undefined),
+      withStore('readwrite', (s) => s.put(value, name)).then(() => undefined),
+    removeItem: (name) => withStore('readwrite', (s) => s.delete(name)).then(() => undefined),
     close: () => {
       void open().then((db) => db.close());
     },

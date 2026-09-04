@@ -24,7 +24,9 @@ export function definePersistConfig<S, P = Partial<S>>(
   }
   // 默认 namespace 管控：key 必须以受管前缀开头，防裸 key 散落。
   if (!isManagedKey(config.name)) {
-    throw new Error(`Persist config: name 必须以受管 namespace 前缀开头（community-go.*），收到 ${config.name}`);
+    throw new Error(
+      `Persist config: name 必须以受管 namespace 前缀开头（community-go.*），收到 ${config.name}`,
+    );
   }
   if (config.migrate !== undefined && typeof config.migrate !== 'function') {
     throw new Error('Persist config: migrate 必须是函数');
@@ -41,7 +43,8 @@ export function definePersistConfig<S, P = Partial<S>>(
   if (config.partialize !== undefined) options.partialize = config.partialize;
   if (config.merge !== undefined) options.merge = config.merge;
   if (config.skipHydration !== undefined) options.skipHydration = config.skipHydration;
-  if (config.onRehydrateStorage !== undefined) options.onRehydrateStorage = config.onRehydrateStorage;
+  if (config.onRehydrateStorage !== undefined)
+    options.onRehydrateStorage = config.onRehydrateStorage;
   if (config.storage !== undefined) {
     // storage 的 JSON 层运行时无类型；zustand persist 自行处理 partialize。
     options.storage = config.storage;

@@ -4,21 +4,19 @@ import type { PersistStorage } from 'zustand/middleware';
 import { createPersistStore } from '../framework';
 import { createAsyncStorageFixture } from '../testing/async-storage';
 import { createMemoryStorage } from '../storage/memory';
-import {
-  createHydrationLifecycle,
-  getHydrationLifecycle,
-  type HydrationStatus,
-} from './lifecycle';
+import { createHydrationLifecycle, getHydrationLifecycle, type HydrationStatus } from './lifecycle';
 import { rehydrateStore } from './rehydrate';
 
 type S = { theme: 'light' | 'dark' };
 type SP = Partial<S>;
 
 function makeStore(storage: PersistStorage<SP>) {
-  return createPersistStore<S>(
-    () => ({ theme: 'light' }),
-    { name: 'community-go.test.hydration', version: 1, storage, skipHydration: true },
-  );
+  return createPersistStore<S>(() => ({ theme: 'light' }), {
+    name: 'community-go.test.hydration',
+    version: 1,
+    storage,
+    skipHydration: true,
+  });
 }
 
 const wait = (ms = 20) => new Promise<void>((r) => setTimeout(r, ms));

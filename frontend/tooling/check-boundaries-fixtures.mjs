@@ -182,6 +182,50 @@ assert(
   'UI Adapter 外导入 HeroUI 必须失败',
 );
 
+/* ---- State foundation boundary ---- */
+assert(
+  findImportPolicyViolations({
+    localPath: 'apps/web/src/state/use-shell-store.ts',
+    specifier: 'zustand',
+    workspace: 'apps/web',
+  }).some(([rule]) => rule === 'State foundation'),
+  'apps/web 裸 import zustand 必须失败（应经 @community-go/state-foundation）',
+);
+assert(
+  findImportPolicyViolations({
+    localPath: 'surfaces/plugins/example/stores/list.ts',
+    specifier: 'zustand/middleware',
+    workspace: 'surfaces',
+  }).some(([rule]) => rule === 'State foundation'),
+  'Plugin 裸 import zustand 必须失败',
+);
+assert.deepEqual(
+  findImportPolicyViolations({
+    localPath: 'packages/state-foundation/src/framework.ts',
+    specifier: 'zustand',
+    workspace: 'packages/state-foundation',
+  }),
+  [],
+  'packages/state-foundation 内部 import zustand 应通过（唯一允许层）',
+);
+assert.deepEqual(
+  findImportPolicyViolations({
+    localPath: 'packages/state-foundation/src/framework.ts',
+    specifier: 'zustand/middleware',
+    workspace: 'packages/state-foundation',
+  }),
+  [],
+  'state-foundation import zustand/middleware 应通过',
+);
+assert(
+  findImportPolicyViolations({
+    localPath: 'apps/web/src/app/example.tsx',
+    specifier: '@community-go/state-foundation/testing',
+    workspace: 'apps/web',
+  }).some(([rule]) => rule === 'State foundation'),
+  'production 代码 import testing subpath 必须失败',
+);
+
 assert.deepEqual(
   findImportPolicyViolations({
     localPath: 'packages/ui-adapter/src/action.tsx',

@@ -14,7 +14,9 @@ export function createIsolatedNamespace(store: string, scope = 'test') {
 }
 
 /** 创建带可重置 memory backend 的 storage + 后端句柄。 */
-export function createHarnessStorage<S = unknown>(initial?: Readonly<Record<string, string>>): {
+export function createHarnessStorage<S = unknown>(
+  initial?: Readonly<Record<string, string>>,
+): {
   storage: PersistStorage<S>;
   backend: ReturnType<typeof createMemoryBackend>;
 } {

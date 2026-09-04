@@ -31,7 +31,11 @@ function installFakeIndexedDB() {
   (globalThis as Record<string, unknown>).indexedDB = fake;
   return fake;
 }
-type FakeRequest = { result: unknown; onsuccess: ((ev: unknown) => void) | null; onerror: ((ev: unknown) => void) | null };
+type FakeRequest = {
+  result: unknown;
+  onsuccess: ((ev: unknown) => void) | null;
+  onerror: ((ev: unknown) => void) | null;
+};
 class FakeObjectStore {
   private map = new Map<string, unknown>();
   get(key: string): FakeRequest {

@@ -85,8 +85,13 @@ layout`），区段优先组合 `PageHeader`、`Section`、`Toolbar`、
      提供（`surface-enter-forward`）；同路由内容替换用 `ContentSwapTransition`
      （TabsView 已接入）。Plugin 页无需、也不得自行接动画；**禁止依赖 React
      `ViewTransition` 组件**（stable react 不导出，运行时 undefined）。
-5. **State**：Plugin 私有状态放 Plugin `stores/`，使用项目 State Foundation /
-   Zustand / persist 规范；不得为单个业务重建平行状态基础设施。
+5. **State**：Plugin 私有状态放 Plugin `stores/`（filesystem ownership），用
+   `@community-go/state-foundation` 创建（createAppStore/createPersistStore，持久化
+   经 definePersistConfig 显式 opt-in）；禁止直接 import zustand、禁止 import
+   Host/Shell/其它 Plugin 的私有 store、禁止 import testing subpath 到 production。
+   跨 Host/Plugin Runtime boundary 的能力经正式 Port（locale/navigation），不为
+   Store 建 Port。UI 呈现态（StateSurface/AsyncRegion/productStates）仍属
+   surface-foundation，与 state-foundation 的 Store 机制职责分离。
 6. **Loading / Error / Empty / Feedback**：优先使用已有统一 State / Feedback Pattern
    （StateSurface、AsyncRegion、Feedback 等）；不得各 Plugin 自行设计一套视觉语言。
 7. **i18n**：业务文案遵守现有 i18n runtime 与 ownership 规则（见下），不硬编码本可

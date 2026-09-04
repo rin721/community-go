@@ -21,15 +21,13 @@ describe('definePersistConfig', () => {
   });
 
   it('空 name 抛错', () => {
-    expect(() =>
-      definePersistConfig<DemoState>({ name: ' ', version: 1 }),
-    ).toThrow(/name/);
+    expect(() => definePersistConfig<DemoState>({ name: ' ', version: 1 })).toThrow(/name/);
   });
 
   it('非受管 name（裸 key）抛错', () => {
-    expect(() =>
-      definePersistConfig<DemoState>({ name: 'settings', version: 1 }),
-    ).toThrow(/namespace/);
+    expect(() => definePersistConfig<DemoState>({ name: 'settings', version: 1 })).toThrow(
+      /namespace/,
+    );
   });
 
   it('非法 version（负/非整数）抛错', () => {
@@ -49,4 +47,5 @@ describe('definePersistConfig', () => {
       storage: memory,
     });
     expect(opts.storage).toBe(memory);
-  });});
+  });
+});

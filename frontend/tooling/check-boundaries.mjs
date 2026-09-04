@@ -68,6 +68,7 @@ for (const filePath of files) {
 
   if (
     workspace?.startsWith('packages/') &&
+    !localPath.startsWith('packages/state-foundation/') &&
     /\b(?:window|document|navigator|localStorage|sessionStorage)\b/.test(content)
   ) {
     report(violations, filePath, 'Host leakage', '公共包不得直接访问浏览器 Host API');

@@ -137,6 +137,26 @@ export function findImportPolicyViolations({ localPath, specifier, workspace }) 
   if (specifier.startsWith('@heroui/') && !localPath.startsWith('packages/ui-adapter/')) {
     violations.push(['HeroUI isolation', '直接依赖只能出现在 packages/ui-adapter']);
   }
+  const importsZustand =
+    specifier === 'zustand' ||
+    specifier === 'zustand/middleware' ||
+    specifier === 'zustand/vanilla' ||
+    specifier.startsWith('zustand/');
+  if (importsZustand && !localPath.startsWith('packages/state-foundation/')) {
+    violations.push([
+      'State foundation',
+      'zustand 只能由 packages/state-foundation 直接 import；业务经 @community-go/state-foundation 消费',
+    ]);
+  }
+  // testing subpath 只允许测试/测试工具消费（production 禁止 import）。
+  const isTestingSource = localPath.includes('/testing/') || testPathPattern.test(localPath);
+  if (
+    specifier.startsWith('@community-go/state-foundation/testing') &&
+    !isTestingSource &&
+    !localPath.startsWith('packages/state-foundation/')
+  ) {
+    violations.push(['State foundation', 'testing subpath 禁止被 production 代码 import']);
+  }
   if (specifier === '@community-go/ui-adapter') {
     violations.push(['UI adapter imports', '必须使用 UI Adapter 语义子路径，禁止根 Barrel 导入']);
   }

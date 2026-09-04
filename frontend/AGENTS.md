@@ -94,6 +94,26 @@ Motion 主题的唯一当前权威文档是 [Motion Foundation 与语义动效�
 - **公共能力修改规则**：修改 Token / Element / Foundation / Pattern / Recipe 前先查全部真实消费者，回答"是否公共问题、哪些应随变、哪些不应变、是否需要新 Variant、是否只是单场景 composition 错误"；禁止修 Page A 顺手改变 Page B/C/D。单业务场景差异留 Plugin composition，不污染公共组件。
 - **Override 是 Architecture Smell**：当业务页需要大量 className override、高 specificity 或自定义 CSS 来塑形时，先检查是否用错了组件层级、是否缺正式 Contract/Pattern，再决定扩展 Pattern——而不是继续堆 override。CSS 主要属于 Design System / UI Adapter / Foundation / 正式 Pattern；Plugin / Page 原则上不新增独立 CSS 文件，优先组合正式 Element / Pattern / Semantic Token 与正常 Tailwind layout utility。
 
+### 4.6 State Management（应用状态）
+
+**Authority**：`@community-go/state-foundation`（Universal）。它提供 Store 创建约定（`createAppStore`/`createPersistStore`）、Persistence Contract（`definePersistConfig`：name/version/migrate/partialize 白名单/skipHydration/onRehydrateStorage）、Storage Adapter（`createLocalStorage`/`createSessionStorage`/`createMemoryStorage`/`createIndexedDBStorage`，SSR-safe lazy + unavailablePolicy）、Namespace（`community-go.<scope>.<store>`，防裸 key）、hydration lifecycle（`rehydrateStore` 命令式 / `useHydratedStore` React 门控）、testing 工具（`/testing` subpath）。
+
+**决策链**（新增状态先回答）：
+
+1. 谁拥有这个状态？（Component 本地 → React state；Navigable → Next params/searchParams；Server-visible → Runtime/Cookie；Server State → Next/数据层；Business Truth → Backend）
+2. 需要跨组件/跨刷新共享 → state-foundation Store；需刷新后恢复 → persist + 显式 `partialize` 白名单。
+3. Storage 选择：durable preference → localStorage；current-tab session → sessionStorage；large/async durable → IndexedDB；测试/SSR fixture → memory。
+4. 持久化是 opt-in：只持久化显式 durable 字段（preference/配置/draft），禁止持久化 loading/error/transient UI/raw API response/auth secret。
+
+**规则**：
+
+- `zustand`（含 middleware/vanilla）只允许 `packages/state-foundation` import（gate 强制）；业务经 `@community-go/state-foundation` 消费，禁止裸 import zustand。
+- Store 属于 Owner（filesystem ownership）：Host store → apps/web、Shell store → surfaces shell、Plugin store → `surfaces/plugins/<plugin>/stores/*`；无 Store Registry/Catalog，Plugin 无需中央登记，ADD/REMOVE 不要求改中央配置。
+- Plugin 可拥有私有 store（用 state-foundation）；禁止 import Host/Shell/其它 Plugin 私有 store；跨 Host/Plugin Runtime boundary 的能力经正式 Port（plugin-framework 的 locale/navigation 模式），不因 state-foundation 给每个 store 建 Port。
+- `@community-go/state-foundation/testing` 只允许测试/测试工具消费（production 禁止 import，gate 强制）。
+- **UI State Pattern ≠ Application State Store**：`StateSurface`/`AsyncRegion`/`productStates`/Loading/Empty/Error/Feedback 是 surface-foundation 的 UI 状态呈现；state-foundation 管数据/应用状态机制。二者可同页消费但职责不同。
+- 迁移/兼容：persist key 变更必须保持老用户数据兼容（用 version/migrate 渐进），禁止静默换 key。
+
 ## 5. UI Contract 与组件职责
 
 - `packages/ui-adapter` 是唯一允许直接导入 `@heroui/*` 的边界，Web 入口只导入其聚合后的 Adapter stylesheet。

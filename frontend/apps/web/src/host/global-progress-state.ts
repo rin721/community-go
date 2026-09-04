@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+import { createAppStore } from '@community-go/state-foundation';
 
 /**
  * 应用级 Global Pending 状态（Host 内模块单例）。
@@ -37,7 +37,7 @@ type GlobalProgressState = {
   exitComplete: () => void;
 };
 
-export const useGlobalProgressStore = create<GlobalProgressState>()((set, get) => {
+export const useGlobalProgressStore = createAppStore<GlobalProgressState>((set, get) => {
   /** 每个进行中转换的超时定时器 id；结束任意一次 begin 时清理。 */
   const timeoutIds = new Set<ReturnType<typeof setTimeout>>();
 

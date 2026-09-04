@@ -44,10 +44,10 @@ export function definePersistConfig<S, P = Partial<S>>(
   if (config.onRehydrateStorage !== undefined) options.onRehydrateStorage = config.onRehydrateStorage;
   if (config.storage !== undefined) {
     // storage 的 JSON 层运行时无类型；zustand persist 自行处理 partialize。
-    options.storage = config.storage as PersistOptionsOf<S, P>['storage'];
+    options.storage = config.storage;
   } else {
     // SSR-safe：createLocalStorage 不在模块初始化读 window；默认 durable localStorage。
-    options.storage = createLocalStorage() as PersistOptionsOf<S, P>['storage'];
+    options.storage = createLocalStorage();
   }
   return options;
 }

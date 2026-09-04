@@ -59,19 +59,18 @@ class FakeDB {
     this.stores.set(name, s);
     return s;
   }
-  transaction() {
-    const db = this;
+  transaction = () => {
     return {
-      objectStore(name: string) {
-        let s = db.stores.get(name);
+      objectStore: (name: string) => {
+        let s = this.stores.get(name);
         if (!s) {
           s = new FakeObjectStore();
-          db.stores.set(name, s);
+          this.stores.set(name, s);
         }
         return s;
       },
     };
-  }
+  };
   objectStoreNames = { contains: () => false };
   close() {
     /* noop */

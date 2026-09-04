@@ -19,7 +19,7 @@ function makeInitializer(): StateCreator<DemoState, [['zustand/persist', unknown
       transient: 0,
       setTheme: (t) => set({ theme: t }),
       bump: () => set((state) => ({ transient: state.transient + 1 })),
-    }) as DemoState;
+    });
 }
 
 describe('createPersistStore', () => {

@@ -49,9 +49,15 @@ export function createIndexedDBBackend(
 
   return {
     getItem: (name) =>
-      withStore<string | undefined>('readonly', (s) => s.get(name)).then((v) => v ?? null),
-    setItem: (name, value) => withStore('readwrite', (s) => s.put(value, name)).then(() => undefined),
-    removeItem: (name) => withStore('readwrite', (s) => s.delete(name)).then(() => undefined),
+      withStore<string | undefined>('readonly', (s) => s.get(name) as IDBRequest<string | undefined>).then(
+        (v) => v ?? null,
+      ),
+    setItem: (name, value) =>
+      withStore('readwrite', (s) => s.put(value, name)).then(
+        () => undefined,
+      ),
+    removeItem: (name) =>
+      withStore('readwrite', (s) => s.delete(name)).then(() => undefined),
     close: () => {
       void open().then((db) => db.close());
     },
@@ -74,9 +80,9 @@ export function createIndexedDBStorage<S = unknown>(options?: {
     if (typeof indexedDB === 'undefined') {
       if (policy === 'noop') {
         backend = {
-          getItem: async () => null,
-          setItem: async () => undefined,
-          removeItem: async () => undefined,
+          getItem: () => Promise.resolve(null),
+          setItem: () => Promise.resolve(undefined),
+          removeItem: () => Promise.resolve(undefined),
         };
         return backend;
       }
@@ -90,7 +96,7 @@ export function createIndexedDBStorage<S = unknown>(options?: {
   const raw: StateStorage = {
     getItem: async (name) => {
       const b = resolveBackend();
-      return b.getItem(name);
+      return await b.getItem(name);
     },
     setItem: async (name, value) => {
       const b = resolveBackend();

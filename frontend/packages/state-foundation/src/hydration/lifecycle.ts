@@ -89,9 +89,9 @@ export function createHydrationLifecycle<S>(store: StoreApi<S>): HydrationLifecy
       });
       try {
         const result = api.persist!.rehydrate();
-        if (result && typeof (result as Promise<void>).then === 'function') {
+        if (result && typeof (result).then === 'function') {
           // async storage：等待 onFinishHydration（zustand 内部 catch，不 reject）。
-          void (result as Promise<void>).catch(() => {
+          void (result).catch(() => {
             // zustand 已吞错；错误经 reportError 到达。这里仅兜底 finish。
           });
         } else {

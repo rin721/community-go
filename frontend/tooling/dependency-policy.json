@@ -58,7 +58,10 @@
       "allowed": ["packages/ui-adapter"],
       "category": "ui-primitives"
     },
-    "@heroui/styles": { "owner": "HeroUI vendor styles", "allowed": ["packages/ui-adapter"] },
+    "@heroui/styles": {
+      "owner": "HeroUI vendor styles",
+      "allowed": ["packages/ui-adapter"]
+    },
     "@hookform/resolvers": {
       "owner": "form-schema bridge",
       "allowed": ["packages/form-foundation"]
@@ -94,21 +97,32 @@
       "owner": "accessible interaction primitives",
       "allowed": ["packages/ui-adapter"]
     },
-    "react-dom": { "owner": "Web renderer", "allowed": ["apps/web"] },
+    "react-dom": {
+      "owner": "Web renderer",
+      "allowed": ["apps/web"]
+    },
     "react-hook-form": {
       "owner": "complex form state",
       "allowed": ["packages/form-foundation"],
       "category": "form-state"
     },
-    "react-i18next": { "owner": "React localization binding", "allowed": ["packages/i18n"] },
+    "react-i18next": {
+      "owner": "React localization binding",
+      "allowed": ["packages/i18n"]
+    },
     "zod": {
       "owner": "runtime schema validation",
       "allowed": ["apps/web", "packages/schemas", "surfaces"],
       "category": "schema"
     },
     "zustand": {
-      "owner": "Host-local UI preference state",
-      "allowed": ["apps/web"],
+      "owner": "product state foundation (Store mechanics)",
+      "allowed": ["packages/state-foundation"],
+      "category": "client-state"
+    },
+    "@community-go/state-foundation": {
+      "owner": "product state foundation (Store mechanics)",
+      "allowed": ["apps/web", "surfaces"],
       "category": "client-state"
     }
   }

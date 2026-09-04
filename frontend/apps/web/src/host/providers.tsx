@@ -6,6 +6,7 @@ import { useEffect, type ReactNode } from 'react';
 
 import { appI18n } from '../i18n/i18n';
 import { useShellStore } from '../state/use-shell-store';
+import { rehydrateStore } from '@community-go/state-foundation';
 import { AppLoadingSurface } from './app-loading-surface';
 import { GlobalProgressProvider } from './global-progress-provider';
 import { MotionPolicyProvider } from './motion-policy';
@@ -17,8 +18,10 @@ function RuntimeProviders({ children }: Readonly<{ children: ReactNode }>) {
   const locale = useShellStore((state) => state.locale);
   const hasHydrated = useShellStore((state) => state.hasHydrated);
 
+  // 经 state-foundation hydration lifecycle 幂等触发（正式 lifecycle；hasHydrated 由
+  // shell store 的 onRehydrateStorage 设置，语义与迁移前一致）。
   useEffect(() => {
-    void useShellStore.persist.rehydrate();
+    rehydrateStore(useShellStore);
   }, []);
 
   useEffect(() => {

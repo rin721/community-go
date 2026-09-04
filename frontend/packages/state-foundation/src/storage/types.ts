@@ -26,7 +26,7 @@ export interface AsyncKeyValueStorage {
 export function toStateStorage(raw: WebStorageLike | AsyncKeyValueStorage): StateStorage {
   return {
     getItem: (name) => raw.getItem(name),
-    setItem: (name, value) => raw.setItem(name, value) as unknown,
-    removeItem: (name) => raw.removeItem(name) as unknown,
+    setItem: (name, value) => raw.setItem(name, value),
+    removeItem: (name) => raw.removeItem(name),
   };
 }

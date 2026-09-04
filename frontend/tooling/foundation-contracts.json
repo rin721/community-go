@@ -96,6 +96,18 @@
         "apps/web/e2e/data-display.spec.ts"
       ]
     },
+    "@community-go/state-foundation": {
+      "layer": "universal",
+      "owner": "product state mechanics (store creation, persistence, storage, hydration)",
+      "maturity": "experimental",
+      "exports": [".", "./react", "./testing"],
+      "authorityRoutes": ["/preferences", "/foundations"],
+      "evidence": [
+        "packages/state-foundation/src/framework.test.ts",
+        "packages/state-foundation/src/hydration/lifecycle.test.ts",
+        "packages/state-foundation/src/storage/indexed-db.test.ts"
+      ]
+    },
     "@community-go/surface-foundation": {
       "layer": "surface",
       "owner": "product surface UX patterns and shell presentation",

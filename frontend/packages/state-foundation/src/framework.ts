@@ -39,17 +39,20 @@ type PersistStoreApi<S> = StoreApi<S> & {
  * 创建持久化 store：显式 PersistConfig（persistence 是 opt-in）。
  * 返回类型带 .persist（clearStorage/rehydrate/hasHydrated 等原生 API）。
  * 自动注入 onRehydrateStorage：hydration 失败时报告给 store 的 hydration lifecycle。
+ *
+ * P = PersistedState（partialize 后的子集类型）；缺省 Partial<S>。
+ * JSON 层运行时无类型，P 只用于 config 的类型约束。
  */
-export function createPersistStore<S>(
+export function createPersistStore<S, P = Partial<S>>(
   initializer: StateCreator<S, [['zustand/persist', unknown]]>,
-  config: PersistConfig<S>,
+  config: PersistConfig<S, P>,
 ): UseBoundStore<PersistStoreApi<S>> {
   const userOnRehydrate = config.onRehydrateStorage;
-  const effectiveConfig: PersistConfig<S> = {
+  const effectiveConfig: PersistConfig<S, P> = {
     ...config,
     onRehydrateStorage:
       userOnRehydrate === undefined
-        ? (_state) => (_nextState, error) => {
+        ? () => (_nextState, error) => {
             if (error) getHydrationLifecycle(store)?.reportError(error);
           }
         : (state) => {
@@ -60,9 +63,9 @@ export function createPersistStore<S>(
             };
           },
   };
-  const persistOptions = definePersistConfig<S, Partial<S>>(effectiveConfig);
+  const persistOptions = definePersistConfig<S, P>(effectiveConfig);
   const store = create<S>()(persist(initializer, persistOptions));
-  return store as UseBoundStore<PersistStoreApi<S>>;
+  return store;
 }
 
 /** 读取 store 的 hook 绑定（供非 hook 上下文/测试）。 */

@@ -20,11 +20,23 @@ export function findSourcePolicyViolations({ content, extension, localPath }) {
     // 声明文件（plugin.ts / plugin.navigation.ts / i18n.ts）为 .ts，不命中 .tsx 规则。
     localPath.includes('/plugins/');
 
-  if (
-    extension === '.tsx' &&
-    /(?:^|[\s'"`])(?!(?:data|aria|group-data|peer-data)-)[a-z][a-z-]*-\[[^\]]+\]/m.test(content)
-  ) {
-    violations.push(['Token governance', '禁止 Tailwind arbitrary value']);
+  if (extension === '.tsx' && !isUiAdapter) {
+    // 只在 className 字符串内容里检测 arbitrary value（避免误伤泛型/数组/类型标注）。
+    // 排除 Adapter/受控 state 选择器（data-*/aria-*/group-data-* 与 vendor [&...]）。
+    const classNameRe = /className=(?:"([^"]*)"|`([^`]*)`)/g;
+    let classNameMatch;
+    while ((classNameMatch = classNameRe.exec(content)) !== null) {
+      const raw = classNameMatch[1] ?? classNameMatch[2] ?? '';
+      for (const token of raw.split(/\s+/)) {
+        if (
+          token &&
+          /^[a-z][a-z0-9-]*(?::[a-z0-9-]+)*\[[^\]]+\]$/.test(token) &&
+          !/^(?:data|aria|group-data|peer-data|\[&)/.test(token)
+        ) {
+          violations.push(['Token governance', `禁止 Tailwind arbitrary value: ${token}`]);
+        }
+      }
+    }
   }
 
   if (extension === '.tsx' && !isUiAdapter && /<(?:input|textarea|select|option)\b/.test(content)) {

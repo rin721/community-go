@@ -25,6 +25,17 @@ const safeAdapter = findSourcePolicyViolations({
 });
 assert.deepEqual(safeAdapter, [], 'vendor documented slot/class 只允许在 UI Adapter 内使用');
 
+const safeAdapterArbitrary = findSourcePolicyViolations({
+  content: `<span className="[&>svg]:m-0" /><div className="sm:grid-cols-[repeat(auto-fit,minmax(10rem,1fr))]" />`,
+  extension: '.tsx',
+  localPath: 'packages/ui-adapter/src/action.tsx',
+});
+assert.deepEqual(
+  safeAdapterArbitrary,
+  [],
+  'UI Adapter 内部控制 vendor 的 arbitrary 写法豁免（由 Adapter 收口）',
+);
+
 const negativeFixtures = [
   {
     name: 'arbitrary value',
@@ -143,6 +154,15 @@ const negativeFixtures = [
     },
     rule: 'Motion governance',
   },
+  {
+    name: 'variant arbitrary value',
+    input: {
+      content: `<div className="sm:w-[13px] hover:text-[#333]" />`,
+      extension: '.tsx',
+      localPath: 'apps/web/src/app/example.tsx',
+    },
+    rule: 'Token governance',
+  },
 ];
 
 for (const fixture of negativeFixtures) {
@@ -172,4 +192,4 @@ assert.deepEqual(
   'UI Adapter 内导入 HeroUI 应通过',
 );
 
-console.log(`Boundary fixtures passed: ${negativeFixtures.length + 3} cases.`);
+console.log(`Boundary fixtures passed: ${negativeFixtures.length + 4} cases.`);

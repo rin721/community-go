@@ -144,8 +144,8 @@ export function SurfacesPage() {
                 </div>
                 <Panel appearance="embedded" tone="muted" className="p-4">
                   <SearchBox
-                    label={t('reference.searchLabel')}
-                    placeholder={t('reference.searchPlaceholder')}
+                    label={t('uiElements.searchLabel')}
+                    placeholder={t('uiElements.searchPlaceholder')}
                   />
                   <p className="mt-3 text-sm leading-6 text-ink-muted">{description}</p>
                 </Panel>
@@ -163,8 +163,8 @@ export function SurfacesPage() {
                           compact
                           state="success"
                           icon={<CheckCircle2 className="size-5" />}
-                          title={t('states.success.title')}
-                          description={t('states.success.description')}
+                          title={t('productStates.success.title')}
+                          description={t('productStates.success.description')}
                         />
                       ),
                     },
@@ -176,8 +176,8 @@ export function SurfacesPage() {
                           compact
                           state="empty"
                           icon={<Inbox className="size-5" />}
-                          title={t('states.empty.title')}
-                          description={t('states.empty.description')}
+                          title={t('productStates.empty.title')}
+                          description={t('productStates.empty.description')}
                         />
                       ),
                     },
@@ -189,8 +189,8 @@ export function SurfacesPage() {
                           compact
                           state="warning"
                           icon={<AlertTriangle className="size-5" />}
-                          title={t('states.warning.title')}
-                          description={t('states.warning.description')}
+                          title={t('productStates.warning.title')}
+                          description={t('productStates.warning.description')}
                         />
                       ),
                     },

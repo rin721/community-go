@@ -98,15 +98,15 @@ export function FormElementsPage() {
               >
                 <div className="grid gap-3">
                   <SearchBox
-                    label={t('reference.searchLabel')}
-                    placeholder={t('reference.searchPlaceholder')}
+                    label={t('uiElements.searchLabel')}
+                    placeholder={t('uiElements.searchPlaceholder')}
                     value={searchValue}
                     onValueChange={setSearchValue}
                   />
                   <SearchBox
                     disabled
                     label={t('uiElements.catalog.disabledSearch')}
-                    placeholder={t('reference.searchPlaceholder')}
+                    placeholder={t('uiElements.searchPlaceholder')}
                   />
                 </div>
               </ComponentPreview>
@@ -127,11 +127,11 @@ export function FormElementsPage() {
                     hint={t('uiElements.selectionOverlayHint')}
                     defaultOpen={overlay === 'select'}
                     options={[
-                      { value: 'observe', label: t('formReference.modeOption.observe') },
-                      { value: 'guided', label: t('formReference.modeOption.guided') },
+                      { value: 'observe', label: t('uiElements.formDemo.observe') },
+                      { value: 'guided', label: t('uiElements.formDemo.guided') },
                       {
                         value: 'automatic',
-                        label: t('formReference.modeOption.automatic'),
+                        label: t('uiElements.formDemo.automatic'),
                         disabled: true,
                       },
                       ...Array.from({ length: 12 }, (_, index) => ({
@@ -145,7 +145,7 @@ export function FormElementsPage() {
                   <SelectField
                     disabled
                     label={t('uiElements.disabledField')}
-                    options={[{ value: 'guided', label: t('formReference.modeOption.guided') }]}
+                    options={[{ value: 'guided', label: t('uiElements.formDemo.guided') }]}
                     value="guided"
                   />
                 </div>
@@ -183,13 +183,13 @@ export function FormElementsPage() {
                   <DatePickerField
                     label={t('uiElements.datePicker')}
                     hint={t('uiElements.overlayHint')}
-                    calendarLabel={t('formReference.calendarLabel')}
+                    calendarLabel={t('uiElements.formDemo.calendarLabel')}
                     defaultOpen={overlay === 'date'}
                   />
                   <DatePickerField
                     disabled
                     label={t('uiElements.disabledField')}
-                    calendarLabel={t('formReference.calendarLabel')}
+                    calendarLabel={t('uiElements.formDemo.calendarLabel')}
                   />
                 </div>
               </ComponentPreview>
@@ -220,11 +220,11 @@ export function FormElementsPage() {
                 <RadioGroupField
                   label={t('uiElements.radioGroup')}
                   options={[
-                    { value: 'observe', label: t('formReference.modeOption.observe') },
-                    { value: 'guided', label: t('formReference.modeOption.guided') },
+                    { value: 'observe', label: t('uiElements.formDemo.observe') },
+                    { value: 'guided', label: t('uiElements.formDemo.guided') },
                     {
                       value: 'automatic',
-                      label: t('formReference.modeOption.automatic'),
+                      label: t('uiElements.formDemo.automatic'),
                       disabled: true,
                     },
                   ]}
@@ -263,13 +263,13 @@ export function FormElementsPage() {
                   errors={[
                     {
                       fieldId: 'name',
-                      label: t('formReference.name'),
-                      message: t('formReference.errors.name'),
+                      label: t('uiElements.formDemo.name'),
+                      message: t('uiElements.formDemo.nameError'),
                     },
                     {
                       fieldId: 'owner',
-                      label: t('formReference.owner'),
-                      message: t('formReference.errors.owner'),
+                      label: t('uiElements.formDemo.owner'),
+                      message: t('uiElements.formDemo.ownerError'),
                     },
                   ]}
                   title="请修正以下字段"

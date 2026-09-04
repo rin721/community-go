@@ -15,7 +15,7 @@ export const surfaceShellI18nResources = {
         reference: '参考资源',
         development: '开发',
       },
-      states: {
+      productStates: {
         eyebrow: 'Product semantics',
         title: '正常结果之外，状态也是产品的一部分',
         description: '共享状态语义让 Web 与 Desktop 在失败、等待与受限场景中保持一致且可预测。',
@@ -206,7 +206,7 @@ export const surfaceShellI18nResources = {
         reference: 'Reference',
         development: 'Development',
       },
-      states: {
+      productStates: {
         eyebrow: 'Product semantics',
         title: 'Product states matter beyond the happy path',
         description:

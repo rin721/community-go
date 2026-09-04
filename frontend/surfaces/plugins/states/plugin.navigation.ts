@@ -5,7 +5,7 @@ import type { NavigationContribution } from '@community-go/plugin-framework/navi
  *
  * Group `development`（plugins 公共 Group Alias）下带 routeId 的 Parent，
  * routeId 指向根 Route（/states）。Sidebar label 用 statesNav.*（本 Plugin 私有）；
- * 页面文案 `states.*` 是产品状态语义 shared 词汇，由 Surface 层 i18n（src/i18n.ts）
+ * 页面文案 `productStates.*` 是产品状态语义 shared 词汇，由 Surface 层 i18n（src/i18n.ts）
  * 提供。
  */
 export const navigationContribution = {

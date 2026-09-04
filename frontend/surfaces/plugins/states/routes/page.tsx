@@ -38,16 +38,16 @@ export default function StatesPage() {
   return (
     <Page>
       <PageHeader
-        eyebrow={t('states.eyebrow')}
-        title={t('states.title')}
-        description={t('states.description')}
+        eyebrow={t('productStates.eyebrow')}
+        title={t('productStates.title')}
+        description={t('productStates.description')}
       />
       <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-        <Panel aria-busy="true" aria-label={t('states.loading.title')} className="p-5">
+        <Panel aria-busy="true" aria-label={t('productStates.loading.title')} className="p-5">
           <div className="flex items-center gap-3 text-info">
-            <BusyIndicator label={t('states.loading.title')} showLabel />
+            <BusyIndicator label={t('productStates.loading.title')} showLabel />
           </div>
-          <p className="mt-2 text-xs leading-5 text-ink-muted">{t('states.loading.description')}</p>
+          <p className="mt-2 text-xs leading-5 text-ink-muted">{t('productStates.loading.description')}</p>
           <div className="mt-5 space-y-3">
             <Skeleton className="h-5 w-2/3" />
             <Skeleton className="h-20 w-full" />
@@ -66,11 +66,11 @@ export default function StatesPage() {
                 compact
                 state={displayedState}
                 icon={<DisplayIcon className="size-5" />}
-                title={t(`states.${translationKey}.title`)}
-                description={t(`states.${translationKey}.description`)}
+                title={t(`productStates.${translationKey}.title`)}
+                description={t(`productStates.${translationKey}.description`)}
                 announcement={recovered ? 'polite' : 'none'}
                 {...(id === 'error' && !recovered
-                  ? { actionLabel: t('states.retry'), onAction: () => setErrorRecovered(true) }
+                  ? { actionLabel: t('productStates.retry'), onAction: () => setErrorRecovered(true) }
                   : {})}
               />
             </Panel>

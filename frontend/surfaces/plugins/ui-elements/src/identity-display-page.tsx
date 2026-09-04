@@ -102,7 +102,7 @@ export function IdentityDisplayPage() {
                     {
                       id: 'region',
                       term: t('uiElements.regionTerm'),
-                      description: t('reference.region.apac'),
+                      description: t('uiElements.regionApac'),
                     },
                     {
                       id: 'owner',

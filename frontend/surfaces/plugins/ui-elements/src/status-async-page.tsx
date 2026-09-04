@@ -132,17 +132,17 @@ export function StatusAsyncPage() {
                     ] as const
                   ).map(([state, icon]) => ({
                     id: state,
-                    label: t(`states.${state}.title`),
+                    label: t(`productStates.${state}.title`),
                     content: (
                       <StateSurface
                         compact
                         state={state}
                         icon={icon}
-                        title={t(`states.${state}.title`)}
-                        description={t(`states.${state}.description`)}
+                        title={t(`productStates.${state}.title`)}
+                        description={t(`productStates.${state}.description`)}
                         {...(state === 'error'
                           ? {
-                              actionLabel: t('states.retry'),
+                              actionLabel: t('productStates.retry'),
                               onAction: () => setLastAction('Retry'),
                             }
                           : {})}

@@ -118,7 +118,7 @@ export function DataElementsPage() {
                   'Overflow',
                 ]}
               >
-                <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
+                <div className="flex flex-wrap items-end justify-between gap-4">
                   <ToggleGroup
                     label={t('uiElements.catalog.tableMode')}
                     options={[
@@ -150,29 +150,32 @@ export function DataElementsPage() {
                     </Action>
                   </div>
                 </div>
-                <DataTable
-                  label={t('uiElements.dataTableLabel')}
-                  columns={visibleTableColumns}
-                  density={density}
-                  emptyContent={t('uiElements.dataTableEmpty')}
-                  rows={tableMode === 'empty' ? [] : visibleTableRows}
-                  selection={
-                    tableMode === 'multiple'
-                      ? {
-                          mode: 'multiple',
-                          selectedIds: selectedTableIds,
-                          onSelectionChange: setSelectedTableIds,
-                        }
-                      : {
-                          ...(tableMode === 'empty' ? {} : { selectedId: selectedTableId }),
-                          onSelectionChange: setSelectedTableId,
-                        }
-                  }
-                  sort={{
-                    ...tableSort,
-                    onSortChange: (columnId, direction) => setTableSort({ columnId, direction }),
-                  }}
-                />
+                <div className="mt-4">
+                  <DataTable
+                    label={t('uiElements.dataTableLabel')}
+                    columns={visibleTableColumns}
+                    density={density}
+                    emptyContent={t('uiElements.dataTableEmpty')}
+                    rows={tableMode === 'empty' ? [] : visibleTableRows}
+                    selection={
+                      tableMode === 'multiple'
+                        ? {
+                            mode: 'multiple',
+                            selectedIds: selectedTableIds,
+                            onSelectionChange: setSelectedTableIds,
+                          }
+                        : {
+                            ...(tableMode === 'empty' ? {} : { selectedId: selectedTableId }),
+                            onSelectionChange: setSelectedTableId,
+                          }
+                    }
+                    sort={{
+                      ...tableSort,
+                      onSortChange: (columnId, direction) =>
+                        setTableSort({ columnId, direction }),
+                    }}
+                  />
+                </div>
               </ComponentPreview>
             </div>
           </Section>

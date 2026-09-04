@@ -44,6 +44,7 @@ export const resources = {
           '统一 Design System、UI Contract 与多 Host 边界，让后续业务能力通过组合进入，而不是继续堆叠例外。',
         action: '查看基座地图',
         secondaryAction: '检视状态体系',
+        metricsLabel: '基座指标',
         metrics: {
           boundaries: '受治理边界',
           tokens: '语义 Token',
@@ -123,6 +124,7 @@ export const resources = {
           'Unify the design system, UI contract, and host boundaries so future capabilities arrive through composition, not exceptions.',
         action: 'Explore foundations',
         secondaryAction: 'Review product states',
+        metricsLabel: 'Foundation metrics',
         metrics: {
           boundaries: 'Governed boundaries',
           tokens: 'Semantic tokens',

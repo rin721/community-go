@@ -11,6 +11,7 @@ import {
 } from '../../src/composition';
 import { surfaceShellI18nResources } from '../../src/i18n';
 import { pluginI18nResources as pluginI18nResources_foundations } from '../../plugins/foundations/i18n';
+import { pluginI18nResources as pluginI18nResources_governance } from '../../plugins/governance/i18n';
 import { pluginI18nResources as pluginI18nResources_motion } from '../../plugins/motion/i18n';
 import { pluginI18nResources as pluginI18nResources_page_archetypes } from '../../plugins/page-archetypes/i18n';
 import { pluginI18nResources as pluginI18nResources_page_patterns } from '../../plugins/page-patterns/i18n';
@@ -27,6 +28,7 @@ assertValidSurfaceRegistry(generatedSurfaceRegistry);
 export const generatedSurfaceI18nResources: TranslationResources = mergeTranslationResources(
   surfaceShellI18nResources,
   pluginI18nResources_foundations,
+  pluginI18nResources_governance,
   pluginI18nResources_motion,
   pluginI18nResources_page_archetypes,
   pluginI18nResources_page_patterns,

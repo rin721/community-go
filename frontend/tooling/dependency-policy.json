@@ -34,8 +34,17 @@
       "allowed": ["apps/web", "surfaces"]
     },
     "@community-go/schemas": {
-      "owner": "schema contract primitives",
-      "allowed": ["apps/web", "packages/form-foundation", "surfaces"]
+      "owner": "schema contract and governance api foundation",
+      "allowed": [
+        "apps/web",
+        "packages/form-foundation",
+        "packages/design-system",
+        "packages/surface-foundation",
+        "packages/ui-adapter",
+        "packages/state-foundation",
+        "packages/plugin-framework",
+        "surfaces"
+      ]
     },
     "@community-go/types": {
       "owner": "stable shared types",
@@ -112,7 +121,7 @@
     },
     "zod": {
       "owner": "runtime schema validation",
-      "allowed": ["apps/web", "packages/schemas", "surfaces"],
+      "allowed": ["apps/web", "packages/schemas", "packages/design-system", "surfaces"],
       "category": "schema"
     },
     "zustand": {

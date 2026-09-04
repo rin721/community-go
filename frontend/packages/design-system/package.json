@@ -5,6 +5,18 @@
   "type": "module",
   "exports": {
     "./tokens.css": "./src/tokens.css",
-    "./motion.css": "./src/motion.css"
+    "./motion.css": "./src/motion.css",
+    "./governance": "./src/governance.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@community-go/schemas": "workspace:*",
+    "zod": "^4.5.2"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.11"
   }
 }

@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./governance": "./src/governance.ts",
     "./react": "./src/react/index.ts",
     "./testing": "./src/testing/index.ts"
   },
@@ -13,6 +14,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@community-go/schemas": "workspace:*",
     "zustand": "^5.0.15"
   },
   "devDependencies": {

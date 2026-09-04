@@ -12,9 +12,13 @@
       "layer": "universal",
       "owner": "semantic token and motion primitives",
       "maturity": "stable",
-      "exports": ["./tokens.css", "./motion.css"],
+      "exports": ["./tokens.css", "./motion.css", "./governance"],
       "authorityRoutes": ["/motion", "/ui-elements"],
-      "evidence": ["packages/design-system/src/tokens.css", "packages/design-system/src/motion.css"]
+      "evidence": [
+        "packages/design-system/src/token-source/semantic-colors.ts",
+        "packages/design-system/src/governance.ts",
+        "tooling/token-codegen/codegen.mjs"
+      ]
     },
     "@community-go/form-foundation": {
       "layer": "universal",
@@ -34,11 +38,15 @@
     },
     "@community-go/schemas": {
       "layer": "universal",
-      "owner": "schema contract primitives",
+      "owner": "schema contract and governance api foundation",
       "maturity": "stable",
-      "exports": ["."],
+      "exports": [".", "./governance"],
       "authorityRoutes": ["/foundations"],
-      "evidence": ["packages/schemas/src/index.test.ts"]
+      "evidence": [
+        "packages/schemas/src/index.test.ts",
+        "packages/schemas/src/governance/governance.test.ts",
+        "packages/schemas/src/governance/api.test.ts"
+      ]
     },
     "@community-go/types": {
       "layer": "universal",
@@ -54,6 +62,7 @@
       "maturity": "stable",
       "exports": [
         "./styles.css",
+        "./governance",
         "./action",
         "./accessibility",
         "./async-region",
@@ -100,7 +109,7 @@
       "layer": "universal",
       "owner": "product state mechanics (store creation, persistence, storage, hydration)",
       "maturity": "experimental",
-      "exports": [".", "./react", "./testing"],
+      "exports": [".", "./governance", "./react", "./testing"],
       "authorityRoutes": ["/preferences", "/foundations"],
       "evidence": [
         "packages/state-foundation/src/framework.test.ts",
@@ -114,6 +123,7 @@
       "maturity": "stable",
       "exports": [
         "./styles.css",
+        "./governance",
         "./layout",
         "./shell-navigation",
         "./collection",
@@ -132,9 +142,16 @@
     "@community-go/plugin-framework": {
       "layer": "surface",
       "kind": "framework",
-      "owner": "plugin contract, registry, route target and host capability",
+      "owner": "plugin contract, registry, route target, host capability and development governance channel",
       "maturity": "experimental",
-      "exports": [".", "./navigation", "./plugin", "./target"],
+      "exports": [
+        ".",
+        "./navigation",
+        "./governance",
+        "./governance-channel",
+        "./plugin",
+        "./target"
+      ],
       "authorityRoutes": ["/reference-resources"],
       "evidence": [
         "packages/plugin-framework/src/framework.test.ts",

@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "node tooling/plugin-codegen/dev.mjs",
-    "build": "pnpm codegen:plugins && pnpm -r --if-present build",
+    "build": "pnpm codegen:plugins && pnpm codegen:tokens && pnpm -r --if-present build",
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present test",
     "test:browser": "playwright test",
@@ -23,8 +23,12 @@
     "codegen:plugins": "node tooling/plugin-codegen/codegen.mjs",
     "codegen:plugins:check": "node tooling/plugin-codegen/codegen.mjs --check",
     "codegen:plugins:watch": "node tooling/plugin-codegen/watch.mjs",
+    "codegen:tokens": "node tooling/token-codegen/codegen.mjs",
+    "codegen:tokens:check": "node tooling/token-codegen/codegen.mjs --check",
+    "codegen:governance": "node tooling/authority-codegen/codegen.mjs",
+    "codegen:governance:check": "node tooling/authority-codegen/codegen.mjs --check",
     "docs:check": "node tooling/check-docs.mjs",
-    "check": "pnpm foundation:check && pnpm architecture:check && pnpm dependency:check && pnpm codegen:plugins:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm performance:check && pnpm test:browser && pnpm format:check && pnpm docs:check"
+    "check": "pnpm foundation:check && pnpm architecture:check && pnpm dependency:check && pnpm codegen:plugins:check && pnpm codegen:tokens:check && pnpm codegen:governance:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm performance:check && pnpm test:browser && pnpm format:check && pnpm docs:check"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

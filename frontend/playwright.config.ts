@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
-  testDir: './apps/admin-web/e2e',
+  testDir: './apps/web/e2e',
   fullyParallel: false,
   workers: 1,
   timeout: 30_000,
@@ -22,7 +22,7 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
   webServer: {
-    command: 'pnpm --filter @community-go/admin-web dev',
+    command: 'pnpm --filter @community-go/web dev',
     env: { NEXT_DIST_DIR: '.next' },
     url: 'http://127.0.0.1:4173',
     reuseExistingServer: !process.env.CI,

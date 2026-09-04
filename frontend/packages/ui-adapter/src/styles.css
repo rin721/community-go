@@ -61,7 +61,7 @@
   }
 
   /* Tree（tree.tsx）：层级数据集合的行布局。
-   * Tree 自身轻量透明（Surface 由宿主 Panel/AdminSection 提供）；
+   * Tree 自身轻量透明（Surface 由宿主 Panel/Section 提供）；
    * 行内层级缩进由 --tree-row-level（RAC 提供）驱动，depth step 使用项目
    * --spacing 基础变量（0.25rem × 6 = 1.5rem），不依赖可能不存在的 Tailwind
    * --spacing-* 数值变量。 */

@@ -4,7 +4,7 @@
 
 本文件约束 `/frontend` 内的人工开发与 Coding Agent。这里是全新的统一前端根目录，与根 `webui/`、`old-frontend/` 及其它 legacy product 完全隔离。基础建设阶段不得复制旧系统的 DOM、CSS、组件、页面结构或交互实现，也不得研究后端接口来反向塑造新架构。
 
-技术基线是 React 19、HeroUI v3、Tailwind CSS v4 与 Next.js 16。Next.js 属于 Web Host 与 Product Surface 的 Plugin `routes/`（真实 Next App Router 子树，route 模块在受控白名单内可用 `next/link`/`next/navigation`），不得进入 Feature、Core、Schema、Surface Foundation、UI Contract 或 `admin-framework`。
+技术基线是 React 19、HeroUI v3、Tailwind CSS v4 与 Next.js 16。Next.js 属于 Web Host 与 Product Surface 的 Plugin `routes/`（真实 Next App Router 子树，route 模块在受控白名单内可用 `next/link`/`next/navigation`），不得进入 Feature、Core、Schema、Surface Foundation、UI Contract 或 `plugin-framework`。
 
 ## 2. 架构地图
 
@@ -12,24 +12,24 @@
 Universal Frontend Foundation
   design-system / ui-adapter / form-foundation / i18n / core / schemas / types
         ↓
-Admin Product-Surface
-  packages/admin-foundation      可复用 Admin 视觉、Layout、Pattern、State、Motion
-  packages/admin-framework      Plugin Contract、Route Target、Registry、Host Capability
-  surfaces/admin                Admin Surface 插件实现（private workspace）
+Current Product Surface
+  packages/surface-foundation  可复用 Layout、Pattern、State、Motion、Shell 表现
+  packages/plugin-framework    Plugin Contract、Route Target、Registry、Host Capability
+  surfaces                     唯一 Surface 的 Shell、Composition、Plugin 与生成物
         ↓
 Application = Product Surface × Runtime Host
-  apps/admin-web                Next.js、Browser Runtime、Host Port 实现、Composition Root
+  apps/web                     Next.js、Browser Runtime、Host Port 实现、Composition Root
 ```
 
-Product Surface 与 Runtime Host 是正交维度。Universal 禁止依赖 Surface/Host；Surface 只能依赖 Universal 和自身 Surface；Host 只能装配与其匹配的 Surface。命名固定使用 `packages/<surface>-foundation`、`packages/<surface>-framework` 与 `apps/<surface>-<runtime>`；`surfaces/<surface>` 存放具体 Surface 实现（private workspace，插件非公共 API）。机器可读分类以 `tooling/foundation-policy.json` 为准。唯一真实 Router 是 Next.js App Router；Framework 不读取 pathname、不维护 history、不复制 Next Route Runtime。
+Product Surface 与 Runtime Host 是正交职责。当前只有一个后台产品 Surface 和一个 Web Host，因此位置直接使用 `packages/surface-foundation`、`packages/plugin-framework`、`surfaces` 与 `apps/web`：位置表达 Scope，名称表达 Responsibility，package 表达 Capability。只有出现真实并列产品时，才允许引入用于区分同级 Scope 的产品限定词。Universal 禁止依赖 Surface/Host；Surface 只能依赖 Universal 和自身 Surface；Host 只负责装配 Surface。机器可读分类以 `tooling/foundation-policy.json` 为准。唯一真实 Router 是 Next.js App Router；Framework 不读取 pathname、不维护 history、不复制 Next Route Runtime。
 
 文档入口固定为 `frontend/README.md -> docs/README.md -> 主题 authority -> 局部 README/AGENTS`；任务研究、需求与实施证据只保存在 `docs/changes/<seq-num-name>/`，不作为当前架构 authority。
 
 ## 3. Host 与共享边界
 
-- `admin-web` 是当前唯一 Runtime Host；未来只有真实 Product Surface 与 Runtime 同时出现时才创建新的 Host，不预造空 Desktop 契约。
+- `web` 是当前唯一 Runtime Host；未来只有真实 Product Surface 与 Runtime 同时出现时才创建新的 Host，不预造空 Desktop 契约。
 - Host 拥有启动入口、Shell、路由或窗口结构、平台生命周期、Error Boundary 和平台 Adapter 装配。
-- DOM、History、Storage、Next Router 与 View Transition 生命周期只留在 `apps/admin-web` 或明确 Browser Adapter；Surface Foundation 只能消费 Router/Leave Confirmation 等 Port。
+- DOM、History、Storage、Next Router 与 View Transition 生命周期只留在 `apps/web` 或明确 Browser Adapter；Surface Foundation 只能消费 Router/Leave Confirmation 等 Port。
 - 同一 Product Surface 的 Web/Desktop 未来共享对应 Surface Foundation 与 Feature；不同 Surface 不为表面复用强塞进万能 Pattern。
 - 不得复制两套近似逻辑；也不得为共享而把平台对象、条件分支或最低公分母接口塞入 Core。
 
@@ -66,17 +66,17 @@ Motion 主题的唯一当前权威文档是 [Motion Foundation 与语义动效�
 
 核心原则：**架构提供通用能力，AGENTS 规定当前项目如何正确使用这些能力。**
 
-- 架构层（Plugin Framework、Next Route Contract、State Foundation、UI Adapter、Admin Foundation 等）**不得**因当前某一个具体页面风格，把具体视觉、动画或页面模板硬编码进 Plugin Contract 或公共契约。Plugin Contract 只承载 identity/mount/navigation 等装配信息，不要求声明 page motion / page pattern / animation type / concrete UI library / visual style。
-- 当前 Admin Web 是统一产品：业务页面、Plugin、Feature 开发**必须优先复用和组合项目已有**的 Design Token、UI Element、Admin Pattern、Motion Recipe、State Pattern、Feedback Pattern 与 i18n，不得重新发明平行实现。
-- Plugin ownership 独立 = 业务 ownership 独立，**不等于**视觉/交互/状态/Motion/Page Pattern 可脱离整个 Admin Product 设计体系。
+- 架构层（Plugin Framework、Next Route Contract、State Foundation、UI Adapter、Surface Foundation 等）**不得**因当前某一个具体页面风格，把具体视觉、动画或页面模板硬编码进 Plugin Contract 或公共契约。Plugin Contract 只承载 identity/mount/navigation 等装配信息，不要求声明 page motion / page pattern / animation type / concrete UI library / visual style。
+- 当前 Web Host 承载唯一后台管理产品：业务页面、Plugin、Feature 开发**必须优先复用和组合项目已有**的 Design Token、UI Element、Page Pattern、Motion Recipe、State Pattern、Feedback Pattern 与 i18n，不得重新发明平行实现。
+- Plugin ownership 独立 = 业务 ownership 独立，**不等于**视觉/交互/状态/Motion/Page Pattern 可脱离当前后台产品设计体系。
 - 只有现有能力确实无法表达合理的新场景时，才允许扩展 Foundation；扩展前先评估是否具有通用价值，并走 §9 扩展门禁。禁止在单一业务页面用局部 hack 绕过现有设计体系。
-- `/foundations`、`/motion`、`/ui-elements`、`/admin-patterns`、`/admin-reference`、`/states` 是当前设计与架构能力的 Authority/Showcase；Showcase 展示的能力必须与真实业务页面使用同一套实现，禁止「Showcase 一套、业务另一套」。
+- `/foundations`、`/motion`、`/ui-elements`、`/page-patterns`、`/page-archetypes`、`/states` 是当前设计与架构能力的 Authority/Showcase；Showcase 展示的能力必须与真实业务页面使用同一套实现，禁止「Showcase 一套、业务另一套」。
 
-### 4.4 Admin Page Foundation 与页面进入体验
+### 4.4 Page Foundation 与页面进入体验
 
-- 权威 Admin 页面抽象是 `packages/admin-foundation` 的 `AdminPage`/`AdminPageHeader`/`AdminSection`/`AdminToolbar` 等。正常业务/展示页面顶层使用 `AdminPage`（产出统一 section spacing），区段使用 Header/Section/Panel 等标准组合；禁止手写平行页面骨架（裸 `space-y-*` + 自绘 header 的整页结构）。
-- **Page Enter 是统一页面体验，由 Host 自动提供**：`RouteTransition` 在路由变化时对 `.admin-route-content` 设 `data-route-enter`，CSS 对 `AdminPage` 的直接区段做 region 级 choreography（fade+rise stagger，不逐 DOM 元素）；正常页面无需、也不得手工为整页包裹 ViewportReveal 或自定义 page-enter 动画。
-- **方向过渡（forward/back 语义）由 `data-route-kind` + Motion Token 的纯 CSS 驱动**：导航前进时内容区段做克制右入淡入（`admin-enter-forward`，位移 `--motion-distance-enter`）；后退/无方向做上移淡入。**禁止依赖 React `ViewTransition` 组件**——stable react 不导出该 API（canary 专属），运行时为 undefined；方向语义一律走 token/recipe + data-route-kind。
+- 权威页面抽象是 `packages/surface-foundation` 的 `Page`/`PageHeader`/`Section`/`Toolbar` 等。正常业务/展示页面顶层使用 `Page`（产出统一 section spacing），区段使用 Header/Section/Panel 等标准组合；禁止手写平行页面骨架（裸 `space-y-*` + 自绘 header 的整页结构）。
+- **Page Enter 是统一页面体验，由 Host 自动提供**：`RouteTransition` 在路由变化时对 `.surface-route-content` 设 `data-route-enter`，CSS 对 `Page` 的直接区段做 region 级 choreography（fade+rise stagger，不逐 DOM 元素）；正常页面无需、也不得手工为整页包裹 ViewportReveal 或自定义 page-enter 动画。
+- **方向过渡（forward/back 语义）由 `data-route-kind` + Motion Token 的纯 CSS 驱动**：导航前进时内容区段做克制右入淡入（`surface-enter-forward`，位移 `--motion-distance-enter`）；后退/无方向做上移淡入。**禁止依赖 React `ViewTransition` 组件**——stable react 不导出该 API（canary 专属），运行时为 undefined；方向语义一律走 token/recipe + data-route-kind。
 - **同路由内容替换（TabsView 等）用 `ContentSwapTransition`**：contentKey 驱动子树重挂 + `.ui-content-swap-surface` CSS 淡入（`data-motion-swap` 门控）；不依赖 View Transition。
 - **ViewportReveal（Section Reveal）只用于长页面中真正 below-fold 的内容区域**，不承担、也不代替 Page Enter。reduced-motion 由项目级 Motion Policy（Host）统一控制，页面不自行判断。
 - Page/Pattern 只做组合（使用 Recipe 提供的动效），不定义第二套 animation system；业务/Plugin 页面禁内联硬编码 animation/transition 时长或自定义 keyframes（gate 强制）。
@@ -119,9 +119,9 @@ Motion 主题的唯一当前权威文档是 [Motion Foundation 与语义动效�
 
 - 业务需求必须依次尝试 `Element → Variant → Composition → Pattern → Feature Component`；只有缺失能力具有跨业务通用价值且现有方式无法合理表达时，才允许扩展 Foundation。
 - Foundation 新增必须完成：语义分类 → Contract → Token/Motion/State 对齐 → Vendor 边界检查 → Showcase/Reference → Accessibility → Responsive/Dark/Content → Tests/Gates。缺少任一环节不得登记为 stable。
-- 页面视觉或业务特例不得扩展 Universal Token、公共 Variant、组件默认行为或万能 Pattern；Admin 专属 Token/Recipe 归 `admin-foundation`，不得回流 Universal。
+- 页面视觉或业务特例不得扩展 Universal Token、公共 Variant、组件默认行为或万能 Pattern；当前产品专属 Token/Recipe 归 `surface-foundation`，不得回流 Universal。
 - 公共导出必须登记在 `tooling/foundation-contracts.json`，成熟度只能为 `experimental / stable / replacing / retiring`，并具备 owner、authority route 与验证证据。替换完成后单轨删除旧实现，Git 保存历史。
-- `/ui-elements` 与 `/motion` 是 Universal authority；`/admin-patterns` 是 Admin Contract authority；`/admin-reference` 只证明完整 Page Archetype，不反向成为公共 API。
+- `/ui-elements` 与 `/motion` 是 Universal authority；`/page-patterns` 是 Page Pattern Contract authority；`/page-archetypes` 只证明完整 Page Archetype，不反向成为公共 API。
 
 ## 10. 质量门禁
 

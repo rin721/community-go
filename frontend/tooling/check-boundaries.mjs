@@ -22,6 +22,7 @@ async function collectSourceFiles(directory) {
 function workspaceOf(filePath) {
   const localPath = relative(frontendRoot, filePath).split(sep);
   if (!['apps', 'packages', 'surfaces'].includes(localPath[0] ?? '')) return null;
+  if (localPath[0] === 'surfaces') return 'surfaces';
   return localPath.slice(0, 2).join('/');
 }
 
@@ -72,12 +73,12 @@ for (const filePath of files) {
     report(violations, filePath, 'Host leakage', '公共包不得直接访问浏览器 Host API');
   }
 
-  // Plugin（surfaces/admin/plugins/**）是被 Web Host 装配的真实 client/route 代码：
+  // Plugin（surfaces/plugins/**）是被 Web Host 装配的真实 client/route 代码：
   // 在 Client boundary 正常使用 Web API（window.setTimeout、document/URL 下载等）合法，
-  // 不属 Host leakage。Surface 公共基础设施（surfaces/<surface>/src，被公共消费）
+  // 不属 Host leakage。Surface 公共基础设施（surfaces/src，被公共消费）
   // 才不得直接访问浏览器 Host API。
   if (
-    workspace?.startsWith('surfaces/') &&
+    workspace === 'surfaces' &&
     !localPath.includes('/plugins/') &&
     /\b(?:window|document|navigator|localStorage|sessionStorage)\b/.test(content)
   ) {

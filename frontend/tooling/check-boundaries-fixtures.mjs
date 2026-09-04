@@ -5,9 +5,18 @@ import { findImportPolicyViolations, findSourcePolicyViolations } from './bounda
 const safeSource = findSourcePolicyViolations({
   content: `<Action className="bg-surface text-ink" onPress={save}>保存</Action>`,
   extension: '.tsx',
-  localPath: 'apps/admin-web/src/app/preferences/safe.tsx',
+  localPath: 'apps/web/src/app/preferences/safe.tsx',
 });
 assert.deepEqual(safeSource, [], '项目语义 class 与项目 Action 应通过边界规则');
+
+assert(
+  findImportPolicyViolations({
+    localPath: 'apps/web/src/app/example.tsx',
+    specifier: `@community-go/${'ad' + 'min-'}framework`,
+    workspace: 'apps/web',
+  }).some(([rule]) => rule === 'Architecture naming'),
+  '旧 package namespace 必须失败',
+);
 
 const safeAdapter = findSourcePolicyViolations({
   content: `<Modal.Dialog className="modal--custom" data-slot="dialog" />`,
@@ -22,7 +31,7 @@ const negativeFixtures = [
     input: {
       content: `<div className="h-[37px]" />`,
       extension: '.tsx',
-      localPath: 'apps/admin-web/src/app/example.tsx',
+      localPath: 'apps/web/src/app/example.tsx',
     },
     rule: 'Token governance',
   },
@@ -31,7 +40,7 @@ const negativeFixtures = [
     input: {
       content: `<select><option>one</option></select>`,
       extension: '.tsx',
-      localPath: 'apps/admin-web/src/app/example.tsx',
+      localPath: 'apps/web/src/app/example.tsx',
     },
     rule: 'UI contract',
   },
@@ -40,7 +49,7 @@ const negativeFixtures = [
     input: {
       content: `<div className="ui-overlay-surface" />`,
       extension: '.tsx',
-      localPath: 'apps/admin-web/src/app/example.tsx',
+      localPath: 'apps/web/src/app/example.tsx',
     },
     rule: 'UI contract',
   },
@@ -49,7 +58,7 @@ const negativeFixtures = [
     input: {
       content: `<Vendor classNames={{ root: 'bg-surface' }} />`,
       extension: '.tsx',
-      localPath: 'apps/admin-web/src/app/example.tsx',
+      localPath: 'apps/web/src/app/example.tsx',
     },
     rule: 'Vendor contract',
   },
@@ -58,7 +67,7 @@ const negativeFixtures = [
     input: {
       content: `.page [data-slot="dialog"] { border: 0; }`,
       extension: '.css',
-      localPath: 'apps/admin-web/src/feature.css',
+      localPath: 'apps/web/src/feature.css',
     },
     rule: 'Vendor contract',
   },
@@ -67,7 +76,7 @@ const negativeFixtures = [
     input: {
       content: `.page { border: 0 !important; }`,
       extension: '.css',
-      localPath: 'apps/admin-web/src/feature.css',
+      localPath: 'apps/web/src/feature.css',
     },
     rule: 'Style governance',
   },
@@ -76,7 +85,7 @@ const negativeFixtures = [
     input: {
       content: `<div style={{ color: '#fff' }} />`,
       extension: '.tsx',
-      localPath: 'apps/admin-web/src/app/example.tsx',
+      localPath: 'apps/web/src/app/example.tsx',
     },
     rule: 'Token governance',
   },
@@ -85,7 +94,7 @@ const negativeFixtures = [
     input: {
       content: `<Suspense fallback={null}><Page /></Suspense>`,
       extension: '.tsx',
-      localPath: 'apps/admin-web/src/app/example.tsx',
+      localPath: 'apps/web/src/app/example.tsx',
     },
     rule: 'Content continuity',
   },
@@ -94,7 +103,7 @@ const negativeFixtures = [
     input: {
       content: `@keyframes local-enter { from { opacity: 0; } }`,
       extension: '.css',
-      localPath: 'apps/admin-web/src/app/example.css',
+      localPath: 'apps/web/src/app/example.css',
     },
     rule: 'Motion governance',
   },
@@ -103,7 +112,7 @@ const negativeFixtures = [
     input: {
       content: `<div className="duration-300" />`,
       extension: '.tsx',
-      localPath: 'apps/admin-web/src/app/example.tsx',
+      localPath: 'apps/web/src/app/example.tsx',
     },
     rule: 'Motion governance',
   },
@@ -112,7 +121,7 @@ const negativeFixtures = [
     input: {
       content: `const observer = new IntersectionObserver(() => undefined);`,
       extension: '.tsx',
-      localPath: 'apps/admin-web/src/app/example.tsx',
+      localPath: 'apps/web/src/app/example.tsx',
     },
     rule: 'Host isolation',
   },
@@ -121,7 +130,7 @@ const negativeFixtures = [
     input: {
       content: `window.matchMedia('(prefers-reduced-motion: reduce)');`,
       extension: '.tsx',
-      localPath: 'apps/admin-web/src/app/example.tsx',
+      localPath: 'apps/web/src/app/example.tsx',
     },
     rule: 'Host isolation',
   },
@@ -130,7 +139,7 @@ const negativeFixtures = [
     input: {
       content: `<div data-motion-recipe="screen" />`,
       extension: '.tsx',
-      localPath: 'apps/admin-web/src/page-components/example.tsx',
+      localPath: 'apps/web/src/page-components/example.tsx',
     },
     rule: 'Motion governance',
   },
@@ -146,9 +155,9 @@ for (const fixture of negativeFixtures) {
 
 assert(
   findImportPolicyViolations({
-    localPath: 'apps/admin-web/src/app/example.tsx',
+    localPath: 'apps/web/src/app/example.tsx',
     specifier: '@heroui/react',
-    workspace: 'apps/admin-web',
+    workspace: 'apps/web',
   }).some(([rule]) => rule === 'HeroUI isolation'),
   'UI Adapter 外导入 HeroUI 必须失败',
 );

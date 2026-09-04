@@ -14,7 +14,7 @@ import type { ReactNode } from 'react';
  * 语义边界：
  * - Tree = 层级数据集合的浏览 / 展开 / 行选择 / 行动作；
  * - ListBox/`ui-option` = 扁平可选集合；Disclosure = 单一内容区展开；
- *   StepNavigation = 有限有序过程；Admin Shell Navigation = 页面导航拓扑。
+ *   StepNavigation = 有限有序过程；Shell Navigation = 页面导航拓扑。
  *   本组件不承担页面导航，也不是扁平选项集合。
  *
  * 底层 DOM 使用 React Aria Tree（treegrid/row/gridcell 是 RAC 为 row focus、

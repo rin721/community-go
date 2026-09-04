@@ -6,37 +6,42 @@ import {
 } from './foundation-policy.mjs';
 
 const universal = { layer: 'universal' };
-const admin = { layer: 'surface', surface: 'admin' };
-const adminFramework = { layer: 'surface', surface: 'admin', kind: 'framework' };
-const adminSurface = { layer: 'surface', surface: 'admin', kind: 'surface' };
-const product = { layer: 'surface', surface: 'product' };
-const adminWeb = { layer: 'host', surface: 'admin', runtime: 'web' };
+const surfaceFoundation = { layer: 'surface', kind: 'foundation' };
+const pluginFramework = { layer: 'surface', kind: 'framework' };
+const surface = { layer: 'surface', kind: 'surface' };
+const web = { layer: 'host', runtime: 'web' };
 
 assert.equal(isFoundationDependencyAllowed(universal, universal), true);
-assert.equal(isFoundationDependencyAllowed(universal, admin), false);
-assert.equal(isFoundationDependencyAllowed(admin, universal), true);
-assert.equal(isFoundationDependencyAllowed(admin, product), false);
-assert.equal(isFoundationDependencyAllowed(adminWeb, admin), true);
-assert.equal(isFoundationDependencyAllowed(adminWeb, product), false);
-assert.equal(getFoundationWorkspaceNameViolation('packages/admin-foundation', admin), null);
+assert.equal(isFoundationDependencyAllowed(universal, surfaceFoundation), false);
+assert.equal(isFoundationDependencyAllowed(surfaceFoundation, universal), true);
+assert.equal(isFoundationDependencyAllowed(surfaceFoundation, pluginFramework), true);
+assert.equal(isFoundationDependencyAllowed(web, surface), true);
+assert.equal(isFoundationDependencyAllowed(web, web), false);
 assert.equal(
-  getFoundationWorkspaceNameViolation('packages/admin-patterns', admin),
-  'Surface Foundation 命名必须为 packages/<surface>-foundation',
+  getFoundationWorkspaceNameViolation('packages/surface-foundation', surfaceFoundation),
+  null,
 );
-assert.equal(getFoundationWorkspaceNameViolation('packages/admin-framework', adminFramework), null);
 assert.equal(
-  getFoundationWorkspaceNameViolation('packages/admin-codegen', adminFramework),
-  'Surface Framework 命名必须为 packages/<surface>-framework',
+  getFoundationWorkspaceNameViolation('packages/page-patterns', surfaceFoundation),
+  'Surface Foundation 必须位于 packages/surface-foundation',
 );
-assert.equal(getFoundationWorkspaceNameViolation('surfaces/admin', adminSurface), null);
 assert.equal(
-  getFoundationWorkspaceNameViolation('packages/admin-surface', adminSurface),
-  'Product Surface 实现必须位于 surfaces/ 目录',
+  getFoundationWorkspaceNameViolation('packages/plugin-framework', pluginFramework),
+  null,
 );
-assert.equal(getFoundationWorkspaceNameViolation('apps/admin-web', adminWeb), null);
 assert.equal(
-  getFoundationWorkspaceNameViolation('apps/web', adminWeb),
-  'Host 命名必须为 apps/<surface>-<runtime>',
+  getFoundationWorkspaceNameViolation('packages/plugin-contracts', pluginFramework),
+  'Plugin Framework 必须位于 packages/plugin-framework',
+);
+assert.equal(getFoundationWorkspaceNameViolation('surfaces', surface), null);
+assert.equal(
+  getFoundationWorkspaceNameViolation('surfaces/product', surface),
+  'Product Surface 实现必须以 surfaces 为 workspace 根目录',
+);
+assert.equal(getFoundationWorkspaceNameViolation('apps/web', web), null);
+assert.equal(
+  getFoundationWorkspaceNameViolation('apps/product-web', web),
+  'Web Host 必须位于 apps/web',
 );
 
 console.log('Foundation fixtures passed: 14 cases.');

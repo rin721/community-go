@@ -6,16 +6,16 @@ export function findSourcePolicyViolations({ content, extension, localPath }) {
   const isTest = testPathPattern.test(localPath);
   const isMotionKeyframeAuthority = [
     'packages/design-system/src/motion.css',
-    'packages/admin-foundation/src/styles.css',
+    'packages/surface-foundation/src/styles.css',
   ].includes(localPath);
   const isHostMotionBoundary =
-    localPath.startsWith('apps/admin-web/src/host/') ||
-    // ViewportReveal（Admin reveal recipe 实现）随 ownership 提升到 admin-foundation，
+    localPath.startsWith('apps/web/src/host/') ||
+    // ViewportReveal（Surface reveal recipe 实现）随 ownership 提升到 surface-foundation，
     // 是 IntersectionObserver 的唯一合法实现位置之一（Observer 生命周期语义不变）。
-    localPath === 'packages/admin-foundation/src/viewport-reveal.tsx';
+    localPath === 'packages/surface-foundation/src/viewport-reveal.tsx';
   const isFeatureSource =
-    localPath.startsWith('apps/admin-web/src/app/') ||
-    localPath.startsWith('apps/admin-web/src/page-components/') ||
+    localPath.startsWith('apps/web/src/app/') ||
+    localPath.startsWith('apps/web/src/page-components/') ||
     // Plugin 页面实现层（routes/ + src/）与 Host Feature 同等受 Motion/UI 治理；
     // 声明文件（plugin.ts / plugin.navigation.ts / i18n.ts）为 .ts，不命中 .tsx 规则。
     localPath.includes('/plugins/');
@@ -116,6 +116,11 @@ export function findSourcePolicyViolations({ content, extension, localPath }) {
 
 export function findImportPolicyViolations({ localPath, specifier, workspace }) {
   const violations = [];
+  const legacyArchitecturePackagePrefix = `@community-go/${'ad' + 'min-'}`;
+
+  if (specifier.startsWith(legacyArchitecturePackagePrefix)) {
+    violations.push(['Architecture naming', '禁止恢复旧 package namespace']);
+  }
 
   if (specifier.startsWith('@heroui/') && !localPath.startsWith('packages/ui-adapter/')) {
     violations.push(['HeroUI isolation', '直接依赖只能出现在 packages/ui-adapter']);
@@ -123,19 +128,25 @@ export function findImportPolicyViolations({ localPath, specifier, workspace }) 
   if (specifier === '@community-go/ui-adapter') {
     violations.push(['UI adapter imports', '必须使用 UI Adapter 语义子路径，禁止根 Barrel 导入']);
   }
-  if (workspace?.startsWith('packages/') && specifier.startsWith('@community-go/admin-web')) {
+  const importsWebHost =
+    specifier === '@community-go/web' || specifier.startsWith('@community-go/web/');
+  const importsSurface =
+    specifier === '@community-go/surface' || specifier.startsWith('@community-go/surface/');
+
+  if (workspace?.startsWith('packages/') && importsWebHost) {
     violations.push(['Dependency direction', '公共包不得依赖 Runtime Host']);
   }
-  if (workspace?.startsWith('surfaces/') && specifier.startsWith('@community-go/admin-web')) {
+  if ((workspace === 'surfaces' || workspace?.startsWith('surfaces/')) && importsWebHost) {
     violations.push(['Dependency direction', 'Surface 实现不得依赖 Runtime Host']);
   }
   if (
     (workspace?.startsWith('apps/') || workspace?.startsWith('packages/')) &&
-    specifier.startsWith('@community-go/admin-surface/plugins')
+    (specifier === '@community-go/surface/plugins' ||
+      specifier.startsWith('@community-go/surface/plugins/'))
   ) {
     violations.push(['Surface private boundary', 'Host/公共包不得导入 Surface Plugin 内部实现']);
   }
-  if (workspace?.startsWith('packages/') && specifier.startsWith('@community-go/admin-surface')) {
+  if (workspace?.startsWith('packages/') && importsSurface) {
     violations.push(['Dependency direction', '公共包不得依赖 Product Surface 实现']);
   }
   if (workspace === 'packages/core') {

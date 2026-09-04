@@ -25,15 +25,20 @@ async function exists(path) {
   }
 }
 
-for (const root of ['apps', 'packages', 'surfaces']) {
+async function registerWorkspace(workspace) {
+  const manifestPath = join(frontendRoot, workspace, 'package.json');
+  if (!(await exists(manifestPath))) return;
+  manifests.set(workspace, JSON.parse(await readFile(manifestPath, 'utf8')));
+}
+
+for (const root of ['apps', 'packages']) {
   for (const entry of await readdir(join(frontendRoot, root), { withFileTypes: true })) {
     if (!entry.isDirectory()) continue;
     const workspace = `${root}/${entry.name}`;
-    const manifestPath = join(frontendRoot, workspace, 'package.json');
-    if (!(await exists(manifestPath))) continue;
-    manifests.set(workspace, JSON.parse(await readFile(manifestPath, 'utf8')));
+    await registerWorkspace(workspace);
   }
 }
+await registerWorkspace('surfaces');
 
 const registeredWorkspaces = new Set(Object.keys(policy.workspaces));
 for (const workspace of manifests.keys()) {
@@ -89,7 +94,7 @@ for (const [packageName, contract] of Object.entries(registry.contracts)) {
 
 for (const [workspace, manifest] of manifests) {
   if (
-    (workspace.startsWith('packages/') || workspace.startsWith('surfaces/')) &&
+    (workspace.startsWith('packages/') || workspace === 'surfaces') &&
     !registry.contracts[manifest.name]
   ) {
     violations.push(`${manifest.name}: 公共 package/surface 缺少 Contract registry`);
@@ -105,6 +110,39 @@ async function collectSourceFiles(directory) {
     else if (/\.(?:ts|tsx)$/.test(entry.name)) files.push(path);
   }
   return files;
+}
+
+const legacyArchitecturePaths = [
+  join(frontendRoot, 'packages', `${'ad' + 'min-'}framework`),
+  join(frontendRoot, 'packages', `${'ad' + 'min-'}foundation`),
+  join(frontendRoot, 'surfaces', `${'ad' + 'min'}`),
+  join(frontendRoot, 'apps', `${'ad' + 'min-'}web`),
+  join(frontendRoot, 'tooling', `${'ad' + 'min-'}codegen`),
+];
+for (const legacyPath of legacyArchitecturePaths) {
+  if (await exists(legacyPath)) {
+    violations.push(`${relative(frontendRoot, legacyPath)}: 禁止恢复旧架构目录`);
+  }
+}
+
+const architectureNamingRoots = [
+  join(frontendRoot, 'packages', 'plugin-framework', 'src'),
+  join(frontendRoot, 'packages', 'surface-foundation', 'src'),
+  join(frontendRoot, 'surfaces', 'src'),
+  join(frontendRoot, 'apps', 'web', 'src', 'host'),
+  join(frontendRoot, 'apps', 'web', 'src', 'shell'),
+  join(frontendRoot, 'apps', 'web', 'src', 'i18n'),
+];
+for (const root of architectureNamingRoots) {
+  for (const file of await collectSourceFiles(root)) {
+    const content = await readFile(file, 'utf8');
+    const redundantName = /\bAdmin[A-Z][A-Za-z0-9_]*/.exec(content)?.[0];
+    if (redundantName) {
+      violations.push(
+        `${relative(frontendRoot, file).split(sep).join('/')}: 架构核心禁止重复上下文命名 ${redundantName}`,
+      );
+    }
+  }
 }
 
 const vendorOwners = new Map([
@@ -129,11 +167,11 @@ for (const file of await collectSourceFiles(frontendRoot)) {
     }
     if (
       (specifier === 'next' || specifier.startsWith('next/')) &&
-      !localPath.startsWith('apps/admin-web/') &&
+      !localPath.startsWith('apps/web/') &&
       // Plugin routes/ 是真实 Next App Router 子树：route 模块在受控白名单内可用
-      // next/link 与 next/navigation（见 surfaces/admin/AGENTS.md）。其它层仍禁。
-      !/^surfaces\/admin\/plugins\/[^/]+\/routes\//.test(localPath) &&
-      !/^surfaces\/admin\/plugins\/[^/]+\/src\//.test(localPath)
+      // next/link 与 next/navigation（见 surfaces/AGENTS.md）。其它层仍禁。
+      !/^surfaces\/plugins\/[^/]+\/routes\//.test(localPath) &&
+      !/^surfaces\/plugins\/[^/]+\/src\//.test(localPath)
     ) {
       violations.push(`${localPath}: Next 只能由 Web Host 或 Plugin route 模块直接依赖`);
     }

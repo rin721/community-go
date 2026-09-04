@@ -51,8 +51,8 @@ if (!(await exists(entryPath))) {
 /* 2. 必备 authority 文档 */
 const requiredAuthorities = [
   'frontend-foundation.md',
-  'admin-foundation.md',
-  'admin-framework.md',
+  'surface-foundation.md',
+  'plugin-framework.md',
   'foundation-extension-governance.md',
   'ui-element-system.md',
   'ui-visual-calibration.md',

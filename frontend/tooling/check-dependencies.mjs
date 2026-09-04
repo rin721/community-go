@@ -5,35 +5,39 @@ const frontendRoot = resolve(import.meta.dirname, '..');
 const policy = JSON.parse(
   await readFile(join(frontendRoot, 'tooling', 'dependency-policy.json'), 'utf8'),
 );
-const workspaceRoots = ['apps', 'packages'];
 const violations = [];
 
-for (const root of workspaceRoots) {
+async function checkWorkspace(workspace) {
+  const packagePath = join(frontendRoot, workspace, 'package.json');
+  let manifest;
+  try {
+    manifest = JSON.parse(await readFile(packagePath, 'utf8'));
+  } catch (error) {
+    if (error?.code === 'ENOENT') return;
+    throw error;
+  }
+
+  for (const dependency of Object.keys(manifest.dependencies ?? {})) {
+    const rule = policy.dependencies[dependency];
+    if (!rule) {
+      violations.push(`${workspace}: ${dependency} 缺少职责与允许边界`);
+      continue;
+    }
+    if (!rule.allowed.includes(workspace)) {
+      violations.push(`${workspace}: ${dependency} 超出允许边界 ${rule.allowed.join(', ')}`);
+    }
+  }
+}
+
+for (const root of ['apps', 'packages']) {
   const rootPath = join(frontendRoot, root);
   for (const entry of await readdir(rootPath, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue;
     const workspace = `${root}/${entry.name}`;
-    const packagePath = join(rootPath, entry.name, 'package.json');
-    let manifest;
-    try {
-      manifest = JSON.parse(await readFile(packagePath, 'utf8'));
-    } catch (error) {
-      if (error?.code === 'ENOENT') continue;
-      throw error;
-    }
-
-    for (const dependency of Object.keys(manifest.dependencies ?? {})) {
-      const rule = policy.dependencies[dependency];
-      if (!rule) {
-        violations.push(`${workspace}: ${dependency} 缺少职责与允许边界`);
-        continue;
-      }
-      if (!rule.allowed.includes(workspace)) {
-        violations.push(`${workspace}: ${dependency} 超出允许边界 ${rule.allowed.join(', ')}`);
-      }
-    }
+    await checkWorkspace(workspace);
   }
 }
+await checkWorkspace('surfaces');
 
 if (violations.length > 0) {
   console.error(

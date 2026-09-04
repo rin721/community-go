@@ -90,12 +90,11 @@
         "./toggle-group"
       ],
       "authorityRoutes": ["/ui-elements", "/motion"],
-      "evidence": ["apps/admin-web/src/test/ui-element-foundations.test.tsx"]
+      "evidence": ["apps/web/src/test/ui-element-foundations.test.tsx"]
     },
-    "@community-go/admin-foundation": {
+    "@community-go/surface-foundation": {
       "layer": "surface",
-      "surface": "admin",
-      "owner": "admin product-surface UX",
+      "owner": "product surface UX patterns and shell presentation",
       "maturity": "stable",
       "exports": [
         "./styles.css",
@@ -108,27 +107,25 @@
         "./motion-policy-context",
         "./viewport-reveal"
       ],
-      "authorityRoutes": ["/admin-patterns", "/admin-reference"],
-      "evidence": ["packages/admin-foundation/src/contracts.test.tsx"]
+      "authorityRoutes": ["/page-patterns", "/page-archetypes"],
+      "evidence": ["packages/surface-foundation/src/contracts.test.tsx"]
     },
-    "@community-go/admin-framework": {
+    "@community-go/plugin-framework": {
       "layer": "surface",
-      "surface": "admin",
       "kind": "framework",
-      "owner": "admin surface plugin contract, registry, host capability",
+      "owner": "plugin contract, registry, route target and host capability",
       "maturity": "experimental",
       "exports": [".", "./navigation", "./plugin", "./target"],
       "authorityRoutes": ["/reference-resources"],
       "evidence": [
-        "packages/admin-framework/src/framework.test.ts",
-        "packages/admin-framework/src/plugin.test.tsx"
+        "packages/plugin-framework/src/framework.test.ts",
+        "packages/plugin-framework/src/plugin.test.tsx"
       ]
     },
-    "@community-go/admin-surface": {
+    "@community-go/surface": {
       "layer": "surface",
-      "surface": "admin",
       "kind": "surface",
-      "owner": "admin surface shell, composition and plugin workspace",
+      "owner": "surface shell, composition and private plugin workspace",
       "maturity": "experimental",
       "exports": [
         "./shell",
@@ -136,11 +133,10 @@
         "./icon-components",
         "./generated/catalog",
         "./generated/composition",
-        "./generated/routes/*",
         "./plugin-routes/*"
       ],
       "authorityRoutes": ["/reference-resources"],
-      "evidence": ["surfaces/admin/src/shell.test.ts"]
+      "evidence": ["surfaces/src/shell.test.ts"]
     }
   }
 }

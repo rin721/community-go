@@ -33,8 +33,8 @@ describe('isResolvedNavigationEqual', () => {
   it('相同 pathname 等价（含尾斜杠差异）', () => {
     expect(
       isResolvedNavigationEqual(
-        parseResolvedHref('/admin-reference/resource-list'),
-        parseResolvedHref('/admin-reference/resource-list/'),
+        parseResolvedHref('/page-archetypes/resource-list'),
+        parseResolvedHref('/page-archetypes/resource-list/'),
       ),
     ).toBe(true);
     expect(isResolvedNavigationEqual(parseResolvedHref('/'), parseResolvedHref('/'))).toBe(true);

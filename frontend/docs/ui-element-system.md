@@ -57,14 +57,14 @@ Semantic Design Token
 - `TabsView` 只表达同一内容域中的视图选择，并以稳定 tab ID 接入 `ContentSwapTransition`；键盘、Selection 与 Focus 仍由 HeroUI 主持。应用级 Workspace Tabs 需要保活、关闭和恢复生命周期，当前没有该场景，不与 Content Tabs 合并。
 - `TabsView` 按三个正交维度组合，页面不得用局部 CSS 改写公共 Tabs，也不暴露 HeroUI visual variant 或通用 className 逃生口：
   - Visual Variant：`line`（默认，普通内容导航：透明 TabList + 轻 baseline + bottom brand indicator）、`section`（Card/Form/Settings/Panel 内部章节导航：透明 TabList、不创建灰色 Toolbar 或独立 rounded Surface、不强制整条 baseline，内容分隔由父容器决定）、`soft`（TabList 自身形成轻量选择区域：muted surface 容器 + 紧凑 padding，selected Tab 用 elevated/default surface 凸显，无 line underline）。`soft` 仍是内容切换，不等同于 `ToggleGroup` 的值/模式选择。
-  - **宿主职责边界**：`section` Tabs 是父 Surface 内部的章节导航；TabList 与内容共享父容器的 horizontal inset、稳定 gap 与区域分隔由宿主 Panel/AdminSection composition 提供（见 `docs/admin-foundation.md` 的 AdminSection `contentInset` / `AdminSectionBody`），TabsView 不自建 Surface/Toolbar 制造分区感，页面也不得手写 padding/gap/divider 拼凑宿主布局。
+  - **宿主职责边界**：`section` Tabs 是父 Surface 内部的章节导航；TabList 与内容共享父容器的 horizontal inset、稳定 gap 与区域分隔由宿主 Panel/Section composition 提供（见 `docs/surface-foundation.md` 的 Section `contentInset` / `SectionBody`），TabsView 不自建 Surface/Toolbar 制造分区感，页面也不得手写 padding/gap/divider 拼凑宿主布局。
   - Orientation：`horizontal`（默认）/ `vertical`。Vertical 不创建新业务 Variant，只改变 indicator/布局表达（line/section 用 side indicator + foreground 无 selected surface；soft 用 selected surface）；窄 viewport 自动回退为顶部横向可滚动 TabList + 下方内容，使用项目既有 responsive breakpoint，不写 Tabs 私有断点。
   - Item Content：item 原生支持 `{ id, label, icon?, badge? }`；不建立 icon/badge 业务 Variant。icon 位于 label 前（统一 semantic size、跟随 foreground、不硬编码颜色）；badge 为受控 `number | string`，由公共 `Badge` primitive 渲染（size/tone/alignment 由 TabsView 控制），selected/unselected 均可读且不明显改变 Tab 高度。
   - 各 Variant 共享同一状态模型（Active/Inactive/Hover/Focus/Disabled/Keyboard）与 Semantic Token；视觉职责（background/foreground/border/indicator/radius/spacing/shadow/focus/hover/selected）必须通过 semantic token/recipe 表达，禁止 HeroUI 胶囊残留（rounded-3xl/h-8/vendor p-1 叠加）与页面级 CSS override。
 - `ToggleGroup` 负责即时互斥的成形值/模式选择（segmented 语义），与 `TabsView` 的内容切换语义不可互换：切换内容区域用 Tabs；选择一个值/模式用 ToggleGroup。
 - `Tree` 是**多级层级数据集合**（hierarchical data collection）的浏览/展开/行选择/行动作，与其它 Navigation/Collection 成员的边界固定为：
-  - `ListBox`（`ui-option`）= 扁平可选集合；`Disclosure` = 单一内容区展开；`StepNavigation` = 有限有序过程；Admin Shell Navigation（Sidebar Tree/Accordion）= 页面导航拓扑。**不要把业务导航树与通用数据 Tree 混为一个 Contract**，本 Tree 不承担页面导航。
-  - Tree 自身为 lightweight transparent hierarchical collection：默认不拥有 Card/Panel-like border/background/radius，Surface 由宿主（Panel/AdminSection）提供；只拥有层级结构所需内部 layout/state geometry。
+  - `ListBox`（`ui-option`）= 扁平可选集合；`Disclosure` = 单一内容区展开；`StepNavigation` = 有限有序过程；Shell Navigation（Sidebar Tree/Accordion）= 页面导航拓扑。**不要把业务导航树与通用数据 Tree 混为一个 Contract**，本 Tree 不承担页面导航。
+  - Tree 自身为 lightweight transparent hierarchical collection：默认不拥有 Card/Panel-like border/background/radius，Surface 由宿主（Panel/Section）提供；只拥有层级结构所需内部 layout/state geometry。
   - Row anatomy（稳定）：`DisclosureSlot`（叶子保留布局占位、不渲染假 affordance）→ optional `LeadingIcon` → `Content(label required; description optional)`；label-only 行不自带富行高度。深度缩进用稳定 semantic depth step。
   - 底层使用 React Aria Tree；其 treegrid/row/gridcell DOM 是 RAC 为 row focus/selection/interactive child 提供的实现（accessibility/keyboard 由 RAC 主持），属于 accessibility implementation detail，不因 DOM role 形态自建 ARIA/keyboard。
   - 完整 accessible name 不因视觉 truncate 丢失；如需 overflow reveal 复用既有 Tooltip 能力，不形成 Tree 私有 title 规则。
@@ -152,7 +152,7 @@ Hover/Focus 与 Selected 不得合并为同一种状态；Selected 不能只依�
 - `Card` 拥有 Header/Content/Footer 的内容 anatomy；`Panel` 只作为 Layout Surface。已经存在父 Surface 时使用 flat/embedded composition，不叠加第二套 Border、Radius 和 Shadow。
 - 承载文字的 Page 与 Surface 不参与整体 Opacity 动画；否则进入中间帧会改变 Semantic Token 的实际对比度。Opacity Motion 只用于 Scrim 等无文字装饰层，内容型 Overlay 使用自身成熟交互契约。
 - 路由级页面转场是浏览器 View Transitions API 快照层的例外路径：Host `RouteTransition` 对深入导航播放 `nav-forward` 方向滑动；无导航类型的 route/Suspense content 使用克制的 `content.enter`，hydration 不重复页面滑动。转场样式与时长/缓动只能来自 Motion authority；页面不得自建转场 Wrapper。
-- 异步数据区域由 `AsyncRegion` 编排 `initial/ready/refreshing/background/empty/error`：initial 使用 Skeleton，refresh 保留旧内容并 busy，background 保留内容且静默，只有无内容进入有内容才绑定 `content.enter`。区域容器承担 `aria-busy` 与 `data-phase` 语义；Admin `AdminStateRegion` 复用相同 readiness，再扩展 partial/readonly/denied/pending。
+- 异步数据区域由 `AsyncRegion` 编排 `initial/ready/refreshing/background/empty/error`：initial 使用 Skeleton，refresh 保留旧内容并 busy，background 保留内容且静默，只有无内容进入有内容才绑定 `content.enter`。区域容器承担 `aria-busy` 与 `data-phase` 语义；Surface `StateRegion` 复用相同 readiness，再扩展 partial/readonly/denied/pending。
 
 ## 11. UI Elements 与质量证据
 

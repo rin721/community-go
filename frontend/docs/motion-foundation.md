@@ -14,17 +14,17 @@ Semantic Component 绑定真实生命周期，决定为什么动、何时动
 
 ## 2. 生命周期与所有权
 
-| 生命周期                 | 当前组件                          | 所有权                              | 规则                                                                                                       |
-| ------------------------ | --------------------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| Router / Suspense        | Host `RouteTransition`            | `apps/admin-web/src/host`           | `nav-forward` 使用 Admin screen recipe；无导航类型使用克制的 `content.enter`；hydration 不重复播放页面滑动 |
-| 数据 readiness           | `AsyncRegion`、`AdminStateRegion` | Universal / Admin Surface           | initial 才替换 Skeleton；refresh 保留旧内容；background 静默                                               |
-| 首次进入视口             | Host `ViewportReveal`             | Host 生命周期 + Admin reveal recipe | 仅显式 below-fold Region，单例 Observer，reveal-once                                                       |
-| 同路由内容切换           | `ContentSwapTransition`           | UI Adapter                          | 使用稳定 `contentKey`；`TabsView` 默认接入；筛选刷新不使用它                                               |
-| Inline Feedback Presence | `FeedbackPresence`                | UI Adapter                          | exit 期间立即退出辅助技术与交互树；支持快速反转；Toast 不接入                                              |
-| 非 Avatar 图片 readiness | `ReadyImage`                      | UI Adapter                          | width/height 预留空间，load + decode 后 crossfade，error 保持尺寸                                          |
-| Overlay                  | HeroUI compound lifecycle         | UI Adapter                          | 禁止再套 Presence 或页面动画容器                                                                           |
+| 生命周期                 | 当前组件                     | 所有权                                | 规则                                                                                                         |
+| ------------------------ | ---------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Router / Suspense        | Host `RouteTransition`       | `apps/web/src/host`                   | `nav-forward` 使用 Surface screen recipe；无导航类型使用克制的 `content.enter`；hydration 不重复播放页面滑动 |
+| 数据 readiness           | `AsyncRegion`、`StateRegion` | Universal / Product Surface           | initial 才替换 Skeleton；refresh 保留旧内容；background 静默                                                 |
+| 首次进入视口             | Host `ViewportReveal`        | Host 生命周期 + Surface reveal recipe | 仅显式 below-fold Region，单例 Observer，reveal-once                                                         |
+| 同路由内容切换           | `ContentSwapTransition`      | UI Adapter                            | 使用稳定 `contentKey`；`TabsView` 默认接入；筛选刷新不使用它                                                 |
+| Inline Feedback Presence | `FeedbackPresence`           | UI Adapter                            | exit 期间立即退出辅助技术与交互树；支持快速反转；Toast 不接入                                                |
+| 非 Avatar 图片 readiness | `ReadyImage`                 | UI Adapter                            | width/height 预留空间，load + decode 后 crossfade，error 保持尺寸                                            |
+| Overlay                  | HeroUI compound lifecycle    | UI Adapter                            | 禁止再套 Presence 或页面动画容器                                                                             |
 
-冷启动与路由挂起统一使用 `AdminPageLoadingSurface`。根 `loading.tsx` 与各路由 Suspense 都必须提供 `page/catalog/collection/form` 结构化 Skeleton；禁止 `fallback={null}` 和居中卡片整屏替换 Shell。
+冷启动与路由挂起统一使用 `PageLoadingSurface`。根 `loading.tsx` 与各路由 Suspense 都必须提供 `page/catalog/collection/form` 结构化 Skeleton；禁止 `fallback={null}` 和居中卡片整屏替换 Shell。
 
 ## 3. Design Token 与 Recipe Registry
 
@@ -44,7 +44,7 @@ Universal recipe 的单一登记文件是 `packages/design-system/src/motion.css
 | `feedback.presence` | `FeedbackPresence`                   | `feedback` 分类关闭时禁用                |
 | `media.ready`       | `ReadyImage`                         | `media` 分类关闭时直接显示               |
 
-Admin `screen.enter/exit`、Shell 锚定、Route content、Viewport 与 State recipe 的具体绑定继续由 `packages/admin-foundation/src/styles.css` 持有。非上述权威文件禁止声明 `@keyframes`。
+Surface `screen.enter/exit`、Shell 锚定、Route content、Viewport 与 State recipe 的具体绑定继续由 `packages/surface-foundation/src/styles.css` 持有。非上述权威文件禁止声明 `@keyframes`。
 
 ## 4. Readiness 单一语义
 
@@ -59,7 +59,7 @@ Admin `screen.enter/exit`、Shell 锚定、Route content、Viewport 与 State re
 | `empty`      | Empty recovery surface    | 无                   | 否          | 否                       |
 | `error`      | Error recovery surface    | 无                   | 否          | 否                       |
 
-`AdminStateRegion` 复用同一 loading/refreshing/background readiness，并额外拥有 Admin 专属 `partial/readonly/denied/pending`。业务不能建立第二套相反的 Loading 规则。关键提交确需阻断时由明确的 Operation/Overlay 契约负责，不归普通数据 refresh。
+`StateRegion` 复用同一 loading/refreshing/background readiness，并额外拥有 Surface 级 `partial/readonly/denied/pending`。业务不能建立第二套相反的 Loading 规则。关键提交确需阻断时由明确的 Operation/Overlay 契约负责，不归普通数据 refresh。
 
 ## 5. Host Motion Policy
 
@@ -84,7 +84,7 @@ Admin `screen.enter/exit`、Shell 锚定、Route content、Viewport 与 State re
 
 ## 7. Reduced Motion 与中断安全
 
-`tokens.css` 提供普通元素的全局 reduced/off policy，`admin-foundation/styles.css` 覆盖 View Transition 伪元素。新 recipe 必须同时具备分类关闭和 reduced/off 行为。
+`tokens.css` 提供普通元素的全局 reduced/off policy，`surface-foundation/styles.css` 覆盖 View Transition 伪元素。新 recipe 必须同时具备分类关闭和 reduced/off 行为。
 
 自动化必须覆盖：快速 Enter/Exit 反转、refresh 保留内容、background 静默、Observer 注册/注销与 reveal-once、图片 decode/error、键盘 Tabs、路由前进/后退、development policy 恢复、窄屏、Dark、Reduced Motion、Axe 和 Visual。
 

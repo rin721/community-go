@@ -51,17 +51,17 @@ importers:
         specifier: ^8.50.0
         version: 8.68.0(eslint@10.9.1(jiti@2.7.0))(typescript@5.9.3)
 
-  apps/admin-web:
+  apps/web:
     dependencies:
-      '@community-go/admin-foundation':
+      '@community-go/surface-foundation':
         specifier: workspace:*
-        version: link:../../packages/admin-foundation
-      '@community-go/admin-framework':
+        version: link:../../packages/surface-foundation
+      '@community-go/plugin-framework':
         specifier: workspace:*
-        version: link:../../packages/admin-framework
-      '@community-go/admin-surface':
+        version: link:../../packages/plugin-framework
+      '@community-go/surface':
         specifier: workspace:*
-        version: link:../../surfaces/admin
+        version: link:../../surfaces
       '@community-go/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -124,7 +124,7 @@ importers:
         specifier: ^4.1.11
         version: 4.1.11(@types/node@24.13.3)(jsdom@30.0.1)(msw@2.15.0(@types/node@24.13.3)(typescript@5.9.3))(vite@8.2.2(@types/node@24.13.3)(jiti@2.7.0))
 
-  packages/admin-foundation:
+  packages/surface-foundation:
     dependencies:
       '@community-go/core':
         specifier: workspace:*
@@ -158,7 +158,7 @@ importers:
         specifier: ^4.1.11
         version: 4.1.11(@types/node@24.13.3)(jsdom@30.0.1)(msw@2.15.0(@types/node@24.13.3)(typescript@5.9.3))(vite@8.2.2(@types/node@24.13.3)(jiti@2.7.0))
 
-  packages/admin-framework:
+  packages/plugin-framework:
     dependencies:
       '@community-go/core':
         specifier: workspace:*
@@ -276,14 +276,14 @@ importers:
         specifier: ^19.2.7
         version: 19.2.18
 
-  surfaces/admin:
+  surfaces:
     dependencies:
-      '@community-go/admin-foundation':
+      '@community-go/surface-foundation':
         specifier: workspace:*
-        version: link:../../packages/admin-foundation
-      '@community-go/admin-framework':
+        version: link:../../packages/surface-foundation
+      '@community-go/plugin-framework':
         specifier: workspace:*
-        version: link:../../packages/admin-framework
+        version: link:../../packages/plugin-framework
       '@community-go/form-foundation':
         specifier: workspace:*
         version: link:../../packages/form-foundation

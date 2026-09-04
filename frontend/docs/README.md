@@ -17,39 +17,40 @@ frontend/README.md → 本文（docs/README.md） → 主题 authority → 局�
 Universal Frontend Foundation
   design-system / ui-adapter / form-foundation / i18n / core / schemas / types
         ↓
-Admin Product-Surface
-  packages/admin-foundation      可复用 Admin 视觉、Layout、Pattern、State、Motion
-  packages/admin-framework      Plugin Contract、Route Target、Registry、Host Capability
-  surfaces/admin                Admin Surface 插件实现（private workspace，plugins 非公共 API）
+Current Product Surface
+  packages/surface-foundation  可复用 Layout、Pattern、State、Motion、Shell 表现
+  packages/plugin-framework    Plugin Contract、Route Target、Registry、Host Capability
+  surfaces                     唯一 Surface 的 Shell、Composition、Plugin 与生成物
         ↓
 Application = Product Surface × Runtime Host
-  apps/admin-web                Next.js、Browser Runtime、Host Port 实现、Composition Root
+  apps/web                     Next.js、Browser Runtime、Host Port 实现、Composition Root
 ```
 
-- Universal 禁止依赖 Surface/Host；Surface 只能依赖 Universal 或同 surface；
-  Host 只能装配与其匹配的 Surface。机器可读分类以 `tooling/foundation-policy.json` 为准。
-- Product Surface 与 Runtime Host 是正交维度。未来只有真实需求出现时才创建
-  `packages/<surface>-foundation` 与 `apps/<surface>-<runtime>`，不预造空 Package 或 Runtime Contract。
-- 101 起引入“Framework / Surface 实现 / Codegen”一层：Admin Framework 不读取 pathname、
+- Universal 禁止依赖 Surface/Host；Surface 只能依赖 Universal 或自身；
+  Host 只能装配 Surface。机器可读分类以 `tooling/foundation-policy.json` 为准。
+- Product Surface 与 Runtime Host 是正交职责。当前只有一个后台产品 Surface 和一个
+  Web Host，因此正式位置为 `packages/surface-foundation`、`packages/plugin-framework`、
+  `surfaces` 与 `apps/web`；只有真实并列产品出现时才增加用于同级区分的限定词。
+- 101 起引入“Framework / Surface 实现 / Codegen”一层：Plugin Framework 不读取 pathname、
   不维护 history、不复制 Next Route Runtime；唯一真实 Router 是 Next.js App Router。
-  详见 [Admin Framework 与 Surface File Routes](admin-framework.md)。
+  详见 [Plugin Framework 与 Surface File Routes](plugin-framework.md)。
 
 ## 2. 主题 authority 清单
 
-| 文档                                                         | authority 范围                                                                   |
-| ------------------------------------------------------------ | -------------------------------------------------------------------------------- |
-| [Universal Frontend Foundation](frontend-foundation.md)      | Universal 层 workspace 职责与禁止项                                              |
-| [Admin Product-Surface Foundation](admin-foundation.md)      | `admin-foundation` 的 Layout/Shell/Pattern/Collection/Detail/Form/State 能力     |
-| [Admin Framework 与 Surface File Routes](admin-framework.md) | Framework 契约、Registry、Surface 私有边界、File Route、Codegen、Host Capability |
-| [Foundation 扩展治理](foundation-extension-governance.md)    | 业务请求扩展 Foundation 的顺序与完整环节                                         |
-| [UI Element System](ui-element-system.md)                    | UI Element 分类、Form Control、Anchored Overlay、Composition 契约                |
-| [UI 视觉校准基线](ui-visual-calibration.md)                  | TailAdmin 外部校准基线、矩阵与复核触发器                                         |
-| [Motion Foundation 与语义动效分层](motion-foundation.md)     | Motion Token/Recipe/决策树、Reduced Motion 与中断安全                            |
-| [Foundation 质量证据](quality-evidence.md)                   | 当前门禁数字、预算、Playwright/Axe/Visual 证据与历史证据入口                     |
+| 文档                                                           | authority 范围                                                                   |
+| -------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| [Universal Frontend Foundation](frontend-foundation.md)        | Universal 层 workspace 职责与禁止项                                              |
+| [Surface Foundation](surface-foundation.md)                    | `surface-foundation` 的 Layout/Shell/Pattern/Collection/Detail/Form/State 能力   |
+| [Plugin Framework 与 Surface File Routes](plugin-framework.md) | Framework 契约、Registry、Surface 私有边界、File Route、Codegen、Host Capability |
+| [Foundation 扩展治理](foundation-extension-governance.md)      | 业务请求扩展 Foundation 的顺序与完整环节                                         |
+| [UI Element System](ui-element-system.md)                      | UI Element 分类、Form Control、Anchored Overlay、Composition 契约                |
+| [UI 视觉校准基线](ui-visual-calibration.md)                    | TailAdmin 外部校准基线、矩阵与复核触发器                                         |
+| [Motion Foundation 与语义动效分层](motion-foundation.md)       | Motion Token/Recipe/决策树、Reduced Motion 与中断安全                            |
+| [Foundation 质量证据](quality-evidence.md)                     | 当前门禁数字、预算、Playwright/Axe/Visual 证据与历史证据入口                     |
 
 可执行 authority（页面）与文档 authority 互补：`/ui-elements/*`、`/motion`、
-`/admin-patterns/*`、`/admin-reference/*`、`/reference-resources` 分别承担
-Universal Element、Universal Motion、Admin Pattern、Admin Archetype 与 Surface 插件场景的验收。
+`/page-patterns/*`、`/page-archetypes/*`、`/reference-resources` 分别承担
+Universal Element、Universal Motion、Page Pattern、Page Archetype 与 Surface 插件场景的验收。
 
 ## 3. 运行与验证
 
@@ -60,8 +61,8 @@ pnpm check        # 完整门禁（含 docs:check）
 pnpm docs:check   # 文档结构门禁（入口、链接、索引、必备 authority）
 ```
 
-如果新增或修改了 Admin Surface 插件/路由，先运行 `pnpm codegen:admin`，再运行
-`pnpm codegen:admin:check`（freshness 纳入 `pnpm check`）。
+如果新增或修改了 Product Surface 插件/路由，先运行 `pnpm codegen:plugins`，再运行
+`pnpm codegen:plugins:check`（freshness 纳入 `pnpm check`）。
 
 ## 4. 文档维护规则
 

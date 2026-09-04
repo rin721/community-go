@@ -108,7 +108,10 @@
         "./viewport-reveal"
       ],
       "authorityRoutes": ["/page-patterns", "/page-archetypes"],
-      "evidence": ["packages/surface-foundation/src/contracts.test.tsx"]
+      "evidence": [
+        "packages/surface-foundation/src/contracts.test.tsx",
+        "apps/web/e2e/design-contract.spec.ts"
+      ]
     },
     "@community-go/plugin-framework": {
       "layer": "surface",

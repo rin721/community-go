@@ -11,7 +11,7 @@ import { SelectField, SwitchField, TextField } from '@community-go/ui-adapter/fo
 import { Panel } from '@community-go/ui-adapter/panel';
 import { StatusPill } from '@community-go/ui-adapter/status-pill';
 import { ToggleGroup } from '@community-go/ui-adapter/toggle-group';
-import { PageHeader } from '@community-go/surface-foundation/layout';
+import { Page, PageHeader } from '@community-go/surface-foundation/layout';
 import { usePluginLocale } from '@community-go/plugin-framework/plugin';
 import { useFrontendTranslation } from '@community-go/i18n';
 import { useState } from 'react';
@@ -55,7 +55,7 @@ export default function SystemToolsPreferencesPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <Page>
       <PageHeader
         eyebrow={t('systemTools.preferences.eyebrow')}
         title={t('systemTools.preferences.title')}
@@ -127,6 +127,6 @@ export default function SystemToolsPreferencesPage() {
           </div>
         </FoundationForm>
       </Panel>
-    </div>
+    </Page>
   );
 }

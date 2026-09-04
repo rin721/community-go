@@ -81,6 +81,18 @@ Motion 主题的唯一当前权威文档是 [Motion Foundation 与语义动效�
 - **ViewportReveal（Section Reveal）只用于长页面中真正 below-fold 的内容区域**，不承担、也不代替 Page Enter。reduced-motion 由项目级 Motion Policy（Host）统一控制，页面不自行判断。
 - Page/Pattern 只做组合（使用 Recipe 提供的动效），不定义第二套 animation system；业务/Plugin 页面禁内联硬编码 animation/transition 时长或自定义 keyframes（gate 强制）。
 
+### 4.5 Design Token 分层消费与产品语言收敛
+
+产品视觉语言（Accent/Neutral/Surface/Radius/Elevation/Typography/Spacing/Density/Motion/State）由正式 Authority 收敛，页面不各自发明视觉：
+
+- **Token 分层**：Primitive 原始尺度 → Semantic 产品语义 → Component/Pattern 消费。业务消费顺序：已有 Semantic Token / 正式 Element / Pattern 优先；只有真实多消费者 + 稳定语义的值才提升为 Token，禁止 Token Explosion（不为消灭数字制造无意义 Token）。
+- **颜色/圆角/阴影/动效**是产品 Visual Signature 的组成部分：业务层禁止直接 hex、raw palette class、`rounded-[..]`/`shadow-[..]`/`text-[#..]`/`duration-[..]` 等 arbitrary design value（gate 强制，UI Adapter 收口 vendor 的受控写法豁免）。写成 Tailwind 不改变"它是硬编码设计值"的事实。
+- **Typography 层级**：页面标题用 `PageHeader`、区块标题用 `Section`/`CardHeader` 等组件槽位，不跨页面自定标题字号（同语义标题尺寸漂移即污染）。
+- **Surface 层级**优先由 spacing / background contrast / border / typography 表达；shadow 只用于真实脱离页面平面的层级（浮层/弹层），普通页面容器不因嵌套加 shadow。禁止 Card 套 Card 制造层次。
+- **Radius/Border** 语义收口：控件、容器、浮层各自有语义圆角；同一组件类别不因页面不同而圆角漂移。
+- **Showcase 与业务同源**：`/ui-elements`、`/page-patterns`、`/page-archetypes`、`/states`、`/motion` 展示的 Element/Pattern/Recipe/State 必须是业务真实使用的同一实现，禁止 Demo 一套、业务另一套。
+- **公共能力修改规则**：修改 Token / Element / Foundation / Pattern / Recipe 前先查全部真实消费者，回答"是否公共问题、哪些应随变、哪些不应变、是否需要新 Variant、是否只是单场景 composition 错误"；禁止修 Page A 顺手改变 Page B/C/D。单业务场景差异留 Plugin composition，不污染公共组件。
+
 ## 5. UI Contract 与组件职责
 
 - `packages/ui-adapter` 是唯一允许直接导入 `@heroui/*` 的边界，Web 入口只导入其聚合后的 Adapter stylesheet。

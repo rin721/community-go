@@ -6,8 +6,6 @@
   "exports": {
     ".": "./src/index.ts",
     "./navigation": "./src/navigation-contract.ts",
-    "./governance": "./src/governance.ts",
-    "./governance-channel": "./src/governance-channel.tsx",
     "./plugin": "./src/plugin.tsx",
     "./target": "./src/target-index.ts"
   },
@@ -17,7 +15,6 @@
   },
   "dependencies": {
     "@community-go/core": "workspace:*",
-    "@community-go/schemas": "workspace:*",
     "@community-go/types": "workspace:*",
     "react": "^19.2.8"
   },

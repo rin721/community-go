@@ -5,7 +5,6 @@ import type { RouteCatalog } from '@community-go/plugin-framework';
 export const generatedRouteCatalog: RouteCatalog = {
   plugins: [
     { pluginId: 'foundations', mount: '/foundations' },
-    { pluginId: 'governance', mount: '/governance' },
     { pluginId: 'motion', mount: '/motion' },
     { pluginId: 'page-archetypes', mount: '/page-archetypes' },
     { pluginId: 'page-patterns', mount: '/page-patterns' },
@@ -21,14 +20,6 @@ export const generatedRouteCatalog: RouteCatalog = {
       path: '',
       segments: [],
       pattern: '/foundations',
-      paramNames: [],
-    },
-    {
-      routeId: 'governance.dashboard',
-      pluginId: 'governance',
-      path: 'dashboard',
-      segments: ['dashboard'],
-      pattern: '/governance/dashboard',
       paramNames: [],
     },
     {
@@ -288,19 +279,6 @@ export const generatedRouteCatalog: RouteCatalog = {
             groupId: 'development',
             iconId: 'foundations',
             routeId: 'foundations',
-          },
-        ],
-      },
-    },
-    {
-      pluginId: 'governance',
-      contribution: {
-        parents: [
-          {
-            navigationId: 'governance.root',
-            labelKey: 'governanceNav.root',
-            groupId: 'development',
-            routeId: 'governance.dashboard',
           },
         ],
       },

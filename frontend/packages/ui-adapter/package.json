@@ -5,7 +5,6 @@
   "type": "module",
   "exports": {
     "./styles.css": "./src/styles.css",
-    "./governance": "./src/governance.ts",
     "./action": "./src/action.tsx",
     "./accessibility": "./src/accessibility.tsx",
     "./async-region": "./src/async-region.tsx",
@@ -45,7 +44,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@community-go/schemas": "workspace:*",
     "@community-go/types": "workspace:*",
     "@heroui/react": "^3.2.4",
     "@heroui/styles": "^3.2.4",

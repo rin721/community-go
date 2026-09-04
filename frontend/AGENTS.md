@@ -126,7 +126,6 @@ Motion 主题的唯一当前权威文档是 [Motion Foundation 与语义动效�
 
 - Core 必须可独立测试，不依赖 React、UI Library、运行环境、后端或全局可变状态。
 - Schema 负责运行时不可信输入、表单模型、配置与未来 API 契约校验。验证失败必须保留可判断的错误语义。
-- Schema-Controlled Authority：正式 Authority 自己拥有能力与治理 Schema（在自己 package 内维护 `./governance`）；`packages/schemas` 只提供统一 Schema Contract 与 Governance API Foundation，**不拥有任何具体 Token/Pattern/Rule/Policy 治理事实，也不反向解析 Authority 私有实现**。Declarative 能力（如 Design Token）只允许一个 Source of Truth，Generated Artifact 禁止人工维护；Implementation-backed 能力保持实现 + Schema。详见 [Governance Schema Foundation](docs/governance-foundation.md)。
 - Types 只保存真正跨模块稳定的 TypeScript 类型；仅在一个 Feature 使用的类型留在 Feature 内。
 - 禁止用 `Record<string, unknown>`、任意字符串或断言逃避可明确表达的核心契约。
 

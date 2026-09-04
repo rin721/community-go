@@ -37,17 +37,16 @@ Application = Product Surface × Runtime Host
 
 ## 2. 主题 authority 清单
 
-| 文档                                                           | authority 范围                                                                                                       |
-| -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| [Universal Frontend Foundation](frontend-foundation.md)        | Universal 层 workspace 职责与禁止项                                                                                  |
-| [Governance Schema Foundation](governance-foundation.md)       | Schema Contract Foundation、Authority Governance Schema、Composition、Resolved Model、Development Governance Channel |
-| [Surface Foundation](surface-foundation.md)                    | `surface-foundation` 的 Layout/Shell/Pattern/Collection/Detail/Form/State 能力                                       |
-| [Plugin Framework 与 Surface File Routes](plugin-framework.md) | Framework 契约、Registry、Surface 私有边界、File Route、Codegen、Host Capability                                     |
-| [Foundation 扩展治理](foundation-extension-governance.md)      | 业务请求扩展 Foundation 的顺序与完整环节                                                                             |
-| [UI Element System](ui-element-system.md)                      | UI Element 分类、Form Control、Anchored Overlay、Composition 契约                                                    |
-| [UI 视觉校准基线](ui-visual-calibration.md)                    | TailAdmin 外部校准基线、矩阵与复核触发器                                                                             |
-| [Motion Foundation 与语义动效分层](motion-foundation.md)       | Motion Token/Recipe/决策树、Reduced Motion 与中断安全                                                                |
-| [Foundation 质量证据](quality-evidence.md)                     | 当前门禁数字、预算、Playwright/Axe/Visual 证据与历史证据入口                                                         |
+| 文档                                                           | authority 范围                                                                   |
+| -------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| [Universal Frontend Foundation](frontend-foundation.md)        | Universal 层 workspace 职责与禁止项                                              |
+| [Surface Foundation](surface-foundation.md)                    | `surface-foundation` 的 Layout/Shell/Pattern/Collection/Detail/Form/State 能力   |
+| [Plugin Framework 与 Surface File Routes](plugin-framework.md) | Framework 契约、Registry、Surface 私有边界、File Route、Codegen、Host Capability |
+| [Foundation 扩展治理](foundation-extension-governance.md)      | 业务请求扩展 Foundation 的顺序与完整环节                                         |
+| [UI Element System](ui-element-system.md)                      | UI Element 分类、Form Control、Anchored Overlay、Composition 契约                |
+| [UI 视觉校准基线](ui-visual-calibration.md)                    | TailAdmin 外部校准基线、矩阵与复核触发器                                         |
+| [Motion Foundation 与语义动效分层](motion-foundation.md)       | Motion Token/Recipe/决策树、Reduced Motion 与中断安全                            |
+| [Foundation 质量证据](quality-evidence.md)                     | 当前门禁数字、预算、Playwright/Axe/Visual 证据与历史证据入口                     |
 
 可执行 authority（页面）与文档 authority 互补：`/ui-elements/*`、`/motion`、
 `/page-patterns/*`、`/page-archetypes/*`、`/reference-resources` 分别承担
@@ -63,11 +62,7 @@ pnpm docs:check   # 文档结构门禁（入口、链接、索引、必备 autho
 ```
 
 如果新增或修改了 Product Surface 插件/路由，先运行 `pnpm codegen:plugins`，再运行
-`pnpm codegen:plugins:check`（freshness 纳入 `pnpm check`）。新增或修改
-Authority Governance Schema / Design Token Source 后分别运行 `pnpm codegen:governance`
-与 `pnpm codegen:tokens`（均带 `:check` freshness，纳入 `pnpm check`）；Generated
-Artifact（generated-model.ts、tokens.css 等）禁止人工维护，详见
-[Governance Schema Foundation](governance-foundation.md)。
+`pnpm codegen:plugins:check`（freshness 纳入 `pnpm check`）。
 
 ## 4. 文档维护规则
 

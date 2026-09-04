@@ -154,25 +154,6 @@ Plugin route 模块允许（受控白名单）：import `next/link`、`next/navi
 及类型导入。禁止：Browser history、全局 location、直接 import lucide-react（图标经
 surface icon API 消费语义 id）；`packages/*` 与 `surfaces/src` 仍禁 `next/*`。
 
-### Development Governance Channel（`/governance-channel`）
-
-治理类 Plugin（Governance Control Plane UI）经 `@community-go/plugin-framework/
-governance-channel` 消费 Schema Layer 暴露的 Authority Governance API：
-
-- `DevelopmentGovernancePort`（inspect / read / validate / diagnose / preview /
-  diff / devOverride 的薄封装）、`GovernanceChannelProvider`、
-  `useDevelopmentGovernance`（未安装即 throw）。数据契约复用
-  `@community-go/schemas/governance` 类型（不复制）。
-- 实现由 Host 装配（`apps/web/src/host/governance-channel.tsx`），装配边界为
-  `/governance` 路由组 layout（不进入全局 Root Provider，避免治理数据进入所有
-  页面 initial bundle）；能力门禁（每个 Node 由 Authority 声明的 capability
-  子集）在 schemas Governance API 层执行，Channel 不复制规则、不自行扩大权限。
-- Channel **只服务 Governance Control Plane**：不是通用 RPC / Event Bus；不暴露
-  Host store/router/i18n 等私有能力；不允许 Plugin A↔B 隐式通信。
-- Framework 自身的 Governance Contribution 暴露于 `./governance`
-  （`src/governance.ts`），与 `./governance-channel` 是不同子路径。
-- 完整分层见 [Governance Schema Foundation](governance-foundation.md)。
-
 ## 4. File Routes 与 Route Identity
 
 Plugin `routes/` 是一棵**真实的 Next App Router 子树**：page/layout/template/loading/

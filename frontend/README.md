@@ -25,7 +25,6 @@ Product Surface 与 Runtime Host 是正交职责。当前只有一个 Surface �
 
 完整文档入口见 [Frontend 文档手册](docs/README.md)；详细边界见
 [Universal Frontend Foundation](docs/frontend-foundation.md)、
-[Governance Schema Foundation](docs/governance-foundation.md)、
 [Surface Foundation](docs/surface-foundation.md)、
 [Plugin Framework 与 Surface File Routes](docs/plugin-framework.md) 与
 [Foundation 扩展治理](docs/foundation-extension-governance.md)。
@@ -56,7 +55,6 @@ pnpm check
 - Universal Motion Token/Recipe 位于 `packages/design-system`，公共 readiness/presence/media contract 位于 `packages/ui-adapter`；方向性页面转场、Shell 锚定和 Surface 状态 Recipe 位于 `packages/surface-foundation`，Router/Observer/Policy 生命周期止于 `web` Host。
 - Plugin Framework（`packages/plugin-framework`）定义 Plugin Contract、Route Target、Registry、Host Capability 与 Route Context；唯一真实 Router 是 Next App Router，Framework 不读 pathname、不维护 history。
 - Product Surface 插件实现位于 `surfaces`（private workspace）：对 Host 只开放 `shell`、`generated/composition`、`generated/catalog`、`plugin-routes/*`，`plugins/*` 永不公开；生成物由 `pnpm codegen:plugins` 确定性地产生并纳入 `pnpm check` freshness。
-- Schema-Controlled Authority：各正式 Authority 在自己 package 内维护 Governance Schema（`./governance`），`packages/schemas` 提供统一 Schema Contract + Governance API Foundation（不含治理事实）；Declarative Token 由 Design System Token Source 生成（`pnpm codegen:tokens`），Resolved Governance Model 由 `pnpm codegen:governance` 确定性汇聚，Generated Artifact 禁止人工维护。详见 [Governance Schema Foundation](docs/governance-foundation.md)。
 - Reference 场景归验证 Host，不进入公共 Feature Package。
 - 公共 exports、owner、成熟度、authority route 与证据登记在 `tooling/foundation-contracts.json`。
 

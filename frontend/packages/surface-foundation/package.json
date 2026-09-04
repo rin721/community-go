@@ -5,7 +5,6 @@
   "type": "module",
   "exports": {
     "./styles.css": "./src/styles.css",
-    "./governance": "./src/governance.ts",
     "./layout": "./src/layout.tsx",
     "./shell-navigation": "./src/shell-navigation.tsx",
     "./collection": "./src/collection.tsx",
@@ -22,7 +21,6 @@
   "dependencies": {
     "@community-go/core": "workspace:*",
     "@community-go/form-foundation": "workspace:*",
-    "@community-go/schemas": "workspace:*",
     "@community-go/types": "workspace:*",
     "@community-go/ui-adapter": "workspace:*",
     "react": "^19.2.8"

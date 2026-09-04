@@ -17,7 +17,6 @@
     "@community-go/design-system": "workspace:*",
     "@community-go/form-foundation": "workspace:*",
     "@community-go/i18n": "workspace:*",
-    "@community-go/schemas": "workspace:*",
     "@community-go/types": "workspace:*",
     "@community-go/ui-adapter": "workspace:*",
     "lucide-react": "^1.37.0",

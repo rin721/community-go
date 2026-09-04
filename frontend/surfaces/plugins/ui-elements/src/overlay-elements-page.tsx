@@ -107,10 +107,10 @@ export function OverlayElementsPage() {
                   triggerLabel={t('uiElements.dialog')}
                   title={t('uiElements.dialogTitle')}
                   description={t('uiElements.dialogDescription')}
-                  cancelLabel={t('reference.cancel')}
-                  confirmLabel={t('reference.confirm')}
+                  cancelLabel={t('uiElements.cancel')}
+                  confirmLabel={t('uiElements.confirm')}
                   defaultOpen={overlay === 'dialog'}
-                  onConfirm={() => setLastAction(t('reference.confirm'))}
+                  onConfirm={() => setLastAction(t('uiElements.confirm'))}
                 >
                   <TextField label={t('uiElements.dialogField')} defaultValue="Community" />
                 </DialogSurface>
@@ -121,15 +121,15 @@ export function OverlayElementsPage() {
                 states={['Impact', 'Cancel', 'Confirm', 'Disabled', 'Pending', 'Failure']}
               >
                 <ConfirmDialog
-                  cancelLabel={t('reference.cancel')}
-                  confirmLabel={t('reference.confirm')}
+                  cancelLabel={t('uiElements.cancel')}
+                  confirmLabel={t('uiElements.confirm')}
                   description={t('uiElements.catalog.confirmPrompt')}
                   failureMessage={t('uiElements.confirmFailure')}
                   impact={t('uiElements.catalog.confirmImpact')}
                   title={t('uiElements.catalog.confirmTitle')}
                   triggerLabel={t('uiElements.catalog.confirmTrigger')}
                   defaultOpen={overlay === 'confirm-primary'}
-                  onConfirm={() => setLastAction(t('reference.confirm'))}
+                  onConfirm={() => setLastAction(t('uiElements.confirm'))}
                 />
               </ComponentPreview>
               <ComponentPreview
@@ -138,7 +138,7 @@ export function OverlayElementsPage() {
                 states={['Danger tone', 'Impact', 'Pending', 'Failure', 'Focus restore']}
               >
                 <DestructiveConfirmDialog
-                  cancelLabel={t('reference.cancel')}
+                  cancelLabel={t('uiElements.cancel')}
                   confirmLabel={t('uiElements.destructiveAction')}
                   description={t('uiElements.destructiveDescription')}
                   failureMessage={t('uiElements.confirmFailure')}
@@ -158,7 +158,7 @@ export function OverlayElementsPage() {
                   triggerLabel={t('uiElements.drawer')}
                   title={t('uiElements.drawerTitle')}
                   description={t('uiElements.drawerDescription')}
-                  closeLabel={t('reference.close')}
+                  closeLabel={t('uiElements.close')}
                   defaultOpen={overlay === 'drawer'}
                 >
                   <div className="space-y-4">
@@ -191,18 +191,18 @@ export function OverlayElementsPage() {
                   items={[
                     {
                       id: 'workspace',
-                      label: t('nav.reference'),
-                      description: t('reference.description'),
+                      label: t('uiElements.commandTargets.workspace.label'),
+                      description: t('uiElements.commandTargets.workspace.description'),
                     },
                     {
                       id: 'form',
-                      label: t('nav.formReference'),
-                      description: t('formReference.description'),
+                      label: t('uiElements.commandTargets.form.label'),
+                      description: t('uiElements.commandTargets.form.description'),
                     },
                     {
                       id: 'states',
-                      label: t('nav.states'),
-                      description: t('states.description'),
+                      label: t('uiElements.commandTargets.states.label'),
+                      description: t('uiElements.commandTargets.states.description'),
                     },
                   ]}
                 />

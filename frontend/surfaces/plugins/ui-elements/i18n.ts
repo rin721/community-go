@@ -152,6 +152,9 @@ export const pluginI18nResources = {
         dialogTitle: '编辑显示名称',
         dialogDescription: '验证 Portal 内的表单、焦点锁定和 Footer。',
         dialogField: '显示名称',
+        cancel: '取消',
+        confirm: '确认',
+        close: '关闭',
         destructiveConfirm: '危险确认',
         destructiveTitle: '删除当前演示记录？',
         destructiveDescription: '危险动作要求显式确认，并在处理期间阻止重复提交。',
@@ -169,6 +172,20 @@ export const pluginI18nResources = {
         commandSearchLabel: '搜索命令',
         commandSearchPlaceholder: '输入页面或操作名称',
         commandEmpty: '没有匹配命令',
+        commandTargets: {
+          workspace: {
+            label: '数据工作台',
+            description: '跳转到高密度数据工作台验证场景。',
+          },
+          form: {
+            label: '复杂表单',
+            description: '跳转到复杂设置与审批表单验证场景。',
+          },
+          states: {
+            label: '状态体系',
+            description: '跳转到状态体系验证场景。',
+          },
+        },
         compositionTitle: 'Composition 压力测试',
         compositionDescription: 'Embedded Surface 移除重复边框、圆角、阴影与 Padding。',
         embeddedTitle: 'Panel 内嵌 Search',
@@ -465,6 +482,9 @@ export const pluginI18nResources = {
         dialogTitle: 'Edit display name',
         dialogDescription: 'Validates a portal form, focus lock, and footer.',
         dialogField: 'Display name',
+        cancel: 'Cancel',
+        confirm: 'Confirm',
+        close: 'Close',
         destructiveConfirm: 'Danger confirmation',
         destructiveTitle: 'Delete the current demonstration record?',
         destructiveDescription:
@@ -483,6 +503,20 @@ export const pluginI18nResources = {
         commandSearchLabel: 'Search commands',
         commandSearchPlaceholder: 'Enter a page or action',
         commandEmpty: 'No matching commands',
+        commandTargets: {
+          workspace: {
+            label: 'Data workspace',
+            description: 'Navigate to the high-density data workspace scenario.',
+          },
+          form: {
+            label: 'Complex form',
+            description: 'Navigate to the complex settings and approval form scenario.',
+          },
+          states: {
+            label: 'Product states',
+            description: 'Navigate to the product states scenario.',
+          },
+        },
         compositionTitle: 'Composition stress test',
         compositionDescription:
           'Embedded surfaces remove duplicate borders, radii, shadows, and padding.',

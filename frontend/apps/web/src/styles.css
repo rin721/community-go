@@ -3,7 +3,12 @@
 @import '@community-go/design-system/tokens.css';
 @import '@community-go/design-system/motion.css';
 @import '@community-go/surface-foundation/styles.css';
+/* Tailwind v4 source coverage：所有允许业务直接写 Tailwind utility 的正式 source root
+ * 都必须在此显式登记。surfaces/ 是 Product Surface（plugins/src/shell）的唯一正式根；
+ * 漏登记会让「仅该目录使用」的 utility 静默不生成（历史教训：DataTable mb-4）。
+ * 新增正式源码根时必须同步登记（check-tailwind-sources 门禁强制）。 */
 @source '../../../packages';
+@source '../../../surfaces';
 
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 

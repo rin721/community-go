@@ -171,8 +171,7 @@ export function DataElementsPage() {
                     }
                     sort={{
                       ...tableSort,
-                      onSortChange: (columnId, direction) =>
-                        setTableSort({ columnId, direction }),
+                      onSortChange: (columnId, direction) => setTableSort({ columnId, direction }),
                     }}
                   />
                 </div>
